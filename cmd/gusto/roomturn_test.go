@@ -42,8 +42,8 @@ func aRoomWithTwoAgents(t *testing.T, files map[string]string) (*roomRuns, insta
 	return newRoomRuns(instances, nil), held
 }
 
-// turnOf is the task directory and spec of a turn of one of the room's agents.
-func turnOf(t *testing.T, rooms *roomRuns, held instance.Instance, agent string) (job.Dir, job.Spec) {
+// aRoomTurn is the task directory and spec of a turn of one of the room's agents.
+func aRoomTurn(t *testing.T, rooms *roomRuns, held instance.Instance, agent string) (job.Dir, job.Spec) {
 	t.Helper()
 	dir := job.Dir(filepath.Join(t.TempDir(), "turn"))
 	if err := dir.Make(); err != nil {
@@ -77,7 +77,7 @@ func TestTwoAgentsOfARoomRunAtTheSameTimeEachOnACopyOfTheFolder(t *testing.T) {
 	inside.Add(2)
 	var all sync.WaitGroup
 	for _, who := range []struct{ agent, file string }{{"a1", "plan.md"}, {"a2", "notes.md"}} {
-		dir, spec := turnOf(t, rooms, held, who.agent)
+		dir, spec := aRoomTurn(t, rooms, held, who.agent)
 		all.Add(1)
 		go func() {
 			defer all.Done()
@@ -115,7 +115,7 @@ func TestTwoAgentsThatChangedOneFileLeaveBothVersionsAndANoteInTheRoom(t *testin
 	inside.Add(2)
 	proceed := make(chan struct{})
 	for _, agent := range []string{"a1", "a2"} {
-		dir, spec := turnOf(t, rooms, held, agent)
+		dir, spec := aRoomTurn(t, rooms, held, agent)
 		all.Add(1)
 		go func() {
 			defer all.Done()
@@ -159,7 +159,7 @@ func TestTwoAgentsThatChangedDifferentLinesOfOneFileLeaveOneFileWithBoth(t *test
 	inside.Add(2)
 	proceed := make(chan struct{})
 	for _, each := range []struct{ agent, section string }{{"a1", "## Market\ntbd"}, {"a2", "## Plan\ntbd"}} {
-		dir, spec := turnOf(t, rooms, held, each.agent)
+		dir, spec := aRoomTurn(t, rooms, held, each.agent)
 		all.Add(1)
 		go func() {
 			defer all.Done()
@@ -197,15 +197,15 @@ func TestATurnThatFailedOrWasStoppedChangesNothingInTheRoomsFolder(t *testing.T)
 		os.WriteFile(filepath.Join(dir.Workspace(), "a.md"), []byte("half"), 0o644)
 		os.WriteFile(filepath.Join(dir.Workspace(), "b.md"), []byte("new"), 0o644)
 	}
-	failing, spec := turnOf(t, rooms, held, "a1")
+	failing, spec := aRoomTurn(t, rooms, held, "a1")
 	if exit, _ := rooms.around(t.Context(), spec, failing, func() (int, error) { touch(failing); return 1, nil }); exit != 1 {
 		t.Errorf("exit %d", exit)
 	}
-	broken, spec := turnOf(t, rooms, held, "a1")
+	broken, spec := aRoomTurn(t, rooms, held, "a1")
 	if _, err := rooms.around(t.Context(), spec, broken, func() (int, error) { touch(broken); return 0, errors.New("the agent died") }); err == nil {
 		t.Error("the error was lost")
 	}
-	stopped, spec := turnOf(t, rooms, held, "a1")
+	stopped, spec := aRoomTurn(t, rooms, held, "a1")
 	ctx, stop := context.WithCancel(t.Context())
 	if _, err := rooms.around(ctx, spec, stopped, func() (int, error) { touch(stopped); stop(); return 0, nil }); err != nil {
 		t.Errorf("a stopped turn is not an error of the merge: %v", err)
@@ -223,7 +223,7 @@ func TestAnAgentsMemoryIsItsOwnAndStartsFromTheRoomsState(t *testing.T) {
 	shared := rooms.instances.State(held.ID)
 	os.MkdirAll(filepath.Join(shared, "claude"), 0o755)
 	os.WriteFile(filepath.Join(shared, "claude", "session.json"), []byte("earlier"), 0o644)
-	dir, spec := turnOf(t, rooms, held, "a1")
+	dir, spec := aRoomTurn(t, rooms, held, "a1")
 	rooms.around(t.Context(), spec, dir, func() (int, error) {
 		own := stateDir(rooms.instances, spec)
 		if file(t, own, "claude/session.json") != "earlier" {
@@ -234,7 +234,7 @@ func TestAnAgentsMemoryIsItsOwnAndStartsFromTheRoomsState(t *testing.T) {
 	if file(t, shared, "claude/session.json") != "earlier" {
 		t.Error("the agent wrote to the room's shared state")
 	}
-	other, spec2 := turnOf(t, rooms, held, "a2")
+	other, spec2 := aRoomTurn(t, rooms, held, "a2")
 	rooms.around(t.Context(), spec2, other, func() (int, error) {
 		if got := file(t, stateDir(rooms.instances, spec2), "claude/session.json"); got != "earlier" {
 			t.Errorf("another agent saw %q", got)
@@ -275,7 +275,7 @@ func TestATurnWhoseAskerLeftOrWhoseAgentWasTakenOutMidTurnWritesNothing(t *testi
 				t.Fatal(err)
 			}
 			rooms.askedBy = func(job.Dir) string { return "bea@acme.com" }
-			dir, spec := turnOf(t, rooms, held, "a1")
+			dir, spec := aRoomTurn(t, rooms, held, "a1")
 			exit, err := rooms.around(t.Context(), spec, dir, func() (int, error) {
 				if err := os.WriteFile(filepath.Join(dir.Workspace(), "plan.md"), []byte("v2"), 0o644); err != nil {
 					return 1, err

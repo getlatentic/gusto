@@ -1,7 +1,7 @@
 ----------------------------- MODULE Computer ------------------------------
 (***************************************************************************)
 (* One person's computer in an organization (internal/computer and        *)
-(* cmd/gusto/computers.go): its record, its sandbox on the gateway, the   *)
+(* internal/backend/vm): its record, its sandbox on the gateway, the      *)
 (* tasks that run in it, the front door asking for it to be removed when  *)
 (* the person is, and the organization server's tend loop, which removes  *)
 (* what was asked and stops what is idle.  The record keeps one id for    *)

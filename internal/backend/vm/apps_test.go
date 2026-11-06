@@ -1,6 +1,6 @@
 //go:build !windows
 
-package main
+package vm
 
 import (
 	"context"
@@ -17,6 +17,7 @@ import (
 	"github.com/getlatentic/gusto/internal/apps"
 	"github.com/getlatentic/gusto/internal/computer"
 	"github.com/getlatentic/gusto/internal/openshell"
+	"github.com/getlatentic/gusto/internal/openshell/openshelltest"
 )
 
 const appsInstance = "20260930-1200-notes"
@@ -25,7 +26,7 @@ const appsInstance = "20260930-1200-notes"
 // directory her agent works in, and what runs apps there.
 func anAppsHost(t *testing.T, status int) (*sharedApps, string, computer.Computer) {
 	t.Helper()
-	root := withGateway(t)
+	root := openshelltest.Install(t)
 	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// The gateway answers only by the name it gave the app.
 		if !strings.HasPrefix(r.Host, "default--") || !strings.Contains(r.Host, "--a0123456789.openshell.localhost:") {

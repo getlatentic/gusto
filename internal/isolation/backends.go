@@ -46,9 +46,9 @@ func processName(h Host) string {
 	return "Seatbelt"
 }
 
-// processSandbox is the computer's own sandbox around a process: Seatbelt on a Mac, which is nothing to install, and Landlock on
+// ProcessWall is the computer's own sandbox around a process: Seatbelt on a Mac, which is nothing to install, and Landlock on
 // Linux, which gusto applies itself. It is tried with a real process, and not assumed from the command or the kernel being there.
-func processSandbox(h Host) Backend {
+func ProcessWall(h Host) Backend {
 	no := func(why string) Backend { return Backend{Kind: Process, Detail: why} }
 	switch h.GOOS {
 	case "darwin":

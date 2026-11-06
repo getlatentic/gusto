@@ -1,8 +1,7 @@
-package main
+package vm
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/computer"
@@ -12,7 +11,7 @@ import (
 )
 
 // spareComputers is the one blank computer this server keeps ready, so the first task of a person who has no computer yet
-// does not wait for the gateway to make one. It is on when GUSTO_SPARE_COMPUTER is on.
+// does not wait for the gateway to make one.
 type spareComputers struct {
 	pool *spare.Pool
 	key  string
@@ -22,12 +21,8 @@ type spareComputers struct {
 // going to answer, and a failure is tried again after ten seconds, then twice as long each time up to ten minutes.
 var sparePolicy = spare.Timing{MakeWithin: 5 * time.Minute, RemoveWithin: 2 * time.Minute, RetryFirst: 10 * time.Second, RetryMost: 10 * time.Minute}
 
-// openSpareComputers starts keeping a spare computer for the organization until ctx ends. It returns nothing when the
-// setting is off.
+// openSpareComputers starts keeping a spare computer for the organization until ctx ends.
 func openSpareComputers(ctx context.Context, cfg openshell.Config, org, modelURL string) (*spareComputers, error) {
-	if os.Getenv("GUSTO_SPARE_COMPUTER") != "on" {
-		return nil, nil
-	}
 	key, err := openshell.BlankKey(cfg, modelURL)
 	if err != nil {
 		return nil, err

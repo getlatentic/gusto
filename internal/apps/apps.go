@@ -3,6 +3,7 @@
 package apps
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -233,4 +234,15 @@ func (s *Store) Delete(id string) error {
 		return err
 	}
 	return nil
+}
+
+// Runner runs the web apps that agents built, where the agents are. Start runs the app's
+// command in the agent's computer and returns the app with where it can be asked, once it
+// answers, or says why it did not. A deployment whose agents do not run in computers has none,
+// and offers no sharing.
+type Runner interface {
+	Start(ctx context.Context, app App) (App, error)
+	Stop(ctx context.Context, app App) error
+	// Answers says whether a live app answers a request.
+	Answers(ctx context.Context, app App) error
 }

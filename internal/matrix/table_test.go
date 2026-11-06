@@ -11,7 +11,6 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/matrix"
 	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -26,7 +25,7 @@ const calls = `{"path":"/v1/chat/completions","status":200,"atUnix":1767225600,"
 
 func (d *door) Listen() (func(), error) { return func() {}, nil }
 
-func (d *door) Run(dir job.Dir, _ job.Spec, _ ...sandbox.Mount) (int, error) {
+func (d *door) Run(dir job.Dir, _ job.Spec) (int, error) {
 	if err := os.WriteFile(dir.OutFile("proxy.jsonl"), []byte(calls), 0o644); err != nil {
 		return 0, err
 	}

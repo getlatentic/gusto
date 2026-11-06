@@ -20,25 +20,20 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/cloud"
 	"github.com/getlatentic/gusto/internal/compare"
-	"github.com/getlatentic/gusto/internal/computer"
 	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/integration"
 	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/notify"
-	"github.com/getlatentic/gusto/internal/openshell"
 	"github.com/getlatentic/gusto/internal/orgsettings"
 	"github.com/getlatentic/gusto/internal/preset"
 	"github.com/getlatentic/gusto/internal/quota"
 	"github.com/getlatentic/gusto/internal/retention"
 	"github.com/getlatentic/gusto/internal/roomlive"
-	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/internal/setup"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/internal/web"
-	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/pkg/spend"
 	"github.com/getlatentic/gusto/pkg/wire"
@@ -102,16 +97,24 @@ func serve(args []string) int {
 			return fail(err)
 		}
 	}
-	stopProxy, err := way.Listen()
+	// Pages an agent built are shared wherever it works; an app with a command of its own needs the agent's computer.
+	shared, err := apps.Open(setting("GUSTO_APPS", "apps"))
+	if err != nil {
+		return fail(err)
+	}
+	boxes, err := openBackend(shared, way.proxyPort())
+	if err != nil {
+		return fail(err)
+	}
+	if err := boxes.Check(); err != nil {
+		return fail(err)
+	}
+	stopProxy, err := way.Listen(boxes.Reach())
 	if err != nil {
 		return fail(err)
 	}
 	defer stopProxy()
 	index.SetLimits(jobs.Limits{Person: number("GUSTO_LIMIT_PERSON", 0), Team: number("GUSTO_LIMIT_TEAM", 0)})
-	computers, err := computersFromEnv()
-	if err != nil {
-		return fail(err)
-	}
 	rooms := newRoomRuns(instances, func(dir job.Dir) string { return personWhoAsked(index, dir) })
 	way.UseRunRecords(func(dir job.Dir, spec job.Spec) evidence.Run { return runRecord(index, instances, dir, spec) })
 	way.UseAskers(func(id string) string {
@@ -120,38 +123,17 @@ func serve(args []string) int {
 		}
 		return ""
 	})
-	work, err := chosenWork(way, instances, index, computers, rooms)
+	// Started before any turn: a backend keeps up what its turns use, such as its image or people's computers.
+	stopBoxes, err := boxes.Start(context.Background())
 	if err != nil {
 		return fail(err)
 	}
-	// Pages an agent built are shared wherever it works; an app with a command of its own needs the agent's computer.
-	shared, err := apps.Open(setting("GUSTO_APPS", "apps"))
-	if err != nil {
-		return fail(err)
-	}
-	var sharing *sharedApps
-	if computers != nil {
-		cfg, err := openshell.FromEnv()
-		if err != nil {
-			return fail(err)
-		}
-		sharing = newSharedApps(cfg, computers, shared)
-		tending, stopTending := context.WithCancel(context.Background())
-		defer stopTending()
-		way.computers = newComputerUse()
-		go tendComputers(tending, cfg, computers, way.computers, sharing.serving,
-			30*time.Second, time.Duration(number("GUSTO_COMPUTER_IDLE_MINUTES", 30))*time.Minute)
-		if way.spares, err = openSpareComputers(tending, cfg, os.Getenv("GUSTO_ORG"), "http://"+cfg.Host+":"+way.proxyPort()+"/model/v1"); err != nil {
-			return fail(err)
-		}
-		defer way.spares.close()
-	}
+	defer stopBoxes()
+	work := turns(boxes, way, instances, index, rooms)
 	queue := jobs.StartStoppable(index, work, number("GUSTO_JOB_CONCURRENCY", 1))
 	defer queue.Stop()
 
-	// Asked once, at startup: the answer changes only when the image does, and
-	// asking per page would start a container for every row somebody looks at.
-	offered := surveyed(harness.Names())
+	offered := boxes.Offered()
 	for _, entry := range offered {
 		if !entry.Ready {
 			fmt.Printf("  %-10s not offered: %s\n", entry.Name, entry.Why)
@@ -180,14 +162,6 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	pages.UseRoomHold(rooms.hub.Hold)
-	if imageFetched() {
-		waiting, stopWaiting := context.WithCancel(context.Background())
-		read, done := awaitImage(waiting, offered, sandbox.EnsureImage, func() []catalog.Entry { return surveyed(harness.Names()) })
-		defer func() { stopWaiting(); <-done }()
-		if read != nil {
-			pages.UseLiveCatalog(read)
-		}
-	}
 	if wall != nil {
 		pages.UseWall(theWall())
 	}
@@ -209,20 +183,18 @@ func serve(args []string) int {
 		os.Setenv("PATH", installer.WithBin(os.Getenv("PATH")))
 		pages.UseInstaller(installer)
 	}
-	if runsHere() {
-		// A person installs an agent on their own computer while the server runs, and looking at the PATH costs nothing.
-		pages.UseLiveCatalog(func() []catalog.Entry {
-			if local {
-				adoptRecordedPath()
-			}
-			if installer != nil {
-				os.Setenv("PATH", installer.WithBin(os.Getenv("PATH")))
-			}
-			return surveyed(harness.Names())
-		})
-	}
-	if sharing != nil {
-		pages.UseApps(shared, sharing)
+	pages.UseLiveCatalog(func() []catalog.Entry {
+		// A person installs an agent on their own computer while the server runs, and an agent run here is found on the PATH.
+		if local && runsHere() {
+			adoptRecordedPath()
+		}
+		if installer != nil {
+			os.Setenv("PATH", installer.WithBin(os.Getenv("PATH")))
+		}
+		return boxes.Offered()
+	})
+	if host, ok := boxes.(appHost); ok && host.Apps() != nil {
+		pages.UseApps(shared, host.Apps())
 		pages.ReconcileApps()
 	} else {
 		pages.UseApps(shared, nil)
@@ -407,72 +379,9 @@ func serve(args []string) int {
 	return 0
 }
 
-// chosenWork decides where a task runs. A container is the product; running a
-// task in this process is for a laptop with no image built.
-func chosenWork(way *WayOut, instances *instance.Store, index *jobs.Index, registry *computer.Registry, rooms *roomRuns) (jobs.StoppableWork, error) {
-	switch os.Getenv("GUSTO_SANDBOX") {
-	case "here", "process":
-		return here(way, instances, rooms), nil
-	case "openshell":
-		if err := openshell.HostCannotMakeVMs(); err != nil {
-			return nil, err
-		}
-		cfg, err := openshell.FromEnv()
-		if err != nil {
-			return nil, err
-		}
-		return inSandbox(way, cfg, index, registry, instances, rooms), nil
-	}
-	return func(ctx context.Context, dir job.Dir) (int, error) {
-		spec, err := job.Read(dir)
-		if err != nil {
-			return 0, err
-		}
-		// The checkout happens outside the box, so a repository credential
-		// never goes in with the agent.
-		if err := runner.Fill(spec, dir); err != nil {
-			return 0, err
-		}
-		defer way.Done(dir)
-		home, err := keptHome(index, dir, spec)
-		if err != nil {
-			return 0, err
-		}
-		exit, err := rooms.around(ctx, spec, dir, func() (int, error) {
-			return way.RunContext(ctx, dir, spec, ownerOf(index, dir, spec), append(home, staying(instances, spec)...)...)
-		})
-		// A turn learns what the agent calls the conversation, and the next
-		// turn is handed it back. Without this every turn starts again.
-		if manifest, read := evidence.Read(dir); read == nil {
-			learnConversation(instances, spec, manifest.Session)
-		}
-		return exit, err
-	}, nil
-}
-
-// inSandbox runs each task's agent in an OpenShell sandbox. The checkout
-// happens here, outside the sandbox, as it does for a container.
-func inSandbox(way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry, instances *instance.Store, rooms *roomRuns) jobs.StoppableWork {
-	return func(ctx context.Context, dir job.Dir) (int, error) {
-		spec, err := job.Read(dir)
-		if err != nil {
-			return 0, err
-		}
-		if err := runner.Fill(spec, dir); err != nil {
-			return 0, err
-		}
-		defer way.Done(dir)
-		if err := beforeTurn(instances, spec, dir); err != nil {
-			return 0, err
-		}
-		return rooms.around(ctx, spec, dir, func() (int, error) {
-			exit, err := ranInSandbox(ctx, way, cfg, index, registry, dir, spec)
-			if afterErr := afterTurn(instances, spec, dir); afterErr != nil && err == nil {
-				err = afterErr
-			}
-			return exit, err
-		})
-	}
+// appHost is a backend that runs the web apps agents built where the agents are.
+type appHost interface {
+	Apps() apps.Runner
 }
 
 func setting(name, fallback string) string {
@@ -501,51 +410,6 @@ func number(name string, fallback int) int {
 		return fallback
 	}
 	return value
-}
-
-// pointAt makes a task's workspace a link to the instance's.
-//
-// The task directory is made before it is queued, which leaves a real, empty
-// directory where the workspace goes; a link cannot be put over one. Remove
-// refuses a directory with anything in it, so a task that has its own checkout
-// is never quietly replaced.
-func pointAt(workspace string, dir job.Dir) error {
-	if err := dir.Make(); err != nil {
-		return err
-	}
-	if err := os.Remove(dir.Workspace()); err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	// A link's relative target is read from the link's own folder, not from where the server runs.
-	target, err := filepath.Abs(workspace)
-	if err != nil {
-		return err
-	}
-	return linkDir(target, dir.Workspace())
-}
-
-// surveyed is the agents this deployment can run. In a container that is asked
-// of the runtime, in a sandbox on a gateway it is asked of a sandbox, and a task
-// run in this process finds its program on this computer's PATH.
-func surveyed(names []string) []catalog.Entry {
-	switch os.Getenv("GUSTO_SANDBOX") {
-	case "here", "process":
-		return catalog.SurveyOf(catalog.Machine(), names)
-	case "openshell":
-		if cfg, err := openshell.FromEnv(); err == nil {
-			return catalog.SurveyOf(openshell.Remembered(openshell.Image(cfg), cfg.Image), names)
-		}
-	}
-	return catalog.Survey(sandbox.Runtime(), sandbox.Image(), harness.Names())
-}
-
-// ranInSandbox runs a task in the computer of the person who asked for it, and one asked
-// for by a script or a token, which is nobody's, in a sandbox of its own.
-func ranInSandbox(ctx context.Context, way *WayOut, cfg openshell.Config, index *jobs.Index, registry *computer.Registry, dir job.Dir, spec job.Spec) (int, error) {
-	if person := personWhoPays(index, dir); registry != nil && person != "" {
-		return way.RunInComputer(ctx, dir, spec, cfg, registry, person)
-	}
-	return way.RunInSandboxContext(ctx, dir, spec, cfg)
 }
 
 // routineNews is who is told how each run of a routine ended: an address that takes a signed request, named by

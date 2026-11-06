@@ -3,7 +3,6 @@ package matrix
 import (
 	"github.com/getlatentic/gusto/internal/replay"
 	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -33,7 +32,7 @@ func Here() Way {
 // and the model's own address when none is.
 type Door interface {
 	Listen() (func(), error)
-	Run(dir job.Dir, spec job.Spec, mounts ...sandbox.Mount) (int, error)
+	Run(dir job.Dir, spec job.Spec) (int, error)
 	Done(dir job.Dir)
 }
 

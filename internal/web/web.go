@@ -71,7 +71,7 @@ type Server struct {
 	registry     *registry.Registry
 	// apps and runner are the web apps people share from their agents' computers.
 	apps       *apps.Store
-	runner     AppRunner
+	runner     apps.Runner
 	publishing sync.WaitGroup
 	// checking is the apps a request could not reach that are being asked again, one check for each.
 	checking sync.Map

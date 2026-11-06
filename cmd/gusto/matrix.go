@@ -1,12 +1,12 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 
+	"github.com/getlatentic/gusto/internal/backend"
 	"github.com/getlatentic/gusto/internal/matrix"
-	"github.com/getlatentic/gusto/internal/openshell"
-	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/pkg/job"
 )
 
@@ -52,36 +52,35 @@ func benchmarkTasks(args []string) int {
 	return exit
 }
 
-// matrixWay is where a plan's runs go: in this process, in a sandbox on a
-// gateway when the deployment runs tasks there, and in a container otherwise.
+// matrixWay is where a plan's runs go: in this process, or in the box a server's turns run in, through the proxy when a
+// credential is held.
 func matrixWay(here bool) (matrix.Way, error) {
 	if here {
 		return matrix.Here(), nil
 	}
-	if os.Getenv("GUSTO_SANDBOX") != "openshell" {
-		where := "in a container, " + sandbox.Runtime() + " " + sandbox.Image()
-		return matrix.Contained(where, func(root string) (matrix.Door, error) { return openWayOut(root) }), nil
-	}
-	cfg, err := openshell.FromEnv()
+	boxes, err := openBackend(nil, "")
 	if err != nil {
 		return matrix.Way{}, err
 	}
-	where := "in an OpenShell sandbox, " + cfg.Image
-	return matrix.Contained(where, func(root string) (matrix.Door, error) {
+	return matrix.Contained(boxes.String(), func(root string) (matrix.Door, error) {
 		way, err := openWayOut(root)
 		if err != nil {
 			return nil, err
 		}
-		return sandboxed{way, cfg}, nil
+		return benchmarkDoor{way, boxes}, nil
 	}), nil
 }
 
-// sandboxed is a way out whose runs start in a sandbox on the gateway.
-type sandboxed struct {
-	*WayOut
-	cfg openshell.Config
+// benchmarkDoor is a way out whose runs start in the server's boxes.
+type benchmarkDoor struct {
+	way   *WayOut
+	boxes backend.Backend
 }
 
-func (s sandboxed) Run(dir job.Dir, spec job.Spec, _ ...sandbox.Mount) (int, error) {
-	return s.RunInSandbox(dir, spec, s.cfg)
+func (d benchmarkDoor) Listen() (func(), error) { return d.way.Listen(d.boxes.Reach()) }
+
+func (d benchmarkDoor) Run(dir job.Dir, spec job.Spec) (int, error) {
+	return d.boxes.Run(context.Background(), backend.Turn{Dir: dir, Spec: spec, Exit: d.way.exit()})
 }
+
+func (d benchmarkDoor) Done(dir job.Dir) { d.way.Done(dir) }

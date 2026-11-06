@@ -1,4 +1,4 @@
-package main
+package process
 
 import (
 	"os"
@@ -26,7 +26,7 @@ type wallPolicy struct {
 // workspace, its own home, its conversation's state and its cache; it can read none of the person's home but those, its own folder,
 // and where its engine and the programs on its PATH are; and it reaches nothing on the network but gusto's proxy, unless the network
 // is left open.
-func behindProcessWall(dir job.Dir, spec job.Spec, home, data, proxyPort string) (func(*exec.Cmd), error) {
+func behindProcessWall(dir job.Dir, spec job.Spec, home, data, proxyPort string, open bool) (func(*exec.Cmd), error) {
 	person, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func behindProcessWall(dir job.Dir, spec job.Spec, home, data, proxyPort string)
 		Writable: []string{workspace, home, data, sharedCache()},
 		Readable: append([]string{mustAbs(dir.Path())}, programFolders(spec.Harness, person)...),
 	}
-	if os.Getenv("GUSTO_JOB_NETWORK") != "open" {
+	if !open {
 		if policy.ProxyPort, err = strconv.Atoi(proxyPort); err != nil {
 			return nil, err
 		}
