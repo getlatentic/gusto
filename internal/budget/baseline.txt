@@ -75,7 +75,6 @@
 45 12 internal/jobs/reconcile.go:Rebuild
 42 13 internal/landlock/apply_linux.go:Apply
 42 12 internal/live/live.go:Fingerprint
-38 12 internal/live/live.go:Watch
 29 11 internal/live/settings.go:ReadSettings
 45 13 internal/openshell/computer.go:(*Sandbox).startInComputer
 49 14 internal/openshell/openshell.go:(*Sandbox).Equip

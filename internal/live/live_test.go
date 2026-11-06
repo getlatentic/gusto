@@ -5,13 +5,11 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 	"time"
 )
 
-// write puts text in path whole, as an editor saves a file: written beside it and renamed over it. A file written in place is
-// empty for a moment, and a watcher looking every few milliseconds on a busy machine can take that moment for a change.
+// write puts text in path whole, as an editor saves a file: written beside it and renamed over it.
 func write(t *testing.T, path, text string) {
 	t.Helper()
 	beside := path + ".writing"
@@ -23,117 +21,87 @@ func write(t *testing.T, path, text string) {
 	}
 }
 
-type told struct {
-	mu      sync.Mutex
-	changes []Change
+// counted is a source whose Apply counts its calls and refuses what refuse says to.
+type counted struct {
+	path    string
+	applied []string
+	refuse  bool
 }
 
-func (c *told) add(change Change) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.changes = append(c.changes, change)
-}
-func (c *told) all() []Change {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return append([]Change(nil), c.changes...)
-}
-
-func waitFor(t *testing.T, what string, done func() bool) {
-	t.Helper()
-	deadline := time.Now().Add(5 * time.Second)
-	for !done() {
-		if time.Now().After(deadline) {
-			t.Fatalf("no %s in 5 seconds", what)
+func (c *counted) source() Source {
+	return Source{Name: "policy", Path: c.path, Apply: func() error {
+		text, _ := os.ReadFile(c.path)
+		c.applied = append(c.applied, string(text))
+		if c.refuse {
+			return errors.New("not valid")
 		}
-		time.Sleep(5 * time.Millisecond)
-	}
+		return nil
+	}}
+}
+
+// watching is a watcher of one counted source, and what it was told.
+func watching(t *testing.T, text string) (*watcher, *counted, *[]Change) {
+	t.Helper()
+	c := &counted{path: filepath.Join(t.TempDir(), "policy.json")}
+	write(t, c.path, text)
+	var heard []Change
+	return newWatcher([]Source{c.source()}, func(change Change) { heard = append(heard, change) }), c, &heard
 }
 
 func TestAChangeIsAppliedOnceAndWhatWasThereAtStartIsNot(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "policy.json")
-	write(t, path, "one")
-	var applied int
-	var mu sync.Mutex
-	heard := &told{}
-	ctx, stop := context.WithCancel(context.Background())
-	defer stop()
-	go Watch(ctx, 5*time.Millisecond, []Source{{Name: "policy", Path: path, Apply: func() error { mu.Lock(); applied++; mu.Unlock(); return nil }}}, heard.add)
-	time.Sleep(60 * time.Millisecond)
-	mu.Lock()
-	if applied != 0 {
-		t.Errorf("what was there at the start was applied %d times", applied)
+	t.Parallel()
+	w, c, heard := watching(t, "one")
+	w.look()
+	w.look()
+	if len(c.applied) != 0 {
+		t.Errorf("what was there at the start was applied: %q", c.applied)
 	}
-	mu.Unlock()
-	write(t, path, "two")
-	waitFor(t, "a change", func() bool { return len(heard.all()) == 1 })
-	time.Sleep(60 * time.Millisecond)
-	mu.Lock()
-	defer mu.Unlock()
-	change := heard.all()[0]
-	if applied != 1 || change.Err != nil || change.Name != "policy" || change.Was == change.Now || change.Was == "" || len(heard.all()) != 1 {
-		t.Errorf("applied %d times, change %+v, told %d times", applied, change, len(heard.all()))
+	write(t, c.path, "two")
+	w.look()
+	if len(c.applied) != 0 {
+		t.Error("a change seen once was applied, before it could be told from a file half written")
+	}
+	w.look()
+	w.look()
+	if len(c.applied) != 1 || len(*heard) != 1 {
+		t.Fatalf("applied %q, told %d times", c.applied, len(*heard))
+	}
+	change := (*heard)[0]
+	if change.Err != nil || change.Name != "policy" || change.Was == change.Now || change.Was == "" {
+		t.Errorf("told %+v", change)
 	}
 }
 
 func TestAFileThatIsRefusedStaysRefusedUntilItChangesAndThenIsTakenAgain(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "policy.json")
-	write(t, path, "good")
-	var mu sync.Mutex
-	tried := 0
-	refuse := true
-	heard := &told{}
-	ctx, stop := context.WithCancel(context.Background())
-	defer stop()
-	go Watch(ctx, 5*time.Millisecond, []Source{{Name: "policy", Path: path, Apply: func() error {
-		mu.Lock()
-		defer mu.Unlock()
-		tried++
-		if refuse {
-			return errors.New("not valid")
-		}
-		return nil
-	}}}, heard.add)
-	time.Sleep(30 * time.Millisecond)
-	write(t, path, "bad")
-	waitFor(t, "a refusal", func() bool { return len(heard.all()) == 1 })
-	time.Sleep(80 * time.Millisecond)
-	mu.Lock()
-	if tried != 1 || heard.all()[0].Err == nil {
-		t.Errorf("the same bad content was tried %d times", tried)
+	t.Parallel()
+	w, c, heard := watching(t, "good")
+	c.refuse = true
+	write(t, c.path, "bad")
+	for range 4 {
+		w.look()
 	}
-	refuse = false
-	mu.Unlock()
-	write(t, path, "fixed")
-	waitFor(t, "the fix", func() bool { return len(heard.all()) == 2 })
-	if heard.all()[1].Err != nil {
-		t.Errorf("the fixed file was refused: %v", heard.all()[1].Err)
+	if len(c.applied) != 1 || len(*heard) != 1 || (*heard)[0].Err == nil {
+		t.Errorf("the same bad content was tried %d times, told %+v", len(c.applied), *heard)
+	}
+	c.refuse = false
+	write(t, c.path, "fixed")
+	w.look()
+	w.look()
+	if len(*heard) != 2 || (*heard)[1].Err != nil {
+		t.Errorf("the fixed file was not taken: %+v", *heard)
 	}
 }
 
 func TestAFileThatIsEmptiedBeforeItIsFilledIsNotTakenAsTheSetting(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "policy.json")
-	write(t, path, `{"rules":[{"tool":"x","effect":"deny"}]}`)
-	var mu sync.Mutex
-	var read []string
-	ctx, stop := context.WithCancel(context.Background())
-	defer stop()
-	go Watch(ctx, 20*time.Millisecond, []Source{{Name: "policy", Path: path, Apply: func() error {
-		text, _ := os.ReadFile(path)
-		mu.Lock()
-		read = append(read, string(text))
-		mu.Unlock()
-		return nil
-	}}}, nil)
-	time.Sleep(30 * time.Millisecond)
-	write(t, path, "")
-	time.Sleep(5 * time.Millisecond)
-	write(t, path, `{"rules":[{"tool":"y","effect":"deny"}]}`)
-	time.Sleep(150 * time.Millisecond)
-	mu.Lock()
-	defer mu.Unlock()
-	if len(read) != 1 || read[0] != `{"rules":[{"tool":"y","effect":"deny"}]}` {
-		t.Errorf("what was read: %q", read)
+	t.Parallel()
+	w, c, _ := watching(t, `{"rules":[{"tool":"x","effect":"deny"}]}`)
+	write(t, c.path, "")
+	w.look()
+	write(t, c.path, `{"rules":[{"tool":"y","effect":"deny"}]}`)
+	w.look()
+	w.look()
+	if len(c.applied) != 1 || c.applied[0] != `{"rules":[{"tool":"y","effect":"deny"}]}` {
+		t.Errorf("what was read: %q", c.applied)
 	}
 }
 
@@ -161,13 +129,29 @@ func TestAFolderChangesWhenAnyJSONFileInItDoesAndNotForOtherFiles(t *testing.T) 
 }
 
 func TestASourceWithNoPathIsNotWatched(t *testing.T) {
+	t.Parallel()
 	applied := false
-	ctx, stop := context.WithCancel(context.Background())
-	go Watch(ctx, 2*time.Millisecond, []Source{{Name: "none", Apply: func() error { applied = true; return nil }}}, nil)
-	time.Sleep(30 * time.Millisecond)
-	stop()
+	w := newWatcher([]Source{{Name: "none", Apply: func() error { applied = true; return nil }}}, nil)
+	w.look()
+	w.look()
 	if applied {
 		t.Error("a source with no path was applied")
+	}
+}
+
+func TestWatchStopsWhenItsContextEnds(t *testing.T) {
+	t.Parallel()
+	ctx, stop := context.WithCancel(context.Background())
+	ended := make(chan struct{})
+	go func() {
+		Watch(ctx, time.Millisecond, []Source{{Name: "policy", Path: filepath.Join(t.TempDir(), "policy.json"), Apply: func() error { return nil }}}, nil)
+		close(ended)
+	}()
+	stop()
+	select {
+	case <-ended:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Watch went on after its context ended")
 	}
 }
 
