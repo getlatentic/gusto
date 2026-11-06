@@ -18,13 +18,25 @@ import (
 
 	"strings"
 
+	"github.com/getlatentic/gusto/internal/settings"
 	"github.com/getlatentic/gusto/internal/web"
 )
 
+// localPlace is the setting every command of gusto on a person's own computer reads.
+type localPlace struct{ home string }
+
+func (l *localPlace) declare(set *settings.Set) {
+	set.String(&l.home, "GUSTO_LOCAL_HOME", "", "where gusto keeps your work, instead of the system's place for an app's data")
+}
+
 // localHome is where gusto keeps a person's work on their own computer: GUSTO_LOCAL_HOME, or the system's place for an app's data.
 func localHome() (string, error) {
-	if home := os.Getenv("GUSTO_LOCAL_HOME"); home != "" {
-		return home, nil
+	var place localPlace
+	if err := loadSettings(place.declare); err != nil {
+		return "", err
+	}
+	if place.home != "" {
+		return place.home, nil
 	}
 	userHome, err := os.UserHomeDir()
 	if err != nil {
@@ -120,13 +132,6 @@ func runLocal(home string) int {
 	if err := os.WriteFile(filepath.Join(home, "gusto.pid"), []byte(strconv.Itoa(os.Getpid())), 0o600); err != nil {
 		return fail(err)
 	}
-	os.Setenv("GUSTO_PASSWORD", setup.Secret)
-	os.Setenv("GUSTO_ADDR", fmt.Sprintf("127.0.0.1:%d", setup.Port))
-	os.Setenv("GUSTO_PROXY_ADDR", fmt.Sprintf("127.0.0.1:%d", setup.ProxyPort))
-	os.Setenv("GUSTO_LOCAL", "1")
-	// The person adds the models they use, as the admin of their own registry, and a model on this computer is theirs to use.
-	os.Setenv("GUSTO_REGISTRY", filepath.Join(home, "registry"))
-	os.Setenv("GUSTO_REGISTRY_PRIVATE", "allow")
 	// Started by the desktop app before anything recorded the person's PATH, gusto asks their shell for it.
 	if setup.Path == "" {
 		if setup.Path = loginShellPath(); setup.Path != "" {
@@ -138,10 +143,23 @@ func runLocal(home string) int {
 	if setup.Path != "" {
 		os.Setenv("PATH", setup.Path)
 	}
-	os.Setenv("GUSTO_FOUND_KEYS", strings.Join(setup.FoundKeys, ","))
 	useInstalledWall(home)
 	chooseWall()
-	return serve(nil)
+	return serveFrom(settings.Over(ownServer(home, setup), os.Getenv))
+}
+
+// ownServer is the settings gusto decides for the server of one person on their own computer, over any they set themselves.
+func ownServer(home string, setup localSetup) map[string]string {
+	return map[string]string{
+		"GUSTO_PASSWORD":   setup.Secret,
+		"GUSTO_ADDR":       fmt.Sprintf("127.0.0.1:%d", setup.Port),
+		"GUSTO_PROXY_ADDR": fmt.Sprintf("127.0.0.1:%d", setup.ProxyPort),
+		"GUSTO_LOCAL":      "1",
+		// The person adds the models they use, as the admin of their own registry, and a model on this computer is theirs to use.
+		"GUSTO_REGISTRY":         filepath.Join(home, "registry"),
+		"GUSTO_REGISTRY_PRIVATE": "allow",
+		"GUSTO_FOUND_KEYS":       strings.Join(setup.FoundKeys, ","),
+	}
 }
 
 // openCommand opens gusto on this computer in the browser, signed in.

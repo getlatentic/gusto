@@ -37,7 +37,7 @@ func runCommands() []*cmdline.Command {
 		{
 			Name: "open", Group: groupRun, Summary: "Open gusto on this computer in the browser, signed in",
 			Description: "Opens a new sign-in link to the gusto that runs for you on this computer, and prints it when no browser opens.",
-			Env:         []cmdline.Param{{Name: "GUSTO_LOCAL_HOME", Text: "where gusto keeps your work on this computer"}},
+			Env:         cmdline.ParamsOf(new(localPlace).declare),
 			Examples:    []string{"gusto open"},
 			SeeAlso:     []string{"local install"},
 			Run:         none("open", openCommand),
@@ -46,10 +46,8 @@ func runCommands() []*cmdline.Command {
 			Name: "local", Group: groupRun, Summary: "Run gusto for one person on this computer",
 			Description: "Gusto for one person on their own computer: it starts when you sign in, listens on the loopback only, and " +
 				"keeps its data in your account's data folder.",
-			Env: []cmdline.Param{
-				{Name: "GUSTO_LOCAL_HOME", Text: "where gusto keeps your work, instead of the system's place for an app's data"},
-				{Name: "GUSTO_KEYCHAIN", Text: "off keeps model keys in files only you can read, not in the keychain"},
-			},
+			Env: append(cmdline.ParamsOf(new(localPlace).declare),
+				cmdline.Param{Name: "GUSTO_KEYCHAIN", Text: "off keeps model keys in files only you can read, not in the keychain"}),
 			SeeAlso: []string{"open", "doctor"},
 			Subs:    localCommands(),
 		},

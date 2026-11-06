@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -52,7 +53,7 @@ func TestServesSettingsReadAsTheirTypesAndAWrongOneIsSaid(t *testing.T) {
 func TestAServerWithAWrongSettingDoesNotStart(t *testing.T) {
 	t.Setenv("GUSTO_PASSWORD", "p")
 	t.Setenv("GUSTO_JOB_CONCURRENCY", "two")
-	if s, code := newServer(); s != nil || code != 2 {
+	if s, code := newServer(os.Getenv); s != nil || code != 2 {
 		t.Errorf("a server with a wrong setting started: %v %d", s, code)
 	}
 }

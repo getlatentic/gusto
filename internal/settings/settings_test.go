@@ -124,3 +124,15 @@ func TestASettingDeclaredTwiceOrWithNoHelpPanics(t *testing.T) {
 		}()
 	}
 }
+
+// What a command decides itself is read before what the environment says, and the rest comes from the environment.
+func TestOverReadsWhatTheCommandDecidedFirst(t *testing.T) {
+	t.Parallel()
+	environment := map[string]string{"GUSTO_ADDR": "0.0.0.0:80", "GUSTO_ORG": "acme"}
+	lookup := Over(map[string]string{"GUSTO_ADDR": "127.0.0.1:8040", "GUSTO_LOCAL": "1"}, func(name string) string { return environment[name] })
+	for name, want := range map[string]string{"GUSTO_ADDR": "127.0.0.1:8040", "GUSTO_LOCAL": "1", "GUSTO_ORG": "acme", "GUSTO_NONE": ""} {
+		if got := lookup(name); got != want {
+			t.Errorf("%s is %q, want %q", name, got, want)
+		}
+	}
+}

@@ -16,6 +16,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/landlock"
 	"github.com/getlatentic/gusto/internal/runtoken"
+	"github.com/getlatentic/gusto/internal/settings"
 )
 
 // An agent in a sandbox reaches its model through a forwarder of the run's own, and is held to a Landlock policy when its task
@@ -32,7 +33,11 @@ func boxed(args []string) int {
 	if err != nil {
 		return usageError("boxed", err.Error())
 	}
-	secret := os.Getenv("GUSTO_MODEL_TOKEN")
+	var s boxedSettings
+	if err := loadSettings(s.declare); err != nil {
+		return refused(err)
+	}
+	secret := s.secret
 	if secret == "" {
 		return fail(errors.New("the run has no secret to trade for its token"))
 	}
@@ -56,6 +61,13 @@ func boxed(args []string) int {
 	}
 	swap := strings.NewReplacer(runtoken.Place, local, secret, "dpop")
 	return fail(syscall.Exec(program, swapped(command, swap), swapped(os.Environ(), swap)))
+}
+
+// boxedSettings is the one setting gusto boxed reads, which gusto sets for the sandbox it starts.
+type boxedSettings struct{ secret string }
+
+func (b *boxedSettings) declare(set *settings.Set) {
+	set.Secret(&b.secret, "GUSTO_MODEL_TOKEN", "the run's secret, which the forwarder trades for a token bound to its own key")
 }
 
 // boxedArgs reads --model URL, an optional --policy, and the command after --.

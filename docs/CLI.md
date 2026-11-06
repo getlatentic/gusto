@@ -661,7 +661,7 @@ Flags:
 
 Environment:
 
-- `GUSTO_LOCAL_HOME`: where gusto keeps your work on this computer
+- `GUSTO_LOCAL_HOME`: where gusto keeps your work, instead of the system's place for an app's data
 
 Examples:
 

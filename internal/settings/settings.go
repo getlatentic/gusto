@@ -182,3 +182,14 @@ func (s *Set) Params() []Param {
 	}
 	return params
 }
+
+// Over is lookup with the values in over read first, for a command that decides some settings itself and leaves the rest to
+// lookup.
+func Over(over map[string]string, lookup func(name string) string) func(name string) string {
+	return func(name string) string {
+		if value, decided := over[name]; decided {
+			return value
+		}
+		return lookup(name)
+	}
+}

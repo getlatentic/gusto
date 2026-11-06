@@ -26,7 +26,7 @@ type attribution struct {
 }
 
 func openAttribution(tasks string) (*attribution, error) {
-	cfg, _, err := loadServe()
+	cfg, _, err := loadServe(os.Getenv)
 	if err != nil {
 		return nil, err
 	}

@@ -28,13 +28,13 @@ func (s *serveSettings) declare(set *settings.Set) {
 	s.news.declare(set)
 }
 
-// loadServe reads serve's settings from this process's environment. The set is kept, so the settings people sign in under can
-// be recorded as they were set.
-func loadServe() (serveSettings, *settings.Set, error) {
+// loadServe reads serve's settings from lookup. The set is kept, so the settings people sign in under can be recorded as they
+// were set.
+func loadServe(lookup func(string) string) (serveSettings, *settings.Set, error) {
 	var s serveSettings
 	set := settings.New()
 	s.declare(set)
-	return s, set, set.Load(os.Getenv)
+	return s, set, set.Load(lookup)
 }
 
 // loadSettings reads the settings that declare declares from this process's environment, for a command that needs only some.
