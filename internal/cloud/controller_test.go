@@ -208,9 +208,11 @@ func TestAServerThatCannotStartIsFailedWithAReasonAndTriedAgainLessOften(t *test
 		if runtime.State != Failed || !strings.Contains(runtime.Error, "server.log") {
 			t.Errorf("the reason is written down, and says where to look: %+v", runtime)
 		}
-		if log, _ := os.ReadFile(filepath.Join(s.OrgDir(org.Slug), "server.log")); !strings.Contains(string(log), "told to fail") {
-			t.Errorf("what the server said is kept: %q", log)
-		}
+		// The controller gives up when Wait is over, which on a loaded machine can be before the server has said why it failed.
+		waitFor(t, func() bool {
+			log, _ := os.ReadFile(filepath.Join(s.OrgDir(org.Slug), "server.log"))
+			return strings.Contains(string(log), "told to fail")
+		})
 		c.supervise(t.Context())
 		first := c.retry[org.Slug]
 		if first.IsZero() {
