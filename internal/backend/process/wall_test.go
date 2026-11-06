@@ -1,6 +1,7 @@
-package main
+package process
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"os/exec"
@@ -55,7 +56,7 @@ func TestAnAgentBehindTheSandboxIsHeldToItsOwnFolder(t *testing.T) {
 	defer other.Close()
 	port := func(l net.Listener) string { return strconv.Itoa(l.Addr().(*net.TCPAddr).Port) }
 
-	wrap, err := behindProcessWall(dir, job.Spec{Harness: "opencode"}, home, data, port(proxy))
+	wrap, err := behindProcessWall(dir, job.Spec{Harness: "opencode"}, home, data, port(proxy), false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,19 +111,11 @@ func mustRead(t *testing.T, path string) []byte {
 	return text
 }
 
-// TestMain lets the test binary stand in for gusto where a job's wrapper runs it as `gusto sandbox-run`.
+// TestMain lets the test binary stand in for gusto where Linux's wall runs it as `gusto sandbox-run`.
 func TestMain(m *testing.M) {
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
-		case "sandbox-run":
-			os.Exit(sandboxRun(os.Args[2:]))
-		case "boxed":
-			os.Exit(boxed(os.Args[2:]))
-		case "boxed-forward":
-			os.Exit(boxedForward(os.Args[2:]))
-		case "boxed-sign":
-			os.Exit(boxedSign(os.Args[2:]))
-		}
+	if len(os.Args) > 3 && os.Args[1] == "sandbox-run" {
+		fmt.Fprintln(os.Stderr, landlock.Become(os.Args[2], os.Args[4:]))
+		os.Exit(1)
 	}
 	os.Exit(m.Run())
 }

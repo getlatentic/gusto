@@ -103,7 +103,7 @@ func Choose(h Host) Choice {
 		return Choice{Kind: Container, Detail: runtimeName(h), Forced: true}
 	}
 	var passed []Backend
-	for _, probe := range []func(Host) Backend{virtualMachine, container, processSandbox} {
+	for _, probe := range []func(Host) Backend{virtualMachine, container, ProcessWall} {
 		backend := probe(h)
 		if backend.Ready {
 			return Choice{Kind: backend.Kind, Detail: backend.Detail, Passed: passed}

@@ -12,12 +12,6 @@ import (
 // that is not on a person's own computer, whose operator chooses and sees it with gusto doctor.
 var wall *isolation.Choice
 
-// runsHere says tasks run in this process, behind no sandbox or behind this computer's own sandbox, and not in a container or a VM.
-func runsHere() bool {
-	sandbox := os.Getenv("GUSTO_SANDBOX")
-	return sandbox == "here" || sandbox == "process"
-}
-
 // confirmedFile is where a person's word that they know there is no sandbox is kept, in gusto's own folder.
 const confirmedFile = "no-sandbox-confirmed"
 

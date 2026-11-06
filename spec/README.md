@@ -196,7 +196,7 @@ fail, the kernel may write part of the last line, and either the process or the 
 
 ## Computer
 
-One person's computer (`internal/computer`, `cmd/gusto/computers.go`): its record, its sandbox, the tasks that run in
+One person's computer (`internal/computer`, `internal/backend/vm`): its record, its sandbox, the tasks that run in
 it, the front door asking for it to be removed when the person is, and the organization server's tend loop, which
 removes what was asked and stops what is idle. A computer made again after one was removed is a new generation under
 the same id. Tasks are paid for by the owner and may be asked by a colleague, as a room agent's turn is.
@@ -228,7 +228,7 @@ journal. A crash leaves the journal, and `recoverMerge` undoes what ran; putting
 
 ## AppPreview
 
-An agent's shared app previews (`internal/apps`, `internal/web/sharing.go`, `cmd/gusto/apps.go`): publishing one under the
+An agent's shared app previews (`internal/apps`, `internal/web/sharing.go`, `internal/backend/vm/apps.go`): publishing one under the
 agent's limit, starting its process in the owner's computer, the proxy finding it not answering, removing it, its
 process dying, and the server restarting.
 

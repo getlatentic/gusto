@@ -18,19 +18,8 @@ import (
 	"github.com/getlatentic/gusto/internal/apps"
 )
 
-// AppRunner runs the web apps that agents built, where the agents are. Start runs the app's
-// command in the agent's computer and returns the app with where it can be asked, once it
-// answers, or says why it did not. A deployment whose agents do not run in computers has none,
-// and offers no sharing.
-type AppRunner interface {
-	Start(ctx context.Context, app apps.App) (apps.App, error)
-	Stop(ctx context.Context, app apps.App) error
-	// Answers says whether a live app answers a request.
-	Answers(ctx context.Context, app apps.App) error
-}
-
 // UseApps lets people share the web apps their agents built.
-func (s *Server) UseApps(store *apps.Store, runner AppRunner) {
+func (s *Server) UseApps(store *apps.Store, runner apps.Runner) {
 	s.apps, s.runner = store, runner
 }
 

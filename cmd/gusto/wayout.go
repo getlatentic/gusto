@@ -1,10 +1,7 @@
 package main
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"github.com/getlatentic/gusto/internal/evidence"
 	"net"
 	"os"
 	"path/filepath"
@@ -13,12 +10,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/openshell"
+	"github.com/getlatentic/gusto/internal/backend"
+	"github.com/getlatentic/gusto/internal/evidence"
+
 	"github.com/getlatentic/gusto/internal/registry"
 	"github.com/getlatentic/gusto/internal/rules"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/runtoken"
-	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/pkg/proxy"
@@ -40,17 +38,12 @@ type WayOut struct {
 	// platform is what the operator configured, which a registry is added to.
 	platform registry.Platform
 	direct   string
-	// sealed containers have no network, and reach the proxy through socket.
-	// An unsealed one reaches it on address, over the runtime's own network.
-	sealed  bool
+	// socket is where a box with no network reaches the proxy, and address where any other box does. An empty address is
+	// the proxy's port on the interfaces that suit the boxes.
 	socket  string
 	address string
 	// gateways is the tool servers a task reaches through the proxy.
 	gateways *gateways
-	// spares is the computer kept ready for the next person, when the deployment keeps one. It is set before any task runs.
-	spares *spareComputers
-	// computers counts the tasks in each person's computer, for the idle stop. It is set before any task runs.
-	computers *computerUse
 	// plainRuns says whether a run in a sandbox gets a plain token in place of a secret its forwarder trades for a run token
 	// bound to a key its sandbox holds; see UseRunTokens. Unset, every run is bound.
 	plainRuns atomic.Pointer[func() bool]
@@ -66,8 +59,8 @@ func (w *WayOut) UseRunRecords(describe func(job.Dir, job.Spec) evidence.Run) {
 	w.describe.Store(&describe)
 }
 
-// recordRun keeps, in the run's record, who and what it is for, the sandbox it runs in and how it was given its model token.
-func (w *WayOut) recordRun(dir job.Dir, spec job.Spec, sandbox string, bound bool) error {
+// RecordRun keeps, in the run's record, who and what it is for, the sandbox it runs in and how it was given its model token.
+func (w *WayOut) RecordRun(dir job.Dir, spec job.Spec, sandbox string, bound bool) error {
 	run := evidence.Run{Room: spec.Session, Agent: spec.Agent}
 	if describe := w.describe.Load(); describe != nil {
 		run = (*describe)(dir, spec)
@@ -144,9 +137,8 @@ func openWayOut(jobsRoot string) (*WayOut, error) {
 		platform: platform,
 		tokens:   tokens,
 		ledger:   ledger,
-		sealed:   os.Getenv("GUSTO_JOB_NETWORK") != "open" && os.Getenv("GUSTO_SANDBOX") != "openshell" && !runsHere(),
 		socket:   setting("GUSTO_PROXY_SOCKET", filepath.Join(jobsRoot, ".proxy.sock")),
-		address:  setting("GUSTO_PROXY_ADDR", proxyAddress()),
+		address:  os.Getenv("GUSTO_PROXY_ADDR"),
 	}
 	way.held.Store(&credentials)
 	limits, err := callLimits()
@@ -202,10 +194,6 @@ func (w *WayOut) Apply(effective registry.Effective) {
 	w.ledger.SetPrices(effective.Prices)
 }
 
-// Listen starts the proxy where the containers will look for it: a socket for
-// sealed ones, and a port for a runtime that cannot be handed a socket. What
-// keeps the port safe is the per-task token and the host's firewall, not the
-// interface it binds.
 // ProxyCounts is what the proxy has counted, or nil when there is no proxy.
 func (w *WayOut) ProxyCounts() func() proxy.Counts {
 	if w.proxy == nil {
@@ -214,49 +202,46 @@ func (w *WayOut) ProxyCounts() func() proxy.Counts {
 	return w.proxy.Counts
 }
 
-func (w *WayOut) Listen() (func(), error) {
+// Listen starts the proxy where the boxes will look for it: a socket for boxes with no network, and a port for the rest.
+// What keeps the port safe is the per-task token and the host's firewall, not the interface it binds.
+func (w *WayOut) Listen(reach backend.Reach) (func(), error) {
 	switch {
 	case w.proxy == nil:
 		return func() {}, nil
-	case w.sealed:
+	case reach == backend.Socket:
 		fmt.Printf("the only way out of a sandbox is %s, and the credential stays here\n", w.socket)
 		return w.proxy.ListenSocket(w.socket)
 	}
-	fmt.Printf("the way out of a sandbox is %s, and the credential stays here\n", w.address)
-	return w.proxy.ListenTCP(w.address)
+	address := listenAddress(w.address, reach)
+	fmt.Printf("the way out of a sandbox is %s, and the credential stays here\n", address)
+	return w.proxy.ListenTCP(address)
 }
 
-// Run starts a task's container on its way out. With a proxy the container is
-// sealed and the proxy is all it reaches; without one it asks the model
-// directly. The token is where an agent would have put a credential, so its
-// configuration stays the same from one task to the next, and what this task
-// spends is attributed to it and counted against its caps.
-func (w *WayOut) Run(dir job.Dir, spec job.Spec, mounts ...sandbox.Mount) (int, error) {
-	return w.RunContext(context.Background(), dir, spec, sandbox.Owner{}, mounts...)
+// listenAddress is where the proxy listens unless it is told. A container reaches it over the runtime's network, so it
+// listens on every interface; a box on this computer, or a sandbox on a gateway, reaches the machine's loopback, so it need
+// not be on the network at all.
+func listenAddress(configured string, reach backend.Reach) string {
+	switch {
+	case configured != "":
+		return configured
+	case reach == backend.Network:
+		return "0.0.0.0:8041"
+	}
+	return "127.0.0.1:8041"
 }
 
-// RunContext is Run that stops the container when its context ends, and labels it with its owner.
-func (w *WayOut) RunContext(ctx context.Context, dir job.Dir, spec job.Spec, owner sandbox.Owner, mounts ...sandbox.Mount) (int, error) {
-	if w.proxy == nil {
-		return sandbox.RunContext(ctx, dir, w.direct, "", owner, mounts...)
+// exit is how a turn's box reaches its model through this way out.
+func (w *WayOut) exit() backend.Exit {
+	exit := backend.Exit{Direct: w.direct, Socket: w.socket, Port: w.proxyPort()}
+	if w.proxy != nil {
+		exit.Door = w
 	}
-	token, err := w.tokenFor(dir, spec)
-	if err != nil {
-		return 0, err
-	}
-	if w.sealed {
-		return sandbox.SealedContext(ctx, dir, w.socket, token, owner, mounts...)
-	}
-	_, port, err := net.SplitHostPort(w.address)
-	if err != nil {
-		port = "8041"
-	}
-	return sandbox.RunContext(ctx, dir, "http://localhost:"+port+"/model/v1", token, owner, mounts...)
+	return exit
 }
 
-// tokenFor is the token a task's box is given, or none when it needs neither a model nor the gateway. A task that needs no model but
+// Token is the token a task's box is given, or none when it needs neither a model nor the gateway. A task that needs no model but
 // has servers behind the gateway is given a token that stands in for no credential: it is how the proxy knows whose servers to call.
-func (w *WayOut) tokenFor(dir job.Dir, spec job.Spec) (string, error) {
+func (w *WayOut) Token(dir job.Dir, spec job.Spec) (string, error) {
 	switch {
 	case needsModel(dir, spec):
 		return w.admit(dir, spec)
@@ -295,9 +280,9 @@ func (w *WayOut) admitBound(dir job.Dir, spec job.Spec) (string, error) {
 	return w.tokens.MintBound(id, named)
 }
 
-// admitSandbox is admit for a task in a sandbox: with a secret for its forwarder when runs are bound, and a plain token
+// SandboxToken is admit for a task in a sandbox: with a secret for its forwarder when runs are bound, and a plain token
 // otherwise. It says which.
-func (w *WayOut) admitSandbox(dir job.Dir, spec job.Spec) (token string, bound bool, err error) {
+func (w *WayOut) SandboxToken(dir job.Dir, spec job.Spec) (token string, bound bool, err error) {
 	if w.bindsRuns() {
 		token, err = w.admitBound(dir, spec)
 		return token, true, err
@@ -340,41 +325,6 @@ func (w *WayOut) runOf(jobsRoot, id string) runtoken.Run {
 		agent = spec.Harness
 	}
 	return runtoken.Run{Agent: agent, Room: spec.Session, Person: w.askerOf(id)}
-}
-
-// RunInSandbox runs a task's agent in an OpenShell sandbox. The proxy is
-// reached on the name the sandbox gives this machine, so it listens on a port
-// and not a socket, and the runner stays here and writes the record.
-func (w *WayOut) RunInSandbox(dir job.Dir, spec job.Spec, cfg openshell.Config) (int, error) {
-	return w.RunInSandboxContext(context.Background(), dir, spec, cfg)
-}
-
-// RunInSandboxContext is RunInSandbox that stops the run when its context ends.
-func (w *WayOut) RunInSandboxContext(ctx context.Context, dir job.Dir, spec job.Spec, cfg openshell.Config) (int, error) {
-	if w.proxy == nil {
-		return 0, runner.Refuse(dir, errors.New("a sandbox on a gateway reaches its model through the proxy, and this deployment holds no credential for one"))
-	}
-	token, bound, err := w.admitSandbox(dir, spec)
-	if err != nil {
-		return 0, err
-	}
-	port := w.proxyPort()
-	configured, err := harness.Open(dir, spec.Harness)
-	if err != nil {
-		return 0, err
-	}
-	box, err := openshell.New(cfg, filepath.Base(dir.Path()), configured.Adapter,
-		"http://"+cfg.Host+":"+port+"/model/v1", "http://127.0.0.1:"+port+"/model/v1", token)
-	if err != nil {
-		return 0, err
-	}
-	if bound {
-		box.Bind()
-	}
-	if err := w.recordRun(dir, spec, openshell.Name(filepath.Base(dir.Path())), bound); err != nil {
-		return 0, err
-	}
-	return runner.OutsideContext(ctx, dir, box)
 }
 
 // proxyPort is the port the proxy listens on.
@@ -437,17 +387,6 @@ func allLocal(addresses []string) bool {
 		}
 	}
 	return true
-}
-
-// proxyAddress is where the proxy listens unless it is told. A container reaches
-// it over the runtime's network, so it listens on every interface; a sandbox on
-// a gateway reaches the machine's loopback through the gateway's own proxy, so
-// it need not be on the network at all.
-func proxyAddress() string {
-	if sandbox := os.Getenv("GUSTO_SANDBOX"); sandbox == "openshell" || runsHere() {
-		return "127.0.0.1:8041"
-	}
-	return "0.0.0.0:8041"
 }
 
 // callLimits is how far one model call may run: the most output tokens it may ask for, and how long the model may send

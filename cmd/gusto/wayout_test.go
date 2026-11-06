@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/backend"
 	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/pkg/spend"
 )
@@ -30,7 +31,7 @@ func TestRestrictedCodeIsRefusedACredentialOutsideTheBuilding(t *testing.T) {
 		t.Fatal(err)
 	}
 	spec := job.Spec{Brief: "b", Harness: "opencode", Model: "deepseek/deepseek-flash", Sensitivity: job.Restricted}
-	if _, err := way.Run(dir, spec); err == nil || !strings.Contains(err.Error(), "api.deepseek.com") {
+	if _, err := way.Token(dir, spec); err == nil || !strings.Contains(err.Error(), "api.deepseek.com") {
 		t.Fatalf("restricted code was not refused the provider: %v", err)
 	}
 	said, _ := os.ReadFile(dir.OutFile("transcript.log"))
@@ -58,7 +59,7 @@ func TestRestrictedCodeIsRefusedACredentialWithAnyAddressOutsideTheBuilding(t *t
 		t.Fatal(err)
 	}
 	spec := job.Spec{Brief: "b", Harness: "claude", Model: "inside/model", Sensitivity: job.Restricted}
-	if _, err := way.Run(dir, spec); err == nil || !strings.Contains(err.Error(), "api.deepseek.com") {
+	if _, err := way.Token(dir, spec); err == nil || !strings.Contains(err.Error(), "api.deepseek.com") {
 		t.Fatalf("restricted code was not refused the second address: %v", err)
 	}
 }
@@ -78,49 +79,40 @@ func TestAHarnessThatNeedsNoModelIsNotRefusedForWantOfACredential(t *testing.T) 
 	}
 }
 
-// A job run in the server's own process goes through the proxy as a box does: it is given a token for its credential and the proxy
-// on loopback, and none of the server's environment that is its own.
-func TestAJobRunHereIsGivenTheProxyAndATokenAndNoneOfTheServersSecrets(t *testing.T) {
+// The proxy listens where the boxes reach it: on every interface for a container on the runtime's network, and on the loopback
+// for a turn in this process or a sandbox on a gateway, unless the operator says where.
+func TestTheProxyListensWhereTheBoxesReachIt(t *testing.T) {
+	for reach, want := range map[backend.Reach]string{backend.Network: "0.0.0.0:8041", backend.Loopback: "127.0.0.1:8041"} {
+		if got := listenAddress("", reach); got != want {
+			t.Errorf("reach %d listens on %s, want %s", reach, got, want)
+		}
+	}
+	if got := listenAddress("10.0.0.4:9000", backend.Network); got != "10.0.0.4:9000" {
+		t.Errorf("the operator's address was replaced by %s", got)
+	}
+}
+
+// A turn's way out is the proxy and its port when a credential is held, and the model's own address when none is.
+func TestATurnsWayOutIsTheProxyWhenACredentialIsHeld(t *testing.T) {
 	credentials := t.TempDir()
-	os.WriteFile(filepath.Join(credentials, "deepseek.json"),
-		[]byte(`{"address": "https://api.deepseek.com", "key": "sk-the-real-key"}`), 0o600)
+	os.WriteFile(filepath.Join(credentials, "deepseek.json"), []byte(`{"address": "https://api.deepseek.com", "key": "sk-the-real-key"}`), 0o600)
 	t.Setenv("GUSTO_CREDENTIALS", credentials)
-	t.Setenv("GUSTO_SANDBOX", "here")
-	t.Setenv("GUSTO_PROXY_ADDR", "")
-	t.Setenv("GUSTO_PASSWORD", "the-servers-own-secret")
-	t.Setenv("AWS_SECRET_ACCESS_KEY", "an-aws-secret")
+	t.Setenv("GUSTO_PROXY_ADDR", "127.0.0.1:9041")
 	way, err := openWayOut(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if way.sealed || way.address != "127.0.0.1:8041" {
-		t.Errorf("the proxy is not on loopback for a job run here: sealed %v, %s", way.sealed, way.address)
+	if exit := way.exit(); exit.Door == nil || exit.Port != "9041" {
+		t.Errorf("a deployment that holds a credential gave %+v", exit)
 	}
-	dir := job.Dir(t.TempDir())
-	if err := dir.Make(); err != nil {
-		t.Fatal(err)
-	}
-	env, err := way.hereEnv(dir, job.Spec{Brief: "b", Harness: "opencode", Model: "deepseek/deepseek-flash"})
+	t.Setenv("GUSTO_CREDENTIALS", "")
+	t.Setenv("GUSTO_MODEL_UPSTREAM", "")
+	direct, err := openWayOut(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if env.ModelToken == "" || env.ModelURL != "http://127.0.0.1:8041/model/v1" {
-		t.Errorf("the job was not given the proxy and a token: %+v", env)
-	}
-	joined := strings.Join(env.Base, "\n")
-	for _, secret := range []string{"the-servers-own-secret", "an-aws-secret", "sk-the-real-key", "GUSTO_CREDENTIALS"} {
-		if strings.Contains(joined, secret) {
-			t.Errorf("%s is in the job's environment", secret)
-		}
-	}
-	for _, want := range []string{"PATH=", "HOME=", "GUSTO_MODEL_TOKEN=" + env.ModelToken} {
-		if !strings.Contains(joined, want) {
-			t.Errorf("the job's environment lacks %s", want)
-		}
-	}
-	way.Done(dir)
-	if _, err := way.hereEnv(dir, job.Spec{Brief: "b", Harness: "opencode", Model: "nowhere/model"}); err == nil {
-		t.Error("a job naming a credential the server does not hold was given a token")
+	if exit := direct.exit(); exit.Door != nil || exit.Direct == "" {
+		t.Errorf("a deployment that holds no credential gave %+v", exit)
 	}
 }
 

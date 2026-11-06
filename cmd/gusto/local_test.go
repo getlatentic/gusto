@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/isolation"
 )
 
 func TestTheLocalSetupIsMadeOnceAndOnlyItsPersonCanReadIt(t *testing.T) {
@@ -132,7 +134,7 @@ func TestTheWallChosenIsTheSandboxJobsRunBehind(t *testing.T) {
 	// A computer with no docker and no VM has its own sandbox where it has a process sandbox that holds a job to a folder and a
 	// port, and nothing otherwise.
 	expected := "here"
-	if processWallHere() {
+	if isolation.ProcessWall(isolation.This()).Ready {
 		expected = "process"
 	}
 	if chooseWall(); os.Getenv("GUSTO_SANDBOX") != expected || wall == nil {
