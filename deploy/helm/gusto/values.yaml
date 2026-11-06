@@ -86,7 +86,7 @@ model:
   allowedHosts: ""
 
 # Several credentials instead of one upstream: a Secret whose keys are
-# <name>.json, in the shape deploy/ansible's serve role writes. Set, it is
+# <name>.json, in the shape docs/GATEWAY.md gives for a credential. Set, it is
 # used in place of model.upstream.
 credentials:
   existingSecret: ""

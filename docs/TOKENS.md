@@ -10,7 +10,6 @@ Set `GUSTO_API_TOKENS` to the file the tokens are kept in. The server makes the 
 | --- | --- |
 | Compose | `GUSTO_API_TOKENS=/var/lib/gusto/tokens/tokens.json` in `.env` |
 | Chart | `auth.apiTokens: true` |
-| Playbook | `api_tokens: true` |
 
 With tokens on, the API refuses the shared password. Without them it takes the shared password. The pages keep their own sign-in either way. The server alone writes the file, readable by its user only.
 

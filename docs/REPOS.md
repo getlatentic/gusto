@@ -21,7 +21,7 @@ A task for a private repository gets a token for that one repository. The token 
 | `GUSTO_GITHUB_APP_KEY` | the path of the private key file |
 | `GUSTO_GITHUB_URL`, `GUSTO_GITHUB_API` | a GitHub Enterprise Server, such as `https://ghe.example` and `https://ghe.example/api/v3`. github.com when unset |
 
-Set both of the first two or neither. The server refuses to start with one. With the playbook, put the key in the vault as `github_app_private_key` and set `github_app_id` in `group_vars`. The playbook writes the key at mode 0600 where only the server reads it.
+Set both of the first two or neither. The server refuses to start with one.
 
 ## What happens to a task
 

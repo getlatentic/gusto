@@ -8,7 +8,7 @@ The pages, the API, the model proxy and the runner were reviewed against the [th
 - Each fixed finding was reproduced or tested first where possible, and has a test that fails without the fix.
 - `govulncheck` ran over the Go code and standard library, and `npm audit` over the pinned npm packages in the runner image.
 
-Not reviewed: the identity provider, nginx and TLS on the host, the ansible vault, the deploy key's reach, third-party agent internals, and what a model does with a hostile prompt. A second review and an outside test are getlatentic/planning#372.
+Not reviewed: the identity provider, nginx and TLS on the host, third-party agent internals, and what a model does with a hostile prompt. A second review and an outside test are getlatentic/planning#372.
 
 ## Findings
 
@@ -17,7 +17,7 @@ Not reviewed: the identity provider, nginx and TLS on the host, the ansible vaul
 | 1 | High | A repository address starting with a dash was read by git as an option. `--upload-pack=<command>` ran on the host, outside any box | Fixed. Only https and ssh forms; a dash is refused; `git clone` gets `--`; `ext::`, `git://` and `http://` are off |
 | 2 | High | With no GitHub App, a repository that was a path on the server's disk was cloned. Any runner could read another person's workspace through the file viewer | Fixed. A path must be under a directory in `GUSTO_LOCAL_REPOS`, empty by default |
 | 3 | High | The runner is root in the box and staged the workspace with the agent's git configuration. A filter or fsmonitor ran as root. Reproduced | Fixed. The runner stages in a repository of its own, with no workspace configuration and no trust in the workspace's ownership |
-| 4 | High | Go 1.26.1 on the box carried 19 vulnerabilities this server calls | Fixed. Go 1.26.8, tarball checksum pinned, in the playbook and `go.mod`. `govulncheck` reports none |
+| 4 | High | Go 1.26.1 on the box carried 19 vulnerabilities this server calls | Fixed. Go 1.26.8 in `go.mod`. `govulncheck` reports none |
 | 5 | Medium | Pages and the verifier's hash followed a link in a task's `out/`. A runner with no separate agent user lets the agent plant one | Fixed. Record files are read only when they are files; verify names a link. Depth only, since the agent user blocks it |
 | 6 | Medium | No limit on wrong shared passwords or bearer credentials | Fixed. Ten from one address in ten minutes turns it away |
 | 7 | Medium | Pages could be framed and had no script policy | Fixed. CSP with per-response nonces, `X-Frame-Options`, `nosniff`, referrer policy, HSTS over TLS, no caching when signed in |
@@ -28,7 +28,7 @@ Not reviewed: the identity provider, nginx and TLS on the host, the ansible vaul
 | 12 | Low | Google sign-in had state but no PKCE and no nonce | Fixed. Both, tested against a provider that checks them |
 | 13 | Low | The model's redirect would be followed with the credential's headers | Fixed. A redirect is not followed |
 | 14 | Info | A spending cap is checked before a call and counted after, so calls in flight can pass it | Accepted. The excess is bounded by the calls in flight. getlatentic/planning#369 |
-| 15 | Info | `gusto pr open` clones the workspace with `--shared` | Accepted. Needs git 2.38.1 or later, which the playbook's box has. `gusto doctor` should check: getlatentic/planning#370 |
+| 15 | Info | `gusto pr open` clones the workspace with `--shared` | Accepted. Needs git 2.38.1 or later. `gusto doctor` should check: getlatentic/planning#370 |
 | 16 | Info | `opencode-ai`, `@anthropic-ai/claude-code` and `@earendil-works/pi-coding-agent`, three of six agent packages in the runner image, are unpinned | Fixed. Every package is pinned by version and sha512 in `pkg/harness/pins.json`, and the image build refuses a tarball that differs. getlatentic/planning#361, #683 |
 | 17 | Info | On macOS a container runtime's bind mount ignores permissions, so the agent can write `out/` | Documented. Development only. `gusto doctor` should detect it: getlatentic/planning#370 |
 

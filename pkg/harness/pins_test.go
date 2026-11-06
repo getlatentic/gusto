@@ -1,7 +1,6 @@
 package harness
 
 import (
-	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -55,19 +54,14 @@ func checkBinaryPin(t *testing.T, name string, pin BinaryPin) {
 	}
 }
 
-// The MCP servers the deployment's image carries are pinned the same way.
+// The MCP servers the runner image carries are pinned the same way.
 func TestEveryMCPServerTheImageCarriesIsPinned(t *testing.T) {
-	text, err := os.ReadFile("../../deploy/ansible/group_vars/all.yml")
-	if err != nil {
-		t.Fatal(err)
-	}
-	block, _, _ := strings.Cut(strings.SplitN(string(text), "runner_mcp_packages:", 2)[1], "\n\n")
-	for _, member := range regexp.MustCompile(`(?m)^\s+- "?([^"\s]+)"?\s*$`).FindAllStringSubmatch(block, -1) {
-		if strings.Contains(member[1][1:], "@") {
-			t.Errorf("%s carries a version; versions live in pins.json", member[1])
+	for _, pkg := range runnerList(t, "mcp.txt") {
+		if strings.Contains(pkg[1:], "@") {
+			t.Errorf("%s carries a version; versions live in pins.json", pkg)
 		}
-		if _, found := Pinned(member[1]); !found {
-			t.Errorf("%s is not in pins.json", member[1])
+		if _, found := Pinned(pkg); !found {
+			t.Errorf("%s is not in pins.json", pkg)
 		}
 	}
 }
