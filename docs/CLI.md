@@ -904,7 +904,7 @@ Run gusto cloud, the hosted server for accounts and routing
 
 ```text
 gusto cloud
-gusto cloud workspaces
+gusto cloud computers
 gusto cloud migrate
 ```
 
@@ -912,7 +912,7 @@ With no subcommand, runs gusto cloud: sign-up, sign-in and the organizations' re
 
 Commands:
 
-- `workspaces`: List every workspace on this host
+- `computers`: List every computer on this node
 - `migrate`: Show the accounts database, or load the old account files into it
 
 Flags:
@@ -947,9 +947,9 @@ Environment:
 - `GUSTO_CLOUD_JOBS`: the tasks a month a confirmed organization may run (default 200)
 - `GUSTO_CLOUD_CONCURRENT`: the tasks at once a confirmed organization may run (default 4)
 - `GUSTO_CLOUD_MEMBERS`: the people a confirmed organization may have (default 4)
-- `GUSTO_CLOUD_COMPUTERS`: the workspaces a confirmed organization may have (default 4)
+- `GUSTO_CLOUD_COMPUTERS`: the computers a confirmed organization may have (default 4)
 - `GUSTO_CLOUD_PAID_JOBS_PER_SEAT`: the tasks a month a paying organization may run for each seat (default 200)
-- `GUSTO_CLOUD_PAID_MEMBERS`: the people, and the workspaces, a paying organization may have (default 50)
+- `GUSTO_CLOUD_PAID_MEMBERS`: the people, and the computers, a paying organization may have (default 50)
 - `GUSTO_CLOUD_DEMO_MINUTES`: the minutes a demo lasts from when it is ready (default 0, no demo)
 - `GUSTO_CLOUD_DEMO_EXTEND_MINUTES`: the minutes a demo's one extension adds (default 10)
 - `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES`: the minutes a demo has to be ready before it is deleted (default 15)
@@ -993,20 +993,20 @@ Examples:
 ```sh
 gusto cloud
 gusto cloud migrate
-gusto cloud workspaces
+gusto cloud computers
 ```
 
 See also: `gusto host`, `gusto operator`
 
-### `gusto cloud workspaces`
+### `gusto cloud computers`
 
-List every workspace on this host
+List every computer on this node
 
 ```text
-gusto cloud workspaces
+gusto cloud computers
 ```
 
-Lists every workspace on this host, with the organization each is in and whose it is: the operator's view across organizations, read from each one's own record.
+Lists every computer on this node, with the organization each is in and whose it is: the operator's view across organizations, read from each one's own record.
 
 Flags:
 
@@ -1020,7 +1020,7 @@ Environment:
 Examples:
 
 ```sh
-gusto cloud workspaces
+gusto cloud computers
 ```
 
 See also: `gusto cloud`

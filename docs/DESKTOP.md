@@ -1,6 +1,6 @@
 # The desktop side
 
-The agents stay in the person's workspace in the organization's cloud, and a turn keeps running when the laptop closes. The desktop side runs no agent. The app is a window onto the server's pages, and `gusto-helper` does the local work for the app, editors, the terminal and folders.
+The agents stay on the person's computer in the organization's cloud, and a turn keeps running when the laptop closes. The desktop side runs no agent. The app is a window onto the server's pages, and `gusto-helper` does the local work for the app, editors, the terminal and folders.
 
 ## The app
 
@@ -10,7 +10,7 @@ A release carries the app for macOS (Apple silicon and Intel, a disk image), Win
 
 ## Working in a folder
 
-The folder button on the chat page opens a window like a Finder open panel: projects down the side (a project is an agent's folder), the path along the top, and the folders and files in a list. Double-click opens a folder, **Choose** picks it, **New Folder** makes one (at the top it makes a project). Every turn of the chat starts in that folder. Nothing outside an agent's workspace can be named. This works in the browser and the app.
+The folder button on the chat page opens a window like a Finder open panel: projects down the side (a project is an agent's folder), the path along the top, and the folders and files in a list. Double-click opens a folder, **Choose** picks it, **New Folder** makes one (at the top it makes a project). Every turn of the chat starts in that folder. Nothing outside an agent's folder can be named. This works in the browser and the app.
 
 The app adds **Sync one from this computer**. It opens the system's folder chooser, and the helper keeps that folder the same as an agent's folder in the cloud, by the rule under [Files](#files). The server holds a key made of the folder's path and name, never the path. The helper refuses a whole home folder or disk.
 

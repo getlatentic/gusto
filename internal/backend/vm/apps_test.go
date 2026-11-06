@@ -117,9 +117,9 @@ func TestAnAppThatNeverAnswersIsStoppedAndTheErrorSaysWhatItWrote(t *testing.T) 
 	}
 }
 
-func TestAnAppOfAPersonWithNoWorkspaceIsRefused(t *testing.T) {
+func TestAnAppOfAPersonWithNoComputerIsRefused(t *testing.T) {
 	runner, _, _ := anAppsHost(t, 200)
-	if _, err := runner.Start(context.Background(), apps.App{ID: "0123456789", Instance: appsInstance, Owner: "bob@acme.com", Command: "true", Port: 8080}); err == nil || !strings.Contains(err.Error(), "no workspace") {
+	if _, err := runner.Start(context.Background(), apps.App{ID: "0123456789", Instance: appsInstance, Owner: "bob@acme.com", Command: "true", Port: 8080}); err == nil || !strings.Contains(err.Error(), "no computer") {
 		t.Errorf("%v", err)
 	}
 }

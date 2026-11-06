@@ -202,7 +202,7 @@ func TestAPersonPastTheOrganizationsComputersIsRefusedInTheRecordOfTheirTask(t *
 	jobBy(t, work, index, "ada@acme.com", "the first")
 	carol := jobBy(t, work, index, "carol@acme.com", "the second")
 	text := transcriptOf(carol)
-	if !strings.Contains(text, "refused this task before the agent started") || !strings.Contains(text, "may have 1 workspace and has 1") || !strings.Contains(text, "Ask the admin for more.") {
+	if !strings.Contains(text, "refused this task before the agent started") || !strings.Contains(text, "may have 1 computer and has 1") || !strings.Contains(text, "Ask the admin for more.") {
 		t.Errorf("%q", text)
 	}
 	if _, err := registry.Of("carol@acme.com"); err == nil {

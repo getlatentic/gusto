@@ -103,7 +103,7 @@ AGAIN=all ./e2e-matrix.sh             # or AGAIN=codex@deepseek/deepseek-flash,.
 ./e2e-shared.sh        # claude, then codex, on one project in one sandbox; the app they wrote, shared through the gateway
 ./demo-up.sh           # a host that serves the public cloud at https://$DEMO_NAME (see below)
 ./demo-down.sh         # its DNS records, then the host
-./e2e-cloud.sh         # the public cloud as people use it: sign-up, three invited people, a workspace each, a second organization
+./e2e-cloud.sh         # the public cloud as people use it: sign-up, three invited people, a computer each, a second organization
 ./e2e-concurrency.sh   # 1, 2, 4, 8 and 12 sandboxes at once, in waves of four (SIZES and WAVE change them)
 ```
 

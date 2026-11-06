@@ -35,7 +35,7 @@ Times are UTC. A SQLite column is an integer of nanoseconds since the Unix epoch
 | `rate_events` | one row for each event the abuse limits count, with the time it stops counting | `(key, until)` index. Swept with the links |
 | `imports` | one row once the old files were loaded, with the counts | primary key `name` |
 
-The schema is versioned under `internal/cloud/migrations/sqlite` and `migrations/postgres`. The version table is `cloud_schema_migrations` and the scope is `cloud`. A database at a newer version than the release knows is refused. `gusto operator` and `gusto cloud workspaces` open the database without migrating it, and refuse one that is not at the version they read.
+The schema is versioned under `internal/cloud/migrations/sqlite` and `migrations/postgres`. The version table is `cloud_schema_migrations` and the scope is `cloud`. A database at a newer version than the release knows is refused. `gusto operator` and `gusto cloud computers` open the database without migrating it, and refuse one that is not at the version they read.
 
 ## What must be one step
 

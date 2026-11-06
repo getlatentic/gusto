@@ -18,7 +18,7 @@ func computersOf(dir, org, quotaFile string) (*computer.Registry, error) {
 		return nil, nil
 	}
 	if org == "" {
-		return nil, errors.New("GUSTO_COMPUTERS names the workspaces of an organization, and GUSTO_ORG says which")
+		return nil, errors.New("GUSTO_COMPUTERS names the computers of an organization, and GUSTO_ORG says which")
 	}
 	registry, err := computer.Open(dir, org)
 	if err != nil {

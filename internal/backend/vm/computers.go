@@ -58,7 +58,7 @@ func failedBeforeStart(registry *computer.Registry, id string, err error) error 
 			each.State, each.Note = computer.Failed, err.Error()
 		}
 	}); changeErr != nil {
-		slog.Error("a workspace's record was not changed", "workspace", id, "error", changeErr)
+		slog.Error("a computer's record was not changed", "computer", id, "error", changeErr)
 	}
 	return err
 }
@@ -126,7 +126,7 @@ func (c *computerBox) update(change func(*computer.Computer)) {
 		}
 	})
 	if err != nil {
-		slog.Error("a workspace's record was not changed", "workspace", c.id, "error", err)
+		slog.Error("a computer's record was not changed", "computer", c.id, "error", err)
 	}
 }
 
@@ -150,16 +150,16 @@ func tendComputers(ctx context.Context, cfg openshell.Config, registry *computer
 func retire(cfg openshell.Config, registry *computer.Registry) {
 	retiring, err := registry.Retiring()
 	if err != nil {
-		slog.Error("the workspaces to remove could not be listed", "error", err)
+		slog.Error("the computers to remove could not be listed", "error", err)
 		return
 	}
 	for _, each := range retiring {
 		if err := openshell.Delete(cfg, each.Sandbox); err != nil {
-			slog.Error("a workspace could not be removed", "workspace", each.ID, "error", err)
+			slog.Error("a computer could not be removed", "computer", each.ID, "error", err)
 			continue
 		}
 		if err := registry.Retired(each.ID); err != nil {
-			slog.Error("a removed workspace's record was not changed", "workspace", each.ID, "error", err)
+			slog.Error("a removed computer's record was not changed", "computer", each.ID, "error", err)
 		}
 	}
 }
@@ -177,7 +177,7 @@ func rest(cfg openshell.Config, registry *computer.Registry, use *computerUse, s
 		}
 		use.stopIdle(each.ID, func() {
 			if err := openshell.Stop(cfg, each.Sandbox); err != nil {
-				slog.Error("an idle workspace could not be stopped", "workspace", each.ID, "error", err)
+				slog.Error("an idle computer could not be stopped", "computer", each.ID, "error", err)
 				return
 			}
 			registry.Change(each.ID, func(c *computer.Computer) { c.State, c.Note = computer.Stopped, "stopped when idle" })

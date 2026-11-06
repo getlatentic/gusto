@@ -9,7 +9,7 @@
   <section class="grid grid-cols-[repeat(auto-fit,minmax(min(10rem,100%),1fr))] gap-px overflow-hidden rounded-md bg-line shadow-1 dark:border dark:border-line">
     <div class="flex flex-col-reverse gap-1.5 bg-surface px-5 py-4"><span class="font-display text-xl leading-none font-semibold tabular-nums">{{.Quota.Jobs}}</span><span class="text-sm text-muted">tasks {{if .Quota.Monthly}}a month{{else}}in all{{end}}, {{.Quota.Concurrent}} at a time</span></div>
     <div class="flex flex-col-reverse gap-1.5 bg-surface px-5 py-4"><span class="font-display text-xl leading-none font-semibold tabular-nums">{{len .Members}}</span><span class="text-sm text-muted">people, up to {{.Quota.Members}}</span></div>
-    <div class="flex flex-col-reverse gap-1.5 bg-surface px-5 py-4"><span class="font-display text-xl leading-none font-semibold tabular-nums">{{.Computers}} of {{.Quota.Computers}}</span><span class="text-sm text-muted">workspaces</span></div>
+    <div class="flex flex-col-reverse gap-1.5 bg-surface px-5 py-4"><span class="font-display text-xl leading-none font-semibold tabular-nums">{{.Computers}} of {{.Quota.Computers}}</span><span class="text-sm text-muted">computers</span></div>
     {{with .Credit}}<div class="flex flex-col-reverse gap-1.5 bg-surface px-5 py-4"><span class="font-display text-xl leading-none font-semibold tabular-nums">{{.Left}}</span><span class="text-sm text-muted">left of {{.Of}} on gusto's models</span></div>{{end}}
   </section>
 
@@ -34,7 +34,7 @@
   <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
     <h2 class="mb-3 text-sm font-semibold">People</h2>
     <ul class="grid text-sm">
-      {{range .Members}}<li class="flex min-h-12 items-center gap-3 border-b border-line py-2 last:border-b-0"><span class="flex-1 wrap-anywhere">{{.Email}}</span><span class="text-muted">{{.Role}}{{with index $.ComputerOf .Email}}, workspace {{.}}{{end}}</span>
+      {{range .Members}}<li class="flex min-h-12 items-center gap-3 border-b border-line py-2 last:border-b-0"><span class="flex-1 wrap-anywhere">{{.Email}}</span><span class="text-muted">{{.Role}}{{with index $.ComputerOf .Email}}, computer {{.}}{{end}}</span>
         {{if $.IsAdmin}}
         {{if eq .Role "admin"}}{{if gt $.Admins 1}}<form method="post" action="/org/people/role"><input type="hidden" name="email" value="{{.Email}}"><input type="hidden" name="role" value="runner"><button class="inline-flex h-8 items-center rounded-sm border border-line-strong px-3 text-xs font-medium text-muted hover:bg-wash hover:text-ink" type="submit">Make runner</button></form>{{end}}
         {{else}}<form method="post" action="/org/people/role"><input type="hidden" name="email" value="{{.Email}}"><input type="hidden" name="role" value="admin"><button class="inline-flex h-8 items-center rounded-sm border border-line-strong px-3 text-xs font-medium text-muted hover:bg-wash hover:text-ink" type="submit">Make admin</button></form>{{end}}

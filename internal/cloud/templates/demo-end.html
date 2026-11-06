@@ -1,7 +1,7 @@
 {{define "demo-end"}}{{template "head" .}}
   {{template "brand"}}
   {{if .Ending}}<h1 class="text-xl font-semibold">Ending your demo</h1>
-  <p role="status">Deleting your workspaces and everything in them. This takes a minute, and this page looks again by itself.</p>
+  <p role="status">Deleting your computers and everything on them. This takes a minute, and this page looks again by itself.</p>
   {{else}}<h1 class="text-xl font-semibold">Your demo has ended</h1>
   <p>Thanks{{with .Name}}, {{.}}{{end}}. Everything in it has been deleted.</p>
   <p class="text-sm text-muted">We keep your name, work email and company so that we can follow up about a call.</p>{{end}}

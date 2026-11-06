@@ -23,7 +23,7 @@ type Quota struct {
 	// Concurrent is how many tasks may run at once.
 	Concurrent int `json:"concurrent"`
 	// Invites says whether colleagues may be invited, Members how many people
-	// there may be in all, and Computers how many workspaces.
+	// there may be in all, and Computers how many computers.
 	Invites   bool `json:"invites"`
 	Members   int  `json:"members"`
 	Computers int  `json:"computers"`
@@ -135,17 +135,17 @@ func read(path string) (Quota, error) {
 	return q, nil
 }
 
-// RefuseComputers is nil while the workspaces there are number fewer than the quota
+// RefuseComputers is nil while the computers there are number fewer than the quota
 // allows, and a sentence a person can act on when they do not.
 func (q Quota) RefuseComputers(have int) error {
 	if have < q.Computers {
 		return nil
 	}
-	workspaces := "workspaces"
+	computers := "computers"
 	if q.Computers == 1 {
-		workspaces = "workspace"
+		computers = "computer"
 	}
-	message := fmt.Sprintf("This organization may have %d %s and has %d.", q.Computers, workspaces, have)
+	message := fmt.Sprintf("This organization may have %d %s and has %d.", q.Computers, computers, have)
 	if q.Note != "" {
 		message += " " + q.Note
 	}

@@ -31,7 +31,7 @@ func (s *Server) demoForm(w http.ResponseWriter, r *http.Request) {
 		s.render(w, http.StatusOK, "demo-book", s.seen(page, "/demo", "Book a demo of "+siteName+" with the team, or create your organization and try it now."))
 		return
 	}
-	s.drawDemoForm(w, http.StatusOK, s.seen(page, "/demo", "Start a "+minuteLong(page.DemoLeft)+" demo of "+siteName+": your own organization, with agents working in workspaces of their own, and nothing to sign up for."))
+	s.drawDemoForm(w, http.StatusOK, s.seen(page, "/demo", "Start a "+minuteLong(page.DemoLeft)+" demo of "+siteName+": your own organization, with agents working on computers of their own, and nothing to sign up for."))
 }
 
 // warmDemo starts a cell for a visitor who has begun the form, which the form's script asks for on their first keystroke. A

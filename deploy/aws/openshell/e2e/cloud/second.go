@@ -43,7 +43,7 @@ func (r run) observe(slug string, threads []*thread) {
 		return
 	}
 	listed, err := r.host.computers()
-	must(err, "gusto cloud workspaces")
+	must(err, "gusto cloud computers")
 	fmt.Println(listed)
 	held := map[string]bool{}
 	for _, name := range computerName.FindAllString(listed, -1) {
@@ -90,7 +90,7 @@ func (r run) isolation(slug string, threads []*thread) {
 	}
 
 	listed, err := r.host.computers()
-	must(err, "gusto cloud workspaces")
+	must(err, "gusto cloud computers")
 	fmt.Println(listed)
 	held := map[string]bool{}
 	for _, name := range computerName.FindAllString(listed, -1) {

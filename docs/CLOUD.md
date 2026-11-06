@@ -83,19 +83,19 @@ With the Stripe settings set, an organization pays $25 a month for each person i
 
 In Stripe, make a product with a monthly per-unit price and give its id as `GUSTO_CLOUD_STRIPE_PRICE`. Add a webhook endpoint at `<GUSTO_CLOUD_URL>/stripe/webhook` that sends the `customer.subscription.created`, `.updated`, `.deleted`, `.paused` and `.resumed` events, and turn on the customer portal.
 
-## Workspaces
+## Computers
 
-A person has one workspace in an organization, made the first time they run a task. Its record is in the organization's directory (`internal/computer`) with these fields: `user`, `org`, `sandbox`, `host` (the host machine), `state` (`creating`, `running`, `stopped`, `failed` or `deleted`), `created` and `lastActive`. The `sandbox` name is `c-`, eight characters of a digest of the organization, and eight of the organization and the person.
+A person has one computer in an organization, made the first time they run a task. Its record is in the organization's directory (`internal/computer`) with these fields: `user`, `org`, `sandbox`, `host` (the host machine), `state` (`creating`, `running`, `stopped`, `failed` or `deleted`), `created` and `lastActive`. The `sandbox` name is `c-`, eight characters of a digest of the organization, and eight of the organization and the person.
 
 - A task works in `/sandbox/jobs/<job>/workspace`, removed when the task ends. A turn in a conversation on an instance works in `/sandbox/jobs/instance-<id>/workspace`, kept between turns.
 - A task from a script or token has no person and runs in a sandbox of its own that goes with the task.
-- A person past the organization's number of workspaces is refused in the task's record, and nothing is made.
-- A workspace idle for half an hour with no task running is stopped, which keeps its files. Set `GUSTO_COMPUTER_IDLE_MINUTES` to change it. The next task starts it. Removing a person marks their workspace, and the organization's server removes it.
+- A person past the organization's number of computers is refused in the task's record, and nothing is made.
+- A computer idle for half an hour with no task running is stopped, which keeps its files. Set `GUSTO_COMPUTER_IDLE_MINUTES` to change it. The next task starts it. Removing a person marks their computer, and the organization's server removes it.
 - A turn that leaves an `index.html` in the agent's folder gets a Preview button. The server serves that folder as a page, at once, at `<org>--<id>.<domain>`. On a host name of its own the page keeps what it saves in the browser, and it reaches nothing of the organization's pages.
-- Where agents run in computers, a person can also share an app with a command of its own from the agent's page ([OPENSHELL.md](OPENSHELL.md)). `GUSTO_APPS` is where the server keeps its record of both.
+- Where agents run on computers, a person can also share an app with a command of its own from the agent's page ([OPENSHELL.md](OPENSHELL.md)). `GUSTO_APPS` is where the server keeps its record of both.
 - An app's host name is the same site as the organization's, so the server refuses any browser request that changes something unless it comes from its own pages.
 - A text file shown whole has Edit, in its page and in its tab beside a chat. A save is refused when the file changed after it was opened. In a room, the room says who changed the file.
-- `gusto cloud workspaces` lists every workspace on the host with its organization and person. It also reports a sandbox with no record, or a record with no sandbox.
+- `gusto cloud computers` lists every computer on the node with its organization and person. It also reports a sandbox with no record, or a record with no sandbox.
 
 ## The admin console
 
@@ -142,7 +142,7 @@ Admins choose the models their people may use at `/admin/models`. A provider is 
 
 ## Demos
 
-With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a name, a work email and a company. They get a signed-in organization on a small quota (one workspace, one person). Their time starts when the server first answers, with one extension and a link to book a call (`GUSTO_CLOUD_BOOK_URL`). When time is up, gusto cloud asks the server to remove its workspaces, waits up to ninety seconds, stops the server and deletes the organization, its memberships, its data, and the accounts of people who were in no other organization. A demo not ready within `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organization made as a demo is deleted this way. With `GUSTO_CLOUD_DEMO_STAFF` set, only the addresses and domains it names may start a demo. Everyone else is offered sign-up, or a demo booked with the team.
+With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a name, a work email and a company. They get a signed-in organization on a small quota (one computer, one person). Their time starts when the server first answers, with one extension and a link to book a call (`GUSTO_CLOUD_BOOK_URL`). When time is up, gusto cloud asks the server to remove its computers, waits up to ninety seconds, stops the server and deletes the organization, its memberships, its data, and the accounts of people who were in no other organization. A demo not ready within `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organization made as a demo is deleted this way. With `GUSTO_CLOUD_DEMO_STAFF` set, only the addresses and domains it names may start a demo. Everyone else is offered sign-up, or a demo booked with the team.
 
 - The landing page at `/` is shown to everybody, signed in or not. Its header offers Sign in, or Open gusto (`/app`) to a person who is signed in. A front door with no demos has no landing page, and `/` is the way in.
 - Set `GUSTO_CLOUD_TURNSTILE_SITE` and `GUSTO_CLOUD_TURNSTILE_SECRET` to add a Cloudflare Turnstile bot check. It fails closed.
