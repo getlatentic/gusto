@@ -214,3 +214,14 @@ func TestAKeyHandedOutByNameReadsBackAsTheSameKey(t *testing.T) {
 		t.Error("a name the keyring does not hold should not be found")
 	}
 }
+
+func TestAKeyIsMadeInAFolderThatIsNotThereYet(t *testing.T) {
+	t.Parallel()
+	dir := filepath.Join(t.TempDir(), "keys")
+	if _, err := signing.Generate(dir, "host"); err != nil {
+		t.Fatal(err)
+	}
+	if ring, err := signing.OpenKeyring(dir); err != nil || len(ring) != 1 {
+		t.Fatalf("%v: %v", ring, err)
+	}
+}

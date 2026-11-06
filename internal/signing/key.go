@@ -104,10 +104,14 @@ func ReadPublic(path string) (ed25519.PublicKey, error) {
 
 // Generate makes a key pair named for its signer and writes it into dir as
 // <name>.key, readable by its owner alone, and <name>.pub, which is the file a
-// keyring holds and whose name is the signer's. It refuses to replace either,
-// because overwriting a key loses every record it could still prove.
+// keyring holds and whose name is the signer's. A dir that is not there is made,
+// open to its owner alone. It refuses to replace either file, because
+// overwriting a key loses every record it could still prove.
 func Generate(dir, name string) (Key, error) {
 	if err := plainName(name); err != nil {
+		return Key{}, err
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return Key{}, err
 	}
 	_, private, err := ed25519.GenerateKey(rand.Reader)
