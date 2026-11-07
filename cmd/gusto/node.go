@@ -173,8 +173,7 @@ func (s *scalerSettings) declare(set *settings.Set) {
 		"GUSTO_CLOUD_NODE_PREWARMS", "GUSTO_CLOUD_NODE_KEEP")
 }
 
-// renamedFromCell keeps reading each setting by the name it had when a node was called a cell, for a release, since the
-// deployments that set those names change after the binaries that read the new ones are everywhere.
+// renamedFromCell refuses each setting under the name it had when a node was called a cell, naming the new one.
 func renamedFromCell(set *settings.Set, names ...string) {
 	for _, name := range names {
 		set.Renamed(name, strings.NewReplacer("NODES", "CELLS", "NODE", "CELL").Replace(name))
@@ -231,10 +230,4 @@ func nodeCommandOf() *cmdline.Command {
 		SeeAlso: []string{"cloud"},
 		Run:     none("node", nodeCommand),
 	}
-}
-
-// hostCommandOf is gusto node by the name it had, kept for a release.
-func hostCommandOf() *cmdline.Command {
-	return &cmdline.Command{Name: "host", Summary: "The name gusto node had", Hidden: true,
-		Run: none("host", renamed("gusto host", "gusto node", nodeCommand))}
 }

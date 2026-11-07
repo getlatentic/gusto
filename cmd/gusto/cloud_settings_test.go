@@ -14,7 +14,7 @@ func TestEverySettingOfACloudsHostsIsDeclaredOnceWithHelp(t *testing.T) {
 	t.Parallel()
 	for name, declare := range map[string]func(*settings.Set){
 		"cloud":    new(cloudSettings).declare,
-		"host":     new(nodeSettings).declare,
+		"node":     new(nodeSettings).declare,
 		"operator": new(operatorSettings).declare,
 	} {
 		set := settings.New()
@@ -59,7 +59,7 @@ func TestCloudsSettingsReadAsTheirTypesAndAWrongOneIsSaid(t *testing.T) {
 // command started wrongly and the setting's name.
 func TestACloudsCommandWithAWrongSettingDoesNotStart(t *testing.T) {
 	for command, setting := range map[string]string{
-		"cloud": "GUSTO_CLOUD_DEMO_MAX", "host": "GUSTO_NODE_PORT", "operator": "GUSTO_CLOUD_DEMO_PER_DAY",
+		"cloud": "GUSTO_CLOUD_DEMO_MAX", "node": "GUSTO_NODE_PORT", "operator": "GUSTO_CLOUD_DEMO_PER_DAY",
 	} {
 		t.Setenv(setting, "many")
 		_, stderr, code := clitest.Capture(t, func() int { return run([]string{command}) })

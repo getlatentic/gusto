@@ -7,7 +7,7 @@
 51 1 cmd/gusto/commands_account.go:otherCommands
 110 1 cmd/gusto/commands_account.go:recordCommands
 60 1 cmd/gusto/commands_run.go:localCommands
-83 1 cmd/gusto/commands_run.go:runCommands
+82 1 cmd/gusto/commands_run.go:runCommands
 116 1 cmd/gusto/commands_task.go:taskCommands
 50 14 cmd/gusto/export.go:exportTask
 37 11 cmd/gusto/gateway.go:(*gateways).open

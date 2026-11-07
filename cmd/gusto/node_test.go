@@ -161,29 +161,3 @@ func TestGustoCloudStartsHostsForNodesOnlyWhenItIsToldHowAndToldEnough(t *testin
 		t.Error("a setting with no value")
 	}
 }
-
-// A node whose deployment still sets the names a node had when it was called a cell reads the same settings.
-func TestANodeSetUpUnderTheOldNamesReadsTheSame(t *testing.T) {
-	t.Parallel()
-	values := map[string]string{
-		"GUSTO_CELL_NAME": "cell-a", "GUSTO_CELL_PRIVATE": "10.0.1.5", "GUSTO_CELL_SECRET_FILE": secretFile(t),
-		"GUSTO_CELLS_DIR": filepath.Join(t.TempDir(), "cells"), "GUSTO_CELL_PORT": "9060",
-	}
-	var cfg nodeSettings
-	set := settings.New()
-	cfg.declare(set)
-	if err := set.Load(func(name string) string { return values[name] }); err != nil {
-		t.Fatal(err)
-	}
-	if cfg.name != "cell-a" || cfg.private != "10.0.1.5" || cfg.port != 9060 || cfg.nodesDir != values["GUSTO_CELLS_DIR"] || cfg.secretFile == "" {
-		t.Errorf("read %+v", cfg)
-	}
-	var pool nodePoolSettings
-	set = settings.New()
-	pool.declare(set)
-	if err := set.Load(func(name string) string {
-		return map[string]string{"GUSTO_CLOUD_CELLS_DIR": "/shared/cells", "GUSTO_CLOUD_LOCAL_CELL": "1"}[name]
-	}); err != nil || pool.dir != "/shared/cells" || !pool.local {
-		t.Errorf("the pool read %+v, %v", pool, err)
-	}
-}

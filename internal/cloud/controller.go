@@ -347,9 +347,6 @@ func (c *Controller) serverSettings(slug, name string, runtime Runtime, node Nod
 		"GUSTO_ORG_NAME":   name,
 		"GUSTO_CLOUD_URL":  c.CloudURL,
 		"GUSTO_NODE":       node.Name(),
-		// The names they had, for a server of an earlier release on a kept node.
-		"GUSTO_FRONT_DOOR": c.CloudURL,
-		"GUSTO_CELL":       node.Name(),
 	}
 }
 
