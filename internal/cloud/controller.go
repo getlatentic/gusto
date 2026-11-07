@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"maps"
 	"net"
@@ -177,7 +178,7 @@ func (c *Controller) provision(ctx context.Context, slug string) error {
 		return c.fail(ctx, slug, runtime, err)
 	}
 	runtime.Command = strings.Join(c.Command, " ")
-	if err := c.answers(ctx, node, runtime.Port); err != nil {
+	if err := c.answers(ctx, node, spec, runtime.Port); err != nil {
 		return c.fail(ctx, slug, runtime, err)
 	}
 	if err := c.set(ctx, slug, runtime, Ready, ""); err != nil {
@@ -415,16 +416,24 @@ func free(port int) bool {
 // healthCheck bounds one ask of a server's health, so a server that takes the connection and never answers is asked again.
 var healthCheck = &http.Client{Timeout: 2 * time.Second}
 
-// answers waits until the server on the port says it is well, for as long as c.Wait or until ctx ends.
-func (c *Controller) answers(ctx context.Context, node Node, port int) error {
+// answers waits for the server to say it is well, for as long as c.Wait. A server whose process has ended will not, so it fails
+// at once with the end of what it wrote. A node that cannot be asked says a server is not running too, so it takes endedAfter
+// answers in a row to call it ended.
+func (c *Controller) answers(ctx context.Context, node Node, spec ServerSpec, port int) error {
 	ctx, cancel := context.WithTimeout(ctx, c.Wait)
 	defer cancel()
 	address := "http://" + net.JoinHostPort(node.Host(), strconv.Itoa(port)) + "/healthz"
 	every := time.NewTicker(100 * time.Millisecond)
 	defer every.Stop()
-	for {
+	for gone := 0; ; {
 		if healthy(ctx, address) {
 			return nil
+		}
+		if gone = gone + 1; node.Alive(spec.Slug) {
+			gone = 0
+		}
+		if gone >= endedAfter {
+			return fmt.Errorf("the server ended as it started: %s", lastWords(spec.Log))
 		}
 		select {
 		case <-ctx.Done():
@@ -435,6 +444,31 @@ func (c *Controller) answers(ctx context.Context, node Node, port int) error {
 		case <-every.C:
 		}
 	}
+}
+
+// endedAfter is how many answers in a row that a server is not running call it ended.
+const endedAfter = 3
+
+// lastWords is the end of a server's log, on one line, for the reason its start failed: at most the last 4 KB read, and the
+// last 300 characters of that kept.
+func lastWords(path string) string {
+	file, err := os.Open(path)
+	if err != nil {
+		return "it wrote no server.log"
+	}
+	defer file.Close()
+	if info, err := file.Stat(); err == nil && info.Size() > 4096 {
+		file.Seek(-4096, io.SeekEnd)
+	}
+	tail, _ := io.ReadAll(io.LimitReader(file, 4096))
+	said := strings.Join(strings.Fields(string(tail)), " ")
+	if len(said) > 300 {
+		said = "…" + said[len(said)-300:]
+	}
+	if said == "" {
+		return "its server.log is empty"
+	}
+	return said + " (from server.log)"
 }
 
 // healthy is whether the server at address says it is well.
