@@ -12,7 +12,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/compare"
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/task"
@@ -153,7 +153,7 @@ func TestTheComparisonPageSaysWhichDidBetter(t *testing.T) {
 		id := fmt.Sprintf("run-%d", i)
 		spentTask(t, site.index.Root(), id, "", each.lines...)
 		dir := task.Dir(filepath.Join(site.index.Root(), id))
-		if err := evidence.Write(dir, evidence.Manifest{Check: &evidence.Verdict{Passed: each.passed}}); err != nil {
+		if err := record.Write(dir, record.Manifest{Check: &record.Verdict{Passed: each.passed}}); err != nil {
 			t.Fatal(err)
 		}
 		if err := site.index.Add(tasks.Record{ID: id, State: tasks.Passed, Brief: "fix it", Harness: each.harness, Started: 100, Ended: 100 + each.took}); err != nil {

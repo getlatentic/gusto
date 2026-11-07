@@ -24,8 +24,8 @@ const (
 	SpecFile     = "job.json"
 )
 
-// Record is audit.json.
-type Record struct {
+// Summary is audit.json.
+type Summary struct {
 	Version    int         `json:"version"`
 	Task       string      `json:"job"`
 	ExportedAt int64       `json:"exportedAt"`
@@ -38,7 +38,7 @@ type Record struct {
 	Outbound   Outbound    `json:"outbound"`
 	Approval   Approval    `json:"approval"`
 	Requests   Fact[[]any] `json:"requests"`
-	Evidence   Evidence    `json:"evidence"`
+	Record     Record      `json:"evidence"`
 	Carried    []Carried   `json:"carried"`
 	Redactions []Redaction `json:"redactions"`
 	Policy     Policy      `json:"policy"`
@@ -126,10 +126,10 @@ type Approval struct {
 	Why string       `json:"why"`
 }
 
-// Evidence is the manifest the export verifies against. Signer is the name the
-// exporter's keyring gives the key that signed it, or evidence.SignedBy's words
+// Record is the manifest the export verifies against. Signer is the name the
+// exporter's keyring gives the key that signed it, or record.SignedBy's words
 // for a record no keyring could vouch for; never the manifest's own claim.
-type Evidence struct {
+type Record struct {
 	Manifest string `json:"manifest"`
 	Signer   string `json:"signer"`
 	Files    int    `json:"files"`

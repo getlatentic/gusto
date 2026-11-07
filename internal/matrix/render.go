@@ -27,7 +27,7 @@ func Markdown(w io.Writer, table Table) error {
 	fmt.Fprintln(w, "| --- | --- | --- | --- | --- | --- | --- |")
 	for _, row := range table.Rows {
 		if _, err := fmt.Fprintf(w, "| %s | %s | %s | %s | %s | %s | %s |\n", pairOf(row), taskOf(row, table),
-			finished(row), wallClock(row), tokens(row), cost(row), strings.ReplaceAll(row.Evidence, "|", `\|`)); err != nil {
+			finished(row), wallClock(row), tokens(row), cost(row), strings.ReplaceAll(row.Record, "|", `\|`)); err != nil {
 			return err
 		}
 	}

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/openshell"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/harness"
@@ -136,13 +136,13 @@ func TestATaskRunInASandboxLeavesARecordTheHostWroteAndSigned(t *testing.T) {
 	if !strings.Contains(string(policy), "registry.npmjs.org") || !strings.Contains(string(policy), "host.openshell.internal") {
 		t.Errorf("the policy is not in the record: %s", policy)
 	}
-	if wrong, err := evidence.Check(dir); err != nil || len(wrong) > 0 {
+	if wrong, err := record.Check(dir); err != nil || len(wrong) > 0 {
 		t.Fatalf("the record does not verify: %v %v", wrong, err)
 	}
-	if signed, err := evidence.Attest(dir, ring); err != nil || signed.Key != key.ID() {
+	if signed, err := record.Attest(dir, ring); err != nil || signed.Key != key.ID() {
 		t.Fatalf("the record is not signed by the host's key: %+v %v", signed, err)
 	}
-	manifest, _ := evidence.Read(dir)
+	manifest, _ := record.Read(dir)
 	listed := map[string]bool{}
 	for _, file := range manifest.Files {
 		listed[file.Name] = true
@@ -164,7 +164,7 @@ func TestATamperedGuardLogFailsVerification(t *testing.T) {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 	write(t, dir.OutFile(runner.GuardEvents), "nothing was denied\n")
-	if wrong, _ := evidence.Check(dir); !strings.Contains(strings.Join(wrong, ";"), runner.GuardEvents+" changed") {
+	if wrong, _ := record.Check(dir); !strings.Contains(strings.Join(wrong, ";"), runner.GuardEvents+" changed") {
 		t.Errorf("an edited guard log was not caught: %v", wrong)
 	}
 }

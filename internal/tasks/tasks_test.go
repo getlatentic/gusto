@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -158,19 +158,19 @@ func waitFor(t *testing.T, index *Index, id string, want State) {
 
 // A container is a child of the container runtime, not of this server. A task
 // whose server was killed often runs on, finishes, and writes its manifest — so
-// the state file saying "running" is the stale thing, not the evidence.
+// the state file saying "running" is the stale thing, not the record.
 func TestATaskThatFinishedWhileTheServerWasGoneKeepsItsVerdict(t *testing.T) {
 	index := at(t)
-	record := queued(t, index, "finished alone")
+	entry := queued(t, index, "finished alone")
 	if _, _, err := index.Claim(); err != nil {
 		t.Fatal(err)
 	}
-	dir := record.Dir(index.Root())
+	dir := entry.Dir(index.Root())
 	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{
-		Check:  &evidence.Verdict{Command: []string{"true"}, Code: 0, Passed: true},
+	if err := record.Write(dir, record.Manifest{
+		Check:  &record.Verdict{Command: []string{"true"}, Code: 0, Passed: true},
 		Signer: "a-test",
 		AtUnix: Now(),
 	}); err != nil {
@@ -180,7 +180,7 @@ func TestATaskThatFinishedWhileTheServerWasGoneKeepsItsVerdict(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, _ := reopened.Get(record.ID)
+	got, _ := reopened.Get(entry.ID)
 	if got.State != Passed {
 		t.Fatalf("a job with a manifest saying it passed is %q", got.State)
 	}
@@ -189,7 +189,7 @@ func TestATaskThatFinishedWhileTheServerWasGoneKeepsItsVerdict(t *testing.T) {
 	}
 }
 
-func TestATaskThatLeftNoEvidenceIsInterruptedAndSaysNothingAboutItsExit(t *testing.T) {
+func TestATaskThatLeftNoRecordIsInterruptedAndSaysNothingAboutItsExit(t *testing.T) {
 	index := at(t)
 	record := queued(t, index, "left nothing")
 	if _, _, err := index.Claim(); err != nil {
@@ -257,8 +257,8 @@ func TestStoppingStartsNothingElse(t *testing.T) {
 // this run's, and reporting it would credit work this run never did.
 func TestAVerdictFromAnEarlierRunIsNotThisRunsVerdict(t *testing.T) {
 	index := at(t)
-	record := queued(t, index, "run twice")
-	dir := record.Dir(index.Root())
+	entry := queued(t, index, "run twice")
+	dir := entry.Dir(index.Root())
 	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -267,8 +267,8 @@ func TestAVerdictFromAnEarlierRunIsNotThisRunsVerdict(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Written while this run is in flight, but dated before it began.
-	if err := evidence.Write(dir, evidence.Manifest{
-		Check:  &evidence.Verdict{Code: 0, Passed: true},
+	if err := record.Write(dir, record.Manifest{
+		Check:  &record.Verdict{Code: 0, Passed: true},
 		AtUnix: claimed.Started - 30,
 	}); err != nil {
 		t.Fatal(err)
@@ -277,7 +277,7 @@ func TestAVerdictFromAnEarlierRunIsNotThisRunsVerdict(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, _ := reopened.Get(record.ID)
+	got, _ := reopened.Get(entry.ID)
 	if got.State != Interrupted {
 		t.Fatalf("a manifest older than the run reports %q", got.State)
 	}
@@ -285,18 +285,18 @@ func TestAVerdictFromAnEarlierRunIsNotThisRunsVerdict(t *testing.T) {
 
 func TestClaimingATaskClearsTheVerdictOfItsLastRun(t *testing.T) {
 	index := at(t)
-	record := queued(t, index, "run twice")
-	dir := record.Dir(index.Root())
+	entry := queued(t, index, "run twice")
+	dir := entry.Dir(index.Root())
 	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Check: &evidence.Verdict{Passed: true}, AtUnix: Now()}); err != nil {
+	if err := record.Write(dir, record.Manifest{Check: &record.Verdict{Passed: true}, AtUnix: Now()}); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := index.Claim(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := evidence.Read(dir); err == nil {
+	if _, err := record.Read(dir); err == nil {
 		t.Fatal("the previous run's manifest is still there for this run to inherit")
 	}
 }
@@ -305,8 +305,8 @@ func TestClaimingATaskClearsTheVerdictOfItsLastRun(t *testing.T) {
 // somebody noticed, which would count an outage as part of the task.
 func TestARecoveredTaskIsNotChargedForTheOutage(t *testing.T) {
 	index := at(t)
-	record := queued(t, index, "long outage")
-	dir := record.Dir(index.Root())
+	entry := queued(t, index, "long outage")
+	dir := entry.Dir(index.Root())
 	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -315,8 +315,8 @@ func TestARecoveredTaskIsNotChargedForTheOutage(t *testing.T) {
 		t.Fatal(err)
 	}
 	finished := claimed.Started + 15
-	if err := evidence.Write(dir, evidence.Manifest{
-		Check:  &evidence.Verdict{Code: 0, Passed: true},
+	if err := record.Write(dir, record.Manifest{
+		Check:  &record.Verdict{Code: 0, Passed: true},
 		AtUnix: finished,
 	}); err != nil {
 		t.Fatal(err)
@@ -325,7 +325,7 @@ func TestARecoveredTaskIsNotChargedForTheOutage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, _ := reopened.Get(record.ID)
+	got, _ := reopened.Get(entry.ID)
 	if got.Ended != finished {
 		t.Fatalf("ended at %d, and the manifest says the run finished at %d", got.Ended, finished)
 	}
@@ -419,34 +419,34 @@ func TestTurnsOfDifferentInstancesRunSideBySide(t *testing.T) {
 // whose harness failed, or whose model never answered, failed; and one that was told to stop was interrupted.
 func TestARunThatEndedWhileNobodyWatchedIsGradedAsIfWatched(t *testing.T) {
 	for name, tc := range map[string]struct {
-		manifest evidence.Manifest
+		manifest record.Manifest
 		state    State
 		exit     int
 	}{
-		"harness failed":       {evidence.Manifest{HarnessExit: 1}, Failed, 1},
-		"model never answered": {evidence.Manifest{ModelUnanswered: &evidence.Unanswered{}}, Failed, 1},
-		"told to stop":         {evidence.Manifest{StoppedBy: "ada@acme.example"}, Interrupted, -1},
-		"answered":             {evidence.Manifest{}, Passed, 0},
-		"check failed":         {evidence.Manifest{Check: &evidence.Verdict{Code: 2}}, Failed, 1},
+		"harness failed":       {record.Manifest{HarnessExit: 1}, Failed, 1},
+		"model never answered": {record.Manifest{ModelUnanswered: &record.Unanswered{}}, Failed, 1},
+		"told to stop":         {record.Manifest{StoppedBy: "ada@acme.example"}, Interrupted, -1},
+		"answered":             {record.Manifest{}, Passed, 0},
+		"check failed":         {record.Manifest{Check: &record.Verdict{Code: 2}}, Failed, 1},
 	} {
 		index := at(t)
-		record := queued(t, index, name)
+		entry := queued(t, index, name)
 		if _, _, err := index.Claim(); err != nil {
 			t.Fatal(err)
 		}
-		dir := record.Dir(index.Root())
+		dir := entry.Dir(index.Root())
 		if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 			t.Fatal(err)
 		}
 		tc.manifest.AtUnix = Now()
-		if err := evidence.Write(dir, tc.manifest); err != nil {
+		if err := record.Write(dir, tc.manifest); err != nil {
 			t.Fatal(err)
 		}
 		reopened, err := Open(index.Root())
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got, _ := reopened.Get(record.ID); got.State != tc.state || got.Exit != tc.exit {
+		if got, _ := reopened.Get(entry.ID); got.State != tc.state || got.Exit != tc.exit {
 			t.Errorf("%s: recovered as %s, exit %d; want %s, exit %d", name, got.State, got.Exit, tc.state, tc.exit)
 		}
 	}

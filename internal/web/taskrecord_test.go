@@ -9,17 +9,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // leftBehind is a task directory as a runner leaves it, written without running
-// anything, so a page can be shown evidence of any shape a harness might write.
+// anything, so a page can show a record of any shape a harness might write.
 type leftBehind struct {
 	state tasks.State
 	out   map[string]string
-	check *evidence.Verdict
+	check *record.Verdict
 }
 
 func (s *site) leave(t *testing.T, id string, run leftBehind) {
@@ -28,7 +28,7 @@ func (s *site) leave(t *testing.T, id string, run leftBehind) {
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := task.Spec{Brief: "read the evidence", Repo: "/repo", Check: []string{"true"}, Harness: "fixture"}
+	spec := task.Spec{Brief: "read the record", Repo: "/repo", Check: []string{"true"}, Harness: "fixture"}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -49,13 +49,13 @@ func (s *site) leave(t *testing.T, id string, run leftBehind) {
 	}
 }
 
-func sign(t *testing.T, dir task.Dir, check evidence.Verdict) {
+func sign(t *testing.T, dir task.Dir, check record.Verdict) {
 	t.Helper()
-	spec, files, err := evidence.Of(dir)
+	spec, files, err := record.Of(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Task: spec, Files: files, Check: &check, Signer: "a-test"}); err != nil {
+	if err := record.Write(dir, record.Manifest{Task: spec, Files: files, Check: &check, Signer: "a-test"}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -69,7 +69,7 @@ func (s *site) page(t *testing.T, id string) string {
 	return got.Body.String()
 }
 
-var passed = &evidence.Verdict{Command: []string{"true"}, Code: 0, Passed: true}
+var passed = &record.Verdict{Command: []string{"true"}, Code: 0, Passed: true}
 
 func TestTheDiffIsDrawnFileByFileWithItsHunks(t *testing.T) {
 	site := open(t)
@@ -104,7 +104,7 @@ func TestMarkupFromTheHarnessIsDrawnAsText(t *testing.T) {
 		"diff.patch": "diff --git a/<b>x</b>.html b/<b>x</b>.html\n--- a/<b>x</b>.html\n+++ b/<b>x</b>.html\n" +
 			"@@ -1 +1 @@\n-<p>old</p>\n+<script>alert('diff')</script>\n",
 		"gate.log": "<img src=x onerror=alert('gate')>\n",
-	}, check: &evidence.Verdict{Command: []string{"sh", "-c", "<script>alert('gate')</script>"}, Code: 1}})
+	}, check: &record.Verdict{Command: []string{"sh", "-c", "<script>alert('gate')</script>"}, Code: 1}})
 
 	page := site.page(t, "hostile")
 	for _, live := range []string{"<script>alert(", "<img src=x", "<b>x</b>", "<p>old</p>"} {
@@ -196,7 +196,7 @@ func TestTheCheckShowsItsCommandItsExitAndWhatItPrinted(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	site.leave(t, "refused", leftBehind{state: tasks.Failed, out: map[string]string{"gate.log": "3 tests failed\n"},
-		check: &evidence.Verdict{Command: []string{"sh", "-c", "go test ./... && exit 3"}, Code: 3}})
+		check: &record.Verdict{Command: []string{"sh", "-c", "go test ./... && exit 3"}, Code: 3}})
 
 	page := site.page(t, "refused")
 	for _, want := range []string{

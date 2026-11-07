@@ -10,10 +10,10 @@ import (
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// Record is what a run writes while it happens. A container's disk does not
+// Recorder writes down what a run does while it happens. A container's disk does not
 // survive a stop, so each line is on the bind-mounted task directory before the
 // next one is read.
-type Record struct {
+type Recorder struct {
 	adapter    harness.Adapter
 	raw        *os.File
 	transcript *os.File
@@ -41,8 +41,8 @@ type Record struct {
 	priced bool
 }
 
-func Open(dir task.Dir, adapter harness.Adapter) (*Record, error) {
-	record := &Record{adapter: adapter}
+func Open(dir task.Dir, adapter harness.Adapter) (*Recorder, error) {
+	record := &Recorder{adapter: adapter}
 	for _, opening := range []struct {
 		name string
 		into **os.File
@@ -64,7 +64,7 @@ func Open(dir task.Dir, adapter harness.Adapter) (*Record, error) {
 
 // Out keeps one line of the agent's output: raw always, and the text and the
 // numbers when the adapter says where they are.
-func (r *Record) Out(line string) error {
+func (r *Recorder) Out(line string) error {
 	if _, err := r.raw.WriteString(line + "\n"); err != nil {
 		return err
 	}
@@ -94,14 +94,14 @@ func (r *Record) Out(line string) error {
 }
 
 // say writes to the transcript and counts what it wrote.
-func (r *Record) say(text string) error {
+func (r *Recorder) say(text string) error {
 	written, err := r.transcript.WriteString(text)
 	r.wrote += int64(written)
 	return err
 }
 
 // paragraph is the break owed before text from a message other than the last.
-func (r *Record) paragraph(decoded map[string]any) string {
+func (r *Recorder) paragraph(decoded map[string]any) string {
 	named, ok := harness.Pick(decoded, r.adapter.Message)
 	if !ok {
 		return ""
@@ -119,7 +119,7 @@ func (r *Record) paragraph(decoded map[string]any) string {
 // an agent touched should not have to read a transcript to find out, and a tool
 // call is the only place a harness says it. A line on which the adapter's tool
 // name resolves is a tool call; nothing else distinguishes one.
-func (r *Record) did(decoded map[string]any) error {
+func (r *Recorder) did(decoded map[string]any) error {
 	name, isCall := harness.Pick(decoded, r.adapter.ToolName)
 	if !isCall || !r.adapter.Ran(decoded) {
 		return nil
@@ -142,7 +142,7 @@ func (r *Record) did(decoded map[string]any) error {
 	return err
 }
 
-func (r *Record) usage(decoded map[string]any, line string) error {
+func (r *Recorder) usage(decoded map[string]any, line string) error {
 	if !r.adapter.Counts(decoded) {
 		return nil
 	}
@@ -165,7 +165,7 @@ func (r *Record) usage(decoded map[string]any, line string) error {
 
 // tokens is what one line counts: the harness's own total when it states one,
 // and the sum of the parts otherwise.
-func (r *Record) tokens(decoded map[string]any) (float64, bool) {
+func (r *Recorder) tokens(decoded map[string]any) (float64, bool) {
 	if total, ok := harness.Number(decoded, r.adapter.TotalTokens); ok {
 		return total, true
 	}
@@ -184,7 +184,7 @@ func (r *Record) tokens(decoded map[string]any) (float64, bool) {
 	return counted, told
 }
 
-func (r *Record) Err(line string) error {
+func (r *Recorder) Err(line string) error {
 	_, err := r.errs.WriteString(line + "\n")
 	return err
 }
@@ -194,7 +194,7 @@ func (r *Record) Err(line string) error {
 // because an agent that counts its tokens and names no price is the ordinary
 // case. Writing zero there would say a run was free, which is the one thing a
 // record of spending must never say by accident.
-func (r *Record) Spent() (*int64, *float64) {
+func (r *Recorder) Spent() (*int64, *float64) {
 	if !r.seen {
 		return nil, nil
 	}
@@ -208,7 +208,7 @@ func (r *Record) Spent() (*int64, *float64) {
 	return &tokens, &cost
 }
 
-func (r *Record) Close() error {
+func (r *Recorder) Close() error {
 	var failure error
 	for _, file := range []*os.File{r.raw, r.transcript, r.calls, r.commands, r.errs} {
 		if err := file.Close(); err != nil && failure == nil {

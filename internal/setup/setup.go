@@ -217,7 +217,7 @@ func (s *Store) skills(setup string) []Skill {
 
 // Carry copies what a task needs of a setup into the task's own directory: the
 // skills, and the definitions of the servers it names. It returns the names
-// for job.json, which is evidence and so holds no definition.
+// for job.json, which is part of the record and so holds no definition.
 func (s *Store) Carry(name string, offered Servers, dir task.Dir) (*task.Setup, error) {
 	return s.CarryFor(name, offered, dir, "")
 }

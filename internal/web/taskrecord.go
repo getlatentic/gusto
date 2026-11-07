@@ -4,12 +4,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// The task page reads a finished task's evidence for the reviewer: the patch as a
+// The task page reads a finished task's record for the reviewer: the patch as a
 // diff, the transcript as text, the check's verdict beside what it printed, and
 // the command that checks all of it without this server. Every string here was
 // written by a harness nobody trusts, and it reaches the page only through
@@ -32,7 +32,7 @@ func readPatch(dir task.Dir, id string) (patchView, bool) {
 // checkView is the check's answer. The verdict comes from the manifest, so a run
 // that never reached its check has a log at most and no verdict to show.
 type checkView struct {
-	Verdict *evidence.Verdict
+	Verdict *record.Verdict
 	Command string
 	Log     *excerpt
 	// Explains is a check that did not pass. Its output is then the answer the
@@ -41,13 +41,13 @@ type checkView struct {
 	Explains bool
 }
 
-func readCheck(record tasks.Record, dir task.Dir, manifest *evidence.Manifest) checkView {
-	check := checkView{Explains: record.State != tasks.Passed}
+func readCheck(entry tasks.Record, dir task.Dir, manifest *record.Manifest) checkView {
+	check := checkView{Explains: entry.State != tasks.Passed}
 	if manifest != nil && manifest.Check != nil {
 		check.Verdict = manifest.Check
 		check.Command = shellLine(manifest.Check.Command)
 	}
-	if log, found := readExcerpt(dir, record.ID, "gate.log", drawn); found && !log.Empty() {
+	if log, found := readExcerpt(dir, entry.ID, "gate.log", drawn); found && !log.Empty() {
 		check.Log = &log
 	}
 	return check
@@ -74,38 +74,38 @@ func shellWord(word string) string {
 	return "'" + strings.ReplaceAll(word, "'", `'\''`) + "'"
 }
 
-// drawEvidence adds to the task page what the run left behind. The transcript
+// drawRecord adds to the task page what the run left behind. The transcript
 // and the check wait for the task to finish, because until then the live stream
 // is the transcript and the check has not answered.
-func drawEvidence(page map[string]any, record tasks.Record, dir task.Dir, manifest *evidence.Manifest) {
+func drawRecord(page map[string]any, entry tasks.Record, dir task.Dir, manifest *record.Manifest) {
 	if manifest != nil {
 		page["Manifest"] = manifest
 		page["Build"] = manifest.HarnessVersion
 	}
-	if patch, found := readPatch(dir, record.ID); found {
+	if patch, found := readPatch(dir, entry.ID); found {
 		page["Patch"] = patch
 	}
-	if !record.State.Done() {
+	if !entry.State.Done() {
 		page["Live"] = true
 		return
 	}
-	if transcript, found := readExcerpt(dir, record.ID, "transcript.log", drawn); found {
+	if transcript, found := readExcerpt(dir, entry.ID, "transcript.log", drawn); found {
 		page["Transcript"] = transcript
 	}
-	page["Check"] = readCheck(record, dir, manifest)
+	page["Check"] = readCheck(entry, dir, manifest)
 }
 
 // readManifest is the run's manifest, or nil for a task that has not written
 // one: queued, running, or stopped before it got that far.
-func readManifest(dir task.Dir) *evidence.Manifest {
-	manifest, err := evidence.Read(dir)
+func readManifest(dir task.Dir) *record.Manifest {
+	manifest, err := record.Read(dir)
 	if err != nil {
 		return nil
 	}
 	return &manifest
 }
 
-func entriesOf(manifest *evidence.Manifest) []evidence.Entry {
+func entriesOf(manifest *record.Manifest) []record.Entry {
 	if manifest == nil {
 		return nil
 	}

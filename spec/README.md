@@ -36,9 +36,9 @@ ok   Demo.before-ending.cfg: Error: Invariant EndingStaysEnding is violated.
 ok   Demo.before-guards.cfg: Error: Invariant NoExtendAfterStop is violated.
 ok   Demo.before-lead.cfg: Error: Invariant LeadFollowsDemo is violated.
 ok   Demo.now.cfg: 388 states generated, 231 distinct states found, 0 states left on queue.
-ok   Evidence.before-intact.cfg: Error: Invariant NothingChangedIsSigned is violated.
-ok   Evidence.before-pending.cfg: Error: Invariant StaysSigned is violated.
-ok   Evidence.now.cfg: 50 states generated, 38 distinct states found, 0 states left on queue.
+ok   Record.before-intact.cfg: Error: Invariant NothingChangedIsSigned is violated.
+ok   Record.before-pending.cfg: Error: Invariant StaysSigned is violated.
+ok   Record.now.cfg: 50 states generated, 38 distinct states found, 0 states left on queue.
 ok   Formats.before-applied.cfg: Error: Invariant UpToDateIsWhole is violated.
 ok   Formats.before-format.cfg: Error: Invariant UndoneIsUpgraded is violated.
 ok   Formats.before-scratch.cfg: Error: Invariant StampsLand is violated.
@@ -122,7 +122,7 @@ server crash and restart (`Open`). Each action names the Go function it models.
 | --- | --- | --- | --- |
 | `StopWins` | A stop the person was told took always ends the task Interrupted. | Broken: the stop lands after the worker looked | `TestAStopThatComesAsTheWorkReturnsStillEndsTheTaskInterrupted` |
 | `PassedIsEarned` | A task passes only on a manifest that earned it. | Broken: recovery passed a turn whose harness failed | `TestARunThatEndedWhileNobodyWatchedIsGradedAsIfWatched` |
-| `GradedAsEarned` | Live and recovered runs are graded by `evidence.Earned`. | | |
+| `GradedAsEarned` | Live and recovered runs are graded by `record.Earned`. | | |
 | `EndsOnce` | A finished task never changes state. | | |
 | `EveryTaskEnds` | Every task finishes, with up to one crash. | | |
 
@@ -336,10 +336,10 @@ Two more fixes have Go tests and no model: a front door that starts again counts
 (`TestAHostThatWentQuietAMomentAgoIsLeftByAFrontDoorThatStartsAgain`). A host that goes stops its servers together, inside
 its service's stop time (`TestAHostThatGoesStopsItsServersTogetherAndTakesItsRegistrationAway`).
 
-## Evidence
+## Record
 
-A room turn's record, as `evidence.Decide` puts what was done with the turn's changes under its signature
-(`internal/evidence/decide.go`). The run ends with `out/` hashed into `manifest.json` and the manifest signed. Decide writes
+A room turn's record, as `record.Decide` puts what was done with the turn's changes under its signature
+(`internal/record/decide.go`). The run ends with `out/` hashed into `manifest.json` and the manifest signed. Decide writes
 `decision.json`, makes the manifest again and signs it again. A file in `out/` may be changed after the run was signed, and
 the server may crash at any step and start again.
 

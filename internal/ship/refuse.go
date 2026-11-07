@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
@@ -17,28 +17,28 @@ import (
 // Both records are read because the manifest does not hash itself. Editing
 // manifest.json to say passed leaves every hash intact, and gates.json, which
 // the manifest does hash, still holds the check's real answer.
-func Shippable(dir task.Dir) (evidence.Manifest, error) {
+func Shippable(dir task.Dir) (record.Manifest, error) {
 	if err := untouched(dir); err != nil {
-		return evidence.Manifest{}, err
+		return record.Manifest{}, err
 	}
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
-		return evidence.Manifest{}, err
+		return record.Manifest{}, err
 	}
 	if manifest.Check == nil {
-		return evidence.Manifest{}, fmt.Errorf("%w: this task had no check, so nothing says its work is right", ErrRefused)
+		return record.Manifest{}, fmt.Errorf("%w: this task had no check, so nothing says its work is right", ErrRefused)
 	}
 	if err := passed(dir, *manifest.Check); err != nil {
-		return evidence.Manifest{}, err
+		return record.Manifest{}, err
 	}
 	return manifest, carriesChange(dir)
 }
 
-// untouched re-hashes the evidence the way `gusto verify` does. Shipping a patch
+// untouched re-hashes the record the way `gusto verify` does. Shipping a patch
 // that changed after its check passed would put unchecked code in front of a
 // reviewer under a passing verdict, which is the worst thing this can do.
 func untouched(dir task.Dir) error {
-	wrong, err := evidence.Check(dir)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		return fmt.Errorf("%w: the record cannot be read: %w", ErrRefused, err)
 	}
@@ -48,7 +48,7 @@ func untouched(dir task.Dir) error {
 	return nil
 }
 
-func passed(dir task.Dir, claimed evidence.Verdict) error {
+func passed(dir task.Dir, claimed record.Verdict) error {
 	recorded, err := checks(dir)
 	if err != nil {
 		return fmt.Errorf("%w: gates.json cannot be read: %w", ErrRefused, err)
@@ -62,12 +62,12 @@ func passed(dir task.Dir, claimed evidence.Verdict) error {
 	return nil
 }
 
-func checks(dir task.Dir) (evidence.Verdict, error) {
+func checks(dir task.Dir) (record.Verdict, error) {
 	text, err := os.ReadFile(dir.OutFile("gates.json"))
 	if err != nil {
-		return evidence.Verdict{}, err
+		return record.Verdict{}, err
 	}
-	var verdict evidence.Verdict
+	var verdict record.Verdict
 	err = json.Unmarshal(text, &verdict)
 	return verdict, err
 }

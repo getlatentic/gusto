@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/ship"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
@@ -48,11 +48,11 @@ func TestThePullRequestNamesOnlyTheSignerTheKeyringChecked(t *testing.T) {
 	}{
 		"unsigned": {
 			from:    func(t *testing.T) task.Dir { dir, _ := finished(t, "yes"); return dir },
-			keyring: keyringAt(t, trusted), want: "| signer | " + evidence.Unsigned + " |",
+			keyring: keyringAt(t, trusted), want: "| signer | " + record.Unsigned + " |",
 		},
 		"signed, no keyring": {
 			from:    func(t *testing.T) task.Dir { return signedBy(t, t.TempDir(), "stranger") },
-			keyring: signing.Keyring{}, want: "| signer | " + evidence.NoKeyring + " |",
+			keyring: signing.Keyring{}, want: "| signer | " + record.NoKeyring + " |",
 		},
 		"signed by a key not in the keyring": {
 			from:    func(t *testing.T) task.Dir { return signedBy(t, t.TempDir(), "stranger") },

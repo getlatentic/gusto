@@ -51,7 +51,7 @@ func TestADirectoryThatHoldsSomethingIsNotUnpackedInto(t *testing.T) {
 	}
 }
 
-func TestARemoteWithNoEvidenceSaysSo(t *testing.T) {
+func TestARemoteWithNoRecordSaysSo(t *testing.T) {
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
 	bare := filepath.Join(t.TempDir(), "remote.git")

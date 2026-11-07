@@ -7,15 +7,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/pkg/spend"
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // task is one run and everything it left: what it said, what it ran, what it
 // changed, whether its check passed, what its calls to a model cost, and the
-// evidence that vouches for all of it.
+// record that vouches for all of it.
 func (s *Server) task(w http.ResponseWriter, r *http.Request) {
 	record, dir, found := s.find(r)
 	if !found {
@@ -49,7 +49,7 @@ func (s *Server) task(w http.ResponseWriter, r *http.Request) {
 	}
 	page["Steps"] = stepsOf(dir)
 	manifest := readManifest(dir)
-	drawEvidence(page, record, dir, manifest)
+	drawRecord(page, record, dir, manifest)
 	// A turn in a conversation names no check, so it has no verdict to be
 	// missing; saying the check never answered would call a finished turn broken.
 	if err == nil && len(spec.Check) == 0 {
@@ -179,7 +179,7 @@ type hashedFile struct {
 // hashed pairs what is on disk with what the manifest says. No hash means the
 // manifest does not name the file: manifest.json, which cannot hash itself, and
 // anything that appeared after the run, which `gusto verify` reports.
-func hashed(names []string, manifest *evidence.Manifest) []hashedFile {
+func hashed(names []string, manifest *record.Manifest) []hashedFile {
 	claimed := map[string]string{}
 	for _, entry := range entriesOf(manifest) {
 		claimed[entry.Name] = entry.SHA256

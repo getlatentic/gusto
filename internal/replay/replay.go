@@ -2,7 +2,7 @@
 //
 // A rerun is a fresh task directory made from the old one's job.json and
 // adapter, pinned to the commit the old run started from. It runs like any
-// other task and leaves its own evidence. The old directory is only read: its
+// other task and leaves its own record. The old directory is only read: its
 // record is what the new verdict is compared against, so touching it would
 // spoil the comparison.
 package replay
@@ -15,7 +15,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
@@ -54,20 +54,20 @@ func Prepare(old task.Dir, parent string) (task.Dir, error) {
 
 // Known is the old run's manifest, once its record checks and it carries a
 // verdict to compare against.
-func Known(old task.Dir) (evidence.Manifest, error) {
-	wrong, err := evidence.Check(old)
+func Known(old task.Dir) (record.Manifest, error) {
+	wrong, err := record.Check(old)
 	if err != nil {
-		return evidence.Manifest{}, fmt.Errorf("%s has no record to rerun against: %w", old, err)
+		return record.Manifest{}, fmt.Errorf("%s has no record to rerun against: %w", old, err)
 	}
 	if len(wrong) > 0 {
-		return evidence.Manifest{}, fmt.Errorf("%s changed since its run (%s), so its verdict is not the one to compare against", old, wrong[0])
+		return record.Manifest{}, fmt.Errorf("%s changed since its run (%s), so its verdict is not the one to compare against", old, wrong[0])
 	}
-	manifest, err := evidence.Read(old)
+	manifest, err := record.Read(old)
 	if err != nil {
-		return evidence.Manifest{}, err
+		return record.Manifest{}, err
 	}
 	if manifest.Check == nil {
-		return evidence.Manifest{}, fmt.Errorf("%s had no check, so there is no verdict to compare", old)
+		return record.Manifest{}, fmt.Errorf("%s had no check, so there is no verdict to compare", old)
 	}
 	return manifest, nil
 }

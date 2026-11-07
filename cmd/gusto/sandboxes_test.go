@@ -10,8 +10,8 @@ import (
 	"github.com/getlatentic/gusto/internal/backend/process"
 	"github.com/getlatentic/gusto/internal/backend/vm"
 	"github.com/getlatentic/gusto/internal/catalog"
-	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/task"
@@ -59,7 +59,7 @@ func (r *recording) Offered() []catalog.Entry              { return nil }
 
 func (r *recording) Run(_ context.Context, turn backend.Turn) (int, error) {
 	r.turn = turn
-	return 0, evidence.Write(turn.Dir, evidence.Manifest{Session: r.session})
+	return 0, record.Write(turn.Dir, record.Manifest{Session: r.session})
 }
 
 // A turn in a conversation is handed to its backend with who pays, the instance's folder and the agent's memory, and the

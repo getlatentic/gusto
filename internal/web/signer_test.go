@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -26,12 +26,12 @@ func claiming(t *testing.T, root, id string) task.Dir {
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
-	hash, files, err := evidence.Of(dir)
+	hash, files, err := record.Of(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifest := evidence.Manifest{Task: hash, Files: files, Check: &evidence.Verdict{Command: spec.Check, Passed: true}, Signer: "alice"}
-	if err := evidence.Write(dir, manifest); err != nil {
+	manifest := record.Manifest{Task: hash, Files: files, Check: &record.Verdict{Command: spec.Check, Passed: true}, Signer: "alice"}
+	if err := record.Write(dir, manifest); err != nil {
 		t.Fatal(err)
 	}
 	return dir
@@ -43,7 +43,7 @@ func sealWith(t *testing.T, dir task.Dir, ring, name string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Seal(dir, key); err != nil {
+	if err := record.Seal(dir, key); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -69,7 +69,7 @@ func TestTheTaskPageNamesOnlyTheSignerTheKeyringChecked(t *testing.T) {
 		want    string
 	}{
 		"unsigned":                           {"unsigned-20260927-0100", keyring, "Not signed"},
-		"signed, no keyring":                 {"acme-20260927-0100", signing.Keyring{}, evidence.NoKeyring},
+		"signed, no keyring":                 {"acme-20260927-0100", signing.Keyring{}, record.NoKeyring},
 		"signed by a key not in the keyring": {"stranger-20260927-0100", keyring, "is not in the keyring"},
 		"signed by a key in the keyring":     {"acme-20260927-0100", keyring, "signed by acme,"},
 	} {

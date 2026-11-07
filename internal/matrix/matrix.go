@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/replay"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -148,7 +148,7 @@ func (c column) runOne(pair Pair, commit string, run replay.Run, progress io.Wri
 }
 
 // clean gives the cell a directory nothing has run in. An earlier attempt is
-// moved aside rather than deleted, because it is evidence of what that run
+// moved aside rather than deleted, because it is the record of what that run
 // did, and remade from the submission at the comparison's commit. A stop
 // between the two leaves no directory, which prepared makes again.
 func (c column) clean(dir task.Dir, pair Pair, commit string) error {
@@ -166,7 +166,7 @@ func (c column) clean(dir task.Dir, pair Pair, commit string) error {
 
 // Finished says whether the run at dir left the check's verdict.
 func Finished(dir task.Dir) bool {
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	return err == nil && manifest.Check != nil
 }
 

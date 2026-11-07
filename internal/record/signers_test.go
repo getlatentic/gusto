@@ -1,11 +1,11 @@
-package evidence_test
+package record_test
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -14,15 +14,15 @@ import (
 func sealedUnder(t *testing.T, root, id string, signer signing.Signer) task.Dir {
 	t.Helper()
 	dir := recordedAt(t, task.Dir(filepath.Join(root, id)), "answer of "+id)
-	if err := evidence.Seal(dir, signer); err != nil {
+	if err := record.Seal(dir, signer); err != nil {
 		t.Fatal(err)
 	}
 	return dir
 }
 
-func signersOf(t *testing.T, root, ring string) evidence.Signers {
+func signersOf(t *testing.T, root, ring string) record.Signers {
 	t.Helper()
-	found, err := evidence.SignersUnder(root, keyringOf(t, ring))
+	found, err := record.SignersUnder(root, keyringOf(t, ring))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestARotatedKeyLeavesEveryEarlierRecordVerifiableAndNamed(t *testing.T) {
 	if !found.Sound() || found.Signed["acme-2026-09"] != 2 || found.Signed["acme-2026-10"] != 1 {
 		t.Fatalf("after a rotation: %+v", found)
 	}
-	attested, err := evidence.Attest(task.Dir(filepath.Join(root, "a")), keyringOf(t, ring))
+	attested, err := record.Attest(task.Dir(filepath.Join(root, "a")), keyringOf(t, ring))
 	if err != nil || attested.Signer != "acme-2026-09" || attested.Key != older.ID() {
 		t.Fatalf("an earlier record names %+v: %v", attested, err)
 	}
@@ -74,7 +74,7 @@ func TestARecordWhoseKeyLeftTheKeyringIsListedAndComesBackWithIt(t *testing.T) {
 		t.Fatalf("with the key left out: %+v", found)
 	}
 	if wrong := complaints(t, dir); len(wrong) != 0 {
-		t.Errorf("the record's own evidence broke: %v", wrong)
+		t.Errorf("the record broke: %v", wrong)
 	}
 
 	if err := os.WriteFile(public, held, 0o644); err != nil {
@@ -114,7 +114,7 @@ func TestAnUnsignedRecordIsCountedAndDoesNotFailTheCheck(t *testing.T) {
 	if found := signersOf(t, root, ring); !found.Sound() || found.Unsigned != 1 {
 		t.Fatalf("with an unsigned record: %+v", found)
 	}
-	if found, err := evidence.SignersUnder(filepath.Join(root, "nothing-here"), signing.Keyring{}); err != nil || !found.Sound() {
+	if found, err := record.SignersUnder(filepath.Join(root, "nothing-here"), signing.Keyring{}); err != nil || !found.Sound() {
 		t.Fatalf("a directory that is not there: %+v %v", found, err)
 	}
 }

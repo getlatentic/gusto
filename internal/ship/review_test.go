@@ -15,7 +15,7 @@ import (
 // These tests read a pull request the way a reviewer does: they take the
 // command out of the body that reached the forge and run it as printed, with
 // the gusto this repository builds, against the remote the task shipped to.
-func TestThePrintedCommandVerifiesTheEvidence(t *testing.T) {
+func TestThePrintedCommandVerifiesTheRecord(t *testing.T) {
 	dir, _ := finished(t, "yes")
 	fake := &forge{}
 	shipped(t, dir, fake)
@@ -60,36 +60,36 @@ func TestThePrintedCommandRefusesAPullRequestCommitThatIsNotThePatch(t *testing.
 	}
 }
 
-func TestThePullRequestLinksTheManifestAndTheTranscriptAtTheEvidenceCommit(t *testing.T) {
+func TestThePullRequestLinksTheManifestAndTheTranscriptAtTheRecordCommit(t *testing.T) {
 	dir, bare := finished(t, "yes")
 	fake := &forge{}
 	plan, _ := shipped(t, dir, fake)
-	evidence := git(t, bare, "rev-parse", ship.EvidenceRef(plan.Manifest))
-	if evidence != plan.Commits.Evidence {
-		t.Fatalf("the remote's evidence ref is %s, and the plan named %s", evidence, plan.Commits.Evidence)
+	record := git(t, bare, "rev-parse", ship.RecordRef(plan.Manifest))
+	if record != plan.Commits.Record {
+		t.Fatalf("the remote's record ref is %s, and the plan named %s", record, plan.Commits.Record)
 	}
 	body := bodyOf(t, fake)
 	for _, file := range []string{"out/manifest.json", "out/transcript.log"} {
-		link := "https://github.com/o/r/blob/" + evidence + "/" + file
+		link := "https://github.com/o/r/blob/" + record + "/" + file
 		if !strings.Contains(body, "("+link+")") {
 			t.Fatalf("the body should link %s:\n%s", link, body)
 		}
 	}
-	if manifest := git(t, bare, "show", evidence+":out/manifest.json"); !strings.Contains(manifest, `"signer": "a-test"`) {
-		t.Fatalf("the evidence commit should hold the run's manifest:\n%s", manifest)
+	if manifest := git(t, bare, "show", record+":out/manifest.json"); !strings.Contains(manifest, `"signer": "a-test"`) {
+		t.Fatalf("the record commit should hold the run's manifest:\n%s", manifest)
 	}
 }
 
-// The evidence sits beside the change, never in it: the pull request's branch
+// The record sits beside the change, never in it: the pull request's branch
 // differs from its base by the patch alone.
-func TestTheEvidenceIsNotPartOfTheChange(t *testing.T) {
+func TestTheRecordIsNotPartOfTheChange(t *testing.T) {
 	dir, bare := finished(t, "yes")
 	plan, _ := shipped(t, dir, &forge{})
 	if changed := git(t, bare, "diff", "--name-only", plan.At, plan.Branch); changed != "answer.txt" {
 		t.Fatalf("the branch should change answer.txt and nothing else, changes:\n%s", changed)
 	}
-	if parent := git(t, bare, "rev-parse", ship.EvidenceRef(plan.Manifest)+"^"); parent != git(t, bare, "rev-parse", plan.Branch) {
-		t.Fatal("the evidence commit's parent should be the pull request's commit")
+	if parent := git(t, bare, "rev-parse", ship.RecordRef(plan.Manifest)+"^"); parent != git(t, bare, "rev-parse", plan.Branch) {
+		t.Fatal("the record commit's parent should be the pull request's commit")
 	}
 }
 
@@ -128,12 +128,12 @@ func reviewed(t *testing.T, command string) (string, int) {
 	return string(output), shell.ProcessState.ExitCode()
 }
 
-// forged replaces the evidence on the remote, the way anybody who can push
+// forged replaces the record on the remote, the way anybody who can push
 // could: with files rewritten, and, when change names a commit, on top of that
 // commit left as it is instead of on top of the patch.
 func forged(t *testing.T, bare string, plan ship.Plan, change string, files map[string]string) {
 	t.Helper()
-	ref := ship.EvidenceRef(plan.Manifest)
+	ref := ship.RecordRef(plan.Manifest)
 	work := t.TempDir()
 	git(t, work, "init", "--quiet")
 	git(t, work, "fetch", "--quiet", bare, ref+":"+ref)
@@ -150,7 +150,7 @@ func forged(t *testing.T, bare string, plan ship.Plan, change string, files map[
 		write(t, filepath.Join(work, name), text)
 	}
 	git(t, work, "add", "job.json", "out")
-	commit(t, work, "-m", "forged evidence")
+	commit(t, work, "-m", "forged record")
 	git(t, work, "push", "--quiet", "--force", bare, "HEAD:"+ref)
 }
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -67,13 +67,13 @@ func TestTheHostSignsTheManifestTheBoxLeft(t *testing.T) {
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Signer: "the box"}); err != nil {
+	if err := record.Write(dir, record.Manifest{Signer: "the box"}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := c.start(context.Background(), dir, nil); err != nil {
 		t.Fatal(err)
 	}
-	attested, err := evidence.Attest(dir, keyring)
+	attested, err := record.Attest(dir, keyring)
 	if err != nil || attested.Signer != "host" {
 		t.Fatalf("want the host's key, got %+v: %v", attested, err)
 	}

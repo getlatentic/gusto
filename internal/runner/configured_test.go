@@ -6,7 +6,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/task"
@@ -53,14 +53,14 @@ func configuredRun(t *testing.T, adapter string) (task.Dir, string) {
 func TestTheManifestNamesTheConfiguredHarnessTheTaskCarried(t *testing.T) {
 	dir, carried := configuredRun(t, `{"name": "configured", "program": "sh",
 		"argv": ["-c", "printf yes > answer.txt"], "needs": "nothing"}`)
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if manifest.HarnessDigest != carried {
 		t.Fatalf("the manifest says %q, the job carried %s", manifest.HarnessDigest, carried)
 	}
-	if wrong, err := evidence.Check(dir); err != nil || len(wrong) != 0 {
+	if wrong, err := record.Check(dir); err != nil || len(wrong) != 0 {
 		t.Fatalf("an untouched harness should verify: %v %v", wrong, err)
 	}
 }
@@ -72,14 +72,14 @@ func TestTheManifestNamesTheConfiguredHarnessTheTaskCarried(t *testing.T) {
 func TestAHarnessThatWritesToItselfIsCaught(t *testing.T) {
 	dir, carried := configuredRun(t, `{"name": "configured", "program": "sh",
 		"argv": ["-c", "printf yes > answer.txt; echo learned >> {harnessDir}/prompt.md"], "needs": "nothing"}`)
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if manifest.HarnessDigest != carried {
 		t.Fatalf("the manifest says %q, the job carried %s before the run", manifest.HarnessDigest, carried)
 	}
-	wrong, err := evidence.Check(dir)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

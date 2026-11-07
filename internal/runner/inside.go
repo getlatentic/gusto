@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/task"
@@ -61,15 +61,15 @@ func InsideWith(parent context.Context, dir task.Dir, env harness.Env, place Pla
 	if err != nil {
 		return 0, err
 	}
-	end := ending{dir: dir, since: evidence.Now(), harness: run.adapter.Name, digest: run.digest, endpoint: run.endpoint, signing: place.Signing}
-	record, err := Open(dir, run.adapter)
+	end := ending{dir: dir, since: record.Now(), harness: run.adapter.Name, digest: run.digest, endpoint: run.endpoint, signing: place.Signing}
+	recorder, err := Open(dir, run.adapter)
 	if err != nil {
 		return 0, err
 	}
 	ctx, cancel := context.WithTimeout(parent, time.Duration(spec.Budget.Seconds)*time.Second)
 	defer cancel()
-	end.exit, err = run.agentTurn(ctx, &agent, record)
-	if end.tokens, end.cost, err = finished(record, err); err != nil {
+	end.exit, err = run.agentTurn(ctx, &agent, recorder)
+	if end.tokens, end.cost, err = finished(recorder, err); err != nil {
 		return 0, err
 	}
 	if err := Diff(dir, run.before); err != nil {
@@ -78,7 +78,7 @@ func InsideWith(parent context.Context, dir task.Dir, env harness.Env, place Pla
 	if end.verdict, err = run.check(ctx, agent); err != nil {
 		return 0, err
 	}
-	end.version, end.session = harness.VersionOf(run.adapter.Name), record.Remembered
+	end.version, end.session = harness.VersionOf(run.adapter.Name), recorder.Remembered
 	return end.close(ctx)
 }
 
@@ -124,7 +124,7 @@ func prepareInside(dir task.Dir, spec task.Spec, env harness.Env) (*inside, erro
 }
 
 // agentTurn gives the agent its tools and its home, runs it until it ends or ctx does, and returns its exit code.
-func (r *inside) agentTurn(ctx context.Context, agent *agent, record *Record) (int, error) {
+func (r *inside) agentTurn(ctx context.Context, agent *agent, record *Recorder) (int, error) {
 	servers, err := r.equip(agent)
 	if err != nil {
 		return 0, err
@@ -186,8 +186,8 @@ func (r *inside) equip(agent *agent) ([]task.Server, error) {
 }
 
 // check asks the task's check, with the agent's environment, and ends whatever the check left running. A turn in a conversation
-// names no check: it ran, and the evidence says what happened without claiming anything passed.
-func (r *inside) check(ctx context.Context, agent agent) (*evidence.Verdict, error) {
+// names no check: it ran, and the record says what happened without claiming anything passed.
+func (r *inside) check(ctx context.Context, agent agent) (*record.Verdict, error) {
 	if len(r.spec.Check) == 0 {
 		return nil, nil
 	}
@@ -206,8 +206,8 @@ type said struct {
 
 // stream reads both pipes into one order and keeps every line. The scanner is
 // given room because an agent's JSON line is routinely longer than the 64 KiB
-// a bufio.Scanner takes by default, and a dropped line is lost evidence.
-func stream(ctx context.Context, command *exec.Cmd, record *Record) (int, error) {
+// a bufio.Scanner takes by default, and a dropped line is lost from the record.
+func stream(ctx context.Context, command *exec.Cmd, record *Recorder) (int, error) {
 	out, err := command.StdoutPipe()
 	if err != nil {
 		return 0, err

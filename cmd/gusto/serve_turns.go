@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/apps"
-	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/spend"
 	"github.com/getlatentic/gusto/pkg/task"
@@ -101,10 +101,10 @@ func (s *server) startTurns() error {
 
 // tellWayOut says how the proxy finds who a run is for: the task's record and its room, which the index and instances hold.
 func (s *server) tellWayOut() {
-	s.way.UseRunRecords(func(dir task.Dir, spec task.Spec) evidence.Run { return runRecord(s.index, s.instances, dir, spec) })
+	s.way.UseRunRecords(func(dir task.Dir, spec task.Spec) record.Run { return runRecord(s.index, s.instances, dir, spec) })
 	s.way.UseAskers(func(id string) string {
-		if record, found := s.index.Get(id); found {
-			return record.Asked
+		if entry, found := s.index.Get(id); found {
+			return entry.Asked
 		}
 		return ""
 	})

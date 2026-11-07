@@ -14,7 +14,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -27,8 +27,8 @@ type Report struct {
 	Files int
 	// Claimed is absent when the task had no check, which a turn in a
 	// conversation does not.
-	Claimed *evidence.Verdict
-	Check   evidence.Verdict
+	Claimed *record.Verdict
+	Check   record.Verdict
 }
 
 // Holds is true when every file matches and the check answers as it did.
@@ -87,7 +87,7 @@ func Check(ctx context.Context, remote, digest, into string) (Report, error) {
 // rechecked runs the check in the rebuilt working folder and sets its answer beside the
 // one the manifest records.
 func rechecked(ctx context.Context, dir task.Dir) (Report, error) {
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		return Report{}, err
 	}

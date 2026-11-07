@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
@@ -83,9 +83,9 @@ func ranAs(t *testing.T, signs signing.Identity) (task.Dir, task.Spec) {
 	return dir, spec
 }
 
-func TestATaskLeavesEvidenceItsOwnManifestAgreesWith(t *testing.T) {
+func TestATaskLeavesRecordItsOwnManifestAgreesWith(t *testing.T) {
 	dir, _ := ran(t)
-	wrong, err := evidence.Check(dir)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,9 +94,9 @@ func TestATaskLeavesEvidenceItsOwnManifestAgreesWith(t *testing.T) {
 	}
 }
 
-func TestTheEvidenceNamesWhatTheHarnessDidAndWhoStandsBehindIt(t *testing.T) {
+func TestTheRecordNamesWhatTheHarnessDidAndWhoStandsBehindIt(t *testing.T) {
 	dir, _ := ran(t)
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,10 +115,10 @@ func TestTheEvidenceNamesWhatTheHarnessDidAndWhoStandsBehindIt(t *testing.T) {
 	}
 }
 
-func TestChangingTheEvidenceIsDetectable(t *testing.T) {
+func TestChangingTheRecordIsDetectable(t *testing.T) {
 	dir, _ := ran(t)
 	write(t, dir.OutFile("transcript.log"), "something else happened")
-	wrong, err := evidence.Check(dir)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +130,7 @@ func TestChangingTheEvidenceIsDetectable(t *testing.T) {
 func TestAFileAddedAfterTheRunIsReported(t *testing.T) {
 	dir, _ := ran(t)
 	write(t, dir.OutFile("extra.log"), "smuggled in")
-	wrong, err := evidence.Check(dir)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +198,7 @@ func TestABudgetStopsAHarnessThatWillNotFinish(t *testing.T) {
 	if _, err := runner.Inside(dir); err != nil {
 		t.Fatal(err)
 	}
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -270,7 +270,7 @@ func TestATaskThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testi
 	if time.Since(started) > 10*time.Second {
 		t.Errorf("stopping took %v, which is waiting for the harness's sleep", time.Since(started))
 	}
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -295,7 +295,7 @@ func TestAStopWithNoNoteIsASignalAndATaskThatWasNotStoppedSaysNothing(t *testing
 	if _, err := runner.InsideContext(ctx, dir, runner.Place{}); err != nil {
 		t.Fatal(err)
 	}
-	if manifest, _ := evidence.Read(dir); manifest.StoppedBy != "a signal" {
+	if manifest, _ := record.Read(dir); manifest.StoppedBy != "a signal" {
 		t.Errorf("a stop with no note said %q", manifest.StoppedBy)
 	}
 
@@ -307,7 +307,7 @@ func TestAStopWithNoNoteIsASignalAndATaskThatWasNotStoppedSaysNothing(t *testing
 	if _, err := runner.Inside(finished); err != nil {
 		t.Fatal(err)
 	}
-	if manifest, _ := evidence.Read(finished); manifest.StoppedBy != "" {
+	if manifest, _ := record.Read(finished); manifest.StoppedBy != "" {
 		t.Errorf("a job that was not stopped says it was by %q", manifest.StoppedBy)
 	}
 }

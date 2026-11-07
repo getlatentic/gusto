@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -23,12 +23,12 @@ func claimed(t *testing.T) task.Dir {
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
-	hash, files, err := evidence.Of(dir)
+	hash, files, err := record.Of(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifest := evidence.Manifest{Task: hash, Files: files, Check: &evidence.Verdict{Command: spec.Check, Passed: true}, Signer: "alice"}
-	if err := evidence.Write(dir, manifest); err != nil {
+	manifest := record.Manifest{Task: hash, Files: files, Check: &record.Verdict{Command: spec.Check, Passed: true}, Signer: "alice"}
+	if err := record.Write(dir, manifest); err != nil {
 		t.Fatal(err)
 	}
 	return dir
@@ -40,7 +40,7 @@ func sealedBy(t *testing.T, dir task.Dir, ring, name string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Seal(dir, key); err != nil {
+	if err := record.Seal(dir, key); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -87,8 +87,8 @@ func TestShowNamesOnlyTheSignerTheKeyringChecked(t *testing.T) {
 		ring string
 		want string
 	}{
-		"unsigned":                           {unsigned, trusted, evidence.Unsigned},
-		"signed, no keyring":                 {stranger, "", evidence.NoKeyring},
+		"unsigned":                           {unsigned, trusted, record.Unsigned},
+		"signed, no keyring":                 {stranger, "", record.NoKeyring},
 		"signed by a key not in the keyring": {stranger, trusted, "is not in the keyring"},
 		"signed by a key in the keyring":     {acme, trusted, "acme-2026"},
 	} {
@@ -103,12 +103,12 @@ func TestShowNamesOnlyTheSignerTheKeyringChecked(t *testing.T) {
 // A turn in a conversation has no check, and gusto show says so instead of failing on the manifest.
 func TestShowATaskWithNoCheck(t *testing.T) {
 	dir := claimed(t)
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	manifest.Check = nil
-	if err := evidence.Write(dir, manifest); err != nil {
+	if err := record.Write(dir, manifest); err != nil {
 		t.Fatal(err)
 	}
 	if got := shown(t, dir, ""); got == "" {

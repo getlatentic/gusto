@@ -59,7 +59,7 @@ func Contained(where string, open func(root string) (Door, error)) Way {
 
 // through runs one cell the way the server runs a task: the checkout happens on
 // this side of the box, so a repository credential never enters it, and the
-// token is dropped when the run ends. The verdict is read from the evidence,
+// token is dropped when the run ends. The verdict is read from the record,
 // not from the exit code.
 func through(door Door) replay.Run {
 	return func(dir task.Dir) error {

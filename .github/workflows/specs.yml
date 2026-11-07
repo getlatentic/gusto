@@ -7,7 +7,7 @@ on:
     paths:
       - "spec/**"
       - "internal/jobs/**"
-      - "internal/evidence/**"
+      - "internal/record/**"
       - "internal/matrix/**"
       - "internal/helper/**"
       - "internal/filelock/**"

@@ -12,32 +12,32 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // bundle hands the whole task back as one archive, so a person can check the run
 // on a machine this server has no part in.
 func (s *Server) bundle(w http.ResponseWriter, r *http.Request) {
-	record, dir, found := s.find(r)
+	entry, dir, found := s.find(r)
 	if !found {
 		http.NotFound(w, r)
 		return
 	}
 	// A task with no manifest has nothing to check, and the refusal has to happen
 	// here: once the first byte of an archive is out the status is spent.
-	if _, err := evidence.Read(dir); err != nil {
+	if _, err := record.Read(dir); err != nil {
 		http.Error(w, "this task has left no manifest, so there is nothing to verify", http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/gzip")
-	w.Header().Set("Content-Disposition", `attachment; filename="`+record.ID+`.tar.gz"`)
+	w.Header().Set("Content-Disposition", `attachment; filename="`+entry.ID+`.tar.gz"`)
 	// A failure part way through has nowhere to go but the stream itself. The
 	// gzip trailer is never written, so a short bundle refuses to unpack instead
 	// of passing for a whole one. Whoever runs the server still needs to know it
 	// happened, because the person downloading only sees a broken archive.
-	if err := writeBundle(w, dir, record.ID); err != nil {
-		slog.Error("a bundle stopped part way through", "task", record.ID, "error", err)
+	if err := writeBundle(w, dir, entry.ID); err != nil {
+		slog.Error("a bundle stopped part way through", "task", entry.ID, "error", err)
 	}
 }
 
@@ -120,7 +120,7 @@ func add(archive *tar.Writer, from, name string, info fs.FileInfo) error {
 		}
 		link = target
 	case !info.Mode().IsRegular() && !info.IsDir():
-		return nil // a socket or a device is not evidence
+		return nil // a socket or a device is not part of the record
 	}
 	header, err := tar.FileInfoHeader(info, link)
 	if err != nil {

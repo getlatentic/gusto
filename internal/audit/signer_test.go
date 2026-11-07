@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/audit"
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -50,11 +50,11 @@ func TestAnExportNamesOnlyTheSignerItsKeyringChecked(t *testing.T) {
 		want    string
 	}{
 		"unsigned": {
-			from: ran, keyring: keyringAt(t, trusted), want: evidence.Unsigned,
+			from: ran, keyring: keyringAt(t, trusted), want: record.Unsigned,
 		},
 		"signed, no keyring": {
 			from:    func(t *testing.T) task.Dir { return signedRun(t, t.TempDir(), "stranger") },
-			keyring: signing.Keyring{}, want: evidence.NoKeyring,
+			keyring: signing.Keyring{}, want: record.NoKeyring,
 		},
 		"signed by a key not in the keyring": {
 			from:    func(t *testing.T) task.Dir { return signedRun(t, t.TempDir(), "stranger") },
@@ -94,7 +94,7 @@ func TestAVerifierWhoseKeyringDisagreesIsToldBothAnswers(t *testing.T) {
 	ring := t.TempDir()
 	export := exported(t, signedRun(t, ring, "acme"), audit.Options{Keyring: keyringAt(t, ring)})
 	problems := verified(t, export).Problems
-	if !mentions(problems, `evidence.signer says "acme", and this keyring says "`+evidence.NoKeyring+`"`) {
+	if !mentions(problems, `evidence.signer says "acme", and this keyring says "`+record.NoKeyring+`"`) {
 		t.Fatalf("want the signer disagreement named, got %v", problems)
 	}
 	if mentions(problems, "audit.json: evidence is not") {

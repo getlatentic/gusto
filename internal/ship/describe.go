@@ -5,24 +5,24 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// record is what the pull request says about the run behind it: enough for a
+// summary is what the pull request says about the run behind it: enough for a
 // reviewer to know which harness and model wrote the patch, which command
 // passed it, which manifest to check it against, and who signed that manifest
 // as a keyring checked it rather than as the manifest claims.
-type record struct {
+type summary struct {
 	spec     task.Spec
-	manifest evidence.Manifest
+	manifest record.Manifest
 	signer   string
 	digest   string
 	at       string
 	links    links
 }
 
-func (r record) title() string {
+func (r summary) title() string {
 	first, _, _ := strings.Cut(strings.TrimSpace(r.spec.Brief), "\n")
 	runes := []rune(strings.TrimSpace(first))
 	if len(runes) > 72 {
@@ -31,7 +31,7 @@ func (r record) title() string {
 	return "gusto: " + string(runes)
 }
 
-func (r record) body() string {
+func (r summary) body() string {
 	var out strings.Builder
 	out.WriteString("A gusto task wrote this patch, and its check passed. It is here for review.\n\n")
 	out.WriteString("| | |\n| --- | --- |\n")
@@ -50,7 +50,7 @@ func (r record) body() string {
 // model names what the task asked for and where it answered. Either can be
 // empty: a harness may use its own default, and a harness needing no model has
 // no endpoint.
-func (r record) model() string {
+func (r summary) model() string {
 	asked := "the agent's default"
 	if r.spec.Model != "" {
 		asked = "`" + r.spec.Model + "`"
@@ -61,7 +61,7 @@ func (r record) model() string {
 	return asked + " at `" + r.manifest.ModelEndpoint + "`"
 }
 
-func (r record) message(dir task.Dir) string {
+func (r summary) message(dir task.Dir) string {
 	return fmt.Sprintf("%s\n\nThe patch from gusto task %s, whose check passed.\nManifest sha256 %s.\n",
 		r.title(), filepath.Base(filepath.Clean(dir.Path())), r.digest)
 }
@@ -99,8 +99,8 @@ func (p Plan) Describe(dry bool) string {
 		out.WriteString("a dry run: nothing below happens\n\n")
 	}
 	fmt.Fprintf(&out, "commit   %s, which is %s on %s\n", p.Commits.Change, p.Patch, p.At)
-	fmt.Fprintf(&out, "commit   %s, which is job.json and out/ on top of it\n", p.Commits.Evidence)
-	fmt.Fprintf(&out, "push     %s and %s to %s\n", p.Branch, p.Evidence, p.Remote)
+	fmt.Fprintf(&out, "commit   %s, which is job.json and out/ on top of it\n", p.Commits.Record)
+	fmt.Fprintf(&out, "push     %s and %s to %s\n", p.Branch, p.Record, p.Remote)
 	fmt.Fprintf(&out, "open     a pull request on %s/%s from %s into %s\n", p.Owner, p.Name, p.Branch, p.Base)
 	fmt.Fprintf(&out, "\ntitle    %s\n\n%s\n", p.Title, p.Body)
 	return out.String()

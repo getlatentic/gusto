@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/proxy"
 	"github.com/getlatentic/gusto/pkg/spend"
@@ -148,16 +148,16 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 }
 
 // fullTurn is a turn as the page shows it, read from the turn's own directory.
-func (s *Server) fullTurn(record tasks.Record, ledger *spend.Ledger) turn {
-	dir := record.Dir(s.index.Root())
-	shown := turn{Record: record, Said: record.Brief, Replied: said(dir), Steps: stepsOf(dir)}
+func (s *Server) fullTurn(entry tasks.Record, ledger *spend.Ledger) turn {
+	dir := entry.Dir(s.index.Root())
+	shown := turn{Record: entry, Said: entry.Brief, Replied: said(dir), Steps: stepsOf(dir)}
 	shown.Changed, shown.Deleted = changes(dir)
 	shown.Previews = previewsOf(shown.Changed)
-	shown.Spent, shown.Metered = spentBy(ledger, record.ID)
-	if record.State == tasks.Failed || record.State == tasks.Interrupted {
+	shown.Spent, shown.Metered = spentBy(ledger, entry.ID)
+	if entry.State == tasks.Failed || entry.State == tasks.Interrupted {
 		shown.Stopped = stopped(dir)
 	}
-	if refusal, err := spend.Stopped(dir.OutFile("proxy.jsonl"), record.Started); err == nil {
+	if refusal, err := spend.Stopped(dir.OutFile("proxy.jsonl"), entry.Started); err == nil {
 		shown.Capped = refusal
 	}
 	switch {
@@ -168,12 +168,12 @@ func (s *Server) fullTurn(record tasks.Record, ledger *spend.Ledger) turn {
 		// The page says what stopped the turn under the reply, so the agent printing the refusal again is left out.
 		shown.Replied = withoutRefusal(shown.Replied)
 	}
-	shown.Limit = s.limitWords(record, shown.Capped)
+	shown.Limit = s.limitWords(entry, shown.Capped)
 	if calls := callsOf(dir); calls != nil {
 		shown.Blocked, shown.Refused = len(calls.Denied), calls.Sites()
 	}
-	shown.Apps = s.usedApps(record, dir)
-	attested, err := evidence.Attest(dir, s.keyring)
+	shown.Apps = s.usedApps(entry, dir)
+	attested, err := record.Attest(dir, s.keyring)
 	shown.Signed = err == nil && attested.Signed
 	return shown
 }

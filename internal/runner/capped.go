@@ -1,7 +1,7 @@
 package runner
 
 import (
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/pkg/spend"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -11,12 +11,12 @@ import (
 // The proxy runs outside the box and writes into the task directory the box is
 // given, so the runner learns why the model went quiet from the same file the
 // manifest is about to hash, rather than from anything the harness said.
-func stoppedByCap(dir task.Dir, since int64) (*evidence.CapStop, error) {
+func stoppedByCap(dir task.Dir, since int64) (*record.CapStop, error) {
 	refusal, err := spend.Stopped(dir.OutFile("proxy.jsonl"), since)
 	if err != nil || refusal == nil {
 		return nil, err
 	}
-	return &evidence.CapStop{
+	return &record.CapStop{
 		Cap:      refusal.Cap,
 		Team:     refusal.Team,
 		LimitUSD: refusal.LimitUSD,
@@ -27,10 +27,10 @@ func stoppedByCap(dir task.Dir, since int64) (*evidence.CapStop, error) {
 
 // unanswered reads the proxy's record of the run that started at since for a model that never answered it, from the same
 // file stoppedByCap reads, so whether the model answered is the proxy's word and not the agent's.
-func unanswered(dir task.Dir, since int64) (*evidence.Unanswered, error) {
+func unanswered(dir task.Dir, since int64) (*record.Unanswered, error) {
 	silence, err := spend.Unanswered(dir.OutFile("proxy.jsonl"), since)
 	if err != nil || silence == nil {
 		return nil, err
 	}
-	return &evidence.Unanswered{Calls: silence.Calls, Reason: silence.Reason}, nil
+	return &record.Unanswered{Calls: silence.Calls, Reason: silence.Reason}, nil
 }

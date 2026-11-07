@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/audit"
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
 	"github.com/getlatentic/gusto/schema"
@@ -71,7 +71,7 @@ func TestAnExportVerifiesAndSaysWhatItDoesNotKnow(t *testing.T) {
 		t.Fatalf("a fresh export should verify with nothing redacted: %+v", report)
 	}
 	matchesTheSchema(t, export)
-	record := summary(t, export)
+	summarized := summary(t, export)
 	for _, tc := range []struct {
 		path []string
 		want any
@@ -85,16 +85,16 @@ func TestAnExportVerifiesAndSaysWhatItDoesNotKnow(t *testing.T) {
 		{[]string{"outcome", "state"}, "passed"},
 		{[]string{"ran", "harness"}, "fixture"},
 		{[]string{"ran", "session"}, audit.None},
-		{[]string{"evidence", "signer"}, evidence.Unsigned},
+		{[]string{"evidence", "signer"}, record.Unsigned},
 	} {
-		if got := at(record, tc.path...); got != tc.want {
+		if got := at(summarized, tc.path...); got != tc.want {
 			t.Errorf("%s: got %#v, want %#v", strings.Join(tc.path, "."), got, tc.want)
 		}
 	}
-	if files := at(record, "changed", "files"); !sameStrings(files, "answer.txt") {
+	if files := at(summarized, "changed", "files"); !sameStrings(files, "answer.txt") {
 		t.Errorf("changed.files: got %#v", files)
 	}
-	if credentials := at(record, "model", "credentials"); !sameStrings(credentials, "the platform credential") {
+	if credentials := at(summarized, "model", "credentials"); !sameStrings(credentials, "the platform credential") {
 		t.Errorf("model.credentials: got %#v", credentials)
 	}
 }

@@ -14,11 +14,11 @@ import (
 	"github.com/getlatentic/gusto/internal/backend"
 	"github.com/getlatentic/gusto/internal/backend/vm"
 	"github.com/getlatentic/gusto/internal/computer"
-	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/openshell"
 	"github.com/getlatentic/gusto/internal/openshell/openshelltest"
 	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -126,7 +126,7 @@ func organizationWithWayOut(t *testing.T, quotaOf quota.Quota, configure func(*W
 	if err != nil {
 		t.Fatal(err)
 	}
-	way.UseRunRecords(func(dir task.Dir, spec task.Spec) evidence.Run { return runRecord(index, instances, dir, spec) })
+	way.UseRunRecords(func(dir task.Dir, spec task.Spec) record.Run { return runRecord(index, instances, dir, spec) })
 	boxes := vm.New(vm.Config{Gateway: cfg, Computers: registry, Org: "acme-com", Node: "local"})
 	work := turns(boxes, way, instances, index, newRoomRuns(instances, func(dir task.Dir) string { return personWhoAsked(index, dir) }, fromEnv(t).boxes.roomCopy(), nil))
 	return func(dir task.Dir) (int, error) { return work(context.Background(), dir) }, index, registry, cfg, root, instances

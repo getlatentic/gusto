@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/backend"
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/settings"
 
 	"github.com/getlatentic/gusto/internal/registry"
@@ -117,26 +117,26 @@ type WayOut struct {
 	// asker is the person a task acts for, by task, which a run's token names as its subject; see UseAskers.
 	asker atomic.Pointer[func(id string) string]
 	// describe says who and what a run is for, for its record; see UseRunRecords.
-	describe atomic.Pointer[func(task.Dir, task.Spec) evidence.Run]
+	describe atomic.Pointer[func(task.Dir, task.Spec) record.Run]
 }
 
 // UseRunRecords says how to describe a run for its signed record: who asked, who pays, and the room's agent, which the server's
 // index and rooms know.
-func (w *WayOut) UseRunRecords(describe func(task.Dir, task.Spec) evidence.Run) {
+func (w *WayOut) UseRunRecords(describe func(task.Dir, task.Spec) record.Run) {
 	w.describe.Store(&describe)
 }
 
 // RecordRun keeps, in the run's record, who and what it is for, the sandbox it runs in and how it was given its model token.
 func (w *WayOut) RecordRun(dir task.Dir, spec task.Spec, sandbox string, bound bool) error {
-	run := evidence.Run{Room: spec.Session, Agent: spec.Agent}
+	run := record.Run{Room: spec.Session, Agent: spec.Agent}
 	if describe := w.describe.Load(); describe != nil {
 		run = (*describe)(dir, spec)
 	}
-	run.Sandbox, run.ModelToken = sandbox, evidence.TokenPlain
+	run.Sandbox, run.ModelToken = sandbox, record.TokenPlain
 	if bound {
-		run.ModelToken = evidence.TokenBound
+		run.ModelToken = record.TokenBound
 	}
-	return evidence.WriteRun(dir, run)
+	return record.WriteRun(dir, run)
 }
 
 // UseRunTokens says how to find whether the organization's admins chose plain tokens for runs in sandboxes, which is asked as

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -32,16 +32,16 @@ type Options struct {
 // A task whose record does not verify is refused, naming what is wrong: an
 // export vouches for what it carries, and it cannot vouch for a run whose own
 // record already disagrees with its files.
-func Export(from task.Dir, to string, options Options) (Record, error) {
+func Export(from task.Dir, to string, options Options) (Summary, error) {
 	if err := options.Policy.check(); err != nil {
-		return Record{}, err
+		return Summary{}, err
 	}
 	manifest, err := verified(from)
 	if err != nil {
-		return Record{}, err
+		return Summary{}, err
 	}
 	if err := fresh(to); err != nil {
-		return Record{}, err
+		return Summary{}, err
 	}
 	record, err := write(from, task.Dir(to), manifest, options)
 	if err != nil {
@@ -52,29 +52,29 @@ func Export(from task.Dir, to string, options Options) (Record, error) {
 	return record, err
 }
 
-func write(from, to task.Dir, manifest evidence.Manifest, options Options) (Record, error) {
+func write(from, to task.Dir, manifest record.Manifest, options Options) (Summary, error) {
 	id := filepath.Base(filepath.Clean(from.Path()))
 	redactions, err := carryAll(from, to, id, manifest, options)
 	if err != nil {
-		return Record{}, err
+		return Summary{}, err
 	}
-	record, err := Summarize(to, id, redactions, options.Policy, options.Keyring)
+	summary, err := Summarize(to, id, redactions, options.Policy, options.Keyring)
 	if err != nil {
-		return Record{}, err
+		return Summary{}, err
 	}
-	record.ExportedAt = options.Now()
-	return record, writeSummary(to.Path(), record)
+	summary.ExportedAt = options.Now()
+	return summary, writeSummary(to.Path(), summary)
 }
 
-func verified(from task.Dir) (evidence.Manifest, error) {
-	wrong, err := evidence.Check(from)
+func verified(from task.Dir) (record.Manifest, error) {
+	wrong, err := record.Check(from)
 	if err != nil {
-		return evidence.Manifest{}, fmt.Errorf("%s has no record to export: %w", from.Path(), err)
+		return record.Manifest{}, fmt.Errorf("%s has no record to export: %w", from.Path(), err)
 	}
 	if len(wrong) > 0 {
-		return evidence.Manifest{}, fmt.Errorf("%s does not verify, so it is not exported: %s", from.Path(), strings.Join(wrong, "; "))
+		return record.Manifest{}, fmt.Errorf("%s does not verify, so it is not exported: %s", from.Path(), strings.Join(wrong, "; "))
 	}
-	return evidence.Read(from)
+	return record.Read(from)
 }
 
 // fresh makes the export's directory, refusing one that is already there, so
@@ -88,7 +88,7 @@ func fresh(to string) error {
 
 // carryAll copies the task's files through the policy, then the request lines
 // that name the task, and returns what the policy changed.
-func carryAll(from, to task.Dir, id string, manifest evidence.Manifest, options Options) ([]Redaction, error) {
+func carryAll(from, to task.Dir, id string, manifest record.Manifest, options Options) ([]Redaction, error) {
 	names, err := sourceFiles(from)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ type carrier struct {
 	to         task.Dir
 	policy     Policy
 	scrub      *scrubber
-	manifest   evidence.Manifest
+	manifest   record.Manifest
 	redactions []Redaction
 }
 
@@ -161,7 +161,7 @@ func (c *carrier) note(name, action string, rules []string) {
 	c.redactions = append(c.redactions, Redaction{File: name, Action: action, Rules: rules, Original: original})
 }
 
-func writeSummary(to string, record Record) error {
+func writeSummary(to string, record Summary) error {
 	text, err := encode(record, true)
 	if err != nil {
 		return err

@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/internal/record"
 )
 
 // Index is every task under one directory. One process owns it, so a mutex is
@@ -315,32 +315,32 @@ func (i *Index) finish(id string, state State, exit int) (Record, error) {
 }
 
 // ended asks the task directory how a run that nobody was watching turned out.
-func ended(record Record, root string) Record {
-	manifest, err := evidence.Read(record.Dir(root))
+func ended(entry Record, root string) Record {
+	manifest, err := record.Read(entry.Dir(root))
 	// A manifest is this run's only if it was written after this run started.
 	// Anything older belongs to a previous run of the same directory, and
 	// treating it as a verdict would report work that this run never did.
-	if err != nil || manifest.AtUnix < record.Started {
+	if err != nil || manifest.AtUnix < entry.Started {
 		// Nothing was left behind, so nothing is known: an exit code of zero
 		// would read as success.
-		record.State = Interrupted
-		record.Exit = -1
-		record.Ended = Now()
-		return record
+		entry.State = Interrupted
+		entry.Exit = -1
+		entry.Ended = Now()
+		return entry
 	}
 	// The manifest knows when the run ended. The clock at recovery only knows
 	// when somebody noticed, which would count the outage as part of the task.
-	record.Ended = manifest.AtUnix
+	entry.Ended = manifest.AtUnix
 	// A run that was told to stop ended interrupted, whatever its work did before it stopped, as the queue records one it watched.
-	if manifest.StoppedBy != "" || record.StoppedBy != "" {
-		record.State, record.Exit = Interrupted, -1
-		return record
+	if manifest.StoppedBy != "" || entry.StoppedBy != "" {
+		entry.State, entry.Exit = Interrupted, -1
+		return entry
 	}
 	// The same rule the runner applied, so a run graded while nobody watched is graded as it would have been.
-	record.Exit = evidence.Earned(manifest.Check, manifest.HarnessExit, manifest.ModelUnanswered != nil)
-	record.State = Passed
-	if record.Exit != 0 {
-		record.State = Failed
+	entry.Exit = record.Earned(manifest.Check, manifest.HarnessExit, manifest.ModelUnanswered != nil)
+	entry.State = Passed
+	if entry.Exit != 0 {
+		entry.State = Failed
 	}
-	return record
+	return entry
 }

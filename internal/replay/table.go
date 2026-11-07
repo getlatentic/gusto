@@ -5,7 +5,7 @@ import (
 	"io"
 	"text/tabwriter"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 )
 
 // Print writes the sweep's one summary: a line a task, then the totals, then
@@ -29,7 +29,7 @@ func Print(w io.Writer, rows []Row) {
 	}
 }
 
-func verdict(manifest evidence.Manifest) string {
+func verdict(manifest record.Manifest) string {
 	if manifest.Check == nil {
 		return "-"
 	}

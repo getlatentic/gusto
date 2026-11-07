@@ -15,19 +15,19 @@ import (
 // job.json and out/ exactly as the run left them, with Change as its parent, so
 // whoever fetches the record gets the code it vouches for with it.
 type Commits struct {
-	Change   string
-	Evidence string
+	Change string
+	Record string
 }
 
-// EvidenceRef is where the record commit lives on the remote. It sits outside
+// RecordRef is where the record commit lives on the remote. It sits outside
 // refs/heads and refs/tags, so it is not a branch anyone reviews, merges or
 // builds, and the change under review stays the patch and nothing else.
-func EvidenceRef(digest string) string {
+func RecordRef(digest string) string {
 	return "refs/gusto/evidence/" + digest
 }
 
 // scratch is a repository of its own that borrows the workspace's objects. The
-// commits are made there, so the working folder, which is evidence, is never written
+// commits are made there, so the working folder, which is part of the record, is never written
 // to, and nothing has to be cloned from the remote to make them.
 type scratch struct {
 	path string
@@ -55,11 +55,11 @@ func (s scratch) made(ctx context.Context, dir task.Dir, plan Plan) (Commits, er
 	if err != nil {
 		return Commits{}, err
 	}
-	evidence, err := s.evidence(ctx, dir, change, plan.EvidenceMessage)
+	record, err := s.record(ctx, dir, change, plan.RecordMessage)
 	if err != nil {
 		return Commits{}, err
 	}
-	return Commits{Change: change, Evidence: evidence}, nil
+	return Commits{Change: change, Record: record}, nil
 }
 
 // change applies the patch to the index alone. A patch that no longer applies
@@ -75,13 +75,13 @@ func (s scratch) change(ctx context.Context, plan Plan) (string, error) {
 	return s.commit(ctx, plan.At, plan.Message)
 }
 
-// evidence stages job.json and every file in out/ under the names a task
+// record stages job.json and every file in out/ under the names a task
 // directory gives them, and commits them on top of the change.
-func (s scratch) evidence(ctx context.Context, dir task.Dir, change, message string) (string, error) {
+func (s scratch) record(ctx context.Context, dir task.Dir, change, message string) (string, error) {
 	if err := s.git(ctx, "read-tree", "--empty"); err != nil {
 		return "", err
 	}
-	files, err := evidenceFiles(dir)
+	files, err := recordFiles(dir)
 	if err != nil {
 		return "", err
 	}
@@ -120,10 +120,10 @@ func (s scratch) git(ctx context.Context, args ...string) error {
 	return err
 }
 
-// evidenceFiles is job.json and every file in out/, which is what the manifest
+// recordFiles is job.json and every file in out/, which is what the manifest
 // hashes, and the manifest itself. The working folder is left out: the change
 // commit already carries the code, and a reviewer rebuilds it from the patch.
-func evidenceFiles(dir task.Dir) ([]string, error) {
+func recordFiles(dir task.Dir) ([]string, error) {
 	listing, err := os.ReadDir(dir.Out())
 	if err != nil {
 		return nil, err

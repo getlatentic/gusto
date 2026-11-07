@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
@@ -18,8 +18,8 @@ type Run func(task.Dir) error
 type Row struct {
 	Old    task.Dir
 	Replay task.Dir
-	Before evidence.Manifest
-	After  evidence.Manifest
+	Before record.Manifest
+	After  record.Manifest
 	// Err is set when the rerun could not be made, could not run, or left no
 	// verdict. Then After is empty and Change says nothing about the harness.
 	Err error
@@ -53,15 +53,15 @@ func once(old task.Dir, parent string, run Run) Row {
 	return row
 }
 
-// verdictOf is the replay's own verdict, read from its evidence rather than
+// verdictOf is the replay's own verdict, read from its record rather than
 // from an exit code, because only the manifest says which harness answered.
-func verdictOf(dir task.Dir) (evidence.Manifest, error) {
-	manifest, err := evidence.Read(dir)
+func verdictOf(dir task.Dir) (record.Manifest, error) {
+	manifest, err := record.Read(dir)
 	if err != nil {
-		return evidence.Manifest{}, fmt.Errorf("the rerun in %s left no manifest: %w", dir, err)
+		return record.Manifest{}, fmt.Errorf("the rerun in %s left no manifest: %w", dir, err)
 	}
 	if manifest.Check == nil {
-		return evidence.Manifest{}, fmt.Errorf("the rerun in %s left no verdict", dir)
+		return record.Manifest{}, fmt.Errorf("the rerun in %s left no verdict", dir)
 	}
 	return manifest, nil
 }

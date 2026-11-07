@@ -21,7 +21,7 @@ func Here(signs signing.Identity) Run {
 
 // Contained runs a rerun in a container, the way `gusto run` does: the clone
 // happens on this side of the box, so a repository credential never enters it.
-// The exit code is the check's, and the verdict is read from the evidence.
+// The exit code is the check's, and the verdict is read from the record.
 func Contained(box sandbox.Containers) Run {
 	return func(dir task.Dir) error {
 		spec, err := task.Read(dir)

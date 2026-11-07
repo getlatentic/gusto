@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/replay"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
@@ -42,12 +42,12 @@ func TestAReplayRunsTheSameTaskAtTheCommitTheOldRunStartedFrom(t *testing.T) {
 	if after := read(t, old.OutFile("manifest.json")); after != before {
 		t.Fatal("replaying a job rewrote its manifest")
 	}
-	if wrong, err := evidence.Check(old); err != nil || len(wrong) > 0 {
-		t.Fatalf("replaying a job disturbed its evidence: %v %v", wrong, err)
+	if wrong, err := record.Check(old); err != nil || len(wrong) > 0 {
+		t.Fatalf("replaying a job disturbed its record: %v %v", wrong, err)
 	}
 }
 
-func TestAReplayIsToldApartFromTheOriginalByItsOwnHashedEvidence(t *testing.T) {
+func TestAReplayIsToldApartFromTheOriginalByItsOwnHashedRecord(t *testing.T) {
 	hermetic(t)
 	old := finished(t, t.TempDir(), "fix", "yes", remote(t))
 	row := replay.Sweep([]task.Dir{old}, "", replay.Here(signing.Identity{}))[0]
@@ -165,7 +165,7 @@ func TestASecondSweepReplaysTheOriginalsAndNotTheFirstSweepsReplays(t *testing.T
 	}
 }
 
-func TestATaskWhoseEvidenceChangedIsNotReplayedAndTheSweepSaysSo(t *testing.T) {
+func TestATaskWhoseRecordChangedIsNotReplayedAndTheSweepSaysSo(t *testing.T) {
 	hermetic(t)
 	bare := remote(t)
 	tasks := t.TempDir()
@@ -176,7 +176,7 @@ func TestATaskWhoseEvidenceChangedIsNotReplayedAndTheSweepSaysSo(t *testing.T) {
 	rows := replay.Sweep([]task.Dir{tampered, fine}, "", replay.Here(signing.Identity{}))
 
 	if rows[0].Err == nil || rows[0].Replay != "" {
-		t.Fatal("a job whose evidence changed has no verdict worth comparing against")
+		t.Fatal("a job whose record changed has no verdict worth comparing against")
 	}
 	if rows[1].Err != nil || rows[1].Change() != replay.Same {
 		t.Fatalf("one broken job should not stop the rest: %v", rows[1].Err)
@@ -190,7 +190,7 @@ func TestAReplayCarriesTheAdapterTheOldTaskCarried(t *testing.T) {
 	hermetic(t)
 	old := finished(t, t.TempDir(), "fix", "yes", remote(t))
 	// Carried is written after the run, as a task made by `gusto new` would hold
-	// it. It is outside out/, so the evidence still checks.
+	// it. It is outside out/, so the record still checks.
 	if err := os.MkdirAll(filepath.Join(old.Path(), "harnesses"), 0o755); err != nil {
 		t.Fatal(err)
 	}

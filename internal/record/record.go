@@ -1,9 +1,9 @@
-// Package evidence is what a task leaves behind, and the hash of all of it.
+// Package record is what a task leaves behind, and the hash of all of it.
 //
 // This is what makes a run worth anything to somebody who was not there. A
 // buyer, an auditor or a marketplace re-hashes the files and knows whether they
 // are the ones the run produced.
-package evidence
+package record
 
 import (
 	"crypto/sha256"

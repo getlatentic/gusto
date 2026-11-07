@@ -1,11 +1,11 @@
-package evidence_test
+package record_test
 
 import (
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 )
 
@@ -22,8 +22,8 @@ func TestSignedByNamesOnlyWhatTheKeyringChecked(t *testing.T) {
 		keyring signing.Keyring
 		want    string
 	}{
-		"unsigned":              {keyring: keyring, want: evidence.Unsigned},
-		"signed, no keyring":    {signed: true, key: acme, keyring: signing.Keyring{}, want: evidence.NoKeyring},
+		"unsigned":              {keyring: keyring, want: record.Unsigned},
+		"signed, no keyring":    {signed: true, key: acme, keyring: signing.Keyring{}, want: record.NoKeyring},
 		"a key not in the ring": {signed: true, key: stranger, keyring: keyring, want: stranger.ID() + " is not in the keyring"},
 		"a key in the ring":     {signed: true, key: acme, keyring: keyring, want: "acme"},
 	} {
@@ -32,7 +32,7 @@ func TestSignedByNamesOnlyWhatTheKeyringChecked(t *testing.T) {
 			if tc.signed {
 				dir = signed(t, "yes", tc.key)
 			}
-			got := evidence.SignedBy(dir, tc.keyring)
+			got := record.SignedBy(dir, tc.keyring)
 			if !strings.Contains(got, tc.want) || strings.Contains(got, "whoever-it-claims") {
 				t.Fatalf("want %q, got %q", tc.want, got)
 			}
@@ -48,15 +48,15 @@ func TestSignedBySaysASignatureThatDoesNotHoldIsRefused(t *testing.T) {
 		t.Fatal(err)
 	}
 	writeFile(t, dir.OutFile("manifest.json"), strings.Replace(string(text), "whoever-it-claims", "acme", 1))
-	if got := evidence.SignedBy(dir, keyringOf(t, ring)); got != evidence.Refused {
-		t.Fatalf("want %q, got %q", evidence.Refused, got)
+	if got := record.SignedBy(dir, keyringOf(t, ring)); got != record.Refused {
+		t.Fatalf("want %q, got %q", record.Refused, got)
 	}
 }
 
 func TestSignedBySaysAnUnreadableSignatureIsUnreadable(t *testing.T) {
 	dir := recorded(t, "yes")
-	writeFile(t, dir.OutFile(evidence.SignatureFile), "not json")
-	if got := evidence.SignedBy(dir, signing.Keyring{}); !strings.HasPrefix(got, "manifest.sig cannot be read") {
+	writeFile(t, dir.OutFile(record.SignatureFile), "not json")
+	if got := record.SignedBy(dir, signing.Keyring{}); !strings.HasPrefix(got, "manifest.sig cannot be read") {
 		t.Fatalf("want the signature named, got %q", got)
 	}
 }
