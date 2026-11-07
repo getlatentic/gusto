@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/task"
@@ -66,7 +66,7 @@ func put(t *testing.T, path, text string, mode os.FileMode) {
 }
 
 // ran does a real run in the server's own tasks directory, so the pages and the
-// bundle are read off evidence a runner wrote rather than off a fixture of the
+// bundle are read off a record a runner wrote rather than off a fixture of the
 // shape somebody expected.
 func (s *site) ranTask(t *testing.T, does string) (string, task.Dir) {
 	t.Helper()
@@ -148,18 +148,18 @@ func unpack(t *testing.T, archive io.Reader, into string) map[string]int64 {
 	return modes
 }
 
-// verify is the two things `gusto verify` does: re-hash the evidence against the
+// verify is the two things `gusto verify` does: re-hash the record against the
 // manifest, and re-run the check in the working folder and compare the answer.
 func verify(t *testing.T, dir task.Dir) (string, bool) {
 	t.Helper()
-	wrong, err := evidence.Check(dir)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		return err.Error(), false
 	}
 	if len(wrong) > 0 {
 		return strings.Join(wrong, ", "), false
 	}
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		return err.Error(), false
 	}
@@ -212,7 +212,7 @@ func TestTheBundleCarriesWhatVerifyReadsAndKeepsTheCheckRunnable(t *testing.T) {
 		}
 	}
 	if _, carried := modes[id+"/state.json"]; carried {
-		t.Error("state.json is this server's own cache and not evidence")
+		t.Error("state.json is this server's own cache and not part of the record")
 	}
 	// A check that is a script in the checkout is only re-runnable while the mode
 	// bit survives the archive.
@@ -220,7 +220,7 @@ func TestTheBundleCarriesWhatVerifyReadsAndKeepsTheCheckRunnable(t *testing.T) {
 		t.Errorf("gate.sh came out of the bundle as %#o and cannot be run", mode)
 	}
 
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -258,7 +258,7 @@ func TestTheFileListShowsTheHashTheManifestClaims(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	id, dir := site.ranTask(t, wroteTheAnswer)
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

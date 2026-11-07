@@ -1,10 +1,10 @@
-package evidence_test
+package record_test
 
 import (
 	"slices"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
@@ -14,26 +14,26 @@ func TestADecisionAddedAfterARunIsHashedAndSignedWithTheRun(t *testing.T) {
 	key := keyIn(t, ring, "acme")
 	dir := aRoomTurn(t)
 	allowance := 5.0
-	if err := evidence.WriteRun(dir, evidence.Run{Asked: "bob@acme.com", PaidBy: "ada@acme.com", Agent: "a1", AgentName: "Scout",
+	if err := record.WriteRun(dir, record.Run{Asked: "bob@acme.com", PaidBy: "ada@acme.com", Agent: "a1", AgentName: "Scout",
 		Room: "room-launch", Sandbox: "c-ada", AllowanceUSD: &allowance}); err != nil {
 		t.Fatal(err)
 	}
-	spec, files, err := evidence.Of(dir)
+	spec, files, err := record.Of(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Task: spec, Files: files}); err != nil {
+	if err := record.Write(dir, record.Manifest{Task: spec, Files: files}); err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.SealIfKeyed(dir, key); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := evidence.Decide(dir, evidence.Decision{Kept: true, Changed: 2, Joined: []string{"plan.md"}}, key); err != nil {
+	if err := record.SealIfKeyed(dir, key); err != nil {
 		t.Fatal(err)
 	}
 
-	manifest, err := evidence.Read(dir)
+	if err := record.Decide(dir, record.Decision{Kept: true, Changed: 2, Joined: []string{"plan.md"}}, key); err != nil {
+		t.Fatal(err)
+	}
+
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,13 +41,13 @@ func TestADecisionAddedAfterARunIsHashedAndSignedWithTheRun(t *testing.T) {
 	for _, entry := range manifest.Files {
 		named = append(named, entry.Name)
 	}
-	if !slices.Contains(named, evidence.RunFile) || !slices.Contains(named, evidence.DecisionFile) {
+	if !slices.Contains(named, record.RunFile) || !slices.Contains(named, record.DecisionFile) {
 		t.Errorf("the manifest names %v", named)
 	}
 	if wrong := complaints(t, dir); len(wrong) != 0 {
 		t.Errorf("the record does not check: %v", wrong)
 	}
-	if attested, err := evidence.Attest(dir, keyringOf(t, ring)); err != nil || !attested.Signed || attested.Signer != "acme" {
+	if attested, err := record.Attest(dir, keyringOf(t, ring)); err != nil || !attested.Signed || attested.Signer != "acme" {
 		t.Errorf("the record is %+v, %v", attested, err)
 	}
 }

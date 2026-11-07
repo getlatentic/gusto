@@ -1,11 +1,11 @@
-package evidence_test
+package record_test
 
 import (
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
@@ -23,7 +23,7 @@ func manifestIn(t *testing.T, text string) task.Dir {
 
 func TestAManifestWithNoVersionReadsAsVersionOne(t *testing.T) {
 	dir := manifestIn(t, `{"job": "abc", "signer": "s", "attestation": "unknown here"}`)
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestAManifestWithNoVersionReadsAsVersionOne(t *testing.T) {
 
 func TestAManifestFromANewerVersionIsRefusedByName(t *testing.T) {
 	dir := manifestIn(t, `{"version": 2, "job": "abc"}`)
-	_, err := evidence.Read(dir)
+	_, err := record.Read(dir)
 	if err == nil || !strings.Contains(err.Error(), "manifest.json is version 2") {
 		t.Fatalf("want the version named, got %v", err)
 	}
@@ -45,7 +45,7 @@ func TestAWrittenManifestCarriesItsVersion(t *testing.T) {
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Task: "abc"}); err != nil {
+	if err := record.Write(dir, record.Manifest{Task: "abc"}); err != nil {
 		t.Fatal(err)
 	}
 	text, err := os.ReadFile(dir.OutFile("manifest.json"))

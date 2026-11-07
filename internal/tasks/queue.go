@@ -95,7 +95,7 @@ func (q *Queue) serve() {
 	for {
 		for q.one() {
 			// Stopping must not start another task. The one in flight finishes,
-			// because it is in the middle of writing the evidence that says what
+			// because it is in the middle of writing the record that says what
 			// it did, and systemd gives it that time.
 			select {
 			case <-q.stop:

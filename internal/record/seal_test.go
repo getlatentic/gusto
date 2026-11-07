@@ -1,4 +1,4 @@
-package evidence_test
+package record_test
 
 import (
 	"os"
@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -27,11 +27,11 @@ func recordedAt(t *testing.T, dir task.Dir, answer string) task.Dir {
 	}
 	writeFile(t, dir.Spec(), `{"brief": "b", "repo": "r", "gate": ["true"], "harness": "h"}`)
 	writeFile(t, dir.OutFile("answer.txt"), answer)
-	spec, files, err := evidence.Of(dir)
+	spec, files, err := record.Of(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Task: spec, Files: files, Signer: "whoever-it-claims"}); err != nil {
+	if err := record.Write(dir, record.Manifest{Task: spec, Files: files, Signer: "whoever-it-claims"}); err != nil {
 		t.Fatal(err)
 	}
 	return dir
@@ -40,7 +40,7 @@ func recordedAt(t *testing.T, dir task.Dir, answer string) task.Dir {
 func signed(t *testing.T, answer string, key signing.Key) task.Dir {
 	t.Helper()
 	dir := recorded(t, answer)
-	if err := evidence.Seal(dir, key); err != nil {
+	if err := record.Seal(dir, key); err != nil {
 		t.Fatal(err)
 	}
 	return dir
@@ -73,7 +73,7 @@ func keyringOf(t *testing.T, ring string) signing.Keyring {
 
 func complaints(t *testing.T, dir task.Dir) []string {
 	t.Helper()
-	wrong, err := evidence.Check(dir)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestASignedRecordVerifiesAndNamesTheSignerFromTheKeyring(t *testing.T) {
 	if wrong := complaints(t, dir); len(wrong) != 0 {
 		t.Fatalf("a signed record should check clean, got %v", wrong)
 	}
-	attested, err := evidence.Attest(dir, keyringOf(t, ring))
+	attested, err := record.Attest(dir, keyringOf(t, ring))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestAnUnsignedRecordSaysSoAndNeverReadsAsSigned(t *testing.T) {
 	if wrong := complaints(t, dir); len(wrong) != 0 {
 		t.Fatalf("an unsigned record still checks clean, got %v", wrong)
 	}
-	attested, err := evidence.Attest(dir, keyringOf(t, t.TempDir()))
+	attested, err := record.Attest(dir, keyringOf(t, t.TempDir()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestAChangedManifestByteBreaksTheSignature(t *testing.T) {
 	if wrong := complaints(t, dir); len(wrong) != 1 || wrong[0] != "manifest.sig does not match manifest.json" {
 		t.Fatalf("want the signature named, got %v", wrong)
 	}
-	if _, err := evidence.Attest(dir, keyringOf(t, ring)); err == nil || !strings.Contains(err.Error(), "out/manifest.sig") {
+	if _, err := record.Attest(dir, keyringOf(t, ring)); err == nil || !strings.Contains(err.Error(), "out/manifest.sig") {
 		t.Fatalf("want the signature refused, got %v", err)
 	}
 }
@@ -142,15 +142,15 @@ func TestASignatureSwappedInFromAnotherRecordIsRefused(t *testing.T) {
 	key := keyIn(t, ring, "acme")
 	dir := signed(t, "yes", key)
 	other := signed(t, "no", key)
-	swapped, err := os.ReadFile(other.OutFile(evidence.SignatureFile))
+	swapped, err := os.ReadFile(other.OutFile(record.SignatureFile))
 	if err != nil {
 		t.Fatal(err)
 	}
-	writeFile(t, dir.OutFile(evidence.SignatureFile), string(swapped))
+	writeFile(t, dir.OutFile(record.SignatureFile), string(swapped))
 	if wrong := complaints(t, dir); len(wrong) != 1 || wrong[0] != "manifest.sig does not match manifest.json" {
 		t.Fatalf("want the swapped signature named, got %v", wrong)
 	}
-	if _, err := evidence.Attest(dir, keyringOf(t, ring)); err == nil {
+	if _, err := record.Attest(dir, keyringOf(t, ring)); err == nil {
 		t.Fatal("want the swapped signature refused")
 	}
 }
@@ -163,7 +163,7 @@ func TestASignatureFromAKeyNotInTheKeyringIsRefusedByName(t *testing.T) {
 	if wrong := complaints(t, dir); len(wrong) != 0 {
 		t.Fatalf("the signature holds for its own key, so the check is clean: %v", wrong)
 	}
-	_, err := evidence.Attest(dir, keyringOf(t, ring))
+	_, err := record.Attest(dir, keyringOf(t, ring))
 	if err == nil || !strings.Contains(err.Error(), stranger.ID()) || !strings.Contains(err.Error(), "not in the keyring") {
 		t.Fatalf("want the stranger's key named, got %v", err)
 	}
@@ -180,7 +180,7 @@ func TestARotatedKeyStillVerifiesTheRecordsItSigned(t *testing.T) {
 	after := signed(t, "yes", keyIn(t, ring, "acme-2026"))
 	keyring := keyringOf(t, ring)
 	for dir, want := range map[task.Dir]string{before: "acme-2025", after: "acme-2026"} {
-		attested, err := evidence.Attest(dir, keyring)
+		attested, err := record.Attest(dir, keyring)
 		if err != nil || attested.Signer != want {
 			t.Fatalf("want %s, got %+v: %v", want, attested, err)
 		}
@@ -189,7 +189,7 @@ func TestARotatedKeyStillVerifiesTheRecordsItSigned(t *testing.T) {
 
 func TestAnUnreadableSignatureIsNamed(t *testing.T) {
 	dir := recorded(t, "yes")
-	writeFile(t, dir.OutFile(evidence.SignatureFile), "not json")
+	writeFile(t, dir.OutFile(record.SignatureFile), "not json")
 	if wrong := complaints(t, dir); len(wrong) != 1 || !strings.HasPrefix(wrong[0], "manifest.sig cannot be read") {
 		t.Fatalf("want the signature named, got %v", wrong)
 	}
@@ -197,14 +197,14 @@ func TestAnUnreadableSignatureIsNamed(t *testing.T) {
 
 func TestRewritingAManifestDropsTheSignatureItNoLongerHas(t *testing.T) {
 	dir := signed(t, "yes", keyIn(t, t.TempDir(), "acme"))
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, manifest); err != nil {
+	if err := record.Write(dir, manifest); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(dir.OutFile(evidence.SignatureFile)); !os.IsNotExist(err) {
+	if _, err := os.Stat(dir.OutFile(record.SignatureFile)); !os.IsNotExist(err) {
 		t.Fatalf("want the stale signature gone, got %v", err)
 	}
 }
@@ -212,22 +212,22 @@ func TestRewritingAManifestDropsTheSignatureItNoLongerHas(t *testing.T) {
 func TestSealIfKeyedSignsWithTheKeyOrNotAtAll(t *testing.T) {
 	t.Parallel()
 	unkeyed := recorded(t, "yes")
-	if err := evidence.SealIfKeyed(unkeyed, nil); err != nil {
+	if err := record.SealIfKeyed(unkeyed, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(unkeyed.OutFile(evidence.SignatureFile)); !os.IsNotExist(err) {
+	if _, err := os.Stat(unkeyed.OutFile(record.SignatureFile)); !os.IsNotExist(err) {
 		t.Fatalf("no key, no signature: %v", err)
 	}
 	ring := t.TempDir()
 	key := keyIn(t, ring, "acme")
 	keyed := recorded(t, "yes")
-	if err := evidence.SealIfKeyed(keyed, key); err != nil {
+	if err := record.SealIfKeyed(keyed, key); err != nil {
 		t.Fatal(err)
 	}
-	if attested, err := evidence.Attest(keyed, keyringOf(t, ring)); err != nil || attested.Signer != "acme" {
+	if attested, err := record.Attest(keyed, keyringOf(t, ring)); err != nil || attested.Signer != "acme" {
 		t.Fatalf("want acme, got %+v: %v", attested, err)
 	}
-	if err := evidence.SealIfKeyed(task.Dir(t.TempDir()), key); err != nil {
+	if err := record.SealIfKeyed(task.Dir(t.TempDir()), key); err != nil {
 		t.Fatalf("a directory with no manifest has nothing to sign: %v", err)
 	}
 }

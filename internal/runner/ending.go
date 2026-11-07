@@ -3,7 +3,7 @@ package runner
 import (
 	"context"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -14,7 +14,7 @@ type ending struct {
 	dir task.Dir
 	// since is when the agent started, which the caps and the model's silences are counted from.
 	since    int64
-	verdict  *evidence.Verdict
+	verdict  *record.Verdict
 	exit     int
 	harness  string
 	digest   string
@@ -27,7 +27,7 @@ type ending struct {
 }
 
 // finished closes the agent's record and says what it spent. An error closing it is the run's when the run had none.
-func finished(record *Record, err error) (*int64, *float64, error) {
+func finished(record *Recorder, err error) (*int64, *float64, error) {
 	tokens, cost := record.Spent()
 	if closeErr := record.Close(); closeErr != nil && err == nil {
 		err = closeErr
@@ -46,11 +46,11 @@ func (e ending) close(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	spent, files, err := evidence.Of(e.dir)
+	spent, files, err := record.Of(e.dir)
 	if err != nil {
 		return 0, err
 	}
-	if err := evidence.Write(e.dir, evidence.Manifest{
+	if err := record.Write(e.dir, record.Manifest{
 		Task:            spent,
 		Files:           files,
 		Check:           e.verdict,
@@ -67,14 +67,14 @@ func (e ending) close(ctx context.Context) (int, error) {
 		Tokens:          e.tokens,
 		CostUSD:         e.cost,
 		Signer:          e.signing.Says(),
-		AtUnix:          evidence.Now(),
+		AtUnix:          record.Now(),
 	}); err != nil {
 		return 0, err
 	}
 	if e.signing.Signed() {
-		if err := evidence.Seal(e.dir, e.signing.Key); err != nil {
+		if err := record.Seal(e.dir, e.signing.Key); err != nil {
 			return 0, err
 		}
 	}
-	return evidence.Earned(e.verdict, e.exit, silent != nil), nil
+	return record.Earned(e.verdict, e.exit, silent != nil), nil
 }

@@ -54,7 +54,7 @@ func TestASetupNamesOnlyServersTheDeploymentOffers(t *testing.T) {
 // A task carries its skills and its servers' definitions beside it, and names
 // them in job.json. The definitions stay out of job.json, which anyone with
 // the run can read, and the file holding them is its owner's alone.
-func TestATaskCarriesTheSetupWithoutPuttingDefinitionsInItsEvidence(t *testing.T) {
+func TestATaskCarriesTheSetupWithoutPuttingDefinitionsInItsRecord(t *testing.T) {
 	store, _ := Open(t.TempDir())
 	if err := store.Save(Setup{Name: "reviewer", Servers: []string{"memory"}}, memory()); err != nil {
 		t.Fatal(err)

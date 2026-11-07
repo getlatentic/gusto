@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/computer"
-	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/landlock"
 	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -77,7 +77,7 @@ func TestATurnWorksOnTheInstancesFilesInThePersonsComputerAndTheNextStartsFromWh
 	if got, err := registry.Of("ada@acme.com"); err != nil || got.State != computer.Running {
 		t.Errorf("%+v %v", got, err)
 	}
-	if manifest, err := evidence.Read(one); err != nil || manifest.Session != "s-42" {
+	if manifest, err := record.Read(one); err != nil || manifest.Session != "s-42" {
 		t.Fatalf("the record names the conversation: %+v %v", manifest, err)
 	}
 	if latest := instances.Latest(held.ID); latest.Remembered != "s-42" {
@@ -205,7 +205,7 @@ func TestAnAgentInAComputerReachesItsModelOnlyThroughItsForwarder(t *testing.T) 
 	}
 	// The agent said "done" and exited 0, and the proxy saw its only call to the model go unanswered: the record says so, and
 	// the turn failed (getlatentic/planning#676).
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,12 +226,12 @@ func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	record := tasks.Record{ID: id, State: tasks.Running, Brief: "go", Harness: "fixture", Asked: "bob@acme.com", PaidBy: "ada@acme.com",
+	entry := tasks.Record{ID: id, State: tasks.Running, Brief: "go", Harness: "fixture", Asked: "bob@acme.com", PaidBy: "ada@acme.com",
 		Instance: held.ID, Thread: instances.Latest(held.ID).ID, Agent: "a1", Queued: tasks.Now()}
-	dir := record.Dir(index.Root())
+	dir := entry.Dir(index.Root())
 	dir.Make()
-	(task.Spec{Brief: "go", Harness: "fixture", Session: held.ID, Thread: record.Thread, Agent: "a1"}).Write(dir)
-	index.Add(record)
+	(task.Spec{Brief: "go", Harness: "fixture", Session: held.ID, Thread: entry.Thread, Agent: "a1"}).Write(dir)
+	index.Add(entry)
 	if _, err := work(dir); err != nil {
 		t.Logf("%v", err)
 	}
@@ -242,22 +242,22 @@ func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
 		t.Errorf("the person who asked was given a computer: %+v", got)
 	}
 	ada, _ := registry.Of("ada@acme.com")
-	var run evidence.Run
-	var decision evidence.Decision
-	readJSON(t, dir.OutFile(evidence.RunFile), &run)
-	readJSON(t, dir.OutFile(evidence.DecisionFile), &decision)
+	var run record.Run
+	var decision record.Decision
+	readJSON(t, dir.OutFile(record.RunFile), &run)
+	readJSON(t, dir.OutFile(record.DecisionFile), &decision)
 	if run.Asked != "bob@acme.com" || run.PaidBy != "ada@acme.com" || run.Agent != "a1" || run.AgentName != "Scout" ||
-		run.Room != held.ID || run.Sandbox != ada.Sandbox || run.Sandbox == "" || run.ModelToken != evidence.TokenBound {
+		run.Room != held.ID || run.Sandbox != ada.Sandbox || run.Sandbox == "" || run.ModelToken != record.TokenBound {
 		t.Errorf("the record says the run was %+v", run)
 	}
 	if !decision.Kept || decision.Refused != "" {
 		t.Errorf("the record says %+v was done with what it changed", decision)
 	}
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.ContainsFunc(manifest.Files, func(e evidence.Entry) bool { return e.Name == evidence.DecisionFile }) {
+	if !slices.ContainsFunc(manifest.Files, func(e record.Entry) bool { return e.Name == record.DecisionFile }) {
 		t.Error("the signed manifest does not cover the decision")
 	}
 }
@@ -280,9 +280,9 @@ func TestRunsInAComputerGetPlainTokensWhenTheAdminsChoseThem(t *testing.T) {
 	if len(parts) != 2 || !strings.Contains(parts[0], os.Getenv("GUSTO_PROXY_ADDR")) || parts[1] == "dpop" || parts[1] == "" {
 		t.Fatalf("the agent was given %q", given)
 	}
-	var run evidence.Run
-	readJSON(t, dir.OutFile(evidence.RunFile), &run)
-	if run.ModelToken != evidence.TokenPlain {
+	var run record.Run
+	readJSON(t, dir.OutFile(record.RunFile), &run)
+	if run.ModelToken != record.TokenPlain {
 		t.Errorf("the record says the run's token was %q", run.ModelToken)
 	}
 }

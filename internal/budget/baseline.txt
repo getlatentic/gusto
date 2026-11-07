@@ -40,7 +40,7 @@
 57 16 internal/connector/discover.go:Discover
 29 11 internal/crew/crew.go:(*Store).ChooseApp
 31 11 internal/datadir/datadir.go:Ensure
-46 16 internal/evidence/evidence.go:Check
+46 16 internal/record/record.go:Check
 57 18 internal/helper/api.go:(Client).FollowTask
 44 12 internal/helper/api.go:(Client).send
 36 14 internal/helper/bridge/agent.go:(*Agent).agentToUse
@@ -91,7 +91,7 @@
 25 11 internal/roomwork/lines.go:shortestEdit
 32 21 internal/roomwork/plan.go:(*Turn).plan
 44 11 internal/runner/converse.go:converse
-28 12 internal/runner/record.go:(*Record).Out
+28 12 internal/runner/recorder.go:(*Recorder).Out
 29 14 internal/runtoken/dpop.go:(*replays).checkProof
 33 11 internal/setup/history.go:(*Store).archive
 61 16 internal/setup/integrations.go:(*Store).carryIntegrations

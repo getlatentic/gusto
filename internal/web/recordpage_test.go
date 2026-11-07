@@ -20,7 +20,7 @@ func askAs(t *testing.T, s *site, path, accept string) *httptest.ResponseRecorde
 	return recorder
 }
 
-func TestAnEvidenceFileIsAPageWithTheWayBackForABrowserAndTheBytesForAnyoneElse(t *testing.T) {
+func TestAnRecordFileIsAPageWithTheWayBackForABrowserAndTheBytesForAnyoneElse(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	id := aTask(t, site, url.Values{"brief": {"files"}, "gate": {"true"}})

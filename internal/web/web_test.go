@@ -208,13 +208,13 @@ func TestTheStreamReplaysFromTheStartAndEndsWithTheVerdict(t *testing.T) {
 	}
 }
 
-func TestAFileOutsideTheEvidenceCannotBeAskedFor(t *testing.T) {
+func TestAFileOutsideTheRecordCannotBeAskedFor(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	id := aTask(t, site, url.Values{"brief": {"files"}, "gate": {"true"}})
 	<-site.ran
 	if got := site.ask(t, "GET", "/jobs/"+id+"/files/transcript.log", nil); got.Code != http.StatusOK {
-		t.Fatalf("an evidence file should be readable, got %d", got.Code)
+		t.Fatalf("a record file should be readable, got %d", got.Code)
 	}
 	for _, name := range []string{"..%2f..%2fjob.json", "job.json", "state.json"} {
 		if got := site.ask(t, "GET", "/jobs/"+id+"/files/"+name, nil); got.Code == http.StatusOK {

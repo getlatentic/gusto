@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/schema"
 )
@@ -32,14 +32,14 @@ func keyed(t *testing.T, name string) (signing.Identity, signing.Keyring) {
 func TestARunWithAKeySignsItsManifest(t *testing.T) {
 	identity, keyring := keyed(t, "acme")
 	dir, _ := ranAs(t, identity)
-	if wrong, err := evidence.Check(dir); err != nil || len(wrong) != 0 {
+	if wrong, err := record.Check(dir); err != nil || len(wrong) != 0 {
 		t.Fatalf("a signed run should check clean, got %v: %v", wrong, err)
 	}
-	attested, err := evidence.Attest(dir, keyring)
+	attested, err := record.Attest(dir, keyring)
 	if err != nil || attested.Signer != "acme" {
 		t.Fatalf("want acme, got %+v: %v", attested, err)
 	}
-	written, err := os.ReadFile(dir.OutFile(evidence.SignatureFile))
+	written, err := os.ReadFile(dir.OutFile(record.SignatureFile))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,10 +50,10 @@ func TestARunWithAKeySignsItsManifest(t *testing.T) {
 
 func TestARunWithNoKeyIsUnsigned(t *testing.T) {
 	dir, _ := ranAs(t, signing.Identity{})
-	if _, err := os.Stat(dir.OutFile(evidence.SignatureFile)); !os.IsNotExist(err) {
+	if _, err := os.Stat(dir.OutFile(record.SignatureFile)); !os.IsNotExist(err) {
 		t.Fatalf("no key, no signature: %v", err)
 	}
-	attested, err := evidence.Attest(dir, signing.Keyring{})
+	attested, err := record.Attest(dir, signing.Keyring{})
 	if err != nil || attested.Signed {
 		t.Fatalf("want unsigned, got %+v: %v", attested, err)
 	}
@@ -64,7 +64,7 @@ func TestARunWithNoKeyIsUnsigned(t *testing.T) {
 func TestASignedManifestWithNoNameGivesTheKeysID(t *testing.T) {
 	identity, keyring := keyed(t, "acme")
 	dir, _ := ranAs(t, identity)
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

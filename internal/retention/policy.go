@@ -2,7 +2,7 @@
 //
 // A finished task keeps two things for different lengths of time: its working folder,
 // which is the bulk of the disk and what shipping and rerun need, and its
-// record, which is the signed evidence and is small. The working folder goes first.
+// record, which is the signed record and is small. The working folder goes first.
 // A task on hold, or asked for by a person on hold, is kept whole.
 package retention
 

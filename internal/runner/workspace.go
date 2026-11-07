@@ -83,7 +83,7 @@ func Diff(dir task.Dir, before string) error {
 }
 
 // objectsOf is where a task's trees are kept while it runs, outside the task
-// directory and the working folder, so neither the agent nor the evidence holds it.
+// directory and the working folder, so neither the agent nor the record holds it.
 func objectsOf(dir task.Dir) string {
 	path, err := filepath.Abs(dir.Path())
 	if err != nil {

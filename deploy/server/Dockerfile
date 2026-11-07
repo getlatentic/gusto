@@ -37,7 +37,7 @@ RUN apt-get update \
 COPY --from=cli /usr/local/bin/docker /usr/local/bin/docker
 COPY --from=build /gusto /usr/local/bin/gusto
 # The server runs as root in its container. A job's container writes its
-# evidence as root, and the server signs that evidence in the same directory
+# record as root, and the server signs that record in the same directory
 # once the box is gone, so a server under another user could not write the
 # signature. What root here is worth depends on the runtime it is handed:
 # deploy/README.md says so for each.

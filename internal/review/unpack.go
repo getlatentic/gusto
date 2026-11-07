@@ -9,17 +9,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// unpack writes the evidence commit's files into the task directory, each as
-// the exact bytes git holds. Only the names a task directory gives its evidence
+// unpack writes the record commit's files into the task directory, each as
+// the exact bytes git holds. Only the names a task directory gives its record
 // are written, and only as plain files: anything else in the commit is
 // reported and never written, so a crafted commit cannot put a file in the
 // working folder or outside the directory.
 func unpack(ctx context.Context, found fetched, dir task.Dir) ([]string, error) {
-	listing, err := git(ctx, "-C", found.workingFolder, "ls-tree", "-r", "-z", found.evidence)
+	listing, err := git(ctx, "-C", found.workingFolder, "ls-tree", "-r", "-z", found.record)
 	if err != nil {
 		return nil, err
 	}
@@ -91,5 +91,5 @@ func held(dir task.Dir, digest string) ([]string, error) {
 	if got := hex.EncodeToString(sum[:]); got != digest {
 		return []string{fmt.Sprintf("manifest.json hashes to %s, and the pull request names %s", got, digest)}, nil
 	}
-	return evidence.Check(dir)
+	return record.Check(dir)
 }

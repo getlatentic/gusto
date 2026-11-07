@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -18,11 +18,11 @@ func TestAConversationMessageVerifiesWithoutACheck(t *testing.T) {
 	if err := (task.Spec{Brief: "b", Harness: "h"}).Write(dir); err != nil {
 		t.Fatal(err)
 	}
-	hash, files, err := evidence.Of(dir)
+	hash, files, err := record.Of(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Task: hash, Files: files}); err != nil {
+	if err := record.Write(dir, record.Manifest{Task: hash, Files: files}); err != nil {
 		t.Fatal(err)
 	}
 	ring := t.TempDir()

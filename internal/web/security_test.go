@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -222,11 +222,11 @@ func TestALinkInARecordIsNeverShownOrServed(t *testing.T) {
 	os.WriteFile(secret, []byte("the operator's private key"), 0o600)
 	spentTask(t, here.index.Root(), "linked", "", priced)
 	dir := task.Dir(filepath.Join(here.index.Root(), "linked"))
-	taskHash, files, err := evidence.Of(dir)
+	taskHash, files, err := record.Of(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Task: taskHash, Files: files}); err != nil {
+	if err := record.Write(dir, record.Manifest{Task: taskHash, Files: files}); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Symlink(secret, dir.OutFile("loot.txt")); err != nil {
@@ -248,7 +248,7 @@ func TestALinkInARecordIsNeverShownOrServed(t *testing.T) {
 	if page := here.ask(t, "GET", "/jobs/linked", nil).Body.String(); strings.Contains(page, "private key") {
 		t.Error("the job page shows what a link points at")
 	}
-	if wrong, _ := evidence.Check(dir); !strings.Contains(strings.Join(wrong, "; "), "loot.txt is not a plain file") {
+	if wrong, _ := record.Check(dir); !strings.Contains(strings.Join(wrong, "; "), "loot.txt is not a plain file") {
 		t.Errorf("verify does not name the link: %v", wrong)
 	}
 }

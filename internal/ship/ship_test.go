@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/ship"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -25,7 +25,7 @@ func TestATaskWhoseCheckFailedIsRefused(t *testing.T) {
 	}
 }
 
-func TestEvidenceChangedSinceTheRunIsRefused(t *testing.T) {
+func TestRecordChangedSinceTheRunIsRefused(t *testing.T) {
 	for name, tamper := range map[string]func(t *testing.T, dir task.Dir){
 		"a changed patch": func(t *testing.T, dir task.Dir) {
 			write(t, dir.OutFile("diff.patch"), "something the check never saw\n")
@@ -42,7 +42,7 @@ func TestEvidenceChangedSinceTheRunIsRefused(t *testing.T) {
 			tamper(t, dir)
 			_, err := ship.Prepare(dir, here)
 			if !errors.Is(err, ship.ErrRefused) || !strings.Contains(err.Error(), "changed since the run") {
-				t.Fatalf("want a refusal naming the evidence, got %v", err)
+				t.Fatalf("want a refusal naming the record, got %v", err)
 			}
 		})
 	}
@@ -52,12 +52,12 @@ func TestEvidenceChangedSinceTheRunIsRefused(t *testing.T) {
 // intact. gates.json still holds the check's real answer.
 func TestAManifestRewrittenToClaimAPassIsRefused(t *testing.T) {
 	dir, _ := finished(t, "maybe")
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	manifest.Check.Passed, manifest.Check.Code = true, 0
-	if err := evidence.Write(dir, manifest); err != nil {
+	if err := record.Write(dir, manifest); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := ship.Prepare(dir, here); !errors.Is(err, ship.ErrRefused) {

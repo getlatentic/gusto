@@ -6,12 +6,12 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/compare"
-	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/matrix"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
-func TestEveryRowIsARunWithItsEvidenceKept(t *testing.T) {
+func TestEveryRowIsARunWithItsRecordKept(t *testing.T) {
 	hermetic(t)
 	var ran int
 	where, table := measure(t, planned(t, remote(t), finishes, doesNotFinish), "", counting(&ran))
@@ -21,8 +21,8 @@ func TestEveryRowIsARunWithItsEvidenceKept(t *testing.T) {
 	}
 	for _, row := range table.Rows {
 		dir := task.Dir(filepath.Join(where, row.Run))
-		if wrong, err := evidence.Check(dir); err != nil || len(wrong) > 0 || row.Evidence != "checks" {
-			t.Fatalf("%s on %s should keep evidence that checks, got %v %v %q", row.Task, row.Harness, wrong, err, row.Evidence)
+		if wrong, err := record.Check(dir); err != nil || len(wrong) > 0 || row.Record != "checks" {
+			t.Fatalf("%s on %s should keep a record that checks, got %v %v %q", row.Task, row.Harness, wrong, err, row.Record)
 		}
 		if row.WallSeconds == nil || row.Environment != "a test, here, in this process" {
 			t.Fatalf("every finished run should say how long it took and where: %+v", row)
@@ -113,8 +113,8 @@ func TestAgainRunsANamedPairAndKeepsTheOldRun(t *testing.T) {
 		t.Fatalf("says@yes should run again on both jobs and nothing else, and %d runs happened", ran)
 	}
 	kept := filepath.Join(where, "one-line-fix", finishes.Dir()+".attempt-1")
-	if wrong, err := evidence.Check(task.Dir(kept)); err != nil || len(wrong) > 0 {
-		t.Fatalf("the run that was replaced should be kept with its evidence: %v %v", wrong, err)
+	if wrong, err := record.Check(task.Dir(kept)); err != nil || len(wrong) > 0 {
+		t.Fatalf("the run that was replaced should be kept with its record: %v %v", wrong, err)
 	}
 	if matrix.ExitCode(table) != 0 {
 		t.Fatalf("the table should read the new runs: %+v", table.Rows)

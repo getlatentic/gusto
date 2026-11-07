@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/roomwork"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/signing"
@@ -94,7 +94,7 @@ func (r *roomRuns) bring(ctx context.Context, turn *roomwork.Turn, spec task.Spe
 		if _, err := r.instances.Notice(spec.Session, spec.Thread, why); err != nil {
 			slog.Error("could not tell the room a turn wrote nothing", "room", spec.Session, "error", err)
 		}
-		r.decided(dir, evidence.Decision{Refused: why})
+		r.decided(dir, record.Decision{Refused: why})
 		return nil
 	}
 	outcome, err := turn.Merge(ctx)
@@ -157,8 +157,8 @@ func (r *roomRuns) seedState(ctx context.Context, spec task.Spec) error {
 }
 
 // decisionOf is what a merge did, as a turn's record keeps it.
-func decisionOf(outcome roomwork.Outcome) evidence.Decision {
-	decision := evidence.Decision{Kept: true, Changed: outcome.Changed}
+func decisionOf(outcome roomwork.Outcome) record.Decision {
+	decision := record.Decision{Kept: true, Changed: outcome.Changed}
 	for _, each := range outcome.Joined {
 		decision.Joined = append(decision.Joined, each.Path)
 	}
@@ -170,8 +170,8 @@ func decisionOf(outcome roomwork.Outcome) evidence.Decision {
 
 // decided puts what was done with a turn's changes in its signed record. A record that cannot take it is said, and the room's
 // folder is as the decision left it either way.
-func (r *roomRuns) decided(dir task.Dir, decision evidence.Decision) {
-	if err := evidence.Decide(dir, decision, r.key); err != nil {
+func (r *roomRuns) decided(dir task.Dir, decision record.Decision) {
+	if err := record.Decide(dir, decision, r.key); err != nil {
 		slog.Error("a turn's record does not say what was done with its changes", "task", filepath.Base(dir.Path()), "error", err)
 	}
 }
@@ -179,9 +179,9 @@ func (r *roomRuns) decided(dir task.Dir, decision evidence.Decision) {
 // finishDecisions puts in place the decisions a crash left on their way under a turn's signature. A decision is made while its
 // turn runs, so the turns to look at are the ones that were running when the server before this one stopped.
 func finishDecisions(index *tasks.Index) {
-	for _, record := range index.Recovered() {
-		if err := evidence.Finish(record.Dir(index.Root())); err != nil {
-			slog.Error("a turn's decision could not be put under its signature", "task", record.ID, "error", err)
+	for _, entry := range index.Recovered() {
+		if err := record.Finish(entry.Dir(index.Root())); err != nil {
+			slog.Error("a turn's decision could not be put under its signature", "task", entry.ID, "error", err)
 		}
 	}
 }

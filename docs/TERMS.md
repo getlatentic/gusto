@@ -23,7 +23,7 @@ The words gusto's pages, commands and docs use, each for one thing. The last col
 | working folder | The folder in a task's directory that the agent works in: the checked-out repository and what the agent changed | workspace, in what is stored or seen inside a sandbox: the `workspace/` folder, `/job/workspace`, `/sandbox/workspace`, a bundle's `workspace` branch and `workspaceDays` |
 | agent's folder | The folder an agent works in across a conversation's turns, kept between them on the person's computer. Each turn of the conversation works in it | workspace |
 | check | The command whose result says pass or fail | gate, in what is stored or sent: `gate` in `job.json`, the manifest and the audit record, `gate.log` and `gates.json` in `out/`, `gateCode` in a matrix table, and the task form's `gate` field |
-| record | What a task leaves behind: hashed files, the check result and a signature. `gusto verify` re-checks it anywhere | evidence |
+| record | What a task leaves behind: hashed files, the check result and a signature. `gusto verify` re-checks it anywhere | evidence, in what is stored or sent: `evidence` in `audit.json` and in a matrix table, and the `refs/gusto/evidence/` git refs |
 | sandbox | The isolated box one task runs in, on a computer | wall (the level) |
 | room | A conversation that people and several agents share, with one folder | |
 | turn | One message to an agent and the work it does for it. A turn is a task | |

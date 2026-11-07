@@ -14,7 +14,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/pkg/harness"
@@ -137,7 +137,7 @@ func verify(args []string) int {
 		return usageError("verify", "needs one task directory")
 	}
 	dir := task.Dir(where)
-	wrong, err := evidence.Check(dir)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		return fail(err)
 	}
@@ -154,7 +154,7 @@ func verify(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	attested, err := evidence.Attest(dir, keyring)
+	attested, err := record.Attest(dir, keyring)
 	if err != nil {
 		fmt.Println(err)
 		return 1
@@ -163,7 +163,7 @@ func verify(args []string) int {
 	if f.signed && !attested.Signed {
 		return 1
 	}
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		return fail(err)
 	}
@@ -198,7 +198,7 @@ func show(args []string) int {
 	}
 	fmt.Printf("brief    %s\nrepo     %s\nagent    %s\ncheck    %s\nlabel    %s\n",
 		spec.Brief, spec.Repo, spec.Harness, strings.Join(spec.Check, " "), spec.Sensitivity)
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		fmt.Println("\nno record yet, so this task has not run here")
 		return 0
@@ -215,7 +215,7 @@ func show(args []string) int {
 	}
 	fmt.Printf("\ncheck    %s\nagent    exit %d, stopped at the budget %t\nmodel    %s\nsigner   %s\nfiles    %d\n",
 		check, manifest.HarnessExit, manifest.StoppedAtBudget,
-		manifest.ModelEndpoint, evidence.SignedBy(dir, keyring), len(manifest.Files))
+		manifest.ModelEndpoint, record.SignedBy(dir, keyring), len(manifest.Files))
 	if manifest.Tokens != nil {
 		fmt.Printf("tokens   %d\n", *manifest.Tokens)
 	}

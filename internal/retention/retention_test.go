@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/task"
@@ -261,11 +261,11 @@ func TestASweptTaskStillVerifiesAndNamesItsSigner(t *testing.T) {
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
-	taskHash, files, err := evidence.Of(dir)
+	taskHash, files, err := record.Of(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Task: taskHash, Files: files, Check: &evidence.Verdict{Passed: true}, Harness: "fixture", AtUnix: daysAgo(40)}); err != nil {
+	if err := record.Write(dir, record.Manifest{Task: taskHash, Files: files, Check: &record.Verdict{Passed: true}, Harness: "fixture", AtUnix: daysAgo(40)}); err != nil {
 		t.Fatal(err)
 	}
 	ring := t.TempDir()
@@ -273,7 +273,7 @@ func TestASweptTaskStillVerifiesAndNamesItsSigner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Seal(dir, key); err != nil {
+	if err := record.Seal(dir, key); err != nil {
 		t.Fatal(err)
 	}
 	keyring, err := signing.OpenKeyring(ring)
@@ -285,10 +285,10 @@ func TestASweptTaskStillVerifiesAndNamesItsSigner(t *testing.T) {
 	if report.Removed(WorkingFolder) != 1 || exists(t, index, "signed", "workspace") {
 		t.Fatalf("the workspace stayed: %+v", report)
 	}
-	if wrong, err := evidence.Check(dir); err != nil || len(wrong) > 0 {
+	if wrong, err := record.Check(dir); err != nil || len(wrong) > 0 {
 		t.Fatalf("a swept job no longer checks: %v %v", wrong, err)
 	}
-	if attested, err := evidence.Attest(dir, keyring); err != nil || attested.Signer != "acme" {
+	if attested, err := record.Attest(dir, keyring); err != nil || attested.Signer != "acme" {
 		t.Fatalf("the signer is not named: %+v %v", attested, err)
 	}
 }

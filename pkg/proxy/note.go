@@ -32,7 +32,7 @@ func (p *Proxy) UseRecorder(r Recorder) {
 
 // note writes a call to the task's out/proxy.jsonl and counts it in the ledger.
 // The line is the ledger: a server that restarts rebuilds its counts from these
-// lines, and the manifest hashes them with the rest of the evidence.
+// lines, and the manifest hashes them with the rest of the record.
 func (p *Proxy) note(task string, call spend.Call) {
 	p.counts.add(call)
 	p.ledger.Count(task, call)

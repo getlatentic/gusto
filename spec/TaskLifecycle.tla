@@ -26,14 +26,14 @@ ASSUME MaxCrashes \in Nat
 Done == {"Passed", "Failed", "Interrupted"}
 States == {"Queued", "Running"} \cup Done
 
-(* The run's manifest (internal/evidence).  check is its verdict, or "none" *)
+(* The run's manifest (internal/record).  check is its verdict, or "none"   *)
 (* for a turn in a conversation; turnOK is that the harness exited 0 and   *)
 (* the model answered; stopped is that the run's context was cancelled.    *)
 Manifests == [written: BOOLEAN, check: {"pass", "fail", "none"},
               turnOK: BOOLEAN, stopped: BOOLEAN]
 NoManifest == [written |-> FALSE, check |-> "none", turnOK |-> TRUE, stopped |-> FALSE]
 
-(* evidence.Earned: the exit code a run earned. *)
+(* record.Earned: the exit code a run earned. *)
 Earned(m) == IF m.check = "pass" THEN 0
              ELSE IF m.check = "fail" THEN 1
              ELSE IF m.turnOK THEN 0 ELSE 1

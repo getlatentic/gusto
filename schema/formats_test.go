@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
 	"github.com/getlatentic/gusto/schema"
@@ -23,7 +23,7 @@ func TestEachSchemaIsVersionedAndAgreesWithTheCode(t *testing.T) {
 		version int
 	}{
 		{schema.Task(), "/schema/job/v1.json", task.Version},
-		{schema.Manifest(), "/schema/manifest/v1.json", evidence.Version},
+		{schema.Manifest(), "/schema/manifest/v1.json", record.Version},
 		{schema.Signature(), "/schema/signature/v1.json", signing.Version},
 	} {
 		var read struct {
@@ -113,8 +113,8 @@ func TestAManifestIsValidWithAndWithoutTheHarnessDigest(t *testing.T) {
 
 // A run whose model never answered says so in the manifest the runner writes, and the schema describes it.
 func TestAManifestSaysWhenTheModelNeverAnswered(t *testing.T) {
-	manifest := evidence.Manifest{Version: evidence.Version, Task: "j", Files: []evidence.Entry{}, Harness: "pi", Signer: "unsigned", AtUnix: 1,
-		ModelUnanswered: &evidence.Unanswered{Calls: 2, Reason: "connection refused"}}
+	manifest := record.Manifest{Version: record.Version, Task: "j", Files: []record.Entry{}, Harness: "pi", Signer: "unsigned", AtUnix: 1,
+		ModelUnanswered: &record.Unanswered{Calls: 2, Reason: "connection refused"}}
 	document, err := json.Marshal(manifest)
 	if err != nil {
 		t.Fatal(err)

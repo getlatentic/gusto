@@ -9,9 +9,9 @@ import (
 	"github.com/getlatentic/gusto/internal/backend/container"
 	"github.com/getlatentic/gusto/internal/backend/process"
 	"github.com/getlatentic/gusto/internal/backend/vm"
-	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/isolation"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/roomwork"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/settings"
@@ -105,7 +105,7 @@ func turns(b backend.Backend, way *WayOut, instances *instance.Store, index *tas
 		turn := turnOf(instances, index, dir, spec)
 		turn.Exit = way.exit()
 		exit, err := rooms.around(ctx, spec, dir, func() (int, error) { return b.Run(ctx, turn) })
-		if manifest, read := evidence.Read(dir); read == nil {
+		if manifest, read := record.Read(dir); read == nil {
 			learnConversation(instances, spec, manifest.Session)
 		}
 		return exit, err

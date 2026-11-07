@@ -97,7 +97,7 @@ func TestAHostOnTheAllowlistIsReachedOverHTTPS(t *testing.T) {
 }
 
 // Refused and recorded: the line in out/proxy.jsonl is what puts the attempt
-// in the task's evidence, because the manifest hashes that file.
+// in the task's record, because the manifest hashes that file.
 func TestAHostNotOnTheAllowlistIsRefusedAndRecorded(t *testing.T) {
 	for _, tls := range []bool{true, false} {
 		host, count := reached(t, tls)

@@ -14,7 +14,7 @@ import (
 const TableVersion = 1
 
 // Table is the benchmark as a person, or the catalog, reads it: a row for every
-// task and pair, each read off its run's evidence.
+// task and pair, each read off its run's record.
 type Table struct {
 	Version int `json:"version"`
 	// Benchmark is where the runs are, so every row's run can be found and
@@ -48,10 +48,10 @@ type Row struct {
 	Run string `json:"run"`
 	// Record is "checks", the first thing that changed since the run, or
 	// why there is no record to check.
-	Evidence string `json:"evidence"`
+	Record string `json:"evidence"`
 }
 
-// Tabulate reads the benchmark at where back from its runs' evidence.
+// Tabulate reads the benchmark at where back from its runs' record.
 func Tabulate(where string) (Table, error) {
 	record, err := Read(where)
 	if err != nil {
@@ -80,7 +80,7 @@ func rowOf(where, environment string, cell Cell) (Row, error) {
 		row.Model = spec.Model
 	}
 	side := sideOf(where, cell)
-	row.Evidence = checked(side)
+	row.Record = checked(side)
 	if side.Err != nil || side.Manifest.Check == nil {
 		return row, nil
 	}
@@ -119,7 +119,7 @@ func checked(side compare.Side) string {
 // table says, not a failure of the matrix.
 func ExitCode(table Table) int {
 	for _, row := range table.Rows {
-		if row.Finished == nil || row.Evidence != "checks" {
+		if row.Finished == nil || row.Record != "checks" {
 			return 2
 		}
 	}

@@ -13,8 +13,8 @@ import (
 	"github.com/getlatentic/gusto/internal/backend"
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/computer"
-	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/openshell"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/harness"
@@ -127,7 +127,7 @@ func (b *Backend) Run(ctx context.Context, turn backend.Turn) (int, error) {
 		}
 	}
 	exit, err := b.ran(ctx, turn)
-	if _, read := evidence.Read(turn.Dir); read != nil || turn.AgentFolder == "" {
+	if _, read := record.Read(turn.Dir); read != nil || turn.AgentFolder == "" {
 		return exit, err
 	}
 	if back := replaceTree(turn.Dir.WorkingFolder(), turn.AgentFolder); back != nil && err == nil {

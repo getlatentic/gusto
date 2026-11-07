@@ -34,7 +34,7 @@ spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
       # The server's own shutdown waits up to 30 seconds for its jobs to write
-      # their evidence; this is that and room to stop.
+      # their records; this is that and room to stop.
       terminationGracePeriodSeconds: 60
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -166,7 +166,7 @@ spec:
             periodSeconds: 10
             failureThreshold: 6
           # Root, with no way to gain more: a job's container writes its
-          # evidence as root, and the server signs it in the same directory.
+          # record as root, and the server signs it in the same directory.
           securityContext:
             allowPrivilegeEscalation: false
           {{- with .Values.resources.server }}

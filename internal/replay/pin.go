@@ -72,7 +72,7 @@ func committedSince(workingFolder, commit string) (int, error) {
 }
 
 // git reads; nothing it runs here writes to the old working folder, which is
-// evidence.
+// record.
 func git(at string, args ...string) (string, error) {
 	command := exec.Command("git", append([]string{"-C", at}, args...)...)
 	var output, complaint bytes.Buffer

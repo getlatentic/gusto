@@ -113,7 +113,7 @@ func TestATaskGetsTheWholeSkillAndTheServersItCanUseFromAnIntegrationThatIsOn(t 
 	}
 	record, _ := json.Marshal(carried)
 	if strings.Contains(string(record), "api.example.com") || strings.Contains(string(record), "acme") {
-		t.Errorf("a server's definition is in the evidence: %s", record)
+		t.Errorf("a server's definition is in the record: %s", record)
 	}
 }
 

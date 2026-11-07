@@ -1,7 +1,7 @@
 # Runs on the instance: a gusto server whose jobs run in OpenShell sandboxes, an integration imported through its console, turned on and
 # given to a setup, and Claude Code and Codex each asked, from the pages' own form, for a customer's account id, which only the
 # integration's tool and skill can answer. The customer system is a server on the instance that answers only the key the gateway
-# holds. It prints PASS or FAIL for each thing it checks, and the evidence under each.
+# holds. It prints PASS or FAIL for each thing it checks, and the record under each.
 set -uo pipefail
 E=$HOME/e2e; R=$E/integ
 export PATH=/opt/openshell/bin:/usr/sbin:/sbin:$PATH
@@ -86,7 +86,7 @@ run() {
   grep -q '"kind":"call"' "$J/out/gateway.jsonl" 2>/dev/null && grep -q '"outcome":"ok"' "$J/out/gateway.jsonl" 2>/dev/null; ok $? "$harness: the call is in the job's gateway record"
   grep -q '"person"' "$J/out/gateway.jsonl" 2>/dev/null; ok $? "$harness: the record says who asked"
   grep -rq 'e2e-customer-system-key' "$J" 2>/dev/null && ! grep -rlq 'e2e-customer-system-key' "$J/out" 2>/dev/null; ok $? "$harness: the customer system's key is in the job's private setup folder and not in anything it wrote"
-  ! grep -rq 'e2e-customer-system-key' "$J/out" 2>/dev/null; ok $? "$harness: the key is nowhere in the job's evidence"
+  ! grep -rq 'e2e-customer-system-key' "$J/out" 2>/dev/null; ok $? "$harness: the key is nowhere in the task's record"
   GUSTO_KEYRING="$R/keys" "$E/gusto" verify "$J" >/dev/null 2>&1; ok $? "$harness: the signed record verifies"
 }
 run claude deepseek/deepseek-flash

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/pkg/task"
 	"github.com/getlatentic/gusto/schema"
@@ -34,7 +34,7 @@ func TestARunLeavesAManifestTheSchemaAccepts(t *testing.T) {
 
 // A task written before the version field, carrying a field a newer writer
 // added, is what an old task directory looks like after the format grows. It
-// still runs, and its evidence still verifies.
+// still runs, and its record still verifies.
 func TestAnOldTaskStillRunsAfterTheFormatGainsAField(t *testing.T) {
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), adapter)
@@ -59,7 +59,7 @@ func TestAnOldTaskStillRunsAfterTheFormatGainsAField(t *testing.T) {
 		t.Fatalf("an old job should run and pass, exit %d: %v", exit, err)
 	}
 	unversion(t, dir)
-	wrong, err := evidence.Check(dir)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,7 +1,7 @@
-------------------------------- MODULE Evidence ------------------------------
+------------------------------- MODULE Record --------------------------------
 (***************************************************************************)
 (* A room turn's record, as Decide puts what was done with its changes     *)
-(* under its signature (internal/evidence run.go, evidence.go, seal.go).   *)
+(* under its signature (internal/record run.go, record.go, seal.go).       *)
 (* The run ends with out/ hashed into manifest.json and the manifest       *)
 (* signed.  The turn's changes are then merged or refused, and Decide      *)
 (* writes decision.json, makes the manifest again and signs it again.  A   *)

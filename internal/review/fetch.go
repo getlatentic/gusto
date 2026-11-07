@@ -10,38 +10,38 @@ import (
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// evidenceRef is where gusto pr open leaves the record for a manifest.
-func evidenceRef(digest string) string {
+// recordRef is where gusto pr open leaves the record for a manifest.
+func recordRef(digest string) string {
 	return "refs/gusto/evidence/" + digest
 }
 
-// fetched names the three commits a check reads: the evidence, the pull
+// fetched names the three commits a check reads: the record, the pull
 // request's commit under it, and the commit the task ran against under that.
 type fetched struct {
 	workingFolder string
-	evidence      string
+	record        string
 	change        string
 	at            string
 }
 
-// fetch makes the task's working folder a repository and fetches the evidence ref
+// fetch makes the task's working folder a repository and fetches the record ref
 // into it, three commits deep: that is every commit the check reads, so a
 // large repository's history stays on the remote. The reviewer's own git
 // credentials reach the remote, so the check sees what the reviewer may see.
 func fetch(ctx context.Context, remote, digest string, dir task.Dir) (fetched, error) {
 	workingFolder := dir.WorkingFolder()
-	ref := evidenceRef(digest)
+	ref := recordRef(digest)
 	if _, err := git(ctx, "init", "--quiet", workingFolder); err != nil {
 		return fetched{}, err
 	}
 	if _, err := git(ctx, "-C", workingFolder, "fetch", "--quiet", "--depth", "3", remote, ref+":"+ref); err != nil {
 		return fetched{}, fmt.Errorf("%s holds no record for that manifest: %w", remote, err)
 	}
-	evidence, err := named(ctx, workingFolder, ref+"^{commit}", "the record ref names no commit")
+	record, err := named(ctx, workingFolder, ref+"^{commit}", "the record ref names no commit")
 	if err != nil {
 		return fetched{}, err
 	}
-	change, err := named(ctx, workingFolder, evidence+"^1", "the record commit has no parent, so it vouches for no change")
+	change, err := named(ctx, workingFolder, record+"^1", "the record commit has no parent, so it vouches for no change")
 	if err != nil {
 		return fetched{}, err
 	}
@@ -49,7 +49,7 @@ func fetch(ctx context.Context, remote, digest string, dir task.Dir) (fetched, e
 	if err != nil {
 		return fetched{}, err
 	}
-	return fetched{workingFolder: workingFolder, evidence: evidence, change: change, at: at}, nil
+	return fetched{workingFolder: workingFolder, record: record, change: change, at: at}, nil
 }
 
 // named is the commit a revision names, or what it means that there is none.

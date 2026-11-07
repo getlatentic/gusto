@@ -15,7 +15,7 @@ func gitOnPath(machine Machine) Verdict {
 }
 
 // tasksWritable checks the directory every task is written into. Serve opens it
-// at start and each task writes its evidence there.
+// at start and each task writes its record there.
 func tasksWritable(machine Machine, dir string) Verdict {
 	info, err := os.Stat(dir)
 	switch {

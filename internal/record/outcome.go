@@ -1,4 +1,4 @@
-package evidence
+package record
 
 // Earned is the exit code a run earned, by the one rule the runner applies when a run ends and the task index applies when it
 // finds a run that ended while nobody watched. A check decides when there is one. A turn in a conversation has none, and then it

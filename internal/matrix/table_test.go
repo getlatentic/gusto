@@ -124,7 +124,7 @@ func TestTheTableIsMarkdownForTheReadmeAndJSONForTheCatalog(t *testing.T) {
 	}
 }
 
-// A matrix's directory prints its table again from the evidence alone, and
+// A matrix's directory prints its table again from the record alone, and
 // writes nothing.
 func TestAMatrixIsAddressedByItsDirectory(t *testing.T) {
 	hermetic(t)

@@ -228,7 +228,7 @@ func (s *Server) turnAway(w http.ResponseWriter, r *http.Request, back, why stri
 	http.Redirect(w, r, s.withMessage(back, "refused", why), http.StatusSeeOther)
 }
 
-// file hands back one evidence file. The name is checked against the listing
+// file hands back one record file. The name is checked against the listing
 // rather than cleaned, so nothing outside out/ can be asked for.
 func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 	record, dir, found := s.find(r)
@@ -242,7 +242,7 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// A person's browser is given the file in a page, with the way back to the record, and a program or a download the bytes as they are.
-	if r.URL.Query().Get("raw") == "" && strings.Contains(r.Header.Get("Accept"), "text/html") && s.evidencePage(w, r, record, dir, name) {
+	if r.URL.Query().Get("raw") == "" && strings.Contains(r.Header.Get("Accept"), "text/html") && s.recordPage(w, r, record, dir, name) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -250,9 +250,9 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, dir.OutFile(name))
 }
 
-// evidencePage draws one of a run's files as a page of the app, so that the window of the desktop app, which has no address bar, has a way
+// recordPage draws one of a run's files as a page of the app, so that the window of the desktop app, which has no address bar, has a way
 // back to the record. It says whether it did: a file that is not text is not drawn, and is given as it is.
-func (s *Server) evidencePage(w http.ResponseWriter, r *http.Request, record tasks.Record, dir task.Dir, name string) bool {
+func (s *Server) recordPage(w http.ResponseWriter, r *http.Request, record tasks.Record, dir task.Dir, name string) bool {
 	path := dir.OutFile(name)
 	info, err := os.Stat(path)
 	if err != nil || info.IsDir() {
@@ -272,7 +272,7 @@ func (s *Server) evidencePage(w http.ResponseWriter, r *http.Request, record tas
 		return true
 	}
 	s.render(w, "file.html", map[string]any{
-		"Title": productName + " — " + name, "Nav": "jobs", "File": file, "Evidence": record.ID,
+		"Title": productName + " — " + name, "Nav": "jobs", "File": file, "TaskID": record.ID,
 		"Back": "/jobs/" + record.ID, "BackWord": "Back to the record",
 	})
 	return true

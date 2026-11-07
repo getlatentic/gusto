@@ -1,6 +1,6 @@
 #!/bin/sh
 # One real job through a running install: submitted to the server over its API,
-# run in a container the server starts from the runner image, and its evidence
+# run in a container the server starts from the runner image, and its record
 # verified, against compose or Kubernetes.
 #
 # It runs inside the server's container, so it needs nothing where you type but

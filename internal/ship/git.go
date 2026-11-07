@@ -13,7 +13,7 @@ import (
 )
 
 // Git pushes by shelling out to git in a scratch repository of its own, so the
-// task's working folder, which is record, is never touched.
+// task's working folder, which is part of the record, is never touched.
 type Git struct {
 	// Token, when set, is sent to Host and to no other.
 	Token string
@@ -35,10 +35,10 @@ func (g Git) Push(ctx context.Context, plan Plan) error {
 		}
 		if made != plan.Commits {
 			return fmt.Errorf("the commits came out as %s and %s, and the plan named %s and %s",
-				made.Change, made.Evidence, plan.Commits.Change, plan.Commits.Evidence)
+				made.Change, made.Record, plan.Commits.Change, plan.Commits.Record)
 		}
 		_, err = run(ctx, g.env(), "-C", s.path, "push", "--quiet", plan.Remote,
-			made.Change+":refs/heads/"+plan.Branch, made.Evidence+":"+plan.Evidence)
+			made.Change+":refs/heads/"+plan.Branch, made.Record+":"+plan.Record)
 		return err
 	})
 }

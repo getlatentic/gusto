@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/rules"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/box"
@@ -44,8 +44,8 @@ func Outside(parent context.Context, dir task.Dir, box Box, signs signing.Identi
 		return 0, err
 	}
 	defer os.RemoveAll(objectsOf(dir))
-	end := ending{dir: dir, since: evidence.Now(), harness: run.adapter.Name, digest: run.digest, endpoint: run.endpoint, signing: signs}
-	record, err := Open(dir, run.adapter)
+	end := ending{dir: dir, since: record.Now(), harness: run.adapter.Name, digest: run.digest, endpoint: run.endpoint, signing: signs}
+	recorder, err := Open(dir, run.adapter)
 	if err != nil {
 		return 0, err
 	}
@@ -53,14 +53,14 @@ func Outside(parent context.Context, dir task.Dir, box Box, signs signing.Identi
 	defer cancel()
 	// Closed however Start ends: a box that was half made is still there.
 	defer box.Close()
-	end.exit, err = run.agentTurn(ctx, record)
-	if end.tokens, end.cost, err = finished(record, err); err != nil {
+	end.exit, err = run.agentTurn(ctx, recorder)
+	if end.tokens, end.cost, err = finished(recorder, err); err != nil {
 		return 0, err
 	}
 	if end.verdict, err = run.check(ctx); err != nil {
 		return 0, err
 	}
-	end.version, end.session = versionIn(ctx, box, run.adapter.Name), record.Remembered
+	end.version, end.session = versionIn(ctx, box, run.adapter.Name), recorder.Remembered
 	return end.close(ctx)
 }
 
@@ -105,7 +105,7 @@ func prepareOutside(dir task.Dir, spec task.Spec, box Box) (*outside, error) {
 
 // agentTurn starts the box with the working folder, checks it carries the agent, equips it, and talks to the agent until it ends or
 // ctx does. A box that does not carry the agent is a refusal, in the record.
-func (r *outside) agentTurn(ctx context.Context, record *Record) (int, error) {
+func (r *outside) agentTurn(ctx context.Context, record *Recorder) (int, error) {
 	if err := r.box.Start(ctx, r.dir.WorkingFolder()); err != nil {
 		return 0, err
 	}
@@ -119,14 +119,14 @@ func (r *outside) agentTurn(ctx context.Context, record *Record) (int, error) {
 }
 
 // check brings the working folder out of the box, diffs it, asks the check in the box, and keeps what the box's guard saw.
-func (r *outside) check(ctx context.Context) (*evidence.Verdict, error) {
+func (r *outside) check(ctx context.Context) (*record.Verdict, error) {
 	if err := r.box.Fetch(r.dir.WorkingFolder()); err != nil {
 		return nil, err
 	}
 	if err := Diff(r.dir, r.before); err != nil {
 		return nil, err
 	}
-	var verdict *evidence.Verdict
+	var verdict *record.Verdict
 	if len(r.spec.Check) > 0 {
 		given, err := checkIn(ctx, r.spec, r.dir, r.box)
 		if err != nil {
@@ -139,12 +139,12 @@ func (r *outside) check(ctx context.Context) (*evidence.Verdict, error) {
 
 // checkIn asks the check in the box, where the repository's own code runs, and
 // keeps the answer and the whole output.
-func checkIn(ctx context.Context, spec task.Spec, dir task.Dir, box Box) (evidence.Verdict, error) {
+func checkIn(ctx context.Context, spec task.Spec, dir task.Dir, box Box) (record.Verdict, error) {
 	command := box.Wrap(ctx, exec.CommandContext(ctx, spec.Check[0], spec.Check[1:]...))
 	command.Dir = ""
 	verdict, output, err := askWith(spec, command)
 	if err != nil {
-		return evidence.Verdict{}, err
+		return record.Verdict{}, err
 	}
 	return verdict, keepCheck(dir, verdict, output)
 }
@@ -201,7 +201,7 @@ func versionIn(ctx context.Context, box Box, name string) string {
 
 // talk runs the harness in the box and records what it does: an ACP agent is
 // held a conversation with, and any other harness's output is read as it comes.
-func talk(ctx context.Context, box Box, adapter harness.Adapter, spec task.Spec, record *Record) (int, error) {
+func talk(ctx context.Context, box Box, adapter harness.Adapter, spec task.Spec, record *Recorder) (int, error) {
 	command, servers, err := boxCommand(ctx, adapter, spec, box.Workdir(), box.Env())
 	if err != nil {
 		return 0, err

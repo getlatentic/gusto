@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/pkg/task"
 	"github.com/getlatentic/gusto/schema"
@@ -45,7 +45,7 @@ func cappedRun(t *testing.T, earlier string) task.Dir {
 
 func TestTheManifestSaysWhichCapStoppedTheRun(t *testing.T) {
 	dir := cappedRun(t, "")
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestTheManifestSaysWhichCapStoppedTheRun(t *testing.T) {
 	if err := schema.Validate(schema.Manifest(), written); err != nil {
 		t.Fatalf("the manifest does not match its schema: %v\n%s", err, written)
 	}
-	if wrong, err := evidence.Check(dir); err != nil || len(wrong) != 0 {
+	if wrong, err := record.Check(dir); err != nil || len(wrong) != 0 {
 		t.Fatalf("the proxy's record should be hashed with the rest: %v %v", wrong, err)
 	}
 }
@@ -69,7 +69,7 @@ func TestTheManifestSaysWhichCapStoppedTheRun(t *testing.T) {
 // first run did not stop this one.
 func TestARefusalFromAnEarlierRunIsNotThisRunsStop(t *testing.T) {
 	earlier := `{"path":"/v1/chat/completions","status":402,"atUnix":1,"refused":{"cap":"job","limitUsd":1,"spentUsd":1,"reason":"then"}}` + "\n"
-	manifest, err := evidence.Read(cappedRun(t, earlier))
+	manifest, err := record.Read(cappedRun(t, earlier))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestARefusalFromAnEarlierRunIsNotThisRunsStop(t *testing.T) {
 
 func TestARunNoCapRefusedSaysNothingAboutCaps(t *testing.T) {
 	dir, _ := ran(t)
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

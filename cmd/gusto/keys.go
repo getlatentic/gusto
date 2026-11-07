@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 )
 
@@ -39,7 +39,7 @@ func checkKeys(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	found, err := evidence.SignersUnder(tasks, keyring)
+	found, err := record.SignersUnder(tasks, keyring)
 	if err != nil {
 		return fail(err)
 	}
@@ -51,7 +51,7 @@ func checkKeys(args []string) int {
 }
 
 // printSigners says how many records each signer signed, how many nobody did, and which do not check.
-func printSigners(found evidence.Signers) {
+func printSigners(found record.Signers) {
 	names := make([]string, 0, len(found.Signed))
 	for name := range found.Signed {
 		names = append(names, name)

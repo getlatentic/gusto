@@ -9,7 +9,7 @@ import (
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// links is where the pull request sends a reviewer: files at the evidence
+// links is where the pull request sends a reviewer: files at the record
 // commit on GitHub, to read, and the one command that fetches that commit and
 // checks it, which needs nothing but git and the repository.
 type links struct {
@@ -20,15 +20,15 @@ type links struct {
 	commits Commits
 }
 
-// blob addresses a file by the evidence commit's name rather than by its ref,
+// blob addresses a file by the record commit's name rather than by its ref,
 // because GitHub's pages resolve a commit anywhere in the repository and the
 // name cannot move.
 func (l links) blob(file string) string {
-	return fmt.Sprintf("https://github.com/%s/%s/blob/%s/%s", l.owner, l.name, l.commits.Evidence, file)
+	return fmt.Sprintf("https://github.com/%s/%s/blob/%s/%s", l.owner, l.name, l.commits.Record, file)
 }
 
 func (l links) tree() string {
-	return fmt.Sprintf("https://github.com/%s/%s/tree/%s", l.owner, l.name, l.commits.Evidence)
+	return fmt.Sprintf("https://github.com/%s/%s/tree/%s", l.owner, l.name, l.commits.Record)
 }
 
 // command is what a reviewer types, and the pull request prints it whole. It
@@ -59,13 +59,13 @@ func withoutCredentials(remote string) string {
 	return address.String()
 }
 
-// section is the part of the body about the evidence. The transcript is linked
+// section is the part of the body about the record. The transcript is linked
 // and never pasted: it can run to megabytes, and a pasted copy is not the file
 // the manifest hashes.
 func (l links) section(digest, at string) string {
 	var out strings.Builder
 	out.WriteString("\n### The record\n\n")
-	fmt.Fprintf(&out, "The run's job.json and out/ are committed, byte for byte, at [`%s`](%s) on `%s`. ", short(l.commits.Evidence), l.tree(), l.ref)
+	fmt.Fprintf(&out, "The run's job.json and out/ are committed, byte for byte, at [`%s`](%s) on `%s`. ", short(l.commits.Record), l.tree(), l.ref)
 	out.WriteString("That ref is not a branch, so none of it is part of this change.\n\n")
 	fmt.Fprintf(&out, "- [manifest.json](%s), whose sha256 is `%s`\n", l.blob("out/manifest.json"), digest)
 	fmt.Fprintf(&out, "- [transcript.log](%s), what the agent said\n", l.blob("out/transcript.log"))
@@ -78,9 +78,9 @@ func (l links) section(digest, at string) string {
 	return out.String()
 }
 
-// evidenceMessage says what the evidence commit is to anybody who finds it
+// recordMessage says what the record commit is to anybody who finds it
 // with git alone.
-func evidenceMessage(dir task.Dir, digest string) string {
+func recordMessage(dir task.Dir, digest string) string {
 	return fmt.Sprintf("gusto record for task %s\n\nout/manifest.json has sha256 %s. The parent commit is the patch it vouches for.\n",
 		filepath.Base(filepath.Clean(dir.Path())), digest)
 }

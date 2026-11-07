@@ -24,7 +24,7 @@ func strict() audit.Policy {
 
 // Redaction changes files, so it has to change them in a way the check
 // expects. This also holds the wording Verify excuses to the wording
-// evidence.Check writes: if either drifts, a redacted export stops verifying.
+// record.Check writes: if either drifts, a redacted export stops verifying.
 func TestARedactedExportStillVerifiesWhatRemains(t *testing.T) {
 	export := exported(t, ran(t), audit.Options{Policy: strict()})
 	report := verified(t, export)

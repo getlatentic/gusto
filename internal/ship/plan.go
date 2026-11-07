@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -32,22 +32,22 @@ type Options struct {
 // Plan is everything opening the pull request will do, decided before anything is done. The
 // same task gives the same plan, so a dry run shows exactly what a real run does.
 type Plan struct {
-	Task            string
-	Remote          string
-	Branch          string
-	Evidence        string
-	At              string
-	Patch           string
-	Owner           string
-	Name            string
-	Base            string
-	Title           string
-	Body            string
-	Message         string
-	EvidenceMessage string
-	Manifest        string
-	Commits         Commits
-	When            int64
+	Task          string
+	Remote        string
+	Branch        string
+	Record        string
+	At            string
+	Patch         string
+	Owner         string
+	Name          string
+	Base          string
+	Title         string
+	Body          string
+	Message       string
+	RecordMessage string
+	Manifest      string
+	Commits       Commits
+	When          int64
 }
 
 // Prepare refuses a task that must not become a pull request, and plans one that may.
@@ -67,7 +67,7 @@ func Prepare(dir task.Dir, options Options) (Plan, error) {
 	return planned(dir, spec, manifest, digest, options)
 }
 
-func planned(dir task.Dir, spec task.Spec, manifest evidence.Manifest, digest string, options Options) (Plan, error) {
+func planned(dir task.Dir, spec task.Spec, manifest record.Manifest, digest string, options Options) (Plan, error) {
 	at, err := ranAgainst(dir)
 	if err != nil {
 		return Plan{}, err
@@ -86,26 +86,26 @@ func planned(dir task.Dir, spec task.Spec, manifest evidence.Manifest, digest st
 		return Plan{}, err
 	}
 	plan := Plan{
-		Task:            dir.Path(),
-		Remote:          remote,
-		Branch:          branchName(dir, digest),
-		Evidence:        EvidenceRef(digest),
-		At:              at,
-		Patch:           patch,
-		Owner:           owner,
-		Name:            name,
-		Base:            base,
-		Manifest:        digest,
-		When:            manifest.AtUnix,
-		EvidenceMessage: evidenceMessage(dir, digest),
+		Task:          dir.Path(),
+		Remote:        remote,
+		Branch:        branchName(dir, digest),
+		Record:        RecordRef(digest),
+		At:            at,
+		Patch:         patch,
+		Owner:         owner,
+		Name:          name,
+		Base:          base,
+		Manifest:      digest,
+		When:          manifest.AtUnix,
+		RecordMessage: recordMessage(dir, digest),
 	}
-	signer := evidence.SignedBy(dir, options.Keyring)
-	return described(dir, plan, record{spec: spec, manifest: manifest, signer: signer, digest: digest, at: at})
+	signer := record.SignedBy(dir, options.Keyring)
+	return described(dir, plan, summary{spec: spec, manifest: manifest, signer: signer, digest: digest, at: at})
 }
 
 // described makes the commits to learn their names, then writes what the pull
-// request says, which links the evidence commit by name.
-func described(dir task.Dir, plan Plan, record record) (Plan, error) {
+// request says, which links the record commit by name.
+func described(dir task.Dir, plan Plan, record summary) (Plan, error) {
 	plan.Title = record.title()
 	plan.Message = record.message(dir)
 	commits, err := planCommits(context.Background(), dir, plan)
@@ -113,7 +113,7 @@ func described(dir task.Dir, plan Plan, record record) (Plan, error) {
 		return Plan{}, err
 	}
 	plan.Commits = commits
-	record.links = links{owner: plan.Owner, name: plan.Name, remote: plan.Remote, ref: plan.Evidence, commits: commits}
+	record.links = links{owner: plan.Owner, name: plan.Name, remote: plan.Remote, ref: plan.Record, commits: commits}
 	plan.Body = record.body()
 	return plan, nil
 }

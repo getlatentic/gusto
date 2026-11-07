@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/audit"
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
@@ -70,10 +70,10 @@ func exportTask(args []string) int {
 	if f.to == "" {
 		f.to = filepath.Clean(where) + ".audit"
 	}
-	record, err := audit.Export(task.Dir(where), f.to, audit.Options{Policy: policy, RequestLog: f.requests, Now: evidence.Now, Keyring: keyring})
+	summary, err := audit.Export(task.Dir(where), f.to, audit.Options{Policy: policy, RequestLog: f.requests, Now: record.Now, Keyring: keyring})
 	if err != nil {
 		return fail(err)
 	}
-	fmt.Printf("%s\n%d files carried, %d redacted\n", filepath.Join(f.to, audit.SummaryFile), len(record.Carried), len(record.Redactions))
+	fmt.Printf("%s\n%d files carried, %d redacted\n", filepath.Join(f.to, audit.SummaryFile), len(summary.Carried), len(summary.Redactions))
 	return 0
 }

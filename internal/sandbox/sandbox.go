@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -99,13 +99,13 @@ func (c Containers) start(ctx context.Context, dir task.Dir, args []string) (int
 	if ctx.Err() != nil {
 		// The client may have been killed after its grace, and the container with it not at all: it is removed by name.
 		_ = exec.Command(c.Runtime, "rm", "-f", containerName(dir)).Run()
-		_ = evidence.SealIfKeyed(dir, c.Signing.Key)
+		_ = record.SealIfKeyed(dir, c.Signing.Key)
 		return -1, ctx.Err()
 	}
 	if err != nil && !isExit(err) {
 		return 0, err
 	}
-	if err := evidence.SealIfKeyed(dir, c.Signing.Key); err != nil {
+	if err := record.SealIfKeyed(dir, c.Signing.Key); err != nil {
 		return 0, err
 	}
 	return command.ProcessState.ExitCode(), nil

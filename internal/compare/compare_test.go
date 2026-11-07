@@ -56,7 +56,7 @@ func TestOneSubmissionMakesTwoRunsThatDifferOnlyByHarness(t *testing.T) {
 	}
 }
 
-func TestEachRunKeepsItsOwnEvidenceAndNeitherSeesTheOther(t *testing.T) {
+func TestEachRunKeepsItsOwnRecordAndNeitherSeesTheOther(t *testing.T) {
 	hermetic(t)
 	where, err := compare.Prepare(submitted(t, remote(t), ""), "", []string{"yes", "maybe"})
 	if err != nil {
@@ -76,14 +76,14 @@ func TestEachRunKeepsItsOwnEvidenceAndNeitherSeesTheOther(t *testing.T) {
 	}
 	for _, side := range sides {
 		if len(side.Wrong) > 0 || side.Err != nil {
-			t.Fatalf("%s's evidence does not check: %v %v", side.Harness, side.Wrong, side.Err)
+			t.Fatalf("%s's record does not check: %v %v", side.Harness, side.Wrong, side.Err)
 		}
 		if _, err := os.Stat(filepath.Join(side.Task(where).Path(), compare.RecordFile)); err == nil {
 			t.Fatalf("%s's run can read the comparison, which names the other harness", side.Harness)
 		}
 	}
 	if strings.Contains(read(t, yes.OutFile("manifest.json")), "maybe") {
-		t.Fatal("one run's evidence names the other")
+		t.Fatal("one run's record names the other")
 	}
 }
 
