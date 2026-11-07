@@ -8,12 +8,13 @@
   {{else}}
   <h1 class="text-xl font-semibold">Get started</h1>
   {{if .Error}}<p class="text-sm text-bad" role="alert">{{.Error}}</p>
+  {{else if .Ask}}<p class="text-sm text-muted">{{.Ask}}</p>
   {{else}}<p class="text-sm text-muted">Enter your email and gusto sets up a workspace for your team.</p>{{end}}
   <form class="grid gap-3" method="post" action="/signup">
-    <label class="grid gap-1 text-sm text-muted">{{if .WorkOnly}}Work email{{else}}Email{{end}} <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="email" name="email" value="{{.Email}}" autocomplete="email" autofocus required></label>
+    <label class="grid gap-1 text-sm text-muted">{{if .WorkOnly}}Work email{{else}}Email{{end}} <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="email" name="email" value="{{.Email}}" autocomplete="email"{{if not .Ask}} autofocus{{end}} required></label>
     {{if .More}}
-    <label class="grid gap-1 text-sm text-muted">Organization name <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="text" name="org" value="{{.OrgName}}" maxlength="80" autocomplete="organization" required></label>
-    <label class="grid gap-1 text-sm text-muted">Address <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="text" name="slug" value="{{.Slug}}" maxlength="32" autocomplete="off" placeholder="made from the name"></label>
+    <label class="grid gap-1 text-sm text-muted">Organization name <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="text" name="org" value="{{.OrgName}}" maxlength="80" autocomplete="organization"{{if .Ask}} autofocus{{end}} required></label>
+    <label class="grid gap-1 text-sm text-muted">Web address, optional <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="text" name="slug" value="{{.Slug}}" maxlength="32" autocomplete="off" placeholder="made from the name"></label>
     {{end}}
     <button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Continue</button>
   </form>

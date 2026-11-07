@@ -30,6 +30,8 @@ type view struct {
 	// after they have been.
 	More bool
 	Slug string
+	// Ask is the question the form asks next when nothing was wrong, only missing, so it is not shown as a refusal.
+	Ask string
 	// Taken says the address a person signed up with has an account, so they are offered a sign-in link to it.
 	Taken bool
 	// WorkOnly says only a work address may sign up or start a demo.
