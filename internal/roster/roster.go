@@ -8,9 +8,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/atomicfile"
+	"github.com/getlatentic/gusto/internal/workspace"
 )
 
 // Member is a person in the organization. Role is "admin" or "runner".
@@ -31,11 +34,42 @@ type Invited struct {
 	Expires time.Time `json:"expires"`
 }
 
+// Workspace is a team's space in the organization, and the addresses of the people in it.
+type Workspace struct {
+	ID      string   `json:"id"`
+	Name    string   `json:"name"`
+	Members []string `json:"members"`
+}
+
 // Roster is the whole list, and when gusto cloud wrote it.
 type Roster struct {
-	Written time.Time `json:"written"`
-	Members []Member  `json:"members"`
-	Invited []Invited `json:"invited"`
+	Written    time.Time   `json:"written"`
+	Members    []Member    `json:"members"`
+	Invited    []Invited   `json:"invited"`
+	Workspaces []Workspace `json:"workspaces,omitempty"`
+}
+
+// Spaces is the organization's workspaces. A roster that names none has the first, with everybody in it.
+func (r Roster) Spaces() []Workspace {
+	if len(r.Workspaces) > 0 {
+		return r.Workspaces
+	}
+	first := Workspace{ID: workspace.First, Members: make([]string, 0, len(r.Members))}
+	for _, member := range r.Members {
+		first.Members = append(first.Members, member.Email)
+	}
+	return []Workspace{first}
+}
+
+// SpacesOf is the workspaces a person is in, in the roster's order.
+func (r Roster) SpacesOf(email string) []Workspace {
+	var in []Workspace
+	for _, space := range r.Spaces() {
+		if slices.ContainsFunc(space.Members, func(member string) bool { return strings.EqualFold(member, email) }) {
+			in = append(in, space)
+		}
+	}
+	return in
 }
 
 // Write puts the roster where a server reads it.

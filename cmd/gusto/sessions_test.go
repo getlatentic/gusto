@@ -74,7 +74,7 @@ func TestATurnWorksOnTheInstancesFilesInThePersonsComputerAndTheNextStartsFromWh
 	if where, _ := os.ReadFile(filepath.Join(instances.AgentFolder(held.ID), "where.txt")); !strings.HasPrefix(string(where), "/jobs/") {
 		t.Errorf("the turn ran in the person's computer: %q", where)
 	}
-	if got, err := registry.Of("ada@acme.com"); err != nil || got.State != computer.Running {
+	if got, err := registry.Of("ada@acme.com", ""); err != nil || got.State != computer.Running {
 		t.Errorf("%+v %v", got, err)
 	}
 	if manifest, err := record.Read(one); err != nil || manifest.Session != "s-42" {
@@ -96,7 +96,7 @@ func TestATurnWorksOnTheInstancesFilesInThePersonsComputerAndTheNextStartsFromWh
 func TestTwoAgentsOfARoomAskedByOnePersonWorkInFoldersOfTheirOwnInTheirComputer(t *testing.T) {
 	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
 	conversational(t)
-	held, err := instances.StartRoom("Launch", "ada@acme.com")
+	held, err := instances.StartRoom("Launch", "ada@acme.com", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +123,7 @@ func TestTwoAgentsOfARoomAskedByOnePersonWorkInFoldersOfTheirOwnInTheirComputer(
 func TestARoomsTurnInAPersonsComputerIsHeldToItsOwnFolders(t *testing.T) {
 	work, index, _, _, root, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
 	conversational(t)
-	held, _ := instances.StartRoom("Launch", "ada@acme.com")
+	held, _ := instances.StartRoom("Launch", "ada@acme.com", "")
 	instances.AddAgent(held.ID, instance.Agent{Name: "Scout", Harness: "fixture"})
 	held, _ = instances.Get(held.ID)
 	roomTurnBy(t, work, index, held, instances.Latest(held.ID).ID, "a1", "ada@acme.com")
@@ -218,7 +218,7 @@ func TestAnAgentInAComputerReachesItsModelOnlyThroughItsForwarder(t *testing.T) 
 func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
 	work, index, registry, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
 	conversational(t)
-	held, _ := instances.StartRoom("Launch", "ada@acme.com")
+	held, _ := instances.StartRoom("Launch", "ada@acme.com", "")
 	instances.AddAgent(held.ID, instance.Agent{Name: "Scout", Harness: "fixture"})
 	instances.SetMember(held.ID, "bob@acme.com", instance.RoleMember)
 	held, _ = instances.Get(held.ID)
@@ -235,13 +235,13 @@ func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
 	if _, err := work(dir); err != nil {
 		t.Logf("%v", err)
 	}
-	if _, err := registry.Of("ada@acme.com"); err != nil {
+	if _, err := registry.Of("ada@acme.com", ""); err != nil {
 		t.Errorf("the owner's computer was not used: %v", err)
 	}
-	if got, err := registry.Of("bob@acme.com"); err == nil {
+	if got, err := registry.Of("bob@acme.com", ""); err == nil {
 		t.Errorf("the person who asked was given a computer: %+v", got)
 	}
-	ada, _ := registry.Of("ada@acme.com")
+	ada, _ := registry.Of("ada@acme.com", "")
 	var run record.Run
 	var decision record.Decision
 	readJSON(t, dir.OutFile(record.RunFile), &run)

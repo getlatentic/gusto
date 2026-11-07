@@ -2,6 +2,7 @@ package instance
 
 import (
 	"fmt"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -60,14 +61,14 @@ type Note struct {
 // agentName is what an agent may be called: a letter first, then letters, digits, spaces and a few marks, as people write names.
 var agentName = regexp.MustCompile(`^[\p{L}][\p{L}\p{N} '’._-]{0,31}$`)
 
-// StartRoom makes a room whose first member, its admin, is the person who made it.
-func (s *Store) StartRoom(name, who string) (Instance, error) {
+// StartRoom makes a room in a workspace, whose first member, its admin, is the person who made it.
+func (s *Store) StartRoom(name, who, space string) (Instance, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return Instance{}, fmt.Errorf("a room needs a name")
 	}
 	who = strings.ToLower(strings.TrimSpace(who))
-	return s.Start(slug(name), Instance{Title: name, Who: who, Room: true, Members: []Member{{Who: who, Role: RoleAdmin}}})
+	return s.Start(slug(name), Instance{Title: name, Who: who, Workspace: workspace.Stored(space), Room: true, Members: []Member{{Who: who, Role: RoleAdmin}}})
 }
 
 // RoleOf is the role a person holds in a room, or nothing when they are not in it.

@@ -17,7 +17,7 @@ func TestAnAppConnectedAgainFollowsThePersonsDefaultAndNotWhatTheyChoseBefore(t 
 	here.ask(t, "POST", "/admin/connectors/tasks/on", nil)
 	ada := here.as(t, alice)
 	signInAt(t, ada, app)
-	room, err := here.server.instances.StartRoom("Launch", alice)
+	room, err := here.server.instances.StartRoom("Launch", alice, "")
 	if err != nil {
 		t.Fatal(err)
 	}

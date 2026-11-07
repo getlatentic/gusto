@@ -45,7 +45,7 @@ func (s *Server) newRoomPage(w http.ResponseWriter, r *http.Request) {
 
 // makeRoom makes a room with the person asking as its admin, and opens its members, where its agents are added.
 func (s *Server) makeRoom(w http.ResponseWriter, r *http.Request) {
-	held, err := s.instances.StartRoom(r.FormValue("name"), s.askerName(r))
+	held, err := s.instances.StartRoom(r.FormValue("name"), s.askerName(r), s.workspaceOf(r))
 	if err != nil {
 		s.turnAway(w, r, "/rooms/new", err.Error())
 		return
@@ -85,6 +85,10 @@ func (s *Server) setRoomMember(w http.ResponseWriter, r *http.Request) {
 	role := r.FormValue("role")
 	if role == "" {
 		role = instance.RoleMember
+	}
+	if why := s.outsideWorkspace(held, r.FormValue("who")); why != "" {
+		s.turnAway(w, r, s.membersPath(held), why)
+		return
 	}
 	if err := s.instances.SetMember(held.ID, r.FormValue("who"), role); err != nil {
 		s.turnAway(w, r, s.membersPath(held), err.Error())

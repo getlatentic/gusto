@@ -35,6 +35,8 @@ type link struct {
 	Org  string `json:"org,omitempty"`
 	Role Role   `json:"role,omitempty"`
 	By   string `json:"by,omitempty"`
+	// Workspace is the one an invited person joins, and empty for the first.
+	Workspace string `json:"workspace,omitempty"`
 }
 
 // Lives are how long a link works.
@@ -52,19 +54,19 @@ func digest(secret string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-var linkFields = []string{"hash", "email", "purpose", "expires", "org", "role", "invited_by"}
+var linkFields = []string{"hash", "email", "purpose", "expires", "org", "role", "invited_by", "workspace"}
 
 var insertLink = dbkit.Upsert{Table: "links", Columns: linkFields, Conflict: []string{"hash"}}
 
 func (s *Store) linkArgs(hash string, l link) []any {
-	return []any{hash, l.Email, string(l.Purpose), s.stamp(l.Expires), l.Org, string(l.Role), l.By}
+	return []any{hash, l.Email, string(l.Purpose), s.stamp(l.Expires), l.Org, string(l.Role), l.By, l.Workspace}
 }
 
 func scanLink(r rowScanner) (link, error) {
 	var l link
 	var purpose, role string
 	var expires dbkit.Time
-	if err := r.Scan(&l.Email, &purpose, &expires, &l.Org, &role, &l.By); err != nil {
+	if err := r.Scan(&l.Email, &purpose, &expires, &l.Org, &role, &l.By, &l.Workspace); err != nil {
 		return link{}, err
 	}
 	l.Purpose, l.Role, l.Expires = Purpose(purpose), Role(role), expires.Time
@@ -122,7 +124,7 @@ func (s *Store) useLink(ctx context.Context, secret string, purpose Purpose) (li
 
 // spend deletes a link and returns what it was.
 func (s *Store) spend(ctx context.Context, tx dbkit.Tx, hash string) (link, bool, error) {
-	return one(ctx, tx, scanLink, `DELETE FROM links WHERE hash = ? RETURNING email, purpose, expires, org, role, invited_by`, hash)
+	return one(ctx, tx, scanLink, `DELETE FROM links WHERE hash = ? RETURNING email, purpose, expires, org, role, invited_by, workspace`, hash)
 }
 
 // Sweep removes links that have run out, and returns how many. Invitations and rate counts that have
@@ -150,7 +152,7 @@ func (s *Store) peekInvitation(ctx context.Context, secret string) (link, bool) 
 		return link{}, false
 	}
 	made, found, err := one(ctx, s.db, scanLink,
-		`SELECT email, purpose, expires, org, role, invited_by FROM links WHERE hash = ?`, digest(secret))
+		`SELECT email, purpose, expires, org, role, invited_by, workspace FROM links WHERE hash = ?`, digest(secret))
 	if err != nil || !found || made.Purpose != Invite || !s.now().Before(made.Expires) {
 		return link{}, false
 	}

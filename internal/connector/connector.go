@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"io"
 	"log/slog"
 	"net/http"
@@ -67,12 +68,12 @@ type Connectors struct {
 
 // pending is a sign-in a person set out on and has not come back from.
 type pending struct {
-	Person, Connector string
-	Verifier          string
-	Client            Client
-	Server            Server
-	Redirect          string
-	Started           time.Time
+	Person, Workspace, Connector string
+	Verifier                     string
+	Client                       Client
+	Server                       Server
+	Redirect                     string
+	Started                      time.Time
 }
 
 // tokens is what an app gave a person, kept sealed.
@@ -149,7 +150,7 @@ func (c *Connectors) redirect() string {
 }
 
 // Begin sets a person out to sign in to a connector, and gives the address at the app to send them to.
-func (c *Connectors) Begin(ctx context.Context, person string, entry Entry) (string, error) {
+func (c *Connectors) Begin(ctx context.Context, person, space string, entry Entry) (string, error) {
 	server, err := Discover(ctx, c.http, entry.URL)
 	if err != nil {
 		return "", err
@@ -163,7 +164,7 @@ func (c *Connectors) Begin(ctx context.Context, person string, entry Entry) (str
 	}
 	state, verifier := randomText(), randomText()
 	sum := sha256.Sum256([]byte(verifier))
-	c.remember(state, pending{Person: strings.ToLower(person), Connector: entry.ID, Verifier: verifier, Client: client, Server: server,
+	c.remember(state, pending{Person: strings.ToLower(person), Workspace: workspace.Of(space), Connector: entry.ID, Verifier: verifier, Client: client, Server: server,
 		Redirect: c.redirect(), Started: time.Now()})
 	query := url.Values{
 		"response_type": {"code"}, "client_id": {client.ID}, "redirect_uri": {c.redirect()}, "state": {state},
@@ -184,38 +185,38 @@ func (c *Connectors) Begin(ctx context.Context, person string, entry Entry) (str
 }
 
 // Finish takes the code a sign-in came back with, for the person it was begun for, trades it for tokens and keeps them. It says
-// which connector the person is now signed in to.
-func (c *Connectors) Finish(ctx context.Context, person, state, code string) (string, error) {
+// which connector the person is now signed in to, and in which workspace.
+func (c *Connectors) Finish(ctx context.Context, person, state, code string) (connector, space string, err error) {
 	begun, found := c.take(state)
 	if !found || begun.Person != strings.ToLower(person) || time.Since(begun.Started) > signInTime {
-		return "", errors.New("that sign-in is not one under way here: start it again")
+		return "", "", errors.New("that sign-in is not one under way here: start it again")
 	}
-	name := tokenName(begun.Person, begun.Connector)
+	name := tokenName(begun.Person, begun.Workspace, begun.Connector)
 	seen := c.disconnectsOf(name)
 	form := url.Values{"grant_type": {"authorization_code"}, "code": {code}, "redirect_uri": {begun.Redirect},
 		"code_verifier": {begun.Verifier}, "resource": {begun.Server.Resource}}
 	got, err := c.ask(ctx, begun.Server, begun.Client, form)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	got.Client, got.Server, got.Since = begun.Client, begun.Server, time.Now()
 	lock := c.lockFor(name)
 	lock.Lock()
 	defer lock.Unlock()
 	if c.disconnectsOf(name) != seen {
-		return "", errors.New("you disconnected while this sign-in was finishing: sign in again to connect")
+		return "", "", errors.New("you disconnected while this sign-in was finishing: sign in again to connect")
 	}
 	// Signing in again keeps what the person chose for their agents.
 	var held tokens
 	if found, err := c.vault.get(name, &held); err == nil && found {
 		got.ForAgents = held.ForAgents
 	}
-	return begun.Connector, c.vault.put(name, got)
+	return begun.Connector, begun.Workspace, c.vault.put(name, got)
 }
 
 // Token is the person's access token for a connector, refreshed first when it has run out or is about to.
-func (c *Connectors) Token(ctx context.Context, person, connector string) (string, error) {
-	name := tokenName(strings.ToLower(person), connector)
+func (c *Connectors) Token(ctx context.Context, person, space, connector string) (string, error) {
+	name := tokenName(strings.ToLower(person), space, connector)
 	lock := c.lockFor(name)
 	lock.Lock()
 	defer lock.Unlock()
@@ -254,9 +255,9 @@ func (c *Connectors) Token(ctx context.Context, person, connector string) (strin
 }
 
 // Connected says whether a person is signed in to a connector, and since when. A sign-in the app no longer renews is not.
-func (c *Connectors) Connected(person, connector string) (time.Time, bool) {
+func (c *Connectors) Connected(person, space, connector string) (time.Time, bool) {
 	var held tokens
-	found, err := c.vault.get(tokenName(strings.ToLower(person), connector), &held)
+	found, err := c.vault.get(tokenName(strings.ToLower(person), space, connector), &held)
 	if err != nil || !found || held.Broken {
 		return time.Time{}, false
 	}
@@ -264,15 +265,15 @@ func (c *Connectors) Connected(person, connector string) (time.Time, bool) {
 }
 
 // ForAgents is the person's default for whether their agents may use a connector they are signed in to.
-func (c *Connectors) ForAgents(person, connector string) bool {
+func (c *Connectors) ForAgents(person, space, connector string) bool {
 	var held tokens
-	found, err := c.vault.get(tokenName(strings.ToLower(person), connector), &held)
+	found, err := c.vault.get(tokenName(strings.ToLower(person), space, connector), &held)
 	return err == nil && found && held.ForAgents
 }
 
 // SetForAgents changes a person's default for whether their agents may use a connector they are signed in to.
-func (c *Connectors) SetForAgents(person, connector string, on bool) error {
-	name := tokenName(strings.ToLower(person), connector)
+func (c *Connectors) SetForAgents(person, space, connector string, on bool) error {
+	name := tokenName(strings.ToLower(person), space, connector)
 	lock := c.lockFor(name)
 	lock.Lock()
 	defer lock.Unlock()
@@ -289,8 +290,8 @@ func (c *Connectors) SetForAgents(person, connector string, on bool) error {
 }
 
 // Disconnect forgets a person's tokens for a connector. The app keeps its own record of the sign-in until the person ends it there.
-func (c *Connectors) Disconnect(person, connector string) error {
-	name := tokenName(strings.ToLower(person), connector)
+func (c *Connectors) Disconnect(person, space, connector string) error {
+	name := tokenName(strings.ToLower(person), space, connector)
 	lock := c.lockFor(name)
 	lock.Lock()
 	defer lock.Unlock()
@@ -439,9 +440,13 @@ func (c *Connectors) lockFor(name string) *sync.Mutex {
 	return c.refreshing[name]
 }
 
-// tokenName is where a person's tokens for a connector are kept; the address is hashed, so the folder names nobody, and the
-// connector's id is hashed too, so no id can name a place outside the folder.
-func tokenName(person, connector string) string {
+// tokenName is where a person's tokens for a connector in a workspace are kept; the address is hashed, so the folder names
+// nobody, and the workspace and the connector's id are hashed too, so no id can name a place outside the folder. A sign-in in
+// the first workspace is kept where sign-ins were kept before workspaces.
+func tokenName(person, space, connector string) string {
+	if space = workspace.Of(space); space != workspace.First {
+		return "tokens/" + hashOf(person) + "/" + hashOf("workspace\x00"+space) + "/" + hashOf(connector) + ".json"
+	}
 	return "tokens/" + hashOf(person) + "/" + hashOf(connector) + ".json"
 }
 

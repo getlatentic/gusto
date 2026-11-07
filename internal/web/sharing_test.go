@@ -643,8 +643,8 @@ func TestOneFailedRequestDoesNotStopALiveApp(t *testing.T) {
 // the server starts. spec/AppPreview.before-reconcile.cfg is the trace.
 func TestARestartFinishesTheAppsItCutOff(t *testing.T) {
 	site, runner, _ := sharingSite(t)
-	starting, _ := site.server.apps.New("20260930-1200-notes", "ada@acme.com", "node a.js", 8080, 3)
-	removing, _ := site.server.apps.New("20260930-1200-notes", "ada@acme.com", "node b.js", 8081, 3)
+	starting, _ := site.server.apps.New(apps.Sharer{Instance: "20260930-1200-notes", Owner: "ada@acme.com"}, "node a.js", 8080, 3)
+	removing, _ := site.server.apps.New(apps.Sharer{Instance: "20260930-1200-notes", Owner: "ada@acme.com"}, "node b.js", 8081, 3)
 	site.server.apps.Change(removing.ID, func(a *apps.App) { a.State = apps.Removing })
 	site.server.ReconcileApps()
 	if app, _ := site.server.apps.Get(starting.ID); app.State != apps.Failed {

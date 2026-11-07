@@ -86,7 +86,7 @@ func TestAPageIsServedFromItsFolderAndNothingElse(t *testing.T) {
 	os.WriteFile(filepath.Join(folder, "parts", "index.html"), []byte("<p>part</p>"), 0o644)
 	os.WriteFile(filepath.Join(site.server.instances.AgentFolder(instance), "secret.txt"), []byte("TOPSECRET"), 0o644)
 	os.Symlink(filepath.Join(site.server.instances.AgentFolder(instance), "secret.txt"), filepath.Join(folder, "leak.txt"))
-	app, err := site.server.apps.NewPage(instance, "", "site", 3)
+	app, err := site.server.apps.NewPage(apps.Sharer{Instance: instance}, "site", 3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func TestAPageBehindGustoCloudIsItsOwnSite(t *testing.T) {
 	folder := filepath.Join(site.server.instances.AgentFolder(instance), "site")
 	os.MkdirAll(folder, 0o755)
 	os.WriteFile(filepath.Join(folder, "index.html"), []byte("<h1>splitter</h1>"), 0o644)
-	app, err := site.server.apps.NewPage(instance, "", "site", 3)
+	app, err := site.server.apps.NewPage(apps.Sharer{Instance: instance}, "site", 3)
 	if err != nil {
 		t.Fatal(err)
 	}

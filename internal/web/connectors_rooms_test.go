@@ -25,7 +25,7 @@ func TestARoomTurnUsesEachOfItsAskersAppsAsTheyChoseOrTheirDefault(t *testing.T)
 	here.ask(t, "POST", "/admin/connectors/tasks/on", nil)
 	ada, bea := here.as(t, alice), here.as(t, bob)
 	signInAt(t, ada, app)
-	room, err := here.server.instances.StartRoom("Launch", alice)
+	room, err := here.server.instances.StartRoom("Launch", alice, "")
 	if err != nil {
 		t.Fatal(err)
 	}

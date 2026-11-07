@@ -39,7 +39,8 @@ func (s *Server) taskScope(r *http.Request) (asked string, none bool) {
 	return name, name == "" || (name == sharedSignIn && !s.soleOwner())
 }
 
-// readTaskQuery reads the filter from the query and forces its person to the one the request may read. forPage
+// readTaskQuery reads the filter from the query and forces its person to the one the request may read, and its workspace to
+// the one the request is in, whoever asks: a workspace's tasks are its members' alone. forPage
 // makes the state failed stand for the tasks that did not pass, as the list page counts them, and a state that
 // is none of the five match nothing, where the API refuses it.
 func (s *Server) readTaskQuery(r *http.Request, forPage bool) (taskQuery, error) {
@@ -60,7 +61,7 @@ func (s *Server) readTaskQuery(r *http.Request, forPage bool) (taskQuery, error)
 	}
 	f := &made.Filter
 	f.Search, f.Asked, f.Team, f.Repo = made.Values.Get("q"), made.Values.Get("person"), made.Values.Get("team"), made.Values.Get("repo")
-	f.AgentType, f.Instance, f.Thread = made.Values.Get("agent_type"), made.Values.Get("instance"), made.Values.Get("thread")
+	f.AgentType, f.Instance, f.Thread, f.Workspace = made.Values.Get("agent_type"), made.Values.Get("instance"), made.Values.Get("thread"), s.workspaceOf(r)
 	made.State = made.Values.Get("state")
 	var err error
 	if f.States, err = taskStatesOf(made.State, forPage); err != nil {

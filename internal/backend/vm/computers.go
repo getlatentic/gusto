@@ -23,7 +23,7 @@ func (b *Backend) inComputer(ctx context.Context, turn backend.Turn) (int, error
 	}
 	gw, port := b.cfg.Gateway, turn.Exit.Port
 	modelURL := "http://" + gw.Host + ":" + port + "/model/v1"
-	held, _, err := b.cfg.Computers.EnsureFrom(turn.Person, b.cfg.Node, b.spares.offerFor(gw, modelURL, configured.Adapter))
+	held, _, err := b.cfg.Computers.EnsureFrom(turn.Person, turn.Spec.Workspace, b.cfg.Node, b.spares.offerFor(gw, modelURL, configured.Adapter))
 	if err != nil {
 		return 0, runner.Refuse(dir, err)
 	}

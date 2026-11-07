@@ -176,7 +176,7 @@ func TestTheOperatorSeesEveryComputerWithItsOrganizationAndPerson(t *testing.T) 
 			t.Fatal(err)
 		} else if org.Slug != "initech-com" {
 			registry, _ := store.Computers(org.Slug)
-			registry.Ensure(sign.Email, "cell-1")
+			registry.Ensure(sign.Email, "", "cell-1")
 		}
 	}
 	var out strings.Builder
@@ -184,7 +184,7 @@ func TestTheOperatorSeesEveryComputerWithItsOrganizationAndPerson(t *testing.T) 
 		t.Fatal(err)
 	}
 	text := out.String()
-	for _, want := range []string{"ORGANIZATION", "acme-com", "ada@acme.com", "globex-com", "eve@globex.com", "cell-1", "creating", "never", "2 computers in 3 organizations"} {
+	for _, want := range []string{"ORGANIZATION", "WORKSPACE", "main", "acme-com", "ada@acme.com", "globex-com", "eve@globex.com", "cell-1", "creating", "never", "2 computers in 3 organizations"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("%q is not in:\n%s", want, text)
 		}

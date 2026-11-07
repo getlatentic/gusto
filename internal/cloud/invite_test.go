@@ -227,7 +227,7 @@ func TestTheOrganizationsPageShowsWhichPeopleHaveComputersAndTheirState(t *testi
 		ada := f.verifiedAdmin("ada@acme.com", "Acme")
 		f.invitedAndJoined(ada, "bob@acme.com")
 		registry, _ := f.store.Computers("acme-com")
-		made, _, _ := registry.Ensure("bob@acme.com", "local")
+		made, _, _ := registry.Ensure("bob@acme.com", "", "local")
 		registry.Change(made.ID, func(c *computer.Computer) { c.State = computer.Running })
 		_, page := ada.get("/org")
 		if !strings.Contains(page, "runner, computer running") || !strings.Contains(page, "1 of 4") {

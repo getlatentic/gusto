@@ -69,19 +69,7 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusBadRequest, Answer{Refused: short})
 		return
 	}
-	if err := repoaccess.Acceptable(sent.Spec.Repo, s.localRepos); err != nil {
-		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
-		return
-	}
-	if _, err := task.CleanDir(sent.Spec.Dir); err != nil {
-		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
-		return
-	}
-	if err := repoaccess.AcceptableRef(sent.Spec.Ref); err != nil {
-		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
-		return
-	}
-	if err := sent.Spec.Budget.Check(); err != nil {
+	if err := s.wellFormed(sent.Spec); err != nil {
 		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
 		return
 	}
@@ -98,6 +86,12 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
 		return
 	}
+	space, err := s.sentInto(r, sent.Spec.Workspace)
+	if err != nil {
+		reply(w, http.StatusForbidden, Answer{Refused: err.Error()})
+		return
+	}
+	sent.Spec.Workspace = space
 	id, err := s.queued(sent.Spec, sent.Adapter, callerOf(r), key)
 	if err != nil {
 		status := http.StatusInternalServerError
@@ -108,6 +102,20 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reply(w, http.StatusCreated, Answer{ID: id})
+}
+
+// wellFormed refuses a sent task whose repository, folder, ref or budget this server does not take.
+func (s *Server) wellFormed(spec task.Spec) error {
+	if err := repoaccess.Acceptable(spec.Repo, s.localRepos); err != nil {
+		return err
+	}
+	if _, err := task.CleanDir(spec.Dir); err != nil {
+		return err
+	}
+	if err := repoaccess.AcceptableRef(spec.Ref); err != nil {
+		return err
+	}
+	return spec.Budget.Check()
 }
 
 // reachable refuses by name a repository this deployment's GitHub App is not
@@ -143,7 +151,7 @@ func (s *Server) queued(spec task.Spec, carried *harness.Adapter, asked, key str
 	}
 	record := tasks.Record{
 		ID: id, State: tasks.Queued, Brief: spec.Brief, Repo: spec.Repo,
-		Harness: spec.Harness, Model: spec.Model, Asked: asked, Key: key, Team: spec.Team,
+		Harness: spec.Harness, Model: spec.Model, Asked: asked, Key: key, Team: spec.Team, Workspace: spec.Workspace,
 		Queued: tasks.Now(),
 	}
 	if err := s.index.Add(record); err != nil {

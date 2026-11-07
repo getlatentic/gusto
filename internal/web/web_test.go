@@ -30,7 +30,9 @@ type site struct {
 	handler http.Handler
 	index   *tasks.Index
 	cookie  *http.Cookie
-	ran     chan string
+	// extra is the cookies besides the session's that the browser sends, such as the workspace it chose.
+	extra []*http.Cookie
+	ran   chan string
 }
 
 // testWork replaces what the test server's queue does with a task, for the test that sets it.
@@ -129,6 +131,9 @@ func (s *site) ask(t *testing.T, method, path string, form url.Values) *httptest
 	}
 	if s.cookie != nil {
 		request.AddCookie(s.cookie)
+	}
+	for _, cookie := range s.extra {
+		request.AddCookie(cookie)
 	}
 	recorder := httptest.NewRecorder()
 	s.handler.ServeHTTP(recorder, request)

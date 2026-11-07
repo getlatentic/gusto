@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"io"
 	"text/tabwriter"
 	"time"
@@ -19,7 +20,7 @@ func listComputers(ctx context.Context, w io.Writer, store *cloud.Store) error {
 		return err
 	}
 	table := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(table, "ORGANIZATION\tPERSON\tSTATE\tHOST\tSANDBOX\tLAST ACTIVE")
+	fmt.Fprintln(table, "ORGANIZATION\tWORKSPACE\tPERSON\tSTATE\tHOST\tSANDBOX\tLAST ACTIVE")
 	total := 0
 	for _, org := range orgs {
 		registry, err := store.Computers(org.Slug)
@@ -35,7 +36,7 @@ func listComputers(ctx context.Context, w io.Writer, store *cloud.Store) error {
 			if !each.LastActive.IsZero() {
 				active = each.LastActive.Format(time.DateTime)
 			}
-			fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%s\n", org.Slug, each.User, each.State, each.Host, each.Sandbox, active)
+			fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", org.Slug, workspace.Of(each.Workspace), each.User, each.State, each.Host, each.Sandbox, active)
 			total++
 		}
 	}

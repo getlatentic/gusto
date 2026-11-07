@@ -29,12 +29,12 @@ func TestAnAgentCallsAnAppAsThePersonWhoAskedForTheTask(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	signIn, err := store.Begin(context.Background(), "ada@acme.example", entry)
+	signIn, err := store.Begin(context.Background(), "ada@acme.example", "", entry)
 	if err != nil {
 		t.Fatal(err)
 	}
 	state, code := app.Approve(t, signIn)
-	if _, err := store.Finish(context.Background(), "ada@acme.example", state, code); err != nil {
+	if _, _, err := store.Finish(context.Background(), "ada@acme.example", state, code); err != nil {
 		t.Fatal(err)
 	}
 

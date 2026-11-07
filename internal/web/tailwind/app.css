@@ -7,7 +7,7 @@
 @plugin "@tailwindcss/typography";
 
 @source "../templates";
-@source "../../owner/templates";
+@source "../../operator/templates";
 @source "../static/*.js";
 @source not "../static/centrifuge.js";
 

@@ -113,10 +113,10 @@ func (g *gateways) open(id string) (*tools.Session, bool) {
 		}
 	}
 	caller := tools.Caller{Task: id, Team: spec.Team, Person: askerOf(dir)}
-	// An app is called with the sign-in of the person who asked for the task, whatever the file says.
+	// An app is called with the sign-in the person who asked for the task made in its workspace, whatever the file says.
 	for i := range servers {
 		if servers[i].Connector != "" {
-			servers[i].Person = caller.Person
+			servers[i].Person, servers[i].Workspace = caller.Person, spec.Workspace
 		}
 	}
 	return tools.New(tools.Config{

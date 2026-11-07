@@ -33,6 +33,8 @@ type Row struct {
 	RequestKey string `json:"requestId,omitempty"`
 	StoppedBy  string `json:"stoppedBy,omitempty"`
 	Team       string `json:"team,omitempty"`
+	// Workspace is the workspace of the organization the task is in.
+	Workspace string `json:"workspace"`
 	// Seq is the order the task arrived in. Times are in Unix seconds.
 	Seq     int64 `json:"seq"`
 	Exit    int   `json:"exit"`
@@ -48,6 +50,7 @@ type Filter struct {
 	States    []string
 	Asked     string
 	Team      string
+	Workspace string
 	Repo      string
 	AgentType string
 	Instance  string

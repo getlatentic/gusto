@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,7 +29,7 @@ func (s *Server) crewArrival(r *http.Request, held instance.Instance, memberID s
 	}
 	asker := s.askerName(r)
 	member, found := s.crew.Get(memberID)
-	if !found || !member.MayUse(asker) {
+	if !found || !member.MayUse(asker) || !workspace.Same(member.Workspace, held.Workspace) {
 		return instance.Arrival{}, fmt.Errorf("that agent is not one you may work with")
 	}
 	runs := s.runsRoom(r, held)

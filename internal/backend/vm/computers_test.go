@@ -22,7 +22,7 @@ func running(t *testing.T, root string, lastUsed map[string]time.Time) *computer
 		t.Fatal(err)
 	}
 	for person, when := range lastUsed {
-		held, _, err := registry.Ensure(person, "local")
+		held, _, err := registry.Ensure(person, "", "local")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -39,10 +39,10 @@ func TestTheJanitorRemovesRetiredComputersAndStopsIdleOnesThatNoOneIsUsing(t *te
 	cfg := openshell.Config{Binary: "openshell"}
 	old, recent := time.Now().Add(-2*time.Hour), time.Now()
 	registry := running(t, root, map[string]time.Time{"ada@acme.com": recent, "bob@acme.com": old, "cy@acme.com": old, "dee@acme.com": recent})
-	ada, _ := registry.Of("ada@acme.com")
-	bob, _ := registry.Of("bob@acme.com")
-	cy, _ := registry.Of("cy@acme.com")
-	dee, _ := registry.Of("dee@acme.com")
+	ada, _ := registry.Of("ada@acme.com", "")
+	bob, _ := registry.Of("bob@acme.com", "")
+	cy, _ := registry.Of("cy@acme.com", "")
+	dee, _ := registry.Of("dee@acme.com", "")
 
 	// Ada was removed from the organization, by gusto cloud, which only marks her computer. Cy has a task running.
 	if err := registry.Retire("ada@acme.com"); err != nil {
@@ -57,19 +57,19 @@ func TestTheJanitorRemovesRetiredComputersAndStopsIdleOnesThatNoOneIsUsing(t *te
 	if !strings.Contains(string(deleted), ada.Sandbox) {
 		t.Errorf("a retired computer is removed from the gateway: %q", deleted)
 	}
-	if _, err := registry.Of("ada@acme.com"); err == nil {
+	if _, err := registry.Of("ada@acme.com", ""); err == nil {
 		t.Error("and from the record")
 	}
 	if _, err := os.Stat(filepath.Join(root, bob.Sandbox, "stopped")); err != nil {
 		t.Error("an idle computer nobody is using is stopped")
 	}
-	if got, _ := registry.Of("bob@acme.com"); got.State != computer.Stopped {
+	if got, _ := registry.Of("bob@acme.com", ""); got.State != computer.Stopped {
 		t.Errorf("%+v", got)
 	}
 	if _, err := os.Stat(filepath.Join(root, cy.Sandbox, "stopped")); err == nil {
 		t.Error("a computer with a job running is left running")
 	}
-	if got, _ := registry.Of("cy@acme.com"); got.State != computer.Running {
+	if got, _ := registry.Of("cy@acme.com", ""); got.State != computer.Running {
 		t.Errorf("%+v", got)
 	}
 	if _, err := os.Stat(filepath.Join(root, dee.Sandbox, "stopped")); err == nil {
@@ -82,7 +82,7 @@ func TestTheJanitorRemovesRetiredComputersAndStopsIdleOnesThatNoOneIsUsing(t *te
 func TestAComputerRemovedWhileATaskUsesItStaysRemoved(t *testing.T) {
 	root := openshelltest.Install(t)
 	registry := running(t, root, map[string]time.Time{"ada@acme.com": time.Now()})
-	ada, _ := registry.Of("ada@acme.com")
+	ada, _ := registry.Of("ada@acme.com", "")
 	if err := registry.Retire("ada@acme.com"); err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestAComputerRemovedWhileATaskUsesItStaysRemoved(t *testing.T) {
 	box := &computerBox{registry: registry, id: ada.ID}
 	box.update(func(each *computer.Computer) { each.State = computer.Running })
 	box.change(computer.Running, "")
-	if _, err := registry.Of("ada@acme.com"); err == nil {
+	if _, err := registry.Of("ada@acme.com", ""); err == nil {
 		t.Error("a removed computer is live again")
 	}
 	if all, _ := registry.All(); len(all) != 0 {
@@ -135,17 +135,17 @@ func TestAComputerThatNeverStartedIsNotLeftBeingMade(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	held, _, err := registry.Ensure("ada@acme.com", "local")
+	held, _, err := registry.Ensure("ada@acme.com", "", "local")
 	if err != nil {
 		t.Fatal(err)
 	}
 	failedBeforeStart(registry, held.ID, errors.New("no token for the sandbox"))
-	if got, _ := registry.Of("ada@acme.com"); got.State != computer.Failed || got.Note != "no token for the sandbox" {
+	if got, _ := registry.Of("ada@acme.com", ""); got.State != computer.Failed || got.Note != "no token for the sandbox" {
 		t.Errorf("a computer that never started: %s %q", got.State, got.Note)
 	}
 	registry.Change(held.ID, func(each *computer.Computer) { each.State = computer.Running })
 	failedBeforeStart(registry, held.ID, errors.New("a later task failed"))
-	if got, _ := registry.Of("ada@acme.com"); got.State != computer.Running {
+	if got, _ := registry.Of("ada@acme.com", ""); got.State != computer.Running {
 		t.Errorf("a running computer was marked %s by a task that failed", got.State)
 	}
 }
