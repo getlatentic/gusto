@@ -33,6 +33,7 @@ func (s *Server) connectorRoutes(mux *http.ServeMux) {
 	mine := func(next http.HandlerFunc) http.HandlerFunc { return s.guard(offering(s.hasConnectors, next)) }
 	mux.HandleFunc("GET "+connectionsPath, mine(s.connectionsPage))
 	mux.HandleFunc("GET "+connectionsPath+"/callback", mine(s.finishConnecting))
+	mux.HandleFunc("POST "+connectionsHomePath, s.guard(offering(s.hasKeptHomes, s.resetHome)))
 	// Connecting is a link and not a form: the page it leads to is the app's, and a form may only lead to this server.
 	mux.HandleFunc("GET "+connectionsPath+"/{id}/connect", mine(s.connect))
 	mux.HandleFunc("POST "+connectionsPath+"/{id}/disconnect", mine(s.disconnect))
@@ -134,10 +135,15 @@ func (s *Server) connectionsPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	home := s.connectionsHomeOf(who, s.workspaceOf(r))
+	if !person {
+		home = nil
+	}
 	offered := slices.DeleteFunc(views, func(view connectorView) bool { return !view.On || !view.Usable })
 	s.render(w, "connections.html", map[string]any{
 		"Title": productName + " — connections", "Nav": "connections", "Connectors": offered, "Person": person,
 		"Refused": s.refusal(r), "Done": s.message(r, "connected"),
+		"Home": home, "HomeReset": s.message(r, "reset") != "",
 	})
 }
 
