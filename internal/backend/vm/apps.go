@@ -11,6 +11,7 @@ import (
 	"github.com/getlatentic/gusto/internal/apps"
 	"github.com/getlatentic/gusto/internal/computer"
 	"github.com/getlatentic/gusto/internal/openshell"
+	"github.com/getlatentic/gusto/internal/workspace"
 )
 
 // sharedApps runs the web apps that agents built in the computers of the people whose agents they
@@ -123,14 +124,14 @@ func (a *sharedApps) Answers(ctx context.Context, app apps.App) error {
 	return a.answers(ctx, app, openshell.Address{Host: app.Host, Target: app.Target})
 }
 
-// serving is whether a person's computer has an app that people use, which is why it is not stopped for being idle.
-func (a *sharedApps) serving(person string) bool {
+// serving is whether a person's computer in a workspace has an app that people use, which is why it is not stopped for being idle.
+func (a *sharedApps) serving(person, space string) bool {
 	all, err := a.store.All()
 	if err != nil {
 		return false
 	}
 	for _, app := range all {
-		if strings.EqualFold(app.Owner, person) && (app.State == apps.Live || app.State == apps.Starting) {
+		if strings.EqualFold(app.Owner, person) && workspace.Same(app.Workspace, space) && (app.State == apps.Live || app.State == apps.Starting) {
 			return true
 		}
 	}

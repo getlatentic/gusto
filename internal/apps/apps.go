@@ -13,6 +13,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -35,6 +36,18 @@ const (
 	// restart, the server does when it starts: spec/AppPreview.tla is the model.
 	Removing State = "removing"
 )
+
+// moves is where an app in each state may go. Failed, Stopped and Removing are ends: a start that failed or an app that stopped is
+// started again as a new app, and one being removed is only forgotten.
+var moves = map[State][]State{
+	Starting: {Live, Failed, Removing},
+	Live:     {Stopped, Removing},
+}
+
+func (from State) mayBecome(to State) bool { return from == to || slices.Contains(moves[from], to) }
+
+// ErrBadMove is a change that takes an app to a state it may not go to from the one it is in.
+var ErrBadMove = errors.New("an app may not change to that state from the one it is in")
 
 // ErrTooMany is an app refused because its agent already has as many starting or live as it may.
 var ErrTooMany = errors.New("the agent already shares as many apps as it may")
@@ -104,7 +117,7 @@ func (s *Store) New(who Sharer, command string, port, most int) (App, error) {
 }
 
 // NewPage makes a page: a folder of the agent's served as it is, live at once, when its agent has fewer than most starting
-// or live.
+// or live. A folder that is already a live page of the agent is that page again, however many ask at once.
 func (s *Store) NewPage(who Sharer, folder string, most int) (App, error) {
 	app := who.app()
 	app.Folder, app.State = folder, Live
@@ -124,16 +137,37 @@ func (s *Store) add(app App, most int) (App, error) {
 	if err != nil {
 		return App{}, err
 	}
-	running := 0
-	for _, each := range all {
-		if each.Instance == app.Instance && (each.State == Starting || each.State == Live) {
-			running++
-		}
+	if page, found := livePage(all, app); found {
+		return page, nil
 	}
-	if running >= most {
+	if running(all, app.Instance) >= most {
 		return App{}, ErrTooMany
 	}
 	return app, s.write(app)
+}
+
+// livePage is the live page of the same agent that serves the same folder as app, when app is a page and there is one.
+func livePage(all []App, app App) (App, bool) {
+	if app.Folder == "" {
+		return App{}, false
+	}
+	for _, each := range all {
+		if each.Instance == app.Instance && each.Folder == app.Folder && each.State == Live {
+			return each, true
+		}
+	}
+	return App{}, false
+}
+
+// running is how many of an agent's apps are starting or live.
+func running(all []App, instance string) int {
+	count := 0
+	for _, each := range all {
+		if each.Instance == instance && (each.State == Starting || each.State == Live) {
+			count++
+		}
+	}
+	return count
 }
 
 func (s *Store) write(app App) error {
@@ -181,8 +215,9 @@ func (s *Store) Get(id string) (App, error) {
 	return s.read(id)
 }
 
-// Change applies a change to an app and keeps the result, under the store's lock so that two
-// changes to one app do not lose one another.
+// Change applies a change to an app and keeps the result, under the store's lock so that two changes to one app do not lose
+// one another. A change to a state the app may not go to from where it is, such as a removed app made live by a start that
+// finished late, is not kept: the app as it is comes back with ErrBadMove.
 func (s *Store) Change(id string, change func(*App)) (App, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -190,8 +225,12 @@ func (s *Store) Change(id string, change func(*App)) (App, error) {
 	if err != nil {
 		return App{}, err
 	}
-	change(&app)
-	return app, s.write(app)
+	changed := app
+	change(&changed)
+	if !app.State.mayBecome(changed.State) {
+		return app, ErrBadMove
+	}
+	return changed, s.write(changed)
 }
 
 // All is every app, newest first.
