@@ -307,14 +307,14 @@
 {{end}}
 
 {{define "turn-result"}}{{with .T}}
-  <div class="grid min-w-0 gap-3">
+  <div class="grid min-w-0 gap-1.5">
     {{$apps := .Apps}}{{with .Steps}}
     <details class="group text-xs">
       <summary class="inline-flex min-h-6 w-fit cursor-pointer list-none items-center gap-1 rounded-sm py-0.5 pr-2 pl-1 text-subtle hover:bg-wash hover:text-ink [&::-webkit-details-marker]:hidden"><span class="grid -rotate-90 transition-transform group-open:rotate-0 [&>svg]:size-3.5 [&>svg]:opacity-100">{{template "icon-chevron"}}</span><span>{{len .}} step{{if ne (len .) 1}}s{{end}}</span></summary>
       <div class="[&_ol]:mt-2 [&_ol]:ml-2 [&_ol]:grid [&_ol]:list-none [&_ol]:gap-2 [&_ol]:border-l [&_ol]:border-line-strong [&_ol]:pl-4 [&_.what]:mr-2 [&_.what]:font-semibold [&_.what]:text-ink [&_.detail]:font-mono [&_.detail]:text-xs [&_.detail]:wrap-anywhere [&_.detail]:text-muted">{{with $apps}}<p class="mt-2 mb-0 ml-2 text-muted">Could use {{.}}</p>{{end}}{{template "steps" .}}</div>
     </details>
     {{end}}
-    {{if .Replied}}<div class="prose">{{replyIn .Replied $.P.Instance.ID $.P.Thread.Dir $.P.Path}}</div>{{end}}
+    {{if .Replied}}<div class="prose in-bubble">{{replyIn .Replied $.P.Instance.ID $.P.Thread.Dir $.P.Path}}</div>{{end}}
     {{if not .Files}}{{with .Changed}}<p class="m-0 flex flex-wrap gap-2">{{range .}}<a class="inline-flex items-center gap-1 rounded-sm border border-line bg-surface px-3 py-1 font-mono text-xs text-ink no-underline hover:border-line-strong [&>svg]:size-3.5" href="/instances/{{$.P.Instance.ID}}/file?path={{.}}&amp;from={{$.P.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}{{end}}
     {{with .Capped}}{{if and (eq .Cap "credit") (ge .SpentUSD .LimitUSD)}}<p class="m-0 rounded-sm bg-warn-wash px-4 py-3 text-sm">The free credit for the models gusto provides is used: ${{printf "%.2f" .SpentUSD}} of ${{printf "%.2f" .LimitUSD}}. {{if $.P.Admin}}<a class="font-medium text-ink underline" href="/admin/models">Add your organization's own model key</a> to carry on.{{else}}Ask an admin of your organization to add its own model key to carry on.{{end}}</p>{{else}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">{{with $.T.Limit}}{{.}}{{else}}A spending limit stopped this.{{end}}</p>{{end}}{{end}}
     {{if .StoppedBy}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">Stopped by {{.StoppedBy}}.</p>{{else if not .Capped}}{{with .Stopped}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">It stopped before it finished: <code class="font-mono text-xs wrap-anywhere">{{.}}</code></p>{{end}}{{end}}
@@ -361,7 +361,7 @@ so the one thing that is a viewer's own, which bubbles are theirs, is marked on 
     <span class="row-span-2 grid size-8 place-items-center overflow-hidden rounded-full bg-sunken [&_img]:size-5 [&_.mark]:size-5" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
     <p class="m-0 flex h-5 min-w-0 items-center gap-1.5 text-sm"><span class="font-medium text-ink" title="{{.Engine}}">{{.By}}</span><span class="truncate text-subtle">{{.Role}}</span>{{with .Owner}}<span class="flex-none text-subtle" data-agent-owner="{{.}}" data-yours="· your agent" data-theirs="· {{ownerLabel . ""}}">· {{ownerLabel . $.P.Me}}</span>{{end}}<span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span>{{with .From}}<span class="text-subtle">· asked by {{mentionsIn (print "@" .) $.P.Names}}</span>{{end}}<time class="text-xs text-subtle opacity-0 tabular-nums group-hover:opacity-100">{{clock .Queued}}</time></p>
     {{end}}
-    <div class="col-start-2 mt-1 grid w-fit max-w-[40rem] min-w-0 grid-cols-[minmax(0,1fr)] gap-3 rounded-xl bg-sunken px-3 py-2 text-[0.9375rem] leading-6">
+    <div class="col-start-2 mt-1 grid w-fit max-w-[40rem] min-w-[min(14rem,100%)] grid-cols-[minmax(0,1fr)] gap-3 rounded-xl bg-sunken px-3 py-2 text-[0.9375rem] leading-6">
       {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $.P)}}{{else}}<div class="flex items-center gap-2 text-sm text-muted">{{if .Holding}}<span class="size-3 flex-none rounded-full border-2 border-line-strong" aria-hidden="true"></span><span data-waiting>{{.Holding}}</span>{{else}}<span class="size-3 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span><span class="min-w-0 truncate" data-progress>Working</span>{{end}}<form class="m-0 ml-2 flex-none" method="post" action="/jobs/{{.ID}}/stop"><input type="hidden" name="back" value="{{$.P.Path}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-ink hover:underline">Stop</button></form></div>{{end}}
     </div>
     {{if .State.Done}}{{with .Files}}{{template "file-cards" (dict "F" . "P" $.P)}}{{end}}{{end}}
