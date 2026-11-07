@@ -25,6 +25,7 @@ func (s *Server) roomBrief(held instance.Instance, thread instance.Thread, agent
 		}
 		fmt.Fprintf(&brief, " @%s (%s, %s);", each.Name, firstOf(each.Job, "no job named"), s.engineName(each.Harness))
 	}
+	brief.WriteString(s.peopleBios(held))
 	brief.WriteString("\nTo hand work to another agent, mention it as @Name in your reply, only when it should act now. What you reply is posted to the room.\n")
 	if earlier := s.sinceLastSpoke(held, thread, agent); len(earlier) > 0 {
 		brief.WriteString("\nSaid in the room since you last spoke:\n")

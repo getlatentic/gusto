@@ -193,6 +193,12 @@ var eventWords = map[string]func(e changelog.Event, w map[string]string) string{
 		}
 		return "unmuted the room " + w["room"]
 	},
+	changelog.PersonBio: func(e changelog.Event, w map[string]string) string {
+		if w["now"] == "" {
+			return "cleared their bio"
+		}
+		return fmt.Sprintf("changed their bio from %q to %q", or(w["was"], "none"), w["now"])
+	},
 	changelog.ServerStarted: func(e changelog.Event, w map[string]string) string { return "the server started" },
 	changelog.SettingsChanged: func(e changelog.Event, w map[string]string) string {
 		return fmt.Sprintf("the setting %s changed from %q to %q", w["setting"], w["was"], w["now"])

@@ -25,6 +25,7 @@ func (s *Server) memberRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /workspace/{id}", s.guard(s.chooseWorkspace))
 	mux.HandleFunc("GET /members/agents/{id}", s.guard(s.agentPage))
 	mux.HandleFunc("GET /members/people/{who}", s.guard(s.personPage))
+	mux.HandleFunc("POST /members/people/{who}/bio", s.guard(s.setPersonBio))
 	mux.HandleFunc("POST /members/agents", s.guard(s.makeAgent))
 	mux.HandleFunc("POST /members/agents/{id}", s.guard(s.changeAgent))
 	mux.HandleFunc("POST /members/agents/{id}/access", s.guard(s.changeAgentAccess))
@@ -263,6 +264,7 @@ func (s *Server) personPage(w http.ResponseWriter, r *http.Request) {
 	page["Person"] = people[at]
 	page["Rooms"] = shared
 	page["Made"] = s.madeBy(r, who)
+	page["Bio"] = s.bioOf(r, who)
 	s.render(w, "members.html", page)
 }
 

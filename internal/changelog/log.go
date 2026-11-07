@@ -97,6 +97,7 @@ const (
 	RoomGuidelines = "room.guidelines"
 	RoomArchived   = "room.archived"
 	RoomMuted      = "room.muted"
+	PersonBio      = "person.bio"
 )
 
 // FromCloud says whether a kind of event is one that an organization's front

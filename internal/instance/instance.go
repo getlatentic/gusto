@@ -79,6 +79,8 @@ type Store struct {
 	// events is each room's log of what happened in it, and watchers are told when one is added.
 	events   *roomlog.Set
 	watchers []func(room string)
+	// bios is what the people of the rooms wrote of themselves.
+	bios bios
 	// gone is the ids of removed instances, whose directories are set aside, so that none is given out again.
 	gone map[string]struct{}
 }
@@ -107,6 +109,7 @@ func Open(root string) (*Store, error) {
 		}
 	}
 	store.gone = readGone(root)
+	store.bios.held = readBios(root)
 	return store, nil
 }
 
