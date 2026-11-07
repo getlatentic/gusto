@@ -26,10 +26,11 @@ address="127.0.0.1:$port"
 new="$work/gusto-new"
 (cd "$root" && go build -o "$new" ./cmd/gusto)
 
-# start runs the binary given as a server on the data in $data, and waits for it.
+# start runs the binary given as a server on the data in $data, and waits for it. GUSTO_JOBS is for a release from before
+# tasks were called tasks, and GUSTO_TASKS for a newer one.
 start() {
   GUSTO_PASSWORD=upgrade-check GUSTO_ADDR="$address" GUSTO_SANDBOX=here \
-    GUSTO_JOBS="$data/jobs" GUSTO_SESSIONS="$data/sessions" GUSTO_SETUPS="$data/setups" GUSTO_INTEGRATIONS="$data/integrations" GUSTO_PRESETS="$data/presets" GUSTO_CREW="$data/crew" \
+    GUSTO_TASKS="$data/jobs" GUSTO_JOBS="$data/jobs" GUSTO_SESSIONS="$data/sessions" GUSTO_SETUPS="$data/setups" GUSTO_INTEGRATIONS="$data/integrations" GUSTO_PRESETS="$data/presets" GUSTO_CREW="$data/crew" \
     GUSTO_COMPARISONS="$data/comparisons" GUSTO_CHANGES="$data/changes/changes.jsonl" \
     GUSTO_LOCAL_REPOS="$data/repo" \
     GUSTO_SIGNING_KEY="$data/signing/upgrade.key" GUSTO_KEYRING="$data/keyring" \
@@ -100,7 +101,7 @@ JSON
   echo "  and it reports a record that was edited"
 
   echo "  upgrading to this checkout"
-  export GUSTO_JOBS="$data/jobs" GUSTO_SESSIONS="$data/sessions" GUSTO_SETUPS="$data/setups" GUSTO_INTEGRATIONS="$data/integrations" \
+  export GUSTO_TASKS="$data/jobs" GUSTO_SESSIONS="$data/sessions" GUSTO_SETUPS="$data/setups" GUSTO_INTEGRATIONS="$data/integrations" \
     GUSTO_PRESETS="$data/presets" GUSTO_CREW="$data/crew" \
     GUSTO_COMPARISONS="$data/comparisons" GUSTO_CHANGES="$data/changes/changes.jsonl"
   "$new" data check
@@ -114,6 +115,6 @@ JSON
   start "$old"
   reads "$ref, after the rollback" "$old"
   stop
-  unset GUSTO_JOBS GUSTO_SESSIONS GUSTO_SETUPS GUSTO_COMPARISONS GUSTO_CHANGES
+  unset GUSTO_TASKS GUSTO_SESSIONS GUSTO_SETUPS GUSTO_COMPARISONS GUSTO_CHANGES
   echo "== $ref: upgrade and rollback hold"
 done

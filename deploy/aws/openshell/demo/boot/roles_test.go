@@ -61,7 +61,7 @@ func TestANodeHasTheImageTheCredentialsAndAnIdentityAndNeverTheNameOrTheTokens(t
 		t.Errorf("computers on a cell reach the models: %v", done)
 	}
 	identity := mustRead(t, filepath.Join(h.dir, "run", "cell.env"))
-	if want := "GUSTO_CELL_NAME=cell-0abc123def4567890\nGUSTO_CELL_PRIVATE=10.0.7.21\n"; identity != want {
+	if want := "GUSTO_NODE_NAME=cell-0abc123def4567890\nGUSTO_NODE_PRIVATE=10.0.7.21\n"; identity != want {
 		t.Errorf("who it is: %q", identity)
 	}
 	if h.has("run/secrets/cf-dns-token") || h.has("run/secrets/mail.env") || h.has("lease/lease.json") {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs as root when a demo host starts, before nginx, gusto cloud and gusto host. What it does depends on ROLE:
+# Runs as root when a demo host starts, before nginx, gusto cloud and gusto node. What it does depends on ROLE:
 #
 #   all           a host that is the front door and runs the organizations' servers too
 #   orchestrator  the front door alone: the tokens, the certificate, the lease and the name
@@ -159,7 +159,7 @@ cell_secret() {
 cell_identity() {
   local id
   id=$(metadata instance-id)
-  printf 'GUSTO_CELL_NAME=cell-%s\nGUSTO_CELL_PRIVATE=%s\n' "${id#i-}" "$(metadata local-ipv4)" > "$run/cell.env"
+  printf 'GUSTO_NODE_NAME=cell-%s\nGUSTO_NODE_PRIVATE=%s\n' "${id#i-}" "$(metadata local-ipv4)" > "$run/cell.env"
 }
 
 point_the_name_here() {

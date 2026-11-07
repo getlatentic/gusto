@@ -1,5 +1,5 @@
 [Unit]
-Description=gusto host: starts and stops organizations' servers for gusto cloud
+Description=gusto node: starts and stops organizations' servers for gusto cloud
 After=gusto-boot.service {{ demo_sandboxes | map('extract', {'container': 'docker.service', 'openshell': 'openshell-gateway.service'}) | join(' ') }}
 Requires=gusto-boot.service
 RequiresMountsFor={{ demo_state }}
@@ -19,7 +19,7 @@ ExecStartPre=/usr/local/bin/gusto scan
 ExecStartPre=/bin/sh -c 'set -a; . /etc/gusto/org-demo.env; exec /usr/local/bin/gusto scan'
 {% endif %}
 TimeoutStartSec=900
-ExecStart=/usr/local/bin/gusto host
+ExecStart=/usr/local/bin/gusto node
 Restart=on-failure
 LimitNOFILE=65536
 
