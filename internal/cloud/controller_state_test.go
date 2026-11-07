@@ -22,6 +22,8 @@ type spyNode struct {
 	onPorts func(server int) int
 	// started counts the servers it was asked to start.
 	started atomic.Int32
+	// beforeStart, when set, runs as a server is being started, before it is.
+	beforeStart func()
 }
 
 func (n *spyNode) Alive(slug string) bool {
@@ -36,6 +38,9 @@ func (n *spyNode) Alive(slug string) bool {
 
 func (n *spyNode) Start(spec ServerSpec) error {
 	n.started.Add(1)
+	if n.beforeStart != nil {
+		n.beforeStart()
+	}
 	return n.LocalNode.Start(spec)
 }
 

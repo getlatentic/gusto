@@ -31,7 +31,8 @@ var healthCheck = &http.Client{Timeout: 2 * time.Second}
 // answers waits for the organization's server to say it is well, for as long as c.Wait. A server whose process has ended will
 // not, so it fails at once with the end of what it wrote. A node that cannot be asked says a server is not running too, so it
 // takes endedAfter answers in a row to call it ended. A process that is not this organization's server may hold the port and
-// say it is well, so the answer counts only from a server that proves it is the organization's.
+// say it is well, so the answer counts only from a server that proves it is the organization's, while the process this node
+// started is running: one that lost the port to another, even to another server of the same organization, has ended.
 func (c *Controller) answers(ctx context.Context, node Node, spec ServerSpec, port int) error {
 	ctx, cancel := context.WithTimeout(ctx, c.Wait)
 	defer cancel()
@@ -39,10 +40,12 @@ func (c *Controller) answers(ctx context.Context, node Node, spec ServerSpec, po
 	every := time.NewTicker(100 * time.Millisecond)
 	defer every.Stop()
 	for gone := 0; ; {
-		if healthy(ctx, base+"/healthz") && c.isTheOrganizations(ctx, base, spec.Slug) {
+		answered := healthy(ctx, base+"/healthz") && c.isTheOrganizations(ctx, base, spec.Slug)
+		alive := node.Alive(spec.Slug)
+		if answered && alive {
 			return nil
 		}
-		if gone = gone + 1; node.Alive(spec.Slug) {
+		if gone = gone + 1; alive {
 			gone = 0
 		}
 		if gone >= endedAfter {

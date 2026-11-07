@@ -60,6 +60,9 @@ type Controller struct {
 	// Stable is how long a server has to stay ready before the restarts it needed are forgotten, two minutes when not set. A
 	// server that stops again sooner is restarted less and less often.
 	Stable time.Duration
+	// PortGrace is how long a port of an organization's server that another process holds is waited for before it is given
+	// another, ten seconds when not set: the process may be the previous gusto cloud server's server for it, which is ending.
+	PortGrace time.Duration
 
 	// mu guards the maps below and is held only to read or change them, never across a call to a node or the database, so
 	// routing never waits on a server that is starting. Each organization is provisioned by one caller at a time, under its
@@ -72,6 +75,10 @@ type Controller struct {
 	removed map[string]time.Time
 	locks   sync.Map
 	portMu  sync.Mutex
+	// stopped is set by StopAll, under mu, and starts counts the servers being started. A server is started only by one that
+	// counted itself in while stopped was false, so StopAll, which waits for the count, finds every server it must stop.
+	stopped bool
+	starts  sync.WaitGroup
 
 	// epoch is the lease this controller leads with, which fences what it writes: 0 when no lease governs it, and -1
 	// while another gusto cloud server leads, when this one routes from the database and starts nothing.
@@ -198,6 +205,8 @@ func (c *Controller) place(ctx context.Context, slug string, runtime *Runtime) (
 	}
 	if runtime.Port == 0 {
 		*runtime, err = c.givePorts(ctx, slug, *runtime, node)
+	} else {
+		*runtime, err = c.moveHeldPorts(ctx, slug, *runtime, node)
 	}
 	return node, err
 }
@@ -209,13 +218,30 @@ func (c *Controller) start(ctx context.Context, slug string, runtime Runtime, no
 		return err
 	}
 	spec := ServerSpec{Slug: slug, Command: c.Command, Env: env, Log: filepath.Join(c.orgDir(slug), "server.log")}
-	if err := c.endOtherRelease(node, slug, runtime); err != nil {
-		return err
-	}
-	if err := node.Start(spec); err != nil {
+	if err := c.launch(node, spec, runtime); err != nil {
 		return err
 	}
 	return c.answers(ctx, node, spec, runtime.Port)
+}
+
+// errStopped is what starting a server says once StopAll has run: gusto cloud is ending, and a server started now would outlive it.
+var errStopped = errors.New("gusto cloud is stopping, so no server is started")
+
+// launch runs the server unless gusto cloud is stopping. StopAll waits for the launches that began before it, so none starts a
+// server after it has looked for the ones to stop.
+func (c *Controller) launch(node Node, spec ServerSpec, runtime Runtime) error {
+	c.mu.Lock()
+	if c.stopped {
+		c.mu.Unlock()
+		return errStopped
+	}
+	c.starts.Add(1)
+	c.mu.Unlock()
+	defer c.starts.Done()
+	if err := c.endOtherRelease(node, spec.Slug, runtime); err != nil {
+		return err
+	}
+	return node.Start(spec)
 }
 
 // stillServed says whether an organization is one to serve: it is in the store, and it is not the one Remove forgot. A call
@@ -279,29 +305,6 @@ func (c *Controller) placement(ctx context.Context, slug string, runtime *Runtim
 	return node, c.Store.SetRuntimeAt(ctx, c.epoch.Load(), slug, *runtime)
 }
 
-// givePorts gives an organization two ports on its node and writes them down before anyone
-// else is given any, so two organizations provisioned together do not share one.
-func (c *Controller) givePorts(ctx context.Context, slug string, runtime Runtime, node Node) (Runtime, error) {
-	c.portMu.Lock()
-	defer c.portMu.Unlock()
-	orgs, err := c.Store.Orgs(ctx)
-	if err != nil {
-		return runtime, err
-	}
-	given := map[int]bool{}
-	for _, org := range orgs {
-		if other, err := c.Store.Runtime(ctx, org.Slug); err == nil && other.Node == runtime.Node {
-			given[other.Port], given[other.ProxyPort] = true, true
-		}
-	}
-	server, proxy, err := node.Ports(c.PortFrom, given)
-	if err != nil {
-		return runtime, err
-	}
-	runtime.Port, runtime.ProxyPort = server, proxy
-	return runtime, c.Store.SetRuntimeAt(ctx, c.epoch.Load(), slug, runtime)
-}
-
 // Route is where an organization's server is when it can be reached, and its state
 // when it cannot. A server whose process has gone is not reached.
 func (c *Controller) Route(ctx context.Context, slug string) (address string, state State) {
@@ -326,6 +329,10 @@ func (c *Controller) Route(ctx context.Context, slug string) (address string, st
 // StopAll stops every server this controller holds, when gusto cloud stops. A server on a host apart is left running:
 // it does not end with gusto cloud, which is restarted at every deploy.
 func (c *Controller) StopAll() {
+	c.mu.Lock()
+	c.stopped = true
+	c.mu.Unlock()
+	c.starts.Wait()
 	c.mu.Lock()
 	held := make(map[string]Runtime, len(c.orgs))
 	for slug, state := range c.orgs {
