@@ -676,6 +676,7 @@ Environment:
 - `GUSTO_NODE`: the node new computers are made on (default local); GUSTO_CELL is its old name
 - `GUSTO_SPARE_COMPUTER`: keep one blank computer ready for the next person who has none
 - `GUSTO_COMPUTER_IDLE_MINUTES`: how long a computer nobody uses runs before it is stopped, in minutes (default 30)
+- `GUSTO_HOME_LIMIT_MB`: the most a person's kept home may take in a container, in megabytes; with GUSTO_COMPUTERS, a turn over it is refused until the person resets the home (default 5120)
 - `GUSTO_ROOM_COPY_MB`: the most a room's folder may hold for an agent's turn to copy it, in megabytes (default 4096)
 - `GUSTO_ROOM_COPY_FILES`: the most files a room's folder may hold for an agent's turn to copy it (default 200000)
 - `GUSTO_NOTIFY_WEBHOOK`: the address told how each run of a routine ended, by a signed request
@@ -1230,6 +1231,7 @@ Environment:
 - `GUSTO_NODE`: the node new computers are made on (default local); GUSTO_CELL is its old name
 - `GUSTO_SPARE_COMPUTER`: keep one blank computer ready for the next person who has none
 - `GUSTO_COMPUTER_IDLE_MINUTES`: how long a computer nobody uses runs before it is stopped, in minutes (default 30)
+- `GUSTO_HOME_LIMIT_MB`: the most a person's kept home may take in a container, in megabytes; with GUSTO_COMPUTERS, a turn over it is refused until the person resets the home (default 5120)
 - `GUSTO_ROOM_COPY_MB`: the most a room's folder may hold for an agent's turn to copy it, in megabytes (default 4096)
 - `GUSTO_ROOM_COPY_FILES`: the most files a room's folder may hold for an agent's turn to copy it (default 200000)
 - `GUSTO_MODEL_URL`: the model a task asks directly when this server holds no credential (default http://localhost:11434/v1)

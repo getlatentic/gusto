@@ -86,8 +86,8 @@ func (s *server) offerThisComputer() error {
 	return nil
 }
 
-// shareApps shares the apps agents built, run in their owners' computers when the boxes have them, and the connectors a turn's
-// tools sign in with.
+// shareApps shares the apps agents built, run in their owners' computers when the boxes have them, the connectors a turn's
+// tools sign in with, and the homes the boxes keep for people.
 func (s *server) shareApps() error {
 	if host, ok := s.boxes.(appHost); ok && host.Apps() != nil {
 		s.pages.UseApps(s.shared, host.Apps())
@@ -97,6 +97,9 @@ func (s *server) shareApps() error {
 	}
 	if s.connect != nil {
 		s.pages.UseConnectors(s.connect)
+	}
+	if homes, ok := s.boxes.(web.KeptHomes); ok && homes.KeepsHomes() {
+		s.pages.UseHomes(homes)
 	}
 	return nil
 }

@@ -26,8 +26,10 @@ ok   Computer.before-retire.cfg: Error: Invariant OnlyAskedIsRemoved is violated
 ok   Computer.now.cfg: 4448 states generated, 1164 distinct states found, 0 states left on queue.
 ok   ConnectorSignIn.before-563.cfg: Error: Invariant DisconnectHolds is violated.
 ok   ConnectorSignIn.before-broken.cfg: Error: Temporal properties were violated.
+ok   ConnectorSignIn.before-expired.cfg: Error: Temporal properties were violated.
 ok   ConnectorSignIn.before-finish.cfg: Error: Invariant DisconnectHolds is violated.
-ok   ConnectorSignIn.now.cfg: 14766 states generated, 5237 distinct states found, 0 states left on queue.
+ok   ConnectorSignIn.before-held.cfg: Error: Invariant RotationKeepsSignInWorking is violated.
+ok   ConnectorSignIn.now.cfg: 53892 states generated, 16882 distinct states found, 0 states left on queue.
 ok   Credentials.before-code.cfg: Error: Invariant ApprovalKept is violated.
 ok   Credentials.before-recheck.cfg: Error: Invariant NoStaleAuthority is violated.
 ok   Credentials.now.cfg: 308 states generated, 92 distinct states found, 0 states left on queue.
@@ -157,13 +159,14 @@ The lease may lapse while its holder is paused, and the holder acts on until it 
 ## ConnectorSignIn
 
 One person's sign-in to one app (`internal/connector`): `Finish`, `Token` renewing, `Disconnect`, the app revoking the
-grant, and the server restarting. The app rotates refresh tokens, and a vault write may fail. `Fixes` says which fixes
-the code has.
+grant, and the server restarting. The app rotates refresh tokens, may give none, and a vault write may fail; renewed
+tokens that could not be written are held in memory until the server restarts. `Fixes` says which fixes the code has.
 
 | Property | What it says | Broken without | Go test |
 | --- | --- | --- | --- |
 | `DisconnectHolds` | Nothing begun before a disconnect is kept after it. | `disconnectLocks` (getlatentic/gusto#563): a renewal writes the tokens back; `finishChecksGen`: a sign-in that came back before the disconnect is kept | `TestDisconnectingDuringARenewalStaysDisconnected`, `TestDisconnectingWhileASignInFinishesStaysDisconnected` |
-| `DeadSignInIsSeen` | A sign-in the app no longer renews stops showing as connected. | `refusedMarksBroken`: it shows as connected for good, and agents are told nothing is disconnected | `TestASignInTheAppNoLongerTakesIsNotConnected` |
+| `DeadSignInIsSeen` | A sign-in the app no longer renews, or that ran out with no refresh token, stops showing as connected. | `refusedMarksBroken`: it shows as connected for good, and agents are told nothing is disconnected; `expiredNeedsSignIn`: a sign-in with no refresh token shows as connected after its access token ran out | `TestASignInTheAppNoLongerTakesIsNotConnected`, `TestASignInThatRanOutWithNothingToRenewItIsNotConnected` |
+| `RotationKeepsSignInWorking` | While the server stays up and the app revoked nothing, the refresh token kept is one the app takes, though the vault could not take the renewed one. | `holdUnsaved`: the refresh token on disk is the one the app retired, and the sign-in is broken for good while it shows as connected | `TestRenewedTokensThatCannotBeWrittenAreKeptUntilTheyCan` |
 
 `DeadSignInIsSeen` assumes the app answers and the disk takes a write in the end (strong fairness), and that somebody
 keeps using the app.

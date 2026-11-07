@@ -2,6 +2,7 @@ package vm
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"path/filepath"
 	"time"
@@ -47,7 +48,12 @@ func (b *Backend) inComputer(ctx context.Context, turn backend.Turn) (int, error
 	if turn.InRoom() {
 		box.Confine(folderInComputer(turn))
 	}
-	return runner.Outside(ctx, dir, &computerBox{Sandbox: box, registry: b.cfg.Computers, id: held.ID, use: b.use}, b.cfg.Signing)
+	exit, err := runner.Outside(ctx, dir, &computerBox{Sandbox: box, registry: b.cfg.Computers, id: held.ID, use: b.use}, b.cfg.Signing)
+	if err != nil {
+		// A turn refused before its sandbox started must not leave a computer that was being made as it was.
+		failedBeforeStart(b.cfg.Computers, held.ID, err)
+	}
+	return exit, err
 }
 
 // failedBeforeStart says why a computer being made never started, so it is not left being made for good, counting against
@@ -165,22 +171,35 @@ func retire(cfg openshell.Config, registry *computer.Registry) {
 }
 
 // rest stops the computers nobody has used for a while: none of their tasks is running, under the computer's lock, and none
-// serves a shared app.
+// serves a shared app. It also says of a computer that was being made for longer than a making takes, with no task in it, that
+// the making did not finish: the server that began it ended first.
 func rest(cfg openshell.Config, registry *computer.Registry, use *computerUse, serving func(person, space string) bool, idle time.Duration) {
 	all, err := registry.All()
 	if err != nil {
 		return
 	}
 	for _, each := range all {
-		if each.State != computer.Running || each.LastActive.IsZero() || time.Since(each.LastActive) < idle || serving(each.User, each.Workspace) {
-			continue
+		switch {
+		case each.State == computer.Creating && time.Since(each.Created) > computer.MakingWithin:
+			use.whenIdle(each.ID, func() {
+				failedBeforeStart(registry, each.ID, errors.New("making it did not finish: the server that began it ended first"))
+			})
+		case each.State == computer.Running && !each.LastActive.IsZero() && time.Since(each.LastActive) >= idle && !serving(each.User, each.Workspace):
+			use.whenIdle(each.ID, func() { stopIfStillIdle(cfg, registry, each, idle) })
 		}
-		use.stopIdle(each.ID, func() {
-			if err := openshell.Stop(cfg, each.Sandbox); err != nil {
-				slog.Error("an idle computer could not be stopped", "computer", each.ID, "error", err)
-				return
-			}
-			registry.Change(each.ID, func(c *computer.Computer) { c.State, c.Note = computer.Stopped, "stopped when idle" })
-		})
 	}
+}
+
+// stopIfStillIdle stops a computer that was idle when the record was read, once nothing is in it. A task may have run and ended
+// since, so the record is read again under the computer's lock.
+func stopIfStillIdle(cfg openshell.Config, registry *computer.Registry, seen computer.Computer, idle time.Duration) {
+	current, err := registry.Of(seen.User, seen.Workspace)
+	if err != nil || current.State != computer.Running || time.Since(current.LastActive) < idle {
+		return
+	}
+	if err := openshell.Stop(cfg, current.Sandbox); err != nil {
+		slog.Error("an idle computer could not be stopped", "computer", current.ID, "error", err)
+		return
+	}
+	registry.Change(current.ID, func(c *computer.Computer) { c.State, c.Note = computer.Stopped, "stopped when idle" })
 }

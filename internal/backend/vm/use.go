@@ -44,10 +44,10 @@ func (u *computerUse) leave(id string) {
 	}
 }
 
-// stopIdle runs stop when no task is in the computer, holding its lock so none starts meanwhile, and says whether it did. The
-// lock is held across stop, which is a call to the gateway: what waits on it is only a task about to start in this computer,
-// which has to wait for the stop anyway.
-func (u *computerUse) stopIdle(id string, stop func()) bool {
+// whenIdle runs change when no task is in the computer, holding its lock so none starts meanwhile, and says whether it did. The
+// lock is held across change, which may be a call to the gateway to stop the computer: what waits on it is only a task about to
+// start in this computer, which has to wait for that anyway.
+func (u *computerUse) whenIdle(id string, change func()) bool {
 	held := u.lockOf(id)
 	held.Lock()
 	defer held.Unlock()
@@ -57,6 +57,6 @@ func (u *computerUse) stopIdle(id string, stop func()) bool {
 	if busy {
 		return false
 	}
-	stop()
+	change()
 	return true
 }

@@ -91,6 +91,7 @@ type Server struct {
 	// orgSettings is what the organization's admins choose for it.
 	orgSettings *orgsettings.File
 	connectors  *connector.Connectors
+	keptHomes   KeptHomes
 	// local is how the one person a server on their own computer runs for signs in, or nil.
 	local *localSignIn
 	// operatorDefault is what a new chat runs on when neither the person nor the organization has chosen.
