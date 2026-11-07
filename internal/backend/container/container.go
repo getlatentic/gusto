@@ -3,8 +3,7 @@ package container
 
 import (
 	"context"
-	"os"
-	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -22,6 +21,9 @@ type Config struct {
 	Org string
 	// Homes is where an organization's server keeps each person's home beside their computer's record, or nothing.
 	Homes string
+	// HomeLimit is the most a person's kept home may take, in bytes: DefaultHomeLimit when it is not set. A turn that would
+	// pass it is refused, and one that does is stopped.
+	HomeLimit int64
 	// Open leaves a container on the runtime's network, where it reaches the proxy on a port. Otherwise it has no network
 	// and reaches the proxy through a socket.
 	Open bool
@@ -34,10 +36,18 @@ type Backend struct {
 	cfg     Config
 	once    sync.Once
 	offered atomic.Pointer[[]catalog.Entry]
+	// homes is nil when this server keeps no homes.
+	homes *homes
 }
 
 // New is a backend of containers made with cfg.
-func New(cfg Config) *Backend { return &Backend{cfg: cfg} }
+func New(cfg Config) *Backend {
+	b := &Backend{cfg: cfg}
+	if cfg.Homes != "" {
+		b.homes = newHomes(cfg.Homes, cfg.HomeLimit, cfg.Containers.DiskUse)
+	}
+	return b
+}
 
 func (b *Backend) String() string {
 	return "in a container, " + b.cfg.Containers.Runtime + " " + b.cfg.Containers.Image
@@ -68,15 +78,24 @@ func (b *Backend) survey() []catalog.Entry {
 	return catalog.Survey(b.cfg.Containers.Runtime, b.cfg.Containers.Image, b.cfg.Agents)
 }
 
-// Start fetches the runner image in the background when its containers can run nothing yet and it can be fetched.
+// Start fetches the runner image in the background when its containers can run nothing yet and it can be fetched, and removes
+// the homes of people who left the organization.
 func (b *Backend) Start(ctx context.Context) (func(), error) {
 	offered := b.Offered()
-	if b.cfg.Containers.ImageSource == "" {
-		return func() {}, nil
-	}
 	waiting, stop := context.WithCancel(ctx)
-	done := awaitImage(waiting, offered, b.cfg.Containers.EnsureImage, b.survey, func(fresh []catalog.Entry) { b.offered.Store(&fresh) }, imageRetry)
-	return func() { stop(); <-done }, nil
+	var done []<-chan struct{}
+	if b.cfg.Containers.ImageSource != "" {
+		done = append(done, awaitImage(waiting, offered, b.cfg.Containers.EnsureImage, b.survey, func(fresh []catalog.Entry) { b.offered.Store(&fresh) }, imageRetry))
+	}
+	if b.homes != nil {
+		done = append(done, b.homes.tend(waiting))
+	}
+	return func() {
+		stop()
+		for _, each := range done {
+			<-each
+		}
+	}, nil
 }
 
 // Run runs the turn's agent in a container. With a proxy the container is given a token that stands in for the credential;
@@ -86,6 +105,14 @@ func (b *Backend) Run(ctx context.Context, turn backend.Turn) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	id, kept := b.homeOf(turn)
+	if !kept {
+		return b.run(ctx, turn, mounts)
+	}
+	return b.homes.guard(ctx, turn.Dir, id, func(ctx context.Context) (int, error) { return b.run(ctx, turn, mounts) })
+}
+
+func (b *Backend) run(ctx context.Context, turn backend.Turn, mounts []sandbox.Mount) (int, error) {
 	owner, exit := b.owner(turn), turn.Exit
 	if exit.Door == nil {
 		return b.cfg.Containers.Run(ctx, turn.Dir, exit.Direct, "", owner, mounts...)
@@ -123,14 +150,41 @@ func (b *Backend) mounts(turn backend.Turn) ([]sandbox.Mount, error) {
 // there at their next turn, as it is in a computer of their own. A task nobody asked for has none, and nor does a room's turn,
 // which sees only the room.
 func (b *Backend) keptHome(turn backend.Turn) ([]sandbox.Mount, error) {
-	if b.cfg.Homes == "" || turn.Person == "" || turn.InRoom() {
+	id, kept := b.homeOf(turn)
+	if !kept {
 		return nil, nil
 	}
-	home := filepath.Join(b.cfg.Homes, computer.ID(b.cfg.Org, turn.Spec.Workspace, turn.Person), "home")
-	if err := os.MkdirAll(home, 0o700); err != nil {
+	home, err := b.homes.open(id)
+	if err != nil {
 		return nil, err
 	}
 	return []sandbox.Mount{{From: home, To: sandbox.Home, Kept: true}}, nil
+}
+
+// homeOf is the id of the computer whose home a turn uses, and false when it uses none.
+func (b *Backend) homeOf(turn backend.Turn) (id string, kept bool) {
+	if b.homes == nil || turn.Person == "" || turn.InRoom() {
+		return "", false
+	}
+	return computer.ID(b.cfg.Org, turn.Spec.Workspace, turn.Person), true
+}
+
+// HomeUse is how much of its limit a person's kept home in a workspace took when it was last counted, and false when no turn
+// of theirs has ended in it yet.
+func (b *Backend) HomeUse(person, space string) (HomeUse, bool) {
+	if b.homes == nil {
+		return HomeUse{}, false
+	}
+	return b.homes.use(computer.ID(b.cfg.Org, space, strings.ToLower(person)))
+}
+
+// ResetHome removes a person's kept home in a workspace, which is how a person whose home is full starts again: no turn can
+// clear it while it is. It is refused while a turn of theirs is running in it.
+func (b *Backend) ResetHome(person, space string) error {
+	if b.homes == nil {
+		return nil
+	}
+	return b.homes.remove(computer.ID(b.cfg.Org, space, strings.ToLower(person)))
 }
 
 // staying is the conversation's working directory and the memory the agent keeps of it. An agent stores that memory in its

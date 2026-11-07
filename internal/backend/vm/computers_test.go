@@ -51,7 +51,7 @@ func TestTheJanitorRemovesRetiredComputersAndStopsIdleOnesThatNoOneIsUsing(t *te
 	retire(cfg, registry)
 	use := newComputerUse()
 	use.enter(cy.ID)
-	rest(cfg, registry, use, func(string) bool { return false }, time.Hour)
+	rest(cfg, registry, use, func(string, string) bool { return false }, time.Hour)
 
 	deleted, _ := os.ReadFile(filepath.Join(root, "deleted.log"))
 	if !strings.Contains(string(deleted), ada.Sandbox) {

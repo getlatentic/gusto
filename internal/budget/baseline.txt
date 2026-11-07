@@ -31,7 +31,7 @@
 41 11 internal/cloud/turnstile.go:(Turnstile).Check
 40 13 internal/compare/board.go:(*Board).Sample
 27 11 internal/compare/reading.go:(rank).read
-38 11 internal/connector/connector.go:(*Connectors).Token
+35 11 internal/connector/connector.go:(*Connectors).Token
 46 15 internal/connector/connector.go:(*Connectors).ask
 57 16 internal/connector/discover.go:Discover
 29 11 internal/crew/crew.go:(*Store).ChooseApp

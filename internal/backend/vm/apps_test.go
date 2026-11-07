@@ -127,16 +127,28 @@ func TestAnAppOfAPersonWithNoComputerIsRefused(t *testing.T) {
 func TestAComputerWithAnAppPeopleUseIsNotIdle(t *testing.T) {
 	runner, _, _ := anAppsHost(t, 200)
 	live, _ := runner.store.New(apps.Sharer{Instance: appsInstance, Owner: "Ada@Acme.com"}, "node a.js", 8080, 3)
-	if !runner.serving("ada@acme.com") || runner.serving("bob@acme.com") {
+	if !runner.serving("ada@acme.com", "") || runner.serving("bob@acme.com", "") {
 		t.Fatal("an app that is starting is one somebody waits for")
 	}
 	runner.store.Change(live.ID, func(a *apps.App) { a.State = apps.Live })
-	if !runner.serving("ada@acme.com") {
+	if !runner.serving("ada@acme.com", "") {
 		t.Error("a live app is used")
 	}
 	runner.store.Change(live.ID, func(a *apps.App) { a.State = apps.Stopped })
-	if runner.serving("ada@acme.com") {
+	if runner.serving("ada@acme.com", "") {
 		t.Error("a stopped app keeps a computer awake")
+	}
+}
+
+// A person's computer in one workspace is not kept awake by an app shared from their computer in another.
+func TestAnAppInOneWorkspaceDoesNotKeepAnotherWorkspacesComputerAwake(t *testing.T) {
+	runner, _, _ := anAppsHost(t, 200)
+	runner.store.New(apps.Sharer{Instance: appsInstance, Owner: "ada@acme.com", Workspace: "engineering"}, "node a.js", 8080, 3)
+	if !runner.serving("ada@acme.com", "engineering") {
+		t.Error("the app's own computer is not kept awake")
+	}
+	if runner.serving("ada@acme.com", "") || runner.serving("ada@acme.com", "main") {
+		t.Error("an app of another workspace keeps the first workspace's computer awake")
 	}
 }
 

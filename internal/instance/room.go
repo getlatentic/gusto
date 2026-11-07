@@ -272,23 +272,28 @@ func (s *Store) FileNotice(id, thread, text, path string) (Note, error) {
 func (s *Store) addNote(id, thread string, note Note) (Note, error) {
 	s.guard.Lock()
 	defer s.guard.Unlock()
-	held, found := s.threads[id][thread]
-	if !found {
-		return Note{}, fmt.Errorf("no thread %s on %s", thread, id)
-	}
-	if note.Key != "" {
-		for _, kept := range held.Notes {
-			if kept.Key == note.Key && kept.Who == note.Who {
-				return kept, nil
+	kept, added := note, false
+	_, err := s.amend(id, thread, func(held *Thread) bool {
+		if note.Key != "" {
+			for _, earlier := range held.Notes {
+				if earlier.Key == note.Key && earlier.Who == note.Who {
+					kept = earlier
+					return false
+				}
 			}
 		}
+		note.ID, note.At, note.After = fmt.Sprintf("n%d", len(held.Notes)+1), time.Now().Unix(), len(held.Turns)
+		held.Notes = append(held.Notes, note)
+		kept, added = note, true
+		return true
+	})
+	if err != nil {
+		return Note{}, err
 	}
-	note.ID, note.At, note.After = fmt.Sprintf("n%d", len(held.Notes)+1), time.Now().Unix(), len(held.Turns)
-	held.Notes = append(held.Notes, note)
-	s.threads[id][held.ID] = held
-	err := s.writeThread(held)
-	s.record(id, held.ID, KindNote, note.ID)
-	return note, err
+	if added {
+		s.record(id, thread, KindNote, note.ID)
+	}
+	return kept, nil
 }
 
 // Learned keeps what an agent calls a conversation, so its next turn resumes it. A room's agents each keep their own.
@@ -298,19 +303,17 @@ func (s *Store) Learned(id, thread, agent, remembered string) error {
 	}
 	s.guard.Lock()
 	defer s.guard.Unlock()
-	held, found := s.threads[id][thread]
-	if !found {
-		return fmt.Errorf("no thread %s on %s", thread, id)
-	}
-	if remembered == "" {
-		return nil
-	}
-	if held.Sessions == nil {
-		held.Sessions = map[string]string{}
-	}
-	held.Sessions[agent] = remembered
-	s.threads[id][held.ID] = held
-	return s.writeThread(held)
+	_, err := s.amend(id, thread, func(held *Thread) bool {
+		if remembered == "" {
+			return false
+		}
+		if held.Sessions == nil {
+			held.Sessions = map[string]string{}
+		}
+		held.Sessions[agent] = remembered
+		return true
+	})
+	return err
 }
 
 // Saw keeps that a person looked at a conversation at a time. It writes only when that is later than they last looked.
@@ -318,19 +321,17 @@ func (s *Store) Saw(id, thread, who string, at int64) error {
 	who = strings.ToLower(strings.TrimSpace(who))
 	s.guard.Lock()
 	defer s.guard.Unlock()
-	held, found := s.threads[id][thread]
-	if !found {
-		return fmt.Errorf("no thread %s on %s", thread, id)
-	}
-	if who == "" || held.Seen[who] >= at {
-		return nil
-	}
-	if held.Seen == nil {
-		held.Seen = map[string]int64{}
-	}
-	held.Seen[who] = at
-	s.threads[id][held.ID] = held
-	return s.writeThread(held)
+	_, err := s.amend(id, thread, func(held *Thread) bool {
+		if who == "" || held.Seen[who] >= at {
+			return false
+		}
+		if held.Seen == nil {
+			held.Seen = map[string]int64{}
+		}
+		held.Seen[who] = at
+		return true
+	})
+	return err
 }
 
 // Direct marks a room as one person's own with one agent, or as a room again.
