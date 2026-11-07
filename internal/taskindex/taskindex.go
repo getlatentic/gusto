@@ -35,6 +35,13 @@ type Row struct {
 	Team       string `json:"team,omitempty"`
 	// Workspace is the workspace of the organization the task is in.
 	Workspace string `json:"workspace"`
+	// Agent, HandedBy, Answers, Hops and PaidBy are set when the task is a turn of a room's agent, and say whose turn it is, who
+	// handed it on, which turn it also answers, how many agents handed it on, and whose spending it counts against.
+	Agent    string `json:"agent,omitempty"`
+	HandedBy string `json:"handedBy,omitempty"`
+	Answers  string `json:"answers,omitempty"`
+	Hops     int    `json:"hops,omitempty"`
+	PaidBy   string `json:"paidBy,omitempty"`
 	// Seq is the order the task arrived in. Times are in Unix seconds.
 	Seq     int64 `json:"seq"`
 	Exit    int   `json:"exit"`
@@ -86,9 +93,11 @@ type Entry struct {
 // Store is the index. Every method is safe to call from many goroutines, and a SQLite file may be used by more
 // than one process at once. A list that has no value is nil.
 type Store interface {
-	// Upsert inserts a task's row or replaces the one it has.
+	// Upsert inserts a task's row or replaces the one it has, unless the one it has is ahead of it: see Row.Replaces. A row
+	// that is behind is left out and is not an error, so a writer with an old copy cannot undo a newer one.
 	Upsert(ctx context.Context, row Row) error
-	// UpsertMany does Upsert for each row in one transaction at a time. A task named twice keeps its last row.
+	// UpsertMany does Upsert for each row in one transaction at a time. A task named twice keeps the row that is furthest on,
+	// and the later of two that are equally far.
 	UpsertMany(ctx context.Context, rows []Row) error
 	// Delete removes a task's row. A task the index does not hold is not an error.
 	Delete(ctx context.Context, id string) error

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -29,6 +30,9 @@ type roomRuns struct {
 	askedBy func(task.Dir) string
 	// key signs a turn's record again once what was done with its changes is in it, or is nil for an unsigned record.
 	key signing.Signer
+	// settle is called with a turn's task id just before its changes are merged, and refuses with tasks.ErrStoppedFirst a turn
+	// that was stopped. A turn it accepts cannot be stopped afterwards. It is nil where no queue stops turns.
+	settle func(id string) error
 }
 
 // newRoomRuns is how turns of a room's agents get their working copies, each copy held to limits, and their records signed with key.
@@ -97,6 +101,9 @@ func (r *roomRuns) bring(ctx context.Context, turn *roomwork.Turn, spec task.Spe
 		r.decided(dir, record.Decision{Refused: why})
 		return nil
 	}
+	if final, err := r.final(dir); !final {
+		return err
+	}
 	outcome, err := turn.Merge(ctx)
 	if err != nil {
 		return err
@@ -108,6 +115,19 @@ func (r *roomRuns) bring(ctx context.Context, turn *roomwork.Turn, spec task.Spe
 		}
 	}
 	return nil
+}
+
+// final makes the merge the turn's last step, and says whether to go on. A turn stopped before it is not merged: it ends
+// interrupted and keeps nothing. After it a stop is refused, so the task's state and its decision cannot disagree.
+func (r *roomRuns) final(dir task.Dir) (bool, error) {
+	if r.settle == nil {
+		return true, nil
+	}
+	err := r.settle(filepath.Base(dir.Path()))
+	if errors.Is(err, tasks.ErrStoppedFirst) {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 // mayNotWrite is why a finished turn may not change the room's folder now, or nothing when it may.
