@@ -42,7 +42,7 @@
     src: gusto-owner.service.j2
     dest: /etc/systemd/system/gusto-owner.service
     mode: "0644"
-  notify: Restart the owner's page
+  notify: Restart the operator's page
 
 - name: Where the front door's media are
   ansible.builtin.file:

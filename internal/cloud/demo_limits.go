@@ -7,7 +7,7 @@ import (
 	"log/slog"
 )
 
-// DemoLimits are the limits on how many demos start, which the owner of a front door changes while it runs. Zero is no
+// DemoLimits are the limits on how many demos start, which the operator of gusto cloud changes while it runs. Zero is no
 // limit, except for MaxOrgs, the most demos at once, which is at least one.
 type DemoLimits struct {
 	PerDay     int `json:"perDay"`
@@ -21,7 +21,7 @@ const (
 	mostAtOnce   = 50
 )
 
-// DemoLimits are the limits now: what the owner last set, or what the front door was started with when they have set
+// DemoLimits are the limits now: what the operator last set, or what the front door was started with when they have set
 // none. They are read whenever a demo is asked for, so a change holds from the next one without a restart, on every
 // front door.
 func (s *Store) DemoLimits(ctx context.Context) DemoLimits {
@@ -40,13 +40,13 @@ func (s *Store) DemoLimits(ctx context.Context) DemoLimits {
 	return kept
 }
 
-// DemoLimitsSet says the owner has set the limits, so that they are not the ones the front door started with.
+// DemoLimitsSet says the operator has set the limits, so that they are not the ones the front door started with.
 func (s *Store) DemoLimitsSet(ctx context.Context) bool {
 	_, found, err := s.setting(ctx, settingDemoLimits)
 	return found && err == nil
 }
 
-// SetDemoLimits keeps the limits the owner chose.
+// SetDemoLimits keeps the limits the operator chose.
 func (s *Store) SetDemoLimits(ctx context.Context, limits DemoLimits) error {
 	for name, value := range map[string]int{"a day": limits.PerDay, "a person": limits.PerPerson, "a company": limits.PerCompany} {
 		if value < 0 || value > mostPerLimit {

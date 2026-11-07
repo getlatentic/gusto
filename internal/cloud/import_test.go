@@ -63,7 +63,7 @@ func TestTheOldFilesAreLoadedIntoTheDatabaseAndLeftAsTheyWere(t *testing.T) {
 			t.Errorf("only the invitation that has not run out is open: %+v", open)
 		}
 		if !s.DemosPaused(t.Context()) || !s.DemoLimitsSet(t.Context()) || s.DemoLimits(t.Context()) != (DemoLimits{PerDay: 25, PerPerson: 1, PerCompany: 4, MaxOrgs: 3}) {
-			t.Errorf("the owner's choices: paused %v, %+v", s.DemosPaused(t.Context()), s.DemoLimits(t.Context()))
+			t.Errorf("the operator's choices: paused %v, %+v", s.DemosPaused(t.Context()), s.DemoLimits(t.Context()))
 		}
 		key, _ := os.ReadFile(filepath.Join(root, "secret"))
 		if got, err := s.sessionKey(t.Context()); err != nil || string(got) != string(key) {

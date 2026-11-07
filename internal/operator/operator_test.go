@@ -1,4 +1,4 @@
-package owner
+package operator
 
 import (
 	"net/http"
@@ -42,7 +42,7 @@ func ask(a *App, method, path, host string, header map[string]string, form url.V
 	return w
 }
 
-func TestTheOwnerPageIsServedOnlyToRequestsToTheLoopback(t *testing.T) {
+func TestTheOperatorsPageIsServedOnlyToRequestsToTheLoopback(t *testing.T) {
 	a, _ := app(t)
 	if got := ask(a, "GET", "/", "127.0.0.1:8090", nil, nil); got.Code != http.StatusOK || !strings.Contains(got.Body.String(), "gusto operator") {
 		t.Fatalf("%d", got.Code)
@@ -62,7 +62,7 @@ func TestTheOwnerPageIsServedOnlyToRequestsToTheLoopback(t *testing.T) {
 	}
 }
 
-func TestTheOwnerSeesWhoAskedForADemoAndTheHostsThatAreUp(t *testing.T) {
+func TestTheOperatorSeesWhoAskedForADemoAndTheHostsThatAreUp(t *testing.T) {
 	a, store := app(t)
 	if _, _, err := store.StartDemo(t.Context(), "Ada Lovelace", "ada@acme.com", "Acme Research"); err != nil {
 		t.Fatal(err)
@@ -106,7 +106,7 @@ func TestTheLeadsCsvWritesWhatAVisitorTypedAsTextAndNotAsAFormula(t *testing.T) 
 	}
 }
 
-func TestTheOwnerChangesTheDemoLimitsFromThePageAndTheyHoldAtOnce(t *testing.T) {
+func TestTheOperatorChangesTheDemoLimitsFromThePageAndTheyHoldAtOnce(t *testing.T) {
 	a, store := app(t)
 	if got := store.DemoLimits(t.Context()); got.PerPerson != 0 || got.MaxOrgs != 1 {
 		t.Fatalf("the starting limits: %+v", got)
