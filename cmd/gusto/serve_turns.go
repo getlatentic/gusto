@@ -88,6 +88,7 @@ func (s *server) startTurns() error {
 	}
 	s.index.SetLimits(tasks.Limits{Person: s.cfg.way.limitPerson, Team: s.cfg.way.limitTeam})
 	s.rooms = newRoomRuns(s.instances, func(dir task.Dir) string { return personWhoAsked(s.index, dir) }, s.cfg.boxes.roomCopy(), s.signs.Key)
+	s.rooms.settle = s.index.Commit
 	s.tellWayOut()
 	// Started before any turn: a backend keeps up what its turns use, such as its image or people's computers.
 	stopBoxes, err := boxes.Start(context.Background())

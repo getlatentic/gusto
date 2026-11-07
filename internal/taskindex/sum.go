@@ -33,6 +33,13 @@ func (r Row) Sum() string {
 	if space := workspace.Of(r.Workspace); space != workspace.First {
 		h.Write([]byte("workspace " + strconv.Itoa(len(space)) + ":" + space))
 	}
+	// A task that is not a room agent's turn sums as it did before turns kept these.
+	if r.Agent != "" || r.HandedBy != "" || r.Answers != "" || r.Hops != 0 || r.PaidBy != "" {
+		for _, s := range []string{r.Agent, r.HandedBy, r.Answers, r.PaidBy} {
+			h.Write([]byte("turn " + strconv.Itoa(len(s)) + ":" + s))
+		}
+		h.Write([]byte("hops " + strconv.Itoa(r.Hops) + ","))
+	}
 	for _, n := range []int64{r.Seq, int64(r.Exit), r.Queued, r.Started, r.Ended} {
 		h.Write([]byte(strconv.FormatInt(n, 10) + ","))
 	}

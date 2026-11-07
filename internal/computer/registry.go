@@ -285,33 +285,33 @@ func (r *Registry) write(computer Computer) error {
 // changing one record would lose a change.
 func (r *Registry) retireFile(id string) string { return filepath.Join(r.dir, id+".retire") }
 
-// RetireIn asks for a person's computer in a workspace to be removed, and does nothing when they have none there, or theirs
-// was removed already: a mark on a removed one would remove the next one made for them.
+// RetireIn asks for a person's computer in a workspace to be removed. It marks the computer with or without a record, because
+// where computers are containers the person's home is kept under the id and no record is made. It does nothing when the record
+// says the computer was removed already: a mark on a removed one would remove the next one made for them, and a mark with no
+// record is cleared by whatever removes the home, or by the person's next computer.
 func (r *Registry) RetireIn(user, space string) error {
-	id := ID(r.org, space, strings.ToLower(strings.TrimSpace(user)))
 	release, err := r.hold()
 	if err != nil {
 		return err
 	}
 	defer release()
-	held, err := r.read(id)
-	if errors.Is(err, fs.ErrNotExist) || (err == nil && !held.Live()) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	return r.mark(id)
+	return r.markUnlessRemoved(ID(r.org, space, normal(user)))
 }
 
-// Retire asks for each of a person's computers to be removed, in every workspace, which is what leaving the organization does.
-func (r *Registry) Retire(user string) error {
-	user = strings.ToLower(strings.TrimSpace(user))
+// Retire asks for a person's computer in each of the workspaces to be removed, and for every other computer of theirs that has a
+// record, which is what leaving the organization does. spaces are the workspaces the person was in.
+func (r *Registry) Retire(user string, spaces ...string) error {
+	user = normal(user)
 	release, err := r.hold()
 	if err != nil {
 		return err
 	}
 	defer release()
+	for _, space := range spaces {
+		if err := r.markUnlessRemoved(ID(r.org, space, user)); err != nil {
+			return err
+		}
+	}
 	all, err := r.all()
 	if err != nil {
 		return err
@@ -324,6 +324,20 @@ func (r *Registry) Retire(user string) error {
 		}
 	}
 	return nil
+}
+
+func normal(user string) string { return strings.ToLower(strings.TrimSpace(user)) }
+
+// markUnlessRemoved is called with the lock held.
+func (r *Registry) markUnlessRemoved(id string) error {
+	held, err := r.read(id)
+	if err == nil && !held.Live() {
+		return nil
+	}
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	return r.mark(id)
 }
 
 // mark leaves the file that asks for a computer to be removed.

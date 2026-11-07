@@ -100,17 +100,25 @@ func composerHint(held instance.Instance) string {
 	return "Message the room, mention " + strings.Join(names, " or ")
 }
 
-// roomsFor is each room the person asking is in, the one spoken in last first, as the side list shows them.
-func (s *Server) roomsFor(r *http.Request) []railChat {
+// roomsFor is each room the person asking is in that is not archived, the one spoken in last first, as the side list shows them.
+func (s *Server) roomsFor(r *http.Request) []railChat { return s.roomRows(r, false) }
+
+// archivedRoomsFor is each archived room the person asking is in, the one spoken in last first.
+func (s *Server) archivedRoomsFor(r *http.Request) []railChat { return s.roomRows(r, true) }
+
+func (s *Server) roomRows(r *http.Request, archived bool) []railChat {
 	who := s.askerName(r)
 	var rooms []railChat
 	here := s.workspaceOf(r)
 	for _, held := range s.instances.RoomsOf(who) {
-		if !workspace.Same(held.Workspace, here) {
+		if !workspace.Same(held.Workspace, here) || (held.Archived != 0) != archived {
 			continue
 		}
 		thread := s.instances.Latest(held.ID)
-		room := railChat{Name: held.Title, Where: threadPath(thread), When: s.lately(held).Active, Room: true, Unread: s.unreadIn(thread, who), ID: held.ID}
+		room := railChat{Name: held.Title, Where: threadPath(thread), When: s.lately(held).Active, Room: true, ID: held.ID}
+		if !archived && !held.MutedBy(who) {
+			room.Unread = s.unreadIn(thread, who)
+		}
 		if held.Direct && len(held.Agents) == 1 {
 			live := s.liveRoom(held).Agents[0]
 			room.Name, room.Harness = live.Name, live.Harness

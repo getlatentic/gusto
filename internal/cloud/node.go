@@ -45,6 +45,9 @@ type Node interface {
 	Listen() string
 	// Ports finds two ports the node has free, from the first up, that are not in taken.
 	Ports(from int, taken map[int]bool) (server, proxy int, err error)
+	// Held says another process listens on the port. A node that cannot be asked says it does not, since a port is moved only
+	// on evidence that it is held.
+	Held(port int) bool
 	// Start runs the server, and does nothing when it is already running.
 	Start(spec ServerSpec) error
 	// Stop ends it, asking first and waiting up to grace before it insists.
@@ -83,6 +86,8 @@ func (l *LocalNode) Ports(from int, taken map[int]bool) (server, proxy int, err 
 	}
 	return found[0], found[1], nil
 }
+
+func (l *LocalNode) Held(port int) bool { return !free(port) }
 
 func (l *LocalNode) Start(spec ServerSpec) error {
 	if l.Alive(spec.Slug) {

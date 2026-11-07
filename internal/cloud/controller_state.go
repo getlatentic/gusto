@@ -114,11 +114,14 @@ func (c *Controller) waitEvery() time.Duration {
 }
 
 // fail leaves an organization failed, with the reason, for the supervisor to try again. One that is gone is not failed: it is
-// ErrRemoved.
+// ErrRemoved. Neither is one whose start was refused because gusto cloud is stopping, which the next gusto cloud server resumes.
 func (c *Controller) fail(ctx context.Context, slug string, runtime Runtime, err error) error {
 	if errors.Is(err, errNoOrg) {
 		c.forget(slug)
 		return ErrRemoved
+	}
+	if errors.Is(err, errStopped) {
+		return err
 	}
 	slog.Error("an organization's server could not be made ready", "org", slug, "error", err)
 	if set := c.set(ctx, slug, runtime, Failed, err.Error()); errors.Is(set, ErrRemoved) {

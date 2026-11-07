@@ -16,8 +16,8 @@ import (
 // tendEvery is how often the homes of people who left are looked for.
 const tendEvery = time.Minute
 
-// errBusy is a home a turn is running in, which is left for the next look.
-var errBusy = errors.New("a turn is running in this home")
+// ErrHomeBusy is a home a turn is running in, which is left for the next look and cannot be reset now.
+var ErrHomeBusy = errors.New("a turn is running in this home")
 
 // computerID is what a computer's id looks like, so that nothing that is not one names a place outside the homes.
 var computerID = regexp.MustCompile(`^[0-9a-f]{8}$`)
@@ -60,7 +60,7 @@ func (h *homes) removeMarked() {
 
 func (h *homes) removeMarkedHome(id string) {
 	switch err := h.remove(id); {
-	case errors.Is(err, errBusy):
+	case errors.Is(err, ErrHomeBusy):
 	case err != nil:
 		slog.Error("a home asked to be removed could not be", "home", id, "error", err)
 	default:
@@ -95,7 +95,7 @@ func (h *homes) startRemoving(id string) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if h.active[id] > 0 {
-		return errBusy
+		return ErrHomeBusy
 	}
 	h.removing[id] = true
 	return nil

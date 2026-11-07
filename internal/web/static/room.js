@@ -26,7 +26,7 @@
 
   function avatar(person) {
     var face = document.createElement("span");
-    face.className = "grid size-5 flex-none place-items-center overflow-hidden rounded-full bg-sunken text-[0.625rem] font-medium text-muted";
+    face.className = "grid size-5 flex-none place-items-center overflow-hidden rounded-full border border-line bg-surface text-[0.625rem] font-medium text-muted";
     if (person.icon) {
       var img = document.createElement("img");
       img.src = person.icon;
@@ -46,10 +46,10 @@
     item.id = "mention-" + index;
     item.setAttribute("role", "option");
     item.setAttribute("aria-selected", index === active ? "true" : "false");
-    item.className = "flex h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm aria-selected:bg-sunken";
+    item.className = "flex h-9 min-w-0 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm aria-selected:bg-sunken";
     item.appendChild(avatar(person));
     var name = document.createElement("span");
-    name.className = "font-medium text-ink";
+    name.className = "flex-none font-medium text-ink";
     name.textContent = person.name;
     item.appendChild(name);
     if (person.role) {
@@ -58,17 +58,13 @@
       role.textContent = person.role;
       item.appendChild(role);
     }
-    if (person.owner) {
+    // The Agents heading already says these are agents, and an agent of the person's own needs no label; another person's is
+    // named, since it is theirs to share.
+    if (person.owner && person.owner !== "your agent") {
       var owner = document.createElement("span");
-      owner.className = "flex-none text-subtle";
-      owner.textContent = "· " + person.owner;
+      owner.className = "ml-auto max-w-[45%] flex-none truncate pl-2 text-xs text-subtle";
+      owner.textContent = person.owner;
       item.appendChild(owner);
-    }
-    if (person.agent) {
-      var badge = document.createElement("span");
-      badge.className = "ml-auto flex-none rounded-full bg-accent-wash px-1.5 text-xs leading-5 text-accent-ink";
-      badge.textContent = "Agent";
-      item.appendChild(badge);
     }
     item.addEventListener("mousedown", function (event) { event.preventDefault(); choose(index); });
     return item;
@@ -159,10 +155,10 @@
   var said = document.getElementById("said");
   var path = box.form.getAttribute("action").replace(/\/say$/, "");
   var version = turns.dataset.version;
-  var asking = false;
-  function look() {
-    if (document.hidden || asking || (window.gustoLive && window.gustoLive.online)) { return; }
-    asking = true;
+  var refreshing = false;
+  function refresh() {
+    if (document.hidden || refreshing || (window.gustoLive && window.gustoLive.online)) { return; }
+    refreshing = true;
     fetch(path + "/version", { credentials: "same-origin" })
       .then(function (answer) { return answer.ok ? answer.text() : null; })
       .then(function (now) {
@@ -176,9 +172,9 @@
         });
       })
       .catch(function () {})
-      .then(function () { asking = false; });
+      .then(function () { refreshing = false; });
   }
-  setInterval(look, 3000);
+  setInterval(refresh, 3000);
 })();
 
 // The room's files panel arrives in the file panel after the page loaded, so what it does is listened for on the whole page: its

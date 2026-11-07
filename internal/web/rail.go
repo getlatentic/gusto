@@ -43,6 +43,8 @@ type railList struct {
 	// Direct is the person's own rooms with one agent each, and Rooms the rooms they share.
 	Direct []railChat
 	Rooms  []railChat
+	// Archived is the rooms an admin put away, which stay one click from being brought back.
+	Archived []railChat
 	// Latest is every conversation newest first, and Unread and ForYou how many rooms hold something unread, and something that
 	// mentions the person, for the side list's tabs.
 	Latest []railChat
@@ -64,6 +66,7 @@ func (s *Server) railFor(r *http.Request, here string) railList {
 			list.Rooms = append(list.Rooms, room)
 		}
 	}
+	list.Archived = s.archivedRoomsFor(r)
 	used := s.lastUsed(r)
 	started := startedWhereNamedAlike(used)
 	var groups []railGroup

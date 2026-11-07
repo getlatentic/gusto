@@ -93,6 +93,12 @@ func (c *Remote) Ports(from int, taken map[int]bool) (server, proxy int, err err
 	return answer.Server, answer.Proxy, err
 }
 
+// Held is false when the node cannot be asked.
+func (c *Remote) Held(port int) bool {
+	var answer struct{ Held bool }
+	return c.call("GET", "/v1/ports/"+strconv.Itoa(port), nil, &answer, 3*time.Second) == nil && answer.Held
+}
+
 // Status is what the node says of itself.
 func (c *Remote) Status() (Status, error) {
 	var status Status

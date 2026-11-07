@@ -91,6 +91,7 @@ type Server struct {
 	// orgSettings is what the organization's admins choose for it.
 	orgSettings *orgsettings.File
 	connectors  *connector.Connectors
+	keptHomes   KeptHomes
 	// local is how the one person a server on their own computer runs for signs in, or nil.
 	local *localSignIn
 	// operatorDefault is what a new chat runs on when neither the person nor the organization has chosen.
@@ -128,6 +129,7 @@ type Server struct {
 	reaches   func(model string, shape wire.Shape) (native, ok bool)
 	installer agentInstaller
 	replies   replyNotes
+	progress  progressKept
 	servers   setup.Servers
 	// integrations is the store of imported plugins, and cloner fetches one from a git address.
 	integrations *integration.Store

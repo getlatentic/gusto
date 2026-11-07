@@ -76,6 +76,8 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 	if !found {
 		return nil, false
 	}
+	// Its version is read first too: read after the turns, it could stand for a change they do not show.
+	newest, roomVersion := s.activityOfRoom(held, thread)
 	var turns []turn
 	ledger, _ := s.spending()
 	for _, id := range thread.Turns {
@@ -83,20 +85,16 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		if !found {
 			continue
 		}
-		shown := s.fullTurn(record, ledger)
-		turns = append(turns, shown)
+		turns = append(turns, s.fullTurn(record, ledger))
 	}
 	liveApps, appsStarting := previewing(s.appsOf(held.ID))
 	running := ""
 	if len(turns) > 0 && !turns[len(turns)-1].State.Done() {
 		running = turns[len(turns)-1].ID
 	}
-	roomVersion := ""
 	if held.Room {
 		// Whoever has the room open has read what it shows, up to its newest message; the room is written only when that moved.
-		newest, version := s.roomActivity(thread)
 		_ = s.instances.Saw(held.ID, thread.ID, s.askerName(r), newest)
-		roomVersion = version
 		for i := range turns {
 			turns[i].Files = s.fileCards(held.ID, turns[i].Changed, turns[i].Deleted)
 		}
@@ -133,6 +131,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Stream":     stream,
 		"Members":    s.roomMembersOf(r, held),
 		"Headcount":  len(held.Members) + len(held.Agents),
+		"Settings":   s.roomSettingsOf(r, held),
 		"Refused":    s.refusedIn(r, "members"),
 		"AddRefused": s.refusedIn(r, "add"),
 		"Unsent":     s.refusedIn(r, ""),
@@ -145,6 +144,14 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Latest":  running,
 		"Holding": s.holdingOfLatest(held, running),
 	}, true
+}
+
+// activityOfRoom is a room's newest change and version, and nothing for a conversation that is not a room's.
+func (s *Server) activityOfRoom(held instance.Instance, thread instance.Thread) (int64, string) {
+	if !held.Room {
+		return 0, ""
+	}
+	return s.roomActivity(thread)
 }
 
 // fullTurn is a turn as the page shows it, read from the turn's own directory.
@@ -214,6 +221,12 @@ func (s *Server) turns(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	if version, _ := page["Version"].(string); version != "" {
+		w.Header().Set("X-Room-Version", version)
+	}
+	if settings, _ := page["Settings"].(roomSettings); settings.Mark != "" {
+		w.Header().Set("X-Room-Settings", settings.Mark)
+	}
 	s.render(w, "turns", page)
 }
 
@@ -230,13 +243,13 @@ func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	if held.Room {
+		s.roomSay(w, r, held, thread)
+		return
+	}
 	brief := strings.TrimSpace(r.FormValue("said"))
 	if brief == "" {
 		http.Redirect(w, r, threadPath(thread), http.StatusSeeOther)
-		return
-	}
-	if held.Room {
-		s.roomSay(w, r, held, thread, brief)
 		return
 	}
 	record, _, err := s.startTurn(s.keeper.who(r), held, thread, brief, "")
@@ -323,7 +336,7 @@ func (s *Server) nameOf(thread instance.Thread) string {
 
 // dialogs are the parts of a room's page that carry their own refusals: what was asked in one comes back with its name in the
 // address.
-var dialogs = []string{"members", "add"}
+var dialogs = []string{"members", "add", "guidelines"}
 
 // refusedIn is why the last thing asked of the page was refused, when it was asked of the part named: a dialog, or with no name,
 // what was said in the conversation, which carries no dialog's name.

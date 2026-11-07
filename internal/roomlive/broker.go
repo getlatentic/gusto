@@ -160,7 +160,7 @@ func (b *Broker) History(channel string, opts centrifuge.HistoryOptions) ([]*cen
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), b.drawTimeout)
 	defer cancel()
-	pubs, fits := b.replay(ctx, room, slice.Events)
+	pubs, fits := b.replay(ctx, room, slice.Head.Epoch, slice.Events)
 	if !fits {
 		return nil, position, nil
 	}
@@ -175,7 +175,7 @@ func streamPosition(head roomlog.Position) centrifuge.StreamPosition {
 // are sent as skips, since the last carries the thing as it is. A replay is sent in one reply, so one that weighs more than the
 // bytes it is allowed does not fit: the client could not be sent it without being disconnected for falling behind, and over and
 // over, so it is told it cannot be recovered and takes a snapshot.
-func (b *Broker) replay(ctx context.Context, room string, events []roomlog.Event) ([]*centrifuge.Publication, bool) {
+func (b *Broker) replay(ctx context.Context, room, epoch string, events []roomlog.Event) ([]*centrifuge.Publication, bool) {
 	last := make(map[string]int, len(events))
 	for at, event := range events {
 		last[supersedeKey(event)] = at
@@ -187,7 +187,7 @@ func (b *Broker) replay(ctx context.Context, room string, events []roomlog.Event
 		if key := supersedeKey(event); key != "" && last[key] != at {
 			data = Frame{V: Version, Type: FrameSkip, Room: room, Thread: event.Thread, Seq: event.Seq}.encode()
 		} else {
-			data = b.frame(ctx, room, event)
+			data = b.frame(ctx, room, epoch, event)
 		}
 		if weight += len(data); weight > b.replayBytes {
 			return nil, false
@@ -206,8 +206,8 @@ func supersedeKey(event roomlog.Event) string {
 }
 
 // frame is an event drawn and encoded, from the cache when it was drawn lately. A page that cannot be drawn is a refresh.
-func (b *Broker) frame(ctx context.Context, room string, event roomlog.Event) []byte {
-	if data, found := b.cache.get(room, event.Seq); found {
+func (b *Broker) frame(ctx context.Context, room, epoch string, event roomlog.Event) []byte {
+	if data, found := b.cache.get(room, epoch, event.Seq); found {
 		b.cached.Add(1)
 		return data
 	}
@@ -218,7 +218,7 @@ func (b *Broker) frame(ctx context.Context, room string, event roomlog.Event) []
 		frame.Type = FrameRefresh
 		return frame.encode()
 	}
-	frame.Type, frame.ID, frame.HTML = drawn.Type, drawn.ID, drawn.HTML
+	frame.Type, frame.ID, frame.HTML, frame.Ver = drawn.Type, drawn.ID, drawn.HTML, drawn.Version
 	if drawn.Thread != "" {
 		frame.Thread = drawn.Thread
 	}
@@ -226,7 +226,7 @@ func (b *Broker) frame(ctx context.Context, room string, event roomlog.Event) []
 	if len(data) > maxFrame {
 		return Frame{V: Version, Type: FrameRefresh, Room: room, Thread: frame.Thread, Seq: event.Seq}.encode()
 	}
-	b.cache.put(room, event.Seq, data)
+	b.cache.put(room, epoch, event.Seq, data)
 	return data
 }
 

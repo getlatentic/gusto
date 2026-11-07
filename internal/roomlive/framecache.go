@@ -15,9 +15,12 @@ type frameCache struct {
 	held  map[frameKey]*list.Element
 }
 
+// frameKey names an event by the epoch of its log as well as its number, since a log that starts again numbers its events from
+// one and the frames of the log before it are not these.
 type frameKey struct {
-	room string
-	seq  uint64
+	room  string
+	epoch string
+	seq   uint64
 }
 
 type framed struct {
@@ -29,10 +32,10 @@ func newFrameCache(limit int) *frameCache {
 	return &frameCache{limit: limit, order: list.New(), held: map[frameKey]*list.Element{}}
 }
 
-func (c *frameCache) get(room string, seq uint64) ([]byte, bool) {
+func (c *frameCache) get(room, epoch string, seq uint64) ([]byte, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	at, found := c.held[frameKey{room, seq}]
+	at, found := c.held[frameKey{room, epoch, seq}]
 	if !found {
 		return nil, false
 	}
@@ -41,13 +44,13 @@ func (c *frameCache) get(room string, seq uint64) ([]byte, bool) {
 }
 
 // put keeps a frame unless it alone is more than the cache holds.
-func (c *frameCache) put(room string, seq uint64, data []byte) {
+func (c *frameCache) put(room, epoch string, seq uint64, data []byte) {
 	if len(data) > c.limit {
 		return
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	key := frameKey{room, seq}
+	key := frameKey{room, epoch, seq}
 	if at, found := c.held[key]; found {
 		c.bytes -= len(at.Value.(*framed).data)
 		c.order.Remove(at)

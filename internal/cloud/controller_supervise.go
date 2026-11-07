@@ -38,18 +38,31 @@ func (c *Controller) Run(ctx context.Context, every time.Duration) {
 
 // resume holds what each server was before it is started again, so a request for it is told it is starting and not that it is
 // not there. One that was ready stays ready in the database, since a server on a host apart outlives the gusto cloud server
-// that started it and provisioning finds it running; any other is written down as starting.
+// that started it and provisioning finds it running; any other is written down as starting. An organization the controller
+// holds already, or is provisioning now, has a newer state than the database's and is left as it is.
 func (c *Controller) resume(ctx context.Context, orgs []Org) {
 	for _, org := range orgs {
-		runtime, err := c.Store.Runtime(ctx, org.Slug)
-		switch {
-		case err != nil || runtime.State == "":
-		case runtime.State == Ready:
-			runtime.State = Starting
-			c.put(org.Slug, runtime, true)
-		default:
-			c.set(ctx, org.Slug, runtime, Starting, "")
-		}
+		c.resumeOne(ctx, org.Slug)
+	}
+}
+
+func (c *Controller) resumeOne(ctx context.Context, slug string) {
+	held := c.lock(slug)
+	if !held.TryLock() {
+		return
+	}
+	defer held.Unlock()
+	if _, known := c.stateOf(slug); known {
+		return
+	}
+	runtime, err := c.Store.Runtime(ctx, slug)
+	switch {
+	case err != nil || runtime.State == "":
+	case runtime.State == Ready:
+		runtime.State = Starting
+		c.put(slug, runtime, true)
+	default:
+		c.set(ctx, slug, runtime, Starting, "")
 	}
 }
 
@@ -91,7 +104,9 @@ func (c *Controller) supervise(ctx context.Context) {
 	for slug, held := range seen.ready {
 		switch {
 		case !c.alive(slug, held.runtime):
-			due = append(due, slug)
+			if !time.Now().Before(held.readyAt.Add(restartDelay(held.runtime.Restarts))) {
+				due = append(due, slug)
+			}
 		case held.runtime.Restarts > 0 && time.Since(held.readyAt) >= c.stableFor():
 			c.rewrite(ctx, slug, func(s orgState) bool { return s.runtime.State == Ready && s.runtime.Restarts > 0 },
 				func(r *Runtime) { r.Restarts = 0 })
@@ -107,6 +122,16 @@ func (c *Controller) supervise(ctx context.Context) {
 		c.rewrite(ctx, slug, func(s orgState) bool { return s.unsaved }, func(*Runtime) {})
 	}
 	c.provisionNew(ctx)
+}
+
+// restartDelay is how long after a server became ready it may be restarted when it has stopped. The first stop is restarted at
+// once. A server that stops again before Stable has passed is restarted no sooner than the failure backoff after it was last
+// started, so one that answers and then dies is not started at every sweep.
+func restartDelay(restarts int) time.Duration {
+	if restarts == 0 {
+		return 0
+	}
+	return backoff(restarts)
 }
 
 func (c *Controller) stableFor() time.Duration {

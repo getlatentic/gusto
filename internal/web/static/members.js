@@ -16,3 +16,12 @@
   try { kept = localStorage.getItem("gusto-member-tab"); } catch (e) {}
   if (kept && document.querySelector('[data-member-tab="' + kept + '"]')) { show(kept); }
 })();
+
+// The + menu closes on a choice, on a click elsewhere and on Escape.
+(function () {
+  var menu = document.querySelector("[data-menu]");
+  if (!menu) { return; }
+  document.addEventListener("click", function (event) { if (menu.open && !menu.contains(event.target)) { menu.open = false; } });
+  menu.addEventListener("keydown", function (event) { if (event.key === "Escape") { menu.open = false; menu.querySelector("summary").focus(); } });
+  menu.querySelectorAll("[role=menuitem]").forEach(function (item) { item.addEventListener("click", function () { menu.open = false; }); });
+})();

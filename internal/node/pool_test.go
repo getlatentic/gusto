@@ -296,6 +296,7 @@ func (c *aNode) Ports(from int, taken map[int]bool) (int, int, error) {
 	}
 	return found[0], found[1], nil
 }
+func (c *aNode) Held(int) bool { return false }
 func (c *aNode) Start(spec cloud.ServerSpec) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()

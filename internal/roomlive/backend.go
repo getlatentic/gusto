@@ -25,6 +25,9 @@ type Drawn struct {
 	Thread string
 	ID     string
 	HTML   string
+	// Version says where the conversation stood when the event was drawn, in the words the page's version route uses, so a page
+	// can tell that what it was last shown is not what the server has now.
+	Version string
 }
 
 // Renderer draws an event from the state as it is now.

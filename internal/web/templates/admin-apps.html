@@ -20,7 +20,7 @@
       {{range .Connectors}}
       <tr>
         <td class="whitespace-nowrap font-medium">{{.Name}}</td>
-        <td class="text-muted">{{.What}}</td>
+        <td class="text-muted">{{.What}}{{if .NeedSignIn}}<br><span class="text-xs text-warn">{{.NeedSignIn}} {{if eq .NeedSignIn 1}}person needs{{else}}people need{{end}} to sign in again</span>{{end}}</td>
         <td class="text-right">{{if or .On .Usable}}<form method="post" action="/admin/connectors/{{.ID}}/{{if .On}}off{{else}}on{{end}}"><button class="{{template "ui-switch"}}" type="submit" role="switch" aria-checked="{{.On}}" aria-label="{{.Name}} for everyone" title="Turn {{.Name}} {{if .On}}off{{else}}on{{end}}"></button></form>{{else}}<span class="{{template "ui-badge"}}" title="Whoever runs this server registers it with the app first">needs setup</span>{{end}}</td>
       </tr>
       {{end}}

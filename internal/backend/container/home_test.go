@@ -328,3 +328,23 @@ func TestTheBackendTendsHomesUntilItIsStopped(t *testing.T) {
 		t.Fatal("the backend's work did not stop")
 	}
 }
+
+// A home cannot be reset while a turn runs in it, and says so in a way a page can tell from a failure; a backend with no homes
+// says it keeps none.
+func TestAHomeWithATurnRunningCannotBeResetAndABackendWithoutHomesSaysSo(t *testing.T) {
+	b, root := homeBackend(t, 1<<20, fixed(100))
+	id, home := theHome(t, b, root)
+	turn := aTurn(t)
+	_, err := b.homes.guard(context.Background(), turn.Dir, id, func(context.Context) (int, error) {
+		if err := b.ResetHome(testPerson, ""); !errors.Is(err, ErrHomeBusy) {
+			t.Errorf("resetting a home a turn runs in answered %v", err)
+		}
+		return 0, nil
+	})
+	if err != nil || !exists(home) {
+		t.Fatalf("the turn did not run in its home: %v", err)
+	}
+	if !b.KeepsHomes() || New(Config{}).KeepsHomes() {
+		t.Error("KeepsHomes does not say whether homes are kept")
+	}
+}
