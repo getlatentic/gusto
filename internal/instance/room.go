@@ -1,6 +1,7 @@
 package instance
 
 import (
+	"errors"
 	"fmt"
 	"github.com/getlatentic/gusto/internal/workspace"
 	"os"
@@ -20,6 +21,8 @@ const (
 type Member struct {
 	Who  string `json:"who"`
 	Role string `json:"role"`
+	// Muted says the person has silenced the room for themselves: it adds nothing to what they have unread.
+	Muted bool `json:"muted,omitempty"`
 }
 
 // Agent is an agent in a room: a harness and a model, known by a name people mention it by, and what it does there.
@@ -353,6 +356,9 @@ func (s *Store) changeRoom(id string, change func(*Instance) error) error {
 	held.Members = append([]Member(nil), held.Members...)
 	held.Agents = append([]Agent(nil), held.Agents...)
 	if err := change(&held); err != nil {
+		if errors.Is(err, errUnchanged) {
+			return nil
+		}
 		return err
 	}
 	if err := s.write(held); err != nil {

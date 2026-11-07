@@ -24,6 +24,7 @@ const (
 )
 
 func (s *Server) roomRoutes(mux *http.ServeMux) {
+	s.roomSettingRoutes(mux)
 	mux.HandleFunc("GET /rooms/new", s.guard(s.newRoomPage))
 	mux.HandleFunc("POST /rooms", s.guard(s.makeRoom))
 	mux.HandleFunc("GET /rooms/{id}/members", s.guard(s.roomMembersPage))
@@ -162,8 +163,22 @@ func mentionedWaiting(held instance.Instance, text string) []instance.Agent {
 	return waiting
 }
 
-// roomSay is somebody saying something in a room, by the page's form.
-func (s *Server) roomSay(w http.ResponseWriter, r *http.Request, held instance.Instance, thread instance.Thread, said string) {
+// roomSay is somebody saying something in a room, by the page's form, with the files they attached. Nothing is said in an archived
+// room.
+func (s *Server) roomSay(w http.ResponseWriter, r *http.Request, held instance.Instance, thread instance.Thread) {
+	if held.Archived != 0 {
+		s.turnAway(w, r, threadPath(thread), roomArchivedWords)
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, attachLimit)
+	said, kept := s.withAttachments(w, r, held, thread, strings.TrimSpace(r.FormValue("said")))
+	if !kept {
+		return
+	}
+	if said == "" {
+		http.Redirect(w, r, threadPath(thread), http.StatusSeeOther)
+		return
+	}
 	first, err := s.speak(s.keeper.who(r), held, thread, said, "", false)
 	if err != nil {
 		s.turnAway(w, r, threadPath(thread), err.Error())
@@ -226,14 +241,19 @@ func (s *Server) startRoomTurn(asked string, held instance.Instance, thread inst
 	return record, nil
 }
 
+// handsOn says whether a turn's reply may start turns of other agents: it is an agent's, it finished, and the chain is not at its end.
+func handsOn(record tasks.Record) bool {
+	return record.Agent != "" && record.State == tasks.Passed && record.Hops < handOffs
+}
+
 // handOff starts a turn for each agent a finished room turn's reply mentions, so agents can pass work along. A chain stops after
 // handOffs turns, and a turn that did not finish hands nothing on.
 func (s *Server) handOff(record tasks.Record) {
-	if record.Agent == "" || record.State != tasks.Passed || record.Hops >= handOffs {
+	if !handsOn(record) {
 		return
 	}
 	held, found := s.instances.Get(record.Instance)
-	if !found || !held.Room {
+	if !found || !held.Room || held.Archived != 0 {
 		return
 	}
 	held = s.liveRoom(held)
