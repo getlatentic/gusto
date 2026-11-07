@@ -58,11 +58,3 @@ func cloudComputersCommand() *cmdline.Command {
 		Run:      none("cloud computers", cloudComputers),
 	}
 }
-
-// cloudWorkspacesCommand is gusto cloud computers by the name it had, kept for a release.
-func cloudWorkspacesCommand() *cmdline.Command {
-	return &cmdline.Command{
-		Name: "workspaces", Summary: "The name gusto cloud computers had", Hidden: true,
-		Run: none("cloud workspaces", renamed("gusto cloud workspaces", "gusto cloud computers", cloudComputers)),
-	}
-}

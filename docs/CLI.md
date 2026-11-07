@@ -119,8 +119,8 @@ Environment:
 - `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
 - `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
 - `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
-- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS is its old name
-- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY is its old name
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS was its name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY was its name
 - `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
 - `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
 - `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
@@ -273,8 +273,8 @@ Environment:
 - `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
 - `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
 - `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
-- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS is its old name
-- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY is its old name
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS was its name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY was its name
 - `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
 - `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
 - `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
@@ -325,8 +325,8 @@ Environment:
 - `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
 - `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
 - `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
-- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS is its old name
-- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY is its old name
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS was its name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY was its name
 - `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
 - `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
 - `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
@@ -375,8 +375,8 @@ Environment:
 - `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
 - `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
 - `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
-- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS is its old name
-- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY is its old name
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS was its name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY was its name
 - `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
 - `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
 - `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
@@ -588,7 +588,7 @@ Environment:
 - `GUSTO_LOCAL`: a server for one person on their own computer, listening on the loopback only
 - `GUSTO_ORG`: the organization this server is, as its gusto cloud names it
 - `GUSTO_PUBLIC_URL`: this server's address as people reach it, which links and sign-ins come back to
-- `GUSTO_TASKS`: the directory tasks are kept in (default jobs); GUSTO_JOBS is its old name
+- `GUSTO_TASKS`: the directory tasks are kept in (default jobs); GUSTO_JOBS was its name
 - `GUSTO_SESSIONS`: the directory conversations and rooms are kept in (default sessions)
 - `GUSTO_SETUPS`: the directory skill sets are kept in (default setups)
 - `GUSTO_COMPARISONS`: the directory comparisons are kept in (default comparisons)
@@ -622,7 +622,7 @@ Environment:
 - `GUSTO_ADMINS`: the people who are admins, comma-separated
 - `GUSTO_FOUND_KEYS`: the model keys found on a person's own computer
 - `GUSTO_LOCAL_REPOS`: the repositories on a person's own computer a task may start from
-- `GUSTO_CLOUD_URL`: the address of the gusto cloud that sends people here; GUSTO_FRONT_DOOR is its old name
+- `GUSTO_CLOUD_URL`: the address of the gusto cloud that sends people here; GUSTO_FRONT_DOOR was its name
 - `GUSTO_ENTRY_KEY`: the file of the key gusto cloud signs a person's entry with
 - `GUSTO_ORG_NAME`: what the organization is called, which its pages show
 - `GUSTO_MODEL_URL`: the model a task asks directly when this server holds no credential (default http://localhost:11434/v1)
@@ -653,13 +653,13 @@ Environment:
 - `GUSTO_CONNECTOR_CLIENTS`: the file of the clients registered with the apps that need one, or ssm:<name>
 - `GUSTO_CONNECTOR_APPS`: the file of more apps than the catalog's
 - `GUSTO_SANDBOX`: how tasks are held (container, openshell, process, here) (default container)
-- `GUSTO_TASK_NETWORK`: open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR (open); GUSTO_JOB_NETWORK is its old name
-- `GUSTO_TASK_CONCURRENCY`: how many tasks run at a time (default 1); GUSTO_JOB_CONCURRENCY is its old name
+- `GUSTO_TASK_NETWORK`: open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR (open); GUSTO_JOB_NETWORK was its name
+- `GUSTO_TASK_CONCURRENCY`: how many tasks run at a time (default 1); GUSTO_JOB_CONCURRENCY was its name
 - `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
 - `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
 - `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
-- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS is its old name
-- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY is its old name
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS was its name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY was its name
 - `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
 - `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
 - `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
@@ -673,7 +673,7 @@ Environment:
 - `GUSTO_OPENSHELL_PROCESSES`: the most processes an agent may have running in a sandbox at once (default 512)
 - `GUSTO_OPENSHELL_REMOTE`: the gateway runs on another machine, so this one needs no hardware virtualization
 - `GUSTO_COMPUTERS`: the directory of the records of the computers an organization's people have
-- `GUSTO_NODE`: the node new computers are made on (default local); GUSTO_CELL is its old name
+- `GUSTO_NODE`: the node new computers are made on (default local); GUSTO_CELL was its name
 - `GUSTO_SPARE_COMPUTER`: keep one blank computer ready for the next person who has none
 - `GUSTO_COMPUTER_IDLE_MINUTES`: how long a computer nobody uses runs before it is stopped, in minutes (default 30)
 - `GUSTO_ROOM_COPY_MB`: the most a room's folder may hold for an agent's turn to copy it, in megabytes (default 4096)
@@ -942,13 +942,13 @@ Environment:
 - `GUSTO_CLOUD_FREE_MAIL`: whether free mail providers may sign up; allow is for a demonstration (allow, refuse) (default refuse)
 - `GUSTO_CLOUD_REFUSED_DOMAINS`: more mail domains to turn away, beside the built-in ones, comma-separated
 - `GUSTO_CLOUD_PER_DOMAIN`: how many organizations one mail domain may make (default 3)
-- `GUSTO_CLOUD_TRIAL_TASKS`: the tasks in all an organization may run before its admin's address is confirmed (default 3); GUSTO_CLOUD_TRIAL_JOBS is its old name
+- `GUSTO_CLOUD_TRIAL_TASKS`: the tasks in all an organization may run before its admin's address is confirmed (default 3); GUSTO_CLOUD_TRIAL_JOBS was its name
 - `GUSTO_CLOUD_TRIAL_CONCURRENT`: the tasks at once an organization may run before its admin's address is confirmed (default 1)
-- `GUSTO_CLOUD_TASKS`: the tasks a month a confirmed organization may run (default 200); GUSTO_CLOUD_JOBS is its old name
+- `GUSTO_CLOUD_TASKS`: the tasks a month a confirmed organization may run (default 200); GUSTO_CLOUD_JOBS was its name
 - `GUSTO_CLOUD_CONCURRENT`: the tasks at once a confirmed organization may run (default 4)
 - `GUSTO_CLOUD_MEMBERS`: the people a confirmed organization may have (default 4)
 - `GUSTO_CLOUD_COMPUTERS`: the computers a confirmed organization may have (default 4)
-- `GUSTO_CLOUD_PAID_TASKS_PER_SEAT`: the tasks a month a paying organization may run for each seat (default 200); GUSTO_CLOUD_PAID_JOBS_PER_SEAT is its old name
+- `GUSTO_CLOUD_PAID_TASKS_PER_SEAT`: the tasks a month a paying organization may run for each seat (default 200); GUSTO_CLOUD_PAID_JOBS_PER_SEAT was its name
 - `GUSTO_CLOUD_PAID_MEMBERS`: the people, and the computers, a paying organization may have (default 50)
 - `GUSTO_CLOUD_DEMO_MINUTES`: the minutes a demo lasts from when it is ready (default 0, no demo)
 - `GUSTO_CLOUD_DEMO_EXTEND_MINUTES`: the minutes a demo's one extension adds (default 10)
@@ -971,22 +971,22 @@ Environment:
 - `GUSTO_CLOUD_INDEX_DIR`: where organizations' indexes are kept when that address is not Postgres: a directory for each, on the local disk of the host its server runs on (default index under GUSTO_CLOUD_ROOT)
 - `GUSTO_CLOUD_PORT_FROM`: the first port an organization's server gets, two each (default 9100)
 - `GUSTO_CLOUD_START_WAIT_SECONDS`: how long a server has to answer once started, in seconds (default 120)
-- `GUSTO_CLOUD_NODES_DIR`: the directory nodes register in; unset, this machine runs every organization's server; GUSTO_CLOUD_CELLS_DIR is its old name
-- `GUSTO_CLOUD_NODE_SECRET_FILE`: the file with the secret gusto cloud and the nodes sign with; GUSTO_CLOUD_CELL_SECRET_FILE is its old name
-- `GUSTO_CLOUD_NODE_MIN_FREE_MIB`: the memory a node must have free for an organization to be placed on it, in MiB (default 4096); GUSTO_CLOUD_CELL_MIN_FREE_MIB is its old name
-- `GUSTO_CLOUD_NODE_GONE_MINUTES`: how long a node may be silent before it is taken to be gone and its organizations are placed on another, in minutes (default 30); GUSTO_CLOUD_CELL_GONE_MINUTES is its old name
-- `GUSTO_CLOUD_LOCAL_NODE`: this machine is a node too; GUSTO_CLOUD_LOCAL_CELL is its old name
-- `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH is its old name
-- `GUSTO_CLOUD_NODE_PROJECT`: the project tag of the nodes' machines; GUSTO_CLOUD_CELL_PROJECT is its old name
-- `GUSTO_CLOUD_NODE_TEMPLATE`: the launch template a node's machine is made from; GUSTO_CLOUD_CELL_TEMPLATE is its old name
-- `GUSTO_CLOUD_NODE_USERDATA`: the start-up script a node's machine runs; GUSTO_CLOUD_CELL_USERDATA is its old name
-- `GUSTO_CLOUD_NODE_SETTINGS`: NAME=value pairs, comma-separated, that fill in the start-up script; GUSTO_CLOUD_CELL_SETTINGS is its old name
-- `GUSTO_CLOUD_NODE_IMAGE_PARAMETER`: the parameter the template reads its image from, so a kept node of an older image is replaced and not started again; GUSTO_CLOUD_CELL_IMAGE_PARAMETER is its old name
-- `GUSTO_CLOUD_NODE_MAX`: the most nodes (default 3); GUSTO_CLOUD_CELL_MAX is its old name
-- `GUSTO_CLOUD_NODE_IDLE_MINUTES`: how long a node may have nothing on it before it is stopped, in minutes (default 10); GUSTO_CLOUD_CELL_IDLE_MINUTES is its old name
-- `GUSTO_CLOUD_NODE_BOOT_MINUTES`: how long a node has to come up, in minutes (default 10); GUSTO_CLOUD_CELL_BOOT_MINUTES is its old name
-- `GUSTO_CLOUD_NODE_PREWARMS`: the most nodes started in a day for a visitor still filling in the demo form (default 20); GUSTO_CLOUD_CELL_PREWARMS is its old name
-- `GUSTO_CLOUD_NODE_KEEP`: how many idle nodes are stopped and kept, rather than removed (default 0); GUSTO_CLOUD_CELL_KEEP is its old name
+- `GUSTO_CLOUD_NODES_DIR`: the directory nodes register in; unset, this machine runs every organization's server; GUSTO_CLOUD_CELLS_DIR was its name
+- `GUSTO_CLOUD_NODE_SECRET_FILE`: the file with the secret gusto cloud and the nodes sign with; GUSTO_CLOUD_CELL_SECRET_FILE was its name
+- `GUSTO_CLOUD_NODE_MIN_FREE_MIB`: the memory a node must have free for an organization to be placed on it, in MiB (default 4096); GUSTO_CLOUD_CELL_MIN_FREE_MIB was its name
+- `GUSTO_CLOUD_NODE_GONE_MINUTES`: how long a node may be silent before it is taken to be gone and its organizations are placed on another, in minutes (default 30); GUSTO_CLOUD_CELL_GONE_MINUTES was its name
+- `GUSTO_CLOUD_LOCAL_NODE`: this machine is a node too; GUSTO_CLOUD_LOCAL_CELL was its name
+- `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH was its name
+- `GUSTO_CLOUD_NODE_PROJECT`: the project tag of the nodes' machines; GUSTO_CLOUD_CELL_PROJECT was its name
+- `GUSTO_CLOUD_NODE_TEMPLATE`: the launch template a node's machine is made from; GUSTO_CLOUD_CELL_TEMPLATE was its name
+- `GUSTO_CLOUD_NODE_USERDATA`: the start-up script a node's machine runs; GUSTO_CLOUD_CELL_USERDATA was its name
+- `GUSTO_CLOUD_NODE_SETTINGS`: NAME=value pairs, comma-separated, that fill in the start-up script; GUSTO_CLOUD_CELL_SETTINGS was its name
+- `GUSTO_CLOUD_NODE_IMAGE_PARAMETER`: the parameter the template reads its image from, so a kept node of an older image is replaced and not started again; GUSTO_CLOUD_CELL_IMAGE_PARAMETER was its name
+- `GUSTO_CLOUD_NODE_MAX`: the most nodes (default 3); GUSTO_CLOUD_CELL_MAX was its name
+- `GUSTO_CLOUD_NODE_IDLE_MINUTES`: how long a node may have nothing on it before it is stopped, in minutes (default 10); GUSTO_CLOUD_CELL_IDLE_MINUTES was its name
+- `GUSTO_CLOUD_NODE_BOOT_MINUTES`: how long a node has to come up, in minutes (default 10); GUSTO_CLOUD_CELL_BOOT_MINUTES was its name
+- `GUSTO_CLOUD_NODE_PREWARMS`: the most nodes started in a day for a visitor still filling in the demo form (default 20); GUSTO_CLOUD_CELL_PREWARMS was its name
+- `GUSTO_CLOUD_NODE_KEEP`: how many idle nodes are stopped and kept, rather than removed (default 0); GUSTO_CLOUD_CELL_KEEP was its name
 
 Examples:
 
@@ -1077,11 +1077,11 @@ Flags:
 
 Environment:
 
-- `GUSTO_NODE_NAME`: what this node is called: lower case letters, digits and hyphens, up to 31; GUSTO_CELL_NAME is its old name
-- `GUSTO_NODE_PRIVATE`: this node's IPv4 address on the private network, which its servers bind to; GUSTO_CELL_PRIVATE is its old name
-- `GUSTO_NODE_PORT`: the port to listen on (default 8060); GUSTO_CELL_PORT is its old name
-- `GUSTO_NODE_SECRET_FILE`: the file with the secret gusto cloud and the nodes sign with; GUSTO_CELL_SECRET_FILE is its old name
-- `GUSTO_NODES_DIR`: the directory every node and gusto cloud see; GUSTO_CELLS_DIR is its old name
+- `GUSTO_NODE_NAME`: what this node is called: lower case letters, digits and hyphens, up to 31; GUSTO_CELL_NAME was its name
+- `GUSTO_NODE_PRIVATE`: this node's IPv4 address on the private network, which its servers bind to; GUSTO_CELL_PRIVATE was its name
+- `GUSTO_NODE_PORT`: the port to listen on (default 8060); GUSTO_CELL_PORT was its name
+- `GUSTO_NODE_SECRET_FILE`: the file with the secret gusto cloud and the nodes sign with; GUSTO_CELL_SECRET_FILE was its name
+- `GUSTO_NODES_DIR`: the directory every node and gusto cloud see; GUSTO_CELLS_DIR was its name
 
 See also: `gusto cloud`
 
@@ -1101,7 +1101,7 @@ Flags:
 
 Environment:
 
-- `GUSTO_OPERATOR_ADDR`: where to listen; a loopback address (default 127.0.0.1:8090); GUSTO_OWNER_ADDR is its old name
+- `GUSTO_OPERATOR_ADDR`: where to listen; a loopback address (default 127.0.0.1:8090); GUSTO_OWNER_ADDR was its name
 - `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
 - `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several gusto cloud servers can share
 - `GUSTO_CLOUD_DEMO_MINUTES`: the minutes a demo lasts from when it is ready (default 0, no demo)
@@ -1115,8 +1115,8 @@ Environment:
 - `GUSTO_CLOUD_DEMO_VIDEO`: the video the landing page shows: an https address of a file or of a page to embed
 - `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo
 - `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
-- `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH is its old name
-- `GUSTO_CLOUD_NODE_PROJECT`: the project tag of the nodes' machines; GUSTO_CLOUD_CELL_PROJECT is its old name
+- `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH was its name
+- `GUSTO_CLOUD_NODE_PROJECT`: the project tag of the nodes' machines; GUSTO_CLOUD_CELL_PROJECT was its name
 
 See also: `gusto cloud`
 
@@ -1139,8 +1139,8 @@ Environment:
 - `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
 - `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
 - `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
-- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS is its old name
-- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY is its old name
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS was its name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY was its name
 - `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
 - `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
 - `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
@@ -1194,7 +1194,7 @@ Environment:
 - `GUSTO_LOCAL`: a server for one person on their own computer, listening on the loopback only
 - `GUSTO_ORG`: the organization this server is, as its gusto cloud names it
 - `GUSTO_PUBLIC_URL`: this server's address as people reach it, which links and sign-ins come back to
-- `GUSTO_TASKS`: the directory tasks are kept in (default jobs); GUSTO_JOBS is its old name
+- `GUSTO_TASKS`: the directory tasks are kept in (default jobs); GUSTO_JOBS was its name
 - `GUSTO_SESSIONS`: the directory conversations and rooms are kept in (default sessions)
 - `GUSTO_SETUPS`: the directory skill sets are kept in (default setups)
 - `GUSTO_COMPARISONS`: the directory comparisons are kept in (default comparisons)
@@ -1207,13 +1207,13 @@ Environment:
 - `GUSTO_DATABASE_URL`: the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file beside GUSTO_TASKS)
 - `GUSTO_MIGRATE_IRREVERSIBLE`: let a release change the data in a way an earlier release cannot read
 - `GUSTO_SANDBOX`: how tasks are held (container, openshell, process, here) (default container)
-- `GUSTO_TASK_NETWORK`: open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR (open); GUSTO_JOB_NETWORK is its old name
-- `GUSTO_TASK_CONCURRENCY`: how many tasks run at a time (default 1); GUSTO_JOB_CONCURRENCY is its old name
+- `GUSTO_TASK_NETWORK`: open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR (open); GUSTO_JOB_NETWORK was its name
+- `GUSTO_TASK_CONCURRENCY`: how many tasks run at a time (default 1); GUSTO_JOB_CONCURRENCY was its name
 - `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
 - `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
 - `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
-- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS is its old name
-- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY is its old name
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS was its name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY was its name
 - `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
 - `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
 - `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
@@ -1227,7 +1227,7 @@ Environment:
 - `GUSTO_OPENSHELL_PROCESSES`: the most processes an agent may have running in a sandbox at once (default 512)
 - `GUSTO_OPENSHELL_REMOTE`: the gateway runs on another machine, so this one needs no hardware virtualization
 - `GUSTO_COMPUTERS`: the directory of the records of the computers an organization's people have
-- `GUSTO_NODE`: the node new computers are made on (default local); GUSTO_CELL is its old name
+- `GUSTO_NODE`: the node new computers are made on (default local); GUSTO_CELL was its name
 - `GUSTO_SPARE_COMPUTER`: keep one blank computer ready for the next person who has none
 - `GUSTO_COMPUTER_IDLE_MINUTES`: how long a computer nobody uses runs before it is stopped, in minutes (default 30)
 - `GUSTO_ROOM_COPY_MB`: the most a room's folder may hold for an agent's turn to copy it, in megabytes (default 4096)

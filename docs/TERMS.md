@@ -12,8 +12,8 @@ The words gusto's pages, commands and docs use, each for one thing. The last col
 | computer | One person's machine in a workspace, kept between tasks: a VM, a container or the system sandbox, in the cloud or on their laptop | computer |
 | node | One machine in gusto cloud. It runs several organizations' servers and their people's computers | cell, in what is stored or deployed: the `cell` database column, `cell-` in node names, `cells/`, the `X-Cell-*` headers and the AWS names |
 | cluster | All the nodes of one gusto cloud | |
-| gusto cloud | The hosted service for sign-up, sign-in and routing. It runs no tasks. Several gusto cloud servers can share one database, and one of them leads | front door, controller, in what is deployed: the `front_door` Terraform output and variable, the `front-door` tag, `front_door.yml` and the deploy scripts' words. `GUSTO_FRONT_DOOR` is read when `GUSTO_CLOUD_URL` is not set |
-| operator | The person who runs a gusto cloud | owner, in what is deployed: the `gusto-owner` service. `GUSTO_OWNER_ADDR` is read when `GUSTO_OPERATOR_ADDR` is not set |
+| gusto cloud | The hosted service for sign-up, sign-in and routing. It runs no tasks. Several gusto cloud servers can share one database, and one of them leads | front door, controller, in what is deployed: the `front_door` Terraform output and variable, the `front-door` tag, `front_door.yml` and the deploy scripts' words. `GUSTO_FRONT_DOOR` is refused, naming `GUSTO_CLOUD_URL` |
+| operator | The person who runs a gusto cloud | owner, in what is deployed: the `gusto-owner` service. `GUSTO_OWNER_ADDR` is refused, naming `GUSTO_OPERATOR_ADDR` |
 
 ## The work
 

@@ -62,10 +62,9 @@ func runCommands() []*cmdline.Command {
 			Examples: []string{"gusto cloud", "gusto cloud migrate", "gusto cloud computers"},
 			SeeAlso:  []string{"node", "operator"},
 			Run:      none("cloud", cloudCommand),
-			Subs:     []*cmdline.Command{cloudComputersCommand(), cloudWorkspacesCommand(), cloudMigrateCommand()},
+			Subs:     []*cmdline.Command{cloudComputersCommand(), cloudMigrateCommand()},
 		},
 		nodeCommandOf(),
-		hostCommandOf(),
 		{
 			Name: "operator", Group: groupRun, Summary: "Serve the operator's page for a gusto cloud, on loopback",
 			Description: "Serves the page an operator manages a gusto cloud from. It listens on the loopback of the machine gusto cloud " +
