@@ -2,6 +2,8 @@ package cloud
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/dbkit"
@@ -60,10 +62,26 @@ func (s *Store) Runtime(ctx context.Context, slug string) (Runtime, error) {
 }
 
 // SetRuntime keeps the state of an organization's server. Two organizations on one node cannot be given
-// the same port, even by two gusto cloud servers.
+// the same port, even by two gusto cloud servers. An organization that is gone, as an ended demo is, has no state to keep and is
+// errNoOrg.
 func (s *Store) SetRuntime(ctx context.Context, slug string, rt Runtime) error {
 	rt.Updated = s.now().UTC().Truncate(time.Second)
-	_, err := s.db.ExecContext(ctx, putRuntime.SQL(1),
+	return s.db.InTx(ctx, func(tx dbkit.Tx) error { return s.writeRuntime(ctx, tx, slug, rt) })
+}
+
+// writeRuntime writes the state under the organization's lock, the one EndDemo deletes the organization under, so a write is
+// either before the deletion and deleted with it, or after it and refused, and never fails on a record that is not there.
+func (s *Store) writeRuntime(ctx context.Context, tx dbkit.Tx, slug string, rt Runtime) error {
+	if err := s.lock(ctx, tx, "org:"+slug); err != nil {
+		return err
+	}
+	var exists int
+	if err := tx.QueryRowContext(ctx, `SELECT 1 FROM orgs WHERE slug = ?`, slug).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
+		return errNoOrg
+	} else if err != nil {
+		return err
+	}
+	_, err := tx.ExecContext(ctx, putRuntime.SQL(1),
 		slug, string(rt.State), rt.Node, rt.Port, rt.ProxyPort, rt.Error, rt.Restarts, s.stamp(rt.Updated), rt.Command)
 	return err
 }

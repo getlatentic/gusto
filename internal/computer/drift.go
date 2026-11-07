@@ -3,6 +3,7 @@ package computer
 import (
 	"sort"
 	"strings"
+	"time"
 )
 
 // Drift is where the record and the gateway disagree about an organization.
@@ -17,6 +18,10 @@ type Drift struct {
 
 // Clean says the two agree.
 func (d Drift) Clean() bool { return len(d.Missing) == 0 && len(d.Orphans) == 0 }
+
+// MakingWithin is how long a computer may be being made. One that has been Creating longer was left so by a server that ended
+// before it said how the making went, and is missing when the gateway has no sandbox for it.
+const MakingWithin = 15 * time.Minute
 
 // Compare sets the record against the names of the sandboxes on a gateway. A
 // computer that is still being made, or was deleted, is not missing, and a
@@ -34,7 +39,7 @@ func (r *Registry) Compare(gateway []string) (Drift, error) {
 	var drift Drift
 	for _, each := range all {
 		known[each.Sandbox] = true
-		if each.State != Creating && !there[each.Sandbox] {
+		if (each.State != Creating || r.now().Sub(each.Created) > MakingWithin) && !there[each.Sandbox] {
 			drift.Missing = append(drift.Missing, each)
 		}
 	}

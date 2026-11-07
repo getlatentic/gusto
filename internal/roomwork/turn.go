@@ -24,6 +24,13 @@ type Turn struct {
 	copied tree
 	once   sync.Once
 	closed atomic.Bool
+	// stopped ends when the turn is closed, and ends a merge that is waiting for the room's guard.
+	stopped context.Context
+	stop    context.CancelFunc
+	// merging is held for the whole of a merge, so a turn is never closed, and its copy emptied, while a merge reads it.
+	// merged says the turn's changes are in the folder, and is guarded by merging.
+	merging sync.Mutex
+	merged  bool
 }
 
 // ErrClosed is the answer to merging a turn that has been closed: its copy is gone, and an empty copy would read as every file
@@ -42,6 +49,7 @@ func (h *Hub) Begin(ctx context.Context, in Room, dest, agent string) (*Turn, er
 		return nil, err
 	}
 	turn := &Turn{hub: h, room: in, agent: agent, dest: dest}
+	turn.stopped, turn.stop = context.WithCancel(context.Background())
 	h.join(in, turn)
 	if err := turn.start(ctx); err != nil {
 		turn.Close()
@@ -78,8 +86,11 @@ const timestampGrain = 12 * time.Millisecond
 func (t *Turn) Close() {
 	t.once.Do(func() {
 		t.closed.Store(true)
+		t.stop()
+		t.merging.Lock()
 		_ = os.RemoveAll(t.dest)
 		_ = os.MkdirAll(t.dest, 0o755)
+		t.merging.Unlock()
 		t.hub.leave(t.room, t)
 	})
 }

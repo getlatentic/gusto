@@ -196,27 +196,25 @@ func TestAServerThatCannotStartIsFailedWithAReasonAndTriedAgainLessOften(t *test
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		c := controlled(t, s, "FAKE_FAIL=1")
-		c.Wait = 600 * time.Millisecond
+		c.Wait = time.Minute
 		org := made(t, s, "ada@acme.com", "Acme")
+		began := time.Now()
 		if err := c.Provision(t.Context(), org.Slug); err == nil {
 			t.Fatal("a server that never answers is an error")
+		}
+		if took := time.Since(began); took > 20*time.Second {
+			t.Errorf("a server that had ended was waited for: %s", took)
 		}
 		if address, state := c.Route(t.Context(), org.Slug); state != Failed || address != "" {
 			t.Errorf("%q %q", address, state)
 		}
 		runtime, _ := s.Runtime(t.Context(), org.Slug)
-		if runtime.State != Failed || !strings.Contains(runtime.Error, "server.log") {
-			t.Errorf("the reason is written down, and says where to look: %+v", runtime)
+		if runtime.State != Failed || !strings.Contains(runtime.Error, "told to fail") || !strings.Contains(runtime.Error, "server.log") {
+			t.Errorf("the reason is what the server said, and where it said it: %+v", runtime)
 		}
-		// The controller gives up when Wait is over, which on a loaded machine can be before the server has said why it failed.
-		waitFor(t, func() bool {
-			log, _ := os.ReadFile(filepath.Join(s.OrgDir(org.Slug), "server.log"))
-			return strings.Contains(string(log), "told to fail")
-		})
-		c.supervise(t.Context())
-		first := c.retry[org.Slug]
-		if first.IsZero() {
-			t.Fatal("a failure sets when to try again")
+		held, _ := c.stateOf(org.Slug)
+		if !held.retryAt.After(time.Now()) {
+			t.Fatalf("the first failure sets when to try again, and it is not at once: %+v", held)
 		}
 		before, _ := os.ReadFile(filepath.Join(s.OrgDir(org.Slug), "server.log"))
 		c.supervise(t.Context()) // too soon: nothing is tried

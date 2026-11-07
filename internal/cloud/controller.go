@@ -2,24 +2,16 @@ package cloud
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
-	"maps"
 	"net"
-	"net/http"
-	"os"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // Controller makes each organization's server exist and keeps it running. An
@@ -65,14 +57,16 @@ type Controller struct {
 	// OnWaiting is told when an organization starts waiting for a node with room, so a node can be started for it at
 	// once. It is called outside the controller's lock and must not block.
 	OnWaiting func()
+	// Stable is how long a server has to stay ready before the restarts it needed are forgotten, two minutes when not set. A
+	// server that stops again sooner is restarted less and less often.
+	Stable time.Duration
 
-	// mu guards the two maps below and is held only to read or change them, so
-	// routing never waits on a server that is starting. Each organization is
-	// provisioned by one caller at a time, under its own lock, and ports are given
-	// out under portMu, so two do not choose the same.
-	mu     sync.Mutex
-	states map[string]Runtime
-	retry  map[string]time.Time
+	// mu guards the maps below and is held only to read or change them, never across a call to a node or the database, so
+	// routing never waits on a server that is starting. Each organization is provisioned by one caller at a time, under its
+	// own lock, and ports are given out under portMu, so two do not choose the same. Only the leader provisions, and the
+	// lease's epoch fences what it writes, so two gusto cloud servers do not give two organizations one port.
+	mu   sync.Mutex
+	orgs map[string]orgState
 	// removed is when each organization Remove forgot was made, until Ended: a slug may be given again, and a new
 	// organization that holds it is told apart from the removed one by when it was made.
 	removed map[string]time.Time
@@ -95,8 +89,7 @@ func (c *Controller) Follow() {
 	c.epoch.Store(-1)
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	clear(c.states)
-	clear(c.retry)
+	clear(c.orgs)
 }
 
 func (c *Controller) following() bool { return c.epoch.Load() < 0 }
@@ -131,64 +124,98 @@ func (c *Controller) Provision(ctx context.Context, slug string) error {
 var ErrRemoved = errors.New("that organization has been removed")
 
 func (c *Controller) provision(ctx context.Context, slug string) error {
-	if err := c.stillServed(ctx, slug); err != nil {
+	runtime, running, err := c.begin(ctx, slug)
+	if err != nil || running {
 		return err
 	}
-	runtime, err := c.Store.Runtime(ctx, slug)
-	if err != nil {
-		return err
-	}
-	// A restart that was counted a moment ago is only in memory until it is written.
-	c.mu.Lock()
-	if held, known := c.states[slug]; known && held.Restarts > runtime.Restarts {
-		runtime.Restarts = held.Restarts
-	}
-	c.mu.Unlock()
 	if err := c.set(ctx, slug, runtime, Provisioning, ""); err != nil {
 		return err
 	}
 	if err := c.prepare(ctx, slug); err != nil {
 		return c.fail(ctx, slug, runtime, err)
 	}
-	node, err := c.placement(ctx, slug, &runtime)
+	node, err := c.place(ctx, slug, &runtime)
 	if errors.Is(err, ErrNoCapacity) {
 		return c.wait(ctx, slug, runtime, err)
 	}
 	if err != nil {
 		return c.fail(ctx, slug, runtime, err)
 	}
-	if runtime.Port == 0 {
-		if runtime, err = c.givePorts(ctx, slug, runtime, node); err != nil {
-			return c.fail(ctx, slug, runtime, err)
-		}
-	}
 	if err := c.set(ctx, slug, runtime, Starting, ""); err != nil {
 		return err
 	}
+	if err := c.start(ctx, slug, runtime, node); err != nil {
+		return c.fail(ctx, slug, runtime, err)
+	}
+	return c.becomeReady(ctx, slug, runtime)
+}
+
+// becomeReady records the server as ready, once it answers, with the command it was started with. A demo's time starts when its
+// server first answers, whoever opens it first: its visitor's waiting page, or a colleague who came by the organization's own
+// address. The server is not ready until the time is written, and is tried again if it cannot be.
+func (c *Controller) becomeReady(ctx context.Context, slug string, runtime Runtime) error {
+	runtime.Command = strings.Join(c.Command, " ")
+	if _, err := c.Store.DemoReady(ctx, slug); err != nil && !errors.Is(err, ErrNotDemo) {
+		return c.fail(ctx, slug, runtime, fmt.Errorf("a demo's time could not be started: %w", err))
+	}
+	return c.set(ctx, slug, runtime, Ready, "")
+}
+
+// begin reads what provisioning goes on from: the runtime in the database, with the restarts this controller has counted,
+// which are ahead of the database's. running says the server is running as this release already, and that is all there is
+// to do. An organization whose state cannot be read is failed in memory, to be tried again.
+func (c *Controller) begin(ctx context.Context, slug string) (runtime Runtime, running bool, err error) {
+	if err = c.stillServed(ctx, slug); err == nil {
+		runtime, err = c.Store.Runtime(ctx, slug)
+	}
+	if err != nil {
+		if !errors.Is(err, ErrRemoved) {
+			c.unreadable(slug, err)
+		}
+		return Runtime{}, false, err
+	}
+	stored := runtime.Restarts
+	if held, known := c.stateOf(slug); known {
+		runtime.Restarts = held.runtime.Restarts
+	}
+	if running = c.runsThisRelease(slug, runtime); running {
+		c.put(slug, runtime, runtime.Restarts == stored)
+	}
+	return runtime, running, nil
+}
+
+// runsThisRelease says an organization's server is ready and running, started with this gusto cloud server's command. Asking
+// it to provision again leaves it as it is: marking it as being set up would turn its visitors away for nothing.
+func (c *Controller) runsThisRelease(slug string, runtime Runtime) bool {
+	return runtime.State == Ready && runtime.Command == strings.Join(c.Command, " ") && c.alive(slug, runtime)
+}
+
+// place puts an organization on a node, and gives it ports there, writing each down.
+func (c *Controller) place(ctx context.Context, slug string, runtime *Runtime) (Node, error) {
+	node, err := c.placement(ctx, slug, runtime)
+	if err != nil {
+		return nil, err
+	}
+	if runtime.Port == 0 {
+		*runtime, err = c.givePorts(ctx, slug, *runtime, node)
+	}
+	return node, err
+}
+
+// start runs an organization's server, and returns when it answers as the organization's.
+func (c *Controller) start(ctx context.Context, slug string, runtime Runtime, node Node) error {
 	env, err := c.environment(ctx, slug, runtime, node)
 	if err != nil {
-		return c.fail(ctx, slug, runtime, err)
+		return err
 	}
 	spec := ServerSpec{Slug: slug, Command: c.Command, Env: env, Log: filepath.Join(c.orgDir(slug), "server.log")}
 	if err := c.endOtherRelease(node, slug, runtime); err != nil {
-		return c.fail(ctx, slug, runtime, err)
-	}
-	if err := node.Start(spec); err != nil {
-		return c.fail(ctx, slug, runtime, err)
-	}
-	runtime.Command = strings.Join(c.Command, " ")
-	if err := c.answers(ctx, node, runtime.Port); err != nil {
-		return c.fail(ctx, slug, runtime, err)
-	}
-	if err := c.set(ctx, slug, runtime, Ready, ""); err != nil {
 		return err
 	}
-	// A demo's time starts when its server first answers, whoever opens it first: its visitor's waiting page, or a colleague
-	// who came by the organization's own address.
-	if _, err := c.Store.DemoReady(ctx, slug); err != nil && !errors.Is(err, ErrNotDemo) {
-		slog.Error("a demo's time could not be started", "org", slug, "error", err)
+	if err := node.Start(spec); err != nil {
+		return err
 	}
-	return nil
+	return c.answers(ctx, node, spec, runtime.Port)
 }
 
 // stillServed says whether an organization is one to serve: it is in the store, and it is not the one Remove forgot. A call
@@ -205,8 +232,7 @@ func (c *Controller) stillServed(ctx context.Context, slug string) error {
 	if found && !ending && !(removed && made.Equal(org.Created)) {
 		return nil
 	}
-	delete(c.states, slug)
-	delete(c.retry, slug)
+	delete(c.orgs, slug)
 	return ErrRemoved
 }
 
@@ -253,130 +279,6 @@ func (c *Controller) placement(ctx context.Context, slug string, runtime *Runtim
 	return node, c.Store.SetRuntimeAt(ctx, c.epoch.Load(), slug, *runtime)
 }
 
-// prepare makes what an organization's server keeps: its directories, the key it signs
-// its records with, and the key it and gusto cloud share.
-func (c *Controller) prepare(ctx context.Context, slug string) error {
-	data := c.Store.DataDir(slug)
-	for _, dir := range []string{"jobs", "sessions", "setups", "comparisons", "changes", "retention", "keys", "computers", "inbox"} {
-		if err := os.MkdirAll(filepath.Join(data, dir), 0o700); err != nil {
-			return err
-		}
-	}
-	if err := os.MkdirAll(filepath.Join(c.orgDir(slug), "home"), 0o700); err != nil {
-		return err
-	}
-	if err := c.Store.PublishRoster(ctx, slug); err != nil {
-		return err
-	}
-	keys := filepath.Join(data, "keys")
-	if _, err := os.Stat(filepath.Join(keys, slug+".key")); missing(err) {
-		if _, err := signing.Generate(keys, slug); err != nil {
-			return err
-		}
-	}
-	if _, err := os.Stat(c.entryKeyFile(slug)); missing(err) {
-		secret := make([]byte, 32)
-		if _, err := rand.Read(secret); err != nil {
-			return err
-		}
-		return os.WriteFile(c.entryKeyFile(slug), []byte(hex.EncodeToString(secret)), 0o600)
-	}
-	return nil
-}
-
-// entryKeyFile is the key gusto cloud makes entry tokens with and the
-// organization's server checks them with.
-func (c *Controller) entryKeyFile(slug string) string {
-	return filepath.Join(c.orgDir(slug), "entry.key")
-}
-
-// EntryKey is that key.
-func (c *Controller) EntryKey(slug string) ([]byte, error) { return os.ReadFile(c.entryKeyFile(slug)) }
-
-// environment is the whole environment of an organization's server: the operator's
-// settings, then what is the organization's own, which wins.
-func (c *Controller) environment(ctx context.Context, slug string, runtime Runtime, node Node) ([]string, error) {
-	password := make([]byte, 24)
-	if _, err := rand.Read(password); err != nil {
-		return nil, err
-	}
-	org, _, err := c.Store.Org(ctx, slug)
-	if err != nil {
-		return nil, err
-	}
-	own := c.dataSettings(slug)
-	maps.Copy(own, c.serverSettings(slug, org.Name, runtime, node))
-	maps.Copy(own, map[string]string{
-		// A person's own conversations share their computer's files and their own state, so they
-		// take turns. A room's agents each work on a copy, so they do not wait for each other.
-		"GUSTO_LIMIT_PERSON":     "1",
-		"GUSTO_TASK_CONCURRENCY": strconv.Itoa(max(c.Concurrent, 1)),
-		// Nobody knows this: a server behind gusto cloud has no password to type.
-		"GUSTO_PASSWORD": hex.EncodeToString(password),
-		"HOME":           filepath.Join(c.orgDir(slug), "home"),
-	})
-	data := c.Store.DataDir(slug)
-	if c.OrgURL != nil {
-		own["GUSTO_PUBLIC_URL"] = c.OrgURL(slug)
-		own["GUSTO_CONNECTORS"] = filepath.Join(data, "connectors")
-	}
-	operator := c.Env
-	if org.Demo != nil {
-		operator = append(slices.Clone(c.Env), c.DemoEnv...)
-	}
-	database, err := usageDatabase(operator, slug, c.indexDir())
-	if err != nil {
-		return nil, err
-	}
-	if database != "" {
-		own[databaseURLEnv] = database
-	}
-	env := withoutSetting(operator, databaseURLEnv)
-	for name, value := range own {
-		env = append(env, name+"="+value)
-	}
-	return env, nil
-}
-
-// serverSettings is where an organization's server listens, which organization it is, and the gusto cloud and node it is on.
-func (c *Controller) serverSettings(slug, name string, runtime Runtime, node Node) map[string]string {
-	return map[string]string{
-		"GUSTO_ADDR":       node.Listen() + ":" + strconv.Itoa(runtime.Port),
-		"GUSTO_PROXY_ADDR": "127.0.0.1:" + strconv.Itoa(runtime.ProxyPort),
-		"GUSTO_ORG":        slug,
-		"GUSTO_ORG_NAME":   name,
-		"GUSTO_CLOUD_URL":  c.CloudURL,
-		"GUSTO_NODE":       node.Name(),
-	}
-}
-
-// dataSettings is where an organization's server keeps each kind of its data, all under its own directory.
-func (c *Controller) dataSettings(slug string) map[string]string {
-	data := c.Store.DataDir(slug)
-	return map[string]string{
-		"GUSTO_TASKS":        filepath.Join(data, "jobs"),
-		"GUSTO_SESSIONS":     filepath.Join(data, "sessions"),
-		"GUSTO_SETUPS":       filepath.Join(data, "setups"),
-		"GUSTO_CREW":         filepath.Join(data, "crew"),
-		"GUSTO_PRESETS":      filepath.Join(data, "presets"),
-		"GUSTO_INTEGRATIONS": filepath.Join(data, "integrations"),
-		"GUSTO_COMPARISONS":  filepath.Join(data, "comparisons"),
-		"GUSTO_CHANGES":      filepath.Join(data, "changes", "changes.jsonl"),
-		"GUSTO_RETENTION":    filepath.Join(data, "retention"),
-		signing.KeyEnv:       filepath.Join(data, "keys", slug+".key"),
-		signing.KeyringEnv:   filepath.Join(data, "keys"),
-		"GUSTO_SIGNER":       slug,
-		"GUSTO_QUOTA":        c.Store.QuotaFile(slug),
-		"GUSTO_MEMBERS":      c.Store.RosterFile(slug),
-		"GUSTO_ORG_SETTINGS": filepath.Join(data, "settings.json"),
-		"GUSTO_REGISTRY":     filepath.Join(data, "registry"),
-		"GUSTO_INBOX":        c.Store.InboxDir(slug),
-		"GUSTO_ENTRY_KEY":    c.entryKeyFile(slug),
-		"GUSTO_COMPUTERS":    filepath.Join(data, "computers"),
-		"GUSTO_APPS":         filepath.Join(data, "apps"),
-	}
-}
-
 // givePorts gives an organization two ports on its node and writes them down before anyone
 // else is given any, so two organizations provisioned together do not share one.
 func (c *Controller) givePorts(ctx context.Context, slug string, runtime Runtime, node Node) (Runtime, error) {
@@ -400,135 +302,17 @@ func (c *Controller) givePorts(ctx context.Context, slug string, runtime Runtime
 	return runtime, c.Store.SetRuntimeAt(ctx, c.epoch.Load(), slug, runtime)
 }
 
-func free(port int) bool {
-	listener, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port))
-	if err != nil {
-		return false
-	}
-	listener.Close()
-	return true
-}
-
-// healthCheck bounds one ask of a server's health, so a server that takes the connection and never answers is asked again.
-var healthCheck = &http.Client{Timeout: 2 * time.Second}
-
-// answers waits until the server on the port says it is well, for as long as c.Wait or until ctx ends.
-func (c *Controller) answers(ctx context.Context, node Node, port int) error {
-	ctx, cancel := context.WithTimeout(ctx, c.Wait)
-	defer cancel()
-	address := "http://" + net.JoinHostPort(node.Host(), strconv.Itoa(port)) + "/healthz"
-	every := time.NewTicker(100 * time.Millisecond)
-	defer every.Stop()
-	for {
-		if healthy(ctx, address) {
-			return nil
-		}
-		select {
-		case <-ctx.Done():
-			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				return fmt.Errorf("the server did not answer in %s, and what it said is in server.log", c.Wait)
-			}
-			return ctx.Err()
-		case <-every.C:
-		}
-	}
-}
-
-// healthy is whether the server at address says it is well.
-func healthy(ctx context.Context, address string) bool {
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, address, nil)
-	if err != nil {
-		return false
-	}
-	response, err := healthCheck.Do(request)
-	if err != nil {
-		return false
-	}
-	response.Body.Close()
-	return response.StatusCode == http.StatusOK
-}
-
-// set writes down the state of a server and remembers it for routing. A write refused because another gusto cloud server leads now
-// is said, and nothing is remembered: the provision that made it stops. Any other failure to write is logged, and routing
-// follows what is remembered.
-func (c *Controller) set(ctx context.Context, slug string, runtime Runtime, state State, why string) error {
-	runtime.State, runtime.Error = state, why
-	err := c.Store.SetRuntimeAt(ctx, c.epoch.Load(), slug, runtime)
-	if errors.Is(err, ErrNotLeading) {
-		return err
-	}
-	if err != nil {
-		slog.Error("an organization's state was not written", "org", slug, "error", err)
-	}
-	c.mu.Lock()
-	if c.states == nil {
-		c.states = map[string]Runtime{}
-	}
-	c.states[slug] = runtime
-	c.mu.Unlock()
-	return nil
-}
-
-// wait leaves an organization waiting for a node with room, which it is tried for again shortly. It is not a failure
-// and is not counted as one, since what it waits for is being made.
-func (c *Controller) wait(ctx context.Context, slug string, runtime Runtime, err error) error {
-	c.set(ctx, slug, runtime, Waiting, err.Error())
-	c.mu.Lock()
-	if c.retry == nil {
-		c.retry = map[string]time.Time{}
-	}
-	c.retry[slug] = time.Now().Add(c.waitEvery())
-	c.mu.Unlock()
-	if c.OnWaiting != nil {
-		c.OnWaiting()
-	}
-	return err
-}
-
-func (c *Controller) waitEvery() time.Duration {
-	if c.WaitEvery > 0 {
-		return c.WaitEvery
-	}
-	return 500 * time.Millisecond
-}
-
-// Waiting is how many organizations are waiting for a node with room, which is what makes another start.
-func (c *Controller) Waiting() int { return c.count(Waiting) }
-
-// Busy is how many organizations wait for a node with room or are being placed and started, while which no node is idle:
-// the one an organization is being placed on may be the one with nothing on it yet.
-func (c *Controller) Busy() int { return c.count(Waiting, Provisioning, Starting) }
-
-func (c *Controller) count(states ...State) int {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	counted := 0
-	for _, runtime := range c.states {
-		if slices.Contains(states, runtime.State) {
-			counted++
-		}
-	}
-	return counted
-}
-
-func (c *Controller) fail(ctx context.Context, slug string, runtime Runtime, err error) error {
-	slog.Error("an organization's server could not be made ready", "org", slug, "error", err)
-	c.set(ctx, slug, runtime, Failed, err.Error())
-	return err
-}
-
 // Route is where an organization's server is when it can be reached, and its state
 // when it cannot. A server whose process has gone is not reached.
 func (c *Controller) Route(ctx context.Context, slug string) (address string, state State) {
 	if c.following() {
 		return c.routeFollowed(ctx, slug)
 	}
-	c.mu.Lock()
-	runtime, known := c.states[slug]
-	c.mu.Unlock()
+	held, known := c.stateOf(slug)
 	if !known {
 		return "", ""
 	}
+	runtime := held.runtime
 	if runtime.State != Ready {
 		return "", runtime.State
 	}
@@ -539,146 +323,13 @@ func (c *Controller) Route(ctx context.Context, slug string) (address string, st
 	return net.JoinHostPort(node.Host(), strconv.Itoa(runtime.Port)), Ready
 }
 
-// Run provisions every organization there is and then keeps their servers running, until the context ends: when this front
-// door stops leading, or stops. It leaves the servers running, for the next leader; StopAll stops them. A server that has
-// stopped is started again, at first at once and then less often, so one that cannot start does not take the machine with
-// it.
-func (c *Controller) Run(ctx context.Context, every time.Duration) {
-	orgs, err := c.Store.Orgs(ctx)
-	if err != nil {
-		slog.Error("the organizations could not be listed", "error", err)
-	}
-	// What each server was is known before it is started again, so a request for it
-	// is told it is starting and not that it is not there.
-	for _, org := range orgs {
-		if runtime, err := c.Store.Runtime(ctx, org.Slug); err == nil && runtime.State != "" {
-			c.set(ctx, org.Slug, runtime, Starting, "")
-		}
-	}
-	for _, org := range orgs {
-		go c.Provision(ctx, org.Slug)
-	}
-	for {
-		// An organization that waits for a node is looked at often, since a visitor waits on it; otherwise every so often.
-		next := every
-		if c.Waiting() > 0 {
-			next = min(every, c.waitEvery())
-		}
-		timer := time.NewTimer(next)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return
-		case <-timer.C:
-			c.supervise(ctx)
-		}
-	}
-}
-
-// supervise restarts what has stopped or failed, retries what waits, and provisions what was signed up on a gusto cloud server that
-// does not lead. Whether a server is alive is asked of its node outside c.mu, so routing does not wait on a node.
-func (c *Controller) supervise(ctx context.Context) {
-	var due, waiting []string
-	var ready map[string]Runtime
-	c.mu.Lock()
-	now := time.Now()
-	for slug, runtime := range c.states {
-		switch {
-		case runtime.State == Ready:
-			if ready == nil {
-				ready = map[string]Runtime{}
-			}
-			ready[slug] = runtime
-		case runtime.State == Failed && !now.Before(c.retry[slug]):
-			due = append(due, slug)
-		case runtime.State == Waiting && !now.Before(c.retry[slug]):
-			waiting = append(waiting, slug)
-		}
-	}
-	c.mu.Unlock()
-	for slug, runtime := range ready {
-		if !c.alive(slug, runtime) {
-			due = append(due, slug)
-		}
-	}
-	for _, slug := range due {
-		c.restart(ctx, slug)
-	}
-	for _, slug := range waiting {
-		go c.reprovision(ctx, slug)
-	}
-	c.provisionNew(ctx)
-}
-
-// provisionNew provisions each organization that has no runtime yet and that this controller does not hold.
-func (c *Controller) provisionNew(ctx context.Context) {
-	slugs, err := c.Store.Unprovisioned(ctx)
-	if err != nil {
-		slog.Error("the organizations with no server could not be listed", "error", err)
-		return
-	}
-	for _, slug := range slugs {
-		c.mu.Lock()
-		_, held := c.states[slug]
-		c.mu.Unlock()
-		if !held {
-			go c.Provision(ctx, slug)
-		}
-	}
-}
-
-// reprovision starts again a server the controller keeps, and does nothing for one it was told to forget. The supervisor
-// decides what to restart before it takes each organization's lock, and Remove may come in between: what it removed stays
-// removed.
-func (c *Controller) reprovision(ctx context.Context, slug string) error {
-	held := c.lock(slug)
-	held.Lock()
-	defer held.Unlock()
-	c.mu.Lock()
-	_, kept := c.states[slug]
-	c.mu.Unlock()
-	if !kept {
-		return nil
-	}
-	return c.provision(ctx, slug)
-}
-
-// restart starts a server that has stopped or failed. One that fails again is
-// tried after twice as long each time, up to five minutes.
-func (c *Controller) restart(ctx context.Context, slug string) {
-	c.mu.Lock()
-	runtime, kept := c.states[slug]
-	if !kept {
-		c.mu.Unlock()
-		return
-	}
-	runtime.Restarts++
-	c.states[slug] = runtime
-	c.mu.Unlock()
-	if err := c.reprovision(ctx, slug); err != nil && !errors.Is(err, ErrRemoved) {
-		c.mu.Lock()
-		if c.retry == nil {
-			c.retry = map[string]time.Time{}
-		}
-		c.retry[slug] = time.Now().Add(time.Duration(min(1<<min(runtime.Restarts, 8), 300)) * time.Second)
-		c.mu.Unlock()
-	}
-}
-
-// alive is whether an organization's server is running on its node, and a node that cannot be
-// reached is one whose servers are not known to be.
-func (c *Controller) alive(slug string, runtime Runtime) bool {
-	node, err := c.nodeNamed(runtime.Node)
-	return err == nil && node.Alive(slug)
-}
-
 // StopAll stops every server this controller holds, when gusto cloud stops. A server on a host apart is left running:
 // it does not end with gusto cloud, which is restarted at every deploy.
 func (c *Controller) StopAll() {
 	c.mu.Lock()
-	held := make(map[string]Runtime, len(c.states))
-	for slug, runtime := range c.states {
-		held[slug] = runtime
+	held := make(map[string]Runtime, len(c.orgs))
+	for slug, state := range c.orgs {
+		held[slug] = state.runtime
 	}
 	c.mu.Unlock()
 	var wg sync.WaitGroup
@@ -712,9 +363,8 @@ func (c *Controller) Remove(ctx context.Context, slug string) {
 		slog.Error("a removed organization could not be read, so a new one at its address is refused until it ends", "org", slug, "error", err)
 	}
 	c.mu.Lock()
-	runtime := c.states[slug]
-	delete(c.states, slug)
-	delete(c.retry, slug)
+	runtime := c.orgs[slug].runtime
+	delete(c.orgs, slug)
 	if c.removed == nil {
 		c.removed = map[string]time.Time{}
 	}

@@ -33,7 +33,8 @@ type Index struct {
 	pump *pump
 	// finishers are told of each task that ends, after its record is written.
 	finishers []func(Record)
-	// changers are told of every change to a record, as it is made.
+	// changers are told of every change to a record, as it is made. Removing a task is not one: only a finished task is removed,
+	// and its record is already as it will stay.
 	changers []func(Record)
 	// recovered are the records Open found running, with nobody running them, and ended as interrupted.
 	recovered []Record
@@ -74,8 +75,12 @@ func Open(root string) (*Index, error) {
 		return nil, err
 	}
 	index := &Index{root: root, records: map[string]Record{}, finished: map[State]int64{}}
-	found, err := readAll(root)
+	sweepRemoving(root)
+	found, rebuilt, err := readTasks(root)
 	if err != nil {
+		return nil, err
+	}
+	if err := repairTorn(root, rebuilt); err != nil {
 		return nil, err
 	}
 	for _, record := range found {
@@ -220,7 +225,6 @@ func (i *Index) Claim() (Record, bool, error) {
 	}
 	oldest.State = Running
 	oldest.Started = Now()
-	i.lastStarted = oldest.Started
 	// A manifest left by an earlier run of this directory would be read as this
 	// run's verdict if this run never reaches the end. The run about to start
 	// overwrites the rest of out/ anyway, so the old verdict goes with it.
@@ -231,6 +235,7 @@ func (i *Index) Claim() (Record, bool, error) {
 		return Record{}, false, err
 	}
 	i.records[oldest.ID] = *oldest
+	i.lastStarted = oldest.Started
 	i.mirrored(*oldest)
 	return *oldest, true, nil
 }
