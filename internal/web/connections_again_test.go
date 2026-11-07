@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/task"
@@ -58,8 +59,38 @@ func TestASignInThatNeedsMakingAgainSaysSoWhereverAppsAreShown(t *testing.T) {
 		t.Errorf("the agent is not told the sign-in needs making again:\n%s", brief.Brief)
 	}
 
+}
+
+// An admin turning an app off does not take a person's own sign-in out of their hands: Connections still lists the app, with
+// only Disconnect, and ending the sign-in works, while connecting the app again stays refused until an admin turns it on.
+func TestAPersonEndsTheirSignInToAnAppAnAdminTurnedOff(t *testing.T) {
+	here, log, app := connected(t)
+	here.ask(t, "POST", "/admin/connectors/tasks/on", nil)
+	ada, bea := here.as(t, alice), here.as(t, bob)
+	signInAt(t, ada, app)
 	here.ask(t, "POST", "/admin/connectors/tasks/off", nil)
-	if got := ada.ask(t, "POST", "/connections/tasks/disconnect", nil).Code; got != http.StatusNotFound {
-		t.Errorf("disconnecting an app that is off answered %d, as connecting it does not", got)
+
+	page := ada.ask(t, "GET", "/connections", nil).Body.String()
+	if !strings.Contains(page, ">turned off<") || !strings.Contains(page, `action="/connections/tasks/disconnect"`) ||
+		strings.Contains(page, `action="/connections/tasks/agents"`) || strings.Contains(page, `href="/connections/tasks/connect"`) {
+		t.Errorf("a turned-off app the person is signed in to is not shown with only Disconnect:\n%s", page)
+	}
+	if page := bea.ask(t, "GET", "/connections", nil).Body.String(); strings.Contains(page, "Tasks") {
+		t.Errorf("a turned-off app is listed for somebody who never signed in to it:\n%s", page)
+	}
+	if got := ada.ask(t, "GET", "/connections/tasks/connect", nil).Code; got != http.StatusNotFound {
+		t.Errorf("connecting an app that is off answered %d", got)
+	}
+	if got := ada.ask(t, "POST", "/connections/tasks/disconnect", nil).Code; got != http.StatusSeeOther {
+		t.Fatalf("ending a sign-in to an app that is off answered %d", got)
+	}
+	if page := ada.ask(t, "GET", "/connections", nil).Body.String(); strings.Contains(page, "Tasks") {
+		t.Errorf("the app is still listed after the sign-in ended:\n%s", page)
+	}
+	if ended := ofKind(written(t, log), changelog.ConnectorDisconnected); len(ended) != 1 || ended[0].Who != alice {
+		t.Errorf("the change record holds %+v", ended)
+	}
+	if got := bea.ask(t, "POST", "/connections/nothing/disconnect", nil).Code; got != http.StatusNotFound {
+		t.Errorf("disconnecting an app nobody knows answered %d", got)
 	}
 }

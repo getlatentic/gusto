@@ -15,13 +15,13 @@
   <table class="{{template "ui-table"}}">
     <thead><tr><th>App</th><th>What your agents reach</th><th>Connected</th><th>For my agents</th><th></th></tr></thead>
     <tbody>
-      {{range .Connectors}}
+      {{range .Connectors}}{{$offered := .Offered}}
       <tr>
         <td class="whitespace-nowrap font-medium">{{.Name}}</td>
         <td class="text-muted">{{.What}}</td>
-        <td class="whitespace-nowrap">{{if .Connected}}<span class="{{template "ui-badge-ok"}}">{{ago .Since.Unix}}</span>{{else if .SignInAgain}}<span class="{{template "ui-badge-warn"}}" title="The app no longer takes your sign-in, so your agents cannot use it">sign in again</span>{{else}}<span class="text-muted">not yet</span>{{end}}</td>
-        <td class="whitespace-nowrap">{{if .Connected}}<form class="m-0" method="post" action="/connections/{{.ID}}/agents"><select class="select h-8" name="on" aria-label="Whether your agents may use {{.Name}}, unless you choose otherwise for one" data-autosubmit><option value="on"{{if .ForAgents}} selected{{end}}>On</option><option value="off"{{if not .ForAgents}} selected{{end}}>Off</option></select></form>{{else}}<span class="text-muted">&mdash;</span>{{end}}</td>
-        <td class="text-right">{{if .Connected}}<form method="post" action="/connections/{{.ID}}/disconnect"><button class="{{template "ui-btn-sm"}}" type="submit">Disconnect</button></form>{{else if .SignInAgain}}<div class="flex justify-end gap-2"><a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Sign in again</a><form class="m-0" method="post" action="/connections/{{.ID}}/disconnect"><button class="{{template "ui-btn-sm"}}" type="submit">Disconnect</button></form></div>{{else}}<a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Connect</a>{{end}}</td>
+        <td class="whitespace-nowrap">{{if not $offered}}<span class="{{template "ui-badge-warn"}}" title="An admin turned this app off, so your agents are not given it. Your sign-in is kept until you disconnect.">turned off</span>{{else if .Connected}}<span class="{{template "ui-badge-ok"}}">{{ago .Since.Unix}}</span>{{else if .SignInAgain}}<span class="{{template "ui-badge-warn"}}" title="The app no longer takes your sign-in, so your agents cannot use it">sign in again</span>{{else}}<span class="text-muted">not yet</span>{{end}}</td>
+        <td class="whitespace-nowrap">{{if and .Connected $offered}}<form class="m-0" method="post" action="/connections/{{.ID}}/agents"><select class="select h-8" name="on" aria-label="Whether your agents may use {{.Name}}, unless you choose otherwise for one" data-autosubmit><option value="on"{{if .ForAgents}} selected{{end}}>On</option><option value="off"{{if not .ForAgents}} selected{{end}}>Off</option></select></form>{{else}}<span class="text-muted">&mdash;</span>{{end}}</td>
+        <td class="text-right">{{if or .Connected (not $offered)}}<form method="post" action="/connections/{{.ID}}/disconnect"><button class="{{template "ui-btn-sm"}}" type="submit">Disconnect</button></form>{{else if .SignInAgain}}<div class="flex justify-end gap-2"><a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Sign in again</a><form class="m-0" method="post" action="/connections/{{.ID}}/disconnect"><button class="{{template "ui-btn-sm"}}" type="submit">Disconnect</button></form></div>{{else}}<a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Connect</a>{{end}}</td>
       </tr>
       {{end}}
     </tbody>
