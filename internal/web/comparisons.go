@@ -144,7 +144,7 @@ func (s *Server) sideSpec(models Models, held industry.Template, harness, named,
 	if !found {
 		return task.Spec{}, fmt.Errorf("%s is not offered here", named)
 	}
-	spec := task.Spec{Brief: brief, Repo: repo, Ref: commit, Gate: held.Check, Harness: harness, Model: model,
+	spec := task.Spec{Brief: brief, Repo: repo, Ref: commit, Check: held.Check, Harness: harness, Model: model,
 		Sensitivity: held.Sensitivity, Setup: &task.Setup{Name: held.Name}}
 	adapter, err := runnable(spec, nil)
 	if err != nil {

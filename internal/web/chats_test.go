@@ -53,8 +53,8 @@ func TestARemovedHarnessLeavesTheListAndKeepsItsTasks(t *testing.T) {
 func TestTheRecordFiltersByState(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	site.leave(t, "went-well", leftBehind{state: tasks.Passed, out: map[string]string{}, gate: passed})
-	site.leave(t, "went-badly", leftBehind{state: tasks.Failed, out: map[string]string{}, gate: passed})
+	site.leave(t, "went-well", leftBehind{state: tasks.Passed, out: map[string]string{}, check: passed})
+	site.leave(t, "went-badly", leftBehind{state: tasks.Failed, out: map[string]string{}, check: passed})
 	all := site.ask(t, "GET", "/jobs", nil).Body.String()
 	if !strings.Contains(all, `href="/jobs?state=failed"`) {
 		t.Fatal("the failed count is not a filter")
@@ -65,7 +65,7 @@ func TestTheRecordFiltersByState(t *testing.T) {
 	}
 }
 
-// A turn in a conversation names no gate. Its page has no gate to report
+// A turn in a conversation names no check. Its page has no check to report
 // missing, and it leads back to the conversation it was part of.
 func TestATurnsPageLeadsBackToItsThread(t *testing.T) {
 	site := open(t)
@@ -78,8 +78,8 @@ func TestATurnsPageLeadsBackToItsThread(t *testing.T) {
 	if !strings.Contains(page, `href="`+where+`"`) {
 		t.Error("the turn's page does not lead back to its thread")
 	}
-	if strings.Contains(page, "never answered") || strings.Contains(page, "before its gate") {
-		t.Error("a turn with no gate is shown as missing a verdict")
+	if strings.Contains(page, "never answered") || strings.Contains(page, "before its check") {
+		t.Error("a turn with no check is shown as missing a verdict")
 	}
 }
 

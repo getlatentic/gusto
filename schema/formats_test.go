@@ -125,7 +125,7 @@ func TestAManifestSaysWhenTheModelNeverAnswered(t *testing.T) {
 }
 
 // A turn in a conversation is a task too, and the one written most often. Its
-// job.json names the instance, the thread and the setup, and names no gate.
+// job.json names the instance, the thread and the setup, and names no check.
 func TestATurnInAConversationMatchesTheSchema(t *testing.T) {
 	turn := task.Spec{
 		Version: task.Version, Brief: "and then?", Harness: "dsh", Model: "deepseek/deepseek-flash",

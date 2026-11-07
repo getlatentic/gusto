@@ -27,7 +27,7 @@ func TestAReplayRunsTheSameTaskAtTheCommitTheOldRunStartedFrom(t *testing.T) {
 	if row.Err != nil {
 		t.Fatal(row.Err)
 	}
-	if row.Change() != replay.Same || !row.After.Gate.Passed {
+	if row.Change() != replay.Same || !row.After.Check.Passed {
 		t.Fatalf("the same harness on the same commit should pass again, got %s", row.Change())
 	}
 	if spec, _ := task.Read(row.Replay); spec.Ref != started {

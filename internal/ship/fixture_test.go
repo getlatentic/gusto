@@ -18,7 +18,7 @@ import (
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// Two harnesses that are programs: one leaves the answer the gate wants, and
+// Two harnesses that are programs: one leaves the answer the check wants, and
 // one leaves an answer it refuses.
 const (
 	answersYes = `{"name": "yes", "program": "sh", "argv": ["-c", "printf yes > answer.txt"], "needs": "nothing", "stream": "plain"}`
@@ -70,7 +70,7 @@ func finishedAs(t *testing.T, harness string, signs signing.Identity) (task.Dir,
 	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    bare,
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: harness,
 		Model:   "local/fixture-model",
 	}

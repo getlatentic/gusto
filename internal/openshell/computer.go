@@ -180,7 +180,7 @@ func (s *Sandbox) Confine(key string) {
 // held is the command as the sandbox runs it: through gusto boxed, which starts the run's forwarder, when the task is bound;
 // behind the task's Landlock policy, with its own home and temporary folder, when it is confined; and as it is otherwise.
 func (s *Sandbox) held(command *exec.Cmd) (*exec.Cmd, error) {
-	// Only the agent is told the model's address. The gate and the checks of the image are not, and do not spend the run's secret.
+	// Only the agent is told the model's address. The check and the image's own checks are not, so they do not spend the run's secret.
 	forwarded := s.bound && mentions(command, runtoken.Place)
 	if !s.confined && !forwarded {
 		return command, nil

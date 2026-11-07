@@ -381,14 +381,14 @@ func TestATaskRunsInTheInstancesOwnFolder(t *testing.T) {
 }
 
 // A task needs somewhere to work and a way to know it worked, and nothing else.
-func TestATaskWithNoGateIsRefused(t *testing.T) {
+func TestATaskWithNoCheckIsRefused(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	where := startedInstance(t, site)
-	for _, gate := range []string{"", "  "} {
-		answer := site.ask(t, "POST", where+"/tasks", url.Values{"brief": {"do a thing"}, "gate": {gate}})
+	for _, check := range []string{"", "  "} {
+		answer := site.ask(t, "POST", where+"/tasks", url.Values{"brief": {"do a thing"}, "gate": {check}})
 		if got := answer.Header().Get("Location"); !strings.Contains(got, "refused") {
-			t.Errorf("a task with gate %q was accepted: %d to %q", gate, answer.Code, got)
+			t.Errorf("a task with check %q was accepted: %d to %q", check, answer.Code, got)
 		}
 	}
 	if len(site.index.List()) != 0 {

@@ -33,7 +33,7 @@ func refused(t *testing.T) (task.Dir, error) {
 	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    repo(t),
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: "absent",
 	}
 	if err := spec.Write(dir); err != nil {

@@ -22,7 +22,7 @@ func claiming(t *testing.T, root, id string) task.Dir {
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := task.Spec{Brief: "b", Repo: "/repo", Gate: []string{"true"}, Harness: "fixture"}
+	spec := task.Spec{Brief: "b", Repo: "/repo", Check: []string{"true"}, Harness: "fixture"}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func claiming(t *testing.T, root, id string) task.Dir {
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifest := evidence.Manifest{Task: hash, Files: files, Gate: &evidence.Verdict{Command: spec.Gate, Passed: true}, Signer: "alice"}
+	manifest := evidence.Manifest{Task: hash, Files: files, Check: &evidence.Verdict{Command: spec.Check, Passed: true}, Signer: "alice"}
 	if err := evidence.Write(dir, manifest); err != nil {
 		t.Fatal(err)
 	}

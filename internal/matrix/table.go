@@ -37,7 +37,7 @@ type Row struct {
 	Environment string `json:"environment"`
 	// Finished is the check's verdict. Null is a run that left none.
 	Finished        *bool    `json:"finished"`
-	GateCode        *int     `json:"gateCode"`
+	CheckCode       *int     `json:"gateCode"`
 	StoppedAtBudget bool     `json:"stoppedAtBudget"`
 	WallSeconds     *float64 `json:"wallSeconds"`
 	Tokens          *int64   `json:"tokens"`
@@ -81,11 +81,11 @@ func rowOf(where, environment string, cell Cell) (Row, error) {
 	}
 	side := sideOf(where, cell)
 	row.Evidence = checked(side)
-	if side.Err != nil || side.Manifest.Gate == nil {
+	if side.Err != nil || side.Manifest.Check == nil {
 		return row, nil
 	}
-	passed, code := side.Manifest.Gate.Passed, side.Manifest.Gate.Code
-	row.Finished, row.GateCode, row.StoppedAtBudget = &passed, &code, side.Manifest.StoppedAtBudget
+	passed, code := side.Manifest.Check.Passed, side.Manifest.Check.Code
+	row.Finished, row.CheckCode, row.StoppedAtBudget = &passed, &code, side.Manifest.StoppedAtBudget
 	row.WallSeconds = cell.WallSeconds
 	cost, err := spentBy(cell.Run(where), side.Manifest)
 	if err != nil {
@@ -106,7 +106,7 @@ func checked(side compare.Side) string {
 		return "not run yet"
 	case side.Err != nil:
 		return "none: " + side.Err.Error()
-	case side.Manifest.Gate == nil:
+	case side.Manifest.Check == nil:
 		return "no verdict"
 	case len(side.Wrong) > 0:
 		return side.Wrong[0]

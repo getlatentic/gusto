@@ -10,7 +10,7 @@ import (
 )
 
 // The task page reads a finished task's evidence for the reviewer: the patch as a
-// diff, the transcript as text, the gate's verdict beside what it printed, and
+// diff, the transcript as text, the check's verdict beside what it printed, and
 // the command that checks all of it without this server. Every string here was
 // written by a harness nobody trusts, and it reaches the page only through
 // html/template, which escapes it.
@@ -29,36 +29,36 @@ func readPatch(dir task.Dir, id string) (patchView, bool) {
 	return patchView{excerpt: patch, Files: parseDiff(patch.Text)}, true
 }
 
-// gateView is the gate's answer. The verdict comes from the manifest, so a run
-// that never reached its gate has a log at most and no verdict to show.
-type gateView struct {
+// checkView is the check's answer. The verdict comes from the manifest, so a run
+// that never reached its check has a log at most and no verdict to show.
+type checkView struct {
 	Verdict *evidence.Verdict
 	Command string
 	Log     *excerpt
-	// Explains is a gate that did not pass. Its output is then the answer the
+	// Explains is a check that did not pass. Its output is then the answer the
 	// reader came for and is drawn open; a pass has nothing to explain and
 	// keeps its output folded away.
 	Explains bool
 }
 
-func readGate(record tasks.Record, dir task.Dir, manifest *evidence.Manifest) gateView {
-	gate := gateView{Explains: record.State != tasks.Passed}
-	if manifest != nil && manifest.Gate != nil {
-		gate.Verdict = manifest.Gate
-		gate.Command = shellLine(manifest.Gate.Command)
+func readCheck(record tasks.Record, dir task.Dir, manifest *evidence.Manifest) checkView {
+	check := checkView{Explains: record.State != tasks.Passed}
+	if manifest != nil && manifest.Check != nil {
+		check.Verdict = manifest.Check
+		check.Command = shellLine(manifest.Check.Command)
 	}
 	if log, found := readExcerpt(dir, record.ID, "gate.log", drawn); found && !log.Empty() {
-		gate.Log = &log
+		check.Log = &log
 	}
-	return gate
+	return check
 }
 
 // bare is what a POSIX shell reads as one word without quotes.
 var bare = regexp.MustCompile(`^[A-Za-z0-9_./:=@%+,-]+$`)
 
 // shellLine writes a command so that pasting it into a shell runs the same
-// argv the gate ran. Joining with spaces would split `sh -c "go test ./..."`
-// into words the gate never had.
+// argv the check ran. Joining with spaces would split `sh -c "go test ./..."`
+// into words the check never had.
 func shellLine(words []string) string {
 	quoted := make([]string, len(words))
 	for i, word := range words {
@@ -75,8 +75,8 @@ func shellWord(word string) string {
 }
 
 // drawEvidence adds to the task page what the run left behind. The transcript
-// and the gate wait for the task to finish, because until then the live stream
-// is the transcript and the gate has not answered.
+// and the check wait for the task to finish, because until then the live stream
+// is the transcript and the check has not answered.
 func drawEvidence(page map[string]any, record tasks.Record, dir task.Dir, manifest *evidence.Manifest) {
 	if manifest != nil {
 		page["Manifest"] = manifest
@@ -92,7 +92,7 @@ func drawEvidence(page map[string]any, record tasks.Record, dir task.Dir, manife
 	if transcript, found := readExcerpt(dir, record.ID, "transcript.log", drawn); found {
 		page["Transcript"] = transcript
 	}
-	page["Gate"] = readGate(record, dir, manifest)
+	page["Check"] = readCheck(record, dir, manifest)
 }
 
 // readManifest is the run's manifest, or nil for a task that has not written

@@ -12,9 +12,9 @@ import (
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// A task run in the server's own process is given an environment of its own: the harness and the gate see what they were given
+// A task run in the server's own process is given an environment of its own: the harness and the check see what they were given
 // and nothing of the process they run in, where the server keeps its secrets.
-func TestAHarnessAndItsGateRunWithTheEnvironmentGivenAndNotTheServers(t *testing.T) {
+func TestAHarnessAndItsCheckRunWithTheEnvironmentGivenAndNotTheServers(t *testing.T) {
 	t.Setenv("GUSTO_PASSWORD", "the-servers-own-secret")
 	mine := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(mine, "plain"), 0o755); err != nil {
@@ -30,7 +30,7 @@ func TestAHarnessAndItsGateRunWithTheEnvironmentGivenAndNotTheServers(t *testing
 	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    repo(t),
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes && test -z "${GUSTO_PASSWORD:-}" && test "$GUSTO_MODEL_TOKEN" = given-token`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes && test -z "${GUSTO_PASSWORD:-}" && test "$GUSTO_MODEL_TOKEN" = given-token`},
 		Harness: "plain",
 	}
 	if err := spec.Write(dir); err != nil {
@@ -43,8 +43,8 @@ func TestAHarnessAndItsGateRunWithTheEnvironmentGivenAndNotTheServers(t *testing
 	}
 	exit, err := runner.InsideWith(context.Background(), dir, env, runner.Place{})
 	if err != nil || exit != 0 {
-		gate, _ := os.ReadFile(dir.OutFile("gate.log"))
-		t.Fatalf("exit %d, %v: the gate saw the server's environment or no token\n%s", exit, err, gate)
+		check, _ := os.ReadFile(dir.OutFile("gate.log"))
+		t.Fatalf("exit %d, %v: the check saw the server's environment or no token\n%s", exit, err, check)
 	}
 	seen, _ := os.ReadFile(filepath.Join(dir.WorkingFolder(), "seen.txt"))
 	if string(seen) != "token=given-token password=absent" {

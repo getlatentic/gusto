@@ -70,7 +70,7 @@ func sideOf(where string, run Run) Side {
 // a failure of the comparison.
 func ExitCode(sides []Side) int {
 	for _, side := range sides {
-		if side.Err != nil || side.Manifest.Gate == nil || len(side.Wrong) > 0 {
+		if side.Err != nil || side.Manifest.Check == nil || len(side.Wrong) > 0 {
 			return 2
 		}
 	}

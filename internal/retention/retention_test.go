@@ -257,7 +257,7 @@ func TestASweptTaskStillVerifiesAndNamesItsSigner(t *testing.T) {
 	if err := os.WriteFile(dir.OutFile("diff.patch"), []byte("a patch"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	spec := task.Spec{Brief: "b", Repo: "r", Gate: []string{"true"}, Harness: "fixture"}
+	spec := task.Spec{Brief: "b", Repo: "r", Check: []string{"true"}, Harness: "fixture"}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -265,7 +265,7 @@ func TestASweptTaskStillVerifiesAndNamesItsSigner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Task: taskHash, Files: files, Gate: &evidence.Verdict{Passed: true}, Harness: "fixture", AtUnix: daysAgo(40)}); err != nil {
+	if err := evidence.Write(dir, evidence.Manifest{Task: taskHash, Files: files, Check: &evidence.Verdict{Passed: true}, Harness: "fixture", AtUnix: daysAgo(40)}); err != nil {
 		t.Fatal(err)
 	}
 	ring := t.TempDir()

@@ -26,25 +26,25 @@ func Print(w io.Writer, where string, record Record, sides []Side) {
 }
 
 func verdict(side Side) string {
-	switch gate := side.Manifest.Gate; {
-	case gate == nil:
+	switch check := side.Manifest.Check; {
+	case check == nil:
 		return "-"
-	case gate.Passed:
-		return fmt.Sprintf("passed (%d)", gate.Code)
+	case check.Passed:
+		return fmt.Sprintf("passed (%d)", check.Code)
 	default:
-		return fmt.Sprintf("failed (%d)", gate.Code)
+		return fmt.Sprintf("failed (%d)", check.Code)
 	}
 }
 
 func exit(side Side) string {
-	if side.Manifest.Gate == nil {
+	if side.Manifest.Check == nil {
 		return "-"
 	}
 	return fmt.Sprint(side.Manifest.HarnessExit)
 }
 
 func budget(side Side) string {
-	if side.Manifest.Gate == nil {
+	if side.Manifest.Check == nil {
 		return "-"
 	}
 	return fmt.Sprint(side.Manifest.StoppedAtBudget)

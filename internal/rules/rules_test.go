@@ -8,7 +8,7 @@ import (
 )
 
 func spec(label task.Sensitivity) task.Spec {
-	return task.Spec{Brief: "b", Repo: "r", Gate: []string{"true"}, Harness: "opencode", Sensitivity: label}
+	return task.Spec{Brief: "b", Repo: "r", Check: []string{"true"}, Harness: "opencode", Sensitivity: label}
 }
 
 func TestRestrictedCodeRefusesAModelOnTheInternet(t *testing.T) {

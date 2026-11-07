@@ -41,15 +41,15 @@ func TestAnAgentCallsAnAppAsThePersonWhoAskedForTheTask(t *testing.T) {
 	root := t.TempDir()
 	adas := connectedTask(t, root, "20261031-1200-ada", "ada@acme.example", app.MCP())
 	bobs := connectedTask(t, root, "20261031-1300-bob", "bob@acme.example", app.MCP())
-	gates, err := openGateways(root, fromEnv(t).way)
+	gateways, err := openGateways(root, fromEnv(t).way)
 	if err != nil {
 		t.Fatal(err)
 	}
-	gates.tokens = store
+	gateways.tokens = store
 	tokens := proxy.NewTokens()
 	where := func(id string) (string, bool) { return filepath.Join(root, id, "out", "proxy.jsonl"), true }
 	p := proxy.New(tokens, proxy.Credentials{}, where, spend.NewLedger(spend.Policy{}), proxy.ParseAllowlist(""))
-	p.UseGateways(gates.For)
+	p.UseGateways(gateways.For)
 	front := httptest.NewServer(p.Handler())
 	t.Cleanup(front.Close)
 	call := func(id string) string {

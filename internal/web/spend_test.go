@@ -27,7 +27,7 @@ func spentTaskFor(t *testing.T, root, id, team, person string, lines ...string) 
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := task.Spec{Brief: "b", Repo: "github.com/o/api", Gate: []string{"true"}, Harness: "fixture", Team: team, Person: person}
+	spec := task.Spec{Brief: "b", Repo: "github.com/o/api", Check: []string{"true"}, Harness: "fixture", Team: team, Person: person}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}

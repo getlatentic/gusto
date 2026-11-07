@@ -118,7 +118,7 @@ func (r *outside) agentTurn(ctx context.Context, record *Record) (int, error) {
 	return talk(ctx, r.box, r.adapter, r.spec, record)
 }
 
-// check brings the working folder out of the box, diffs it, asks the gate in the box, and keeps what the box's guard saw.
+// check brings the working folder out of the box, diffs it, asks the check in the box, and keeps what the box's guard saw.
 func (r *outside) check(ctx context.Context) (*evidence.Verdict, error) {
 	if err := r.box.Fetch(r.dir.WorkingFolder()); err != nil {
 		return nil, err
@@ -127,8 +127,8 @@ func (r *outside) check(ctx context.Context) (*evidence.Verdict, error) {
 		return nil, err
 	}
 	var verdict *evidence.Verdict
-	if len(r.spec.Gate) > 0 {
-		given, err := gateIn(ctx, r.spec, r.dir, r.box)
+	if len(r.spec.Check) > 0 {
+		given, err := checkIn(ctx, r.spec, r.dir, r.box)
 		if err != nil {
 			return nil, err
 		}
@@ -137,16 +137,16 @@ func (r *outside) check(ctx context.Context) (*evidence.Verdict, error) {
 	return verdict, keepGuard(r.dir, r.box)
 }
 
-// gateIn asks the gate in the box, where the repository's own code runs, and
+// checkIn asks the check in the box, where the repository's own code runs, and
 // keeps the answer and the whole output.
-func gateIn(ctx context.Context, spec task.Spec, dir task.Dir, box Box) (evidence.Verdict, error) {
-	command := box.Wrap(ctx, exec.CommandContext(ctx, spec.Gate[0], spec.Gate[1:]...))
+func checkIn(ctx context.Context, spec task.Spec, dir task.Dir, box Box) (evidence.Verdict, error) {
+	command := box.Wrap(ctx, exec.CommandContext(ctx, spec.Check[0], spec.Check[1:]...))
 	command.Dir = ""
 	verdict, output, err := askWith(spec, command)
 	if err != nil {
 		return evidence.Verdict{}, err
 	}
-	return verdict, keepGate(dir, verdict, output)
+	return verdict, keepCheck(dir, verdict, output)
 }
 
 // keepGuard writes what the box's guard recorded into the record.

@@ -2,9 +2,9 @@ package evidence
 
 import "testing"
 
-// A turn names no gate, so its harness's exit and the proxy's word on its model are what say it failed. A turn whose harness or
-// model never answered must not be recorded as passed. A gate, when there is one, decides.
-func TestATurnWithNoGateFailsWhenItsHarnessOrItsModelDid(t *testing.T) {
+// A turn names no check, so its harness's exit and the proxy's word on its model are what say it failed. A turn whose harness or
+// model never answered must not be recorded as passed. A check, when there is one, decides.
+func TestATurnWithNoCheckFailsWhenItsHarnessOrItsModelDid(t *testing.T) {
 	for _, tc := range []struct {
 		verdict *Verdict
 		exit    int

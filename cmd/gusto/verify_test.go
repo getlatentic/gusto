@@ -8,9 +8,9 @@ import (
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// A message in a conversation names no gate, so its record verifies on the
+// A message in a conversation names no check, so its record verifies on the
 // signature and the files alone.
-func TestAConversationMessageVerifiesWithoutAGate(t *testing.T) {
+func TestAConversationMessageVerifiesWithoutACheck(t *testing.T) {
 	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
@@ -29,6 +29,6 @@ func TestAConversationMessageVerifiesWithoutAGate(t *testing.T) {
 	sealedBy(t, dir, ring, "greencloud")
 	t.Setenv(signing.KeyringEnv, ring)
 	if code := run([]string{"verify", dir.Path(), "-signed"}); code != 0 {
-		t.Fatalf("verify -signed exited %d, want 0 for a signed message with no gate", code)
+		t.Fatalf("verify -signed exited %d, want 0 for a signed message with no check", code)
 	}
 }

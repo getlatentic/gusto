@@ -25,17 +25,17 @@ func Shippable(dir task.Dir) (evidence.Manifest, error) {
 	if err != nil {
 		return evidence.Manifest{}, err
 	}
-	if manifest.Gate == nil {
+	if manifest.Check == nil {
 		return evidence.Manifest{}, fmt.Errorf("%w: this task had no check, so nothing says its work is right", ErrRefused)
 	}
-	if err := passed(dir, *manifest.Gate); err != nil {
+	if err := passed(dir, *manifest.Check); err != nil {
 		return evidence.Manifest{}, err
 	}
 	return manifest, carriesChange(dir)
 }
 
 // untouched re-hashes the evidence the way `gusto verify` does. Shipping a patch
-// that changed after its gate passed would put unchecked code in front of a
+// that changed after its check passed would put unchecked code in front of a
 // reviewer under a passing verdict, which is the worst thing this can do.
 func untouched(dir task.Dir) error {
 	wrong, err := evidence.Check(dir)
@@ -49,7 +49,7 @@ func untouched(dir task.Dir) error {
 }
 
 func passed(dir task.Dir, claimed evidence.Verdict) error {
-	recorded, err := gates(dir)
+	recorded, err := checks(dir)
 	if err != nil {
 		return fmt.Errorf("%w: gates.json cannot be read: %w", ErrRefused, err)
 	}
@@ -62,7 +62,7 @@ func passed(dir task.Dir, claimed evidence.Verdict) error {
 	return nil
 }
 
-func gates(dir task.Dir) (evidence.Verdict, error) {
+func checks(dir task.Dir) (evidence.Verdict, error) {
 	text, err := os.ReadFile(dir.OutFile("gates.json"))
 	if err != nil {
 		return evidence.Verdict{}, err

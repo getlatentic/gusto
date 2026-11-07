@@ -31,7 +31,7 @@ func configuredRun(t *testing.T, adapter string) (task.Dir, string) {
 	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    repo(t),
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: "configured",
 	}
 	if err := spec.Write(dir); err != nil {
