@@ -93,12 +93,12 @@ func hangUpOn(command *exec.Cmd, exited <-chan error) error {
 	}
 }
 
-// resolved is the workspace by the path it really has. A harness can hold a
+// resolved is the working folder by the path it really has. A harness can hold a
 // session to the directory it began in, and a turn run without a container
 // reaches the conversation's directory through a link that is new every turn.
-func resolved(workspace string) string {
-	if real, err := filepath.EvalSymlinks(workspace); err == nil {
+func resolved(workingFolder string) string {
+	if real, err := filepath.EvalSymlinks(workingFolder); err == nil {
 		return real
 	}
-	return workspace
+	return workingFolder
 }

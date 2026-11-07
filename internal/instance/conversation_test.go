@@ -7,7 +7,7 @@ import (
 )
 
 // leftByTheTwoStepStart is an instance as starting one used to leave it: a
-// computer with a workspace and nothing said to it, and no conversation open.
+// computer with a folder and nothing said to it, and no conversation open.
 func leftByTheTwoStepStart(t *testing.T, root, id string) string {
 	t.Helper()
 	dir := filepath.Join(root, id)

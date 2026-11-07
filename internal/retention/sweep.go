@@ -21,8 +21,8 @@ type Tasks interface {
 
 // Kind is what a sweep removed of a task.
 const (
-	Workspace = "workspace"
-	Record    = "record"
+	WorkingFolder = "workspace"
+	Record        = "record"
 )
 
 // Action is one removal, made or, in a dry run, planned.
@@ -75,11 +75,11 @@ func Sweep(all Tasks, root string, policy Policy, holds Guard, live func(room st
 		}
 		action := Action{Task: record.ID, Brief: record.Brief, Kind: kind, State: string(record.State), Days: days}
 		target := filepath.Join(root, record.ID)
-		if kind == Workspace {
+		if kind == WorkingFolder {
 			target = filepath.Join(target, "workspace")
 		}
 		action.Bytes = size(target)
-		if kind == Workspace && action.Bytes == 0 {
+		if kind == WorkingFolder && action.Bytes == 0 {
 			continue
 		}
 		var failed error
@@ -107,14 +107,14 @@ func Sweep(all Tasks, root string, policy Policy, holds Guard, live func(room st
 }
 
 // due is what the policy says a task has outlived, the record first because it
-// takes the workspace with it.
+// takes the working folder with it.
 func due(policy Policy, record tasks.Record, days int) string {
 	state := string(record.State)
 	if limit := policy.RecordDays[state]; limit > 0 && days >= limit {
 		return Record
 	}
-	if limit := policy.WorkspaceDays[state]; limit > 0 && days >= limit {
-		return Workspace
+	if limit := policy.WorkingFolderDays[state]; limit > 0 && days >= limit {
+		return WorkingFolder
 	}
 	return ""
 }

@@ -129,21 +129,20 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 	}
 	routines, unread := s.routineRows(held.ID)
 	s.render(w, "instance.html", map[string]any{
-		"Title":     productName + " — " + s.agentOf(held).Name,
-		"Nav":       "harnesses",
-		"Instance":  held,
-		"Agent":     s.agentOf(held),
-		"Threads":   said,
-		"Workspace": s.instances.Workspace(held.ID),
-		"Models":    s.offeredTo(r),
-		"Sharing":   s.apps != nil,
-		"Runs":      s.runner != nil,
-		"Apps":      s.appsOf(held.ID),
-		"Refresh":   startingApp(s.appsOf(held.ID)),
-		"Tasks":     s.tasks(held.ID),
-		"Routines":  routines,
-		"Unread":    unread,
-		"Refused":   s.refusal(r),
+		"Title":    productName + " — " + s.agentOf(held).Name,
+		"Nav":      "harnesses",
+		"Instance": held,
+		"Agent":    s.agentOf(held),
+		"Threads":  said,
+		"Models":   s.offeredTo(r),
+		"Sharing":  s.apps != nil,
+		"Runs":     s.runner != nil,
+		"Apps":     s.appsOf(held.ID),
+		"Refresh":  startingApp(s.appsOf(held.ID)),
+		"Tasks":    s.tasks(held.ID),
+		"Routines": routines,
+		"Unread":   unread,
+		"Refused":  s.refusal(r),
 	})
 }
 

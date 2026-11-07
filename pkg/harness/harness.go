@@ -201,8 +201,8 @@ func (a Adapter) Shape() wire.Shape {
 	return wire.Chat
 }
 
-func (a Adapter) Command(ctx context.Context, spec task.Spec, workspace string) *exec.Cmd {
-	return a.CommandIn(ctx, spec, workspace, Here())
+func (a Adapter) Command(ctx context.Context, spec task.Spec, workingFolder string) *exec.Cmd {
+	return a.CommandIn(ctx, spec, workingFolder, Here())
 }
 
 // Installed is the program a computer or an image needs for this agent to run.
@@ -239,7 +239,7 @@ func Here() Env {
 }
 
 // CommandIn is Command for an agent started in an environment given.
-func (a Adapter) CommandIn(ctx context.Context, spec task.Spec, workspace string, env Env) *exec.Cmd {
+func (a Adapter) CommandIn(ctx context.Context, spec task.Spec, workingFolder string, env Env) *exec.Cmd {
 	wanted := a.Argv
 	if spec.Remembered != "" && len(a.Resume) > 0 {
 		wanted = a.Resume
@@ -259,10 +259,10 @@ func (a Adapter) CommandIn(ctx context.Context, spec task.Spec, workspace string
 		argv = append(argv, filled)
 	}
 	command := exec.CommandContext(ctx, a.fill(a.Program, spec, env), argv...)
-	command.Dir = workspace
-	// A folder a task names is looked at again here, and one that leaves the workspace is not gone to.
+	command.Dir = workingFolder
+	// A folder a task names is looked at again here, and one that leaves the working folder is not gone to.
 	if dir, err := task.CleanDir(spec.Dir); err == nil && dir != "" {
-		command.Dir = filepath.Join(workspace, filepath.FromSlash(dir))
+		command.Dir = filepath.Join(workingFolder, filepath.FromSlash(dir))
 	}
 	if a.Stdin != "" {
 		command.Stdin = strings.NewReader(a.fill(a.Stdin, spec, env))

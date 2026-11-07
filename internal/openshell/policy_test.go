@@ -48,7 +48,7 @@ func TestASandboxMayReachTheProxyAndTheHostsTheOperatorNamedAndNothingElse(t *te
 	}
 }
 
-func TestTheWorkspaceAndTheHarnessesOwnPlacesAreWritableAndTheSystemIsNot(t *testing.T) {
+func TestTheWorkingFolderAndTheHarnessesOwnPlacesAreWritableAndTheSystemIsNot(t *testing.T) {
 	policy := decoded(t, Config{}, "http://host.openshell.internal:8041/model/v1", "/home/agent/.local/share/opencode")
 	filesystem := policy["filesystem_policy"].(map[string]any)
 	writable := map[string]bool{}

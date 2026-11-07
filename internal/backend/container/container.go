@@ -110,7 +110,7 @@ func (b *Backend) owner(turn backend.Turn) sandbox.Owner {
 	return owner
 }
 
-// mounts are what a turn needs that outlives its container: the person's home, and the conversation's workspace and memory.
+// mounts are what a turn needs that outlives its container: the person's home, and the conversation's folder and memory.
 func (b *Backend) mounts(turn backend.Turn) ([]sandbox.Mount, error) {
 	home, err := b.keptHome(turn)
 	if err != nil {
@@ -141,8 +141,8 @@ func staying(turn backend.Turn) []sandbox.Mount {
 		return nil
 	}
 	memory := sandbox.Mount{From: turn.State, To: "/root/.local/share"}
-	if turn.Workspace == "" {
+	if turn.AgentFolder == "" {
 		return []sandbox.Mount{memory}
 	}
-	return []sandbox.Mount{{From: turn.Workspace, To: "/job/workspace"}, memory}
+	return []sandbox.Mount{{From: turn.AgentFolder, To: "/job/workspace"}, memory}
 }

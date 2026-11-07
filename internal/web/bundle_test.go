@@ -149,7 +149,7 @@ func unpack(t *testing.T, archive io.Reader, into string) map[string]int64 {
 }
 
 // verify is the two things `gusto verify` does: re-hash the evidence against the
-// manifest, and re-run the gate in the workspace and compare the answer.
+// manifest, and re-run the gate in the working folder and compare the answer.
 func verify(t *testing.T, dir task.Dir) (string, bool) {
 	t.Helper()
 	wrong, err := evidence.Check(dir)

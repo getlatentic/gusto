@@ -31,7 +31,7 @@ const (
 
 // Outside does the whole run for an agent that runs in a box, and returns the
 // exit code the check earned, as Inside does for one in this process. The
-// workspace must already hold the repository.
+// working folder must already hold the repository.
 //
 // The record is signed by who signs, and the run stops early when ctx ends, as Inside does.
 func Outside(parent context.Context, dir task.Dir, box Box, signs signing.Identity) (int, error) {
@@ -76,7 +76,7 @@ type outside struct {
 }
 
 // prepareOutside readies a run in a box: what the box cannot carry and a model the run may not reach are refused by name before
-// anything starts, and the workspace, which already holds the repository, is snapshotted.
+// anything starts, and the working folder, which already holds the repository, is snapshotted.
 func prepareOutside(dir task.Dir, spec task.Spec, box Box) (*outside, error) {
 	if spec.Setup != nil && len(spec.Setup.Servers) > 0 {
 		return nil, Refuse(dir, errors.New("a sandbox on a gateway does not yet carry tool servers"))
@@ -103,10 +103,10 @@ func prepareOutside(dir task.Dir, spec task.Spec, box Box) (*outside, error) {
 	return &outside{dir: dir, spec: spec, box: box, adapter: adapter, digest: configured.Digest, endpoint: endpoint, before: before}, nil
 }
 
-// agentTurn starts the box with the workspace, checks it carries the agent, equips it, and talks to the agent until it ends or
+// agentTurn starts the box with the working folder, checks it carries the agent, equips it, and talks to the agent until it ends or
 // ctx does. A box that does not carry the agent is a refusal, in the record.
 func (r *outside) agentTurn(ctx context.Context, record *Record) (int, error) {
-	if err := r.box.Start(ctx, r.dir.Workspace()); err != nil {
+	if err := r.box.Start(ctx, r.dir.WorkingFolder()); err != nil {
 		return 0, err
 	}
 	if err := carriedIn(ctx, r.box, r.spec.Harness, r.adapter); err != nil {
@@ -118,9 +118,9 @@ func (r *outside) agentTurn(ctx context.Context, record *Record) (int, error) {
 	return talk(ctx, r.box, r.adapter, r.spec, record)
 }
 
-// check brings the workspace out of the box, diffs it, asks the gate in the box, and keeps what the box's guard saw.
+// check brings the working folder out of the box, diffs it, asks the gate in the box, and keeps what the box's guard saw.
 func (r *outside) check(ctx context.Context) (*evidence.Verdict, error) {
-	if err := r.box.Fetch(r.dir.Workspace()); err != nil {
+	if err := r.box.Fetch(r.dir.WorkingFolder()); err != nil {
 		return nil, err
 	}
 	if err := Diff(r.dir, r.before); err != nil {
@@ -219,12 +219,12 @@ func talk(ctx context.Context, box Box, adapter harness.Adapter, spec task.Spec,
 // boxCommand is the command that starts the harness in a box, with the servers it is to be given. A task's servers behind the gateway
 // are reached at the proxy by the address the box has for it, the same way the harness reaches its model. A harness that reads its
 // servers from a file in its own folder is not given them: the box does not put a file there.
-func boxCommand(ctx context.Context, adapter harness.Adapter, spec task.Spec, workspace string, env harness.Env) (*exec.Cmd, []task.Server, error) {
+func boxCommand(ctx context.Context, adapter harness.Adapter, spec task.Spec, workingFolder string, env harness.Env) (*exec.Cmd, []task.Server, error) {
 	servers, err := gatewayServers(spec, env.ModelURL, env.ModelToken)
 	if err != nil {
 		return nil, nil, err
 	}
-	command := adapter.CommandIn(ctx, spec, workspace, env)
+	command := adapter.CommandIn(ctx, spec, workingFolder, env)
 	if len(servers) == 0 || adapter.Stream == harness.ACP {
 		return command, servers, nil
 	}

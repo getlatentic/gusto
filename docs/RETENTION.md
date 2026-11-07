@@ -4,10 +4,10 @@ The server removes finished work on a schedule you set, so that a busy team does
 
 | What | Holds | Removed |
 | --- | --- | --- |
-| the workspace | the checkout and everything the agent changed. It is most of the disk. `gusto pr open` and `gusto rerun` need it | first |
+| the working folder | the checkout and everything the agent changed. It is most of the disk. `gusto pr open` and `gusto rerun` need it | first |
 | the record | `out/`: the manifest, its signature, the patch, the transcript. It is small. `gusto verify` checks it | later |
 
-Removing a workspace leaves the record whole, and `gusto verify` still passes. A task with no workspace cannot open a pull request or be rerun.
+Removing a working folder leaves the record whole, and `gusto verify` still passes. A task with no working folder cannot open a pull request or be rerun.
 
 ## Set the policy
 
@@ -20,7 +20,7 @@ Days count from when the task ended, by the state it ended in: `passed`, `failed
 }
 ```
 
-The server refuses a policy that sets a record to go before its workspace, names a state a task cannot end in, or has a misspelt field. A workspace with no days is kept for ever, and removing a record removes its workspace, so a state whose record has days needs workspace days no greater. The server does not start on a refused policy.
+The server refuses a policy that sets a record to go before its working folder, names a state a task cannot end in, or has a misspelt field. A working folder with no days is kept for ever, and removing a record removes its working folder, so a state whose record has days needs working folder days no greater. The server does not start on a refused policy.
 
 | Install | Where |
 | --- | --- |
@@ -43,7 +43,7 @@ A sweep reads the holds again before each removal, so a hold placed while a swee
 
 ## See what a sweep removes
 
-`/admin/records?tab=keeping` shows the disk the tasks use, how much is workspaces, the oldest finished task kept, the policy in force, what the next sweep would remove, and the last sweep.
+`/admin/records?tab=keeping` shows the disk the tasks use, how much of it is working folders, the oldest finished task kept, the policy in force, what the next sweep would remove, and the last sweep.
 
 This command lists what a sweep would remove now and removes nothing. It is safe to run while the server runs.
 

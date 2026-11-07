@@ -30,7 +30,7 @@ func aRoomTurnWrote(t *testing.T, files map[string][]byte, names ...string) (pag
 	here, id, thread := aRoom(t, work, [2]string{"Scout", "fixture"})
 	here.as(t, alice).ask(t, "POST", thread+"/say", map[string][]string{"said": {"write it up"}})
 	work.waitTurns(t, here, 1)
-	root := here.server.instances.Workspace(id)
+	root := here.server.instances.AgentFolder(id)
 	for name, body := range files {
 		if err := os.WriteFile(filepath.Join(root, name), body, 0o644); err != nil {
 			t.Fatal(err)

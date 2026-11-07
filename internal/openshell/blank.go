@@ -13,7 +13,7 @@ import (
 // A blank computer is made ahead of the person it will be for. The gateway names a sandbox when it makes it and has no call
 // to rename one, and it changes only a live sandbox's network rules, which the sandbox takes up at its next poll of the
 // gateway, ten seconds by default. So what a person's computer is made from has to be there at the start: the image, the
-// limits and the whole policy. Nothing else of a person is in a computer when it is made. The workspace, the environment and
+// limits and the whole policy. Nothing else of a person is in a computer when it is made. The working folder, the environment and
 // the token go in when a task starts, and the person's record names the sandbox, whatever it is called.
 
 // removeWithin is how long the gateway has to remove a sandbox.

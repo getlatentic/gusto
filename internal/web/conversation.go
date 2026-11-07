@@ -218,8 +218,8 @@ func (s *Server) turns(w http.ResponseWriter, r *http.Request) {
 }
 
 // say is one turn: an ordinary task that mounts the instance and names the
-// thread, so the queue knows not to run it beside another turn of the same
-// workspace.
+// thread, so the queue knows not to run it beside another turn in the same
+// folder.
 func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 	held, found := s.sharedOr404(w, r)
 	if !found {

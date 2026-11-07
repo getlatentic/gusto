@@ -22,7 +22,7 @@ What to watch on a gusto server, and what to do when an alert fires.
 | `gusto_queue_stuck_seconds` | the longest wait of a task that nothing holds back (no limit, no busy agent, a runner free). Near zero while the queue moves |
 | `gusto_jobs_running`, `gusto_runner_slots`, `gusto_runner_workers_alive` | tasks running, tasks allowed at once, workers alive. Fewer workers than slots means the queue is broken. `gusto_last_job_started_timestamp_seconds` and `gusto_last_job_finished_timestamp_seconds` give the last start and finish, 0 before the first |
 | `gusto_disk_free_bytes{store="jobs"}`, `gusto_disk_total_bytes{store="jobs"}` | the volume the tasks are on |
-| `gusto_jobs_disk_bytes`, `gusto_jobs_workspace_bytes`, `gusto_oldest_finished_job_timestamp_seconds` | what tasks take (measured at most once a minute), the workspaces among them, and when the longest-kept finished task ended |
+| `gusto_jobs_disk_bytes`, `gusto_jobs_workspace_bytes`, `gusto_oldest_finished_job_timestamp_seconds` | what tasks take (measured at most once a minute), the working folders among them, and when the longest-kept finished task ended |
 | `gusto_proxy_calls_total`, `gusto_proxy_errors_total`, `gusto_proxy_refused_total` | model calls; calls the model's side failed (no answer, or a 5xx); calls a spending cap stopped. Absent with no proxy |
 | `gusto_last_deploy_ok{release}`, `gusto_last_deploy_timestamp_seconds` | 1, or 0 for a failed or rolled-back deploy. Present where a deploy writes `GUSTO_DEPLOY_RESULT` |
 

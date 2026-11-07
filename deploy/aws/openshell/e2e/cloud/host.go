@@ -90,7 +90,7 @@ func (h host) sandboxes() ([]string, error) {
 	return names, nil
 }
 
-// fileIn is a file of an instance's workspace, wherever the organization keeps instances.
+// fileIn is a file of an instance's folder, wherever the organization keeps instances.
 func (h host) fileIn(slug, instance, name string) (string, error) {
 	found, _ := filepath.Glob(filepath.Join(h.data(slug), "*", instance, "workspace", name))
 	if len(found) == 0 {

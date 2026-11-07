@@ -19,7 +19,7 @@ func TestAPersonsFolderAndAnAgentsFolderOnTheRealServerAreKeptTheSameAndConflict
 	here := withTokens(t)
 	where, _ := started(t, here.as(t, alice))
 	id := strings.TrimPrefix(where, "/instances/")
-	cloudRoot := here.server.instances.Workspace(id)
+	cloudRoot := here.server.instances.AgentFolder(id)
 	server := httptest.NewServer(here.handler)
 	t.Cleanup(server.Close)
 	client := helper.Client{Server: server.URL, Token: signInADevice(t, here, alice)}

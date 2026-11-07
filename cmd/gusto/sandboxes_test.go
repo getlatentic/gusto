@@ -62,7 +62,7 @@ func (r *recording) Run(_ context.Context, turn backend.Turn) (int, error) {
 	return 0, evidence.Write(turn.Dir, evidence.Manifest{Session: r.session})
 }
 
-// A turn in a conversation is handed to its backend with who pays, the instance's workspace and the agent's memory, and the
+// A turn in a conversation is handed to its backend with who pays, the instance's folder and the agent's memory, and the
 // backend's name for the conversation is kept for the next turn, whichever backend ran it.
 func TestATurnIsHandedItsConversationAndWhatTheAgentCallsItIsKept(t *testing.T) {
 	index, err := tasks.Open(filepath.Join(t.TempDir(), "jobs"))
@@ -98,7 +98,7 @@ func TestATurnIsHandedItsConversationAndWhatTheAgentCallsItIsKept(t *testing.T) 
 		t.Fatal(err)
 	}
 	got := boxes.turn
-	if got.Person != "ada@acme.com" || got.Workspace != instances.Workspace(held.ID) || got.State != instances.State(held.ID) {
+	if got.Person != "ada@acme.com" || got.AgentFolder != instances.AgentFolder(held.ID) || got.State != instances.State(held.ID) {
 		t.Errorf("the turn was handed %+v", got)
 	}
 	if got.Exit.Direct == "" && got.Exit.Door == nil {

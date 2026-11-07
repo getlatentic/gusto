@@ -127,7 +127,7 @@ func (s *Server) hashesJSON(w http.ResponseWriter, r *http.Request) {
 		answerJSON(w, http.StatusBadRequest, map[string]string{"error": `send {"paths": [...]}, at most 5000`})
 		return
 	}
-	root := s.instances.Workspace(held.ID)
+	root := s.instances.AgentFolder(held.ID)
 	out := map[string]string{}
 	for _, name := range asked.Paths {
 		full, err := folderPath(root, name)
@@ -194,7 +194,7 @@ type fileWrite struct {
 // naming the file's present hash, when the writer says the file is something other than what it is; a writer that says
 // nothing is not checked.
 func (s *Server) putFile(r *http.Request, instance, name string, body io.Reader, saw string, runs bool) fileWrite {
-	root := s.instances.Workspace(instance)
+	root := s.instances.AgentFolder(instance)
 	full, err := folderPath(root, name)
 	if err != nil {
 		return fileWrite{status: http.StatusBadRequest, err: err.Error()}
@@ -266,7 +266,7 @@ func (s *Server) removeFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := r.URL.Query().Get("path")
-	root := s.instances.Workspace(held.ID)
+	root := s.instances.AgentFolder(held.ID)
 	full, err := folderPath(root, name)
 	if err != nil {
 		answerJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})

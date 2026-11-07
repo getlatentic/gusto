@@ -114,23 +114,23 @@ func (b *Backend) Start(ctx context.Context) (func(), error) {
 }
 
 // Run runs a turn in the computer of the person it counts against, and one asked for by a script or a token, which is
-// nobody's, in a sandbox of its own. A sandbox has its own files, so a conversation's workspace is copied into the turn's before
-// it and back after it. It is copied back only when the turn got as far as writing its record, which is after its workspace
+// nobody's, in a sandbox of its own. A sandbox has its own files, so a conversation's working folder is copied into the turn's before
+// it and back after it. It is copied back only when the turn got as far as writing its record, which is after its working folder
 // came out of the sandbox, so a turn that failed on the way leaves the instance as it was.
 func (b *Backend) Run(ctx context.Context, turn backend.Turn) (int, error) {
 	if turn.Exit.Door == nil {
 		return 0, runner.Refuse(turn.Dir, errors.New("a sandbox on a gateway reaches its model through the proxy, and this deployment holds no credential for one"))
 	}
-	if turn.Workspace != "" {
-		if err := replaceTree(turn.Workspace, turn.Dir.Workspace()); err != nil {
+	if turn.AgentFolder != "" {
+		if err := replaceTree(turn.AgentFolder, turn.Dir.WorkingFolder()); err != nil {
 			return 0, err
 		}
 	}
 	exit, err := b.ran(ctx, turn)
-	if _, read := evidence.Read(turn.Dir); read != nil || turn.Workspace == "" {
+	if _, read := evidence.Read(turn.Dir); read != nil || turn.AgentFolder == "" {
 		return exit, err
 	}
-	if back := replaceTree(turn.Dir.Workspace(), turn.Workspace); back != nil && err == nil {
+	if back := replaceTree(turn.Dir.WorkingFolder(), turn.AgentFolder); back != nil && err == nil {
 		err = back
 	}
 	return exit, err

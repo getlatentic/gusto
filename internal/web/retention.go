@@ -130,7 +130,7 @@ func (s *Server) recordSweep(report retention.Report) {
 		listed = append(listed[:listedRecords:listedRecords], fmt.Sprintf("and %d more", len(records)-listedRecords))
 	}
 	s.record(changelog.Event{Who: "the server", Kind: changelog.Swept, What: map[string]string{
-		"workspaces": fmt.Sprint(report.Removed(retention.Workspace)),
+		"workspaces": fmt.Sprint(report.Removed(retention.WorkingFolder)),
 		"records":    fmt.Sprint(len(records)),
 		"jobs":       strings.Join(listed, " "),
 		"freed":      fmt.Sprint(report.Freed),
@@ -154,7 +154,7 @@ func (s *Server) keepingInto(page map[string]any) error {
 		return fmt.Errorf("the holds could not be read: %w", err)
 	}
 	used := s.retention.measure(s)
-	page["Used"], page["Workspaces"], page["Jobs"] = size(used.Bytes), size(used.Workspaces), used.Tasks
+	page["Used"], page["WorkingFolders"], page["Jobs"] = size(used.Bytes), size(used.WorkingFolders), used.Tasks
 	page["Policy"], page["Removes"] = s.retention.policy.Rows(), s.retention.policy.Any()
 	page["HeldTasks"], page["HeldPeople"] = held.Tasks, held.People
 	if used.Oldest != nil {

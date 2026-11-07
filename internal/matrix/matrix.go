@@ -172,7 +172,7 @@ func Finished(dir task.Dir) bool {
 
 // used is a run directory something has already cloned into or written to.
 func used(dir task.Dir) bool {
-	for _, path := range []string{dir.Workspace(), dir.Out()} {
+	for _, path := range []string{dir.WorkingFolder(), dir.Out()} {
 		if listing, err := os.ReadDir(path); err == nil && len(listing) > 0 {
 			return true
 		}

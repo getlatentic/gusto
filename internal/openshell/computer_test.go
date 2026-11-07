@@ -84,8 +84,8 @@ func TestAComputerIsMadeOnceAndKeepsWhatAPersonPutInItBetweenTasks(t *testing.T)
 	if _, err := os.Stat(filepath.Join(root, "c-12345678-abcdefgh", "sandbox", "notes.txt")); err != nil {
 		t.Error("the computer lost what was in it")
 	}
-	// Each task's record is its own: its workspace came back as it was after its own turn.
-	if answer, _ := os.ReadFile(filepath.Join(first.Workspace(), "answer.txt")); string(answer) != "yes" {
+	// Each task's record is its own: its working folder came back as it was after its own turn.
+	if answer, _ := os.ReadFile(filepath.Join(first.WorkingFolder(), "answer.txt")); string(answer) != "yes" {
 		t.Errorf("%q", answer)
 	}
 }

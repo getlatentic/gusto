@@ -17,14 +17,14 @@ var noon = time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC)
 
 func daysAgo(n int) int64 { return noon.AddDate(0, 0, -n).Unix() }
 
-// finished leaves a task that ended days ago, with a workspace of workspaceBytes
+// finished leaves a task that ended days ago, with a working folder of workingFolderBytes
 // and an out/ of a fixed size, so what a sweep frees can be counted.
-func finished(t *testing.T, index *tasks.Index, id string, state tasks.State, days int, workspaceBytes int) tasks.Record {
+func finished(t *testing.T, index *tasks.Index, id string, state tasks.State, days int, workingFolderBytes int) tasks.Record {
 	t.Helper()
 	record := tasks.Record{ID: id, State: state, Brief: "brief " + id, Harness: "fixture", Asked: "amy@acme.test",
 		Queued: daysAgo(days), Started: daysAgo(days), Ended: daysAgo(days)}
 	dir := filepath.Join(index.Root(), id)
-	for path, size := range map[string]int{"workspace/code.go": workspaceBytes, "out/manifest.json": 100, "job.json": 10} {
+	for path, size := range map[string]int{"workspace/code.go": workingFolderBytes, "out/manifest.json": 100, "job.json": 10} {
 		full := filepath.Join(dir, path)
 		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
 			t.Fatal(err)
@@ -55,11 +55,11 @@ func exists(t *testing.T, index *tasks.Index, id, path string) bool {
 }
 
 var policy = Policy{
-	WorkspaceDays: map[string]int{"passed": 7, "failed": 30},
-	RecordDays:    map[string]int{"passed": 90, "failed": 365},
+	WorkingFolderDays: map[string]int{"passed": 7, "failed": 30},
+	RecordDays:        map[string]int{"passed": 90, "failed": 365},
 }
 
-func TestAWorkspaceGoesFirstAndTheRecordStaysSigned(t *testing.T) {
+func TestAWorkingFolderGoesFirstAndTheRecordStaysSigned(t *testing.T) {
 	index := opened(t)
 	finished(t, index, "young", tasks.Passed, 3, 5000)
 	finished(t, index, "old", tasks.Passed, 10, 5000)
@@ -71,7 +71,7 @@ func TestAWorkspaceGoesFirstAndTheRecordStaysSigned(t *testing.T) {
 	if !exists(t, index, "young", "workspace/code.go") {
 		t.Error("a young job lost its workspace")
 	}
-	if report.Freed != 5000 || report.Removed(Workspace) != 1 || report.Removed(Record) != 0 {
+	if report.Freed != 5000 || report.Removed(WorkingFolder) != 1 || report.Removed(Record) != 0 {
 		t.Errorf("report %+v", report)
 	}
 	if _, found := index.Get("old"); !found {
@@ -202,9 +202,9 @@ func TestADryRunSaysWhatItWouldDoAndDoesNothing(t *testing.T) {
 
 func TestAPolicyThatCannotBeMeantIsRefused(t *testing.T) {
 	for name, p := range map[string]Policy{
-		"a state jobs do not end in":    {WorkspaceDays: map[string]int{"running": 1}},
+		"a state jobs do not end in":    {WorkingFolderDays: map[string]int{"running": 1}},
 		"negative days":                 {RecordDays: map[string]int{"passed": -1}},
-		"a record before its workspace": {WorkspaceDays: map[string]int{"passed": 30}, RecordDays: map[string]int{"passed": 7}},
+		"a record before its workspace": {WorkingFolderDays: map[string]int{"passed": 30}, RecordDays: map[string]int{"passed": 7}},
 	} {
 		if p.Check() == nil {
 			t.Errorf("%s was accepted", name)
@@ -240,7 +240,7 @@ func TestUsageSaysWhatIsUsedAndTheOldestTaskKept(t *testing.T) {
 	finished(t, index, "recent", tasks.Passed, 2, 1000)
 	finished(t, index, "oldest", tasks.Failed, 50, 3000)
 	used := Measure(index.Root(), index.List())
-	if used.Tasks != 2 || used.Workspaces != 4000 || used.Bytes < 4000+2*110 {
+	if used.Tasks != 2 || used.WorkingFolders != 4000 || used.Bytes < 4000+2*110 {
 		t.Errorf("usage %+v", used)
 	}
 	if used.Oldest == nil || used.Oldest.ID != "oldest" {
@@ -249,7 +249,7 @@ func TestUsageSaysWhatIsUsedAndTheOldestTaskKept(t *testing.T) {
 }
 
 // The record a sweep keeps is the record that was signed: verify still says it
-// holds, and who signed it, once the workspace is gone.
+// holds, and who signed it, once the working folder is gone.
 func TestASweptTaskStillVerifiesAndNamesItsSigner(t *testing.T) {
 	index := opened(t)
 	finished(t, index, "signed", tasks.Passed, 40, 4000)
@@ -282,7 +282,7 @@ func TestASweptTaskStillVerifiesAndNamesItsSigner(t *testing.T) {
 	}
 
 	report := Sweep(index, index.Root(), policy, Held{}, nil, noon, false)
-	if report.Removed(Workspace) != 1 || exists(t, index, "signed", "workspace") {
+	if report.Removed(WorkingFolder) != 1 || exists(t, index, "signed", "workspace") {
 		t.Fatalf("the workspace stayed: %+v", report)
 	}
 	if wrong, err := evidence.Check(dir); err != nil || len(wrong) > 0 {

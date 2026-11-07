@@ -21,7 +21,7 @@ import (
 
 // roomFile is one file as the room's files panel lists it.
 type roomFile struct {
-	workspaceFile
+	syncedFile
 	Name   string
 	Folder string
 }
@@ -42,11 +42,11 @@ func (s *Server) roomFilesPanel(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/instances/"+held.ID+"/files?from="+threadPath(thread), http.StatusSeeOther)
 		return
 	}
-	files, cut := workspaceFiles(s.instances.Workspace(held.ID))
+	files, cut := folderFiles(s.instances.AgentFolder(held.ID))
 	made := s.madeByAgents(thread)
 	var byAgents, byPeople []roomFile
 	for _, file := range files {
-		shown := roomFile{workspaceFile: file, Name: path.Base(file.Path), Folder: path.Dir(file.Path)}
+		shown := roomFile{syncedFile: file, Name: path.Base(file.Path), Folder: path.Dir(file.Path)}
 		if made[file.Path] {
 			byAgents = append(byAgents, shown)
 		} else {
@@ -110,7 +110,7 @@ func (s *Server) uploadToRoom(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("send between 1 and %d files", mostUploads), http.StatusBadRequest)
 		return
 	}
-	root := s.instances.Workspace(held.ID)
+	root := s.instances.AgentFolder(held.ID)
 	s.writing(held.ID).Lock()
 	defer s.writing(held.ID).Unlock()
 	// An upload never replaces a file, so it keeps no version for the turns; it waits only so a merge cannot put a file over it.

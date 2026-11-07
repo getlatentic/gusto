@@ -23,7 +23,7 @@ type wallPolicy struct {
 }
 
 // behindProcessWall is what puts a task's engine, and the checks it runs, behind this computer's own sandbox. The task can write its
-// workspace, its own home, its conversation's state and its cache; it can read none of the person's home but those, its own folder,
+// working folder, its own home, its conversation's state and its cache; it can read none of the person's home but those, its own folder,
 // and where its engine and the programs on its PATH are; and it reaches nothing on the network but gusto's proxy, unless the network
 // is left open.
 func behindProcessWall(dir task.Dir, spec task.Spec, home, data, proxyPort string, open bool) (func(*exec.Cmd), error) {
@@ -32,13 +32,13 @@ func behindProcessWall(dir task.Dir, spec task.Spec, home, data, proxyPort strin
 		return nil, err
 	}
 	person, _ = filepath.EvalSymlinks(person)
-	workspace, err := filepath.EvalSymlinks(dir.Workspace())
+	workingFolder, err := filepath.EvalSymlinks(dir.WorkingFolder())
 	if err != nil {
 		return nil, err
 	}
 	policy := wallPolicy{
 		Home:     person,
-		Writable: []string{workspace, home, data, sharedCache()},
+		Writable: []string{workingFolder, home, data, sharedCache()},
 		Readable: append([]string{mustAbs(dir.Path())}, programFolders(spec.Harness, person)...),
 	}
 	if !open {

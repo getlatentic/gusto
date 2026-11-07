@@ -33,12 +33,12 @@ func TestAHoldPlacedWhileASweepRunsKeepsTheTask(t *testing.T) {
 	}
 }
 
-func TestARecordCannotGoWhileItsWorkspaceIsKeptForEver(t *testing.T) {
+func TestARecordCannotGoWhileItsWorkingFolderIsKeptForEver(t *testing.T) {
 	forever := Policy{RecordDays: map[string]int{"passed": 30}}
 	if err := forever.Check(); err == nil {
 		t.Error("a policy that removes a workspace meant to be kept for ever with its record was taken")
 	}
-	both := Policy{WorkspaceDays: map[string]int{"passed": 7}, RecordDays: map[string]int{"passed": 30}}
+	both := Policy{WorkingFolderDays: map[string]int{"passed": 7}, RecordDays: map[string]int{"passed": 30}}
 	if err := both.Check(); err != nil {
 		t.Errorf("a workspace before its record was refused: %v", err)
 	}

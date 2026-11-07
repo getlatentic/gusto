@@ -33,10 +33,10 @@ func TestAReplayRunsTheSameTaskAtTheCommitTheOldRunStartedFrom(t *testing.T) {
 	if spec, _ := task.Read(row.Replay); spec.Ref != started {
 		t.Fatalf("the replay should ask for %s, the commit the old run started from, and asks for %s", started, spec.Ref)
 	}
-	if at := git(t, row.Replay.Workspace(), "rev-parse", "HEAD"); at != started {
+	if at := git(t, row.Replay.WorkingFolder(), "rev-parse", "HEAD"); at != started {
 		t.Fatalf("the replay worked on %s rather than %s", at, started)
 	}
-	if _, err := os.Stat(filepath.Join(row.Replay.Workspace(), "later.txt")); err == nil {
+	if _, err := os.Stat(filepath.Join(row.Replay.WorkingFolder(), "later.txt")); err == nil {
 		t.Fatal("the replay saw a commit made after the old run, so it did not run the same job")
 	}
 	if after := read(t, old.OutFile("manifest.json")); after != before {
@@ -75,7 +75,7 @@ func TestAReplayIsToldApartFromTheOriginalByItsOwnHashedEvidence(t *testing.T) {
 	}
 }
 
-// A harness that commits moves HEAD onto a commit only its workspace has. A
+// A harness that commits moves HEAD onto a commit only its working folder has. A
 // replay pinned to HEAD would fail to check it out, or start with the answer
 // already in the tree.
 func TestAHarnessThatCommittedDoesNotMoveThePin(t *testing.T) {
@@ -83,7 +83,7 @@ func TestAHarnessThatCommittedDoesNotMoveThePin(t *testing.T) {
 	bare := remote(t)
 	started := git(t, bare, "rev-parse", "main")
 	old := finished(t, t.TempDir(), "fix", "committer", bare)
-	if head := git(t, old.Workspace(), "rev-parse", "HEAD"); head == started {
+	if head := git(t, old.WorkingFolder(), "rev-parse", "HEAD"); head == started {
 		t.Fatal("the fixture harness should have committed")
 	}
 

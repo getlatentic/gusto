@@ -21,13 +21,13 @@ func Ask(ctx context.Context, spec task.Spec, dir task.Dir) (evidence.Verdict, [
 	return askWith(spec, command)
 }
 
-// gateCommand is the task's check, to run in its workspace as the agent with env, or this process's environment when env is nil.
+// gateCommand is the task's check, to run in its working folder as the agent with env, or this process's environment when env is nil.
 func gateCommand(ctx context.Context, spec task.Spec, dir task.Dir, env []string, as agent) (*exec.Cmd, error) {
 	if len(spec.Gate) == 0 {
 		return nil, errors.New("the task names no check")
 	}
 	command := exec.CommandContext(ctx, spec.Gate[0], spec.Gate[1:]...)
-	command.Dir = dir.Workspace()
+	command.Dir = dir.WorkingFolder()
 	command.Env = env
 	// The gate runs the repository's own code, as untrusted as the harness.
 	as.runAs(command)

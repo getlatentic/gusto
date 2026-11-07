@@ -83,12 +83,12 @@ type computerBox struct {
 	entered bool
 }
 
-func (c *computerBox) Start(ctx context.Context, workspace string) error {
+func (c *computerBox) Start(ctx context.Context, workingFolder string) error {
 	if c.use != nil {
 		c.use.enter(c.id)
 		c.entered = true
 	}
-	if err := c.Sandbox.Start(ctx, workspace); err != nil {
+	if err := c.Sandbox.Start(ctx, workingFolder); err != nil {
 		c.change(computer.Failed, err.Error())
 		return err
 	}

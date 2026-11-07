@@ -71,12 +71,12 @@ type Spec struct {
 	Harness string   `json:"harness"`
 	Model   string   `json:"model,omitempty"`
 	// Session names the instance this task is a turn on: the computer whose
-	// workspace it mounts instead of cloning. Thread names the conversation on
+	// working folder it mounts instead of cloning. Thread names the conversation on
 	// that instance, and Remembered is the agent's own name for that
 	// conversation, handed back so it resumes rather than restarts.
 	Session string `json:"session,omitempty"`
 	Thread  string `json:"thread,omitempty"`
-	// Dir is the folder of the workspace the agent works in, from the workspace's root: a turn that was asked to work in one folder
+	// Dir is the folder of the working folder the agent works in, from the workspace's root: a turn that was asked to work in one folder
 	// of the agent's computer starts there. It is empty for the root.
 	Dir        string `json:"dir,omitempty"`
 	Remembered string `json:"remembered,omitempty"`
@@ -145,7 +145,7 @@ type Dir string
 
 func (d Dir) Path() string            { return string(d) }
 func (d Dir) Spec() string            { return filepath.Join(string(d), "job.json") }
-func (d Dir) Workspace() string       { return filepath.Join(string(d), "workspace") }
+func (d Dir) WorkingFolder() string   { return filepath.Join(string(d), "workspace") }
 func (d Dir) Out() string             { return filepath.Join(string(d), "out") }
 func (d Dir) OutFile(n string) string { return filepath.Join(d.Out(), n) }
 
@@ -163,12 +163,12 @@ func (d Dir) PlainOut(n string) bool {
 }
 
 // SetupDir is where a task's skills and server definitions wait for the
-// runner. It sits outside out/ and the workspace, so it is neither signed
+// runner. It sits outside out/ and the working folder, so it is neither signed
 // record nor in the bundle a reviewer downloads.
 func (d Dir) SetupDir() string { return filepath.Join(string(d), "setup") }
 
 func (d Dir) Make() error {
-	if err := os.MkdirAll(d.Workspace(), 0o755); err != nil {
+	if err := os.MkdirAll(d.WorkingFolder(), 0o755); err != nil {
 		return err
 	}
 	return os.MkdirAll(d.Out(), 0o755)
@@ -235,23 +235,23 @@ func (s Spec) Write(d Dir) error {
 	return atomicfile.WriteFile(d.Spec(), append(text, '\n'), 0o644)
 }
 
-// CleanDir is a folder of a workspace as a task may name it: relative to the workspace, with no way out of it. It says why when it is not.
+// CleanDir is a folder of a working folder as a task may name it: relative to the working folder, with no way out of it. It says why when it is not.
 func CleanDir(dir string) (string, error) {
 	if dir == "" {
 		return "", nil
 	}
 	if len(dir) > 240 || strings.ContainsAny(dir, "\\\x00\n\r") {
-		return "", errors.New("that is not a folder of the workspace")
+		return "", errors.New("that is not a folder in the agent's folder")
 	}
 	if strings.HasPrefix(dir, "/") {
-		return "", errors.New("a folder of the workspace is named from its root, without a leading slash")
+		return "", errors.New("a folder in the agent's folder is named from its root, without a leading slash")
 	}
 	cleaned := path.Clean(dir)
 	if cleaned == "." {
 		return "", nil
 	}
 	if cleaned == ".." || strings.HasPrefix(cleaned, "../") {
-		return "", errors.New("a folder of the workspace cannot be outside it")
+		return "", errors.New("a folder in the agent's folder cannot be outside it")
 	}
 	return cleaned, nil
 }

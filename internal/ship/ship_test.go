@@ -160,7 +160,7 @@ func shipped(t *testing.T, dir task.Dir, fake *forge) (ship.Plan, string) {
 	return plan, address
 }
 
-// snapshot is every path and its contents under the task directory, workspace
+// snapshot is every path and its contents under the task directory, working folder
 // and .git included, so any write at all shows up.
 func snapshot(t *testing.T, dir task.Dir) string {
 	t.Helper()

@@ -21,10 +21,10 @@ func hashOf(text string) string {
 
 // A text file opens to be changed with all of it, as it is, and what it was; a file that cannot be changed here does not.
 func TestATextFileShownWholeCanBeChangedAndOthersCannot(t *testing.T) {
-	site, id, workspace := viewerSite(t)
-	os.WriteFile(filepath.Join(workspace, "plan.md"), []byte("\n# Plan <b>\n"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "big.txt"), []byte(strings.Repeat("a", mostShown+1)), 0o644)
-	os.WriteFile(filepath.Join(workspace, "blob.bin"), []byte{0, 1, 2}, 0o644)
+	site, id, folder := viewerSite(t)
+	os.WriteFile(filepath.Join(folder, "plan.md"), []byte("\n# Plan <b>\n"), 0o644)
+	os.WriteFile(filepath.Join(folder, "big.txt"), []byte(strings.Repeat("a", mostShown+1)), 0o644)
+	os.WriteFile(filepath.Join(folder, "blob.bin"), []byte{0, 1, 2}, 0o644)
 
 	page := viewed(t, site, id, "plan.md")
 	source := regexp.MustCompile(`(?s)<textarea[^>]*name="text"[^>]*>\n(.*?)</textarea>`).FindStringSubmatch(page)
@@ -54,8 +54,8 @@ func saved(t *testing.T, site *site, id, name, text, seen string) (int, map[stri
 
 // A save is put in place when the file is what the person opened, and refused when it changed since, leaving the change there.
 func TestASaveIsRefusedWhenTheFileChangedSinceItWasOpened(t *testing.T) {
-	site, id, workspace := viewerSite(t)
-	path := filepath.Join(workspace, "notes", "plan.md")
+	site, id, folder := viewerSite(t)
+	path := filepath.Join(folder, "notes", "plan.md")
 	os.MkdirAll(filepath.Dir(path), 0o755)
 	os.WriteFile(path, []byte("first"), 0o644)
 
@@ -82,7 +82,7 @@ func TestASaveIsRefusedWhenTheFileChangedSinceItWasOpened(t *testing.T) {
 func TestAChangeToARoomsFileIsSaidInTheRoom(t *testing.T) {
 	site, id, where := aRoom(t, &roomWork{})
 	mine := site.as(t, alice)
-	os.WriteFile(filepath.Join(site.server.instances.Workspace(id), "launch-plan.md"), []byte("draft"), 0o644)
+	os.WriteFile(filepath.Join(site.server.instances.AgentFolder(id), "launch-plan.md"), []byte("draft"), 0o644)
 	answer := mine.ask(t, "POST", "/instances/"+id+"/file?path=launch-plan.md", url.Values{"text": {"final"}, "seen": {hashOf("draft")}})
 	if answer.Code != http.StatusOK {
 		t.Fatalf("saving answered %d: %s", answer.Code, answer.Body)

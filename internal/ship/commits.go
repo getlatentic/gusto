@@ -27,7 +27,7 @@ func EvidenceRef(digest string) string {
 }
 
 // scratch is a repository of its own that borrows the workspace's objects. The
-// commits are made there, so the workspace, which is evidence, is never written
+// commits are made there, so the working folder, which is evidence, is never written
 // to, and nothing has to be cloned from the remote to make them.
 type scratch struct {
 	path string
@@ -41,7 +41,7 @@ func inScratch(ctx context.Context, dir task.Dir, when int64, do func(scratch) e
 		return err
 	}
 	defer os.RemoveAll(path)
-	if _, err := run(ctx, nil, "clone", "--quiet", "--shared", "--no-checkout", dir.Workspace(), path); err != nil {
+	if _, err := run(ctx, nil, "clone", "--quiet", "--shared", "--no-checkout", dir.WorkingFolder(), path); err != nil {
 		return err
 	}
 	return do(scratch{path: path, env: authored(when)})
@@ -121,7 +121,7 @@ func (s scratch) git(ctx context.Context, args ...string) error {
 }
 
 // evidenceFiles is job.json and every file in out/, which is what the manifest
-// hashes, and the manifest itself. The workspace is left out: the change
+// hashes, and the manifest itself. The working folder is left out: the change
 // commit already carries the code, and a reviewer rebuilds it from the patch.
 func evidenceFiles(dir task.Dir) ([]string, error) {
 	listing, err := os.ReadDir(dir.Out())

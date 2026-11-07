@@ -13,7 +13,7 @@ import (
 )
 
 // Thread is one conversation with an instance. An instance has as many as
-// somebody wants, and they share its workspace, which is why only one turn of
+// somebody wants, and they share its folder, which is why only one turn of
 // one thread runs at a time.
 type Thread struct {
 	ID       string `json:"id"`
@@ -23,7 +23,7 @@ type Thread struct {
 	// the first turn and handed back to resume it. It belongs to the thread
 	// rather than the instance because an agent keeps one per conversation.
 	Remembered string `json:"remembered,omitempty"`
-	// Dir is the folder of the workspace this conversation works in, from the workspace's root. It is empty for the root.
+	// Dir is the folder this conversation works in, from the root of the instance's folder. It is empty for the root.
 	Dir     string   `json:"dir,omitempty"`
 	Turns   []string `json:"turns"`
 	Started int64    `json:"startedAt"`
@@ -40,7 +40,7 @@ type Thread struct {
 // a title changes.
 func (s *Store) NewThread(id, title string) (Thread, error) { return s.NewThreadIn(id, title, "") }
 
-// NewThreadIn opens a conversation that works in a folder of the instance's workspace.
+// NewThreadIn opens a conversation that works in a folder of the instance's folder.
 func (s *Store) NewThreadIn(id, title, dir string) (Thread, error) {
 	s.guard.Lock()
 	defer s.guard.Unlock()

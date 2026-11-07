@@ -79,7 +79,7 @@ func TestTheSameAgentIdInTwoRoomsIsTwoAgents(t *testing.T) {
 	}
 }
 
-// A conversation that is not a room's has one workspace, so the instance is still the lane.
+// A conversation that is not a room's has one folder, so the instance is still the lane.
 func TestATurnWithNoAgentStillWaitsForItsInstance(t *testing.T) {
 	index := at(t)
 	turnQueued(t, index, "20260926-1200-work", "1", "one")

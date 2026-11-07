@@ -20,7 +20,7 @@ type Signing struct {
 }
 
 // Outside does the whole run for an agent that runs in a box, and returns the exit code the
-// check earned. The workspace of dir must already hold the repository. The run stops early
+// check earned. The working folder of dir must already hold the repository. The run stops early
 // when ctx ends, and a key that cannot be read stops it before the agent starts.
 func Outside(ctx context.Context, dir task.Dir, b box.Box, signs Signing) (int, error) {
 	identity, err := signing.Open(ctx, signs.Key, signs.Name)

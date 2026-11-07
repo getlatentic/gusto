@@ -51,7 +51,7 @@ func (s *Server) saveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := strings.TrimPrefix(filepath.ToSlash(filepath.Clean("/"+r.URL.Query().Get("path"))), "/")
-	resolved, ok := resolveInFolder(s.instances.Workspace(held.ID), "/"+name)
+	resolved, ok := resolveInFolder(s.instances.AgentFolder(held.ID), "/"+name)
 	info, err := os.Stat(resolved)
 	if !ok || err != nil || !info.Mode().IsRegular() {
 		answerJSON(w, http.StatusNotFound, map[string]string{"error": "there is no such file to change"})

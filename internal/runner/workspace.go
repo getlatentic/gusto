@@ -25,13 +25,13 @@ func Fill(spec task.Spec, dir task.Dir) error {
 	if spec.Session != "" {
 		return nil
 	}
-	if _, err := os.Stat(filepath.Join(dir.Workspace(), ".git")); err == nil {
+	if _, err := os.Stat(filepath.Join(dir.WorkingFolder(), ".git")); err == nil {
 		return nil
 	}
 	if spec.Repo == "" {
-		// Not every task starts from a repository. The workspace is one anyway,
+		// Not every task starts from a repository. The working folder is one anyway,
 		// because a run says what it changed by diffing it.
-		return git(dir.Workspace(), "init", "--quiet", ".")
+		return git(dir.WorkingFolder(), "init", "--quiet", ".")
 	}
 	forge, err := repoaccess.FromEnv()
 	if err != nil {
@@ -48,15 +48,15 @@ func Fill(spec task.Spec, dir task.Dir) error {
 	if err := repoaccess.AcceptableRef(spec.Ref); err != nil {
 		return Refuse(dir, err)
 	}
-	return git(dir.Workspace(), "checkout", "--quiet", spec.Ref)
+	return git(dir.WorkingFolder(), "checkout", "--quiet", spec.Ref)
 }
 
-// Snapshot is the workspace as a git tree, before the agent touches it. A
+// Snapshot is the working folder as a git tree, before the agent touches it. A
 // turn in a conversation works in a folder earlier turns already changed, and
 // what this turn changed is the difference from here, not from the folder's
 // first commit.
 //
-// The trees are made in a repository of the runner's own, with the workspace as
+// The trees are made in a repository of the runner's own, with the working folder as
 // its working tree. A workspace's own .git is the agent's to write, and git runs
 // the programs its configuration names (a filter, an fsmonitor) when it stages
 // files; the runner is root, so staging with the agent's configuration would
@@ -83,7 +83,7 @@ func Diff(dir task.Dir, before string) error {
 }
 
 // objectsOf is where a task's trees are kept while it runs, outside the task
-// directory and the workspace, so neither the agent nor the evidence holds it.
+// directory and the working folder, so neither the agent nor the evidence holds it.
 func objectsOf(dir task.Dir) string {
 	path, err := filepath.Abs(dir.Path())
 	if err != nil {
@@ -94,16 +94,16 @@ func objectsOf(dir task.Dir) string {
 }
 
 // ownRepository is the environment that makes git use the runner's repository
-// and the task's workspace, and nothing else's configuration: no system or user
+// and the task's working folder, and nothing else's configuration: no system or user
 // file, and no prompt.
 func ownRepository(dir task.Dir) []string {
-	workspace, err := filepath.Abs(dir.Workspace())
+	workingFolder, err := filepath.Abs(dir.WorkingFolder())
 	if err != nil {
-		workspace = dir.Workspace()
+		workingFolder = dir.WorkingFolder()
 	}
 	return append(os.Environ(),
 		"GIT_DIR="+objectsOf(dir),
-		"GIT_WORK_TREE="+workspace,
+		"GIT_WORK_TREE="+workingFolder,
 		"GIT_CONFIG_NOSYSTEM=1",
 		"GIT_CONFIG_GLOBAL=/dev/null",
 		"GIT_INDEX_FILE="+filepath.Join(objectsOf(dir), "index"),
@@ -120,7 +120,7 @@ func treeOf(dir task.Dir) (string, error) {
 	}
 	for _, args := range [][]string{{"add", "-A", "."}, {"write-tree"}} {
 		command := exec.Command("git", args...)
-		command.Dir = dir.Workspace()
+		command.Dir = dir.WorkingFolder()
 		command.Env = ownRepository(dir)
 		output, err := command.Output()
 		if err != nil {

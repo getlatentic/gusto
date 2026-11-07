@@ -14,19 +14,19 @@ import (
 	"github.com/getlatentic/gusto/internal/tasks"
 )
 
-// keeping is a site that removes finished work: a workspace after 7 days and a
+// keeping is a site that removes finished work: a working folder after 7 days and a
 // record after 90, with the change log on.
 func keeping(t *testing.T) (*site, *changelog.Log, string) {
 	t.Helper()
 	here, log := recording(t)
 	dir := t.TempDir()
 	here.server.UseRetention(dir, retention.Policy{
-		WorkspaceDays: map[string]int{"passed": 7}, RecordDays: map[string]int{"passed": 90},
+		WorkingFolderDays: map[string]int{"passed": 7}, RecordDays: map[string]int{"passed": 90},
 	})
 	return here, log, dir
 }
 
-// oldTask leaves a passed task that ended days ago, with a workspace.
+// oldTask leaves a passed task that ended days ago, with a working folder.
 func oldTask(t *testing.T, site *site, id string, days int) {
 	t.Helper()
 	spentTask(t, site.index.Root(), id, "", priced)

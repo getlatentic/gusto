@@ -22,12 +22,12 @@ func TestWhatTheAgentMadeIsTheRunnersAgain(t *testing.T) {
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	file := dir.Workspace() + "/made-by-the-harness"
+	file := dir.WorkingFolder() + "/made-by-the-harness"
 	if err := os.WriteFile(file, []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	agent := agent{uid: 1000, gid: 1000, present: true}
-	if err := agent.own(dir.Workspace()); err != nil {
+	if err := agent.own(dir.WorkingFolder()); err != nil {
 		t.Fatal(err)
 	}
 	agent.takeBack(dir)
@@ -38,7 +38,7 @@ func TestWhatTheAgentMadeIsTheRunnersAgain(t *testing.T) {
 }
 
 // Under a container runtime whose root is the machine's, the task directory belongs to the server that made it, and so does
-// everything the box leaves in it once the run is over: the workspace, and the record the runner wrote as root.
+// everything the box leaves in it once the run is over: the working folder, and the record the runner wrote as root.
 func TestWhatTheBoxLeftBelongsToWhoeverOwnsTheTaskDirectory(t *testing.T) {
 	if os.Geteuid() != 0 {
 		t.Skip("handing a file to another user takes root")
@@ -51,18 +51,18 @@ func TestWhatTheBoxLeftBelongsToWhoeverOwnsTheTaskDirectory(t *testing.T) {
 	if err := os.Chown(dir.Path(), server, server); err != nil {
 		t.Fatal(err)
 	}
-	made := []string{dir.Workspace() + "/made-by-the-harness", dir.OutFile("manifest.json")}
+	made := []string{dir.WorkingFolder() + "/made-by-the-harness", dir.OutFile("manifest.json")}
 	for _, file := range made {
 		if err := os.WriteFile(file, []byte("x"), 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}
 	agent := agent{uid: 1000, gid: 1000, present: true}
-	if err := agent.own(dir.Workspace()); err != nil {
+	if err := agent.own(dir.WorkingFolder()); err != nil {
 		t.Fatal(err)
 	}
 	agent.takeBack(dir)
-	for _, file := range append(made, dir.Out(), dir.Workspace()) {
+	for _, file := range append(made, dir.Out(), dir.WorkingFolder()) {
 		info, err := os.Stat(file)
 		if err != nil {
 			t.Fatal(err)

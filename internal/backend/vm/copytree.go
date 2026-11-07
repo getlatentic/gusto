@@ -10,7 +10,7 @@ import (
 // replaceTree makes to hold what from holds, and nothing else. The copy is made beside
 // to and swapped in, so a copy that fails part way leaves what was there. Links are
 // copied as links and never followed: what an agent linked to on this machine is not
-// read, and a workspace that is copied back has nothing in it that was not the agent's.
+// read, and a working folder that is copied back has nothing in it that was not the agent's.
 func replaceTree(from, to string) error {
 	next, old := to+".next", to+".old"
 	for _, leftover := range []string{next, old} {

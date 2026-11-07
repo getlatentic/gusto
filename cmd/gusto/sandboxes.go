@@ -113,8 +113,8 @@ func turns(b backend.Backend, way *WayOut, instances *instance.Store, index *tas
 }
 
 // turnOf is what the server knows of a task that its folder does not say: who pays for it, and for a turn in a conversation,
-// the instance's workspace and the agent's memory. A room's turn works on a copy of the room's folder that roomRuns puts in the
-// task's, so it is given no workspace.
+// the instance's folder and the agent's memory. A room's turn works on a copy of the room's folder that roomRuns puts in the
+// task's, so it is given no folder.
 func turnOf(instances *instance.Store, index *tasks.Index, dir task.Dir, spec task.Spec) backend.Turn {
 	turn := backend.Turn{Dir: dir, Spec: spec, Person: personWhoPays(index, dir)}
 	if spec.Session == "" {
@@ -122,7 +122,7 @@ func turnOf(instances *instance.Store, index *tasks.Index, dir task.Dir, spec ta
 	}
 	turn.State = stateDir(instances, spec)
 	if !isRoomTurn(spec) {
-		turn.Workspace = instances.Workspace(spec.Session)
+		turn.AgentFolder = instances.AgentFolder(spec.Session)
 	}
 	return turn
 }

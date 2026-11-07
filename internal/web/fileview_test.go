@@ -36,7 +36,7 @@ func viewerSite(t *testing.T) (*site, string, string) {
 	site := open(t)
 	site.signIn(t)
 	id := strings.TrimPrefix(startedInstance(t, site), "/instances/")
-	return site, id, site.server.instances.Workspace(id)
+	return site, id, site.server.instances.AgentFolder(id)
 }
 
 func viewed(t *testing.T, site *site, id, name string) string {
@@ -50,14 +50,14 @@ func viewed(t *testing.T, site *site, id, name string) string {
 
 // A file is shown in the way its kind is read, and never as the bytes of one that is not text.
 func TestAFileIsShownInTheWayItsKindIsRead(t *testing.T) {
-	site, id, workspace := viewerSite(t)
-	os.WriteFile(filepath.Join(workspace, "notes.md"), []byte("# Title\n\nSome *words*.\n\n> quoted\n"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "data.csv"), []byte("name,total\nada,3\n"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "pic.png"), []byte("\x89PNG\r\n\x1a\n\x00\x00"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "paper.pdf"), []byte("%PDF-1.4\n"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "game.html"), []byte("<script>alert(1)</script>"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "blob.bin"), []byte("a\x00b\x00"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "main.go"), []byte("package main\n"), 0o644)
+	site, id, folder := viewerSite(t)
+	os.WriteFile(filepath.Join(folder, "notes.md"), []byte("# Title\n\nSome *words*.\n\n> quoted\n"), 0o644)
+	os.WriteFile(filepath.Join(folder, "data.csv"), []byte("name,total\nada,3\n"), 0o644)
+	os.WriteFile(filepath.Join(folder, "pic.png"), []byte("\x89PNG\r\n\x1a\n\x00\x00"), 0o644)
+	os.WriteFile(filepath.Join(folder, "paper.pdf"), []byte("%PDF-1.4\n"), 0o644)
+	os.WriteFile(filepath.Join(folder, "game.html"), []byte("<script>alert(1)</script>"), 0o644)
+	os.WriteFile(filepath.Join(folder, "blob.bin"), []byte("a\x00b\x00"), 0o644)
+	os.WriteFile(filepath.Join(folder, "main.go"), []byte("package main\n"), 0o644)
 
 	for name, want := range map[string][]string{
 		"notes.md":  {`<article class="prose `, "<blockquote>"},
@@ -82,14 +82,14 @@ func TestAFileIsShownInTheWayItsKindIsRead(t *testing.T) {
 
 // Word, PowerPoint and Excel files are read for the words in them.
 func TestAnOfficeFileIsReadForItsWords(t *testing.T) {
-	site, id, workspace := viewerSite(t)
-	zipOf(t, filepath.Join(workspace, "plan.docx"), map[string]string{"word/document.xml": `<w:document xmlns:w="w"><w:body>
+	site, id, folder := viewerSite(t)
+	zipOf(t, filepath.Join(folder, "plan.docx"), map[string]string{"word/document.xml": `<w:document xmlns:w="w"><w:body>
 		<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>The plan</w:t></w:r></w:p>
 		<w:p><w:r><w:t>First we </w:t></w:r><w:r><w:t>begin.</w:t></w:r></w:p></w:body></w:document>`})
-	zipOf(t, filepath.Join(workspace, "deck.pptx"), map[string]string{
+	zipOf(t, filepath.Join(folder, "deck.pptx"), map[string]string{
 		"ppt/slides/slide2.xml": `<p:sld xmlns:p="p" xmlns:a="a"><a:p><a:r><a:t>Second slide</a:t></a:r></a:p></p:sld>`,
 		"ppt/slides/slide1.xml": `<p:sld xmlns:p="p" xmlns:a="a"><a:p><a:r><a:t>Cover</a:t></a:r></a:p><a:p><a:r><a:t>Govern AI</a:t></a:r></a:p></p:sld>`})
-	zipOf(t, filepath.Join(workspace, "sheet.xlsx"), map[string]string{
+	zipOf(t, filepath.Join(folder, "sheet.xlsx"), map[string]string{
 		"xl/sharedStrings.xml":     `<sst><si><t>Name</t></si><si><t>Ada</t></si></sst>`,
 		"xl/worksheets/sheet1.xml": `<worksheet><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1"><v>Total</v></c></row><row r="2"><c r="A2" t="s"><v>1</v></c><c r="B2"><v>7</v></c></row></sheetData></worksheet>`})
 
@@ -105,7 +105,7 @@ func TestAnOfficeFileIsReadForItsWords(t *testing.T) {
 	if !strings.Contains(sheet, "<td>Name</td><td>Total</td>") || !strings.Contains(sheet, "<td>Ada</td><td>7</td>") {
 		t.Errorf("the sheet: %s", sheet)
 	}
-	os.WriteFile(filepath.Join(workspace, "broken.docx"), []byte("not a zip"), 0o644)
+	os.WriteFile(filepath.Join(folder, "broken.docx"), []byte("not a zip"), 0o644)
 	if page := viewed(t, site, id, "broken.docx"); !strings.Contains(page, "cannot be shown here") {
 		t.Error("a file that is not a document was shown as one")
 	}
@@ -114,11 +114,11 @@ func TestAnOfficeFileIsReadForItsWords(t *testing.T) {
 // What the agent wrote is served so that it cannot act as this site: a page runs sealed, a picture is only a picture, and what a browser
 // would not show is a download. Nothing outside the folder is served.
 func TestWhatTheAgentWroteIsServedSealed(t *testing.T) {
-	site, id, workspace := viewerSite(t)
-	os.WriteFile(filepath.Join(workspace, "game.html"), []byte("<h1>x</h1>"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "a.svg"), []byte("<svg/>"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "pack.zip"), []byte("PK\x03\x04\x00\x00"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "notes.md"), []byte("hi"), 0o644)
+	site, id, folder := viewerSite(t)
+	os.WriteFile(filepath.Join(folder, "game.html"), []byte("<h1>x</h1>"), 0o644)
+	os.WriteFile(filepath.Join(folder, "a.svg"), []byte("<svg/>"), 0o644)
+	os.WriteFile(filepath.Join(folder, "pack.zip"), []byte("PK\x03\x04\x00\x00"), 0o644)
+	os.WriteFile(filepath.Join(folder, "notes.md"), []byte("hi"), 0o644)
 	raw := func(path string) *httptest.ResponseRecorder {
 		return site.ask(t, "GET", "/instances/"+id+"/raw?path="+url.QueryEscape(path), nil)
 	}
@@ -170,8 +170,8 @@ func TestTheListOfChatsIsBesideChatsAndTheRailLeadsToFiles(t *testing.T) {
 
 // A file can be asked for as a tab beside a chat: its name, what can be done with it and the file, without the page around it.
 func TestAFileIsGivenAsATabBesideAChatWithoutThePageAroundIt(t *testing.T) {
-	site, id, workspace := viewerSite(t)
-	os.WriteFile(filepath.Join(workspace, "plan.md"), []byte("# The plan\n\nBegin here."), 0o644)
+	site, id, folder := viewerSite(t)
+	os.WriteFile(filepath.Join(folder, "plan.md"), []byte("# The plan\n\nBegin here."), 0o644)
 	answer := site.ask(t, "GET", "/instances/"+id+"/file?path=plan.md&panel=1", nil)
 	body := answer.Body.String()
 	if answer.Code != http.StatusOK || !strings.Contains(body, "The plan") || !strings.Contains(body, "plan.md") || !strings.Contains(body, "Open as a page") {

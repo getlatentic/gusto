@@ -107,7 +107,7 @@ This prints the hex without the prefix and does not refuse links, so run `find .
 
 Version 2 changed `evidence.signer`. Version 1 copied the manifest's `signer`, the runner's unchecked claim. Version 2 is who the exporter's keyring says signed `out/manifest.json`, or one of the words above. A reader of this build still reads a version 1 export, deriving the summary with the signer from the manifest. An older reader refuses a version 2 export by name. [`schema/audit/v1.json`](../schema/audit/v1.json) stays beside v2. `gusto export -verify` names the signer again with its own `GUSTO_KEYRING`. When the answer differs from the export's, it reports both, naming `evidence.signer`.
 
-An export is a task directory without its workspace: `job.json` and `out/` as the run left them, plus `state.json`, the request lines when there are any, and `audit.json`. `internal/audit` calls `evidence.Check`, so any check that gains a rule, such as a manifest signature, holds for exports too.
+An export is a task directory without its working folder: `job.json` and `out/` as the run left them, plus `state.json`, the request lines when there are any, and `audit.json`. `internal/audit` calls `evidence.Check`, so any check that gains a rule, such as a manifest signature, holds for exports too.
 
 | Question | Field | From |
 | --- | --- | --- |

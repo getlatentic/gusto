@@ -83,7 +83,7 @@ func (r Record) Payer() string {
 
 // Lane is what keeps two turns from running at once. A room's agent keeps one conversation and one state, so its own turns go
 // one at a time while the room's other agents run beside it, each on a working copy of the room's folder. A turn in any other
-// conversation shares its instance's one workspace, so the instance is its lane. A task that is not a turn has none.
+// conversation shares its instance's one folder, so the instance is its lane. A task that is not a turn has none.
 func (r Record) Lane() string {
 	switch {
 	case r.Instance == "":
