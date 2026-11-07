@@ -90,6 +90,7 @@ func (s *Server) enter(w http.ResponseWriter, r *http.Request) {
 		role = Admin
 	}
 	s.keeper.issueFor(w, r, claims.Email, role)
+	s.keepWorkspace(w, r, claims.Email, r.URL.Query().Get("workspace"))
 	s.noteSignIn(r, claims.Email, role, "gusto cloud")
 	s.afterSignIn(w, r)
 }

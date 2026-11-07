@@ -50,6 +50,10 @@ const (
 	MemberInvited    = "member.invited"
 	MemberRole       = "member.role"
 	MemberRemoved    = "member.removed"
+	WorkspaceMade    = "workspace.made"
+	WorkspaceRenamed = "workspace.renamed"
+	WorkspaceAdded   = "workspace.member.added"
+	WorkspaceLeft    = "workspace.member.removed"
 	BudgetSet        = "budget.set"
 	MemberBudgetSet  = "budget.member.set"
 	ChatDefaultSet   = "chat.default"
@@ -96,7 +100,7 @@ const (
 // written by this server about itself.
 func FromCloud(kind string) bool {
 	switch kind {
-	case MemberInvited, MemberRole, MemberRemoved:
+	case MemberInvited, MemberRole, MemberRemoved, WorkspaceMade, WorkspaceRenamed, WorkspaceAdded, WorkspaceLeft:
 		return true
 	}
 	return false

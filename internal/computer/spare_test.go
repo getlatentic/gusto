@@ -54,14 +54,14 @@ func TestASpareSandboxNameFitsAGatewayAndIsNotAComputers(t *testing.T) {
 func TestANewComputerIsGivenTheSpareAndRecordsItsName(t *testing.T) {
 	r := open(t, "acme")
 	spares := &shelf{names: []string{"s-spare-one"}}
-	made, isNew, err := r.EnsureFrom("ada@acme.com", "cell-1", spares)
+	made, isNew, err := r.EnsureFrom("ada@acme.com", "", "cell-1", spares)
 	if err != nil || !isNew {
 		t.Fatalf("%v %v", isNew, err)
 	}
 	if made.Sandbox != "s-spare-one" {
 		t.Errorf("the computer is %q, want the spare", made.Sandbox)
 	}
-	found, err := r.Of("ada@acme.com")
+	found, err := r.Of("ada@acme.com", "")
 	if err != nil || found.Sandbox != "s-spare-one" {
 		t.Errorf("the record says %q, %v", found.Sandbox, err)
 	}
@@ -69,23 +69,23 @@ func TestANewComputerIsGivenTheSpareAndRecordsItsName(t *testing.T) {
 
 func TestACompanyWithNoSpareMakesTheComputerUnderItsOwnName(t *testing.T) {
 	r := open(t, "acme")
-	made, _, err := r.EnsureFrom("ada@acme.com", "cell-1", &shelf{})
-	if err != nil || made.Sandbox != Name("acme", "ada@acme.com") {
+	made, _, err := r.EnsureFrom("ada@acme.com", "", "cell-1", &shelf{})
+	if err != nil || made.Sandbox != Name("acme", "", "ada@acme.com") {
 		t.Errorf("%q %v", made.Sandbox, err)
 	}
-	plain, _, err := r.EnsureFrom("bob@acme.com", "cell-1", nil)
-	if err != nil || plain.Sandbox != Name("acme", "bob@acme.com") {
+	plain, _, err := r.EnsureFrom("bob@acme.com", "", "cell-1", nil)
+	if err != nil || plain.Sandbox != Name("acme", "", "bob@acme.com") {
 		t.Errorf("%q %v", plain.Sandbox, err)
 	}
 }
 
 func TestAPersonWhoHasAComputerIsNotGivenASpare(t *testing.T) {
 	r := open(t, "acme")
-	if _, _, err := r.EnsureFrom("ada@acme.com", "cell-1", &shelf{names: []string{"s-first"}}); err != nil {
+	if _, _, err := r.EnsureFrom("ada@acme.com", "", "cell-1", &shelf{names: []string{"s-first"}}); err != nil {
 		t.Fatal(err)
 	}
 	again := &shelf{names: []string{"s-second"}}
-	found, isNew, err := r.EnsureFrom("ada@acme.com", "cell-1", again)
+	found, isNew, err := r.EnsureFrom("ada@acme.com", "", "cell-1", again)
 	if err != nil || isNew || found.Sandbox != "s-first" {
 		t.Errorf("%q new=%v %v", found.Sandbox, isNew, err)
 	}
@@ -96,11 +96,11 @@ func TestAPersonWhoHasAComputerIsNotGivenASpare(t *testing.T) {
 
 func TestAComputerThatWasRemovedIsGivenASpareToo(t *testing.T) {
 	r := open(t, "acme")
-	made, _, _ := r.EnsureFrom("ada@acme.com", "cell-1", nil)
+	made, _, _ := r.EnsureFrom("ada@acme.com", "", "cell-1", nil)
 	if _, err := r.Change(made.ID, func(c *Computer) { c.State = Deleted }); err != nil {
 		t.Fatal(err)
 	}
-	again, isNew, err := r.EnsureFrom("ada@acme.com", "cell-1", &shelf{names: []string{"s-new"}})
+	again, isNew, err := r.EnsureFrom("ada@acme.com", "", "cell-1", &shelf{names: []string{"s-new"}})
 	if err != nil || !isNew || again.Sandbox != "s-new" {
 		t.Errorf("%q new=%v %v", again.Sandbox, isNew, err)
 	}
@@ -113,7 +113,7 @@ func TestASpareIsGivenBackWhenTheComputerIsRefused(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.Chmod(r.dir, 0o700)
-	if _, _, err := r.EnsureFrom("ada@acme.com", "cell-1", spares); err == nil {
+	if _, _, err := r.EnsureFrom("ada@acme.com", "", "cell-1", spares); err == nil {
 		t.Skip("this user can write to a directory that has no write permission")
 	}
 	if len(spares.returned) != 1 || spares.returned[0] != "s-spare" {
@@ -124,11 +124,11 @@ func TestASpareIsGivenBackWhenTheComputerIsRefused(t *testing.T) {
 func TestAComputerPastTheLimitIsRefusedWithoutTakingASpare(t *testing.T) {
 	r := open(t, "acme")
 	limited(t, r, quota.Quota{Computers: 1})
-	if _, _, err := r.Ensure("first@acme.com", "cell-1"); err != nil {
+	if _, _, err := r.Ensure("first@acme.com", "", "cell-1"); err != nil {
 		t.Fatal(err)
 	}
 	spares := &shelf{names: []string{"s-spare"}}
-	if _, _, err := r.EnsureFrom("ada@acme.com", "cell-1", spares); err == nil {
+	if _, _, err := r.EnsureFrom("ada@acme.com", "", "cell-1", spares); err == nil {
 		t.Fatal("a computer past the limit was made")
 	}
 	if len(spares.names) != 1 {
@@ -145,7 +145,7 @@ func TestTwoPeopleAtOnceAreNotGivenTheSameSpare(t *testing.T) {
 		group.Add(1)
 		go func() {
 			defer group.Done()
-			c, _, err := r.EnsureFrom(fmt.Sprintf("p%d@acme.com", i), "cell-1", spares)
+			c, _, err := r.EnsureFrom(fmt.Sprintf("p%d@acme.com", i), "", "cell-1", spares)
 			if err != nil {
 				t.Error(err)
 			}

@@ -24,7 +24,7 @@ func (s *Server) makeAgent(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, "/members?new=1", err.Error())
 		return
 	}
-	wanted.Owner = s.askerName(r)
+	wanted.Owner, wanted.Workspace = s.askerName(r), s.workspaceOf(r)
 	made, err := s.crew.Make(wanted)
 	if err != nil {
 		s.turnAway(w, r, "/members?new=1", err.Error())
@@ -203,7 +203,7 @@ func (s *Server) messageAgent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "you may not work with this agent; ask the person who made it", http.StatusForbidden)
 		return
 	}
-	held, err := s.instances.StartDirect(who, instance.Agent{Name: member.Name, Harness: member.Harness, Model: member.Model, Member: member.ID})
+	held, err := s.instances.StartDirect(who, member.Workspace, instance.Agent{Name: member.Name, Harness: member.Harness, Model: member.Model, Member: member.ID})
 	if err != nil {
 		s.turnAway(w, r, "/members/agents/"+member.ID, err.Error())
 		return

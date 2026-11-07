@@ -17,7 +17,7 @@ func TestATurnThatWasRunningWhenTheServerStoppedIsAnnouncedToItsRoomOnTheNextSta
 	if err != nil {
 		t.Fatal(err)
 	}
-	room, _ := instances.StartRoom("Launch plan", alice)
+	room, _ := instances.StartRoom("Launch plan", alice, "")
 	thread := instances.Latest(room.ID)
 
 	first, err := tasks.Open(root)

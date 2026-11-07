@@ -58,7 +58,7 @@ Settings: `GUSTO_TOOL_POLICY` is the policy file. `GUSTO_GATEWAY_MODE` is `disco
 
 ### Connectors
 
-A connector is an app's MCP server that asks for OAuth. Each person signs in to it with their own account, and their agents call it as them (`internal/connector`).
+A connector is an app's MCP server that asks for OAuth. Each person signs in to it with their own account, in a workspace, and their agents in that workspace call it as them (`internal/connector`). A sign-in made in one workspace is not used in another.
 
 1. An admin turns the app on at `/admin/apps`. Every app is off until then.
 2. The person opens Connections, `/connections`, and presses Connect. The app's own sign-in page opens.

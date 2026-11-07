@@ -2,6 +2,7 @@ package web
 
 import (
 	"cmp"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"path/filepath"
 	"slices"
@@ -90,15 +91,20 @@ func (s *Server) beginInstance(r *http.Request, wanted instance.Instance) (start
 	if wanted.Model == "" {
 		wanted.Model = cmp.Or(s.modelToStartOn(r, wanted.Harness), first(s.offeredTo(r)))
 	}
-	name := wanted.Harness
-	if wanted.Repo != "" {
-		name = filepath.Base(strings.TrimSuffix(wanted.Repo, ".git"))
-	}
-	started, err := s.instances.Start(tasks.Name(name, time.Now()), wanted)
+	wanted.Workspace = workspace.Stored(s.workspaceOf(r))
+	started, err := s.instances.Start(tasks.Name(instanceName(wanted), time.Now()), wanted)
 	if err != nil {
 		return started, "/presets", err.Error()
 	}
 	return started, "", ""
+}
+
+// instanceName is what a new instance's id begins with: its repository's name, or its agent type's when it has none.
+func instanceName(wanted instance.Instance) string {
+	if wanted.Repo != "" {
+		return filepath.Base(strings.TrimSuffix(wanted.Repo, ".git"))
+	}
+	return wanted.Harness
 }
 
 // runnable says why an agent cannot be started here: there is none by that name, or this machine cannot run it now.

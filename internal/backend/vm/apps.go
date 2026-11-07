@@ -36,7 +36,7 @@ func serviceName(app apps.App) string { return "a" + app.ID }
 // Start has the app running and answering, or says why it does not. What it started is stopped
 // when it did not answer, so a failed app leaves nothing running.
 func (a *sharedApps) Start(ctx context.Context, app apps.App) (apps.App, error) {
-	held, err := a.registry.Of(app.Owner)
+	held, err := a.registry.Of(app.Owner, app.Workspace)
 	if err != nil {
 		return apps.App{}, errors.New("the person this agent belongs to has no computer to run it on")
 	}
@@ -106,7 +106,7 @@ func (a *sharedApps) answers(ctx context.Context, app apps.App, address openshel
 func (a *sharedApps) Stop(ctx context.Context, app apps.App) error {
 	if app.Sandbox == "" {
 		// An app still starting has its sandbox named only once it answers; it runs in its owner's computer.
-		held, err := a.registry.Of(app.Owner)
+		held, err := a.registry.Of(app.Owner, app.Workspace)
 		if err != nil {
 			return nil
 		}

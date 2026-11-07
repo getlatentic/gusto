@@ -168,11 +168,11 @@ func TestAPersonsTasksRunInTheirOwnComputerAndAScriptsTaskInASandboxOfItsOwn(t *
 	bob := taskBy(t, work, index, "bob@acme.com", "a thing for bob")
 	script := taskBy(t, work, index, "token:ci", "a thing for a script")
 
-	ada, err := registry.Of("ada@acme.com")
-	if err != nil || ada.State != computer.Running || ada.Org != "acme-com" || ada.Sandbox != computer.Name("acme-com", "ada@acme.com") || ada.LastActive.IsZero() {
+	ada, err := registry.Of("ada@acme.com", "")
+	if err != nil || ada.State != computer.Running || ada.Org != "acme-com" || ada.Sandbox != computer.Name("acme-com", "", "ada@acme.com") || ada.LastActive.IsZero() {
 		t.Fatalf("Ada has a computer that ran her jobs: %+v %v", ada, err)
 	}
-	bobs, _ := registry.Of("bob@acme.com")
+	bobs, _ := registry.Of("bob@acme.com", "")
 	if bobs.ID == ada.ID || bobs.Sandbox == ada.Sandbox {
 		t.Error("two people share a computer")
 	}
@@ -205,7 +205,7 @@ func TestAPersonPastTheOrganizationsComputersIsRefusedInTheRecordOfTheirTask(t *
 	if !strings.Contains(text, "refused this task before the agent started") || !strings.Contains(text, "may have 1 computer and has 1") || !strings.Contains(text, "Ask the admin for more.") {
 		t.Errorf("%q", text)
 	}
-	if _, err := registry.Of("carol@acme.com"); err == nil {
+	if _, err := registry.Of("carol@acme.com", ""); err == nil {
 		t.Error("a refused person was given a computer")
 	}
 	calls, _ := os.ReadFile(filepath.Join(root, "calls.log"))
@@ -222,7 +222,7 @@ func TestAComputerThatCannotBeMadeIsFailedInTheRecordWithTheReason(t *testing.T)
 	os.WriteFile(bad, []byte("#!/bin/bash\necho \"Error: × the gateway is down\" >&2\nexit 1\n"), 0o755)
 	t.Setenv("PATH", filepath.Dir(bad)+string(os.PathListSeparator)+os.Getenv("PATH"))
 	dir := taskBy(t, work, index, "ada@acme.com", "a thing")
-	got, err := registry.Of("ada@acme.com")
+	got, err := registry.Of("ada@acme.com", "")
 	if err != nil || got.State != computer.Failed || !strings.Contains(got.Note, "gateway is down") {
 		t.Errorf("%+v %v", got, err)
 	}
@@ -233,7 +233,7 @@ func TestAComputerThatCannotBeMadeIsFailedInTheRecordWithTheReason(t *testing.T)
 func TestAStoppedComputerIsStartedForThePersonsNextTask(t *testing.T) {
 	work, index, registry, _, root := organizationServer(t, quota.Quota{Computers: 4, Tasks: 100})
 	taskBy(t, work, index, "bob@acme.com", "for bob")
-	bob, _ := registry.Of("bob@acme.com")
+	bob, _ := registry.Of("bob@acme.com", "")
 	if err := os.WriteFile(filepath.Join(root, bob.Sandbox, "stopped"), nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -242,7 +242,7 @@ func TestAStoppedComputerIsStartedForThePersonsNextTask(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, bob.Sandbox, "stopped")); err == nil {
 		t.Error("Bob's computer was not started for his job")
 	}
-	if got, _ := registry.Of("bob@acme.com"); got.State != computer.Running {
+	if got, _ := registry.Of("bob@acme.com", ""); got.State != computer.Running {
 		t.Errorf("%+v", got)
 	}
 }

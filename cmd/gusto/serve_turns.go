@@ -48,7 +48,8 @@ func (s *server) openWayOut() error {
 	if s.connect, err = openConnectors(s.cfg.way, s.cfg.core.publicURL); err != nil {
 		return err
 	}
-	if s.connect != nil {
+	// A deployment that holds no credential has no proxy and so no gateway, and its tasks are given no app to call.
+	if s.connect != nil && way.gateways != nil {
 		way.gateways.tokens = s.connect
 	}
 	if s.limits != nil {

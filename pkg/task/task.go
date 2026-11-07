@@ -89,6 +89,8 @@ type Spec struct {
 	Team string `json:"team,omitempty"`
 	// Person is who asked for the task, whose own monthly budget it counts against.
 	Person string `json:"person,omitempty"`
+	// Workspace is the workspace of the organization the task is in, and empty for the first. Only its members reach the task.
+	Workspace string `json:"workspace,omitempty"`
 	// Setup is what the agent was configured with beyond its adapter: the
 	// skills it was given and the MCP servers it may call.
 	Setup *Setup `json:"setup,omitempty"`

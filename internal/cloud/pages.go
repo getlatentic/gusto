@@ -69,10 +69,12 @@ type view struct {
 	Waited string
 	// The people: who is in, who has been invited and has not answered, whether the
 	// person looking is an admin, and whether they may invite one more.
-	Members   []Person
-	Invited   []Invitation
-	IsAdmin   bool
-	CanInvite bool
+	Members []Person
+	// Workspaces is the organization's workspaces, shown on its page when an admin may change them or there are several.
+	Workspaces []workspaceRow
+	Invited    []Invitation
+	IsAdmin    bool
+	CanInvite  bool
 	// Admins is how many of the members are admins, since the last one cannot be made
 	// a runner and is not offered it.
 	Admins int

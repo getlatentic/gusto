@@ -95,15 +95,7 @@ func (s *Server) drawOrg(ctx context.Context, w http.ResponseWriter, status int,
 	if err != nil {
 		slog.Error("an organization is missing its quota", "error", err)
 	}
-	computers, byAddress := 0, map[string]string{}
-	if registry, err := s.Store.Computers(org.Slug); err == nil {
-		if all, err := registry.All(); err == nil {
-			computers = len(all)
-			for _, each := range all {
-				byAddress[each.User] = string(each.State)
-			}
-		}
-	}
+	computers, byAddress := s.computersOf(org.Slug)
 	server, canOpen := "", false
 	if s.Controller != nil {
 		_, state := s.Controller.Route(ctx, org.Slug)
@@ -121,12 +113,33 @@ func (s *Server) drawOrg(ctx context.Context, w http.ResponseWriter, status int,
 	}
 
 	invited, _ := s.Store.Invitations(ctx, org.Slug)
+	spaces, err := s.Store.Workspaces(ctx, org.Slug)
+	if err != nil {
+		slog.Error("an organization's workspaces could not be read", "org", org.Slug, "error", err)
+	}
 	all, _ := s.Store.Memberships(ctx, person.Email)
-	v := view{ComputerOf: byAddress, Members: members, Admins: admins, Invited: invited, IsAdmin: person.Role == Admin,
+	v := view{ComputerOf: byAddress, Members: members, Workspaces: workspaceRows(spaces, members), Admins: admins, Invited: invited, IsAdmin: person.Role == Admin,
 		CanInvite: person.Role == Admin && quota.Invites && len(members)+len(invited) < quota.Members, Server: server, CanOpen: canOpen, Refresh: server != "" && !canOpen, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
 		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice, Several: len(all) > 1, Credit: creditLeft(quota.CreditUSD, s.Store.CreditUsed(org.Slug)),
 		Plan: s.planOf(ctx, org, person), Console: true}
 	s.render(w, status, "org", v)
+}
+
+// computersOf is how many computers an organization has, and the state of one of each person's, by address.
+func (s *Server) computersOf(slug string) (int, map[string]string) {
+	byAddress := map[string]string{}
+	registry, err := s.Store.Computers(slug)
+	if err != nil {
+		return 0, byAddress
+	}
+	all, err := registry.All()
+	if err != nil {
+		return 0, byAddress
+	}
+	for _, each := range all {
+		byAddress[each.User] = string(each.State)
+	}
+	return len(all), byAddress
 }
 
 // resend mails the verification link again, up to the limit for the address.

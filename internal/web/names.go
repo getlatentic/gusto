@@ -18,6 +18,9 @@ type rosterBook struct {
 	stamp   time.Time
 	size    int64
 	byEmail map[string]roster.Member
+	// spaces is the organization's workspaces, and read whether a roster has been read at all.
+	spaces []roster.Workspace
+	read   bool
 }
 
 // rosterRecheck is how long a roster book trusts what it read before it looks at the roster again, which is also how long a
@@ -29,12 +32,36 @@ const rosterRecheck = time.Second
 func (b *rosterBook) member(path, who string) (roster.Member, bool) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	b.lookAgain(path)
+	member, found := b.byEmail[strings.ToLower(who)]
+	return member, found
+}
+
+// lookAgain reads the roster again when it was last looked at longer ago than rosterRecheck. It is called with mu held.
+func (b *rosterBook) lookAgain(path string) {
 	if now := time.Now(); now.Sub(b.checked) >= rosterRecheck {
 		b.checked = now
 		b.refresh(path)
 	}
-	member, found := b.byEmail[strings.ToLower(who)]
-	return member, found
+}
+
+// spacesOf is the workspaces a person is in, as the newest roster that could be read says, and false before any could be.
+func (b *rosterBook) spacesOf(path, who string) ([]roster.Workspace, bool) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.lookAgain(path)
+	if !b.read {
+		return nil, false
+	}
+	return roster.Roster{Workspaces: b.spaces}.SpacesOf(who), true
+}
+
+// workspaces is every workspace of the organization, as the newest roster that could be read says.
+func (b *rosterBook) workspaces(path string) []roster.Workspace {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.lookAgain(path)
+	return b.spaces
 }
 
 // of is the name the roster gives a person, when it gives one.
@@ -75,6 +102,7 @@ func (b *rosterBook) refresh(path string) {
 		members[strings.ToLower(member.Email)] = member
 	}
 	b.byEmail, b.stamp, b.size = members, info.ModTime(), info.Size()
+	b.spaces, b.read = list.Spaces(), true
 }
 
 // personName is what the organization calls a person: the name they gave, else what their address says.

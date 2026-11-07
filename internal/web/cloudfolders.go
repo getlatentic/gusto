@@ -56,10 +56,10 @@ func splitAt(at string) (id, dir string) {
 	return id, dir
 }
 
-// folderAgent is the agent a place names, when it is one of the person's.
+// folderAgent is the agent a place names, when it is one of the person's, in a workspace they are in.
 func (s *Server) folderAgent(r *http.Request, id string) (instance.Instance, bool) {
 	held, found := s.instances.Get(id)
-	if !found || !s.mayUse(r, held.Who) {
+	if !found || !s.inWorkspace(r, held.Workspace) || !s.mayUse(r, held.Who) {
 		return instance.Instance{}, false
 	}
 	return held, true

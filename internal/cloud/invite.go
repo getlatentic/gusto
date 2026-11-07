@@ -17,7 +17,7 @@ func (s *Server) invite(w http.ResponseWriter, r *http.Request, person Person) {
 		return
 	}
 	address := r.PostFormValue("email")
-	secret, err := s.Store.Invite(r.Context(), person.Org, person, address)
+	secret, err := s.Store.InviteTo(r.Context(), person.Org, person, address, r.PostFormValue("workspace"))
 	if err != nil {
 		s.drawOrg(r.Context(), w, refusedStatus(err), person, sentence(err))
 		return
@@ -143,7 +143,8 @@ func (s *Server) acceptInvitation(w http.ResponseWriter, r *http.Request) {
 
 // sentence is what a person is told of a refusal we made, and nothing of one we did not.
 func sentence(err error) string {
-	for _, known := range []error{ErrBadEmail, ErrDisposable, ErrNoInvites, ErrLapsed, ErrFull, ErrCannotInvite, ErrNotAdmin, ErrLastAdmin, ErrNoMember, ErrBadRole, ErrLink} {
+	for _, known := range []error{ErrBadEmail, ErrDisposable, ErrNoInvites, ErrLapsed, ErrFull, ErrCannotInvite, ErrNotAdmin, ErrLastAdmin, ErrNoMember, ErrBadRole, ErrLink,
+		ErrNoWorkspace, ErrManyWorkspaces, ErrWorkspaceName, ErrLastWorkspace, ErrInWorkspace, ErrNotInWorkspace} {
 		if errors.Is(err, known) {
 			return refusalSentence(known)
 		}
@@ -156,9 +157,11 @@ func refusedStatus(err error) int {
 	switch {
 	case errors.Is(err, ErrNotAdmin):
 		return http.StatusForbidden
-	case errors.Is(err, ErrFull), errors.Is(err, ErrNoInvites), errors.Is(err, ErrLapsed), errors.Is(err, ErrCannotInvite), errors.Is(err, ErrLastAdmin):
+	case errors.Is(err, ErrFull), errors.Is(err, ErrNoInvites), errors.Is(err, ErrLapsed), errors.Is(err, ErrCannotInvite), errors.Is(err, ErrLastAdmin),
+		errors.Is(err, ErrManyWorkspaces), errors.Is(err, ErrLastWorkspace), errors.Is(err, ErrInWorkspace):
 		return http.StatusConflict
-	case errors.Is(err, ErrBadEmail), errors.Is(err, ErrDisposable), errors.Is(err, ErrNoMember), errors.Is(err, ErrBadRole):
+	case errors.Is(err, ErrBadEmail), errors.Is(err, ErrDisposable), errors.Is(err, ErrNoMember), errors.Is(err, ErrBadRole),
+		errors.Is(err, ErrNoWorkspace), errors.Is(err, ErrWorkspaceName), errors.Is(err, ErrNotInWorkspace):
 		return http.StatusUnprocessableEntity
 	}
 	return http.StatusInternalServerError

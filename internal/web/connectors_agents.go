@@ -36,7 +36,7 @@ func (s *Server) agentAppsFor(r *http.Request, member string) *agentApps {
 	if shown.Works = held.MayUse(who); !shown.Works {
 		return shown
 	}
-	views, err := s.connectorViews(who)
+	views, err := s.connectorViews(who, held.Workspace)
 	if err != nil {
 		return shown
 	}
@@ -44,7 +44,7 @@ func (s *Server) agentAppsFor(r *http.Request, member string) *agentApps {
 		if !view.On || !view.Usable || !view.Connected {
 			continue
 		}
-		app := agentApp{ID: view.ID, Name: view.Name, Choice: "inherit", Default: s.connectors.ForAgents(who, view.ID)}
+		app := agentApp{ID: view.ID, Name: view.Name, Choice: "inherit", Default: s.connectors.ForAgents(who, held.Workspace, view.ID)}
 		if allowed, chosen := held.AppChoice(who, view.ID); chosen {
 			app.Choice = map[bool]string{true: "allow", false: "deny"}[allowed]
 		}
@@ -78,11 +78,11 @@ func (s *Server) chooseAgentApp(w http.ResponseWriter, r *http.Request) {
 }
 
 // forgetAgentChoices drops what a person chose for one app of theirs on every agent.
-func (s *Server) forgetAgentChoices(who, app string) error {
+func (s *Server) forgetAgentChoices(who, space, app string) error {
 	if s.crew == nil {
 		return nil
 	}
-	return s.crew.ForgetApp(who, app)
+	return s.crew.ForgetApp(who, space, app)
 }
 
 // setAppForAgents sets the asking person's default for whether their agents may use one app they connected, which every agent they
@@ -95,7 +95,7 @@ func (s *Server) setAppForAgents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	on := r.FormValue("on") == "on"
-	if err := s.connectors.SetForAgents(who, entry.ID, on); err != nil {
+	if err := s.connectors.SetForAgents(who, s.workspaceOf(r), entry.ID, on); err != nil {
 		s.turnAway(w, r, connectionsPath, err.Error())
 		return
 	}

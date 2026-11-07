@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/dbkit"
+	"github.com/getlatentic/gusto/internal/quota"
 )
 
 // Refusals a member's invitation or removal can meet.
@@ -57,6 +58,11 @@ func (s *Store) Invitations(ctx context.Context, slug string) ([]Invitation, err
 // in another organization is invited like any other, so the form says nothing of
 // who has an account elsewhere.
 func (s *Store) Invite(ctx context.Context, slug string, by Person, address string) (secret string, err error) {
+	return s.InviteTo(ctx, slug, by, address, "")
+}
+
+// InviteTo is Invite into one of the organization's workspaces, which the person joins when they accept. An empty one is the first.
+func (s *Store) InviteTo(ctx context.Context, slug string, by Person, address, space string) (secret string, err error) {
 	email, err := NormalEmail(address)
 	if err != nil {
 		return "", err
@@ -64,22 +70,17 @@ func (s *Store) Invite(ctx context.Context, slug string, by Person, address stri
 	if err := workEmail(email, true, s.refused); err != nil {
 		return "", err
 	}
-	if by.Org != slug || by.Role != Admin {
-		return "", ErrNotAdmin
-	}
-	quota, err := s.Quota(slug)
+	quota, err := s.mayInvite(ctx, slug, by)
 	if err != nil {
 		return "", err
 	}
-	if !quota.Invites {
-		if billing, found, err := s.Billing(ctx, slug); err == nil && found && billing.Lapsed() {
-			return "", ErrLapsed
-		}
-		return "", ErrNoInvites
-	}
-
 	err = s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
-		secret, err = s.invite(ctx, tx, slug, by.Email, email, quota.Members)
+		if space != "" {
+			if err := mustBeWorkspace(ctx, tx, slug, space); err != nil {
+				return err
+			}
+		}
+		secret, err = s.invite(ctx, tx, slug, by.Email, email, space, quota.Members)
 		return err
 	})
 	if err != nil {
@@ -89,7 +90,22 @@ func (s *Store) Invite(ctx context.Context, slug string, by Person, address stri
 	return secret, nil
 }
 
-func (s *Store) invite(ctx context.Context, tx dbkit.Tx, slug, by, email string, most int) (string, error) {
+// mayInvite is the organization's quota when the person may invite somebody to it, and why not otherwise.
+func (s *Store) mayInvite(ctx context.Context, slug string, by Person) (quota.Quota, error) {
+	if by.Org != slug || by.Role != Admin {
+		return quota.Quota{}, ErrNotAdmin
+	}
+	held, err := s.Quota(slug)
+	if err != nil || held.Invites {
+		return held, err
+	}
+	if billing, found, err := s.Billing(ctx, slug); err == nil && found && billing.Lapsed() {
+		return quota.Quota{}, ErrLapsed
+	}
+	return quota.Quota{}, ErrNoInvites
+}
+
+func (s *Store) invite(ctx context.Context, tx dbkit.Tx, slug, by, email, space string, most int) (string, error) {
 	if err := s.lock(ctx, tx, "org:"+slug); err != nil {
 		return "", err
 	}
@@ -103,7 +119,7 @@ func (s *Store) invite(ctx context.Context, tx dbkit.Tx, slug, by, email string,
 		return "", err
 	}
 	now := s.now().UTC().Truncate(time.Second)
-	secret, err := s.putLink(ctx, tx, link{Email: email, Purpose: Invite, Expires: now.Add(InviteLife), Org: slug, Role: Runner, By: by})
+	secret, err := s.putLink(ctx, tx, link{Email: email, Purpose: Invite, Expires: now.Add(InviteLife), Org: slug, Role: Runner, By: by, Workspace: space})
 	if err != nil {
 		return "", err
 	}

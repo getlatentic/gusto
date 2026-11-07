@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/getlatentic/gusto/internal/tasks"
 	"os"
 	"path/filepath"
 	"strings"
@@ -149,5 +150,25 @@ func TestATaskIsHeldToTheBudgetOfThePersonWhoAskedForIt(t *testing.T) {
 	}
 	if refusal := way.ledger.Allow("bob@acme.com", "", "", false); refusal != nil {
 		t.Errorf("bob, who has no budget, was held to one: %+v", refusal)
+	}
+}
+
+// A server that keeps people's sign-ins to apps and holds no credential has no gateway to give them to, and still starts.
+func TestAServerWithConnectorsAndNoCredentialStarts(t *testing.T) {
+	t.Setenv("GUSTO_CREDENTIALS", "")
+	t.Setenv("GUSTO_MODEL_UPSTREAM", "")
+	t.Setenv("GUSTO_CONNECTORS", t.TempDir())
+	t.Setenv("GUSTO_PUBLIC_URL", "http://acme.test")
+	s := &server{cfg: fromEnv(t)}
+	index, err := tasks.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.index = index
+	if err := s.openWayOut(); err != nil {
+		t.Fatal(err)
+	}
+	if s.connect == nil || s.way.gateways != nil {
+		t.Fatalf("connectors %v, gateways %v", s.connect, s.way.gateways)
 	}
 }

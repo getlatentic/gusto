@@ -49,7 +49,9 @@ type Instance struct {
 	// never does, whichever thread it is said in.
 	Sensitivity string `json:"sensitivity,omitempty"`
 	Who         string `json:"who,omitempty"`
-	Started     int64  `json:"startedAt"`
+	// Workspace is the workspace of the organization the instance is in, and empty for the first. Only its members reach it.
+	Workspace string `json:"workspace,omitempty"`
+	Started   int64  `json:"startedAt"`
 	// A room is an instance its people share, and its agents work in together. An instance that is not one has its owner and
 	// the one agent Harness names.
 	Room bool `json:"room,omitempty"`

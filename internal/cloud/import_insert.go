@@ -63,6 +63,9 @@ func (s *Store) insertLegacy(ctx context.Context, tx dbkit.Tx, old legacy) (map[
 		}
 		imported[step.kind] = n
 	}
+	if err := fillFirstWorkspaces(ctx, tx); err != nil {
+		return nil, err
+	}
 	var err error
 	if imported["runtime"], err = s.insertRuntimes(ctx, tx, old); err != nil {
 		return nil, err

@@ -41,8 +41,9 @@ func TestAnOrganizationWithNoNodeToGoOnWaitsAndIsStartedWhenOneHasRoom(t *testin
 
 		time.Sleep(30 * time.Millisecond)
 		c.supervise(t.Context())
-		time.Sleep(50 * time.Millisecond)
-		if _, state := c.Route(t.Context(), org.Slug); state != Waiting {
+		// The try runs on its own, and is provisioning until it finds no room again.
+		state := c.settled(t, org.Slug)
+		if state != Waiting {
 			t.Errorf("it is tried again and there is still no room: %q", state)
 		}
 
@@ -99,4 +100,18 @@ func TestAnOrganizationThatStartsWaitingAsksForANodeAtOnceAndIsPlacedWithoutATic
 		cancel()
 		<-ran
 	})
+}
+
+// settled is an organization's state once a try to place it has finished: not provisioning, or provisioning still after five
+// seconds.
+func (c *Controller) settled(t *testing.T, slug string) State {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		_, state := c.Route(t.Context(), slug)
+		if state != Provisioning || time.Now().After(deadline) {
+			return state
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 }

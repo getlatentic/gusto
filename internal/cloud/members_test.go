@@ -362,8 +362,8 @@ func TestRemovingAPersonMarksTheirComputerForRemoval(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		registry.Ensure(bob.Email, "local")
-		registry.Ensure(cy.Email, "local")
+		registry.Ensure(bob.Email, "", "local")
+		registry.Ensure(cy.Email, "", "local")
 		if err := s.Remove(t.Context(), org.Slug, admin, "bob@acme.com"); err != nil {
 			t.Fatal(err)
 		}

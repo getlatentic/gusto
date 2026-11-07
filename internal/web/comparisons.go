@@ -3,6 +3,7 @@ package web
 import (
 	"errors"
 	"fmt"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"slices"
 	"strings"
@@ -115,23 +116,29 @@ func (s *Server) lineUp(r *http.Request, brief, named string, harnesses []string
 		}
 		specs = append(specs, spec)
 	}
-	lineup := compare.Lineup{Brief: brief, Template: held.Name,
-		Model: named, Commit: commit, Check: held.Check, At: time.Now().Unix(), Who: s.keeper.who(r)}
+	lineup := compare.Lineup{Brief: brief, Template: held.Name, Model: named, Commit: commit, Check: held.Check, At: time.Now().Unix(),
+		Who: s.keeper.who(r), Workspace: workspace.Stored(s.workspaceOf(r))}
 	if lineup.ID, err = s.lineups.Reserve(tasks.Name("compare "+brief, time.Now()), lineup); err != nil {
 		return "", err
 	}
-	// Each run is kept in the lineup as soon as it is queued, so a run queued before a failure is one the lineup shows.
+	return lineup.ID, s.queueRuns(lineup, specs)
+}
+
+// queueRuns queues each run of a lineup, in its workspace. Each run is kept in the lineup as soon as it is queued, so a run
+// queued before a failure is one the lineup shows.
+func (s *Server) queueRuns(lineup compare.Lineup, specs []task.Spec) error {
 	for _, spec := range specs {
-		run, err := s.queued(spec, nil, s.keeper.who(r), "")
+		spec.Workspace = lineup.Workspace
+		run, err := s.queued(spec, nil, lineup.Who, "")
 		if err != nil {
-			return lineup.ID, err
+			return err
 		}
 		lineup.Runs = append(lineup.Runs, compare.Entry{Harness: spec.Harness, Task: run})
 		if err := s.lineups.Save(lineup); err != nil {
-			return lineup.ID, err
+			return err
 		}
 	}
-	return lineup.ID, nil
+	return nil
 }
 
 // sideSpec is one engine's run in a lineup, refused here rather than in the

@@ -10,7 +10,7 @@ import (
 // signIns gives a person's token for an app, and none for anybody who did not sign in.
 type signIns map[string]string
 
-func (s signIns) Token(_ context.Context, person, connector string) (string, error) {
+func (s signIns) Token(_ context.Context, person, _, connector string) (string, error) {
 	if token, found := s[person+" "+connector]; found {
 		return token, nil
 	}

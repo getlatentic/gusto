@@ -74,13 +74,19 @@ func (s *Server) sent(scope string, next http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 		}
-		ctx := context.WithValue(r.Context(), callerKey{}, who)
-		if token.Person != "" {
-			ctx = context.WithValue(ctx, personKey{}, token.Person)
-			ctx = context.WithValue(ctx, tokenIDKey{}, token.ID)
-		}
-		next(w, r.WithContext(ctx))
+		next(w, r.WithContext(carrying(r.Context(), token, who)))
 	}
+}
+
+// carrying is a request's context with what its token says: who it came from, and the person it acts as or, for an
+// organization's token, the workspace it works in.
+func carrying(ctx context.Context, token apitoken.Token, who string) context.Context {
+	ctx = context.WithValue(ctx, callerKey{}, who)
+	if token.Person == "" {
+		return withTokenSpace(ctx, token.Workspace)
+	}
+	ctx = context.WithValue(ctx, personKey{}, token.Person)
+	return context.WithValue(ctx, tokenIDKey{}, token.ID)
 }
 
 // credential is what a program presents to this server, in a sentence.

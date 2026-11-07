@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -64,7 +65,7 @@ func (s *Server) roomMembers(r *http.Request, held instance.Instance) map[string
 	}
 	runs := s.runsRoom(r, held)
 	var addable []listedAgent
-	for _, member := range s.crewFor(you) {
+	for _, member := range s.crewFor(you, held.Workspace) {
 		in := slices.ContainsFunc(held.Agents, func(agent instance.Agent) bool { return agent.Member == member.ID })
 		// A member proposes only an agent of their own.
 		if !in && (runs || strings.EqualFold(member.Owner, you)) {
@@ -106,6 +107,19 @@ func (s *Server) membersPath(held instance.Instance) string {
 	return threadPath(s.instances.Latest(held.ID)) + "?members=1"
 }
 
+// cannotAdd is why one of the people cannot be added to a room: they are in it already, or not in its workspace.
+func (s *Server) cannotAdd(r *http.Request, held instance.Instance, people []string) string {
+	for _, who := range people {
+		if inRoom(held, who) {
+			return s.alreadyIn(r, who)
+		}
+		if why := s.outsideWorkspace(held, who); why != "" {
+			return why
+		}
+	}
+	return ""
+}
+
 // addRoomMembers adds the people and the presets ticked in the add dialog in one go.
 func (s *Server) addRoomMembers(w http.ResponseWriter, r *http.Request) {
 	held, found := s.roomOf(w, r)
@@ -117,11 +131,9 @@ func (s *Server) addRoomMembers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "only a room's admin adds people to it", http.StatusForbidden)
 		return
 	}
-	for _, who := range people {
-		if inRoom(held, who) {
-			s.turnAway(w, r, s.addPath(held), s.alreadyIn(r, who))
-			return
-		}
+	if why := s.cannotAdd(r, held, people); why != "" {
+		s.turnAway(w, r, s.addPath(held), why)
+		return
 	}
 	var arrivals []instance.Arrival
 	for _, id := range r.Form["agent"] {
@@ -164,9 +176,12 @@ func (s *Server) changeRoomRole(w http.ResponseWriter, r *http.Request) {
 	}
 	who, role := r.FormValue("who"), r.FormValue("role")
 	var err error
-	if role == "remove" {
+	switch why := s.outsideWorkspace(held, who); {
+	case role == "remove":
 		err = s.takeOutMember(held.ID, who, s.askerName(r))
-	} else {
+	case why != "":
+		err = errors.New(why)
+	default:
 		err = s.instances.SetMember(held.ID, who, role)
 	}
 	if err != nil {
