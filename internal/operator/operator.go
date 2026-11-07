@@ -1,8 +1,8 @@
-// Package owner is the page the operator of a hosted gusto manages it from: who asked for a demo, which demos are running,
+// Package operator is the page the operator of a hosted gusto manages it from: who asked for a demo, which demos are running,
 // whether new ones are being accepted, and which hosts are up. It is its own program, listening only on this machine's
 // loopback, so that nothing the gusto cloud serves reaches it; the operator reaches it through a tunnel they are allowed to
 // open.
-package owner
+package operator
 
 import (
 	"context"
@@ -112,7 +112,7 @@ func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 			page["HostsKnown"] = true
 		}
 	}
-	if err := a.pages.ExecuteTemplate(w, "owner.html", page); err != nil {
+	if err := a.pages.ExecuteTemplate(w, "operator.html", page); err != nil {
 		slog.Error("the operator page was not drawn", "error", err)
 	}
 }
@@ -150,7 +150,7 @@ func (a *App) pause(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/?notice="+url.QueryEscape(notice), http.StatusSeeOther)
 }
 
-// limits keeps the limits the owner chose, or goes back to the ones the front door started with.
+// limits keeps the limits the operator chose, or goes back to the ones the front door started with.
 func (a *App) limits(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

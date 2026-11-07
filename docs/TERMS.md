@@ -13,7 +13,7 @@ The words gusto's pages, commands and docs use, each for one thing. The last col
 | node | One machine in gusto cloud. It runs several organizations' servers and their people's computers | cell, in what is stored or deployed: the `cell` database column, `cell-` in node names, `cells/`, the `X-Cell-*` headers and the AWS names |
 | cluster | All the nodes of one gusto cloud | |
 | gusto cloud | The hosted service for sign-up, sign-in and routing. It runs no tasks | front door, controller |
-| operator | The person who runs a gusto cloud | owner |
+| operator | The person who runs a gusto cloud | owner, in what is deployed: the `gusto-owner` service. `GUSTO_OWNER_ADDR` is read when `GUSTO_OPERATOR_ADDR` is not set |
 
 ## The work
 

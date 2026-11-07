@@ -31,7 +31,7 @@ Times are UTC. A SQLite column is an integer of nanoseconds since the Unix epoch
 | `billing` | an organization's Stripe subscription as the newest event said: customer, subscription, item, status, seats billed, the event's time | primary key `org`, foreign key to `orgs`. An event older than `event_at` is not kept. One made in the same second that says something else is not kept either: the subscription is asked of Stripe, stamped with the second Stripe answers in |
 | `runtime` | where an organization's server is: state, node, the two ports, error, restarts, and the command it was started with | primary key `slug`. Unique `(cell, port)` and `(cell, proxy_port)` where the port is set: two organizations on a node cannot be given one port, even by two front doors |
 | `leader` | the lease that makes one front door the leader: its holder, its epoch, and when it runs out | primary key `name`. Taken and renewed under lock `leader` |
-| `settings` | `demo_limits` (the owner's limits), `demos_paused` (present means paused), `session_key` (the key that signs cookies) | primary key `key` |
+| `settings` | `demo_limits` (the operator's limits), `demos_paused` (present means paused), `session_key` (the key that signs cookies) | primary key `key` |
 | `rate_events` | one row for each event the abuse limits count, with the time it stops counting | `(key, until)` index. Swept with the links |
 | `imports` | one row once the old files were loaded, with the counts | primary key `name` |
 

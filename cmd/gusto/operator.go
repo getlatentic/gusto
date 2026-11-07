@@ -12,7 +12,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/cloud"
 	"github.com/getlatentic/gusto/internal/node"
-	"github.com/getlatentic/gusto/internal/owner"
+	"github.com/getlatentic/gusto/internal/operator"
 	"github.com/getlatentic/gusto/internal/settings"
 )
 
@@ -25,7 +25,8 @@ type operatorSettings struct {
 }
 
 func (o *operatorSettings) declare(set *settings.Set) {
-	set.String(&o.addr, "GUSTO_OWNER_ADDR", "127.0.0.1:8090", "where to listen; a loopback address")
+	set.String(&o.addr, "GUSTO_OPERATOR_ADDR", "127.0.0.1:8090", "where to listen; a loopback address")
+	set.Renamed("GUSTO_OPERATOR_ADDR", "GUSTO_OWNER_ADDR")
 	o.records.declare(set)
 	o.demo.declare(set)
 	o.hosts.declare(set)
@@ -42,10 +43,10 @@ func operatorCommand() int {
 	address := cfg.addr
 	host, _, err := net.SplitHostPort(address)
 	if err != nil {
-		return refused(fmt.Errorf("GUSTO_OWNER_ADDR is host:port: %w", err))
+		return refused(fmt.Errorf("GUSTO_OPERATOR_ADDR is host:port: %w", err))
 	}
 	if ip := net.ParseIP(host); ip == nil || !ip.IsLoopback() {
-		return refused(errors.New("GUSTO_OWNER_ADDR is a loopback address, such as 127.0.0.1:8090, since the operator's page is not served to the network"))
+		return refused(errors.New("GUSTO_OPERATOR_ADDR is a loopback address, such as 127.0.0.1:8090, since the operator's page is not served to the network"))
 	}
 	accounts := cfg.records.accounts()
 	accounts.Demo = cfg.demo.forCloud()
@@ -54,11 +55,11 @@ func operatorCommand() int {
 		return fail(err)
 	}
 	defer store.Close()
-	var hosts owner.Hosts
+	var hosts operator.Hosts
 	if cfg.hosts.launch == "ec2" {
 		hosts = &node.EC2{Project: cfg.hosts.project}
 	}
-	app, err := owner.New(store, hosts)
+	app, err := operator.New(store, hosts)
 	if err != nil {
 		return fail(err)
 	}

@@ -194,7 +194,7 @@ func (r *reader) runtimes(slugs map[string]bool) map[string]Runtime {
 	return out
 }
 
-// settings reads the demo limits the owner set, the file whose presence pauses demos, and the key
+// settings reads the demo limits the operator set, the file whose presence pauses demos, and the key
 // cookies are signed with.
 func (r *reader) settings() (limits *DemoLimits, paused bool, key []byte) {
 	var kept DemoLimits

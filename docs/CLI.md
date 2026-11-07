@@ -1101,7 +1101,7 @@ Flags:
 
 Environment:
 
-- `GUSTO_OWNER_ADDR`: where to listen; a loopback address (default 127.0.0.1:8090)
+- `GUSTO_OPERATOR_ADDR`: where to listen; a loopback address (default 127.0.0.1:8090); GUSTO_OWNER_ADDR is its old name
 - `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
 - `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several front doors can share
 - `GUSTO_CLOUD_DEMO_MINUTES`: the minutes a demo lasts from when it is ready (default 0, no demo)
