@@ -98,6 +98,8 @@ const (
 	RoomArchived   = "room.archived"
 	RoomMuted      = "room.muted"
 	PersonBio      = "person.bio"
+	// HomeReset is a person removing the home their agents keep between tasks, with what it held.
+	HomeReset = "home.reset"
 )
 
 // FromCloud says whether a kind of event is one that an organization's front

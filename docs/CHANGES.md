@@ -16,6 +16,7 @@ This record says what the people who run the platform did to it: who signed in, 
 | `budget.member.set` | An admin sets, changes or clears every member's monthly budget, or one person's own, with whose and the figure before and after |
 | `connector.enabled`, `connector.disabled` | An admin lets people sign in to an app and give it to their agents, or stops them |
 | `connector.connected`, `connector.disconnected` | A person signs in to an app with their own account, or takes the sign-in away from their agents. The tokens are never written |
+| `home.reset` | A person removes the home their agents keep between tasks, with the workspace and how much it held when it was last counted |
 | `sandbox.confirmed` | A person on their own computer confirms, once, that agents run with no sandbox |
 | `chat.default` | An admin sets or clears what a new chat runs on, with the agent and model before and after |
 | `retention.hold`, `retention.release`, `retention.swept` | An admin keeps a task or a person's work from being removed, or lets it go. A sweep removed working folders or records, with the counts and the records named |
