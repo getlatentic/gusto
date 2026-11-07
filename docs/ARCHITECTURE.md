@@ -91,7 +91,7 @@ The agent reaches a model only through the proxy, which adds the key and counts 
 | Workspace | The organization's members, repositories, connectors, tasks and records | The organization's server |
 | Computer | One sandbox per person that keeps their files | The node that runs the organization's server |
 | Task | A directory holding the brief, the repository, the check and the spend limit | The organization's data directory |
-| Agent | An adapter: a small JSON file that names the agent type | Inside the sandbox |
+| Agent | A harness and its adapter, a small JSON file, with the skills and prompt a person chose | Inside the sandbox |
 | Check | A command run at the end. Its exit code is the verdict | Inside the sandbox |
 | Spend limit | A cap that the proxy counts against and enforces | The model proxy |
 | Record | Hashed files, the check result and a signature | The task directory. `gusto verify` re-checks it anywhere |

@@ -33,9 +33,9 @@ General: a task as a directory, an agent named by an adapter, one container a ta
 
 ## Terms
 
-See [TERMS.md](TERMS.md). An agent type is the program. An adapter is how to run it. An agent is the program plus the skills, connectors, prompt and model policy that shape it. Frozen, an agent is an image with a digest. A run of one is an instance. An agent that learns writes to a task's output, never to itself. Otherwise the same digest behaves differently and the record proves nothing.
+See [TERMS.md](TERMS.md). A harness is the program. An adapter is how to run it. An agent is the program plus the skills, connectors, prompt and model policy that shape it. Frozen, an agent is an image with a digest. A run of one is an instance. An agent that learns writes to a task's output, never to itself. Otherwise the same digest behaves differently and the record proves nothing.
 
-A catalog is the parts somebody picks from. A registry is where an assembled agent lives, fetched by digest. An assembler takes the parts, freezes them into an image and runs it. gusto builds the assembler and the proof of what it did. A bundle vendors its skills, prompt, model policy and adapter, and references its agent type and connectors by pinned version. The model and credentials are never in it. A pinned version can serve different bytes later, so a run records what actually resolved beside the digest it was asked for, and a stranger compares the two.
+A catalog is the parts somebody picks from. A registry is where an assembled agent lives, fetched by digest. An assembler takes the parts, freezes them into an image and runs it. gusto builds the assembler and the proof of what it did. A bundle vendors its skills, prompt, model policy and adapter, and references its harness and connectors by pinned version. The model and credentials are never in it. A pinned version can serve different bytes later, so a run records what actually resolved beside the digest it was asked for, and a stranger compares the two.
 
 ## Ways in
 
