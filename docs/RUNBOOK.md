@@ -74,6 +74,14 @@ The last deploy failed or rolled back, and the server runs the earlier version. 
 1. Read `journalctl -u 'gusto-deploy@*'` on the box for the play's output. A smoke failure means the candidate could not run a task. A refusal from `gusto data check` means the data would not upgrade ([UPGRADE.md](UPGRADE.md)). A rollback means the new version did not answer `/readyz`.
 2. Fix on a branch and merge. A merge to `main` deploys again, and a good deploy clears the alert.
 
+### GustoProvisionFailing
+
+Organizations' servers failed to provision for five minutes (`gusto_provision_failures_total`, gusto cloud's front door). Read the front door's log (`journalctl -u gusto-cloud`) for `an organization's server failed`; the organization's runtime in the database holds the reason in its `error`. `gusto_orgs{state="failed"}` says how many are failing now. Common causes are no node with room, a full disk on the node, and a release the node cannot run.
+
+### GustoFrontErrors
+
+More than one in twenty requests to the front door ended in a 5xx for ten minutes. `gusto_front_requests_total` splits them by route class (`class`, the mux pattern, or `org` and `app` for what is sent on to an organization's server or a computer's app), so the query `topk(5, sum by (class) (increase(gusto_front_requests_total{status="5xx"}[10m])))` names the route. `org` means the organizations' servers: see GustoProvisionFailing.
+
 ### GustoRestartingOften
 
 The server started three times in half an hour: a crash loop, or a deploy that keeps restarting it. Run `journalctl -u gusto` to see each exit.

@@ -51,6 +51,8 @@ type Config struct {
 	// Stripe bills organizations for their seats, when it is set up, and Seats keeps the seats billed equal to the members.
 	Stripe *Stripe
 	Seats  *SeatSync
+	// Metrics is what this process reports. New makes one when it is not given, and gives it to the controller.
+	Metrics *Metrics
 }
 
 // Server is gusto cloud's pages.
@@ -88,6 +90,13 @@ func New(c Config) (*Server, error) {
 	if err := c.Leads.Complete(); err != nil {
 		return nil, err
 	}
+	if c.Metrics == nil {
+		c.Metrics = NewMetrics()
+	}
+	if c.Controller != nil && c.Controller.Metrics == nil {
+		c.Controller.Metrics = c.Metrics
+		c.Metrics.watch(c.Controller)
+	}
 	return &Server{Config: c, pages: pages,
 		signups: c.limiter("signups", c.PerAddress), mails: c.limiter("mails", c.PerMailbox), all: c.limiter("all", c.InAll),
 		invites: c.limiter("invites", 20), codes: c.limiter("codes", codeTries)}, nil
@@ -104,37 +113,82 @@ func (c Config) limiter(scope string, most int) *Limiter {
 // Handler is every page gusto cloud has, and every organization's server behind
 // its own host name.
 func (s *Server) Handler() http.Handler {
+	served := s.Metrics.observe(s.serve(), s.routeClass)
+	metrics := onlyHere(s.Metrics.Handler())
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == MetricsPath && r.Method == http.MethodGet {
+			metrics.ServeHTTP(w, r)
+			return
+		}
+		served.ServeHTTP(w, r)
+	})
+}
+
+// routeClass names the kind of a request that was served, for the metrics: the mux pattern that matched, or the organization's
+// server or computer's app it was sent on to. It is read after the request, which is when the mux has set the pattern.
+func (s *Server) routeClass(r *http.Request) string {
+	switch {
+	case r.URL.Path == "/.gusto/lease":
+		return "lease"
+	case r.Pattern != "":
+		return r.Pattern
+	}
+	if _, _, ok := s.appHost(r.Host); ok {
+		return "app"
+	}
+	if _, ok := s.orgSlug(r.Host); ok {
+		return "org"
+	}
+	return "unmatched"
+}
+
+func (s *Server) serve() http.Handler {
 	pages := s.routes()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Asked on every host name, so a page of an organization can warn of the end of the host.
-		if r.Method == http.MethodGet && r.URL.Path == "/.gusto/lease" {
-			if slug, ok := s.orgSlug(r.Host); ok && s.demoLeaseJSON(r.Context(), w, slug) {
-				return
-			}
-			s.leaseJSON(w, r)
-			return
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/.gusto/lease":
+			s.lease(w, r)
+		case s.isAppHost(r.Host):
+			s.serveApp(w, r)
+		case s.isOrgHost(r.Host):
+			s.serveOrg(w, r, pages)
+		default:
+			pages.ServeHTTP(w, r)
 		}
-		if _, _, ok := s.appHost(r.Host); ok && unlisted(w, r) {
-			return
-		}
-		if slug, id, ok := s.appHost(r.Host); ok {
-			s.routeApp(w, r, slug, id)
-			return
-		}
-		if _, ok := s.orgSlug(r.Host); ok && unlisted(w, r) {
-			return
-		}
-		if slug, ok := s.orgSlug(r.Host); ok {
-			// The page of a demo that has ended is made of gusto cloud's own styles, which the gone server cannot send.
-			if _, found := s.Store.LeadOf(r.Context(), slug); found && strings.HasPrefix(r.URL.Path, "/static/") && !s.orgExists(r.Context(), slug) {
-				pages.ServeHTTP(w, r)
-				return
-			}
-			s.route(w, r, slug)
-			return
-		}
-		pages.ServeHTTP(w, r)
 	})
+}
+
+func (s *Server) isAppHost(host string) bool { _, _, ok := s.appHost(host); return ok }
+
+func (s *Server) isOrgHost(host string) bool { _, ok := s.orgSlug(host); return ok }
+
+// lease is asked on every host name, so a page of an organization can warn of the end of the host.
+func (s *Server) lease(w http.ResponseWriter, r *http.Request) {
+	if slug, ok := s.orgSlug(r.Host); ok && s.demoLeaseJSON(r.Context(), w, slug) {
+		return
+	}
+	s.leaseJSON(w, r)
+}
+
+func (s *Server) serveApp(w http.ResponseWriter, r *http.Request) {
+	if unlisted(w, r) {
+		return
+	}
+	slug, id, _ := s.appHost(r.Host)
+	s.routeApp(w, r, slug, id)
+}
+
+func (s *Server) serveOrg(w http.ResponseWriter, r *http.Request, pages http.Handler) {
+	if unlisted(w, r) {
+		return
+	}
+	slug, _ := s.orgSlug(r.Host)
+	// The page of a demo that has ended is made of gusto cloud's own styles, which the gone server cannot send.
+	if _, found := s.Store.LeadOf(r.Context(), slug); found && strings.HasPrefix(r.URL.Path, "/static/") && !s.orgExists(r.Context(), slug) {
+		pages.ServeHTTP(w, r)
+		return
+	}
+	s.route(w, r, slug)
 }
 
 func (s *Server) routes() http.Handler {

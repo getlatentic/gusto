@@ -63,8 +63,9 @@ func (s *Server) EndDueDemos(ctx context.Context) {
 	}
 }
 
-// endDemo removes a demo's computers, then its server, then the organization. A demo that cannot be ended is tried
-// again at the next sweep, which it is not until this has finished.
+// endDemo removes a demo's computers, then its server, then the organization. A demo whose computers are not all removed
+// keeps its server, its directory and the records of its computers, and is tried again at the next sweep, which it is
+// not until this has finished: only the organization's server reaches the gateway, so nothing else can name them.
 func (s *Server) endDemo(ctx context.Context, slug, reason string) {
 	defer func() {
 		s.ender.mu.Lock()
@@ -76,7 +77,10 @@ func (s *Server) endDemo(ctx context.Context, slug, reason string) {
 		return
 	}
 	if s.Controller != nil {
-		s.removeComputers(slug)
+		if !s.removeComputers(slug) {
+			s.Metrics.endDeferred()
+			return
+		}
 		s.Controller.Remove(ctx, slug)
 	}
 	if err := s.Store.EndDemo(ctx, slug, reason); err != nil {
@@ -90,24 +94,29 @@ func (s *Server) endDemo(ctx context.Context, slug, reason string) {
 	s.tell(ctx, "ended", slug)
 }
 
-// removeComputers asks for the demo's computers to be removed and waits until they are, for as long as it may.
-func (s *Server) removeComputers(slug string) {
+// removeComputers asks for the demo's computers to be removed and waits until they are, for as long as it may. It says
+// whether none is left.
+func (s *Server) removeComputers(slug string) bool {
 	registry, err := s.Store.Computers(slug)
 	if err != nil {
-		slog.Warn("a demo's computers could not be read", "org", slug, "error", err)
-		return
+		slog.Warn("a demo's computers could not be read, so it is not ended yet", "org", slug, "error", err)
+		return false
 	}
 	if err := registry.RetireAll(); err != nil {
-		slog.Warn("a demo's computers could not be marked", "org", slug, "error", err)
-		return
+		slog.Warn("a demo's computers could not be marked, so it is not ended yet", "org", slug, "error", err)
+		return false
 	}
 	wait := s.computersWait()
-	for deadline := time.Now().Add(wait); time.Now().Before(deadline); time.Sleep(time.Second) {
-		if left, err := registry.Retiring(); err == nil && len(left) == 0 {
-			return
+	for deadline := time.Now().Add(wait); ; time.Sleep(time.Second) {
+		left, err := registry.Retiring()
+		if err == nil && len(left) == 0 {
+			return true
+		}
+		if !time.Now().Before(deadline) {
+			slog.Warn("a demo's computers were not removed in time, so it is not ended yet", "org", slug, "left", len(left))
+			return false
 		}
 	}
-	slog.Warn("a demo's computers were not removed in time, so its server is stopped with them still there", "org", slug)
 }
 
 func (s *Server) computersWait() time.Duration {

@@ -48,7 +48,7 @@ func TestAVisitorStartsADemoWaitsForItAndIsSentInOnceWhenItsTimeStarts(t *testin
 		}
 		b := startDemoAs(t, f, "Ada Lovelace", "ada@acme.com", "Acme Research")
 		_, waiting := b.get("/demo/wait")
-		if !strings.Contains(waiting, "Getting your demo ready") || !strings.Contains(waiting, `http-equiv="refresh"`) || strings.Contains(waiting, `href="/open"`) {
+		if !strings.Contains(waiting, "Getting your demo ready") || !strings.Contains(waiting, `http-equiv="refresh" content="1"`) || strings.Contains(waiting, `href="/open"`) {
 			t.Errorf("a demo that is not ready says so and looks again:\n%s", waiting)
 		}
 		org, _, _ := f.store.Org(t.Context(), demoSlugOf(t, f))
