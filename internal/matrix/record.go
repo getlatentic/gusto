@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/atomicfile"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // RecordFile is the benchmark's own file. It sits at the top of the benchmark, above
@@ -33,7 +33,7 @@ type Record struct {
 // Cell is one task run on one pair. Dir is relative to the benchmark: the task's
 // comparison, then the pair's run inside it.
 type Cell struct {
-	Job     string `json:"job"`
+	Task    string `json:"job"`
 	Harness string `json:"harness"`
 	Model   string `json:"model,omitempty"`
 	Dir     string `json:"dir"`
@@ -48,13 +48,13 @@ type Cell struct {
 func (c Cell) Pair() Pair { return Pair{Harness: c.Harness, Model: c.Model} }
 
 // Run is the run's task directory in the benchmark at where.
-func (c Cell) Run(where string) job.Dir {
-	return job.Dir(filepath.Join(where, c.Dir))
+func (c Cell) Run(where string) task.Dir {
+	return task.Dir(filepath.Join(where, c.Dir))
 }
 
 // Comparison is the directory of the comparison the run belongs to.
 func (c Cell) Comparison(where string) string {
-	return filepath.Join(where, c.Job)
+	return filepath.Join(where, c.Task)
 }
 
 // Read the benchmark at where.
@@ -67,7 +67,7 @@ func Read(where string) (Record, error) {
 	if err := json.Unmarshal(text, &record); err != nil {
 		return Record{}, err
 	}
-	if err := job.Readable(RecordFile, record.Version, RecordVersion); err != nil {
+	if err := task.Readable(RecordFile, record.Version, RecordVersion); err != nil {
 		return Record{}, err
 	}
 	return record, nil
@@ -117,13 +117,13 @@ func (e *elsewhere) Error() string {
 
 // cell finds the record's cell for dir, adding one when the plan names a pair
 // the matrix has not held before.
-func (r *Record) cell(jobName string, pair Pair) *Cell {
-	dir := filepath.Join(jobName, pair.Dir())
+func (r *Record) cell(taskName string, pair Pair) *Cell {
+	dir := filepath.Join(taskName, pair.Dir())
 	for i := range r.Cells {
 		if r.Cells[i].Dir == dir {
 			return &r.Cells[i]
 		}
 	}
-	r.Cells = append(r.Cells, Cell{Job: jobName, Harness: pair.Harness, Model: pair.Model, Dir: dir})
+	r.Cells = append(r.Cells, Cell{Task: taskName, Harness: pair.Harness, Model: pair.Model, Dir: dir})
 	return &r.Cells[len(r.Cells)-1]
 }

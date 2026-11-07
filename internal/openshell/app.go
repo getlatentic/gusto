@@ -17,7 +17,7 @@ import (
 // InstanceDir is where a conversation's agent works in its workspace, and so where an app
 // it built is.
 func InstanceDir(instance string) string {
-	return jobsDir + "/" + dirName("instance-"+instance) + "/workspace"
+	return tasksDir + "/" + dirName("instance-"+instance) + "/workspace"
 }
 
 func appFile(id, extension string) string { return Home + "/apps/" + id + "." + extension }

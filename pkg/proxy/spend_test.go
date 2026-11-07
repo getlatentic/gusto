@@ -62,7 +62,7 @@ func counted(t *testing.T, answering *model, terms spend.Terms) (*Proxy, string,
 	ledger := spend.NewLedger(fixturePrices)
 	ledger.Begin("a-job", terms)
 	proxy := New(tokens, Credentials{"": {Address: server.URL, Name: "the-platform-key"}},
-		func(job string) (string, bool) { return filepath.Join(kept, job+".jsonl"), true }, ledger, Allowlist{})
+		func(task string) (string, bool) { return filepath.Join(kept, task+".jsonl"), true }, ledger, Allowlist{})
 	token, err := tokens.Mint("a-job", "")
 	if err != nil {
 		t.Fatal(err)
@@ -192,7 +192,7 @@ func TestACallOnTheOrganizationsOwnKeyIsNotHeldByTheOperatorsCap(t *testing.T) {
 	ledger.Begin("a-job", spend.Terms{})
 	kept, tokens := t.TempDir(), NewTokens()
 	proxy := New(tokens, Credentials{"": {Address: server.URL, Name: "the-platform-key"}},
-		func(job string) (string, bool) { return filepath.Join(kept, job+".jsonl"), true }, ledger, Allowlist{})
+		func(task string) (string, bool) { return filepath.Join(kept, task+".jsonl"), true }, ledger, Allowlist{})
 	// The test's model is on this machine, which a key an organization added may not reach; the check is not what is tested here.
 	proxy.public = server.Client()
 	token, _ := tokens.Mint("a-job", "")

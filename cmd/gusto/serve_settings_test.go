@@ -34,15 +34,15 @@ func TestServesSettingsReadAsTheirTypesAndAWrongOneIsSaid(t *testing.T) {
 		cfg.declare(set)
 		return cfg, set.Load(func(name string) string { return values[name] })
 	}
-	cfg, err := read(map[string]string{"GUSTO_JOB_CONCURRENCY": "3", "GUSTO_SANDBOX": "here", "GUSTO_LOCAL": "1", "GUSTO_SPARE_COMPUTER": "on"})
+	cfg, err := read(map[string]string{"GUSTO_TASK_CONCURRENCY": "3", "GUSTO_SANDBOX": "here", "GUSTO_LOCAL": "1", "GUSTO_SPARE_COMPUTER": "on"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if cfg.boxes.concurrency != 3 || !cfg.boxes.here() || !cfg.core.local || !cfg.boxes.spare || cfg.core.addr != "127.0.0.1:8040" {
 		t.Errorf("the settings read as %+v", cfg)
 	}
-	_, err = read(map[string]string{"GUSTO_JOB_CONCURRENCY": "two", "GUSTO_SANDBOX": "docker", "GUSTO_OIDC_CLIENT_SECRET": "x", "GUSTO_KEYCHAIN": "maybe"})
-	for _, want := range []string{"GUSTO_JOB_CONCURRENCY", "GUSTO_SANDBOX", "GUSTO_KEYCHAIN"} {
+	_, err = read(map[string]string{"GUSTO_TASK_CONCURRENCY": "two", "GUSTO_SANDBOX": "docker", "GUSTO_OIDC_CLIENT_SECRET": "x", "GUSTO_KEYCHAIN": "maybe"})
+	for _, want := range []string{"GUSTO_TASK_CONCURRENCY", "GUSTO_SANDBOX", "GUSTO_KEYCHAIN"} {
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%s is not said in %v", want, err)
 		}
@@ -52,7 +52,7 @@ func TestServesSettingsReadAsTheirTypesAndAWrongOneIsSaid(t *testing.T) {
 // A server with a setting that does not read does not start, as one with no password does not.
 func TestAServerWithAWrongSettingDoesNotStart(t *testing.T) {
 	t.Setenv("GUSTO_PASSWORD", "p")
-	t.Setenv("GUSTO_JOB_CONCURRENCY", "two")
+	t.Setenv("GUSTO_TASK_CONCURRENCY", "two")
 	if s, code := newServer(os.Getenv); s != nil || code != 2 {
 		t.Errorf("a server with a wrong setting started: %v %d", s, code)
 	}

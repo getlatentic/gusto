@@ -111,7 +111,7 @@ func TestOrganizationsProvisionedTogetherShareNeitherAPortNorADirectory(t *testi
 			}()
 		}
 		wg.Wait()
-		ports, jobs := map[string]bool{}, map[string]bool{}
+		ports, tasks := map[string]bool{}, map[string]bool{}
 		for _, org := range orgs {
 			address, state := c.Route(t.Context(), org.Slug)
 			if state != Ready {
@@ -130,10 +130,10 @@ func TestOrganizationsProvisionedTogetherShareNeitherAPortNorADirectory(t *testi
 				}
 				ports[port] = true
 			}
-			if jobs[fmt.Sprint(said["jobs"])] {
+			if tasks[fmt.Sprint(said["jobs"])] {
 				t.Errorf("a directory was shared: %v", said["jobs"])
 			}
-			jobs[fmt.Sprint(said["jobs"])] = true
+			tasks[fmt.Sprint(said["jobs"])] = true
 		}
 	})
 }

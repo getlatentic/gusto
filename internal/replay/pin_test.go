@@ -8,7 +8,7 @@ import (
 	"github.com/getlatentic/gusto/internal/replay"
 )
 
-// A job naming a branch checks out a local branch of that name, and a harness
+// A task naming a branch checks out a local branch of that name, and a harness
 // that commits moves it. The clone's record of the remote branch does not move.
 func TestABranchRefIsPinnedWhereTheRemoteHadItAtCloneTime(t *testing.T) {
 	hermetic(t)

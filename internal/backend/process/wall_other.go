@@ -6,9 +6,9 @@ import (
 	"errors"
 	"os/exec"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-func wrapProcess(job.Dir, wallPolicy) (func(*exec.Cmd), error) {
+func wrapProcess(task.Dir, wallPolicy) (func(*exec.Cmd), error) {
 	return nil, errors.New("this system has no process sandbox")
 }

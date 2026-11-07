@@ -10,7 +10,7 @@
 | `sqlite:///path/to/cloud.db` | SQLite, in that file. |
 | `postgres://user:password@host/database?search_path=cloud` | Postgres. `search_path` names the schema. The front door makes the schema when it is missing. |
 
-The root stays. Under `orgs/<slug>/` it holds each organization's own files: `data/` (jobs, keys, `quota.json`, `members.json`, `inbox/`, the computers' records), `entry.key`, `server.log` and `home/`. These are files, written as before, and they are not in the database. The mail `outbox/` and the lead hook's queue (`leadhook/`) are also files of one front door.
+The root stays. Under `orgs/<slug>/` it holds each organization's own files: `data/` (`jobs/`, keys, `quota.json`, `members.json`, `inbox/`, the computers' records), `entry.key`, `server.log` and `home/`. These are files, written as before, and they are not in the database. The mail `outbox/` and the lead hook's queue (`leadhook/`) are also files of one front door.
 
 The database holds the key that signs cookies, which the root's `secret` file held before: protect it as that file was protected. The address and password of the database go to the front door only. An organization's server gets the `GUSTO_DATABASE_URL` that the operator's `GUSTO_CLOUD_ORG_ENV` file names, and never this one.
 

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A conversation works in one folder, turn after turn, and nothing commits
@@ -21,7 +21,7 @@ func TestATurnsPatchHoldsOnlyWhatThatTurnChanged(t *testing.T) {
 	}
 	turn := func(file, text string) string {
 		t.Helper()
-		dir := job.Dir(t.TempDir())
+		dir := task.Dir(t.TempDir())
 		if err := dir.Make(); err != nil {
 			t.Fatal(err)
 		}
@@ -66,7 +66,7 @@ func TestStagingAWorkspaceRunsNothingItsOwnGitConfigurationNames(t *testing.T) {
 	// Other packages' tests stage workspaces in the shared temp directory while
 	// this one runs, so what is left behind is only looked for in a directory of its own.
 	t.Setenv("TMPDIR", t.TempDir())
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}

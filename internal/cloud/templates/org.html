@@ -7,7 +7,7 @@
   {{if .Notice}}<p class="rounded-sm bg-wash px-4 py-3 text-sm" role="status">{{.Notice}}</p>{{end}}
 
   <section class="grid grid-cols-[repeat(auto-fit,minmax(min(10rem,100%),1fr))] gap-px overflow-hidden rounded-md bg-line shadow-1 dark:border dark:border-line">
-    <div class="flex flex-col-reverse gap-1.5 bg-surface px-5 py-4"><span class="font-display text-xl leading-none font-semibold tabular-nums">{{.Quota.Jobs}}</span><span class="text-sm text-muted">tasks {{if .Quota.Monthly}}a month{{else}}in all{{end}}, {{.Quota.Concurrent}} at a time</span></div>
+    <div class="flex flex-col-reverse gap-1.5 bg-surface px-5 py-4"><span class="font-display text-xl leading-none font-semibold tabular-nums">{{.Quota.Tasks}}</span><span class="text-sm text-muted">tasks {{if .Quota.Monthly}}a month{{else}}in all{{end}}, {{.Quota.Concurrent}} at a time</span></div>
     <div class="flex flex-col-reverse gap-1.5 bg-surface px-5 py-4"><span class="font-display text-xl leading-none font-semibold tabular-nums">{{len .Members}}</span><span class="text-sm text-muted">people, up to {{.Quota.Members}}</span></div>
     <div class="flex flex-col-reverse gap-1.5 bg-surface px-5 py-4"><span class="font-display text-xl leading-none font-semibold tabular-nums">{{.Computers}} of {{.Quota.Computers}}</span><span class="text-sm text-muted">computers</span></div>
     {{with .Credit}}<div class="flex flex-col-reverse gap-1.5 bg-surface px-5 py-4"><span class="font-display text-xl leading-none font-semibold tabular-nums">{{.Left}}</span><span class="text-sm text-muted">left of {{.Of}} on gusto's models</span></div>{{end}}
@@ -55,7 +55,7 @@
   <p class="text-sm text-muted">This is a demo. Its time left, and a call with us, are on <a class="underline hover:text-ink" href="/demo/wait">the demo page</a>.</p>
   {{else if .Person.Trial}}
   <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
-    <p class="text-sm text-muted">Confirm your email address to raise this to {{.Verified.Jobs}} tasks a month and to invite colleagues. We mailed a link to {{.Person.Email}}.</p>
+    <p class="text-sm text-muted">Confirm your email address to raise this to {{.Verified.Tasks}} tasks a month and to invite colleagues. We mailed a link to {{.Person.Email}}.</p>
     <form class="mt-3" method="post" action="/org/verify"><button class="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm font-medium text-muted hover:bg-wash hover:text-ink" type="submit">Send the link again</button></form>
   </section>
   {{end}}

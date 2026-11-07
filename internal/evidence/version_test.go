@@ -6,12 +6,12 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-func manifestIn(t *testing.T, text string) job.Dir {
+func manifestIn(t *testing.T, text string) task.Dir {
 	t.Helper()
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -41,11 +41,11 @@ func TestAManifestFromANewerVersionIsRefusedByName(t *testing.T) {
 }
 
 func TestAWrittenManifestCarriesItsVersion(t *testing.T) {
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Job: "abc"}); err != nil {
+	if err := evidence.Write(dir, evidence.Manifest{Task: "abc"}); err != nil {
 		t.Fatal(err)
 	}
 	text, err := os.ReadFile(dir.OutFile("manifest.json"))

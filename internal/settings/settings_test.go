@@ -17,7 +17,7 @@ type example struct {
 func declareExample(set *Set, e *example) {
 	set.String(&e.addr, "GUSTO_ADDR", "127.0.0.1:8040", "where to listen")
 	set.Secret(&e.password, "GUSTO_PASSWORD", "the shared sign-in")
-	set.Int(&e.workers, "GUSTO_JOB_CONCURRENCY", 1, 1, "how many tasks run at a time")
+	set.Int(&e.workers, "GUSTO_TASK_CONCURRENCY", 1, 1, "how many tasks run at a time")
 	set.Bool(&e.local, "GUSTO_LOCAL", "a server for one person on their own computer")
 	set.Choice(&e.sandbox, "GUSTO_SANDBOX", "container", []string{"container", "openshell", "process", "here"}, "how tasks are held")
 	set.List(&e.allowed, "GUSTO_ALLOWED", "who may sign in")
@@ -40,7 +40,7 @@ func TestSettingsAreTheirDefaultsUntilSetAndTheirTypeOnceSet(t *testing.T) {
 	if e.addr != "127.0.0.1:8040" || e.workers != 1 || e.local || e.sandbox != "container" || e.allowed != nil {
 		t.Errorf("the defaults are %+v", e)
 	}
-	e, err = load(t, map[string]string{"GUSTO_ADDR": "0.0.0.0:9", "GUSTO_PASSWORD": "s", "GUSTO_JOB_CONCURRENCY": "3",
+	e, err = load(t, map[string]string{"GUSTO_ADDR": "0.0.0.0:9", "GUSTO_PASSWORD": "s", "GUSTO_TASK_CONCURRENCY": "3",
 		"GUSTO_LOCAL": "1", "GUSTO_SANDBOX": "here", "GUSTO_ALLOWED": " ada@acme.com , ,bob@acme.com,"})
 	if err != nil {
 		t.Fatal(err)
@@ -53,16 +53,16 @@ func TestSettingsAreTheirDefaultsUntilSetAndTheirTypeOnceSet(t *testing.T) {
 
 // Every value that does not parse is said by name in one error, and a secret's value is never in it.
 func TestAWrongValueStopsTheCommandAndSaysWhich(t *testing.T) {
-	_, err := load(t, map[string]string{"GUSTO_JOB_CONCURRENCY": "two", "GUSTO_LOCAL": "maybe", "GUSTO_SANDBOX": "docker"})
+	_, err := load(t, map[string]string{"GUSTO_TASK_CONCURRENCY": "two", "GUSTO_LOCAL": "maybe", "GUSTO_SANDBOX": "docker"})
 	if err == nil {
 		t.Fatal("wrong values were read")
 	}
-	for _, want := range []string{`GUSTO_JOB_CONCURRENCY is "two"`, `GUSTO_LOCAL is "maybe"`, `GUSTO_SANDBOX is "docker", and it is one of container`} {
+	for _, want := range []string{`GUSTO_TASK_CONCURRENCY is "two"`, `GUSTO_LOCAL is "maybe"`, `GUSTO_SANDBOX is "docker", and it is one of container`} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("%q is not in: %v", want, err)
 		}
 	}
-	if _, err := load(t, map[string]string{"GUSTO_JOB_CONCURRENCY": "0"}); err == nil || !strings.Contains(err.Error(), "1 or more") {
+	if _, err := load(t, map[string]string{"GUSTO_TASK_CONCURRENCY": "0"}); err == nil || !strings.Contains(err.Error(), "1 or more") {
 		t.Errorf("a number below its least was read: %v", err)
 	}
 	var secret int

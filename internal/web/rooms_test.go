@@ -20,7 +20,7 @@ import (
 	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // heardTurn is what one of a room's agents was given for a turn.
@@ -39,7 +39,7 @@ type roomWork struct {
 	hold chan struct{}
 }
 
-func (w *roomWork) do(ctx context.Context, dir job.Dir) (int, error) {
+func (w *roomWork) do(ctx context.Context, dir task.Dir) (int, error) {
 	if w.hold != nil {
 		select {
 		case <-w.hold:
@@ -51,7 +51,7 @@ func (w *roomWork) do(ctx context.Context, dir job.Dir) (int, error) {
 	if err != nil {
 		return 1, err
 	}
-	var spec job.Spec
+	var spec task.Spec
 	if err := json.Unmarshal(text, &spec); err != nil {
 		return 1, err
 	}
@@ -332,13 +332,13 @@ func TestAnAgentKeepsItsOwnConversationInARoom(t *testing.T) {
 	}
 	site.as(t, alice).ask(t, "POST", thread+"/say", url.Values{"said": {"@Scout @Draft go"}})
 	work.waitTurns(t, site, 2)
-	var specs []job.Spec
+	var specs []task.Spec
 	for _, record := range site.index.List() {
 		text, err := os.ReadFile(record.Dir(site.index.Root()).Spec())
 		if err != nil {
 			t.Fatal(err)
 		}
-		var spec job.Spec
+		var spec task.Spec
 		json.Unmarshal(text, &spec)
 		specs = append(specs, spec)
 	}

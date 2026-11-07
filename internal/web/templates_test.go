@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A template starts a harness set up for its field: its skills as a setup of
@@ -34,7 +34,7 @@ func TestATemplateStartsAHarnessReadyForItsWork(t *testing.T) {
 	said := site.ask(t, "POST", where+"/say", url.Values{"said": {"Draft a SOAP note from the visit notes"}})
 	id := strings.TrimPrefix(said.Header().Get("Location"), where+"#")
 	site.wait(t, id)
-	spec, err := job.Read(job.Dir(filepath.Join(site.index.Root(), id)))
+	spec, err := task.Read(task.Dir(filepath.Join(site.index.Root(), id)))
 	if err != nil || spec.Setup == nil || spec.Setup.Name != "health" {
 		t.Fatalf("the turn was given %+v, %v", spec.Setup, err)
 	}
@@ -55,8 +55,8 @@ func TestARestrictedTemplatesTurnsAreRestricted(t *testing.T) {
 	said := site.ask(t, "POST", where+"/say", url.Values{"said": {"List every requirement without a passing test"}})
 	id := strings.TrimPrefix(said.Header().Get("Location"), where+"#")
 	site.wait(t, id)
-	spec, err := job.Read(job.Dir(filepath.Join(site.index.Root(), id)))
-	if err != nil || spec.Sensitivity != job.Restricted {
+	spec, err := task.Read(task.Dir(filepath.Join(site.index.Root(), id)))
+	if err != nil || spec.Sensitivity != task.Restricted {
 		t.Fatalf("the turn's sensitivity is %q, %v", spec.Sensitivity, err)
 	}
 }

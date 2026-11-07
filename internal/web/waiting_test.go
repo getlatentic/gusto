@@ -5,23 +5,23 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
-// waitingJob leaves a job that is asked for by who, in the state given.
-func waitingJob(t *testing.T, site *site, id, who string, state jobs.State, seq int64) {
+// waitingTask leaves a task that is asked for by who, in the state given.
+func waitingTask(t *testing.T, site *site, id, who string, state tasks.State, seq int64) {
 	t.Helper()
-	spentJob(t, site.index.Root(), id, "", priced)
-	if err := site.index.Add(jobs.Record{ID: id, State: state, Brief: "brief " + id, Harness: "fixture", Asked: who, Seq: seq, Queued: jobs.Now()}); err != nil {
+	spentTask(t, site.index.Root(), id, "", priced)
+	if err := site.index.Add(tasks.Record{ID: id, State: state, Brief: "brief " + id, Harness: "fixture", Asked: who, Seq: seq, Queued: tasks.Now()}); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestAWaitingJobSaysWhyOnItsPageAndInTheRecord(t *testing.T) {
+func TestAWaitingTaskSaysWhyOnItsPageAndInTheRecord(t *testing.T) {
 	site := open(t)
-	site.server.index.SetLimits(jobs.Limits{Person: 1})
-	waitingJob(t, site, "amy-running", "amy@acme.test", jobs.Running, 1)
-	waitingJob(t, site, "amy-waiting", "amy@acme.test", jobs.Queued, 2)
+	site.server.index.SetLimits(tasks.Limits{Person: 1})
+	waitingTask(t, site, "amy-running", "amy@acme.test", tasks.Running, 1)
+	waitingTask(t, site, "amy-waiting", "amy@acme.test", tasks.Queued, 2)
 	site.signIn(t)
 
 	page := site.ask(t, "GET", "/jobs/amy-waiting", nil)

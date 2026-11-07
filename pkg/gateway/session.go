@@ -206,7 +206,7 @@ func (s *Session) instructions() string {
 	return "Tools are found as they are needed. Use tool_search to find one, tool_schema to read how to call it, and tool_call to call it."
 }
 
-// list is the tools the job is shown, and writes down how many there are and what showing them all would cost.
+// list is the tools the task is shown, and writes down how many there are and what showing them all would cost.
 func (s *Session) list(r *http.Request) []Tool {
 	s.catalog.load(r.Context())
 	shown := s.shownTools()
@@ -241,7 +241,7 @@ func (s *Session) shownTools() []Tool {
 }
 
 func (s *Session) note(entry Entry) {
-	entry.Job, entry.Person = s.config.Caller.Job, s.config.Caller.Person
+	entry.Task, entry.Person = s.config.Caller.Task, s.config.Caller.Person
 	if s.config.Tell != nil {
 		s.config.Tell(entry)
 	}

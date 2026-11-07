@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/retention"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/proxy"
 )
 
@@ -33,8 +33,8 @@ func (s *Server) UseHealth(h Health) {
 	s.startedAt = time.Now()
 }
 
-// diskFor is how long the size of the jobs directory is kept: measuring it
-// walks every job, and a scrape every fifteen seconds should not.
+// diskFor is how long the size of the tasks directory is kept: measuring it
+// walks every task, and a scrape every fifteen seconds should not.
 const diskFor = time.Minute
 
 type diskUse struct {
@@ -63,23 +63,23 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 	out.gauge("gusto_started_timestamp_seconds", "When this server started.", float64(s.startedAt.Unix()))
 
 	out.header("gusto_jobs", "gauge", "Jobs the server holds, by state.")
-	for _, state := range []jobs.State{jobs.Queued, jobs.Running, jobs.Passed, jobs.Failed, jobs.Interrupted} {
+	for _, state := range []tasks.State{tasks.Queued, tasks.Running, tasks.Passed, tasks.Failed, tasks.Interrupted} {
 		out.sample("gusto_jobs", float64(stats.ByState[state]), label{"state", string(state)})
 	}
-	out.gauge("gusto_queue_depth", "Jobs waiting to start.", float64(stats.ByState[jobs.Queued]))
-	out.gauge("gusto_queue_oldest_wait_seconds", "How long the job queued longest has waited.", float64(stats.OldestWaitSeconds))
-	out.gauge("gusto_queue_stuck_seconds", "How long the longest-waiting job has waited that no limit, busy agent or full pool holds back. Near zero while the queue moves.", float64(stats.StuckSeconds))
-	out.gauge("gusto_jobs_running", "Jobs running now.", float64(stats.ByState[jobs.Running]))
-	out.gauge("gusto_runner_slots", "How many jobs the server runs at once.", float64(stats.Slots))
+	out.gauge("gusto_queue_depth", "Jobs waiting to start.", float64(stats.ByState[tasks.Queued]))
+	out.gauge("gusto_queue_oldest_wait_seconds", "How long the task queued longest has waited.", float64(stats.OldestWaitSeconds))
+	out.gauge("gusto_queue_stuck_seconds", "How long the longest-waiting task has waited that no limit, busy agent or full pool holds back. Near zero while the queue moves.", float64(stats.StuckSeconds))
+	out.gauge("gusto_jobs_running", "Jobs running now.", float64(stats.ByState[tasks.Running]))
+	out.gauge("gusto_runner_slots", "How many tasks the server runs at once.", float64(stats.Slots))
 	if s.queue != nil {
-		out.gauge("gusto_runner_workers_alive", "Workers running. Fewer than the slots means the queue takes jobs it will not start.", float64(s.queue.Alive()))
+		out.gauge("gusto_runner_workers_alive", "Workers running. Fewer than the slots means the queue takes tasks it will not start.", float64(s.queue.Alive()))
 	}
 	out.header("gusto_jobs_finished_total", "counter", "Jobs that ended since this server started, by how.")
-	for _, state := range []jobs.State{jobs.Passed, jobs.Failed, jobs.Interrupted} {
+	for _, state := range []tasks.State{tasks.Passed, tasks.Failed, tasks.Interrupted} {
 		out.sample("gusto_jobs_finished_total", float64(stats.Finished[state]), label{"state", string(state)})
 	}
-	out.gauge("gusto_last_job_started_timestamp_seconds", "When a job last started, since this server started.", float64(stats.LastStarted))
-	out.gauge("gusto_last_job_finished_timestamp_seconds", "When a job last ended, since this server started.", float64(stats.LastFinished))
+	out.gauge("gusto_last_job_started_timestamp_seconds", "When a task last started, since this server started.", float64(stats.LastStarted))
+	out.gauge("gusto_last_job_finished_timestamp_seconds", "When a task last ended, since this server started.", float64(stats.LastFinished))
 
 	s.diskMetrics(out)
 	s.liveMetrics(out)
@@ -102,14 +102,14 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 func (s *Server) diskMetrics(out *exposition) {
 	root := s.index.Root()
 	if free, total, err := volume(root); err == nil {
-		out.gauge("gusto_disk_free_bytes", "Free space on the volume the jobs are kept on.", float64(free), label{"store", "jobs"})
-		out.gauge("gusto_disk_total_bytes", "Size of the volume the jobs are kept on.", float64(total), label{"store", "jobs"})
+		out.gauge("gusto_disk_free_bytes", "Free space on the volume the tasks are kept on.", float64(free), label{"store", "jobs"})
+		out.gauge("gusto_disk_total_bytes", "Size of the volume the tasks are kept on.", float64(total), label{"store", "jobs"})
 	}
 	used := s.disk.get(s)
-	out.gauge("gusto_jobs_disk_bytes", "Bytes the jobs take, workspaces included. Measured at most once a minute.", float64(used.Bytes))
-	out.gauge("gusto_jobs_workspace_bytes", "Of them, the workspaces.", float64(used.Workspaces))
+	out.gauge("gusto_jobs_disk_bytes", "Bytes the tasks take, working folders included. Measured at most once a minute.", float64(used.Bytes))
+	out.gauge("gusto_jobs_workspace_bytes", "Of them, the working folders.", float64(used.Workspaces))
 	if used.Oldest != nil {
-		out.gauge("gusto_oldest_finished_job_timestamp_seconds", "When the finished job kept longest ended.", float64(used.Oldest.Ended))
+		out.gauge("gusto_oldest_finished_job_timestamp_seconds", "When the finished task kept longest ended.", float64(used.Oldest.Ended))
 	}
 }
 
@@ -178,14 +178,14 @@ func rendered(labels []label) string {
 
 // ready answers 200 when the server can do its work, and 503 with what is wrong
 // when it cannot. /healthz says the process is there; this says it is fit to be
-// promoted: its workers are running and it can write where it keeps jobs.
+// promoted: its workers are running and it can write where it keeps tasks.
 func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
 	var wrong []string
 	if s.queue != nil && s.queue.Alive() < s.queue.Slots() {
 		wrong = append(wrong, fmt.Sprintf("%d of %d workers are running", s.queue.Alive(), s.queue.Slots()))
 	}
 	if err := writable(s.index.Root()); err != nil {
-		wrong = append(wrong, "the jobs directory cannot be written: "+err.Error())
+		wrong = append(wrong, "the tasks directory cannot be written: "+err.Error())
 	}
 	if len(wrong) > 0 {
 		http.Error(w, "not ready: "+strings.Join(wrong, "; ")+"\n", http.StatusServiceUnavailable)

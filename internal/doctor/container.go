@@ -29,9 +29,9 @@ func runtimeAnswers(machine Machine, s Settings) Verdict {
 	}
 }
 
-// imagePresent looks only on this machine. A job whose image is missing pulls
+// imagePresent looks only on this machine. A task whose image is missing pulls
 // it in the middle of its start, and gusto:dev is in no registry, so for the
-// default that pull finds nothing and the job fails with exit 125.
+// default that pull finds nothing and the task fails with exit 125.
 func imagePresent(machine Machine, box sandbox.Containers) Verdict {
 	outcome := machine.Commands(box.Runtime, "image", "inspect", box.Image)
 	if outcome.Code != 0 {
@@ -41,8 +41,8 @@ func imagePresent(machine Machine, box sandbox.Containers) Verdict {
 	return pass(box.Image + " is here")
 }
 
-// limitsAccepted starts a container under the job's own limits. The runtime
-// checks them only at a start, and a cap it refuses fails every job with exit
+// limitsAccepted starts a container under the task's own limits. The runtime
+// checks them only at a start, and a cap it refuses fails every task with exit
 // 125 and an empty out/.
 func limitsAccepted(machine Machine, box sandbox.Containers) Verdict {
 	limits := box.Limits()
@@ -50,19 +50,19 @@ func limitsAccepted(machine Machine, box sandbox.Containers) Verdict {
 	if outcome.Code != 0 {
 		return fail(fmt.Sprintf("%s refused %s with exit %d: %s",
 			box.Runtime, strings.Join(limits, " "), outcome.Code, lastLine(outcome.Output)),
-			"set GUSTO_JOB_MEMORY and GUSTO_JOB_CPUS to what the runtime accepts and this machine has")
+			"set GUSTO_TASK_MEMORY and GUSTO_TASK_CPUS to what the runtime accepts and this machine has")
 	}
 	return pass("a container starts under " + strings.Join(limits, " "))
 }
 
-// mountShows leaves a file in the jobs directory and looks for it inside a
+// mountShows leaves a file in the tasks directory and looks for it inside a
 // container. A runtime that does not share a path mounts an empty directory in
 // its place rather than refusing, so only the file's presence says the mount
 // works.
-func mountShows(machine Machine, box sandbox.Containers, jobs string) Verdict {
-	absolute, err := filepath.Abs(jobs)
+func mountShows(machine Machine, box sandbox.Containers, tasks string) Verdict {
+	absolute, err := filepath.Abs(tasks)
 	if err != nil {
-		return fail(err.Error(), "set GUSTO_JOBS to a path this user can resolve")
+		return fail(err.Error(), "set GUSTO_TASKS to a path this user can resolve")
 	}
 	marker, err := os.CreateTemp(absolute, ".doctor-*")
 	if err != nil {
@@ -77,7 +77,7 @@ func mountShows(machine Machine, box sandbox.Containers, jobs string) Verdict {
 		return pass("the container sees what is in " + absolute)
 	case 1:
 		return fail("the container sees an empty directory at "+absolute,
-			"share "+absolute+" with the container runtime, or set GUSTO_JOBS to a path it shares")
+			"share "+absolute+" with the container runtime, or set GUSTO_TASKS to a path it shares")
 	default:
 		return fail(fmt.Sprintf("a container with %s mounted exited %d: %s", absolute, outcome.Code, lastLine(outcome.Output)),
 			"run the same mount by hand with "+box.Runtime+" and read what it says")

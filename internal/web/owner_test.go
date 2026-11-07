@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/compare"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 const (
@@ -101,23 +101,23 @@ func TestAnAdminAndTheSharedSignInSeeEverybodysAgents(t *testing.T) {
 
 // A run is the asker's, and so is everything it left behind: the page, each
 // file, the bundle and the live stream.
-func TestSomebodyElsesJobIsNotFoundOnAnyPage(t *testing.T) {
+func TestSomebodyElsesTaskIsNotFoundOnAnyPage(t *testing.T) {
 	site := open(t)
 	mine, theirs := site.as(t, alice), site.as(t, bob)
 	where, _ := started(t, mine)
-	task := mine.ask(t, "POST", where+"/tasks", url.Values{"brief": {"count the files"}, "gate": {"true"}})
-	job := task.Header().Get("Location")
-	id := strings.TrimPrefix(job, "/jobs/")
-	if id == job {
-		t.Fatalf("the task did not open a job: %d %q", task.Code, job)
+	sent := mine.ask(t, "POST", where+"/tasks", url.Values{"brief": {"count the files"}, "gate": {"true"}})
+	task := sent.Header().Get("Location")
+	id := strings.TrimPrefix(task, "/jobs/")
+	if id == task {
+		t.Fatalf("the task did not open a job: %d %q", sent.Code, task)
 	}
 
-	for _, path := range []string{job, job + "/files/transcript.log", job + "/bundle", "/watch/" + id} {
+	for _, path := range []string{task, task + "/files/transcript.log", task + "/bundle", "/watch/" + id} {
 		if got := theirs.ask(t, "GET", path, nil); got.Code != http.StatusNotFound {
 			t.Errorf("GET %s answered %d to somebody else", path, got.Code)
 		}
 	}
-	if got := mine.ask(t, "GET", job, nil); got.Code != http.StatusOK {
+	if got := mine.ask(t, "GET", task, nil); got.Code != http.StatusOK {
 		t.Errorf("the asker's own job answered %d", got.Code)
 	}
 	if list := theirs.ask(t, "GET", "/jobs", nil).Body.String(); strings.Contains(list, id) {
@@ -133,8 +133,8 @@ func TestSomebodyElsesJobIsNotFoundOnAnyPage(t *testing.T) {
 func TestWorkWithNoOwnerIsAnAdminsAlone(t *testing.T) {
 	site := open(t)
 	for id, asked := range map[string]string{"asked-by-nobody": "", "asked-by-the-shared-sign-in": sharedSignIn} {
-		spentJob(t, site.index.Root(), id, "platform", priced)
-		if err := site.index.Add(jobs.Record{ID: id, State: jobs.Passed, Brief: "old", Harness: "fixture", Asked: asked}); err != nil {
+		spentTask(t, site.index.Root(), id, "platform", priced)
+		if err := site.index.Add(tasks.Record{ID: id, State: tasks.Passed, Brief: "old", Harness: "fixture", Asked: asked}); err != nil {
 			t.Fatal(err)
 		}
 		if got := site.as(t, alice).ask(t, "GET", "/jobs/"+id, nil); got.Code != http.StatusNotFound {
@@ -175,8 +175,8 @@ func TestSpendIsYourOwnUnlessYouAreAnAdmin(t *testing.T) {
 	here := open(t)
 	here.server.UseAdmins([]string{"carol@example.com"})
 	for id, asked := range map[string]string{"alice-run": alice, "bob-run": bob} {
-		spentJob(t, here.index.Root(), id, "platform", priced)
-		if err := here.index.Add(jobs.Record{ID: id, State: jobs.Passed, Brief: "b", Harness: "fixture", Asked: asked}); err != nil {
+		spentTask(t, here.index.Root(), id, "platform", priced)
+		if err := here.index.Add(tasks.Record{ID: id, State: tasks.Passed, Brief: "b", Harness: "fixture", Asked: asked}); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // proof is what the page says about a record after checking it the way
@@ -28,7 +28,7 @@ type proof struct {
 // Holds is a record whose files match and whose signature, if any, checks.
 func (p proof) Holds() bool { return len(p.Wrong) == 0 }
 
-func (s *Server) proofOf(id string, dir job.Dir, manifest *evidence.Manifest) *proof {
+func (s *Server) proofOf(id string, dir task.Dir, manifest *evidence.Manifest) *proof {
 	if manifest == nil {
 		return nil
 	}

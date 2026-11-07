@@ -10,7 +10,7 @@ import (
 
 // UseLedger hands the pages the ledger the proxy counts in and checks caps
 // against, so the report and the caps read the same numbers. A server with no
-// proxy has none, and the page rebuilds one from the jobs' own records instead.
+// proxy has none, and the page rebuilds one from the tasks' own records instead.
 func (s *Server) UseLedger(ledger *spend.Ledger) { s.ledger = ledger }
 
 func (s *Server) spending() (*spend.Ledger, error) {
@@ -23,7 +23,7 @@ func (s *Server) spending() (*spend.Ledger, error) {
 var aMonth = regexp.MustCompile(`^\d{4}-(0[1-9]|1[0-2])$`)
 
 // spendOf is the ledger this person may read: all of it for an admin, and the
-// jobs they may see otherwise, priced as the whole ledger is.
+// tasks they may see otherwise, priced as the whole ledger is.
 func (s *Server) spendOf(r *http.Request) (*spend.Ledger, error) {
 	whole, err := s.spending()
 	if err != nil || s.admin(r) {
@@ -44,7 +44,7 @@ func reportOf(ledger *spend.Ledger, r *http.Request) (spend.Report, []string) {
 	return ledger.Report(month), ledger.Months()
 }
 
-// spendPage shows what the agents cost by team, project and job.
+// spendPage shows what the agents cost by team, project and task.
 func (s *Server) spendPage(w http.ResponseWriter, r *http.Request) {
 	if page, ok := s.spendData(w, r, "/spend"); ok {
 		s.render(w, "spend.html", page)
@@ -85,5 +85,5 @@ func (s *Server) spendJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	report, _ := reportOf(ledger, r)
-	s.asJSON(w, askers{Report: report, Askers: s.byAsker(report.Jobs)})
+	s.asJSON(w, askers{Report: report, Askers: s.byAsker(report.Tasks)})
 }

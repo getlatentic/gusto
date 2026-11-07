@@ -15,7 +15,7 @@ type retentionFlags struct{ tasks, dir, sessions string }
 
 func declareRetention(set *flag.FlagSet) *retentionFlags {
 	f := &retentionFlags{}
-	set.StringVar(&f.tasks, "tasks", "", "the `directory` the server keeps tasks in (default $GUSTO_JOBS, else jobs)")
+	set.StringVar(&f.tasks, "tasks", "", "the `directory` the server keeps tasks in (default $GUSTO_TASKS, else jobs)")
 	set.StringVar(&f.dir, "dir", "", "the retention `directory`, with policy.json and the holds (default $GUSTO_RETENTION)")
 	set.StringVar(&f.sessions, "sessions", "", "the `directory` the server keeps rooms in, whose turns stay while the room does (default $GUSTO_SESSIONS, else sessions)")
 	return f
@@ -34,7 +34,7 @@ func retentionCommand(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	dir, tasksDir := firstOf(f.dir, stores.retention), firstOf(f.tasks, stores.jobs)
+	dir, tasksDir := firstOf(f.dir, stores.retention), firstOf(f.tasks, stores.tasks)
 	if set.NArg() > 0 || dir == "" {
 		return usageError("retention", "name the retention directory with -dir or GUSTO_RETENTION")
 	}
@@ -64,7 +64,7 @@ func printSweep(report retention.Report, path string, policy retention.Policy) {
 	fmt.Fprintln(table, "task\tremoves\tstate\tended\tfrees")
 	var total int64
 	for _, action := range report.Actions {
-		fmt.Fprintf(table, "%s\t%s\t%s\t%d days ago\t%d bytes\n", action.Job, action.Kind, action.State, action.Days, action.Bytes)
+		fmt.Fprintf(table, "%s\t%s\t%s\t%d days ago\t%d bytes\n", action.Task, action.Kind, action.State, action.Days, action.Bytes)
 		total += action.Bytes
 	}
 	table.Flush()

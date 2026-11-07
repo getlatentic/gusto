@@ -16,9 +16,9 @@ import (
 
 // Quota is what may be run. Zero is none.
 type Quota struct {
-	// Jobs is how many tasks may be started: in all, or in a calendar month when
+	// Tasks is how many tasks may be started: in all, or in a calendar month when
 	// Monthly is set.
-	Jobs    int  `json:"jobs"`
+	Tasks   int  `json:"jobs"`
 	Monthly bool `json:"monthly,omitempty"`
 	// Concurrent is how many tasks may run at once.
 	Concurrent int `json:"concurrent"`
@@ -42,7 +42,7 @@ var ErrExceeded = errors.New("this organization has reached its limit")
 // Refuse is nil while started tasks are fewer than the quota allows, and a
 // sentence a person can act on when they are not.
 func (q Quota) Refuse(started int) error {
-	if started < q.Jobs {
+	if started < q.Tasks {
 		return nil
 	}
 	within := "in all"
@@ -50,10 +50,10 @@ func (q Quota) Refuse(started int) error {
 		within = "a month"
 	}
 	tasks := "tasks"
-	if q.Jobs == 1 {
+	if q.Tasks == 1 {
 		tasks = "task"
 	}
-	message := fmt.Sprintf("This organization may start %d %s %s and has started %d.", q.Jobs, tasks, within, started)
+	message := fmt.Sprintf("This organization may start %d %s %s and has started %d.", q.Tasks, tasks, within, started)
 	if q.Note != "" {
 		message += " " + q.Note
 	}
@@ -129,7 +129,7 @@ func read(path string) (Quota, error) {
 	if err := json.Unmarshal(text, &q); err != nil {
 		return Quota{}, fmt.Errorf("the limits in %s are not valid: %w", path, err)
 	}
-	if q.Jobs < 0 || q.Concurrent < 0 {
+	if q.Tasks < 0 || q.Concurrent < 0 {
 		return Quota{}, fmt.Errorf("the limits in %s are negative", path)
 	}
 	return q, nil

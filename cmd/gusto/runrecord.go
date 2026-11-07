@@ -5,12 +5,12 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // runRecord is who and what a run is for, from the server's index and rooms, for its signed record.
-func runRecord(index *jobs.Index, instances *instance.Store, dir job.Dir, spec job.Spec) evidence.Run {
+func runRecord(index *tasks.Index, instances *instance.Store, dir task.Dir, spec task.Spec) evidence.Run {
 	run := evidence.Run{Room: spec.Session, Agent: spec.Agent}
 	if record, found := index.Get(filepath.Base(dir.Path())); found {
 		run.Asked, run.PaidBy = record.Asked, record.Payer()

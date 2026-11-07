@@ -22,8 +22,8 @@ JSON
 cd "$E"
 GUSTO_PASSWORD=e2e GUSTO_ADDR=127.0.0.1:8040 GUSTO_SANDBOX=openshell GUSTO_MODEL_UPSTREAM=http://127.0.0.1:9000 GUSTO_MODEL_KEY=not-a-real-key \
   GUSTO_LOCAL_REPOS="$E/repo" GUSTO_HARNESSES="$E/harnesses" \
-  GUSTO_JOBS="$E/data/jobs" GUSTO_SESSIONS="$E/data/sessions" GUSTO_SETUPS="$E/data/setups" GUSTO_COMPARISONS="$E/data/comparisons" GUSTO_CHANGES="$E/data/changes/changes.jsonl" \
-  GUSTO_ALLOWED_HOSTS="registry.npmjs.org" GUSTO_OPENSHELL_GATEWAY=spike GUSTO_JOB_CONCURRENCY=1 \
+  GUSTO_TASKS="$E/data/jobs" GUSTO_SESSIONS="$E/data/sessions" GUSTO_SETUPS="$E/data/setups" GUSTO_COMPARISONS="$E/data/comparisons" GUSTO_CHANGES="$E/data/changes/changes.jsonl" \
+  GUSTO_ALLOWED_HOSTS="registry.npmjs.org" GUSTO_OPENSHELL_GATEWAY=spike GUSTO_TASK_CONCURRENCY=1 \
   setsid nohup "$E/gusto" serve > "$E/serve.log" 2>&1 </dev/null &
 for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:8040/healthz >/dev/null 2>&1 && break; sleep 1; done
 

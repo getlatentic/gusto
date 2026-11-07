@@ -23,7 +23,7 @@ This record says what the people who run the platform did to it: who signed in, 
 
 Every line has who, what, when and where the request came from. It never holds a password.
 
-The settings are `GUSTO_ALLOWED`, `GUSTO_ADMINS`, `GUSTO_RUNNER_GROUPS`, `GUSTO_ADMIN_GROUPS`, `GUSTO_OIDC_GROUPS_CLAIM`, `GUSTO_OIDC_ISSUER`, `GUSTO_ALLOWED_HOSTS`, `GUSTO_MODELS`, `GUSTO_JOB_NETWORK`, `GUSTO_API_TOKENS`, `GUSTO_LIMIT_PERSON`, `GUSTO_LIMIT_TEAM`, `GUSTO_RETENTION`, and the hashes of the retention policy and the spend policy file. They change outside the pages, so `who` is `the server` and `when` is the next start.
+The settings are `GUSTO_ALLOWED`, `GUSTO_ADMINS`, `GUSTO_RUNNER_GROUPS`, `GUSTO_ADMIN_GROUPS`, `GUSTO_OIDC_GROUPS_CLAIM`, `GUSTO_OIDC_ISSUER`, `GUSTO_ALLOWED_HOSTS`, `GUSTO_MODELS`, `GUSTO_TASK_NETWORK`, `GUSTO_API_TOKENS`, `GUSTO_LIMIT_PERSON`, `GUSTO_LIMIT_TEAM`, `GUSTO_RETENTION`, and the hashes of the retention policy and the spend policy file. They change outside the pages, so `who` is `the server` and `when` is the next start.
 
 A change is applied and then recorded. When the record cannot be written, the server says so in its log and the change stands. A source that causes more than ten refused sign-ins a minute has the rest counted and not written. The count goes on the next line written.
 

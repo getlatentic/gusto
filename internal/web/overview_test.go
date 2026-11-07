@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/roster"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/internal/usage"
 	"github.com/getlatentic/gusto/internal/usage/usagetest"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // overview is the Overview as an admin reads it.
@@ -30,13 +30,13 @@ func overview(t *testing.T, here *site) string {
 // mainOf is the page without the console's own side, which has the form that signs out.
 func mainOf(page string) string { return page[strings.Index(page, `<main`):] }
 
-func addJob(t *testing.T, here *site, id string, state jobs.State, age time.Duration) {
+func addTask(t *testing.T, here *site, id string, state tasks.State, age time.Duration) {
 	t.Helper()
-	if err := job.Dir(filepath.Join(here.index.Root(), id)).Make(); err != nil {
+	if err := task.Dir(filepath.Join(here.index.Root(), id)).Make(); err != nil {
 		t.Fatal(err)
 	}
 	queued := time.Now().Add(-age).Unix()
-	if err := here.index.Add(jobs.Record{ID: id, State: state, Brief: id, Harness: "fixture", Queued: queued, Started: queued, Ended: queued}); err != nil {
+	if err := here.index.Add(tasks.Record{ID: id, State: state, Brief: id, Harness: "fixture", Queued: queued, Started: queued, Ended: queued}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -65,7 +65,7 @@ func withMonth(t *testing.T, members []roster.Member, rows ...usage.Row) *site {
 
 func TestTheOverviewOnlyReadsAndHasNoForm(t *testing.T) {
 	here, _, _ := budgeted(t)
-	addJob(t, here, "bad-a", jobs.Failed, time.Hour)
+	addTask(t, here, "bad-a", tasks.Failed, time.Hour)
 	page := mainOf(overview(t, here))
 	if strings.Contains(page, "<form") {
 		t.Errorf("the overview has a form:\n%s", page)
@@ -97,7 +97,7 @@ func TestTheOverviewSplitsTheMonthByPersonAndByAgentTypeAndEachSplitAddsUp(t *te
 	spentNow(t, here, "ada-1", "ada@acme.com", 1.5)
 	spentNow(t, here, "ada-2", "ada@acme.com", 0.5)
 	spentNow(t, here, "bob-1", "bob@acme.com", 1)
-	spentJobFor(t, here.index.Root(), "nobody-1", "", "", fmt.Sprintf(`{"path":"/v1/chat/completions","status":200,"atUnix":%d,"model":"m","inputTokens":1,"outputTokens":1,"usd":0.25}`, time.Now().Unix()))
+	spentTaskFor(t, here.index.Root(), "nobody-1", "", "", fmt.Sprintf(`{"path":"/v1/chat/completions","status":200,"atUnix":%d,"model":"m","inputTokens":1,"outputTokens":1,"usd":0.25}`, time.Now().Unix()))
 	page := overview(t, here)
 	from := "from=" + monthStart(time.Now()).Format("2006-01-02")
 
@@ -193,7 +193,7 @@ func TestSpendingThatHasNoPriceMakesTheBudgetPassedByAtLeast(t *testing.T) {
 	here, _, _ := budgeted(t)
 	setBudget(t, here, "10")
 	spentNow(t, here, "priced", "ada@acme.com", 12)
-	spentJob(t, here.index.Root(), "unpriced", "", unmeasuredNow())
+	spentTask(t, here.index.Root(), "unpriced", "", unmeasuredNow())
 	page := overview(t, here)
 	alert := regexp.MustCompile(`(?s)<p class="[^"]*" role="alert">(.*?)</p>`).FindStringSubmatch(page)
 	if alert == nil || !strings.Contains(alert[1], "more that has no price") || !strings.Contains(alert[1], "at least") {

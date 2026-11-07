@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/taskindex"
 	"github.com/getlatentic/gusto/internal/taskindex/taskindextest"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // listed is a server whose task list reads an index that holds every task there is, the way a server that has
@@ -41,9 +41,9 @@ func (l *listed) attach(t *testing.T) {
 	l.server.SetTasks(l.store)
 }
 
-func (l *listed) addTask(t *testing.T, id, asked string, state jobs.State, agentType, brief string, queued int64) {
+func (l *listed) addTask(t *testing.T, id, asked string, state tasks.State, agentType, brief string, queued int64) {
 	t.Helper()
-	record := jobs.Record{ID: id, State: state, Brief: brief, Harness: agentType, Asked: asked, Repo: "acme/web", Queued: queued}
+	record := tasks.Record{ID: id, State: state, Brief: brief, Harness: agentType, Asked: asked, Repo: "acme/web", Queued: queued}
 	if state.Done() {
 		record.Ended = queued + 60
 	}
@@ -59,13 +59,13 @@ func (l *listed) addTask(t *testing.T, id, asked string, state jobs.State, agent
 func (l *listed) somePeoplesTasks(t *testing.T) {
 	t.Helper()
 	now := time.Now().Unix()
-	l.addTask(t, "a-passed", alice, jobs.Passed, "codex", "fix the login form", now-100)
-	l.addTask(t, "a-failed", alice, jobs.Failed, "claude-code", "migrate 100% of the users", now-200)
-	l.addTask(t, "a-interrupted", alice, jobs.Interrupted, "codex", "write the docs", now-300)
-	l.addTask(t, "a-queued", alice, jobs.Queued, "pi", "snake_case the names", now-50)
-	l.addTask(t, "b-passed", bob, jobs.Passed, "codex", "bobs secret project", now-400)
-	l.addTask(t, "b-running", bob, jobs.Running, "pi", "bobs running work", now-10)
-	l.addTask(t, "b-old", bob, jobs.Failed, "claude-code", "bobs old failure", now-30*24*3600)
+	l.addTask(t, "a-passed", alice, tasks.Passed, "codex", "fix the login form", now-100)
+	l.addTask(t, "a-failed", alice, tasks.Failed, "claude-code", "migrate 100% of the users", now-200)
+	l.addTask(t, "a-interrupted", alice, tasks.Interrupted, "codex", "write the docs", now-300)
+	l.addTask(t, "a-queued", alice, tasks.Queued, "pi", "snake_case the names", now-50)
+	l.addTask(t, "b-passed", bob, tasks.Passed, "codex", "bobs secret project", now-400)
+	l.addTask(t, "b-running", bob, tasks.Running, "pi", "bobs running work", now-10)
+	l.addTask(t, "b-old", bob, tasks.Failed, "claude-code", "bobs old failure", now-30*24*3600)
 }
 
 var taskLink = regexp.MustCompile(`class="[^"]*\bbrief\b[^"]*" href="/jobs/([^"]+)"`)
@@ -182,7 +182,7 @@ func TestTheListPagesByCursor(t *testing.T) {
 	here := withIndexedTasks(t, taskindextest.New())
 	now := time.Now().Unix()
 	for n := 0; n < 120; n++ {
-		here.addTask(t, fmt.Sprintf("t%03d", n), alice, jobs.Passed, "codex", fmt.Sprintf("task %d", n), now-int64(1000-n))
+		here.addTask(t, fmt.Sprintf("t%03d", n), alice, tasks.Passed, "codex", fmt.Sprintf("task %d", n), now-int64(1000-n))
 	}
 	here.attach(t)
 	var seen []string
@@ -298,9 +298,9 @@ func TestNoParameterWidensWhatAPersonSeesOfTheTaskList(t *testing.T) {
 func TestTasksWithNoOwnerAreAnAdminsAloneOnTheList(t *testing.T) {
 	eachStore(t, func(t *testing.T, store taskindex.Store) {
 		here := withIndexedTasks(t, store)
-		here.addTask(t, "nobodys", "", jobs.Passed, "codex", "no owner", time.Now().Unix())
-		here.addTask(t, "shared", sharedSignIn, jobs.Passed, "codex", "the shared sign-in", time.Now().Unix())
-		here.addTask(t, "alices", alice, jobs.Passed, "codex", "alice", time.Now().Unix())
+		here.addTask(t, "nobodys", "", tasks.Passed, "codex", "no owner", time.Now().Unix())
+		here.addTask(t, "shared", sharedSignIn, tasks.Passed, "codex", "the shared sign-in", time.Now().Unix())
+		here.addTask(t, "alices", alice, tasks.Passed, "codex", "alice", time.Now().Unix())
 		for _, memory := range []bool{true, false} {
 			if !memory {
 				here.attach(t)

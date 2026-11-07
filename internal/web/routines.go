@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/notify"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // RunRoutines starts the turns routines are due for, every interval until ctx ends. A routine is a turn like any other:
@@ -74,9 +74,9 @@ func (s *Server) tellRoutines() {
 
 // tellRun offers one run's news. A run whose turn has not ended waits, and one whose turn is gone is given up on.
 func (s *Server) tellRun(instanceID string, routine instance.Routine, ran instance.Ran) {
-	record, found := s.index.Get(ran.Job)
+	record, found := s.index.Get(ran.Task)
 	if !found {
-		_ = s.instances.NoteRun(instanceID, routine.ID, ran.Job, func(r *instance.Ran) {
+		_ = s.instances.NoteRun(instanceID, routine.ID, ran.Task, func(r *instance.Ran) {
 			r.Notified, r.NotifyError = true, "its turn is gone"
 		})
 		return
@@ -85,7 +85,7 @@ func (s *Server) tellRun(instanceID string, routine instance.Routine, ran instan
 		return
 	}
 	taken, err := s.routineNews.Offer(s.routineEvent(instanceID, routine, record), ran.Told)
-	_ = s.instances.NoteRun(instanceID, routine.ID, ran.Job, func(r *instance.Ran) {
+	_ = s.instances.NoteRun(instanceID, routine.ID, ran.Task, func(r *instance.Ran) {
 		r.Told = taken
 		if err == nil {
 			r.Notified, r.NotifyError = true, ""
@@ -97,11 +97,11 @@ func (s *Server) tellRun(instanceID string, routine instance.Routine, ran instan
 	})
 }
 
-func (s *Server) routineEvent(instanceID string, routine instance.Routine, record jobs.Record) notify.Event {
-	state := map[jobs.State]string{jobs.Passed: "finished", jobs.Failed: "failed", jobs.Interrupted: "interrupted"}[record.State]
+func (s *Server) routineEvent(instanceID string, routine instance.Routine, record tasks.Record) notify.Event {
+	state := map[tasks.State]string{tasks.Passed: "finished", tasks.Failed: "failed", tasks.Interrupted: "interrupted"}[record.State]
 	event := notify.Event{
 		Name: "routine." + state, Instance: instanceID, Routine: routine.ID, Title: routine.Title,
-		Job: record.ID, State: state, At: record.Ended, Who: routine.Who,
+		Task: record.ID, State: state, At: record.Ended, Who: routine.Who,
 		Answer: lastWords(record.Dir(s.index.Root()).OutFile("transcript.log")),
 	}
 	if s.publicURL != "" {
@@ -137,7 +137,7 @@ func (s *Server) startRoutine(now time.Time, held instance.Instance, routine ins
 	key := "routine-" + routine.ID + "-" + strconv.FormatInt(now.Unix()/60, 10)
 	record, _, err := s.startTurn(routine.Who, held, thread, "[routine] "+routine.Title+": "+routine.Prompt, key)
 	// With no channel to tell, there is no news to keep.
-	ran := instance.Ran{At: now.Unix(), Job: record.ID, Notified: len(s.routineNews) == 0}
+	ran := instance.Ran{At: now.Unix(), Task: record.ID, Notified: len(s.routineNews) == 0}
 	if err != nil {
 		ran = instance.Ran{At: now.Unix(), Skipped: err.Error()}
 	}

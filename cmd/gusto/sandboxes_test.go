@@ -12,9 +12,9 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Each value of GUSTO_SANDBOX makes the backend it names, and anything else is a container.
@@ -65,7 +65,7 @@ func (r *recording) Run(_ context.Context, turn backend.Turn) (int, error) {
 // A turn in a conversation is handed to its backend with who pays, the instance's workspace and the agent's memory, and the
 // backend's name for the conversation is kept for the next turn, whichever backend ran it.
 func TestATurnIsHandedItsConversationAndWhatTheAgentCallsItIsKept(t *testing.T) {
-	index, err := jobs.Open(filepath.Join(t.TempDir(), "jobs"))
+	index, err := tasks.Open(filepath.Join(t.TempDir(), "jobs"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,12 +78,12 @@ func TestATurnIsHandedItsConversationAndWhatTheAgentCallsItIsKept(t *testing.T) 
 		t.Fatal(err)
 	}
 	thread := instances.Latest(held.ID).ID
-	record := jobs.Record{ID: "20261106-1200-a-turn", State: jobs.Running, Asked: "Ada@Acme.com"}
+	record := tasks.Record{ID: "20261106-1200-a-turn", State: tasks.Running, Asked: "Ada@Acme.com"}
 	dir := record.Dir(index.Root())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	if err := (job.Spec{Brief: "b", Harness: "fixture", Session: held.ID, Thread: thread}).Write(dir); err != nil {
+	if err := (task.Spec{Brief: "b", Harness: "fixture", Session: held.ID, Thread: thread}).Write(dir); err != nil {
 		t.Fatal(err)
 	}
 	if err := index.Add(record); err != nil {

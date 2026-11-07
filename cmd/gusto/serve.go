@@ -16,10 +16,10 @@ import (
 	"github.com/getlatentic/gusto/internal/backend"
 	"github.com/getlatentic/gusto/internal/connector"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/quota"
 	"github.com/getlatentic/gusto/internal/settings"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/internal/web"
 )
 
@@ -35,14 +35,14 @@ type server struct {
 	// signs stands behind the records of the tasks run here, and of what changes on the platform.
 	signs signing.Identity
 
-	index     *jobs.Index
+	index     *tasks.Index
 	limits    *quota.File
 	instances *instance.Store
 	way       *WayOut
 	shared    *apps.Store
 	boxes     backend.Backend
 	rooms     *roomRuns
-	queue     *jobs.Queue
+	queue     *tasks.Queue
 	pages     *web.Server
 	installer *agentinstall.Installer
 	connect   *connector.Connectors

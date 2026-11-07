@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -157,7 +157,7 @@ func TestACrossSiteRedeemIsRefused(t *testing.T) {
 
 // Where a provider is named, the browser the app opens goes to the provider and does not stop at a page that asks for one more press.
 func TestTheAppsBrowserGoesStraightToTheProvider(t *testing.T) {
-	index, err := jobs.Open(t.TempDir())
+	index, err := tasks.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

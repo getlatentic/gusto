@@ -6,7 +6,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // approvalUnseen is why an export cannot name an approver: the platform's part
@@ -21,7 +21,7 @@ const harnessDefault = "the harness's default"
 // but the keyring that names their signer. Export writes what this returns, and
 // Verify calls it again and compares, so the summary can never say something
 // its files and that keyring do not.
-func Summarize(dir job.Dir, id string, redactions []Redaction, policy Policy, keyring signing.Keyring) (Record, error) {
+func Summarize(dir task.Dir, id string, redactions []Redaction, policy Policy, keyring signing.Keyring) (Record, error) {
 	manifest, err := evidence.Read(dir)
 	if err != nil {
 		return Record{}, err
@@ -36,7 +36,7 @@ func Summarize(dir job.Dir, id string, redactions []Redaction, policy Policy, ke
 	proxy := proxyOf(lines(dir.OutFile("proxy.jsonl"), why("out/proxy.jsonl")))
 	return Record{
 		Version:    Version,
-		Job:        id,
+		Task:       id,
 		Asked:      askedOf(state),
 		Ran:        ranOf(spec, manifest),
 		Outcome:    outcomeOf(state, manifest),
@@ -138,7 +138,7 @@ func outcomeOf(state Fact[any], manifest evidence.Manifest) Outcome {
 
 // changedOf reads the patch. Its hash is the one the manifest holds, which is
 // the run's own, even when the policy rewrote the copy the export carries.
-func changedOf(dir job.Dir, manifest evidence.Manifest, why string) Changed {
+func changedOf(dir task.Dir, manifest evidence.Manifest, why string) Changed {
 	sum, named := hashIn(manifest, "diff.patch")
 	patch, err := os.ReadFile(dir.OutFile("diff.patch"))
 	if !named || err != nil {

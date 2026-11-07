@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Commits are the two a pull request rests on. Change is the patch on the
@@ -35,7 +35,7 @@ type scratch struct {
 }
 
 // inScratch makes a scratch repository, hands it over, and removes it.
-func inScratch(ctx context.Context, dir job.Dir, when int64, do func(scratch) error) error {
+func inScratch(ctx context.Context, dir task.Dir, when int64, do func(scratch) error) error {
 	path, err := os.MkdirTemp("", "gusto-ship-")
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func inScratch(ctx context.Context, dir job.Dir, when int64, do func(scratch) er
 // made builds both commits. The author, the dates and the messages are fixed
 // by the run, so the same run makes the same two commits on any machine, and a
 // plan can name them before anything is pushed.
-func (s scratch) made(ctx context.Context, dir job.Dir, plan Plan) (Commits, error) {
+func (s scratch) made(ctx context.Context, dir task.Dir, plan Plan) (Commits, error) {
 	change, err := s.change(ctx, plan)
 	if err != nil {
 		return Commits{}, err
@@ -63,7 +63,7 @@ func (s scratch) made(ctx context.Context, dir job.Dir, plan Plan) (Commits, err
 }
 
 // change applies the patch to the index alone. A patch that no longer applies
-// at the commit the job ran against stops it before anything leaves the
+// at the commit the task ran against stops it before anything leaves the
 // machine.
 func (s scratch) change(ctx context.Context, plan Plan) (string, error) {
 	if err := s.git(ctx, "read-tree", plan.At); err != nil {
@@ -75,9 +75,9 @@ func (s scratch) change(ctx context.Context, plan Plan) (string, error) {
 	return s.commit(ctx, plan.At, plan.Message)
 }
 
-// evidence stages job.json and every file in out/ under the names a job
+// evidence stages job.json and every file in out/ under the names a task
 // directory gives them, and commits them on top of the change.
-func (s scratch) evidence(ctx context.Context, dir job.Dir, change, message string) (string, error) {
+func (s scratch) evidence(ctx context.Context, dir task.Dir, change, message string) (string, error) {
 	if err := s.git(ctx, "read-tree", "--empty"); err != nil {
 		return "", err
 	}
@@ -123,7 +123,7 @@ func (s scratch) git(ctx context.Context, args ...string) error {
 // evidenceFiles is job.json and every file in out/, which is what the manifest
 // hashes, and the manifest itself. The workspace is left out: the change
 // commit already carries the code, and a reviewer rebuilds it from the patch.
-func evidenceFiles(dir job.Dir) ([]string, error) {
+func evidenceFiles(dir task.Dir) ([]string, error) {
 	listing, err := os.ReadDir(dir.Out())
 	if err != nil {
 		return nil, err
@@ -140,7 +140,7 @@ func evidenceFiles(dir job.Dir) ([]string, error) {
 
 // planCommits makes the commits in a scratch repository to learn their names,
 // and keeps nothing.
-func planCommits(ctx context.Context, dir job.Dir, plan Plan) (Commits, error) {
+func planCommits(ctx context.Context, dir task.Dir, plan Plan) (Commits, error) {
 	var commits Commits
 	err := inScratch(ctx, dir, plan.When, func(s scratch) error {
 		var err error

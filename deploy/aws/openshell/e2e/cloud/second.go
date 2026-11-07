@@ -21,8 +21,8 @@ func (r run) secondTurns(slug string, threads []*thread) {
 	}
 	group.Wait()
 	for _, each := range threads {
-		jobs, err := r.host.finished(slug, each.person.email, 2, r.within)
-		check(err == nil, "%s's second turn is done: %v", each.person.email, states(jobs))
+		tasks, err := r.host.finished(slug, each.person.email, 2, r.within)
+		check(err == nil, "%s's second turn is done: %v", each.person.email, states(tasks))
 		answer, err := r.host.fileIn(slug, each.instance, "answer.txt")
 		check(err == nil && strings.Contains(answer, each.secret), "the second turn found what the first left: %q", answer)
 	}

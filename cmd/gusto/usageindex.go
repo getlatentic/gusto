@@ -21,7 +21,7 @@ type indexes struct{ url, tasks string }
 
 // indexesOf is where the stores' settings put the indexes.
 func indexesOf(stores storeSettings) indexes {
-	return indexes{url: strings.TrimSpace(stores.databaseURL), tasks: stores.jobs}
+	return indexes{url: strings.TrimSpace(stores.databaseURL), tasks: stores.tasks}
 }
 
 // dataDir is the directory the server keeps its own data in, the one that holds the tasks directory, so that an index sits

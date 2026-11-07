@@ -154,9 +154,9 @@ func TestTheModelsTableAndAProvidersModelsArePagedAt25(t *testing.T) {
 
 // spendFor counts a call of this many dollars, made now, against the person who asked for it.
 func spendFor(ledger *spend.Ledger, person string, usd float64) {
-	job := "job-" + person
-	ledger.Begin(job, spend.Terms{Person: person})
-	ledger.Count(job, spend.Call{Path: "/v1/chat/completions", Status: 200, AtUnix: time.Now().Unix(), USD: &usd})
+	task := "job-" + person
+	ledger.Begin(task, spend.Terms{Person: person})
+	ledger.Count(task, spend.Call{Path: "/v1/chat/completions", Status: 200, AtUnix: time.Now().Unix(), USD: &usd})
 }
 
 func TestBudgetsSaysTheBudgetsInALineAndListsEachPersonsAgainstWhatTheySpent(t *testing.T) {

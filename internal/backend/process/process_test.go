@@ -10,18 +10,18 @@ import (
 
 	"github.com/getlatentic/gusto/internal/backend"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// A harness run on a person's computer is given what a container gives it: a home of the job's own with each harness's
+// A harness run on a person's computer is given what a container gives it: a home of the task's own with each harness's
 // configuration in it, and the instance's state as the place it keeps a conversation.
-func TestAJobRunHereHasAHomeOfItsOwnAndTheInstancesStateAsItsData(t *testing.T) {
+func TestATaskRunHereHasAHomeOfItsOwnAndTheInstancesStateAsItsData(t *testing.T) {
 	instances, err := instance.Open(filepath.Join(t.TempDir(), "sessions"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir := job.Dir(t.TempDir())
-	home, data, err := jobHome(backend.Turn{Dir: dir, Spec: job.Spec{Session: "a-conversation"}, State: instances.State("a-conversation")})
+	dir := task.Dir(t.TempDir())
+	home, data, err := taskHome(backend.Turn{Dir: dir, Spec: task.Spec{Session: "a-conversation"}, State: instances.State("a-conversation")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestAJobRunHereHasAHomeOfItsOwnAndTheInstancesStateAsItsData(t *testing.T) 
 			t.Errorf("the harness's configuration is not in its home: %v", err)
 		}
 	}
-	if _, alone, _ := jobHome(backend.Turn{Dir: job.Dir(t.TempDir())}); !strings.HasSuffix(alone, filepath.Join(".local", "share")) {
+	if _, alone, _ := taskHome(backend.Turn{Dir: task.Dir(t.TempDir())}); !strings.HasSuffix(alone, filepath.Join(".local", "share")) {
 		t.Errorf("a job of no conversation keeps its data in its own home, not %s", alone)
 	}
 }
@@ -54,7 +54,7 @@ func TestAHarnessRunHereReadsItsOwnHomeAndNotThePersons(t *testing.T) {
 }
 
 // A turn run in this process has no container to mount the instance into, so
-// its workspace is a link. The job directory is made before it is queued, which
+// its workspace is a link. The task directory is made before it is queued, which
 // leaves a real directory in the way — and a link cannot be put over one.
 func TestATurnRunHereWorksInTheInstancesWorkspace(t *testing.T) {
 	instance := filepath.Join(t.TempDir(), "workspace")
@@ -64,7 +64,7 @@ func TestATurnRunHereWorksInTheInstancesWorkspace(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(instance, "already.txt"), []byte("here\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestATurnRunHereFindsTheWorkspaceWhenTheFoldersAreRelative(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join("sessions", "a", "workspace"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	dir := job.Dir(filepath.Join("jobs", "1"))
+	dir := task.Dir(filepath.Join("jobs", "1"))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -99,9 +99,9 @@ func TestATurnRunHereFindsTheWorkspaceWhenTheFoldersAreRelative(t *testing.T) {
 	}
 }
 
-// A job with a checkout of its own is not a turn, and must not lose it.
+// A task with a checkout of its own is not a turn, and must not lose it.
 func TestAWorkspaceWithSomethingInItIsNotReplacedByALink(t *testing.T) {
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -122,11 +122,13 @@ type door struct {
 	refused error
 }
 
-func (d door) Token(job.Dir, job.Spec) (string, error) { return d.token, d.refused }
+func (d door) Token(task.Dir, task.Spec) (string, error) { return d.token, d.refused }
 
-func (d door) SandboxToken(job.Dir, job.Spec) (string, bool, error) { return d.token, false, d.refused }
+func (d door) SandboxToken(task.Dir, task.Spec) (string, bool, error) {
+	return d.token, false, d.refused
+}
 
-func (d door) RecordRun(job.Dir, job.Spec, string, bool) error { return nil }
+func (d door) RecordRun(task.Dir, task.Spec, string, bool) error { return nil }
 
 // A turn run in the server's own process goes through the proxy as a box does: it is given a token for its credential and the
 // proxy on loopback, and none of the server's environment that is its own.
@@ -134,7 +136,7 @@ func TestATurnRunHereIsGivenTheProxyAndATokenAndNoneOfTheServersSecrets(t *testi
 	t.Setenv("GUSTO_CREDENTIALS", t.TempDir())
 	t.Setenv("GUSTO_PASSWORD", "the-servers-own-secret")
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "an-aws-secret")
-	turn := backend.Turn{Dir: job.Dir(t.TempDir()), Exit: backend.Exit{Door: door{token: "a-run-token"}, Port: "8041"}}
+	turn := backend.Turn{Dir: task.Dir(t.TempDir()), Exit: backend.Exit{Door: door{token: "a-run-token"}, Port: "8041"}}
 	env, err := agentEnv(turn)
 	if err != nil {
 		t.Fatal(err)

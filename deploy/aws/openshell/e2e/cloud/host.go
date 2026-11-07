@@ -11,20 +11,20 @@ import (
 	"time"
 )
 
-// jobOf is the part of a job's record this run reads from the organization's directory.
-type jobOf struct {
+// taskOf is the part of a task's record this run reads from the organization's directory.
+type taskOf struct {
 	ID    string `json:"id"`
 	State string `json:"state"`
 	Asked string `json:"asked"`
 	Exit  int    `json:"exit"`
 }
 
-func (h host) jobsAskedBy(slug, email string) []jobOf {
+func (h host) tasksAskedBy(slug, email string) []taskOf {
 	names, _ := filepath.Glob(filepath.Join(h.data(slug), "jobs", "*", "state.json"))
-	var found []jobOf
+	var found []taskOf
 	for _, name := range names {
 		text, _ := os.ReadFile(name)
-		var record jobOf
+		var record taskOf
 		if json.Unmarshal(text, &record) == nil && record.Asked == email {
 			found = append(found, record)
 		}
@@ -49,23 +49,23 @@ func (h host) strangers(slug string) ([]string, error) {
 	return found[:min(len(found), 5)], nil
 }
 
-// finished waits until every job the person asked for is done, and there are n of them.
-func (h host) finished(slug, email string, n int, within time.Duration) ([]jobOf, error) {
+// finished waits until every task the person asked for is done, and there are n of them.
+func (h host) finished(slug, email string, n int, within time.Duration) ([]taskOf, error) {
 	deadline := time.Now().Add(within)
 	for time.Now().Before(deadline) {
-		jobs := h.jobsAskedBy(slug, email)
+		tasks := h.tasksAskedBy(slug, email)
 		done := 0
-		for _, each := range jobs {
+		for _, each := range tasks {
 			if each.State == "passed" || each.State == "failed" || each.State == "interrupted" {
 				done++
 			}
 		}
-		if len(jobs) >= n && done == len(jobs) {
-			return jobs, nil
+		if len(tasks) >= n && done == len(tasks) {
+			return tasks, nil
 		}
 		time.Sleep(3 * time.Second)
 	}
-	return h.jobsAskedBy(slug, email), fmt.Errorf("%s: %d jobs were not all done in %s", email, n, within)
+	return h.tasksAskedBy(slug, email), fmt.Errorf("%s: %d tasks were not all done in %s", email, n, within)
 }
 
 func (h host) computers() (string, error) {

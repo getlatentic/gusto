@@ -15,7 +15,7 @@ import (
 
 // Turn is one of the person's tasks as the server's event stream tells it, the latest word on it.
 type Turn struct {
-	Job      string `json:"job"`
+	Task     string `json:"job"`
 	Instance string `json:"instance,omitempty"`
 	Thread   string `json:"thread,omitempty"`
 	Brief    string `json:"brief"`
@@ -50,10 +50,10 @@ func NewHub() *Hub {
 func (h *Hub) Tell(event Event) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if _, known := h.turns[event.Turn.Job]; !known {
-		h.order = append(h.order, event.Turn.Job)
+	if _, known := h.turns[event.Turn.Task]; !known {
+		h.order = append(h.order, event.Turn.Task)
 	}
-	h.turns[event.Turn.Job] = event.Turn
+	h.turns[event.Turn.Task] = event.Turn
 	h.last = max(h.last, event.Turn.At)
 	for listener := range h.listeners {
 		select {
@@ -148,7 +148,7 @@ func readEvents(body io.Reader, hub *Hub) error {
 		case line == "":
 			if strings.HasPrefix(kind, "turn.") {
 				var turn Turn
-				if json.Unmarshal([]byte(data), &turn) == nil && turn.Job != "" {
+				if json.Unmarshal([]byte(data), &turn) == nil && turn.Task != "" {
 					hub.Tell(Event{Kind: kind, Turn: turn})
 				}
 			}

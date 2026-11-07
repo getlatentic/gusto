@@ -16,7 +16,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Report is what a check found. Wrong names every file or commit that does not
@@ -63,7 +63,7 @@ func Check(ctx context.Context, remote, digest, into string) (Report, error) {
 	if !sha256Hex.MatchString(digest) {
 		return Report{}, fmt.Errorf("%q is not a manifest's sha256: want 64 lowercase hex digits", digest)
 	}
-	dir := job.Dir(into)
+	dir := task.Dir(into)
 	if err := emptyOrNew(dir); err != nil {
 		return Report{}, err
 	}
@@ -86,12 +86,12 @@ func Check(ctx context.Context, remote, digest, into string) (Report, error) {
 
 // gated runs the gate in the rebuilt workspace and sets its answer beside the
 // one the manifest records.
-func gated(ctx context.Context, dir job.Dir) (Report, error) {
+func gated(ctx context.Context, dir task.Dir) (Report, error) {
 	manifest, err := evidence.Read(dir)
 	if err != nil {
 		return Report{}, err
 	}
-	spec, err := job.Read(dir)
+	spec, err := task.Read(dir)
 	if err != nil {
 		return Report{}, err
 	}
@@ -102,7 +102,7 @@ func gated(ctx context.Context, dir job.Dir) (Report, error) {
 	return Report{Files: len(manifest.Files), Claimed: manifest.Gate, Gate: again}, nil
 }
 
-func emptyOrNew(dir job.Dir) error {
+func emptyOrNew(dir task.Dir) error {
 	listing, err := os.ReadDir(dir.Path())
 	if os.IsNotExist(err) {
 		return os.MkdirAll(dir.Path(), 0o755)

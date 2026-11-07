@@ -4,7 +4,7 @@ import (
 	"context"
 	"path/filepath"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // InsideSocket is where a sealed container finds the proxy's socket, and
@@ -25,7 +25,7 @@ const (
 // route to it either.
 //
 // The container is stopped when ctx ends.
-func (c Containers) Sealed(ctx context.Context, dir job.Dir, socket, token string, owner Owner, mounts ...Mount) (int, error) {
+func (c Containers) Sealed(ctx context.Context, dir task.Dir, socket, token string, owner Owner, mounts ...Mount) (int, error) {
 	absolute, err := filepath.Abs(dir.Path())
 	if err != nil {
 		return 0, err

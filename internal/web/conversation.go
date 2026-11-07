@@ -9,10 +9,10 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/proxy"
 	"github.com/getlatentic/gusto/pkg/spend"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // conversation shows what has been said in one thread, and offers somewhere to
@@ -28,7 +28,7 @@ func (s *Server) conversation(w http.ResponseWriter, r *http.Request) {
 
 // turn is one thing said and what came back of it.
 type turn struct {
-	jobs.Record
+	tasks.Record
 	Said    string
 	Replied string
 	// Steps is what the harness did on the way to its reply, and Changed the
@@ -148,13 +148,13 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 }
 
 // fullTurn is a turn as the page shows it, read from the turn's own directory.
-func (s *Server) fullTurn(record jobs.Record, ledger *spend.Ledger) turn {
+func (s *Server) fullTurn(record tasks.Record, ledger *spend.Ledger) turn {
 	dir := record.Dir(s.index.Root())
 	shown := turn{Record: record, Said: record.Brief, Replied: said(dir), Steps: stepsOf(dir)}
 	shown.Changed, shown.Deleted = changes(dir)
 	shown.Previews = previewsOf(shown.Changed)
 	shown.Spent, shown.Metered = spentBy(ledger, record.ID)
-	if record.State == jobs.Failed || record.State == jobs.Interrupted {
+	if record.State == tasks.Failed || record.State == tasks.Interrupted {
 		shown.Stopped = stopped(dir)
 	}
 	if refusal, err := spend.Stopped(dir.OutFile("proxy.jsonl"), record.Started); err == nil {
@@ -191,7 +191,7 @@ func withoutRefusal(replied string) string {
 
 // said is what the harness replied, read from the turn's own transcript. It is
 // bounded because a page is not the place to read a megabyte.
-func said(dir job.Dir) string {
+func said(dir task.Dir) string {
 	if !dir.PlainOut("transcript.log") {
 		return ""
 	}
@@ -217,7 +217,7 @@ func (s *Server) turns(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "turns", page)
 }
 
-// say is one turn: an ordinary job that mounts the instance and names the
+// say is one turn: an ordinary task that mounts the instance and names the
 // thread, so the queue knows not to run it beside another turn of the same
 // workspace.
 func (s *Server) say(w http.ResponseWriter, r *http.Request) {
@@ -247,10 +247,10 @@ func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, threadPath(thread)+"#"+record.ID, http.StatusSeeOther)
 }
 
-// startTurn queues what somebody said in a thread as a job and records it there. With a request id it first looks for the
-// job that same asker made with it, and gives that one back, so a send that was retried is one turn. It says whether the
-// job was already there. Sends with an id go one at a time, so two of them arriving together cannot both find nothing.
-func (s *Server) startTurn(asked string, held instance.Instance, thread instance.Thread, brief, key string) (jobs.Record, bool, error) {
+// startTurn queues what somebody said in a thread as a task and records it there. With a request id it first looks for the
+// task that same asker made with it, and gives that one back, so a send that was retried is one turn. It says whether the
+// task was already there. Sends with an id go one at a time, so two of them arriving together cannot both find nothing.
+func (s *Server) startTurn(asked string, held instance.Instance, thread instance.Thread, brief, key string) (tasks.Record, bool, error) {
 	if key != "" {
 		s.keyed.Lock()
 		defer s.keyed.Unlock()
@@ -258,7 +258,7 @@ func (s *Server) startTurn(asked string, held instance.Instance, thread instance
 			return already, true, nil
 		}
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:       brief,
 		Harness:     held.Harness,
 		Model:       held.Model,
@@ -272,22 +272,22 @@ func (s *Server) startTurn(asked string, held instance.Instance, thread instance
 	}
 	id, err := s.index.Reserve(brief, time.Now())
 	if err != nil {
-		return jobs.Record{}, false, err
+		return tasks.Record{}, false, err
 	}
-	record := jobs.Record{
-		ID: id, State: jobs.Queued,
+	record := tasks.Record{
+		ID: id, State: tasks.Queued,
 		Brief: brief, Repo: held.Repo, Harness: held.Harness, Model: held.Model,
 		Instance: held.ID, Thread: thread.ID,
-		Asked: asked, Key: key, Team: spec.Team, Queued: jobs.Now(),
+		Asked: asked, Key: key, Team: spec.Team, Queued: tasks.Now(),
 	}
 	if err := s.place(spec, record); err != nil {
-		return jobs.Record{}, false, err
+		return tasks.Record{}, false, err
 	}
 	if err := s.instances.Said(held.ID, thread.ID, record.ID, ""); err != nil {
-		return jobs.Record{}, false, err
+		return tasks.Record{}, false, err
 	}
 	if err := s.instances.Name(held.ID, thread.ID, instance.TitleOf(brief)); err != nil {
-		return jobs.Record{}, false, err
+		return tasks.Record{}, false, err
 	}
 	s.queue.Wake()
 	return record, false, nil
@@ -342,7 +342,7 @@ func (s *Server) refusedIn(r *http.Request, part string) string {
 }
 
 // limitWords is the limit that stopped a turn, said plainly: a person's budget by their name and the month, or the proxy's words.
-func (s *Server) limitWords(record jobs.Record, refusal *spend.Refusal) string {
+func (s *Server) limitWords(record tasks.Record, refusal *spend.Refusal) string {
 	if refusal == nil || (refusal.Cap == "credit" && refusal.SpentUSD >= refusal.LimitUSD) {
 		return ""
 	}

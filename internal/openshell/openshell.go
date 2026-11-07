@@ -24,7 +24,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/runtoken"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Config says where the gateway is and what the sandboxes are made from.
@@ -90,7 +90,7 @@ type Sandbox struct {
 	// next turn works in.
 	keepDir bool
 	workdir string
-	job     string
+	task    string
 	logBase int
 }
 
@@ -107,15 +107,15 @@ func New(cfg Config, id string, adapter harness.Adapter, modelURL, hostModelURL,
 	return s, nil
 }
 
-// jobName is what a directory in a workspace may be called.
-var jobName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,80}$`)
+// taskName is what a directory in a workspace may be called.
+var taskName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,80}$`)
 
 // dirName is a task's id as a directory's name in a workspace. A name of plain letters,
 // digits and hyphens is itself. Any other, with a letter from another alphabet or
 // a slash or dots in it, is made plain and given a digest of the whole, so it cannot
 // reach outside its directory and two that are alike stay two.
 func dirName(id string) string {
-	if jobName.MatchString(id) {
+	if taskName.MatchString(id) {
 		return id
 	}
 	var plain strings.Builder
@@ -146,21 +146,21 @@ func dirName(id string) string {
 // conversation to the directory it began in, so every turn of an instance works in the
 // same directory of the workspace, which is kept between turns. Any other task works in one
 // of its own, which goes when the task does.
-func NewComputer(cfg Config, name, job, instance string, adapter harness.Adapter, modelURL, hostModelURL, token string) (*Sandbox, error) {
-	s, err := New(cfg, job, adapter, modelURL, hostModelURL, token)
+func NewComputer(cfg Config, name, task, instance string, adapter harness.Adapter, modelURL, hostModelURL, token string) (*Sandbox, error) {
+	s, err := New(cfg, task, adapter, modelURL, hostModelURL, token)
 	if err != nil {
 		return nil, err
 	}
-	s.name, s.persistent, s.job = name, true, dirName(job)
+	s.name, s.persistent, s.task = name, true, dirName(task)
 	if instance != "" {
-		s.job, s.keepDir = dirName("instance-"+instance), true
+		s.task, s.keepDir = dirName("instance-"+instance), true
 	}
-	s.workdir = jobsDir + "/" + s.job + "/workspace"
+	s.workdir = tasksDir + "/" + s.task + "/workspace"
 	return s, nil
 }
 
-// jobsDir is where the tasks of a workspace are, each in a directory of its own.
-const jobsDir = Home + "/jobs"
+// tasksDir is where the tasks of a workspace are, each in a directory of its own.
+const tasksDir = Home + "/jobs"
 
 // Home is the home of the user a sandbox runs the agent as.
 const Home = "/sandbox"
@@ -168,7 +168,7 @@ const Home = "/sandbox"
 // Equip puts the task's skills in the folder the agent finds them in, each in a
 // folder of its own name. The skills were written by this server, and the
 // sandbox is only handed them.
-func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter harness.Adapter) error {
+func (s *Sandbox) Equip(ctx context.Context, dir task.Dir, spec task.Spec, adapter harness.Adapter) error {
 	// An agent's own configuration is part of the image, under /opt/gusto/harness
 	// where the sandbox user can read it, and belongs in the home the agent will
 	// look in. An image without it has nothing to copy, and that is not an error.
@@ -204,7 +204,7 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 		return nil
 	}
 	for _, name := range spec.Setup.Skills {
-		if !job.Named(name) {
+		if !task.Named(name) {
 			return fmt.Errorf("%q is not a skill's name", name)
 		}
 		from, err := filepath.Abs(filepath.Join(dir.SetupDir(), "skills", name))
@@ -645,7 +645,7 @@ func (s *Sandbox) Guard() (events, policy []byte, err error) {
 		events = latest
 		time.Sleep(settle)
 	}
-	events = s.jobEvents(events)
+	events = s.taskEvents(events)
 	policy, err = output(s.run(context.Background(), "policy", "get", s.name, "--full"))
 	if err != nil {
 		return events, s.policy, nil
@@ -659,7 +659,7 @@ func (s *Sandbox) Close() error {
 		os.Remove(s.sshConfig)
 	}
 	if s.persistent {
-		return s.endJob()
+		return s.endTask()
 	}
 	_, err := output(s.run(context.Background(), "sandbox", "delete", s.name))
 	return err

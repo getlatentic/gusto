@@ -4,7 +4,7 @@ import (
 	"github.com/getlatentic/gusto/internal/replay"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Way is how the benchmark starts a run, and what it writes down about where.
@@ -33,8 +33,8 @@ func Here(signs signing.Identity) Way {
 // and the model's own address when none is.
 type Door interface {
 	Listen() (func(), error)
-	Run(dir job.Dir, spec job.Spec) (int, error)
-	Done(dir job.Dir)
+	Run(dir task.Dir, spec task.Spec) (int, error)
+	Done(dir task.Dir)
 }
 
 // Contained runs every run through a door opened for each comparison, in the
@@ -57,13 +57,13 @@ func Contained(where string, open func(root string) (Door, error)) Way {
 	}
 }
 
-// through runs one cell the way the server runs a job: the checkout happens on
+// through runs one cell the way the server runs a task: the checkout happens on
 // this side of the box, so a repository credential never enters it, and the
 // token is dropped when the run ends. The verdict is read from the evidence,
 // not from the exit code.
 func through(door Door) replay.Run {
-	return func(dir job.Dir) error {
-		spec, err := job.Read(dir)
+	return func(dir task.Dir) error {
+		spec, err := task.Read(dir)
 		if err != nil {
 			return err
 		}

@@ -9,14 +9,14 @@ import (
 
 	"github.com/getlatentic/gusto/internal/backend"
 	"github.com/getlatentic/gusto/internal/settings"
-	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/pkg/spend"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A sealed box reaches its model only through the proxy, on its own loopback,
 // so the runner inside cannot tell where the code goes. The server can: the
 // credential names the provider. Restricted code bound for a provider outside
-// the building is refused before a box starts, and says so where the job is
+// the building is refused before a box starts, and says so where the task is
 // read.
 func TestRestrictedCodeIsRefusedACredentialOutsideTheBuilding(t *testing.T) {
 	credentials := t.TempDir()
@@ -27,11 +27,11 @@ func TestRestrictedCodeIsRefusedACredentialOutsideTheBuilding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: "b", Harness: "opencode", Model: "deepseek/deepseek-flash", Sensitivity: job.Restricted}
+	spec := task.Spec{Brief: "b", Harness: "opencode", Model: "deepseek/deepseek-flash", Sensitivity: task.Restricted}
 	if _, err := way.Token(dir, spec); err == nil || !strings.Contains(err.Error(), "api.deepseek.com") {
 		t.Fatalf("restricted code was not refused the provider: %v", err)
 	}
@@ -55,27 +55,27 @@ func TestRestrictedCodeIsRefusedACredentialWithAnyAddressOutsideTheBuilding(t *t
 	if way.InBuilding() {
 		t.Error("a credential with an address outside was said to be inside the building")
 	}
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: "b", Harness: "claude", Model: "inside/model", Sensitivity: job.Restricted}
+	spec := task.Spec{Brief: "b", Harness: "claude", Model: "inside/model", Sensitivity: task.Restricted}
 	if _, err := way.Token(dir, spec); err == nil || !strings.Contains(err.Error(), "api.deepseek.com") {
 		t.Fatalf("restricted code was not refused the second address: %v", err)
 	}
 }
 
 // A harness that needs no model has no credential to name, and a deployment that holds credentials still runs it, as
-// the install check's first job does. A harness that does need one is still asked to name it.
+// the install check's first task does. A harness that does need one is still asked to name it.
 func TestAHarnessThatNeedsNoModelIsNotRefusedForWantOfACredential(t *testing.T) {
 	harnesses := t.TempDir()
 	os.WriteFile(filepath.Join(harnesses, "plain.json"), []byte(`{"name":"plain","program":"true","needs":"nothing","stream":"plain"}`), 0o600)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	dir := job.Dir(t.TempDir())
-	if needsModel(dir, job.Spec{Harness: "plain"}) {
+	dir := task.Dir(t.TempDir())
+	if needsModel(dir, task.Spec{Harness: "plain"}) {
 		t.Error("a harness that needs nothing was said to need a model")
 	}
-	if !needsModel(dir, job.Spec{Harness: "opencode"}) || !needsModel(dir, job.Spec{Harness: "nowhere"}) {
+	if !needsModel(dir, task.Spec{Harness: "opencode"}) || !needsModel(dir, task.Spec{Harness: "nowhere"}) {
 		t.Error("a harness that needs a model, or is not found, was said to need none")
 	}
 }
@@ -141,7 +141,7 @@ func TestATaskIsHeldToTheBudgetOfThePersonWhoAskedForIt(t *testing.T) {
 	way.UseMemberBudgets(func(person string) (float64, bool) { return 20, person == "ada@acme.com" })
 	twenty := 20.0
 	for _, person := range []string{"Ada@Acme.com", "bob@acme.com"} {
-		way.ledger.Begin(person, spend.TermsOf(job.Spec{Person: person}))
+		way.ledger.Begin(person, spend.TermsOf(task.Spec{Person: person}))
 		way.ledger.Count(person, spend.Call{Path: "/v1/chat/completions", Model: "m", Status: 200, AtUnix: time.Now().Unix(), USD: &twenty})
 	}
 	if refusal := way.ledger.Allow("Ada@Acme.com", "", "", false); refusal == nil || refusal.Cap != "person" {

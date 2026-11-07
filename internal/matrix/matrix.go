@@ -1,4 +1,4 @@
-// Package matrix measures which agent and model pairs can finish a job.
+// Package matrix measures which agent and model pairs can finish a task.
 //
 // A plan names a fixed set of tasks and the pairs to run each on. Every task
 // becomes a comparison in the shape internal/compare keeps, pinned once to one
@@ -22,7 +22,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/replay"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Again says whether a pair is run again although it already finished.
@@ -53,7 +53,7 @@ func Measure(plan Plan, where string, way Way, again Again, progress io.Writer) 
 	if err != nil {
 		return Record{}, err
 	}
-	record.Simplest = plan.SimplestJob()
+	record.Simplest = plan.SimplestTask()
 	for _, submission := range submissions {
 		column := column{where: where, record: &record, submission: submission, pairs: plan.Pairs}
 		if err := column.measure(way, again, progress); err != nil {
@@ -71,19 +71,19 @@ func environmentOf(named, where string) string {
 	return named + ", " + where
 }
 
-// column is one job and every pair it is run on.
+// column is one task and every pair it is run on.
 type column struct {
 	where      string
 	record     *Record
-	submission job.Dir
+	submission task.Dir
 	pairs      []Pair
 }
 
-func (c column) name() string { return JobName(c.submission.Path()) }
+func (c column) name() string { return TaskName(c.submission.Path()) }
 
 func (c column) root() string { return filepath.Join(c.where, c.name()) }
 
-// measure readies the job's comparison, then runs each pair that is due.
+// measure readies the task's comparison, then runs each pair that is due.
 func (c column) measure(way Way, again Again, progress io.Writer) error {
 	comparison, err := prepared(c.root(), c.submission, c.pairs)
 	if err != nil {
@@ -151,7 +151,7 @@ func (c column) runOne(pair Pair, commit string, run replay.Run, progress io.Wri
 // moved aside rather than deleted, because it is evidence of what that run
 // did, and remade from the submission at the comparison's commit. A stop
 // between the two leaves no directory, which prepared makes again.
-func (c column) clean(dir job.Dir, pair Pair, commit string) error {
+func (c column) clean(dir task.Dir, pair Pair, commit string) error {
 	if !used(dir) {
 		return nil
 	}
@@ -165,13 +165,13 @@ func (c column) clean(dir job.Dir, pair Pair, commit string) error {
 }
 
 // Finished says whether the run at dir left the check's verdict.
-func Finished(dir job.Dir) bool {
+func Finished(dir task.Dir) bool {
 	manifest, err := evidence.Read(dir)
 	return err == nil && manifest.Gate != nil
 }
 
 // used is a run directory something has already cloned into or written to.
-func used(dir job.Dir) bool {
+func used(dir task.Dir) bool {
 	for _, path := range []string{dir.Workspace(), dir.Out()} {
 		if listing, err := os.ReadDir(path); err == nil && len(listing) > 0 {
 			return true
@@ -182,7 +182,7 @@ func used(dir job.Dir) bool {
 
 // retire moves an earlier attempt beside the run, numbered, where no
 // comparison names it.
-func retire(dir job.Dir) error {
+func retire(dir task.Dir) error {
 	for n := 1; ; n++ {
 		aside := fmt.Sprintf("%s.attempt-%d", dir.Path(), n)
 		_, err := os.Lstat(aside)

@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // agent is the user an agent runs as inside the box. The runner stays root
@@ -33,7 +33,7 @@ func agentIn(place Place) agent {
 
 // handOver gives the agent its workspace and home, closes out/ to it, and
 // sets the command to start as the agent.
-func (a agent) handOver(dir job.Dir, command *exec.Cmd) error {
+func (a agent) handOver(dir task.Dir, command *exec.Cmd) error {
 	if !a.present {
 		return nil
 	}
@@ -74,7 +74,7 @@ func chownTree(root string, uid, gid int) error {
 // not: under a container runtime whose root is the machine's root, what the box left would be files the server can list and
 // cannot open or remove. The workspace is a conversation's own folder when it is mounted from elsewhere, and is handed over
 // again, whole, at the start of the next turn. It does what it can: a file it cannot change is left, and the run is not failed.
-func (a agent) takeBack(dir job.Dir) {
+func (a agent) takeBack(dir task.Dir) {
 	if !a.present {
 		return
 	}

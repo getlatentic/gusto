@@ -10,11 +10,11 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // aSignedTurn is a room's turn whose run was hashed and signed with the acme key, as a run ends.
-func aSignedTurn(t *testing.T) (dir job.Dir, ring string, key signing.Key) {
+func aSignedTurn(t *testing.T) (dir task.Dir, ring string, key signing.Key) {
 	t.Helper()
 	ring = t.TempDir()
 	key = keyIn(t, ring, "acme")
@@ -26,7 +26,7 @@ func aSignedTurn(t *testing.T) (dir job.Dir, ring string, key signing.Key) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Job: spec, Files: files}); err != nil {
+	if err := evidence.Write(dir, evidence.Manifest{Task: spec, Files: files}); err != nil {
 		t.Fatal(err)
 	}
 	if err := evidence.SealIfKeyed(dir, key); err != nil {
@@ -40,7 +40,7 @@ type brokenKey struct{ signing.Key }
 
 func (brokenKey) Sign([]byte) ([]byte, error) { return nil, errors.New("the key is out of reach") }
 
-func signedBy(t *testing.T, dir job.Dir, ring string) string {
+func signedBy(t *testing.T, dir task.Dir, ring string) string {
 	t.Helper()
 	attested, err := evidence.Attest(dir, keyringOf(t, ring))
 	if err != nil {

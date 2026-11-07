@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 func foldersAt(t *testing.T, site *site, at string) (shownFolders, int) {
@@ -82,7 +82,7 @@ func TestAFolderIsMadeInsideAnAgentsFolderAndAtTheTopForANewAgent(t *testing.T) 
 	}
 }
 
-// A chat in a folder works in it: the conversation holds the folder and so does each turn's job.
+// A chat in a folder works in it: the conversation holds the folder and so does each turn's task.
 func TestAChatInAFolderOfTheCloudComputerWorksThere(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
@@ -98,7 +98,7 @@ func TestAChatInAFolderOfTheCloudComputerWorksThere(t *testing.T) {
 		t.Fatalf("the conversation holds %+v", thread)
 	}
 	record, _ := site.index.Get(thread.Turns[0])
-	spec, err := job.Read(record.Dir(site.index.Root()))
+	spec, err := task.Read(record.Dir(site.index.Root()))
 	if err != nil || spec.Dir != "src" {
 		t.Errorf("the turn's job names %q (%v)", spec.Dir, err)
 	}

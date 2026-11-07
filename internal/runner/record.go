@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Record is what a run writes while it happens. A container's disk does not
@@ -41,7 +41,7 @@ type Record struct {
 	priced bool
 }
 
-func Open(dir job.Dir, adapter harness.Adapter) (*Record, error) {
+func Open(dir task.Dir, adapter harness.Adapter) (*Record, error) {
 	record := &Record{adapter: adapter}
 	for _, opening := range []struct {
 		name string

@@ -1,4 +1,4 @@
-{{- $reserved := list "GUSTO_ADDR" "GUSTO_JOBS" "GUSTO_SESSIONS" "GUSTO_SETUPS" "GUSTO_INTEGRATIONS" "GUSTO_PRESETS" "GUSTO_CREW" "GUSTO_CHANGES" "GUSTO_LOCAL_REPOS" "GUSTO_RETENTION" "GUSTO_API_TOKENS" "GUSTO_COMPARISONS" "GUSTO_IMAGE" "GUSTO_CONTAINER" "GUSTO_PROXY_SOCKET" -}}
+{{- $reserved := list "GUSTO_ADDR" "GUSTO_TASKS" "GUSTO_SESSIONS" "GUSTO_SETUPS" "GUSTO_INTEGRATIONS" "GUSTO_PRESETS" "GUSTO_CREW" "GUSTO_CHANGES" "GUSTO_LOCAL_REPOS" "GUSTO_RETENTION" "GUSTO_API_TOKENS" "GUSTO_COMPARISONS" "GUSTO_IMAGE" "GUSTO_CONTAINER" "GUSTO_PROXY_SOCKET" -}}
 {{- range $name, $_ := .Values.env }}
 {{- if has $name $reserved }}
 {{- fail (printf "env.%s belongs to the chart: the paths and the runtime it names are the ones the pod mounts" $name) }}
@@ -99,7 +99,7 @@ spec:
             - { name: GUSTO_CONTAINER, value: docker }
             - { name: DOCKER_HOST, value: "unix://{{ $socket }}" }
             - { name: GUSTO_IMAGE, value: {{ $runner | quote }} }
-            - { name: GUSTO_JOBS, value: /var/lib/gusto/jobs }
+            - { name: GUSTO_TASKS, value: /var/lib/gusto/jobs }
             - { name: GUSTO_SESSIONS, value: /var/lib/gusto/sessions }
             - { name: GUSTO_SETUPS, value: /var/lib/gusto/setups }
             - { name: GUSTO_INTEGRATIONS, value: /var/lib/gusto/integrations }
@@ -112,11 +112,11 @@ spec:
             # Not on the volume: a unix socket belongs on a filesystem both
             # containers share in memory, whatever the storage class is.
             - { name: GUSTO_PROXY_SOCKET, value: /run/gusto/proxy/proxy.sock }
-            - { name: GUSTO_JOB_CONCURRENCY, value: {{ .Values.jobs.concurrency | quote }} }
+            - { name: GUSTO_TASK_CONCURRENCY, value: {{ .Values.jobs.concurrency | quote }} }
             - { name: GUSTO_LIMIT_PERSON, value: {{ .Values.jobs.limitPerson | quote }} }
             - { name: GUSTO_LIMIT_TEAM, value: {{ .Values.jobs.limitTeam | quote }} }
-            - { name: GUSTO_JOB_MEMORY, value: {{ .Values.jobs.memory | quote }} }
-            - { name: GUSTO_JOB_CPUS, value: {{ .Values.jobs.cpus | quote }} }
+            - { name: GUSTO_TASK_MEMORY, value: {{ .Values.jobs.memory | quote }} }
+            - { name: GUSTO_TASK_CPUS, value: {{ .Values.jobs.cpus | quote }} }
             - { name: GUSTO_MODELS, value: {{ .Values.model.models | quote }} }
             - { name: GUSTO_ALLOWED_HOSTS, value: {{ .Values.model.allowedHosts | quote }} }
             - name: GUSTO_PASSWORD

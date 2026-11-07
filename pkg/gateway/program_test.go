@@ -80,7 +80,7 @@ func fakeProgram(mode string) {
 
 // aProgram is a launcher that runs this test program as the server, in the mode named by the server's command.
 func aProgram(started *atomic.Int32) Launcher {
-	return func(ctx context.Context, job string, server Server) (*exec.Cmd, func(), error) {
+	return func(ctx context.Context, task string, server Server) (*exec.Cmd, func(), error) {
 		if started != nil {
 			started.Add(1)
 		}
@@ -150,10 +150,10 @@ func TestAGatewayWithNoLauncherRunsNoProgram(t *testing.T) {
 	}
 }
 
-func TestAProgramEndsWithTheJob(t *testing.T) {
+func TestAProgramEndsWithTheTask(t *testing.T) {
 	var command *exec.Cmd
-	launch := func(ctx context.Context, job string, server Server) (*exec.Cmd, func(), error) {
-		made, ended, _ := aProgram(nil)(ctx, job, server)
+	launch := func(ctx context.Context, task string, server Server) (*exec.Cmd, func(), error) {
+		made, ended, _ := aProgram(nil)(ctx, task, server)
 		command = made
 		return made, ended, nil
 	}

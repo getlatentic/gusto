@@ -12,19 +12,19 @@ import (
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/isolation"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/roomwork"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/settings"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // sandboxSettings is what turns run in and how many at once: the kind of box, its network, and for an organization's server
 // the computers its people have.
 type sandboxSettings struct {
-	sandbox, jobNetwork, computers, node            string
+	sandbox, taskNetwork, computers, node           string
 	spare                                           bool
 	idleMinutes, concurrency, roomCopyMB, roomFiles int
 	containers                                      containerSettings
@@ -33,8 +33,10 @@ type sandboxSettings struct {
 
 func (b *sandboxSettings) declare(set *settings.Set) {
 	set.Choice(&b.sandbox, "GUSTO_SANDBOX", "container", []string{"container", "openshell", "process", "here"}, "how tasks are held")
-	set.Choice(&b.jobNetwork, "GUSTO_JOB_NETWORK", "", []string{"open"}, "open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR")
-	set.Int(&b.concurrency, "GUSTO_JOB_CONCURRENCY", 1, 1, "how many tasks run at a time")
+	set.Choice(&b.taskNetwork, "GUSTO_TASK_NETWORK", "", []string{"open"}, "open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR")
+	set.Renamed("GUSTO_TASK_NETWORK", "GUSTO_JOB_NETWORK")
+	set.Int(&b.concurrency, "GUSTO_TASK_CONCURRENCY", 1, 1, "how many tasks run at a time")
+	set.Renamed("GUSTO_TASK_CONCURRENCY", "GUSTO_JOB_CONCURRENCY")
 	b.containers.declare(set)
 	b.openShell.declare(set)
 	set.String(&b.computers, "GUSTO_COMPUTERS", "", "the directory of the records of the computers an organization's people have")
@@ -55,7 +57,7 @@ func (b sandboxSettings) roomCopy() roomwork.Limits {
 // is to be chosen.
 func (b sandboxSettings) isolation(decided string) isolation.Settings {
 	return isolation.Settings{
-		Sandbox: decided, Container: b.containers.c.Runtime, Image: b.containers.c.Image, JobNetwork: b.jobNetwork,
+		Sandbox: decided, Container: b.containers.c.Runtime, Image: b.containers.c.Image, TaskNetwork: b.taskNetwork,
 		OpenShell: b.openShell.cfg.Binary, OpenShellImage: b.openShell.cfg.Image, OpenShellGateway: b.openShell.cfg.Gateway,
 	}
 }
@@ -70,7 +72,7 @@ func (b sandboxSettings) here() bool { return b.sandbox == "here" || b.sandbox =
 // no port.
 func openBackend(cfg serveSettings, signs signing.Identity, shared *apps.Store, proxyPort string) (backend.Backend, error) {
 	boxes, org := cfg.boxes, cfg.core.org
-	agents, open := harness.Names(), boxes.jobNetwork == "open"
+	agents, open := harness.Names(), boxes.taskNetwork == "open"
 	switch boxes.sandbox {
 	case "here", "process":
 		return process.New(process.Config{Agents: agents, Walled: boxes.sandbox == "process", Open: open, Signing: signs}), nil
@@ -90,9 +92,9 @@ func openBackend(cfg serveSettings, signs signing.Identity, shared *apps.Store, 
 // turns runs each task as a turn in the backend's boxes. The checkout happens here, outside any box, so a repository credential
 // never goes in with the agent. A turn learns what the agent calls the conversation, and the next turn is handed it back;
 // without that every turn starts again.
-func turns(b backend.Backend, way *WayOut, instances *instance.Store, index *jobs.Index, rooms *roomRuns) jobs.StoppableWork {
-	return func(ctx context.Context, dir job.Dir) (int, error) {
-		spec, err := job.Read(dir)
+func turns(b backend.Backend, way *WayOut, instances *instance.Store, index *tasks.Index, rooms *roomRuns) tasks.StoppableWork {
+	return func(ctx context.Context, dir task.Dir) (int, error) {
+		spec, err := task.Read(dir)
 		if err != nil {
 			return 0, err
 		}
@@ -113,7 +115,7 @@ func turns(b backend.Backend, way *WayOut, instances *instance.Store, index *job
 // turnOf is what the server knows of a task that its folder does not say: who pays for it, and for a turn in a conversation,
 // the instance's workspace and the agent's memory. A room's turn works on a copy of the room's folder that roomRuns puts in the
 // task's, so it is given no workspace.
-func turnOf(instances *instance.Store, index *jobs.Index, dir job.Dir, spec job.Spec) backend.Turn {
+func turnOf(instances *instance.Store, index *tasks.Index, dir task.Dir, spec task.Spec) backend.Turn {
 	turn := backend.Turn{Dir: dir, Spec: spec, Person: personWhoPays(index, dir)}
 	if spec.Session == "" {
 		return turn

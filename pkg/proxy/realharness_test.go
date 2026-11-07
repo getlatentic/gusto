@@ -110,7 +110,7 @@ func TestRealHarnessesFinishATurnWithATool(t *testing.T) {
 			ledger := spend.NewLedger(spend.Policy{Prices: map[string]spend.Price{"a-model": {InputPerMillion: 1, OutputPerMillion: 1}}})
 			ledger.Begin("a-job", spend.Terms{})
 			proxy := New(tokens, Credentials{"gemma": {Name: "gemma", Address: provider.URL, Key: "the-real-key", Wires: []string{"chat"}}},
-				func(job string) (string, bool) { return filepath.Join(kept, job+".jsonl"), true }, ledger, Allowlist{})
+				func(task string) (string, bool) { return filepath.Join(kept, task+".jsonl"), true }, ledger, Allowlist{})
 			front := httptest.NewServer(proxy.Handler())
 			t.Cleanup(front.Close)
 			token, err := tokens.Mint("a-job", "gemma")

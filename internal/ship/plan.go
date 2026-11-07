@@ -11,7 +11,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Options overrides what the task would otherwise decide. Every field may be
@@ -32,7 +32,7 @@ type Options struct {
 // Plan is everything opening the pull request will do, decided before anything is done. The
 // same task gives the same plan, so a dry run shows exactly what a real run does.
 type Plan struct {
-	Job             string
+	Task            string
 	Remote          string
 	Branch          string
 	Evidence        string
@@ -51,12 +51,12 @@ type Plan struct {
 }
 
 // Prepare refuses a task that must not become a pull request, and plans one that may.
-func Prepare(dir job.Dir, options Options) (Plan, error) {
+func Prepare(dir task.Dir, options Options) (Plan, error) {
 	manifest, err := Shippable(dir)
 	if err != nil {
 		return Plan{}, err
 	}
-	spec, err := job.Read(dir)
+	spec, err := task.Read(dir)
 	if err != nil {
 		return Plan{}, err
 	}
@@ -67,7 +67,7 @@ func Prepare(dir job.Dir, options Options) (Plan, error) {
 	return planned(dir, spec, manifest, digest, options)
 }
 
-func planned(dir job.Dir, spec job.Spec, manifest evidence.Manifest, digest string, options Options) (Plan, error) {
+func planned(dir task.Dir, spec task.Spec, manifest evidence.Manifest, digest string, options Options) (Plan, error) {
 	at, err := ranAgainst(dir)
 	if err != nil {
 		return Plan{}, err
@@ -86,7 +86,7 @@ func planned(dir job.Dir, spec job.Spec, manifest evidence.Manifest, digest stri
 		return Plan{}, err
 	}
 	plan := Plan{
-		Job:             dir.Path(),
+		Task:            dir.Path(),
 		Remote:          remote,
 		Branch:          branchName(dir, digest),
 		Evidence:        EvidenceRef(digest),
@@ -105,7 +105,7 @@ func planned(dir job.Dir, spec job.Spec, manifest evidence.Manifest, digest stri
 
 // described makes the commits to learn their names, then writes what the pull
 // request says, which links the evidence commit by name.
-func described(dir job.Dir, plan Plan, record record) (Plan, error) {
+func described(dir task.Dir, plan Plan, record record) (Plan, error) {
 	plan.Title = record.title()
 	plan.Message = record.message(dir)
 	commits, err := planCommits(context.Background(), dir, plan)
@@ -123,10 +123,10 @@ func (p Plan) Pull() Pull {
 	return Pull{Owner: p.Owner, Name: p.Name, Head: p.Branch, Base: p.Base, Title: p.Title, Body: p.Body}
 }
 
-// branchName is the job's directory name and the start of its manifest's hash.
-// The name tells a person which job it is, and the hash tells two runs of the
+// branchName is the task's directory name and the start of its manifest's hash.
+// The name tells a person which task it is, and the hash tells two runs of the
 // same directory apart, so shipping the same run twice names the same branch.
-func branchName(dir job.Dir, digest string) string {
+func branchName(dir task.Dir, digest string) string {
 	return "gusto/" + slug(filepath.Base(filepath.Clean(dir.Path()))) + "-" + digest[:12]
 }
 

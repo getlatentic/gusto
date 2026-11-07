@@ -9,8 +9,8 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/industry"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/setup"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // templatePage is one template: what it is for, what it brings, and which of
@@ -99,7 +99,7 @@ func (s *Server) startTemplate(w http.ResponseWriter, r *http.Request) {
 		Harness: chosen, Model: first(s.offeredTo(r)), Setup: held.Name,
 		Sensitivity: string(held.Sensitivity), Who: s.keeper.who(r),
 	}
-	started, err := s.instances.Start(jobs.Name(held.Name, time.Now()), wanted)
+	started, err := s.instances.Start(tasks.Name(held.Name, time.Now()), wanted)
 	if err != nil {
 		s.turnAway(w, r, back, err.Error())
 		return

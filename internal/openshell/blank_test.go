@@ -164,7 +164,7 @@ func TestAFirstTaskRunsInTheSpareWithoutMakingASandboxAndAnotherSpareIsMade(t *t
 		time.Sleep(time.Millisecond)
 	}
 
-	dir, _ := aJob(t)
+	dir, _ := aTask(t)
 	withHarness(t, `printf yes > answer.txt; ls -A ../../../.. | tr '\n' ' ' > seen.txt`)
 	if exit, err := runner.Outside(context.Background(), dir, inComputer(t, dir, held.Sandbox, "20260929-1200-first"), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
@@ -216,7 +216,7 @@ func TestASpareThatCannotBeMadeLeavesNothingAndTheFirstTaskMakesItsOwn(t *testin
 		t.Fatalf("%q %v", held.Sandbox, err)
 	}
 	os.Remove(filepath.Join(root, "broken"))
-	dir, _ := aJob(t)
+	dir, _ := aTask(t)
 	withHarness(t, `printf yes > answer.txt`)
 	if exit, err := runner.Outside(context.Background(), dir, inComputer(t, dir, held.Sandbox, "20260929-1200-first"), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)

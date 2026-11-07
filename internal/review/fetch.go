@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // evidenceRef is where gusto pr open leaves the record for a manifest.
@@ -16,7 +16,7 @@ func evidenceRef(digest string) string {
 }
 
 // fetched names the three commits a check reads: the evidence, the pull
-// request's commit under it, and the commit the job ran against under that.
+// request's commit under it, and the commit the task ran against under that.
 type fetched struct {
 	workspace string
 	evidence  string
@@ -24,11 +24,11 @@ type fetched struct {
 	at        string
 }
 
-// fetch makes the job's workspace a repository and fetches the evidence ref
+// fetch makes the task's workspace a repository and fetches the evidence ref
 // into it, three commits deep: that is every commit the check reads, so a
 // large repository's history stays on the remote. The reviewer's own git
 // credentials reach the remote, so the check sees what the reviewer may see.
-func fetch(ctx context.Context, remote, digest string, dir job.Dir) (fetched, error) {
+func fetch(ctx context.Context, remote, digest string, dir task.Dir) (fetched, error) {
 	workspace := dir.Workspace()
 	ref := evidenceRef(digest)
 	if _, err := git(ctx, "init", "--quiet", workspace); err != nil {

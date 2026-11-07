@@ -15,11 +15,11 @@ func TestATaskMintedAgainKeepsItsTokenAndTakesTheNewCredential(t *testing.T) {
 	if again != first {
 		t.Error("a task minted again was given another token")
 	}
-	if ticket, _ := tokens.Job(first); ticket.Credential != "anthropic" {
+	if ticket, _ := tokens.Task(first); ticket.Credential != "anthropic" {
 		t.Errorf("the token is good for %q, not the credential the task was given now", ticket.Credential)
 	}
 	tokens.Drop("a-job")
-	if _, found := tokens.Job(first); found {
+	if _, found := tokens.Task(first); found {
 		t.Error("a dropped task's token still stands for it")
 	}
 }

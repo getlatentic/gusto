@@ -6,14 +6,14 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A replay cut short while its directory is filled is never taken for an original by a sweep.
 func TestAReplayCutShortIsNotTakenForAnOriginal(t *testing.T) {
 	t.Setenv("GUSTO_HARNESSES", t.TempDir())
 	parent := t.TempDir()
-	old := job.Dir(filepath.Join(parent, "fix-it"))
+	old := task.Dir(filepath.Join(parent, "fix-it"))
 	if err := old.Make(); err != nil {
 		t.Fatal(err)
 	}

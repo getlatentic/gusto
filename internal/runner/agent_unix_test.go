@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 func ownerOf(info fs.FileInfo) uint32 { return info.Sys().(*syscall.Stat_t).Uid }
@@ -18,7 +18,7 @@ func TestWhatTheAgentMadeIsTheRunnersAgain(t *testing.T) {
 	if os.Geteuid() != 0 {
 		t.Skip("handing a file to another user takes root")
 	}
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestWhatTheBoxLeftBelongsToWhoeverOwnsTheTaskDirectory(t *testing.T) {
 	if os.Geteuid() != 0 {
 		t.Skip("handing a file to another user takes root")
 	}
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}

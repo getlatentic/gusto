@@ -14,8 +14,7 @@ import (
 
 // These tests read a pull request the way a reviewer does: they take the
 // command out of the body that reached the forge and run it as printed, with
-// the gusto this repository builds, against the remote the job shipped to.
-
+// the gusto this repository builds, against the remote the task shipped to.
 func TestThePrintedCommandVerifiesTheEvidence(t *testing.T) {
 	dir, _ := finished(t, "yes")
 	fake := &forge{}

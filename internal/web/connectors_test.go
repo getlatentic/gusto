@@ -13,10 +13,10 @@ import (
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/connector"
 	"github.com/getlatentic/gusto/internal/connector/connectortest"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/setup"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/gateway"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // connected is a site whose admin may turn on one app, Tasks, which the fake app answers for.
@@ -79,8 +79,8 @@ func TestAPersonConnectsAnAppTheAdminTurnedOnAndTheirTaskReachesIt(t *testing.T)
 		t.Errorf("the page does not show the person signed in:\n%s", page)
 	}
 
-	dir := placed(t, here, "own", jobs.Record{Asked: alice}, "opencode")
-	spec, err := job.Read(dir)
+	dir := placed(t, here, "own", tasks.Record{Asked: alice}, "opencode")
+	spec, err := task.Read(dir)
 	if err != nil || spec.Setup == nil || !slices.Equal(spec.Setup.Connectors, []string{"tasks"}) || !slices.Equal(spec.Setup.Gateway, []string{"tasks"}) {
 		t.Fatalf("the task was not given the app: %+v %v", spec.Setup, err)
 	}
@@ -111,20 +111,20 @@ func TestAnAppIsGivenOnlyToItsOwnersOwnTasksWhileTheyAreSignedIn(t *testing.T) {
 	here.ask(t, "POST", "/admin/connectors/tasks/on", nil)
 	ada := here.as(t, alice)
 	signInAt(t, ada, app)
-	for name, record := range map[string]jobs.Record{
+	for name, record := range map[string]tasks.Record{
 		"room":    {Asked: alice, Agent: "atlas", Instance: "room"},
 		"paid":    {Asked: alice, PaidBy: bob},
 		"someone": {Asked: bob},
 	} {
-		if spec, _ := job.Read(placed(t, here, name, record, "opencode")); spec.Setup != nil {
+		if spec, _ := task.Read(placed(t, here, name, record, "opencode")); spec.Setup != nil {
 			t.Errorf("the %s task was given %+v", name, spec.Setup)
 		}
 	}
-	if spec, _ := job.Read(placed(t, here, "pi", jobs.Record{Asked: alice}, "pi")); spec.Setup != nil {
+	if spec, _ := task.Read(placed(t, here, "pi", tasks.Record{Asked: alice}, "pi")); spec.Setup != nil {
 		t.Errorf("an agent that reads its servers from its own file was given %+v", spec.Setup)
 	}
 	ada.ask(t, "POST", "/connections/tasks/disconnect", nil)
-	if spec, _ := job.Read(placed(t, here, "after", jobs.Record{Asked: alice}, "opencode")); spec.Setup != nil {
+	if spec, _ := task.Read(placed(t, here, "after", tasks.Record{Asked: alice}, "opencode")); spec.Setup != nil {
 		t.Errorf("a task after disconnecting was given %+v", spec.Setup)
 	}
 	here.ask(t, "POST", "/admin/connectors/tasks/off", nil)
@@ -168,11 +168,11 @@ func TestTheClientDocumentIsServedToAnybody(t *testing.T) {
 }
 
 // placed is a task placed as the record says, on the harness named, and where it was put.
-func placed(t *testing.T, here *site, id string, record jobs.Record, harness string) job.Dir {
+func placed(t *testing.T, here *site, id string, record tasks.Record, harness string) task.Dir {
 	t.Helper()
 	record.ID = id
-	if err := here.server.place(job.Spec{Brief: "list my tasks", Repo: "https://github.com/acme/repo", Harness: harness}, record); err != nil {
+	if err := here.server.place(task.Spec{Brief: "list my tasks", Repo: "https://github.com/acme/repo", Harness: harness}, record); err != nil {
 		t.Fatal(err)
 	}
-	return job.Dir(filepath.Join(here.index.Root(), id))
+	return task.Dir(filepath.Join(here.index.Root(), id))
 }

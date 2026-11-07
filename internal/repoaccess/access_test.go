@@ -14,10 +14,10 @@ import (
 
 	"github.com/getlatentic/gusto/internal/repoaccess"
 	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// A token is for one repository and for what the work needs of it, so a job for
+// A token is for one repository and for what the work needs of it, so a task for
 // one repository cannot read another, and a clone cannot push.
 func TestATokenIsForOneRepositoryAndOnlyWhatTheWorkNeeds(t *testing.T) {
 	f := newForge(t)
@@ -138,17 +138,17 @@ func TestAnSSHAddressIsClonedOverHTTPSWithTheToken(t *testing.T) {
 	}
 }
 
-// Somebody starting a job names a repository, and what is left in the job's
+// Somebody starting a task names a repository, and what is left in the task's
 // directory afterwards is what the agent, the record and the transcript can see.
-func TestNothingInAJobsDirectoryHoldsTheToken(t *testing.T) {
+func TestNothingInATasksDirectoryHoldsTheToken(t *testing.T) {
 	f := newForge(t)
 	address := f.private("acme", "private", 7)
 	f.env(t)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: "read it", Repo: address, Ref: "HEAD", Gate: []string{"true"}, Harness: "fixture"}
+	spec := task.Spec{Brief: "read it", Repo: address, Ref: "HEAD", Gate: []string{"true"}, Harness: "fixture"}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -181,17 +181,17 @@ func TestNothingInAJobsDirectoryHoldsTheToken(t *testing.T) {
 	}
 }
 
-// A job for a repository the App does not reach is refused before anything is
+// A task for a repository the App does not reach is refused before anything is
 // cloned, said in the record, and names the repository.
-func TestAJobForARepositoryTheAppDoesNotReachIsRefusedInTheRecord(t *testing.T) {
+func TestATaskForARepositoryTheAppDoesNotReachIsRefusedInTheRecord(t *testing.T) {
 	f := newForge(t)
 	other := f.private("acme", "other", 0)
 	f.env(t)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: "read it", Repo: other, Ref: "HEAD", Gate: []string{"true"}, Harness: "fixture"}
+	spec := task.Spec{Brief: "read it", Repo: other, Ref: "HEAD", Gate: []string{"true"}, Harness: "fixture"}
 
 	err := runner.Fill(spec, dir)
 	var refused repoaccess.NotInstalledError

@@ -153,7 +153,7 @@ func TestSigningUpMakesTheOrganizationSignsThePersonInAndMailsALink(t *testing.T
 			t.Errorf("one verification mail should have been sent: %v", mails)
 		}
 		quota, err := f.store.Quota("acme-com")
-		if err != nil || quota.Jobs != 3 || quota.Concurrent != 1 {
+		if err != nil || quota.Tasks != 3 || quota.Concurrent != 1 {
 			t.Errorf("an organization that is not verified runs a small trial: %+v %v", quota, err)
 		}
 	})

@@ -14,14 +14,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // PolicyFile is where a retention directory keeps its policy.
 const PolicyFile = "policy.json"
 
 // States a task can finish in, and so the states a policy is set for.
-var States = []string{string(jobs.Passed), string(jobs.Failed), string(jobs.Interrupted)}
+var States = []string{string(tasks.Passed), string(tasks.Failed), string(tasks.Interrupted)}
 
 // Policy is how many days after a task ends it loses its workspace and then its
 // record, by the state it ended in. A state with no entry, or zero, is kept.

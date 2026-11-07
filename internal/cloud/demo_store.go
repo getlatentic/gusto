@@ -37,7 +37,7 @@ func slugs(statement, slug string) []any {
 }
 
 // TrashDir is where an organization's directory goes when this process may not remove all of it: files an
-// agent's container left as another user. A job that runs as root empties it.
+// agent's container left as another user. A task that runs as root empties it.
 func (s *Store) TrashDir() string { return filepath.Join(s.root, "trash") }
 
 // removeOrgDir removes an organization's directory. What this process may not remove is moved to the

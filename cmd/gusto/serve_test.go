@@ -4,15 +4,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/pkg/proxy"
 	"github.com/getlatentic/gusto/pkg/spend"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// A job naming a credential this deployment does not hold is refused by name,
+// A task naming a credential this deployment does not hold is refused by name,
 // before any box starts — not as a model call that fails somewhere inside
 // a run somebody then has to go and read.
-func TestAJobNamingACredentialNobodyHoldsIsRefusedBeforeItStarts(t *testing.T) {
+func TestATaskNamingACredentialNobodyHoldsIsRefusedBeforeItStarts(t *testing.T) {
 	way := &WayOut{
 		proxy:  &proxy.Proxy{},
 		tokens: proxy.NewTokens(),
@@ -20,8 +20,8 @@ func TestAJobNamingACredentialNobodyHoldsIsRefusedBeforeItStarts(t *testing.T) {
 	}
 	held := proxy.Credentials{"platform": {Name: "platform", Address: "https://example.invalid"}}
 	way.held.Store(&held)
-	dir := job.Dir(t.TempDir())
-	_, err := way.Token(dir, job.Spec{Model: "nowhere/some-model"})
+	dir := task.Dir(t.TempDir())
+	_, err := way.Token(dir, task.Spec{Model: "nowhere/some-model"})
 	if err == nil {
 		t.Fatal("a credential nobody holds was given a token")
 	}

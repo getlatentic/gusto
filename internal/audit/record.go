@@ -27,7 +27,7 @@ const (
 // Record is audit.json.
 type Record struct {
 	Version    int         `json:"version"`
-	Job        string      `json:"job"`
+	Task       string      `json:"job"`
 	ExportedAt int64       `json:"exportedAt"`
 	Asked      Asked       `json:"asked"`
 	Ran        Ran         `json:"ran"`

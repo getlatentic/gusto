@@ -12,7 +12,7 @@ import (
 // A harness answering to one person's own sign-in has no account on a shared
 // server, so it is withheld rather than offered and then failing. One that
 // takes a key is offered, because the proxy holds the key and the harness is
-// handed a token per job.
+// handed a token per task.
 func TestOnlyAHarnessAnsweringToAPersonIsWithheld(t *testing.T) {
 	// No runtime, so every program reads as present: what is left is the
 	// credential, which is the whole point of the check.

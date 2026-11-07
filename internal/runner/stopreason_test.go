@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // agentThatStops is an ACP agent, as a shell script, that answers its prompt with the stop reason given.
@@ -26,7 +26,7 @@ done`
 
 func TestATurnTheAgentEndedWithoutAnsweringIsNotAnAnswer(t *testing.T) {
 	for reason, want := range map[string]int{"end_turn": 0, "refusal": 1, "cancelled": 1, "max_tokens": 1} {
-		dir := job.Dir(t.TempDir())
+		dir := task.Dir(t.TempDir())
 		if err := dir.Make(); err != nil {
 			t.Fatal(err)
 		}
@@ -38,7 +38,7 @@ func TestATurnTheAgentEndedWithoutAnsweringIsNotAnAnswer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		exit, err := converse(context.Background(), agentThatStops(reason), t.TempDir(), job.Spec{Brief: "go"}, nil, "", record)
+		exit, err := converse(context.Background(), agentThatStops(reason), t.TempDir(), task.Spec{Brief: "go"}, nil, "", record)
 		record.Close()
 		if err != nil || exit != want {
 			t.Errorf("a turn the agent ended with %s exited %d (%v), want %d", reason, exit, err, want)

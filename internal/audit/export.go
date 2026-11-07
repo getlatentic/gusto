@@ -10,7 +10,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Options is what shapes one export besides the task itself.
@@ -32,7 +32,7 @@ type Options struct {
 // A task whose record does not verify is refused, naming what is wrong: an
 // export vouches for what it carries, and it cannot vouch for a run whose own
 // record already disagrees with its files.
-func Export(from job.Dir, to string, options Options) (Record, error) {
+func Export(from task.Dir, to string, options Options) (Record, error) {
 	if err := options.Policy.check(); err != nil {
 		return Record{}, err
 	}
@@ -43,7 +43,7 @@ func Export(from job.Dir, to string, options Options) (Record, error) {
 	if err := fresh(to); err != nil {
 		return Record{}, err
 	}
-	record, err := write(from, job.Dir(to), manifest, options)
+	record, err := write(from, task.Dir(to), manifest, options)
 	if err != nil {
 		// Half an export would pass for a whole one with files missing, and
 		// would stand in the way of the next attempt.
@@ -52,7 +52,7 @@ func Export(from job.Dir, to string, options Options) (Record, error) {
 	return record, err
 }
 
-func write(from, to job.Dir, manifest evidence.Manifest, options Options) (Record, error) {
+func write(from, to task.Dir, manifest evidence.Manifest, options Options) (Record, error) {
 	id := filepath.Base(filepath.Clean(from.Path()))
 	redactions, err := carryAll(from, to, id, manifest, options)
 	if err != nil {
@@ -66,7 +66,7 @@ func write(from, to job.Dir, manifest evidence.Manifest, options Options) (Recor
 	return record, writeSummary(to.Path(), record)
 }
 
-func verified(from job.Dir) (evidence.Manifest, error) {
+func verified(from task.Dir) (evidence.Manifest, error) {
 	wrong, err := evidence.Check(from)
 	if err != nil {
 		return evidence.Manifest{}, fmt.Errorf("%s has no record to export: %w", from.Path(), err)
@@ -88,7 +88,7 @@ func fresh(to string) error {
 
 // carryAll copies the task's files through the policy, then the request lines
 // that name the task, and returns what the policy changed.
-func carryAll(from, to job.Dir, id string, manifest evidence.Manifest, options Options) ([]Redaction, error) {
+func carryAll(from, to task.Dir, id string, manifest evidence.Manifest, options Options) ([]Redaction, error) {
 	names, err := sourceFiles(from)
 	if err != nil {
 		return nil, err
@@ -116,7 +116,7 @@ func carryAll(from, to job.Dir, id string, manifest evidence.Manifest, options O
 // sourceFiles are the files of a task an export carries: job.json, the
 // server's state.json when there is one, and everything in out/. The
 // workspace stays behind: what changed in it is out/diff.patch.
-func sourceFiles(from job.Dir) ([]string, error) {
+func sourceFiles(from task.Dir) ([]string, error) {
 	names, err := filesIn(from)
 	if err != nil {
 		return nil, err
@@ -132,7 +132,7 @@ func sourceFiles(from job.Dir) ([]string, error) {
 
 // carrier writes files into the export, applying the policy on the way.
 type carrier struct {
-	to         job.Dir
+	to         task.Dir
 	policy     Policy
 	scrub      *scrubber
 	manifest   evidence.Manifest

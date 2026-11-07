@@ -42,7 +42,7 @@ type Engine struct {
 
 // Said is what the server answers a send: the task that is the turn, and whether it was one made already by the same key.
 type Said struct {
-	Job     string `json:"job"`
+	Task    string `json:"job"`
 	State   string `json:"state"`
 	Already bool   `json:"already"`
 }
@@ -55,7 +55,7 @@ type Step struct {
 
 // Ended is a turn at its end: how it stood, what the agent said, and why it stopped when it did not finish.
 type Ended struct {
-	Job struct {
+	Task struct {
 		ID        string `json:"id"`
 		State     string `json:"state"`
 		StoppedBy string `json:"stoppedBy,omitempty"`
@@ -156,8 +156,8 @@ func (c Client) Say(ctx context.Context, instance, thread, said, key string) (Sa
 }
 
 // Stop stops a turn. A turn that is already over is not an error: it is as stopped as it will get.
-func (c Client) StopJob(ctx context.Context, job string) error {
-	err := c.send(ctx, http.MethodPost, "/api/jobs/"+url.PathEscape(job)+"/stop", nil, nil, nil)
+func (c Client) StopTask(ctx context.Context, task string) error {
+	err := c.send(ctx, http.MethodPost, "/api/jobs/"+url.PathEscape(task)+"/stop", nil, nil, nil)
 	var refused *Refused
 	if asRefused(err, &refused) && refused.Status == http.StatusConflict {
 		return nil
@@ -181,10 +181,10 @@ type Follower struct {
 	Reply func(text string)
 }
 
-// FollowJob follows one turn until it is over, and gives it. A connection that drops before the end is an error, and following
+// FollowTask follows one turn until it is over, and gives it. A connection that drops before the end is an error, and following
 // again from the start is safe: steps are told by their place, which the caller keeps.
-func (c Client) FollowJob(ctx context.Context, job string, told Follower) (Ended, error) {
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(c.Server, "/")+"/api/jobs/"+url.PathEscape(job)+"/follow", nil)
+func (c Client) FollowTask(ctx context.Context, task string, told Follower) (Ended, error) {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(c.Server, "/")+"/api/jobs/"+url.PathEscape(task)+"/follow", nil)
 	if err != nil {
 		return Ended{}, err
 	}

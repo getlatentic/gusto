@@ -11,7 +11,7 @@ import (
 	"github.com/getlatentic/gusto/internal/matrix"
 	"github.com/getlatentic/gusto/internal/replay"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Harnesses that are programs, so no model is asked anything. "says" writes the
@@ -66,20 +66,20 @@ func advance(t *testing.T, bare string) {
 	git(t, work, "push", "--quiet", "origin", "main")
 }
 
-// submitted is a job as `gusto new` leaves it, named name, under at.
+// submitted is a task as `gusto new` leaves it, named name, under at.
 func submitted(t *testing.T, at, name, bare string) string {
 	t.Helper()
-	dir := job.Dir(filepath.Join(at, name))
+	dir := task.Dir(filepath.Join(at, name))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    bare,
 		Ref:     "main",
 		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: "says",
-		Budget:  job.Budget{Seconds: 60},
+		Budget:  task.Budget{Seconds: 60},
 	}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
@@ -87,14 +87,14 @@ func submitted(t *testing.T, at, name, bare string) string {
 	return dir.Path()
 }
 
-// planned writes a plan beside two jobs, the first the simplest, and returns
+// planned writes a plan beside two tasks, the first the simplest, and returns
 // its path.
 func planned(t *testing.T, bare string, pairs ...matrix.Pair) string {
 	t.Helper()
 	at := t.TempDir()
 	submitted(t, at, "one-line-fix", bare)
 	submitted(t, at, "two-line-fix", bare)
-	plan := matrix.Plan{Environment: "a test", Jobs: []string{"one-line-fix", "two-line-fix"}, Pairs: pairs}
+	plan := matrix.Plan{Environment: "a test", Tasks: []string{"one-line-fix", "two-line-fix"}, Pairs: pairs}
 	text, err := json.Marshal(plan)
 	if err != nil {
 		t.Fatal(err)
@@ -109,7 +109,7 @@ func counting(ran *int) matrix.Way {
 	return matrix.Way{
 		Where: "here, in this process",
 		Open: func(string) (replay.Run, func(), error) {
-			return func(dir job.Dir) error { *ran++; return replay.Here(signing.Identity{})(dir) }, func() {}, nil
+			return func(dir task.Dir) error { *ran++; return replay.Here(signing.Identity{})(dir) }, func() {}, nil
 		},
 	}
 }
@@ -131,14 +131,14 @@ func measure(t *testing.T, path, again string, way matrix.Way) (string, matrix.T
 	return where, table
 }
 
-func rowFor(t *testing.T, table matrix.Table, job string, pair matrix.Pair) matrix.Row {
+func rowFor(t *testing.T, table matrix.Table, task string, pair matrix.Pair) matrix.Row {
 	t.Helper()
 	for _, row := range table.Rows {
-		if row.Job == job && row.Harness == pair.Harness && row.Model == pair.Model {
+		if row.Task == task && row.Harness == pair.Harness && row.Model == pair.Model {
 			return row
 		}
 	}
-	t.Fatalf("no row for %s on %s in %+v", job, pair.Name(), table.Rows)
+	t.Fatalf("no row for %s on %s in %+v", task, pair.Name(), table.Rows)
 	return matrix.Row{}
 }
 

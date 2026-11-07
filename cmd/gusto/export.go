@@ -7,7 +7,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/audit"
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 type exportFlags struct {
@@ -47,7 +47,7 @@ func exportTask(args []string) int {
 		return fail(err)
 	}
 	if f.verify {
-		report, err := audit.Verify(job.Dir(where), keyring)
+		report, err := audit.Verify(task.Dir(where), keyring)
 		if err != nil {
 			return fail(err)
 		}
@@ -70,7 +70,7 @@ func exportTask(args []string) int {
 	if f.to == "" {
 		f.to = filepath.Clean(where) + ".audit"
 	}
-	record, err := audit.Export(job.Dir(where), f.to, audit.Options{Policy: policy, RequestLog: f.requests, Now: evidence.Now, Keyring: keyring})
+	record, err := audit.Export(task.Dir(where), f.to, audit.Options{Policy: policy, RequestLog: f.requests, Now: evidence.Now, Keyring: keyring})
 	if err != nil {
 		return fail(err)
 	}

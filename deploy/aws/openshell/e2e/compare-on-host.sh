@@ -23,8 +23,8 @@ mkdir -p "$E/keys" && "$E/gusto" keygen e2e -dir "$E/keys" >/dev/null 2>&1
 cd "$E"
 GUSTO_PASSWORD=e2e GUSTO_ADDR=127.0.0.1:8040 GUSTO_SANDBOX=openshell GUSTO_OPENSHELL_IMAGE="$E/node-rootfs.tar.gz" GUSTO_OPENSHELL_GATEWAY=spike \
   GUSTO_MODEL_UPSTREAM=http://127.0.0.1:9000 GUSTO_MODEL_KEY=not-a-real-key GUSTO_MODEL_NAME=platform GUSTO_MODELS=platform/fake \
-  GUSTO_HARNESSES="$E/charnesses" GUSTO_JOB_CONCURRENCY=2 GUSTO_SIGNING_KEY="$E/keys/e2e.key" GUSTO_KEYRING="$E/keys" GUSTO_SIGNER=e2e \
-  GUSTO_JOBS="$E/cdata/jobs" GUSTO_SESSIONS="$E/cdata/sessions" GUSTO_SETUPS="$E/cdata/setups" GUSTO_COMPARISONS="$E/cdata/comparisons" GUSTO_CHANGES="$E/cdata/changes/changes.jsonl" \
+  GUSTO_HARNESSES="$E/charnesses" GUSTO_TASK_CONCURRENCY=2 GUSTO_SIGNING_KEY="$E/keys/e2e.key" GUSTO_KEYRING="$E/keys" GUSTO_SIGNER=e2e \
+  GUSTO_TASKS="$E/cdata/jobs" GUSTO_SESSIONS="$E/cdata/sessions" GUSTO_SETUPS="$E/cdata/setups" GUSTO_COMPARISONS="$E/cdata/comparisons" GUSTO_CHANGES="$E/cdata/changes/changes.jsonl" \
   setsid nohup "$E/gusto" serve > "$E/cserve.log" 2>&1 </dev/null &
 for _ in $(seq 1 90); do curl -fsS http://127.0.0.1:8040/healthz >/dev/null 2>&1 && break; sleep 1; done
 echo "== engines the sandbox image offers"; grep -E "fixer|idler" "$E/cserve.log" | head -4

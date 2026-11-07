@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/cloud"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // cloudFrom is gusto cloud's settings as values sets them, on a root of the test's own and with no organization servers,
@@ -33,7 +33,7 @@ func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
 	t.Parallel()
 	cfg := cloudFrom(t, map[string]string{
 		"GUSTO_CLOUD_URL": "https://cloud.example.com", "GUSTO_CLOUD_DOMAIN": "example.com",
-		"GUSTO_CLOUD_FREE_MAIL": "allow", "GUSTO_CLOUD_TRIAL_JOBS": "7",
+		"GUSTO_CLOUD_FREE_MAIL": "allow", "GUSTO_CLOUD_TRIAL_TASKS": "7",
 	})
 	front, _, err := openCloud(t.Context(), cfg)
 	if err != nil {
@@ -97,9 +97,9 @@ func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The organization's server, as it would be started: a jobs directory of its
+	// The organization's server, as it would be started: a tasks directory of its
 	// own under the organization's data directory, and the quota the front door wrote.
-	index, err := jobs.Open(filepath.Join(front.Store.DataDir(org.Slug), "jobs"))
+	index, err := tasks.Open(filepath.Join(front.Store.DataDir(org.Slug), "jobs"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		record := jobs.Record{ID: id, State: jobs.Queued, Brief: brief, Harness: "fixture", Asked: "ada@acme.com", Queued: jobs.Now()}
+		record := tasks.Record{ID: id, State: tasks.Queued, Brief: brief, Harness: "fixture", Asked: "ada@acme.com", Queued: tasks.Now()}
 		if err := os.MkdirAll(record.Dir(index.Root()).Path(), 0o755); err != nil {
 			return err
 		}

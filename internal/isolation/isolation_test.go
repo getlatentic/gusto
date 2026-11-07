@@ -12,7 +12,7 @@ func computer(goos string, env map[string]string, has []string, answers map[stri
 	return Host{
 		GOOS: goos,
 		Settings: Settings{
-			Sandbox: env["GUSTO_SANDBOX"], Container: env["GUSTO_CONTAINER"], Image: env["GUSTO_IMAGE"], JobNetwork: env["GUSTO_JOB_NETWORK"],
+			Sandbox: env["GUSTO_SANDBOX"], Container: env["GUSTO_CONTAINER"], Image: env["GUSTO_IMAGE"], TaskNetwork: env["GUSTO_TASK_NETWORK"],
 			OpenShell: env["GUSTO_OPENSHELL"], OpenShellImage: env["GUSTO_OPENSHELL_IMAGE"], OpenShellGateway: env["GUSTO_OPENSHELL_GATEWAY"],
 		},
 		Exists: func(path string) bool { return slices.Contains(has, path) },
@@ -60,7 +60,7 @@ func TestTheStrongestWallTheComputerCanMakeIsChosen(t *testing.T) {
 		"a Mac whose sandbox does not run":                     {computer("darwin", nil, nil, nil), Nothing},
 		"Linux whose kernel holds a job to a port":             {withSelf(computer("linux", nil, nil, map[string]string{"/h/gusto sandbox-run --check --network": "7"})), Process},
 		"Linux whose kernel cannot limit the network":          {withSelf(computer("linux", nil, nil, map[string]string{"/h/gusto sandbox-run --check": "1"})), Nothing},
-		"Linux with the network left open and an old Landlock": {withSelf(computer("linux", map[string]string{"GUSTO_JOB_NETWORK": "open"}, nil, map[string]string{"/h/gusto sandbox-run --check": "1"})), Process},
+		"Linux with the network left open and an old Landlock": {withSelf(computer("linux", map[string]string{"GUSTO_TASK_NETWORK": "open"}, nil, map[string]string{"/h/gusto sandbox-run --check": "1"})), Process},
 		"Linux with no Landlock":                               {withSelf(computer("linux", nil, nil, nil)), Nothing},
 		"Windows with Docker and the image": {computer("windows", nil, []string{"docker"},
 			map[string]string{"docker info": "x", "docker image inspect gusto:dev": "sha256:1"}), Nothing},
@@ -72,7 +72,7 @@ func TestTheStrongestWallTheComputerCanMakeIsChosen(t *testing.T) {
 	}
 }
 
-// Docker in a virtual machine, as on a Mac, answers and has the image and still cannot be given the socket a job reaches the proxy
+// Docker in a virtual machine, as on a Mac, answers and has the image and still cannot be given the socket a task reaches the proxy
 // through, so it is not a wall gusto can use, and the person is told why.
 func TestADockerThatCannotMountASocketIsNotAWall(t *testing.T) {
 	host := computer("darwin", nil, []string{"docker"}, map[string]string{"docker info": "x", "docker image inspect gusto:dev": "sha256:1"})

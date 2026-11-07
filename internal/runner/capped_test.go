@@ -7,12 +7,12 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 	"github.com/getlatentic/gusto/schema"
 )
 
 // cappedAdapter stands in for a harness whose model calls a cap refused. The
-// proxy runs outside the box and writes into the job directory the box is
+// proxy runs outside the box and writes into the task directory the box is
 // given, so the harness appending the proxy's refusal to out/proxy.jsonl is the
 // same file arriving by the same route.
 const cappedAdapter = `{
@@ -23,17 +23,17 @@ const cappedAdapter = `{
   "stream": "plain"
 }`
 
-func cappedRun(t *testing.T, earlier string) job.Dir {
+func cappedRun(t *testing.T, earlier string) task.Dir {
 	t.Helper()
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "capped.json"), cappedAdapter)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
 	write(t, dir.OutFile("proxy.jsonl"), earlier)
-	spec := job.Spec{Brief: "b", Repo: repo(t), Gate: []string{"true"}, Harness: "capped", Team: "platform"}
+	spec := task.Spec{Brief: "b", Repo: repo(t), Gate: []string{"true"}, Harness: "capped", Team: "platform"}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}

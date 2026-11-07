@@ -193,7 +193,7 @@ The container never holds a model credential. It gets `GUSTO_MODEL_URL=http://12
 GUSTO_ALLOWED_HOSTS=registry.npmjs.org,proxy.golang.org,*.githubusercontent.com
 ```
 
-Not yet measured: that `--network=none` with a mounted socket holds on podman (rootless or not) and on Docker, and whether Docker Desktop on a Mac hands a container a host socket. `GUSTO_JOB_NETWORK=open` keeps the runtime's network and reaches the proxy on `GUSTO_PROXY_ADDR`. That route is not sealed. The allowlist covers only traffic through the proxy.
+Not yet measured: that `--network=none` with a mounted socket holds on podman (rootless or not) and on Docker, and whether Docker Desktop on a Mac hands a container a host socket. `GUSTO_TASK_NETWORK=open` keeps the runtime's network and reaches the proxy on `GUSTO_PROXY_ADDR`. That route is not sealed. The allowlist covers only traffic through the proxy.
 
 ## Spend caps and report
 
@@ -217,7 +217,7 @@ A field this build does not know stops the server, because a misspelt cap would 
 - A restarted server rebuilds each team's month from the tasks' `out/proxy.jsonl`.
 
 ```bash
-gusto spend                   # this month, from GUSTO_JOBS
+gusto spend                   # this month, from GUSTO_TASKS
 gusto spend -month 2026-08    # another month
 gusto spend -json             # for a script
 ```
@@ -231,7 +231,7 @@ docker build -t gusto:dev .
 GUSTO_MODEL_URL=http://localhost:11434/v1 gusto run /tmp/fix
 ```
 
-`run` mounts the task directory, allows 512 processes and the limits in `GUSTO_JOB_CPUS` and `GUSTO_JOB_MEMORY`, and destroys the container afterwards. On a shared machine, set the limits. `GUSTO_IMAGE` names another image.
+`run` mounts the task directory, allows 512 processes and the limits in `GUSTO_TASK_CPUS` and `GUSTO_TASK_MEMORY`, and destroys the container afterwards. On a shared machine, set the limits. `GUSTO_IMAGE` names another image.
 
 `HARNESSES` lists the agents an image carries as `name=package` pairs (adapter name, npm package). The default is `opencode=opencode-ai`. The version of each package is pinned in `pkg/harness/pins.json` with the registry's sha512, and the build refuses a tarball that differs; the image records what it installed in `/etc/gusto/harnesses`, which the record names as the agent's build (`harnessVersion`). `gusto serve` reads the image label `com.getlatentic.gusto.harnesses`, checks the image's PATH for each program, and offers only those it finds. A task that names a missing agent fails before it starts.
 
@@ -244,7 +244,7 @@ docker build -t gusto:dev \
 - A bind mount of a path the runtime does not share gives an empty directory. `run` refuses by name. Docker on a Mac shares `/Users`, not `/private/tmp`.
 - A model on the host must listen on more than loopback. For Ollama, set `OLLAMA_HOST=0.0.0.0` and restart.
 
-`gusto doctor` checks the machine before a task. It prints one line per check, gives the fix under a failure, and exits 1 when any fails. It checks the container command, the image, the task's `--memory` and `--cpus`, the tasks directory mount, rootless podman's runtime directory, `git`, `GUSTO_JOBS`, `GUSTO_MODEL_URL`, `GUSTO_HARNESSES` and the index of model calls (it opens, and at what schema version). It reports whether `GUSTO_PASSWORD` is set, never its value.
+`gusto doctor` checks the machine before a task. It prints one line per check, gives the fix under a failure, and exits 1 when any fails. It checks the container command, the image, the task's `--memory` and `--cpus`, the tasks directory mount, rootless podman's runtime directory, `git`, `GUSTO_TASKS`, `GUSTO_MODEL_URL`, `GUSTO_HARNESSES` and the index of model calls (it opens, and at what schema version). It reports whether `GUSTO_PASSWORD` is set, never its value.
 
 ## Environment
 
@@ -256,8 +256,8 @@ docker build -t gusto:dev \
 | `GUSTO_MODEL_URL` | where a local model answers |
 | `GUSTO_IMAGE` | the runner image `gusto run` starts |
 | `GUSTO_CONTAINER` | the container command: `docker` by default, `podman` for no daemon |
-| `GUSTO_JOB_MEMORY`, `GUSTO_JOB_CPUS` | memory and CPU for one task, `3g` and `1` by default |
-| `GUSTO_JOB_CONCURRENCY` | how many tasks run at once. A room's agents run at the same time only when this is more than 1 |
+| `GUSTO_TASK_MEMORY`, `GUSTO_TASK_CPUS` | memory and CPU for one task, `3g` and `1` by default |
+| `GUSTO_TASK_CONCURRENCY` | how many tasks run at once. A room's agents run at the same time only when this is more than 1 |
 | `GUSTO_LIVE_CONNECTIONS` | the most WebSockets open at once, 10000 by default. A room's page keeps one open at `/live` to be told what others say and what agents do, and asks every few seconds instead when it has none. A proxy in front must pass the upgrade and not buffer or cut off a quiet connection: the server pings every 30 seconds |
 | `GUSTO_ROOM_COPY_MB`, `GUSTO_ROOM_COPY_FILES` | the most a room's folder may hold for a turn to work on a copy of it, `4096` MB and `200000` files by default. [ROOM-WORK.md](ROOM-WORK.md) |
 | `GUSTO_LIMIT_PERSON`, `GUSTO_LIMIT_TEAM` | the most one person or team runs at once. A task over its limit waits. 0 or unset is no limit. [LIMITS.md](LIMITS.md) |
@@ -269,10 +269,10 @@ docker build -t gusto:dev \
 | `GUSTO_MODEL_KEY` | the credential the proxy adds. It never reaches a container |
 | `GUSTO_MODEL_NAME` | what the record calls that credential |
 | `GUSTO_CREDENTIALS` | a directory with one `<name>.json` per credential: address, key, presentation and the API shapes it answers. [GATEWAY.md](GATEWAY.md) |
-| `GUSTO_PROXY_SOCKET` | the socket a sealed container reaches the proxy through, `.proxy.sock` in `GUSTO_JOBS` by default |
+| `GUSTO_PROXY_SOCKET` | the socket a sealed container reaches the proxy through, `.proxy.sock` in `GUSTO_TASKS` by default |
 | `GUSTO_ALLOWED_HOSTS` | hosts besides the model a task may reach, comma separated |
-| `GUSTO_JOB_NETWORK` | `open` gives containers the runtime's network and the proxy on `GUSTO_PROXY_ADDR` |
-| `GUSTO_PROXY_ADDR` | where the proxy listens when `GUSTO_JOB_NETWORK=open`, `0.0.0.0:8041` by default |
+| `GUSTO_TASK_NETWORK` | `open` gives containers the runtime's network and the proxy on `GUSTO_PROXY_ADDR` |
+| `GUSTO_PROXY_ADDR` | where the proxy listens when `GUSTO_TASK_NETWORK=open`, `0.0.0.0:8041` by default |
 | `GUSTO_SPEND_POLICY` | a file of model prices and team caps. Without it every model is unpriced and no team is capped |
 | `GUSTO_IMAGE_SOURCE` | where the runner image can be fetched when this machine lacks it: an `s3://` address read with the AWS command line, or an `http(s)://` one. The first container start fetches it, loads it, and names it `GUSTO_IMAGE`. A cell kept running across releases gets each new image this way. The servers of one machine fetch it one at a time, and an image loaded but not named is named on the next start, not fetched again. A server whose start found no image tries again until the image is here, and then offers its agents. Unset, a missing image fails the start |
 | `GUSTO_PROXY_MAX_OUTPUT_TOKENS` | the most output tokens one model call may ask for. A call that asks for more, or names no limit, is sent with this one. Unset is no cap |
@@ -291,8 +291,8 @@ docker build -t gusto:dev \
 | `GUSTO_GITHUB_APP_ID`, `GUSTO_GITHUB_APP_KEY` | a GitHub App that reaches the repositories tasks name. Each task gets a token for one repository, revoked when the work is done. Set both or neither. [REPOS.md](REPOS.md) |
 | `GUSTO_GITHUB_URL` | a GitHub Enterprise Server's address, with `GUSTO_GITHUB_API`. github.com when unset |
 | `GUSTO_ADDR` | where `gusto serve` listens, `127.0.0.1:8040` by default |
-| `GUSTO_JOBS` | the directory `gusto serve` keeps tasks in |
-| `GUSTO_DATABASE_URL` | where the indexes are kept: the index of model calls and the index of tasks. Unset, they are `usage.db` and `tasks.db` in the directory that holds `GUSTO_JOBS`. A `postgres://` address keeps both in Postgres, and its `search_path` parameter names the schema, which is how organizations that share a database stay apart. The tasks' `out/proxy.jsonl` and `state.json` stay the record: the indexes are built from them, and `gusto usage reindex` and `gusto tasks reindex` rebuild them. Retention leaves the model calls' rows, which hold no content, and removes a removed task's row. [USAGE.md](USAGE.md), [TASKS.md](TASKS.md) |
+| `GUSTO_TASKS` | the directory `gusto serve` keeps tasks in |
+| `GUSTO_DATABASE_URL` | where the indexes are kept: the index of model calls and the index of tasks. Unset, they are `usage.db` and `tasks.db` in the directory that holds `GUSTO_TASKS`. A `postgres://` address keeps both in Postgres, and its `search_path` parameter names the schema, which is how organizations that share a database stay apart. The tasks' `out/proxy.jsonl` and `state.json` stay the record: the indexes are built from them, and `gusto usage reindex` and `gusto tasks reindex` rebuild them. Retention leaves the model calls' rows, which hold no content, and removes a removed task's row. [USAGE.md](USAGE.md), [TASKS.md](TASKS.md) |
 | `GUSTO_PASSWORD` | the shared sign-in. `gusto serve` refuses to start without it |
 | `GUSTO_OIDC_ISSUER`, `GUSTO_OIDC_CLIENT_ID`, `GUSTO_OIDC_CLIENT_SECRET`, `GUSTO_OIDC_REDIRECT` | sign in with the company's identity provider. Naming an issuer turns it on. It needs the other three, and `GUSTO_RUNNER_GROUPS`, `GUSTO_ADMIN_GROUPS` or `GUSTO_ALLOWED`, or the server refuses to start. [SSO.md](SSO.md) |
 | `GUSTO_OIDC_SCOPES`, `GUSTO_OIDC_GROUPS_CLAIM` | scopes to ask for besides `openid` and `email`, and the claim the groups arrive in (`groups` by default) |

@@ -45,7 +45,7 @@ func fakeOrgServer() {
 		if os.Getenv("FAKE_IGNORE_TERM") != "" {
 			select {}
 		}
-		os.WriteFile(filepath.Join(os.Getenv("GUSTO_JOBS"), "..", "stopped"), []byte("asked\n"), 0o600)
+		os.WriteFile(filepath.Join(os.Getenv("GUSTO_TASKS"), "..", "stopped"), []byte("asked\n"), 0o600)
 		os.Exit(0)
 	}()
 	mux := http.NewServeMux()
@@ -54,9 +54,9 @@ func fakeOrgServer() {
 		json.NewEncoder(w).Encode(map[string]any{
 			"org": org, "pid": os.Getpid(), "addr": addr, "host": r.Host, "xff": r.Header.Get("X-Forwarded-For"),
 			"proto": r.Header.Get("X-Forwarded-Proto"), "cookie": r.Header.Get("Cookie"), "app": r.Header.Get("X-Gusto-App"),
-			"jobs": os.Getenv("GUSTO_JOBS"), "quota": os.Getenv("GUSTO_QUOTA"), "members": os.Getenv("GUSTO_MEMBERS"), "inbox": os.Getenv("GUSTO_INBOX"), "orgSettings": os.Getenv("GUSTO_ORG_SETTINGS"), "home": os.Getenv("HOME"),
+			"jobs": os.Getenv("GUSTO_TASKS"), "quota": os.Getenv("GUSTO_QUOTA"), "members": os.Getenv("GUSTO_MEMBERS"), "inbox": os.Getenv("GUSTO_INBOX"), "orgSettings": os.Getenv("GUSTO_ORG_SETTINGS"), "home": os.Getenv("HOME"),
 			"entryKey": os.Getenv("GUSTO_ENTRY_KEY"), "signingKey": os.Getenv("GUSTO_SIGNING_KEY"),
-			"proxyAddr": os.Getenv("GUSTO_PROXY_ADDR"), "front": os.Getenv("GUSTO_FRONT_DOOR"), "orgName": os.Getenv("GUSTO_ORG_NAME"), "concurrency": os.Getenv("GUSTO_JOB_CONCURRENCY"),
+			"proxyAddr": os.Getenv("GUSTO_PROXY_ADDR"), "front": os.Getenv("GUSTO_FRONT_DOOR"), "orgName": os.Getenv("GUSTO_ORG_NAME"), "concurrency": os.Getenv("GUSTO_TASK_CONCURRENCY"),
 			"mailVisible": os.Getenv("GUSTO_CLOUD_MAIL") != "", "operatorSetting": os.Getenv("OPERATOR_SETTING"),
 		})
 	})

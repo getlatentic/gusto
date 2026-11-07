@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A room's turn is decided after its record was signed: the decision goes under the signature, which still holds.
@@ -22,7 +22,7 @@ func TestADecisionAddedAfterARunIsHashedAndSignedWithTheRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Job: spec, Files: files}); err != nil {
+	if err := evidence.Write(dir, evidence.Manifest{Task: spec, Files: files}); err != nil {
 		t.Fatal(err)
 	}
 	if err := evidence.SealIfKeyed(dir, key); err != nil {
@@ -52,9 +52,9 @@ func TestADecisionAddedAfterARunIsHashedAndSignedWithTheRun(t *testing.T) {
 	}
 }
 
-func aRoomTurn(t *testing.T) job.Dir {
+func aRoomTurn(t *testing.T) task.Dir {
 	t.Helper()
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}

@@ -63,7 +63,7 @@ func TestAMissingPasswordIsNamedForServe(t *testing.T) {
 	failed(t, printed, "sign-in", "set GUSTO_PASSWORD")
 }
 
-func TestJobsRunInProcessNeedNoContainer(t *testing.T) {
+func TestTasksRunInProcessNeedNoContainer(t *testing.T) {
 	t.Parallel()
 	s := healthy(t)
 	s.Sandbox.Sandbox = "here"

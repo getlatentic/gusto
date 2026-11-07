@@ -36,7 +36,7 @@ func (f fakeRuntime) commands(program string, args ...string) Outcome {
 }
 
 // refusingTinyMemory is docker's own answer to a cap under its floor, measured
-// at GUSTO_JOB_MEMORY=4m.
+// at GUSTO_TASK_MEMORY=4m.
 func refusingTinyMemory(program string, args ...string) Outcome {
 	if slices.Contains(args, "--memory=4m") {
 		return Outcome{Started: true, Code: 125,
@@ -59,7 +59,7 @@ func healthy(t *testing.T) Settings {
 	t.Helper()
 	return Settings{
 		Containers: sandbox.Containers{Runtime: "docker", Image: "gusto:dev", CPUs: "1", Memory: "3g"},
-		Jobs:       t.TempDir(),
+		Tasks:      t.TempDir(),
 		Password:   true,
 	}
 }

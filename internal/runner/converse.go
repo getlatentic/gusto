@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/acp"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // hangUp is how long a harness is given to exit once the turn is over and its
@@ -23,7 +23,7 @@ const hangUp = 10 * time.Second
 // a turn the harness failed, never answered, or ended for another reason than
 // being done is 1, with its reason in stderr.
 // cwd is the directory the conversation works in, by the path the harness sees.
-func converse(ctx context.Context, command *exec.Cmd, cwd string, spec job.Spec, servers []job.Server, auth string, record *Record) (int, error) {
+func converse(ctx context.Context, command *exec.Cmd, cwd string, spec task.Spec, servers []task.Server, auth string, record *Record) (int, error) {
 	in, err := command.StdinPipe()
 	if err != nil {
 		return 0, err

@@ -6,14 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// jobWithSetup is a job carrying the configured fixture and a setup: a skill
+// taskWithSetup is a task carrying the configured fixture and a setup: a skill
 // and a server definition, where the setup store puts them.
-func jobWithSetup(t *testing.T, skill string) job.Dir {
+func taskWithSetup(t *testing.T, skill string) task.Dir {
 	t.Helper()
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	configuredFixture(t, Carried(dir))
 	put(t, dir.SetupDir(), "skills/review/SKILL.md", skill, 0o644)
 	put(t, dir.SetupDir(), "servers.json", `[{"name":"memory","command":"mcp-memory"}]`, 0o600)
@@ -21,16 +21,16 @@ func jobWithSetup(t *testing.T, skill string) job.Dir {
 }
 
 // The same adapter given two setups is two configured harnesses.
-func TestTheSetupAJobCarriesIsPartOfItsDigest(t *testing.T) {
-	bare, err := Open(job.Dir(""), "opencode")
+func TestTheSetupATaskCarriesIsPartOfItsDigest(t *testing.T) {
+	bare, err := Open(task.Dir(""), "opencode")
 	if err != nil {
 		t.Fatal(err)
 	}
-	first, err := Open(jobWithSetup(t, "Review for bugs.\n"), "fixture")
+	first, err := Open(taskWithSetup(t, "Review for bugs.\n"), "fixture")
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := Open(jobWithSetup(t, "Review for style.\n"), "fixture")
+	second, err := Open(taskWithSetup(t, "Review for style.\n"), "fixture")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestTheSetupAJobCarriesIsPartOfItsDigest(t *testing.T) {
 // The digest of a harness with a setup is the digest of one directory holding
 // both, the setup under setup/, so the steps in docs/FORMATS.md still hold.
 func TestAHarnessAndItsSetupDigestAsOneDirectory(t *testing.T) {
-	configured, err := Open(jobWithSetup(t, "Review for bugs.\n"), "fixture")
+	configured, err := Open(taskWithSetup(t, "Review for bugs.\n"), "fixture")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,13 +69,13 @@ func TestAHarnessDirectoryMayNotHoldASetupOfItsOwn(t *testing.T) {
 	}
 }
 
-// A token is not part of what a harness is. Two jobs whose setups differ only
+// A token is not part of what a harness is. Two tasks whose setups differ only
 // in a server's secret values digest the same, and one whose server is given
 // a different variable does not.
 func TestASetupsSecretsAreNotPartOfItsDigest(t *testing.T) {
 	digestWith := func(servers string) string {
 		t.Helper()
-		dir := job.Dir(t.TempDir())
+		dir := task.Dir(t.TempDir())
 		if err := os.MkdirAll(dir.SetupDir(), 0o755); err != nil {
 			t.Fatal(err)
 		}

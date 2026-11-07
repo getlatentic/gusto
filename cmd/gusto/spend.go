@@ -15,7 +15,7 @@ type spendFlags struct {
 
 func declareSpend(set *flag.FlagSet) *spendFlags {
 	f := &spendFlags{}
-	set.StringVar(&f.tasks, "tasks", "", "the `directory` the server keeps tasks in (default $GUSTO_JOBS, else jobs)")
+	set.StringVar(&f.tasks, "tasks", "", "the `directory` the server keeps tasks in (default $GUSTO_TASKS, else jobs)")
 	set.StringVar(&f.month, "month", "", "the month, as `2006-01`; this month when left out")
 	set.BoolVar(&f.json, "json", false, "print the report as JSON")
 	return f

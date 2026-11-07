@@ -5,13 +5,13 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // ending is what a run knows once its agent and its check are done, which is what its record says. A run in this process
 // and a run in a box end the same way.
 type ending struct {
-	dir job.Dir
+	dir task.Dir
 	// since is when the agent started, which the caps and the model's silences are counted from.
 	since    int64
 	verdict  *evidence.Verdict
@@ -51,7 +51,7 @@ func (e ending) close(ctx context.Context) (int, error) {
 		return 0, err
 	}
 	if err := evidence.Write(e.dir, evidence.Manifest{
-		Job:             spent,
+		Task:            spent,
 		Files:           files,
 		Gate:            e.verdict,
 		Harness:         e.harness,

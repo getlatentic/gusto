@@ -111,12 +111,12 @@ func (f frontSettings) lease() *cloud.Lease {
 // signupSettings is who may sign up and what an organization may run: on the trial, once its address is confirmed, and
 // once it pays.
 type signupSettings struct {
-	freeMail                             string
-	refusedDomains                       []string
-	perDomain                            int
-	trialJobs, trialConcurrent           int
-	jobs, concurrent, members, computers int
-	paidJobsPerSeat, paidMembers         int
+	freeMail                              string
+	refusedDomains                        []string
+	perDomain                             int
+	trialTasks, trialConcurrent           int
+	tasks, concurrent, members, computers int
+	paidTasksPerSeat, paidMembers         int
 }
 
 func (s *signupSettings) declare(set *settings.Set) {
@@ -124,22 +124,25 @@ func (s *signupSettings) declare(set *settings.Set) {
 	set.Choice(&s.freeMail, "GUSTO_CLOUD_FREE_MAIL", "refuse", []string{"allow", "refuse"}, "whether free mail providers may sign up; allow is for a demonstration")
 	set.List(&s.refusedDomains, "GUSTO_CLOUD_REFUSED_DOMAINS", "more mail domains to turn away, beside the built-in ones, comma-separated")
 	set.Int(&s.perDomain, "GUSTO_CLOUD_PER_DOMAIN", 3, 1, "how many organizations one mail domain may make")
-	set.Int(&s.trialJobs, "GUSTO_CLOUD_TRIAL_JOBS", d.Trial.Jobs, 1, "the tasks in all an organization may run before its admin's address is confirmed")
+	set.Int(&s.trialTasks, "GUSTO_CLOUD_TRIAL_TASKS", d.Trial.Tasks, 1, "the tasks in all an organization may run before its admin's address is confirmed")
+	set.Renamed("GUSTO_CLOUD_TRIAL_TASKS", "GUSTO_CLOUD_TRIAL_JOBS")
 	set.Int(&s.trialConcurrent, "GUSTO_CLOUD_TRIAL_CONCURRENT", d.Trial.Concurrent, 1, "the tasks at once an organization may run before its admin's address is confirmed")
-	set.Int(&s.jobs, "GUSTO_CLOUD_JOBS", d.Verified.Jobs, 1, "the tasks a month a confirmed organization may run")
+	set.Int(&s.tasks, "GUSTO_CLOUD_TASKS", d.Verified.Tasks, 1, "the tasks a month a confirmed organization may run")
+	set.Renamed("GUSTO_CLOUD_TASKS", "GUSTO_CLOUD_JOBS")
 	set.Int(&s.concurrent, "GUSTO_CLOUD_CONCURRENT", d.Verified.Concurrent, 1, "the tasks at once a confirmed organization may run")
 	set.Int(&s.members, "GUSTO_CLOUD_MEMBERS", d.Verified.Members, 1, "the people a confirmed organization may have")
 	set.Int(&s.computers, "GUSTO_CLOUD_COMPUTERS", d.Verified.Computers, 1, "the computers a confirmed organization may have")
-	set.Int(&s.paidJobsPerSeat, "GUSTO_CLOUD_PAID_JOBS_PER_SEAT", d.Paid.Jobs, 1, "the tasks a month a paying organization may run for each seat")
+	set.Int(&s.paidTasksPerSeat, "GUSTO_CLOUD_PAID_TASKS_PER_SEAT", d.Paid.Tasks, 1, "the tasks a month a paying organization may run for each seat")
+	set.Renamed("GUSTO_CLOUD_PAID_TASKS_PER_SEAT", "GUSTO_CLOUD_PAID_JOBS_PER_SEAT")
 	set.Int(&s.paidMembers, "GUSTO_CLOUD_PAID_MEMBERS", d.Paid.Members, 1, "the people, and the computers, a paying organization may have")
 }
 
 func (s signupSettings) limits() cloud.Limits {
 	limits := cloud.DefaultLimits()
-	limits.Trial.Jobs, limits.Trial.Concurrent = s.trialJobs, s.trialConcurrent
-	limits.Verified.Jobs, limits.Verified.Concurrent = s.jobs, s.concurrent
+	limits.Trial.Tasks, limits.Trial.Concurrent = s.trialTasks, s.trialConcurrent
+	limits.Verified.Tasks, limits.Verified.Concurrent = s.tasks, s.concurrent
 	limits.Verified.Members, limits.Verified.Computers = s.members, s.computers
-	limits.Paid.Jobs, limits.Paid.Members, limits.Paid.Computers = s.paidJobsPerSeat, s.paidMembers, s.paidMembers
+	limits.Paid.Tasks, limits.Paid.Members, limits.Paid.Computers = s.paidTasksPerSeat, s.paidMembers, s.paidMembers
 	return limits
 }
 

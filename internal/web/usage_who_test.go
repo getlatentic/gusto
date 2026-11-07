@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/registry"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/internal/usage"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-func recordTask(t *testing.T, here *site, record jobs.Record) {
+func recordTask(t *testing.T, here *site, record tasks.Record) {
 	t.Helper()
-	if err := job.Dir(filepath.Join(here.index.Root(), record.ID)).Make(); err != nil {
+	if err := task.Dir(filepath.Join(here.index.Root(), record.ID)).Make(); err != nil {
 		t.Fatal(err)
 	}
 	record.Queued = time.Now().Unix()
@@ -26,8 +26,8 @@ func TestWhoMadeATurnIsTheInstanceAndThreadAndWhoMadeATaskIsTheTaskItself(t *tes
 	here := open(t)
 	where := startedInstance(t, here.as(t, alice))
 	id := where[len("/instances/"):]
-	recordTask(t, here, jobs.Record{ID: "turn-1", Harness: "fixture", Asked: alice, Team: "red", Repo: "acme/web", Instance: id, Thread: "1"})
-	recordTask(t, here, jobs.Record{ID: "lone-task", Harness: "fixture", Asked: "token:ci"})
+	recordTask(t, here, tasks.Record{ID: "turn-1", Harness: "fixture", Asked: alice, Team: "red", Repo: "acme/web", Instance: id, Thread: "1"})
+	recordTask(t, here, tasks.Record{ID: "lone-task", Harness: "fixture", Asked: "token:ci"})
 
 	turn, found := here.server.UsageWho("turn-1")
 	if !found || turn.Session != id+":1" || turn.Person != alice || turn.Team != "red" || turn.Project != "acme/web" || turn.Agent == "" {

@@ -2,16 +2,16 @@ package runner
 
 import (
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/pkg/spend"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // stoppedByCap reads the proxy's record of the run that started at since for a
 // cap that refused it.
-// The proxy runs outside the box and writes into the job directory the box is
+// The proxy runs outside the box and writes into the task directory the box is
 // given, so the runner learns why the model went quiet from the same file the
 // manifest is about to hash, rather than from anything the harness said.
-func stoppedByCap(dir job.Dir, since int64) (*evidence.CapStop, error) {
+func stoppedByCap(dir task.Dir, since int64) (*evidence.CapStop, error) {
 	refusal, err := spend.Stopped(dir.OutFile("proxy.jsonl"), since)
 	if err != nil || refusal == nil {
 		return nil, err
@@ -27,7 +27,7 @@ func stoppedByCap(dir job.Dir, since int64) (*evidence.CapStop, error) {
 
 // unanswered reads the proxy's record of the run that started at since for a model that never answered it, from the same
 // file stoppedByCap reads, so whether the model answered is the proxy's word and not the agent's.
-func unanswered(dir job.Dir, since int64) (*evidence.Unanswered, error) {
+func unanswered(dir task.Dir, since int64) (*evidence.Unanswered, error) {
 	silence, err := spend.Unanswered(dir.OutFile("proxy.jsonl"), since)
 	if err != nil || silence == nil {
 		return nil, err

@@ -73,7 +73,7 @@ writeFileSync(join(work, "members.json"), JSON.stringify({
 execFileSync(bin, ["keygen", "shots", "-dir", join(work, "keys")], { stdio: "ignore" });
 start("python3", [join(root, "deploy/stubmodel/stub.py")]);
 const server = start(bin, ["serve"], {
-  PATH: shellPath, GUSTO_PASSWORD: password, GUSTO_ADDR: `127.0.0.1:${port}`, GUSTO_JOBS: join(work, "jobs"), GUSTO_SESSIONS: join(work, "sessions"),
+  PATH: shellPath, GUSTO_PASSWORD: password, GUSTO_ADDR: `127.0.0.1:${port}`, GUSTO_TASKS: join(work, "jobs"), GUSTO_SESSIONS: join(work, "sessions"),
   GUSTO_SANDBOX: "here", GUSTO_CREDENTIALS: join(work, "creds"), GUSTO_MODELS: "stub/stub-model", GUSTO_HARNESSES: join(work, "agents"),
   GUSTO_SIGNING_KEY: join(work, "keys", "shots.key"), GUSTO_KEYRING: join(work, "keys"), GUSTO_NOTIFY_WEBHOOK: "", HOME: work,
   GUSTO_RETENTION: join(work, "retention"), GUSTO_API_TOKENS: join(work, "tokens.json"), GUSTO_MEMBERS: join(work, "members.json"),

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/internal/usage"
 )
 
@@ -18,7 +18,7 @@ func TestATurnOfARoomsAgentCountsAgainstItsOwnerWhoeverAsks(t *testing.T) {
 	site.as(t, bob).ask(t, "POST", thread+"/say", url.Values{"said": {"@Scout what next?"}})
 	work.waitTurns(t, site, 1)
 
-	var turn jobs.Record
+	var turn tasks.Record
 	for _, record := range site.server.index.List() {
 		if record.Instance == id && record.Agent != "" {
 			turn = record

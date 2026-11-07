@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/notify"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // aRoutine adds a routine through the form and says which instance it is on.
@@ -39,7 +39,7 @@ func TestADueRoutineStartsATurnInItsOwnConversationOnceAPerSlot(t *testing.T) {
 	if !strings.HasPrefix(record.Brief, "[routine] Morning: what changed?") || record.Instance != id || record.Thread != routine.Thread {
 		t.Errorf("the turn is %+v", record)
 	}
-	if got := routinesOf(t, site, id)[0].Last; got == nil || got.Job != record.ID {
+	if got := routinesOf(t, site, id)[0].Last; got == nil || got.Task != record.ID {
 		t.Errorf("the slot kept %+v", got)
 	}
 
@@ -54,7 +54,7 @@ func TestADueRoutineStartsATurnInItsOwnConversationOnceAPerSlot(t *testing.T) {
 
 func TestARoutineWhoseLastRunIsStillAnsweringSkipsTheSlotAndSaysWhy(t *testing.T) {
 	started, release := make(chan string, 4), make(chan struct{})
-	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
 		started <- dir.Path()
 		select {
 		case <-release:
@@ -154,7 +154,7 @@ func aFinishedRun(t *testing.T, site *site) (id, routine string) {
 	<-site.ran
 	last := routinesOf(t, site, id)[0].Last
 	for range 100 {
-		if record, _ := site.index.Get(last.Job); record.State.Done() {
+		if record, _ := site.index.Get(last.Task); record.State.Done() {
 			return id, routine
 		}
 		time.Sleep(20 * time.Millisecond)
@@ -209,7 +209,7 @@ func TestTheNewsIsGivenUpOnAfterFiveTriesAndSaysWhy(t *testing.T) {
 
 func TestARunWhoseTurnHasNotEndedIsNotToldYet(t *testing.T) {
 	started, release := make(chan string, 4), make(chan struct{})
-	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
 		started <- dir.Path()
 		select {
 		case <-release:

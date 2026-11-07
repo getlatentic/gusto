@@ -16,7 +16,7 @@ import (
 // whole URL for plain HTTP. Nothing leaves unless the allowlist names the host,
 // and every request, sent or refused, is a line in the task's proxy record.
 func (p *Proxy) outbound(w http.ResponseWriter, r *http.Request) {
-	ticket, known := p.tokenSource().Job(proxyToken(r))
+	ticket, known := p.tokenSource().Task(proxyToken(r))
 	if !known {
 		w.Header().Set("Proxy-Authenticate", `Basic realm="gusto"`)
 		http.Error(w, "no", http.StatusProxyAuthRequired)
@@ -27,15 +27,15 @@ func (p *Proxy) outbound(w http.ResponseWriter, r *http.Request) {
 	call := spend.Call{Path: r.URL.Path, Host: address, AtUnix: sent.Unix()}
 	if !p.allowed.Permits(address) {
 		call.Status, call.Denied = http.StatusForbidden, "not on the allowlist"
-		p.note(ticket.Job, call)
+		p.note(ticket.Task, call)
 		http.Error(w, "gusto refused "+address+": it is not on this task's allowlist", http.StatusForbidden)
 		return
 	}
 	if r.Method == http.MethodConnect {
-		p.tunnel(w, ticket.Job, address, call)
+		p.tunnel(w, ticket.Task, address, call)
 		return
 	}
-	p.note(ticket.Job, p.forward(w, r, call))
+	p.note(ticket.Task, p.forward(w, r, call))
 }
 
 // forward sends a plain HTTP request on as it came, less the proxy's own

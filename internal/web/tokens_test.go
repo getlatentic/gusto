@@ -13,7 +13,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/apitoken"
 	"github.com/getlatentic/gusto/internal/changelog"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // tokened is a site that takes API tokens, with the change log on, and the
@@ -67,7 +67,7 @@ func TestOnceTokensAreOnTheSharedPasswordOpensNoEndpoint(t *testing.T) {
 			t.Errorf("the shared password gave %d at %s", got.Code, target[1])
 		}
 	}
-	code, answer := here.send(t, password, Submission{Spec: aJob()})
+	code, answer := here.send(t, password, Submission{Spec: aSpec()})
 	if code != http.StatusUnauthorized || answer.ID != "" {
 		t.Fatalf("the shared password sent a job: %d %+v", code, answer)
 	}
@@ -84,7 +84,7 @@ func TestATokenDoesWhatItWasGivenAndNothingElse(t *testing.T) {
 		for scope, target := range endpoint {
 			var code int
 			if scope == "submit" {
-				code, _ = here.send(t, here.secrets[name], Submission{Spec: aJob()})
+				code, _ = here.send(t, here.secrets[name], Submission{Spec: aSpec()})
 			} else {
 				code = here.call(target[0], target[1], here.secrets[name]).Code
 			}
@@ -98,9 +98,9 @@ func TestATokenDoesWhatItWasGivenAndNothingElse(t *testing.T) {
 	}
 }
 
-func TestAJobSentWithATokenIsAskedForByThatToken(t *testing.T) {
+func TestATaskSentWithATokenIsAskedForByThatToken(t *testing.T) {
 	here := withTokens(t)
-	_, answer := here.send(t, here.secrets["ci"], Submission{Spec: aJob()})
+	_, answer := here.send(t, here.secrets["ci"], Submission{Spec: aSpec()})
 	record, found := here.index.Get(answer.ID)
 	if !found || record.Asked != "token:ci" {
 		t.Fatalf("the job was asked for by %q", record.Asked)
@@ -136,7 +136,7 @@ func TestAWrongTokenAndARevokedOneGetTheSameAnswer(t *testing.T) {
 	if after.Code != http.StatusUnauthorized || before.Code != http.StatusUnauthorized || after.Body.String() != before.Body.String() {
 		t.Fatalf("a revoked token gave %d %q and an unknown one %d %q", after.Code, after.Body.String(), before.Code, before.Body.String())
 	}
-	if code, _ := here.send(t, here.secrets["ci"], Submission{Spec: aJob()}); code != http.StatusUnauthorized {
+	if code, _ := here.send(t, here.secrets["ci"], Submission{Spec: aSpec()}); code != http.StatusUnauthorized {
 		t.Fatalf("a revoked token sent a job: %d", code)
 	}
 	here.nothing(t)
@@ -241,8 +241,8 @@ func TestSpendSaysWhoAskedAndTheScriptGetsTheSame(t *testing.T) {
 	here := withTokens(t)
 	root := here.index.Root()
 	for id, asked := range map[string]string{"by-token": "token:ci", "by-amy": "amy@acme.test", "by-api": sentOverHTTP} {
-		spentJob(t, root, id, "", priced)
-		if err := here.index.Add(jobs.Record{ID: id, State: jobs.Passed, Brief: "b", Asked: asked}); err != nil {
+		spentTask(t, root, id, "", priced)
+		if err := here.index.Add(tasks.Record{ID: id, State: tasks.Passed, Brief: "b", Asked: asked}); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -10,7 +10,7 @@ import (
 	"unicode"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A folder of the person's cloud computer is named by where it is: nothing for the top, where their agents' folders are, then an agent's
@@ -67,7 +67,7 @@ func (s *Server) folderAgent(r *http.Request, id string) (instance.Instance, boo
 
 // workspaceDir is the folder of an agent's workspace that a path names, resolved so that a link inside the workspace cannot lead out of it.
 func (s *Server) workspaceDir(id, dir string) (string, bool) {
-	cleaned, err := job.CleanDir(dir)
+	cleaned, err := task.CleanDir(dir)
 	if err != nil {
 		return "", false
 	}
@@ -209,7 +209,7 @@ func (s *Server) cloudFolderThread(r *http.Request, at, model string) (instance.
 	if _, ok := s.workspaceDir(id, dir); !ok {
 		return held, instance.Thread{}, "that folder is not there"
 	}
-	dir, _ = job.CleanDir(dir)
+	dir, _ = task.CleanDir(dir)
 	if chosen := strings.TrimSpace(r.FormValue("harness")); chosen != "" && chosen != held.Harness && !s.used(held.ID) {
 		if why := s.runnable(chosen); why != "" {
 			return held, instance.Thread{}, why

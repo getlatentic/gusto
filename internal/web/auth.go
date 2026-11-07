@@ -83,7 +83,7 @@ func (k *keeper) issue(w http.ResponseWriter, r *http.Request) {
 	k.issueFor(w, r, sharedSignIn, Admin)
 }
 
-// issueFor signs somebody in by name and role, so a job records who asked for
+// issueFor signs somebody in by name and role, so a task records who asked for
 // it rather than that somebody did, and every request carries what they may do
 // without asking the provider again.
 func (k *keeper) issueFor(w http.ResponseWriter, r *http.Request, who string, role Role) {

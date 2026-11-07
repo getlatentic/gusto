@@ -45,10 +45,10 @@ func stampOf(t *testing.T, dir string) Stamp {
 
 func TestANewDirectoryIsStampedAndAnOldOneIsFormatOne(t *testing.T) {
 	fresh := filepath.Join(t.TempDir(), "made-by-us")
-	if _, err := Ensure(Jobs, fresh, Options{Release: "v1"}); err != nil {
+	if _, err := Ensure(Tasks, fresh, Options{Release: "v1"}); err != nil {
 		t.Fatal(err)
 	}
-	if stamp := stampOf(t, fresh); stamp.Format != Current[Jobs] || stamp.Release != "v1" {
+	if stamp := stampOf(t, fresh); stamp.Format != Current[Tasks] || stamp.Release != "v1" {
 		t.Errorf("stamp %+v", stamp)
 	}
 
@@ -56,20 +56,20 @@ func TestANewDirectoryIsStampedAndAnOldOneIsFormatOne(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(old, "20260101-job"), nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	result, err := Ensure(Jobs, old, Options{Release: "v1"})
+	result, err := Ensure(Tasks, old, Options{Release: "v1"})
 	if err != nil || !result.WasUnstamped || result.From != 1 {
 		t.Fatalf("an unstamped directory with data: %+v %v", result, err)
 	}
-	if stampOf(t, old).Format != Current[Jobs] {
+	if stampOf(t, old).Format != Current[Tasks] {
 		t.Error("an old directory was not stamped")
 	}
 }
 
 func TestEnsuringAgainChangesNothing(t *testing.T) {
 	dir := t.TempDir()
-	Ensure(Jobs, dir, Options{Release: "v1"})
+	Ensure(Tasks, dir, Options{Release: "v1"})
 	before, _ := os.ReadFile(filepath.Join(dir, StampFile))
-	if result, err := Ensure(Jobs, dir, Options{Release: "v1"}); err != nil || result.Stamped || len(result.Migrated) > 0 {
+	if result, err := Ensure(Tasks, dir, Options{Release: "v1"}); err != nil || result.Stamped || len(result.Migrated) > 0 {
 		t.Fatalf("%+v %v", result, err)
 	}
 	after, _ := os.ReadFile(filepath.Join(dir, StampFile))

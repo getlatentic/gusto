@@ -14,7 +14,7 @@ type keysFlags struct{ tasks string }
 
 func declareKeys(set *flag.FlagSet) *keysFlags {
 	f := &keysFlags{}
-	set.StringVar(&f.tasks, "tasks", "", "the `directory` of tasks to read (default $GUSTO_JOBS, else jobs)")
+	set.StringVar(&f.tasks, "tasks", "", "the `directory` of tasks to read (default $GUSTO_TASKS, else jobs)")
 	return f
 }
 

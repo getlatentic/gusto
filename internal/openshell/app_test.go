@@ -119,7 +119,7 @@ func TestAnAppTheAgentNeverWroteALogForHasNothingToSay(t *testing.T) {
 // first app it writes fails on it otherwise: Node's listen(port) resets IPv4 clients here.
 func TestEveryAgentIsGivenTheGuidanceOnTheSandboxsNetworkWhetherOrNotItHasASetup(t *testing.T) {
 	root := installFake(t)
-	dir, _ := aJob(t)
+	dir, _ := aTask(t)
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), `{"name":"fixture","program":"sh","skills":"/root/.config/fixture/skills",
 	  "argv":["-c","printf yes > answer.txt; cat ../../../.config/fixture/skills/gusto-sandbox/SKILL.md"],"needs":"nothing","stream":"plain"}`)

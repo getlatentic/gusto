@@ -14,7 +14,7 @@
 # so a pass proves the install and says nothing about any model.
 set -eu
 
-data=$(dirname "$GUSTO_JOBS")
+data=$(dirname "$GUSTO_TASKS")
 smoke="$data/smoke"
 rm -rf "$smoke/job"
 mkdir -p "$smoke/repo" "$smoke/harnesses"
@@ -63,7 +63,7 @@ echo "submitted $id"
 
 # The manifest is the last thing a run writes, so its presence is the end.
 tries=0
-until [ -f "$GUSTO_JOBS/$id/out/manifest.json" ]; do
+until [ -f "$GUSTO_TASKS/$id/out/manifest.json" ]; do
   tries=$((tries + 1))
   if [ "$tries" -gt 120 ]; then
     echo "no manifest after 120 seconds; the task page says why: /jobs/$id" >&2
@@ -71,12 +71,12 @@ until [ -f "$GUSTO_JOBS/$id/out/manifest.json" ]; do
   fi
   sleep 1
 done
-gusto show "$GUSTO_JOBS/$id"
+gusto show "$GUSTO_TASKS/$id"
 echo
-gusto verify "$GUSTO_JOBS/$id"
+gusto verify "$GUSTO_TASKS/$id"
 
 # The fixture tried to write into the record; the runner keeps out/ to itself.
-if grep -q forged-by-the-harness "$GUSTO_JOBS/$id/out/transcript.log"; then
+if grep -q forged-by-the-harness "$GUSTO_TASKS/$id/out/transcript.log"; then
   echo "the agent wrote into its own record" >&2
   exit 1
 fi

@@ -2,7 +2,7 @@ package isolation
 
 import "strings"
 
-// virtualMachine is an OpenShell sandbox: a VM for each job, which needs the hardware, the openshell command, and a gateway that
+// virtualMachine is an OpenShell sandbox: a VM for each task, which needs the hardware, the openshell command, and a gateway that
 // answers with an image that carries the engines.
 func virtualMachine(h Host) Backend {
 	no := func(why string) Backend { return Backend{Kind: VM, Detail: why} }
@@ -71,7 +71,7 @@ func landlock(h Host, no func(string) Backend) Backend {
 		return no("gusto does not know where its own program is")
 	}
 	args := []string{"sandbox-run", "--check"}
-	if h.Settings.JobNetwork != "open" {
+	if h.Settings.TaskNetwork != "open" {
 		args = append(args, "--network")
 	}
 	out, ok := h.Run(h.Self, args...)
@@ -89,7 +89,7 @@ func oneLine(said string) string {
 	return strings.TrimSpace(line)
 }
 
-// container is a container for each job, which needs a runtime that answers and the runner image on this computer. An image is
+// container is a container for each task, which needs a runtime that answers and the runner image on this computer. An image is
 // not pulled for the person: it is more than a gigabyte, and that is theirs to start.
 func container(h Host) Backend {
 	no := func(why string) Backend { return Backend{Kind: Container, Detail: why} }

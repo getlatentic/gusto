@@ -19,7 +19,7 @@ The words gusto's pages, commands and docs use, each for one thing. The last col
 
 | Word | Meaning | Older name in the code |
 | --- | --- | --- |
-| task | One piece of work for an agent: a brief, a repository, a check and a spend limit, in a directory of its own | job |
+| task | One piece of work for an agent: a brief, a repository, a check and a spend limit, in a directory of its own | job, in what is stored or sent: `job.json`, the `jobs/` folder, the `/jobs` and `/api/jobs` addresses, `job` in JSON and in container labels, the `gusto_jobs_*` metrics |
 | working folder | The folder in a task's directory that the agent works in: the checked-out repository and what the agent changed | workspace |
 | check | The command whose result says pass or fail | gate |
 | record | What a task leaves behind: hashed files, the check result and a signature. `gusto verify` re-checks it anywhere | evidence |

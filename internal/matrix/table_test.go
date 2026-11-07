@@ -12,12 +12,12 @@ import (
 	"github.com/getlatentic/gusto/internal/matrix"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // door stands in for the server's way out. It writes into the run's
 // out/proxy.jsonl what the proxy writes there, one priced call and one it
-// could not price, then runs the job here.
+// could not price, then runs the task here.
 type door struct{ done int }
 
 const calls = `{"path":"/v1/chat/completions","status":200,"atUnix":1767225600,"model":"m","inputTokens":900,"outputTokens":100,"usd":0.5}
@@ -26,14 +26,14 @@ const calls = `{"path":"/v1/chat/completions","status":200,"atUnix":1767225600,"
 
 func (d *door) Listen() (func(), error) { return func() {}, nil }
 
-func (d *door) Run(dir job.Dir, _ job.Spec) (int, error) {
+func (d *door) Run(dir task.Dir, _ task.Spec) (int, error) {
 	if err := os.WriteFile(dir.OutFile("proxy.jsonl"), []byte(calls), 0o644); err != nil {
 		return 0, err
 	}
 	return runner.Inside(dir)
 }
 
-func (d *door) Done(job.Dir) { d.done++ }
+func (d *door) Done(task.Dir) { d.done++ }
 
 // The proxy's record is the count, and the harness's report is a claim: a run
 // that went through the proxy is costed from what the provider answered, and
@@ -88,7 +88,7 @@ func TestCostIsTheHarnesssReportWhenNothingElseCountedIt(t *testing.T) {
 }
 
 // The markdown goes into the README as it is, the JSON is what the catalog
-// reads, and a pair that did not finish the simplest job is marked there.
+// reads, and a pair that did not finish the simplest task is marked there.
 func TestTheTableIsMarkdownForTheReadmeAndJSONForTheCatalog(t *testing.T) {
 	hermetic(t)
 	path := planned(t, remote(t), finishes, doesNotFinish)
@@ -158,7 +158,7 @@ func TestTheRowsFromIssueEightAreAPlan(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []matrix.Pair{{Harness: "opencode", Model: "ollama/gpt-oss:20b"}, {Harness: "opencode", Model: "ollama/llama3.2:3b"}}
-	if len(plan.Pairs) != 2 || plan.Pairs[0] != want[0] || plan.Pairs[1] != want[1] || plan.SimplestJob() != "one-line-fix" {
+	if len(plan.Pairs) != 2 || plan.Pairs[0] != want[0] || plan.Pairs[1] != want[1] || plan.SimplestTask() != "one-line-fix" {
 		t.Fatalf("the plan should be opencode on both local models, on the one-line fix: %+v", plan)
 	}
 }

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/internal/usage"
 )
 
@@ -32,15 +32,15 @@ func (s *Server) usageStates(query usageQuery, base string) []usageState {
 }
 
 // failedConversations are the latest turns of the conversations whose latest turn failed or was interrupted, the latest first,
-// of the conversations a person pays for alone when one is named. Failed is what the record of jobs calls failed.
-func (s *Server) failedConversations(person string) []jobs.Record {
-	var failed []jobs.Record
+// of the conversations a person pays for alone when one is named. Failed is what the record of tasks calls failed.
+func (s *Server) failedConversations(person string) []tasks.Record {
+	var failed []tasks.Record
 	for _, record := range s.lastTurns(person) {
-		if filed(record.State) == string(jobs.Failed) {
+		if filed(record.State) == string(tasks.Failed) {
 			failed = append(failed, record)
 		}
 	}
-	slices.SortFunc(failed, func(a, b jobs.Record) int {
+	slices.SortFunc(failed, func(a, b tasks.Record) int {
 		switch {
 		case later(a, b):
 			return -1
@@ -53,8 +53,8 @@ func (s *Server) failedConversations(person string) []jobs.Record {
 }
 
 // lastTurns is each conversation's latest task, by the conversation the usage index files its calls under.
-func (s *Server) lastTurns(person string) map[string]jobs.Record {
-	last := map[string]jobs.Record{}
+func (s *Server) lastTurns(person string) map[string]tasks.Record {
+	last := map[string]tasks.Record{}
 	for _, record := range s.index.List() {
 		if person != "" && !strings.EqualFold(record.Payer(), person) {
 			continue
@@ -68,7 +68,7 @@ func (s *Server) lastTurns(person string) map[string]jobs.Record {
 }
 
 // later says a was asked for after b. Two tasks asked for in one second are in the order they arrived.
-func later(a, b jobs.Record) bool {
+func later(a, b tasks.Record) bool {
 	if a.Queued != b.Queued {
 		return a.Queued > b.Queued
 	}
@@ -76,7 +76,7 @@ func later(a, b jobs.Record) bool {
 }
 
 // failedSessions names the latest failed conversations to the index.
-func failedSessions(failed []jobs.Record) []string {
+func failedSessions(failed []tasks.Record) []string {
 	ids := make([]string, 0, min(len(failed), failedListed))
 	for _, record := range failed[:min(len(failed), failedListed)] {
 		ids = append(ids, usage.SessionOf(record))
@@ -85,7 +85,7 @@ func failedSessions(failed []jobs.Record) []string {
 }
 
 // failedAfter is how many of the failed conversations last failed on a turn asked for after a time.
-func failedAfter(failed []jobs.Record, since time.Time) int {
+func failedAfter(failed []tasks.Record, since time.Time) int {
 	n := 0
 	for _, record := range failed {
 		if record.Queued >= since.Unix() {

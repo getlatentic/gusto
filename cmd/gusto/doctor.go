@@ -81,7 +81,7 @@ func (d doctorSettings) forChecks(set *settings.Set) doctor.Settings {
 	checked := doctor.Settings{
 		Sandbox:    d.boxes.isolation(set.Raw("GUSTO_SANDBOX")),
 		Containers: d.boxes.containers.signedBy(signing.Identity{}),
-		Jobs:       d.stores.jobs, Harnesses: d.harnesses, Password: d.core.password != "",
+		Tasks:      d.stores.tasks, Harnesses: d.harnesses, Password: d.core.password != "",
 		OpenShellRemote: d.boxes.openShell.cfg.Remote,
 	}
 	if set.Raw("GUSTO_MODEL_URL") != "" {
@@ -96,7 +96,7 @@ func checksLocalInstall(home string, getenv func(string) string, exists func(str
 	if !exists(filepath.Join(home, "local.json")) {
 		return false
 	}
-	for _, name := range []string{"GUSTO_JOBS", "GUSTO_ADDR", "GUSTO_SANDBOX", "GUSTO_CONTAINER"} {
+	for _, name := range []string{"GUSTO_TASKS", "GUSTO_ADDR", "GUSTO_SANDBOX", "GUSTO_CONTAINER"} {
 		if getenv(name) != "" {
 			return false
 		}

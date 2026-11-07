@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // noReason is what a failed turn says when nothing it left says why, so a failed turn never shows an empty card.
@@ -16,7 +16,7 @@ const noReason = "it ended without saying why"
 // stopped is why a turn that failed or was interrupted ended, in one line: the proxy's word that the model never answered
 // when the record has it, since that is gusto's own evidence and holds for any agent; otherwise the last line the agent or the
 // runner wrote on its way out.
-func stopped(dir job.Dir) string {
+func stopped(dir task.Dir) string {
 	if manifest, err := evidence.Read(dir); err == nil && manifest.ModelUnanswered != nil {
 		return "the model did not answer: " + manifest.ModelUnanswered.Reason
 	}

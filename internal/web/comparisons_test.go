@@ -13,9 +13,9 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // twoEngines is a server offering two harnesses that need no account.
@@ -56,10 +56,10 @@ func TestAComparisonGivesEveryAgentTheSameTask(t *testing.T) {
 	if !found || len(lineup.Runs) != 2 {
 		t.Fatalf("lineup %+v", lineup)
 	}
-	var specs []job.Spec
+	var specs []task.Spec
 	for _, run := range lineup.Runs {
-		waitFor(t, site.index, run.Job)
-		spec, err := job.Read(job.Dir(filepath.Join(site.index.Root(), run.Job)))
+		waitFor(t, site.index, run.Task)
+		spec, err := task.Read(task.Dir(filepath.Join(site.index.Root(), run.Task)))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -109,9 +109,9 @@ func TestAComparisonNeedsTwoAgents(t *testing.T) {
 // when they stand clear of the others.
 func TestOnlyAPassingRunIsBestAtAnything(t *testing.T) {
 	sides := []side{
-		{Passed: false, Record: jobs.Record{Started: 1, Ended: 2}, Metered: true},
-		{Passed: true, Record: jobs.Record{Started: 1, Ended: 30}, Metered: true},
-		{Passed: true, Record: jobs.Record{Started: 1, Ended: 10}, Metered: true},
+		{Passed: false, Record: tasks.Record{Started: 1, Ended: 2}, Metered: true},
+		{Passed: true, Record: tasks.Record{Started: 1, Ended: 30}, Metered: true},
+		{Passed: true, Record: tasks.Record{Started: 1, Ended: 10}, Metered: true},
 	}
 	sides[1].Spent.USD, sides[2].Spent.USD = 0.001, 0.002
 	weigh(sides)
@@ -122,8 +122,8 @@ func TestOnlyAPassingRunIsBestAtAnything(t *testing.T) {
 
 func TestRunsThatAreLevelHaveNoBest(t *testing.T) {
 	sides := []side{
-		{Passed: true, Record: jobs.Record{Started: 0 + 1, Ended: 101}, Metered: true},
-		{Passed: true, Record: jobs.Record{Started: 1, Ended: 106}, Metered: true},
+		{Passed: true, Record: tasks.Record{Started: 0 + 1, Ended: 101}, Metered: true},
+		{Passed: true, Record: tasks.Record{Started: 1, Ended: 106}, Metered: true},
 	}
 	sides[0].Spent.USD, sides[1].Spent.USD = 1.00, 1.05
 	reading := weigh(sides)
@@ -151,15 +151,15 @@ func TestTheComparisonPageSaysWhichDidBetter(t *testing.T) {
 		{"second", false, 90, []string{priced}},
 	} {
 		id := fmt.Sprintf("run-%d", i)
-		spentJob(t, site.index.Root(), id, "", each.lines...)
-		dir := job.Dir(filepath.Join(site.index.Root(), id))
+		spentTask(t, site.index.Root(), id, "", each.lines...)
+		dir := task.Dir(filepath.Join(site.index.Root(), id))
 		if err := evidence.Write(dir, evidence.Manifest{Gate: &evidence.Verdict{Passed: each.passed}}); err != nil {
 			t.Fatal(err)
 		}
-		if err := site.index.Add(jobs.Record{ID: id, State: jobs.Passed, Brief: "fix it", Harness: each.harness, Started: 100, Ended: 100 + each.took}); err != nil {
+		if err := site.index.Add(tasks.Record{ID: id, State: tasks.Passed, Brief: "fix it", Harness: each.harness, Started: 100, Ended: 100 + each.took}); err != nil {
 			t.Fatal(err)
 		}
-		lineup.Runs = append(lineup.Runs, compare.Entry{Harness: each.harness, Job: id})
+		lineup.Runs = append(lineup.Runs, compare.Entry{Harness: each.harness, Task: id})
 	}
 	if err := board.Save(lineup); err != nil {
 		t.Fatal(err)
@@ -172,14 +172,14 @@ func TestTheComparisonPageSaysWhichDidBetter(t *testing.T) {
 		}
 	}
 
-	if err := job.Dir(filepath.Join(site.index.Root(), "run-2")).Make(); err != nil {
+	if err := task.Dir(filepath.Join(site.index.Root(), "run-2")).Make(); err != nil {
 		t.Fatal(err)
 	}
-	if err := site.index.Add(jobs.Record{ID: "run-2", State: jobs.Running, Brief: "fix it", Harness: "second", Started: 100}); err != nil {
+	if err := site.index.Add(tasks.Record{ID: "run-2", State: tasks.Running, Brief: "fix it", Harness: "second", Started: 100}); err != nil {
 		t.Fatal(err)
 	}
 	unfinished := compare.Lineup{ID: "still-going", Brief: "fix it", Model: "m",
-		Runs: []compare.Entry{lineup.Runs[0], {Harness: "second", Job: "run-2"}}}
+		Runs: []compare.Entry{lineup.Runs[0], {Harness: "second", Task: "run-2"}}}
 	if err := board.Save(unfinished); err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func TestTheComparisonPageSaysWhichDidBetter(t *testing.T) {
 	}
 }
 
-func waitFor(t *testing.T, index *jobs.Index, id string) {
+func waitFor(t *testing.T, index *tasks.Index, id string) {
 	t.Helper()
 	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
 		if record, found := index.Get(id); found && record.State.Done() {

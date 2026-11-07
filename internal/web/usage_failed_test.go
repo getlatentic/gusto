@@ -6,18 +6,18 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/catalog"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // The Failed view lists a conversation whose latest turn failed or was interrupted, and not one that failed and then went on.
 func TestTheFailedViewListsOnlyConversationsWhoseLatestTurnFailed(t *testing.T) {
 	here, _ := withUsage(t, aCall("broke", 0, "broke", alice, 0), aCall("stopped", 0, "stopped", alice, 1),
 		aCall("fine", 0, "fine", bob, 2), aCall("turn-1", 0, "room:1", alice, 3), aCall("turn-2", 0, "room:1", alice, 4))
-	recordTask(t, here.site, jobs.Record{ID: "broke", Harness: "fixture", Asked: alice, State: jobs.Failed})
-	recordTask(t, here.site, jobs.Record{ID: "stopped", Harness: "fixture", Asked: alice, State: jobs.Interrupted})
-	recordTask(t, here.site, jobs.Record{ID: "fine", Harness: "fixture", Asked: bob, State: jobs.Passed})
-	recordTask(t, here.site, jobs.Record{ID: "turn-1", Harness: "fixture", Asked: alice, Instance: "room", Thread: "1", State: jobs.Failed})
-	recordTask(t, here.site, jobs.Record{ID: "turn-2", Harness: "fixture", Asked: alice, Instance: "room", Thread: "1", State: jobs.Passed})
+	recordTask(t, here.site, tasks.Record{ID: "broke", Harness: "fixture", Asked: alice, State: tasks.Failed})
+	recordTask(t, here.site, tasks.Record{ID: "stopped", Harness: "fixture", Asked: alice, State: tasks.Interrupted})
+	recordTask(t, here.site, tasks.Record{ID: "fine", Harness: "fixture", Asked: bob, State: tasks.Passed})
+	recordTask(t, here.site, tasks.Record{ID: "turn-1", Harness: "fixture", Asked: alice, Instance: "room", Thread: "1", State: tasks.Failed})
+	recordTask(t, here.site, tasks.Record{ID: "turn-2", Harness: "fixture", Asked: alice, Instance: "room", Thread: "1", State: tasks.Passed})
 
 	all := here.ask(t, "GET", "/admin/usage", nil).Body.String()
 	if !strings.Contains(all, `href="/admin/usage" aria-current="page">All</a>`) || !strings.Contains(all, `href="/admin/usage?state=failed">Failed <span class="font-normal text-subtle">2 this week</span></a>`) {
@@ -54,7 +54,7 @@ func TestTheFailedViewListsOnlyConversationsWhoseLatestTurnFailed(t *testing.T) 
 
 func TestTheFailedViewSaysWhenNothingFailed(t *testing.T) {
 	here, _ := withUsage(t, aCall("fine", 0, "fine", bob, 2))
-	recordTask(t, here.site, jobs.Record{ID: "fine", Harness: "fixture", Asked: bob, State: jobs.Passed})
+	recordTask(t, here.site, tasks.Record{ID: "fine", Harness: "fixture", Asked: bob, State: tasks.Passed})
 	body := here.ask(t, "GET", "/admin/usage?state=failed", nil).Body.String()
 	if !strings.Contains(body, "No conversation has failed.") || strings.Contains(body, "/admin/usage/fine") {
 		t.Errorf("an empty failed view:\n%s", body)
@@ -66,7 +66,7 @@ func TestARowSaysWhoAskedAndWhoseAgentAnswered(t *testing.T) {
 	call := aCall("turn", 0, "room:1", alice, 0)
 	call.Agent = "Nova"
 	here, _ := withUsage(t, call)
-	recordTask(t, here.site, jobs.Record{ID: "turn", Harness: "fixture", Asked: bob, PaidBy: alice, Instance: "room", Thread: "1", State: jobs.Passed})
+	recordTask(t, here.site, tasks.Record{ID: "turn", Harness: "fixture", Asked: bob, PaidBy: alice, Instance: "room", Thread: "1", State: tasks.Passed})
 	body := here.ask(t, "GET", "/admin/usage", nil).Body.String()
 	owner, asker := here.server.personName(alice), here.server.personName(bob)
 	if !strings.Contains(body, ">Asked by<") || !strings.Contains(body, ">Agent · owner<") {

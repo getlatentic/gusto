@@ -145,23 +145,23 @@ func (s *Store) Latest(id string) Thread {
 
 // Said records a turn on a thread, and the agent's own name for the
 // conversation the first time it says one.
-func (s *Store) Said(id, thread, job, remembered string) error {
+func (s *Store) Said(id, thread, task, remembered string) error {
 	s.guard.Lock()
 	defer s.guard.Unlock()
 	held, found := s.threads[id][thread]
 	if !found {
 		return fmt.Errorf("no thread %s on %s", thread, id)
 	}
-	if job != "" {
-		held.Turns = append(held.Turns, job)
+	if task != "" {
+		held.Turns = append(held.Turns, task)
 	}
 	if remembered != "" {
 		held.Remembered = remembered
 	}
 	s.threads[id][held.ID] = held
 	err := s.writeThread(held)
-	if job != "" {
-		s.record(id, held.ID, KindTurn, job)
+	if task != "" {
+		s.record(id, held.ID, KindTurn, task)
 	}
 	return err
 }

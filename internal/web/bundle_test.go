@@ -14,9 +14,9 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A harness is a program, so a program that makes the change runs the whole
@@ -33,7 +33,7 @@ const wroteTheAnswer = "printf yes > answer.txt; echo wrote the answer"
 const didNothing = "echo I did not touch a thing"
 
 // refusal is what the gate prints when the answer is still no, and what a reader
-// of a failed job has come to see.
+// of a failed task has come to see.
 const refusal = "answer.txt does not say yes"
 
 // checkout is a repository whose gate is a script in its own tree, so whether
@@ -65,10 +65,10 @@ func put(t *testing.T, path, text string, mode os.FileMode) {
 	}
 }
 
-// ran does a real run in the server's own jobs directory, so the pages and the
+// ran does a real run in the server's own tasks directory, so the pages and the
 // bundle are read off evidence a runner wrote rather than off a fixture of the
 // shape somebody expected.
-func (s *site) ranJob(t *testing.T, does string) (string, job.Dir) {
+func (s *site) ranTask(t *testing.T, does string) (string, task.Dir) {
 	t.Helper()
 	harnesses := t.TempDir()
 	put(t, filepath.Join(harnesses, "fixture.json"), fmt.Sprintf(fixtureJSON, does), 0o644)
@@ -76,11 +76,11 @@ func (s *site) ranJob(t *testing.T, does string) (string, job.Dir) {
 	t.Setenv("GUSTO_SIGNER", "a-test")
 
 	id := "20260101-0900-make-the-answer-yes"
-	dir := job.Dir(filepath.Join(s.index.Root(), id))
+	dir := task.Dir(filepath.Join(s.index.Root(), id))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    checkout(t),
 		Gate:    []string{"./gate.sh"},
@@ -93,13 +93,13 @@ func (s *site) ranJob(t *testing.T, does string) (string, job.Dir) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	state := jobs.Failed
+	state := tasks.Failed
 	if exit == 0 {
-		state = jobs.Passed
+		state = tasks.Passed
 	}
-	if err := s.index.Add(jobs.Record{
+	if err := s.index.Add(tasks.Record{
 		ID: id, State: state, Brief: spec.Brief, Repo: spec.Repo,
-		Harness: spec.Harness, Exit: exit, Queued: jobs.Now(), Ended: jobs.Now(),
+		Harness: spec.Harness, Exit: exit, Queued: tasks.Now(), Ended: tasks.Now(),
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +150,7 @@ func unpack(t *testing.T, archive io.Reader, into string) map[string]int64 {
 
 // verify is the two things `gusto verify` does: re-hash the evidence against the
 // manifest, and re-run the gate in the workspace and compare the answer.
-func verify(t *testing.T, dir job.Dir) (string, bool) {
+func verify(t *testing.T, dir task.Dir) (string, bool) {
 	t.Helper()
 	wrong, err := evidence.Check(dir)
 	if err != nil {
@@ -163,7 +163,7 @@ func verify(t *testing.T, dir job.Dir) (string, bool) {
 	if err != nil {
 		return err.Error(), false
 	}
-	spec, err := job.Read(dir)
+	spec, err := task.Read(dir)
 	if err != nil {
 		return err.Error(), false
 	}
@@ -177,10 +177,10 @@ func verify(t *testing.T, dir job.Dir) (string, bool) {
 	return fmt.Sprintf("%d files match, and the gate still exits %d", len(manifest.Files), again.Code), true
 }
 
-func TestTheBundleUnpacksIntoAJobThatVerifies(t *testing.T) {
+func TestTheBundleUnpacksIntoATaskThatVerifies(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	id, _ := site.ranJob(t, wroteTheAnswer)
+	id, _ := site.ranTask(t, wroteTheAnswer)
 
 	got := site.ask(t, "GET", "/jobs/"+id+"/bundle", nil)
 	if got.Code != http.StatusOK {
@@ -192,7 +192,7 @@ func TestTheBundleUnpacksIntoAJobThatVerifies(t *testing.T) {
 	into := t.TempDir()
 	unpack(t, got.Body, into)
 
-	said, passed := verify(t, job.Dir(filepath.Join(into, id)))
+	said, passed := verify(t, task.Dir(filepath.Join(into, id)))
 	if !passed {
 		t.Fatalf("verify refused the unpacked bundle: %s", said)
 	}
@@ -202,7 +202,7 @@ func TestTheBundleUnpacksIntoAJobThatVerifies(t *testing.T) {
 func TestTheBundleCarriesWhatVerifyReadsAndKeepsTheGateRunnable(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	id, dir := site.ranJob(t, wroteTheAnswer)
+	id, dir := site.ranTask(t, wroteTheAnswer)
 
 	got := site.ask(t, "GET", "/jobs/"+id+"/bundle", nil)
 	modes := unpack(t, got.Body, t.TempDir())
@@ -231,17 +231,17 @@ func TestTheBundleCarriesWhatVerifyReadsAndKeepsTheGateRunnable(t *testing.T) {
 	}
 }
 
-// A runner destroyed before the gate leaves a job with no manifest, and an
+// A runner destroyed before the gate leaves a task with no manifest, and an
 // archive of it would be a bundle nobody can check.
-func TestAJobWithNoManifestHasNoBundle(t *testing.T) {
+func TestATaskWithNoManifestHasNoBundle(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	id := "20260101-0900-nothing-ran"
-	if err := job.Dir(filepath.Join(site.index.Root(), id)).Make(); err != nil {
+	if err := task.Dir(filepath.Join(site.index.Root(), id)).Make(); err != nil {
 		t.Fatal(err)
 	}
-	if err := site.index.Add(jobs.Record{
-		ID: id, State: jobs.Interrupted, Brief: "nothing ran", Queued: jobs.Now(), Ended: jobs.Now(),
+	if err := site.index.Add(tasks.Record{
+		ID: id, State: tasks.Interrupted, Brief: "nothing ran", Queued: tasks.Now(), Ended: tasks.Now(),
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +257,7 @@ func TestAJobWithNoManifestHasNoBundle(t *testing.T) {
 func TestTheFileListShowsTheHashTheManifestClaims(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	id, dir := site.ranJob(t, wroteTheAnswer)
+	id, dir := site.ranTask(t, wroteTheAnswer)
 	manifest, err := evidence.Read(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -280,12 +280,12 @@ func TestTheFileListShowsTheHashTheManifestClaims(t *testing.T) {
 	}
 }
 
-func TestAFailedJobShowsWhatTheGateSaid(t *testing.T) {
+func TestAFailedTaskShowsWhatTheGateSaid(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	id, dir := site.ranJob(t, didNothing)
+	id, dir := site.ranTask(t, didNothing)
 	record, _ := site.index.Get(id)
-	if record.State != jobs.Failed {
+	if record.State != tasks.Failed {
 		t.Fatalf("a harness that changed nothing should fail the gate, state %q", record.State)
 	}
 	log, err := os.ReadFile(dir.OutFile("gate.log"))
@@ -305,10 +305,10 @@ func TestAFailedJobShowsWhatTheGateSaid(t *testing.T) {
 	}
 }
 
-func TestAPassingJobDoesNotRepeatTheGateOutput(t *testing.T) {
+func TestAPassingTaskDoesNotRepeatTheGateOutput(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	id, _ := site.ranJob(t, wroteTheAnswer)
+	id, _ := site.ranTask(t, wroteTheAnswer)
 	if page := site.ask(t, "GET", "/jobs/"+id, nil).Body.String(); strings.Contains(page, "What the check said") {
 		t.Error("a gate that passed has nothing to explain")
 	}
@@ -319,7 +319,7 @@ func TestAPassingJobDoesNotRepeatTheGateOutput(t *testing.T) {
 func TestTheHashOnThePageIsTheHashOfTheFileItServes(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	id, _ := site.ranJob(t, wroteTheAnswer)
+	id, _ := site.ranTask(t, wroteTheAnswer)
 	page := site.ask(t, "GET", "/jobs/"+id, nil).Body.String()
 
 	for _, name := range []string{"gate.log", "diff.patch", "transcript.log"} {

@@ -11,14 +11,14 @@ import (
 
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/notify"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // waiting makes a routine's turns wait until the returned function lets them end.
 func waiting(t *testing.T) (started chan string, release func()) {
 	t.Helper()
 	started, gate := make(chan string, 4), make(chan struct{})
-	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
 		started <- dir.Path()
 		select {
 		case <-gate:
@@ -36,15 +36,15 @@ func waiting(t *testing.T) (started chan string, release func()) {
 	}
 }
 
-func ended(t *testing.T, site *site, job string) {
+func ended(t *testing.T, site *site, task string) {
 	t.Helper()
 	for range 100 {
-		if record, _ := site.index.Get(job); record.State.Done() {
+		if record, _ := site.index.Get(task); record.State.Done() {
 			return
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	t.Fatalf("the turn %s did not end", job)
+	t.Fatalf("the turn %s did not end", task)
 }
 
 func routinesOf(t *testing.T, site *site, id string) []instance.Routine {
@@ -68,13 +68,13 @@ func TestARunsNewsIsToldAfterASlotItWasStillAnsweringIn(t *testing.T) {
 	id, _ := aRoutine(t, site, url.Values{"title": {"Slow"}, "prompt": {"go"}, "every": {"1"}})
 	site.server.StartDueRoutines(time.Now())
 	<-started
-	run := routinesOf(t, site, id)[0].Last.Job
+	run := routinesOf(t, site, id)[0].Last.Task
 
 	site.server.StartDueRoutines(time.Now().Add(2 * time.Hour))
 	release()
 	ended(t, site, run)
 	site.server.tellRoutines()
-	if len(mail.told) != 1 || mail.told[0].Job != run {
+	if len(mail.told) != 1 || mail.told[0].Task != run {
 		t.Errorf("the run's news was not told after the skip: %+v", mail.told)
 	}
 }
@@ -86,14 +86,14 @@ func TestARunsNewsIsToldAfterTheNextRunStarts(t *testing.T) {
 	mail := &news{channel: "mail"}
 	site.server.UseRoutineNews(notify.Every{mail}, "")
 	id, _ := aFinishedRun(t, site)
-	first := routinesOf(t, site, id)[0].Last.Job
+	first := routinesOf(t, site, id)[0].Last.Task
 
 	site.server.StartDueRoutines(time.Now().Add(2 * time.Hour))
 	<-site.ran
-	second := routinesOf(t, site, id)[0].Last.Job
+	second := routinesOf(t, site, id)[0].Last.Task
 	ended(t, site, second)
 	site.server.tellRoutines()
-	if len(mail.told) != 2 || mail.told[0].Job != first || mail.told[1].Job != second {
+	if len(mail.told) != 2 || mail.told[0].Task != first || mail.told[1].Task != second {
 		t.Fatalf("told %+v, not %s then %s", mail.told, first, second)
 	}
 	if owed := routinesOf(t, site, id)[0].Owed; len(owed) != 0 {

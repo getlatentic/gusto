@@ -58,8 +58,8 @@ type Settings struct {
 	// OpenShell is the openshell command, OpenShellImage what its sandboxes are made from, and OpenShellGateway the gateway's
 	// name, or nothing for the one selected.
 	OpenShell, OpenShellImage, OpenShellGateway string
-	// JobNetwork "open" leaves a task the network, which an old Landlock can hold it to.
-	JobNetwork string
+	// TaskNetwork "open" leaves a task the network, which an old Landlock can hold it to.
+	TaskNetwork string
 }
 
 // Host is what the probes ask of the computer. A test is any computer it describes.

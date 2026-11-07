@@ -10,12 +10,12 @@ import (
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/connector"
 	"github.com/getlatentic/gusto/internal/crew"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/orgsettings"
 	"github.com/getlatentic/gusto/internal/setup"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/gateway"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // connectionsPath is where a person signs in to the apps their agents may use as them.
@@ -60,7 +60,7 @@ type connectorView struct {
 
 // appAllowed says whether a task may be given one app of its asker's: any, on their own task that they pay for; on a turn they
 // asked of a room's agent, what they chose for that agent and app, or else their default for their agents.
-func (s *Server) appAllowed(record jobs.Record, app string) bool {
+func (s *Server) appAllowed(record tasks.Record, app string) bool {
 	if !record.InRoom() {
 		return record.Payer() == record.Asked
 	}
@@ -75,7 +75,7 @@ func (s *Server) appAllowed(record jobs.Record, app string) bool {
 }
 
 // memberOf is the workspace agent that took a room turn.
-func (s *Server) memberOf(record jobs.Record) (crew.Agent, bool) {
+func (s *Server) memberOf(record tasks.Record) (crew.Agent, bool) {
 	if s.instances == nil || s.crew == nil {
 		return crew.Agent{}, false
 	}
@@ -247,7 +247,7 @@ func (s *Server) turnConnector(on bool) http.HandlerFunc {
 // person's own task is given them. A room's agent works for everybody in the room, so a room turn is given them only when its
 // asker has let that agent use an app, and then only the asker's apps they let it use. An agent that cannot reach the gateway is given
 // none, and runs as it would without them.
-func (s *Server) giveConnectors(spec *job.Spec, dir job.Dir, record jobs.Record) error {
+func (s *Server) giveConnectors(spec *task.Spec, dir task.Dir, record tasks.Record) error {
 	if !s.hasConnectors() {
 		return nil
 	}
@@ -277,7 +277,7 @@ func (s *Server) giveConnectors(spec *job.Spec, dir job.Dir, record jobs.Record)
 		return nil
 	}
 	if spec.Setup == nil {
-		spec.Setup = &job.Setup{}
+		spec.Setup = &task.Setup{}
 	}
 	spec.Setup.Gateway = append(spec.Setup.Gateway, given...)
 	spec.Setup.Connectors = given

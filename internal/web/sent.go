@@ -10,11 +10,11 @@ import (
 	"github.com/getlatentic/gusto/internal/apitoken"
 )
 
-// sentOverHTTP is who asked for a job that arrived at POST /api/jobs with the
-// shared password. The server knows how such a job arrived and not who sent it.
+// sentOverHTTP is who asked for a task that arrived at POST /api/jobs with the
+// shared password. The server knows how such a task arrived and not who sent it.
 const sentOverHTTP = "sent over HTTP"
 
-// tokenAsker is the start of who asked for a job a token sent.
+// tokenAsker is the start of who asked for a task a token sent.
 const tokenAsker = "token:"
 
 type callerKey struct{}

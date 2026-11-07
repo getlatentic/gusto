@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/live"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/internal/web"
 	"github.com/getlatentic/gusto/pkg/redact"
 	"github.com/getlatentic/gusto/pkg/spend"
@@ -31,7 +31,7 @@ type pageHooks interface {
 
 type liveSettings struct {
 	way     *WayOut
-	index   *jobs.Index
+	index   *tasks.Index
 	pages   pageHooks
 	managed bool
 	// models is the list of models people are offered, as the settings file last gave it or the environment first did.
@@ -40,7 +40,7 @@ type liveSettings struct {
 }
 
 // startLive reads the settings file as the server starts and watches the others until the context ends.
-func startLive(ctx context.Context, way *WayOut, index *jobs.Index, pages pageHooks, managed bool) (*liveSettings, error) {
+func startLive(ctx context.Context, way *WayOut, index *tasks.Index, pages pageHooks, managed bool) (*liveSettings, error) {
 	l := &liveSettings{way: way, index: index, pages: pages, managed: managed}
 	initial := way.cfg.models
 	l.models.Store(&initial)
@@ -101,7 +101,7 @@ func (l *liveSettings) applyFile() error {
 	if settings.LimitTeam != nil {
 		team = *settings.LimitTeam
 	}
-	l.index.SetLimits(jobs.Limits{Person: person, Team: team})
+	l.index.SetLimits(tasks.Limits{Person: person, Team: team})
 	models := l.way.cfg.models
 	if len(settings.Models) > 0 {
 		models = settings.Models

@@ -6,7 +6,7 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/industry"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // yours is an instance as the home page lists it: what it is, what was last
@@ -15,7 +15,7 @@ type yours struct {
 	agent
 	Threads int
 	Where   string
-	Latest  jobs.Record
+	Latest  tasks.Record
 	// Active is when it was last spoken to, or started when it never was.
 	Active int64
 }

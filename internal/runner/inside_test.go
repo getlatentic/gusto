@@ -12,7 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A harness is a program, so a program that makes the change is enough to run
@@ -48,23 +48,23 @@ func repo(t *testing.T) string {
 	return at
 }
 
-func ran(t *testing.T) (job.Dir, job.Spec) {
+func ran(t *testing.T) (task.Dir, task.Spec) {
 	t.Helper()
 	return ranAs(t, signing.Identity{Name: "a-test"})
 }
 
-// ranAs is the fixture job, run here with its record signed as signs.
-func ranAs(t *testing.T, signs signing.Identity) (job.Dir, job.Spec) {
+// ranAs is the fixture task, run here with its record signed as signs.
+func ranAs(t *testing.T, signs signing.Identity) (task.Dir, task.Spec) {
 	t.Helper()
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), adapter)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
 
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    repo(t),
 		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
@@ -83,7 +83,7 @@ func ranAs(t *testing.T, signs signing.Identity) (job.Dir, job.Spec) {
 	return dir, spec
 }
 
-func TestAJobLeavesEvidenceItsOwnManifestAgreesWith(t *testing.T) {
+func TestATaskLeavesEvidenceItsOwnManifestAgreesWith(t *testing.T) {
 	dir, _ := ran(t)
 	wrong, err := evidence.Check(dir)
 	if err != nil {
@@ -149,11 +149,11 @@ func TestTheGateIsTheVerdictNotTheHarness(t *testing.T) {
   "stream": "plain"
 }`)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    repo(t),
 		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
@@ -181,16 +181,16 @@ func TestABudgetStopsAHarnessThatWillNotFinish(t *testing.T) {
   "stream": "plain"
 }`)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:   "never finish",
 		Repo:    repo(t),
 		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: "slow",
-		Budget:  job.Budget{Turns: 1, Seconds: 1},
+		Budget:  task.Budget{Turns: 1, Seconds: 1},
 	}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
@@ -232,7 +232,7 @@ func write(t *testing.T, path, text string) {
 	}
 }
 
-func TestAJobThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testing.T) {
+func TestATaskThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testing.T) {
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "slow.json"), `{
   "name": "slow",
@@ -242,11 +242,11 @@ func TestAJobThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testin
   "stream": "plain"
 }`)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: "a long job", Repo: repo(t), Harness: "slow", Budget: job.Budget{Turns: 1, Seconds: 120}}
+	spec := task.Spec{Brief: "a long job", Repo: repo(t), Harness: "slow", Budget: task.Budget{Turns: 1, Seconds: 120}}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -282,13 +282,13 @@ func TestAJobThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testin
 	}
 }
 
-func TestAStopWithNoNoteIsASignalAndAJobThatWasNotStoppedSaysNothing(t *testing.T) {
+func TestAStopWithNoNoteIsASignalAndATaskThatWasNotStoppedSaysNothing(t *testing.T) {
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "slow.json"), `{"name":"slow","program":"sh","argv":["-c","echo up > up.txt; sleep 30"],"needs":"nothing","stream":"plain"}`)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	dir.Make()
-	spec := job.Spec{Brief: "x", Repo: repo(t), Harness: "slow", Budget: job.Budget{Turns: 1, Seconds: 120}}
+	spec := task.Spec{Brief: "x", Repo: repo(t), Harness: "slow", Budget: task.Budget{Turns: 1, Seconds: 120}}
 	spec.Write(dir)
 	ctx, stop := context.WithCancel(context.Background())
 	go func() { waitForFile(t, filepath.Join(dir.Workspace(), "up.txt")); stop() }()
@@ -299,9 +299,9 @@ func TestAStopWithNoNoteIsASignalAndAJobThatWasNotStoppedSaysNothing(t *testing.
 		t.Errorf("a stop with no note said %q", manifest.StoppedBy)
 	}
 
-	finished := job.Dir(t.TempDir())
+	finished := task.Dir(t.TempDir())
 	finished.Make()
-	quick := job.Spec{Brief: "x", Repo: repo(t), Harness: "fixture", Gate: []string{"true"}, Budget: job.Budget{Turns: 1, Seconds: 60}}
+	quick := task.Spec{Brief: "x", Repo: repo(t), Harness: "fixture", Gate: []string{"true"}, Budget: task.Budget{Turns: 1, Seconds: 60}}
 	quick.Write(finished)
 	write(t, filepath.Join(harnesses, "fixture.json"), `{"name":"fixture","program":"sh","argv":["-c","true"],"needs":"nothing","stream":"plain"}`)
 	if _, err := runner.Inside(finished); err != nil {

@@ -11,7 +11,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/repoaccess"
 	"github.com/getlatentic/gusto/internal/ship"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 type openFlags struct {
@@ -46,7 +46,7 @@ func openPullRequest(args []string) int {
 		return fail(err)
 	}
 	options := ship.Options{Remote: f.remote, GitHub: f.github, Base: f.base, Keyring: keyring}
-	plan, err := ship.Prepare(job.Dir(where), options)
+	plan, err := ship.Prepare(task.Dir(where), options)
 	if err != nil {
 		return refusedOr(err)
 	}

@@ -148,7 +148,7 @@ func TestASubscriptionSetsThePaidQuotaForEachSeatAndAnEndedOneStopsNewTasks(t *t
 			t.Fatalf("%v %v", kept, err)
 		}
 		q, _ := s.Quota(org.Slug)
-		if q.Jobs != 600 || q.Members != 50 || !q.Invites || q.Concurrent != 4 {
+		if q.Tasks != 600 || q.Members != 50 || !q.Invites || q.Concurrent != 4 {
 			t.Errorf("three paid seats: %+v", q)
 		}
 		// An event Stripe made earlier, arriving late, changes nothing.
@@ -159,12 +159,12 @@ func TestASubscriptionSetsThePaidQuotaForEachSeatAndAnEndedOneStopsNewTasks(t *t
 			t.Errorf("%+v", b)
 		}
 		recorded(t, s, subscriptionEvent("customer.subscription.updated", org.Slug, "sub_1", "past_due", 3, at.Add(time.Hour)))
-		if q, _ := s.Quota(org.Slug); q.Jobs != 600 {
+		if q, _ := s.Quota(org.Slug); q.Tasks != 600 {
 			t.Errorf("while Stripe tries the card again the organization keeps working: %+v", q)
 		}
 		recorded(t, s, subscriptionEvent("customer.subscription.deleted", org.Slug, "sub_1", "canceled", 3, at.Add(2*time.Hour)))
 		q, _ = s.Quota(org.Slug)
-		if q.Jobs != 0 || q.Concurrent != 0 || q.Invites || q.Members != 50 || q.Computers != 50 || q.Note != lapsedNote {
+		if q.Tasks != 0 || q.Concurrent != 0 || q.Invites || q.Members != 50 || q.Computers != 50 || q.Note != lapsedNote {
 			t.Errorf("an ended subscription starts nothing and removes nobody: %+v", q)
 		}
 		if err := q.Refuse(0); err == nil || !strings.Contains(err.Error(), "renew") {
@@ -203,7 +203,7 @@ func TestConfirmingAnAddressDoesNotTakeAPaidOrganizationOffItsPlan(t *testing.T)
 		if err := s.Verify(t.Context(), "ada@acme.com"); err != nil {
 			t.Fatal(err)
 		}
-		if q, _ := s.Quota(org.Slug); q.Jobs != 400 {
+		if q, _ := s.Quota(org.Slug); q.Tasks != 400 {
 			t.Errorf("%+v", q)
 		}
 	})
@@ -336,7 +336,7 @@ func TestTheSeatsBilledFollowTheMembersAndAFailedChangeIsTriedAgain(t *testing.T
 		if path != "/v1/subscription_items/si_1" || form.Get("quantity") != "3" || form.Get("proration_behavior") != "create_prorations" {
 			t.Errorf("%s %v", path, form)
 		}
-		if q, _ := s.Quota(org.Slug); q.Jobs != 600 {
+		if q, _ := s.Quota(org.Slug); q.Tasks != 600 {
 			t.Errorf("the quota follows the seats: %+v", q)
 		}
 		s.Remove(ctx, org.Slug, ada, "cy@acme.com")

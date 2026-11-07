@@ -12,7 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/replay"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 func TestOneSubmissionMakesTwoRunsThatDifferOnlyByHarness(t *testing.T) {
@@ -34,7 +34,7 @@ func TestOneSubmissionMakesTwoRunsThatDifferOnlyByHarness(t *testing.T) {
 	if record.Commit != started || len(record.Runs) != 2 {
 		t.Fatalf("the record should name two runs at %s, got %+v", started, record)
 	}
-	yes, maybe := specOf(t, record.Runs[0].Job(where)), specOf(t, record.Runs[1].Job(where))
+	yes, maybe := specOf(t, record.Runs[0].Task(where)), specOf(t, record.Runs[1].Task(where))
 	if yes["harness"] != "yes" || maybe["harness"] != "maybe" {
 		t.Fatalf("each run should name its own harness, got %v and %v", yes["harness"], maybe["harness"])
 	}
@@ -67,7 +67,7 @@ func TestEachRunKeepsItsOwnEvidenceAndNeitherSeesTheOther(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	yes, maybe := sides[0].Job(where), sides[1].Job(where)
+	yes, maybe := sides[0].Task(where), sides[1].Task(where)
 	if yes.Workspace() == maybe.Workspace() || yes.Out() == maybe.Out() {
 		t.Fatal("the runs share a directory")
 	}
@@ -78,7 +78,7 @@ func TestEachRunKeepsItsOwnEvidenceAndNeitherSeesTheOther(t *testing.T) {
 		if len(side.Wrong) > 0 || side.Err != nil {
 			t.Fatalf("%s's evidence does not check: %v %v", side.Harness, side.Wrong, side.Err)
 		}
-		if _, err := os.Stat(filepath.Join(side.Job(where).Path(), compare.RecordFile)); err == nil {
+		if _, err := os.Stat(filepath.Join(side.Task(where).Path(), compare.RecordFile)); err == nil {
 			t.Fatalf("%s's run can read the comparison, which names the other harness", side.Harness)
 		}
 	}
@@ -105,7 +105,7 @@ func TestTheCommitIsPinnedBeforeAnyRunClones(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, side := range sides {
-		dir := side.Job(where)
+		dir := side.Task(where)
 		if at := git(t, dir.Workspace(), "rev-parse", "HEAD"); at != started {
 			t.Fatalf("%s worked on %s rather than the pinned %s", side.Harness, at, started)
 		}
@@ -168,7 +168,7 @@ func TestAComparisonNeedsTwoDifferentHarnessesItCanRun(t *testing.T) {
 	}
 }
 
-func specOf(t *testing.T, dir job.Dir) map[string]any {
+func specOf(t *testing.T, dir task.Dir) map[string]any {
 	t.Helper()
 	var fields map[string]any
 	if err := json.Unmarshal([]byte(read(t, dir.Spec())), &fields); err != nil {

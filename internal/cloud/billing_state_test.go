@@ -75,7 +75,7 @@ func TestAQuotaThatCouldNotBeWrittenIsWrittenByTheSweep(t *testing.T) {
 		if err := s.applyDueQuotas(context.Background()); err != nil {
 			t.Fatal(err)
 		}
-		if q, err := s.Quota(org.Slug); err != nil || q.Jobs != s.set.Limits.Verified.Jobs {
+		if q, err := s.Quota(org.Slug); err != nil || q.Tasks != s.set.Limits.Verified.Tasks {
 			t.Fatalf("the sweep did not write the verified quota: %+v %v", q, err)
 		}
 		if due, _ := count(context.Background(), s.db, `SELECT count(*) FROM orgs WHERE quota_due`); due != 0 {

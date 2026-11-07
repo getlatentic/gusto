@@ -55,7 +55,7 @@ func TestAMemoryCapTheRuntimeRefusesIsNamed(t *testing.T) {
 	if ok {
 		t.Fatal("every job would exit 125")
 	}
-	failed(t, printed, "task limits", "GUSTO_JOB_MEMORY")
+	failed(t, printed, "task limits", "GUSTO_TASK_MEMORY")
 	for _, said := range []string{"--memory=4m", "exit 125", "Minimum memory limit allowed is 6MB"} {
 		if !strings.Contains(printed, said) {
 			t.Fatalf("the failure should say %q, got:\n%s", said, printed)
@@ -63,7 +63,7 @@ func TestAMemoryCapTheRuntimeRefusesIsNamed(t *testing.T) {
 	}
 }
 
-func TestTheLimitsTriedAreTheOnesAJobRunsUnder(t *testing.T) {
+func TestTheLimitsTriedAreTheOnesATaskRunsUnder(t *testing.T) {
 	t.Parallel()
 	s := healthy(t)
 	s.Containers.CPUs, s.Containers.Memory = "2", "900m"
@@ -100,12 +100,12 @@ func TestAMountThatHandsBackAnEmptyDirectoryIsNamed(t *testing.T) {
 func TestTheMountLooksForAFileThatIsReallyThere(t *testing.T) {
 	t.Parallel()
 	s := healthy(t)
-	jobs := s.Jobs
+	tasks := s.Tasks
 	var present bool
 	look := func(program string, args ...string) Outcome {
 		if slices.Contains(args, "-v") {
 			marker := args[len(args)-1][len("test -f /job/"):]
-			_, err := os.Stat(filepath.Join(jobs, marker))
+			_, err := os.Stat(filepath.Join(tasks, marker))
 			present = err == nil
 		}
 		return answering().commands(program, args...)
@@ -114,7 +114,7 @@ func TestTheMountLooksForAFileThatIsReallyThere(t *testing.T) {
 	if !present {
 		t.Fatal("the file the container looks for should exist on the host while it looks")
 	}
-	if left, _ := os.ReadDir(jobs); len(left) != 0 {
+	if left, _ := os.ReadDir(tasks); len(left) != 0 {
 		t.Fatalf("the check should leave the jobs directory as it found it, left %v", left)
 	}
 }
@@ -128,7 +128,7 @@ func TestMissingGitIsNamed(t *testing.T) {
 	failed(t, printed, "git", "install git")
 }
 
-func TestAJobsDirectoryThatIsNotWritableIsNamed(t *testing.T) {
+func TestATasksDirectoryThatIsNotWritableIsNamed(t *testing.T) {
 	t.Parallel()
 	s := healthy(t)
 	machine := machineWith(answering().commands)
@@ -138,15 +138,15 @@ func TestAJobsDirectoryThatIsNotWritableIsNamed(t *testing.T) {
 	status(t, printed, "bind mount", Skipped)
 }
 
-func TestAJobsDirectoryThatIsNotThereIsNamed(t *testing.T) {
+func TestATasksDirectoryThatIsNotThereIsNamed(t *testing.T) {
 	t.Parallel()
 	s := healthy(t)
-	s.Jobs = filepath.Join(t.TempDir(), "absent")
+	s.Tasks = filepath.Join(t.TempDir(), "absent")
 	printed, _ := examine(machineWith(answering().commands), s)
-	failed(t, printed, "tasks directory", "set GUSTO_JOBS")
+	failed(t, printed, "tasks directory", "set GUSTO_TASKS")
 }
 
-func TestAWritableJobsDirectoryIsWritable(t *testing.T) {
+func TestAWritableTasksDirectoryIsWritable(t *testing.T) {
 	t.Parallel()
 	if err := canWrite(t.TempDir()); err != nil {
 		t.Fatal(err)
@@ -251,7 +251,7 @@ func write(t *testing.T, path, text string) {
 	}
 }
 
-func TestHardwareVirtualizationIsSkippedForADeploymentThatRunsJobsInContainers(t *testing.T) {
+func TestHardwareVirtualizationIsSkippedForADeploymentThatRunsTasksInContainers(t *testing.T) {
 	t.Parallel()
 	if verdict := sandboxHardware(Settings{}); verdict.Status != Skipped {
 		t.Errorf("a deployment with no sandboxes was asked for hardware virtualization: %+v", verdict)

@@ -140,7 +140,7 @@ func (s *Server) addRoomMembers(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, s.addPath(held), why)
 		return
 	}
-	// Adding finishes the job, so the room comes back with its conversation in view and no dialog over it.
+	// Adding finishes the task, so the room comes back with its conversation in view and no dialog over it.
 	http.Redirect(w, r, threadPath(s.instances.Latest(held.ID)), http.StatusSeeOther)
 }
 

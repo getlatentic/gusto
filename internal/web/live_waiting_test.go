@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/roomlive"
 	"github.com/getlatentic/gusto/internal/roomlive/livetest"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // A turn that waits for its agent says so in every open view as it is queued, and is told again when it starts and ends.
@@ -19,7 +19,7 @@ func TestATurnWaitingForItsAgentIsShownWaitingLiveAndThenDone(t *testing.T) {
 	first := l.say(ada, "c-1", "first question", false)
 	eventually(t, 5*time.Second, "the first turn to start", func() bool {
 		record, _ := l.site.index.Get(first.Ref)
-		return record.State == jobs.Running
+		return record.State == tasks.Running
 	})
 	second := l.say(ada, "c-2", "second question", false)
 
@@ -49,8 +49,8 @@ func TestATurnWaitingForItsAgentIsShownWaitingLiveAndThenDone(t *testing.T) {
 func TestTurnsQueuedBehindAreToldAgainWhenOneAheadChanges(t *testing.T) {
 	l := newLiveRoom(t, &roomWork{}, [2]string{"Scout", "fixture"})
 	a := l.site.server.announce
-	a.note(jobs.Record{ID: "behind", Instance: l.id, Thread: "1", State: jobs.Queued})
-	a.note(jobs.Record{ID: "ahead", Instance: l.id, Thread: "1", State: jobs.Running})
+	a.note(tasks.Record{ID: "behind", Instance: l.id, Thread: "1", State: tasks.Queued})
+	a.note(tasks.Record{ID: "ahead", Instance: l.id, Thread: "1", State: tasks.Running})
 	eventually(t, 5*time.Second, "both turns to be announced", func() bool {
 		slice, _ := l.site.server.instances.RoomEvents(l.id, 0, 0)
 		seen := map[string]bool{}

@@ -14,7 +14,7 @@ import (
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/box"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Box is a place an agent runs that this process only drives, such as a
@@ -34,8 +34,8 @@ const (
 // workspace must already hold the repository.
 //
 // The record is signed by who signs, and the run stops early when ctx ends, as Inside does.
-func Outside(parent context.Context, dir job.Dir, box Box, signs signing.Identity) (int, error) {
-	spec, err := job.Read(dir)
+func Outside(parent context.Context, dir task.Dir, box Box, signs signing.Identity) (int, error) {
+	spec, err := task.Read(dir)
 	if err != nil {
 		return 0, err
 	}
@@ -66,8 +66,8 @@ func Outside(parent context.Context, dir job.Dir, box Box, signs signing.Identit
 
 // outside is a run of an agent in a box this process drives, as prepareOutside readied it.
 type outside struct {
-	dir      job.Dir
-	spec     job.Spec
+	dir      task.Dir
+	spec     task.Spec
 	box      Box
 	adapter  harness.Adapter
 	digest   string
@@ -77,7 +77,7 @@ type outside struct {
 
 // prepareOutside readies a run in a box: what the box cannot carry and a model the run may not reach are refused by name before
 // anything starts, and the workspace, which already holds the repository, is snapshotted.
-func prepareOutside(dir job.Dir, spec job.Spec, box Box) (*outside, error) {
+func prepareOutside(dir task.Dir, spec task.Spec, box Box) (*outside, error) {
 	if spec.Setup != nil && len(spec.Setup.Servers) > 0 {
 		return nil, Refuse(dir, errors.New("a sandbox on a gateway does not yet carry tool servers"))
 	}
@@ -139,7 +139,7 @@ func (r *outside) check(ctx context.Context) (*evidence.Verdict, error) {
 
 // gateIn asks the gate in the box, where the repository's own code runs, and
 // keeps the answer and the whole output.
-func gateIn(ctx context.Context, spec job.Spec, dir job.Dir, box Box) (evidence.Verdict, error) {
+func gateIn(ctx context.Context, spec task.Spec, dir task.Dir, box Box) (evidence.Verdict, error) {
 	command := box.Wrap(ctx, exec.CommandContext(ctx, spec.Gate[0], spec.Gate[1:]...))
 	command.Dir = ""
 	verdict, output, err := askWith(spec, command)
@@ -150,7 +150,7 @@ func gateIn(ctx context.Context, spec job.Spec, dir job.Dir, box Box) (evidence.
 }
 
 // keepGuard writes what the box's guard recorded into the record.
-func keepGuard(dir job.Dir, box Box) error {
+func keepGuard(dir task.Dir, box Box) error {
 	events, policy, err := box.Guard()
 	if err != nil {
 		return err
@@ -164,7 +164,7 @@ func keepGuard(dir job.Dir, box Box) error {
 // admitOutside is admit for a harness that runs in a box: the program is the
 // box's to have, so it is asked of the box once it is up, and the model is
 // reached from this process by the address it has for the proxy.
-func admitOutside(spec job.Spec, adapter harness.Adapter, endpoint string) error {
+func admitOutside(spec task.Spec, adapter harness.Adapter, endpoint string) error {
 	if err := fits(spec, adapter); err != nil {
 		return err
 	}
@@ -201,7 +201,7 @@ func versionIn(ctx context.Context, box Box, name string) string {
 
 // talk runs the harness in the box and records what it does: an ACP agent is
 // held a conversation with, and any other harness's output is read as it comes.
-func talk(ctx context.Context, box Box, adapter harness.Adapter, spec job.Spec, record *Record) (int, error) {
+func talk(ctx context.Context, box Box, adapter harness.Adapter, spec task.Spec, record *Record) (int, error) {
 	command, servers, err := boxCommand(ctx, adapter, spec, box.Workdir(), box.Env())
 	if err != nil {
 		return 0, err
@@ -216,10 +216,10 @@ func talk(ctx context.Context, box Box, adapter harness.Adapter, spec job.Spec, 
 	return converse(ctx, live, box.Workdir(), spec, servers, adapter.Authenticate, record)
 }
 
-// boxCommand is the command that starts the harness in a box, with the servers it is to be given. A job's servers behind the gateway
+// boxCommand is the command that starts the harness in a box, with the servers it is to be given. A task's servers behind the gateway
 // are reached at the proxy by the address the box has for it, the same way the harness reaches its model. A harness that reads its
 // servers from a file in its own folder is not given them: the box does not put a file there.
-func boxCommand(ctx context.Context, adapter harness.Adapter, spec job.Spec, workspace string, env harness.Env) (*exec.Cmd, []job.Server, error) {
+func boxCommand(ctx context.Context, adapter harness.Adapter, spec task.Spec, workspace string, env harness.Env) (*exec.Cmd, []task.Server, error) {
 	servers, err := gatewayServers(spec, env.ModelURL, env.ModelToken)
 	if err != nil {
 		return nil, nil, err

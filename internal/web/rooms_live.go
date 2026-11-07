@@ -9,7 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // A room is looked at often: its page asks every few seconds whether anything changed, and every page's side list counts what is
@@ -35,7 +35,7 @@ const mostReplyNotes = 20000
 // and the character after it, which says whether the name ended there.
 const mentionReach = 4 * 34
 
-func (n *replyNotes) of(s *Server, record jobs.Record) replyNote {
+func (n *replyNotes) of(s *Server, record tasks.Record) replyNote {
 	n.guard.Lock()
 	note, found := n.held[record.ID]
 	n.guard.Unlock()

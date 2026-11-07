@@ -14,9 +14,9 @@ import (
 	"github.com/getlatentic/gusto/internal/connector"
 	"github.com/getlatentic/gusto/internal/connector/connectortest"
 	"github.com/getlatentic/gusto/internal/setup"
-	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/pkg/proxy"
 	"github.com/getlatentic/gusto/pkg/spend"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // An agent's call to an app its asker connected reaches the app with the asker's own token, through the proxy, and never with
@@ -85,12 +85,12 @@ func TestAnAgentCallsAnAppAsThePersonWhoAskedForTheTask(t *testing.T) {
 // asked.
 func connectedTask(t *testing.T, root, id, who, address string) string {
 	t.Helper()
-	dir := job.Dir(filepath.Join(root, id))
+	dir := task.Dir(filepath.Join(root, id))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: "x", Repo: "r", Harness: "fixture", Sensitivity: job.Internal, Budget: job.Budget{Turns: 1, Seconds: 60},
-		Setup: &job.Setup{Gateway: []string{"tasks"}, Connectors: []string{"tasks"}}}
+	spec := task.Spec{Brief: "x", Repo: "r", Harness: "fixture", Sensitivity: task.Internal, Budget: task.Budget{Turns: 1, Seconds: 60},
+		Setup: &task.Setup{Gateway: []string{"tasks"}, Connectors: []string{"tasks"}}}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}

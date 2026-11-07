@@ -8,12 +8,12 @@ import (
 	"os/exec"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Ask runs the command that says pass or fail and writes nothing, until it ends or ctx does. An agent reporting success is a
 // claim; this is the check, and a re-run of it has to leave the record it is checking untouched.
-func Ask(ctx context.Context, spec job.Spec, dir job.Dir) (evidence.Verdict, []byte, error) {
+func Ask(ctx context.Context, spec task.Spec, dir task.Dir) (evidence.Verdict, []byte, error) {
 	command, err := gateCommand(ctx, spec, dir, nil, agent{})
 	if err != nil {
 		return evidence.Verdict{}, nil, err
@@ -22,7 +22,7 @@ func Ask(ctx context.Context, spec job.Spec, dir job.Dir) (evidence.Verdict, []b
 }
 
 // gateCommand is the task's check, to run in its workspace as the agent with env, or this process's environment when env is nil.
-func gateCommand(ctx context.Context, spec job.Spec, dir job.Dir, env []string, as agent) (*exec.Cmd, error) {
+func gateCommand(ctx context.Context, spec task.Spec, dir task.Dir, env []string, as agent) (*exec.Cmd, error) {
 	if len(spec.Gate) == 0 {
 		return nil, errors.New("the task names no check")
 	}
@@ -35,7 +35,7 @@ func gateCommand(ctx context.Context, spec job.Spec, dir job.Dir, env []string, 
 }
 
 // askWith runs a gate command already prepared, in a box or here.
-func askWith(spec job.Spec, command *exec.Cmd) (evidence.Verdict, []byte, error) {
+func askWith(spec task.Spec, command *exec.Cmd) (evidence.Verdict, []byte, error) {
 	output, err := command.CombinedOutput()
 	return evidence.Verdict{
 		Command: spec.Gate,
@@ -46,7 +46,7 @@ func askWith(spec job.Spec, command *exec.Cmd) (evidence.Verdict, []byte, error)
 
 // gateWith runs the check within the run's ctx, in a process group that ends with it, behind a wall when wrap is given, and
 // keeps the answer and the whole output in the record.
-func gateWith(ctx context.Context, spec job.Spec, dir job.Dir, env []string, wrap func(*exec.Cmd), as agent) (evidence.Verdict, error) {
+func gateWith(ctx context.Context, spec task.Spec, dir task.Dir, env []string, wrap func(*exec.Cmd), as agent) (evidence.Verdict, error) {
 	command, err := gateCommand(ctx, spec, dir, env, as)
 	if err != nil {
 		return evidence.Verdict{}, err
@@ -63,7 +63,7 @@ func gateWith(ctx context.Context, spec job.Spec, dir job.Dir, env []string, wra
 }
 
 // keepGate writes the gate's answer and its whole output into the record.
-func keepGate(dir job.Dir, verdict evidence.Verdict, output []byte) error {
+func keepGate(dir task.Dir, verdict evidence.Verdict, output []byte) error {
 	if err := os.WriteFile(dir.OutFile("gate.log"), output, 0o644); err != nil {
 		return err
 	}

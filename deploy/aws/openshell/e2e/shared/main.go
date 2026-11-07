@@ -16,9 +16,9 @@ import (
 
 	"github.com/getlatentic/gusto/internal/openshell"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/pkg/proxy"
 	"github.com/getlatentic/gusto/pkg/spend"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 const (
@@ -115,12 +115,12 @@ func oneTurn(cfg openshell.Config, tokens *proxy.Tokens, workspace string, n int
 			return err
 		}
 	}
-	if err := box.Equip(ctx, job.Dir(os.TempDir()), job.Spec{}, adapter); err != nil {
+	if err := box.Equip(ctx, task.Dir(os.TempDir()), task.Spec{}, adapter); err != nil {
 		return err
 	}
 	// An upload leaves .git behind, so the sandbox's copy gets a history of its own to diff turns against.
 	inside(ctx, box, "the state before turn", "[ -d .git ] || git init -q; git add -A; git -c user.email=t@t -c user.name=t commit -qm before --allow-empty")
-	spec := job.Spec{Brief: brief, Harness: name, Model: model}
+	spec := task.Spec{Brief: brief, Harness: name, Model: model}
 	command := box.Wrap(ctx, adapter.CommandIn(ctx, spec, box.Workdir(), box.Env()))
 	var said bytes.Buffer
 	command.Stdout, command.Stderr = &said, &said

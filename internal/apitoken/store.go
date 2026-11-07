@@ -1,4 +1,4 @@
-// Package apitoken is the tokens a script or a CI job presents to the API in
+// Package apitoken is the tokens a script or a CI task presents to the API in
 // place of the shared password. Each has a name, a list of what it may do, and
 // a maker, and can be revoked on its own, so a token that leaks costs one
 // integration and not everybody's sign-in.

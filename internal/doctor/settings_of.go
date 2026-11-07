@@ -11,8 +11,8 @@ type Settings struct {
 	Sandbox isolation.Settings
 	// Containers is how a task's container is started.
 	Containers sandbox.Containers
-	// Jobs is the directory tasks are kept in.
-	Jobs string
+	// Tasks is the directory tasks are kept in.
+	Tasks string
 	// ModelURL is the model a task asks directly, or nothing when none was named.
 	ModelURL string
 	// Harnesses is the directory of adapters of your own, or nothing.

@@ -46,7 +46,7 @@ func newMaskingSite(t *testing.T, wires []string) *maskingSite {
 	ledger := spend.NewLedger(spend.Policy{})
 	ledger.Begin("a-job", spend.Terms{})
 	a.proxy = New(tokens, Credentials{"": {Name: "platform", Address: a.provider.URL, Key: "k", Wires: wires, MaxOutput: 4096}},
-		func(job string) (string, bool) { return filepath.Join(kept, job+".jsonl"), true }, ledger, Allowlist{})
+		func(task string) (string, bool) { return filepath.Join(kept, task+".jsonl"), true }, ledger, Allowlist{})
 	var err error
 	if a.token, err = tokens.Mint("a-job", ""); err != nil {
 		t.Fatal(err)
@@ -156,7 +156,7 @@ func TestAStreamedAnswerIsMaskedEventByEventAndEachEventArrivesWhenItIsSent(t *t
 	}))
 	defer provider.Close()
 	tokens := NewTokens()
-	proxy := New(tokens, Credentials{"": {Name: "platform", Address: provider.URL, Key: "k"}}, func(job string) (string, bool) { return filepath.Join(t.TempDir(), job), true }, spend.NewLedger(spend.Policy{}), Allowlist{})
+	proxy := New(tokens, Credentials{"": {Name: "platform", Address: provider.URL, Key: "k"}}, func(task string) (string, bool) { return filepath.Join(t.TempDir(), task), true }, spend.NewLedger(spend.Policy{}), Allowlist{})
 	token, _ := tokens.Mint("a-job", "")
 	redactor, _ := redact.New("email")
 	proxy.UseRedaction(redactor)
