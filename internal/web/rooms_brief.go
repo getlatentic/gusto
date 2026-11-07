@@ -13,14 +13,7 @@ import (
 // last spoke, and what it is asked now.
 func (s *Server) roomBrief(held instance.Instance, thread instance.Thread, agent instance.Agent, asked, said, from string) string {
 	var brief strings.Builder
-	role := ""
-	if agent.Job != "" {
-		role = ", for " + agent.Job
-	}
-	fmt.Fprintf(&brief, "You are %s%s, an agent in the room %q. People and agents share this room and its folder.\n", agent.Name, role, held.Title)
-	if persona := strings.TrimSpace(agent.Persona); persona != "" {
-		brief.WriteString("\nHow you work, as your team set it:\n" + persona + "\n\n")
-	}
+	brief.WriteString(roomPreamble(held, agent))
 	brief.WriteString("People here:")
 	for _, member := range held.Members {
 		fmt.Fprintf(&brief, " %s (%s);", member.Who, member.Role)
@@ -47,6 +40,23 @@ func (s *Server) roomBrief(held instance.Instance, thread instance.Thread, agent
 	}
 	fmt.Fprintf(&brief, "\n%s says to you:\n%s\n", speaker, said)
 	return brief.String()
+}
+
+// roomPreamble is who the agent is, how its team says it works, and the standing instructions its room's admins gave.
+func roomPreamble(held instance.Instance, agent instance.Agent) string {
+	var preamble strings.Builder
+	role := ""
+	if agent.Job != "" {
+		role = ", for " + agent.Job
+	}
+	fmt.Fprintf(&preamble, "You are %s%s, an agent in the room %q. People and agents share this room and its folder.\n", agent.Name, role, held.Title)
+	if persona := strings.TrimSpace(agent.Persona); persona != "" {
+		preamble.WriteString("\nHow you work, as your team set it:\n" + persona + "\n\n")
+	}
+	if guidelines := strings.TrimSpace(held.Guidelines); guidelines != "" {
+		preamble.WriteString("\nStanding instructions for this room, set by its admins. Follow them in every reply:\n" + guidelines + "\n\n")
+	}
+	return preamble.String()
 }
 
 // sinceLastSpoke is what was said in a room after an agent's last turn there, by people and the other agents, oldest first.

@@ -93,6 +93,10 @@ const (
 	ConnectorsLetInRoom = "connector.room"
 	ConnectorsLetAgent  = "connector.agent"
 	ConnectorForAgents  = "connector.default"
+
+	RoomGuidelines = "room.guidelines"
+	RoomArchived   = "room.archived"
+	RoomMuted      = "room.muted"
 )
 
 // FromCloud says whether a kind of event is one that an organization's front

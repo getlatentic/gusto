@@ -60,6 +60,10 @@ type Instance struct {
 	Direct  bool     `json:"direct,omitempty"`
 	Members []Member `json:"members,omitempty"`
 	Agents  []Agent  `json:"agents,omitempty"`
+	// Guidelines is what every agent in the room is told at the start of each turn, set by its admins.
+	Guidelines string `json:"guidelines,omitempty"`
+	// Archived is when the room was archived, in unix seconds, and zero while it is not. Nothing can be said in an archived room.
+	Archived int64 `json:"archived,omitempty"`
 }
 
 // Store is every instance under one directory.

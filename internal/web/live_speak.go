@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -17,12 +18,11 @@ import (
 // too, but that is a search of every task, so it is made only for a request its sender says is a resend, which a sender only
 // does after losing the answer, and which is the case a restart in between makes.
 func (s *Server) speak(asked string, held instance.Instance, thread instance.Thread, said, key string, resend bool) (string, error) {
-	held = s.liveRoom(held)
-	agents := mentioned(held, said)
-	waiting := mentionedWaiting(held, said)
-	if working := held.Working(); len(agents) == 0 && len(waiting) == 0 && len(working) == 1 && !s.mentionsAPerson(held, said) {
-		agents = working
+	if held.Archived != 0 {
+		return "", errors.New(roomArchivedWords)
 	}
+	held = s.liveRoom(held)
+	agents, waiting := s.askedAgents(held, said)
 	if len(agents) == 0 {
 		note, err := s.instances.NoteKeyed(held.ID, thread.ID, asked, said, key)
 		if err != nil {
@@ -61,6 +61,16 @@ func (s *Server) speak(asked string, held instance.Instance, thread instance.Thr
 		first = firstOf(first, record.ID)
 	}
 	return first, s.sayWaiting(held, thread, waiting)
+}
+
+// askedAgents is the agents a message is for: the ones it mentions, or the room's only agent when it mentions nobody, not even a
+// person. It also gives the agents it mentions that no admin has accepted.
+func (s *Server) askedAgents(held instance.Instance, said string) (agents, waiting []instance.Agent) {
+	agents, waiting = mentioned(held, said), mentionedWaiting(held, said)
+	if working := held.Working(); len(agents) == 0 && len(waiting) == 0 && len(working) == 1 && !s.mentionsAPerson(held, said) {
+		agents = working
+	}
+	return agents, waiting
 }
 
 // sayWaiting tells the room that the agents a message mentioned that no admin has accepted were not asked.
