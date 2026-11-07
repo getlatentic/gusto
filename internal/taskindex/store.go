@@ -33,12 +33,17 @@ func (s *store) Close() error { return s.db.Close() }
 
 func (s *store) Upsert(ctx context.Context, row Row) error { return s.UpsertMany(ctx, []Row{row}) }
 
-func (s *store) UpsertMany(ctx context.Context, rows []Row) error {
+func (s *store) UpsertMany(ctx context.Context, rows []Row) error { return s.write(ctx, rows, onlyForward) }
+
+func (s *store) Restore(ctx context.Context, rows []Row) error { return s.write(ctx, rows, "") }
+
+// write upserts the rows, with the condition a held row must meet to be replaced, or none.
+func (s *store) write(ctx context.Context, rows []Row, condition string) error {
 	rows = lastOfEach(rows)
 	// Every writer takes the rows' locks in one order, so two batches that share tasks cannot wait on each other.
 	slices.SortFunc(rows, func(a, b Row) int { return strings.Compare(a.ID, b.ID) })
 	for start := 0; start < len(rows); start += maxRowsPerTx {
-		if err := s.upsertChunk(ctx, rows[start:min(start+maxRowsPerTx, len(rows))]); err != nil {
+		if err := s.upsertChunk(ctx, rows[start:min(start+maxRowsPerTx, len(rows))], condition); err != nil {
 			return err
 		}
 	}
@@ -66,13 +71,13 @@ func lastOfEach(rows []Row) []Row {
 	return kept
 }
 
-func (s *store) upsertChunk(ctx context.Context, rows []Row) error {
+func (s *store) upsertChunk(ctx context.Context, rows []Row, condition string) error {
 	args := make([]any, 0, len(rows)*len(rowColumns))
 	for _, r := range rows {
 		args = r.appendArgs(args)
 	}
 	err := s.db.InTx(ctx, func(tx dbkit.Tx) error {
-		_, err := tx.ExecContext(ctx, upsertTask.SQL(len(rows))+onlyForward, args...)
+		_, err := tx.ExecContext(ctx, upsertTask.SQL(len(rows))+condition, args...)
 		return err
 	})
 	if err != nil {
@@ -150,10 +155,10 @@ func (s *store) query(ctx context.Context, query string, args []any, scan func(*
 
 func (s *store) Indexed(ctx context.Context) (map[string]Entry, error) {
 	out := map[string]Entry{}
-	err := s.query(ctx, `SELECT id, state, ended, seq, sum FROM tasks`, nil, func(r *sql.Rows) error {
+	err := s.query(ctx, `SELECT id, state, ended, seq, sum, progress FROM tasks`, nil, func(r *sql.Rows) error {
 		var id string
 		var e Entry
-		if err := r.Scan(&id, &e.State, &e.Ended, &e.Seq, &e.Sum); err != nil {
+		if err := r.Scan(&id, &e.State, &e.Ended, &e.Seq, &e.Sum, &e.Progress); err != nil {
 			return err
 		}
 		out[id] = e

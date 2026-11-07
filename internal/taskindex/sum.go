@@ -47,4 +47,6 @@ func (r Row) Sum() string {
 }
 
 // Entry is what a rebuild compares the row with.
-func (r Row) Entry() Entry { return Entry{State: r.State, Ended: r.Ended, Seq: r.Seq, Sum: r.Sum()} }
+func (r Row) Entry() Entry {
+	return Entry{State: r.State, Ended: r.Ended, Seq: r.Seq, Sum: r.Sum(), Progress: r.Progress()}
+}
