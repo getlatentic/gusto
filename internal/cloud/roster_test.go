@@ -12,7 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/roster"
 )
 
-// acme is an organization with a verified admin, ada, and a front door that starts its
+// acme is an organization with a verified admin, ada, and a gusto cloud server that starts its
 // server, which is the fake.
 func acme(t *testing.T) (*front, *browser) {
 	t.Helper()

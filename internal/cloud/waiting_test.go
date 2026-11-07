@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// lateNodes has no room until it is opened, as a front door does while a node starts.
+// lateNodes has no room until it is opened, as a gusto cloud server does while a node starts.
 type lateNodes struct {
 	open  atomic.Bool
 	local *LocalNode

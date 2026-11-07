@@ -94,7 +94,7 @@ func (s *Store) putLink(ctx context.Context, tx dbkit.Tx, made link) (string, er
 
 // UseLink is the address a link was made for, and the link is spent. It is deleted in
 // the step that reads it, and a row has one deleter, so two requests with the same link
-// cannot both get in, even on two front doors.
+// cannot both get in, even on two gusto cloud servers.
 func (s *Store) UseLink(ctx context.Context, secret string, purpose Purpose) (string, error) {
 	used, err := s.useLink(ctx, secret, purpose)
 	return used.Email, err

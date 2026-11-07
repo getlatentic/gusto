@@ -8,7 +8,7 @@ import (
 	"github.com/getlatentic/gusto/internal/dbkit"
 )
 
-// Names of the small settings the front doors share.
+// Names of the small settings the gusto cloud servers share.
 const (
 	settingDemoLimits  = "demo_limits"
 	settingDemosPaused = "demos_paused"

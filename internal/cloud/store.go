@@ -22,17 +22,17 @@ type Settings struct {
 	// PerDomain is how many organizations one email domain may make.
 	PerDomain int
 	Limits    Limits
-	// Demo, when it is set, makes the front door offer a demo.
+	// Demo, when it is set, makes gusto cloud offer a demo.
 	Demo DemoSettings
 	// DatabaseURL is where the accounts are kept: empty for SQLite in cloud.db under the root, or a
 	// postgres:// address whose search_path parameter names the schema.
 	DatabaseURL string
 }
 
-// Store is the front door's accounts, kept in a database that any number of
-// front doors may share: SQLite in a file under the root by default, or
+// Store is gusto cloud's accounts, kept in a database that any number of
+// gusto cloud servers may share: SQLite in a file under the root by default, or
 // Postgres. Everything a name or a count must be right about is decided inside
-// a transaction, so two front doors cannot both take an address or accept a
+// a transaction, so two gusto cloud servers cannot both take an address or accept a
 // link. An organization's own directory under the root stays a directory.
 type Store struct {
 	root    string

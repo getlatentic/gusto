@@ -14,7 +14,7 @@ import (
 	"github.com/getlatentic/gusto/internal/dbkit/dbkittest"
 )
 
-// eachShared runs a test against settings that name a database several front doors can open: a SQLite file
+// eachShared runs a test against settings that name a database several gusto cloud servers can open: a SQLite file
 // under their root, and, when GUSTO_TEST_POSTGRES_URL is set, a fresh Postgres schema.
 func eachShared(t *testing.T, body func(t *testing.T, set Settings)) {
 	t.Helper()
@@ -25,7 +25,7 @@ func eachShared(t *testing.T, body func(t *testing.T, set Settings)) {
 	t.Run("postgres", func(t *testing.T) { body(t, Settings{DatabaseURL: dbkittest.PostgresURL(t)}) })
 }
 
-// doors opens n front doors on one database and one root, as n processes on a shared disk would.
+// doors opens n gusto cloud servers on one database and one root, as n processes on a shared disk would.
 func doors(t *testing.T, set Settings, n int) []*Store {
 	t.Helper()
 	root := filepath.Join(t.TempDir(), "cloud")
@@ -41,7 +41,7 @@ func doors(t *testing.T, set Settings, n int) []*Store {
 	return stores
 }
 
-// race runs fn in 2*len(stores) goroutines at once, spread over the front doors, and waits for all.
+// race runs fn in 2*len(stores) goroutines at once, spread over the gusto cloud servers, and waits for all.
 func race(stores []*Store, rounds int, fn func(s *Store, i int)) {
 	var wg sync.WaitGroup
 	start := make(chan struct{})
@@ -57,7 +57,7 @@ func race(stores []*Store, rounds int, fn func(s *Store, i int)) {
 	wg.Wait()
 }
 
-func TestTwoFrontDoorsCannotBothAcceptOneInvitation(t *testing.T) {
+func TestTwoGustoCloudServersCannotBothAcceptOneInvitation(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		ds := doors(t, set, 2)
 		admin, org := verifiedOrg(t, ds[0], "ada@acme.com", "Acme")
@@ -77,7 +77,7 @@ func TestTwoFrontDoorsCannotBothAcceptOneInvitation(t *testing.T) {
 	})
 }
 
-func TestTwoFrontDoorsCannotBothUseOneLink(t *testing.T) {
+func TestTwoGustoCloudServersCannotBothUseOneLink(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		ds := doors(t, set, 2)
 		for _, purpose := range []Purpose{SignIn, Verify} {
@@ -98,7 +98,7 @@ func TestTwoFrontDoorsCannotBothUseOneLink(t *testing.T) {
 	})
 }
 
-func TestTwoFrontDoorsCannotBothTakeOneAddressOrOneSlug(t *testing.T) {
+func TestTwoGustoCloudServersCannotBothTakeOneAddressOrOneSlug(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		set.PerDomain = 100
 		ds := doors(t, set, 2)
@@ -133,7 +133,7 @@ func TestTwoFrontDoorsCannotBothTakeOneAddressOrOneSlug(t *testing.T) {
 	})
 }
 
-func TestFrontDoorsTogetherNeverPassTheNumberOfPeopleAnOrganizationMayHave(t *testing.T) {
+func TestGustoCloudsTogetherNeverPassTheNumberOfPeopleAnOrganizationMayHave(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		ds := doors(t, set, 2)
 		admin, org := verifiedOrg(t, ds[0], "ada@acme.com", "Acme")
@@ -149,7 +149,7 @@ func TestFrontDoorsTogetherNeverPassTheNumberOfPeopleAnOrganizationMayHave(t *te
 	})
 }
 
-func TestFrontDoorsTogetherNeverPassTheOrganizationsOneCompanyMayLeaveUnconfirmed(t *testing.T) {
+func TestGustoCloudsTogetherNeverPassTheOrganizationsOneCompanyMayLeaveUnconfirmed(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		ds := doors(t, set, 2)
 		var made, full atomic.Int32
@@ -168,7 +168,7 @@ func TestFrontDoorsTogetherNeverPassTheOrganizationsOneCompanyMayLeaveUnconfirme
 	})
 }
 
-func TestFrontDoorsTogetherNeverLeaveAnOrganizationWithoutAnAdmin(t *testing.T) {
+func TestGustoCloudsTogetherNeverLeaveAnOrganizationWithoutAnAdmin(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		ds := doors(t, set, 2)
 		for round := range 6 {
@@ -199,7 +199,7 @@ func TestFrontDoorsTogetherNeverLeaveAnOrganizationWithoutAnAdmin(t *testing.T) 
 	})
 }
 
-func TestFrontDoorsTogetherHoldADemoToItsLimits(t *testing.T) {
+func TestGustoCloudsTogetherHoldADemoToItsLimits(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		set.Demo = DemoSettings{Length: 30 * time.Minute, MaxOrgs: 100, PerDay: 3, PerPerson: 2, PerCompany: 2}
 		ds := doors(t, set, 2)
@@ -225,7 +225,7 @@ func TestFrontDoorsTogetherHoldADemoToItsLimits(t *testing.T) {
 	})
 }
 
-func TestFrontDoorsTogetherNeverRunMoreDemosAtOnceThanTheHostAllows(t *testing.T) {
+func TestGustoCloudsTogetherNeverRunMoreDemosAtOnceThanTheHostAllows(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		set.Demo = DemoSettings{Length: 30 * time.Minute, MaxOrgs: 2}
 		ds := doors(t, set, 2)
@@ -241,7 +241,7 @@ func TestFrontDoorsTogetherNeverRunMoreDemosAtOnceThanTheHostAllows(t *testing.T
 	})
 }
 
-func TestARateLimitIsOneCountForEveryFrontDoorOnTheDatabase(t *testing.T) {
+func TestARateLimitIsOneCountForEveryGustoCloudOnTheDatabase(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		ds := doors(t, set, 2)
 		limiters := []*Limiter{ds[0].Limiter("invites", 5, time.Hour), ds[1].Limiter("invites", 5, time.Hour)}
@@ -265,13 +265,13 @@ func TestARateLimitIsOneCountForEveryFrontDoorOnTheDatabase(t *testing.T) {
 	})
 }
 
-func TestWhatAnOperatorSetsOnOneFrontDoorHoldsOnTheOthers(t *testing.T) {
+func TestWhatAnOperatorSetsOnOneGustoCloudServerHoldsOnTheOthers(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		set.Demo = DemoSettings{Length: time.Minute, MaxOrgs: 5}
 		ds := doors(t, set, 2)
 		ds[0].SetDemosPaused(t.Context(), true)
 		if !ds[1].DemosPaused(t.Context()) {
-			t.Error("a pause on one front door is not seen by the other")
+			t.Error("a pause on one gusto cloud server is not seen by the other")
 		}
 		if err := ds[0].SetDemoLimits(t.Context(), DemoLimits{PerDay: 7, MaxOrgs: 2}); err != nil {
 			t.Fatal(err)
@@ -281,12 +281,12 @@ func TestWhatAnOperatorSetsOnOneFrontDoorHoldsOnTheOthers(t *testing.T) {
 		}
 		ds[1].ResetDemoLimits(t.Context())
 		if ds[0].DemoLimitsSet(t.Context()) {
-			t.Error("a reset on one front door is not seen by the other")
+			t.Error("a reset on one gusto cloud server is not seen by the other")
 		}
 	})
 }
 
-func TestEveryFrontDoorOnADatabaseSignsAndChecksTheSameCookies(t *testing.T) {
+func TestEveryGustoCloudOnADatabaseSignsAndChecksTheSameCookies(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		ds := doors(t, set, 4)
 		sessions := make([]*Sessions, len(ds))

@@ -9,7 +9,7 @@ import (
 	"github.com/getlatentic/gusto/pkg/spend"
 )
 
-// UseRoster says where the list of the organization's people is. The front door owns
+// UseRoster says where the list of the organization's people is. Gusto cloud owns
 // the people and writes the list, so this server shows what it says and nothing else.
 // Without it the console has no page of people.
 func (s *Server) UseRoster(path string) { s.rosterPath = path }

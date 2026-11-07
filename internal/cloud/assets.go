@@ -6,7 +6,7 @@ import (
 	"io/fs"
 )
 
-// prints is a short digest of each of the front door's own static files, made once.
+// prints is a short digest of each of gusto cloud's own static files, made once.
 // A page names a file with its digest in the address, so a stylesheet that changed in
 // a new release is fetched again and not read from a copy the browser kept for an hour.
 var prints = func() map[string]string {
@@ -26,7 +26,7 @@ var prints = func() map[string]string {
 	return sums
 }()
 
-// fingerprinted is the address of one of the front door's static files with its digest.
+// fingerprinted is the address of one of gusto cloud's static files with its digest.
 func fingerprinted(path string) string {
 	if sum, found := prints[path]; found {
 		return path + "?v=" + sum

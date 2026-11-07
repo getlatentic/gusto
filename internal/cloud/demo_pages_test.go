@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// demoFront is a front door that offers a demo and starts an organization's server, the fake, for each.
+// demoFront is a gusto cloud server that offers a demo and starts an organization's server, the fake, for each.
 func demoFront(t *testing.T, extra ...string) *front {
 	t.Helper()
 	return newFront(t, demoSet, func(c *Config) {
@@ -96,7 +96,7 @@ func TestADemosPagesCarryItsCountdownAndWhereToBookAndAnOrdinaryHostsDoNot(t *te
 			t.Errorf("%s", body)
 		}
 		if status, _, _ := b.at("cloud.test", "GET", "/.gusto/lease", nil); status != http.StatusNotFound {
-			t.Errorf("the front door has no lease of its own here: %d", status)
+			t.Errorf("gusto cloud has no lease of its own here: %d", status)
 		}
 	})
 }

@@ -57,7 +57,7 @@ type health struct {
 func (s *Server) recordHealth(checks runChecks) health {
 	h := health{Logged: s.hasChanges(), Runs: runsSaid(checks), RunsBad: checks.Failing > 0}
 	if h.Logged {
-		// What the front door reported is taken into the log first, so the count includes it.
+		// What gusto cloud reported is taken into the log first, so the count includes it.
 		s.TakeInbox()
 		report, broken := s.checkLog()
 		h.Head = report.Head

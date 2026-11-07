@@ -56,7 +56,7 @@ func runCommands() []*cmdline.Command {
 			Usage: []string{"", "computers", "migrate"},
 			Description: "With no subcommand, runs gusto cloud: sign-up, sign-in and the organizations' records, and the servers it " +
 				"starts for each organization and sends their people to. It runs no tasks itself, and will not start with a setting " +
-				"whose value does not read. The accounts are in a database that several front doors can share: SQLite in " +
+				"whose value does not read. The accounts are in a database that several gusto cloud servers can share: SQLite in " +
 				"cloud.db under the root by default, or Postgres when GUSTO_DATABASE_URL names it (docs/CLOUD-DATABASE.md).",
 			Env:      envCloud(),
 			Examples: []string{"gusto cloud", "gusto cloud migrate", "gusto cloud computers"},

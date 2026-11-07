@@ -43,8 +43,8 @@ ok   Formats.before-applied.cfg: Error: Invariant UpToDateIsWhole is violated.
 ok   Formats.before-format.cfg: Error: Invariant UndoneIsUpgraded is violated.
 ok   Formats.before-scratch.cfg: Error: Invariant StampsLand is violated.
 ok   Formats.now.cfg: 325 states generated, 60 distinct states found, 0 states left on queue.
-ok   FrontDoors.before-leader.cfg: Error: Invariant OneServer is violated.
-ok   FrontDoors.now.cfg: 55269 states generated, 11534 distinct states found, 0 states left on queue.
+ok   CloudServers.before-leader.cfg: Error: Invariant OneServer is violated.
+ok   CloudServers.now.cfg: 55269 states generated, 11534 distinct states found, 0 states left on queue.
 ok   Helper.before-hold.cfg: Error: Invariant NothingLost is violated.
 ok   Helper.before-lock.cfg: Error: Invariant OneHelper is violated.
 ok   Helper.now.cfg: 383 states generated, 117 distinct states found, 0 states left on queue.
@@ -130,7 +130,7 @@ The model assumes `state.json` is written whole. Torn writes are getlatentic/pla
 
 ## OrgSupervisor
 
-One organization address in the front door's controller (`internal/cloud/controller.go`), across the organizations that
+One organization address in gusto cloud's controller (`internal/cloud/controller.go`), across the organizations that
 may hold it one after another: a demo's address has two random bytes, so it can be given again. The callers of
 `provision` are the signup's goroutine, `Run`'s goroutines at start, and the supervisor. The demo sweep removes with
 `Controller.Remove`, then `Store.EndDemo`, then `Controller.Ended`. `Fixes` says which fixes the code has.
@@ -142,17 +142,17 @@ may hold it one after another: a demo's address has two random bytes, so it can 
 | `NewOrgIsProvisioned` | A new organization at a removed address is provisioned. | a check that ignores when the organization was made | `TestANewOrganizationAtARemovedAddressIsProvisioned` |
 
 `provisionChecksOrg` alone keeps `EndingStopsServer`: the supervisor's own check from getlatentic/gusto#560 is a second
-guard. FrontDoors models several front doors.
+guard. CloudServers models several gusto cloud servers.
 
-## FrontDoors
+## CloudServers
 
-Two front doors on one database, each with a controller over one organization, and two nodes. With `leader`, one front
+Two gusto cloud servers on one database, each with a controller over one organization, and two nodes. With `leader`, one front
 door at a time holds a lease with an epoch, only it acts, and a runtime write is refused unless its epoch is the lease's.
 The lease may lapse while its holder is paused, and the holder acts on until it notices.
 
 | Property | What it says | Broken without | Go test |
 | --- | --- | --- | --- |
-| `OneServer` | The organization's server runs on one node at most. | `leader`: each front door places it on a node of its own and starts it there. With the lease but no epoch on writes, a paused leader does the same | `TestAControllerThatLostTheLeaseStartsNothing`, `TestLeadershipRunsTheWorkOnOneFrontDoorAtATime` |
+| `OneServer` | The organization's server runs on one node at most. | `leader`: each gusto cloud server places it on a node of its own and starts it there. With the lease but no epoch on writes, a paused leader does the same | `TestAControllerThatLostTheLeaseStartsNothing`, `TestLeadershipRunsTheWorkOnOneGustoCloudServerAtATime` |
 
 ## ConnectorSignIn
 
@@ -197,7 +197,7 @@ fail, the kernel may write part of the last line, and either the process or the 
 ## Computer
 
 One person's computer (`internal/computer`, `internal/backend/vm`): its record, its sandbox, the tasks that run in
-it, the front door asking for it to be removed when the person is, and the organization server's tend loop, which
+it, gusto cloud asking for it to be removed when the person is, and the organization server's tend loop, which
 removes what was asked and stops what is idle. A computer made again after one was removed is a new generation under
 the same id. Tasks are paid for by the owner and may be asked by a colleague, as a room agent's turn is.
 
@@ -241,20 +241,20 @@ process dying, and the server restarting.
 ## Credentials
 
 What one person may do on their organization's server, and what they carry to show it (`internal/web/auth.go`, `sent.go`,
-`device.go`). The front door changes the person's role, or removes them, and writes the roster the server reads. The person
+`device.go`). Gusto cloud changes the person's role, or removes them, and writes the roster the server reads. The person
 signs in with a signed cookie that names their role, and approves a computer by the device flow, which gives it a token that
 acts as them. Making the token may fail.
 
 | Property | What it says | Broken without | Go test |
 | --- | --- | --- | --- |
-| `NoStaleAuthority` | No request is served as more than the person is now. | `recheck`: the cookie's role, and a computer's token, held until they expired after the front door demoted or removed the person | `TestAPersonDemotedOrRemovedAtTheFrontDoorIsHeldToItAtTheirNextRequest`, `TestAComputerOfAPersonWhoWasRemovedStopsWorking` |
+| `NoStaleAuthority` | No request is served as more than the person is now. | `recheck`: the cookie's role, and a computer's token, held until they expired after gusto cloud demoted or removed the person | `TestAPersonDemotedOrRemovedAtGustoCloudIsHeldToItAtTheirNextRequest`, `TestAComputerOfAPersonWhoWasRemovedStopsWorking` |
 | `ApprovalKept` | A computer whose approval was taken is given its token, or may ask again. | `keepCode`: the code was spent before the token was made, so a failure made the person start over | `TestAComputerWhoseTokenCouldNotBeMadeAsksAgain` |
 
 ## Demo
 
 One demo (`internal/cloud/demo_*.go`): made at a visitor's request, its server made ready by the leader's controller, its
 clock started, opened by the visitor or by a colleague through the organization's own address, extended, stopped,
-ended by the leader's sweep, and the front door crashing. The lead row is kept after the demo, and says how it went.
+ended by the leader's sweep, and gusto cloud crashing. The lead row is kept after the demo, and says how it went.
 A lead write outside a transaction may fail.
 
 | Property | What it says | Broken without | Go test |
@@ -268,7 +268,7 @@ A lead write outside a transaction may fail.
 
 One organization's `quota.json` (`internal/cloud/quota_apply.go`), which its server reads for its limits, and the database it
 is worked out from. A Stripe event, the seat sync and a confirmed address change the database, and each then calls
-`ApplyQuota`, several at once. Writing the file may fail, and the front door may crash; a start writes every quota again.
+`ApplyQuota`, several at once. Writing the file may fail, and gusto cloud may crash; a start writes every quota again.
 Stripe sends an event again when its quota was not written. Role changes and removals are not modelled: an organization with
 no admin who confirmed their address is on the trial, which has room for one person, or has a subscription, which decides its
 quota.
@@ -331,9 +331,9 @@ and its organizations are placed again.
 | `NoStopUnderAStart` | No host is stopped under an organization whose server is being started on it. | `busy`: an organization being placed or started did not count, and the idle host is the one with the most room | `TestAHostIsNotStoppedUnderAnOrganizationBeingPlacedOnIt` |
 | `NoStopUnderAStart` | | `mark`: a host was placed on after its last check and before it stopped | `TestAHostBeingStoppedIsNotPlacedOnWhileItBeatsOnItsWayDown` |
 
-Two more fixes have Go tests and no model: a front door that starts again counts on from the day's prewarms
-(`TestTheDaysPrewarmsAreCountedOnByAFrontDoorThatStartsAgain`), and knows when a quiet host was last heard from
-(`TestAHostThatWentQuietAMomentAgoIsLeftByAFrontDoorThatStartsAgain`). A host that goes stops its servers together, inside
+Two more fixes have Go tests and no model: a gusto cloud server that starts again counts on from the day's prewarms
+(`TestTheDaysPrewarmsAreCountedOnByAGustoCloudServerThatStartsAgain`), and knows when a quiet host was last heard from
+(`TestAHostThatWentQuietAMomentAgoIsLeftByAGustoCloudServerThatStartsAgain`). A host that goes stops its servers together, inside
 its service's stop time (`TestAHostThatGoesStopsItsServersTogetherAndTakesItsRegistrationAway`).
 
 ## Record

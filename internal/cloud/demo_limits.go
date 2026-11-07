@@ -21,15 +21,15 @@ const (
 	mostAtOnce   = 50
 )
 
-// DemoLimits are the limits now: what the operator last set, or what the front door was started with when they have set
+// DemoLimits are the limits now: what the operator last set, or what gusto cloud was started with when they have set
 // none. They are read whenever a demo is asked for, so a change holds from the next one without a restart, on every
-// front door.
+// gusto cloud.
 func (s *Store) DemoLimits(ctx context.Context) DemoLimits {
 	set := s.set.Demo
 	started := DemoLimits{PerDay: set.PerDay, PerPerson: set.PerPerson, PerCompany: set.PerCompany, MaxOrgs: max(set.MaxOrgs, 1)}
 	raw, found, err := s.setting(ctx, settingDemoLimits)
 	if err != nil {
-		slog.Error("the demo limits could not be read, so the ones the front door started with hold", "error", err)
+		slog.Error("the demo limits could not be read, so the ones gusto cloud started with hold", "error", err)
 		return started
 	}
 	var kept DemoLimits
@@ -40,7 +40,7 @@ func (s *Store) DemoLimits(ctx context.Context) DemoLimits {
 	return kept
 }
 
-// DemoLimitsSet says the operator has set the limits, so that they are not the ones the front door started with.
+// DemoLimitsSet says the operator has set the limits, so that they are not the ones gusto cloud started with.
 func (s *Store) DemoLimitsSet(ctx context.Context) bool {
 	_, found, err := s.setting(ctx, settingDemoLimits)
 	return found && err == nil
@@ -63,7 +63,7 @@ func (s *Store) SetDemoLimits(ctx context.Context, limits DemoLimits) error {
 	return s.saveSetting(ctx, settingDemoLimits, string(text))
 }
 
-// ResetDemoLimits goes back to the limits the front door was started with.
+// ResetDemoLimits goes back to the limits gusto cloud was started with.
 func (s *Store) ResetDemoLimits(ctx context.Context) error {
 	return s.dropSetting(ctx, settingDemoLimits)
 }

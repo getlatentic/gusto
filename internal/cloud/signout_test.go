@@ -11,7 +11,7 @@ import (
 
 // A person who signs out in their organization's server is sent here with that server's word for it, and is signed
 // out here too. A link without that word, which any site could make, signs nobody out.
-func TestSigningOutInAnOrganizationsServerSignsThePersonOutOfTheFrontDoor(t *testing.T) {
+func TestSigningOutInAnOrganizationsServerSignsThePersonOutOfGustoCloud(t *testing.T) {
 	f := withServers(t)
 	ada := f.signedUp("ada@acme.com")
 	key, err := f.server.Controller.EntryKey("acme-com")
@@ -47,6 +47,6 @@ func TestSigningOutInAnOrganizationsServerSignsThePersonOutOfTheFrontDoor(t *tes
 		t.Fatalf("%d %v", status, header)
 	}
 	if inside(ada) {
-		t.Error("ada is still signed in to the front door")
+		t.Error("ada is still signed in to gusto cloud")
 	}
 }

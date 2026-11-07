@@ -11,12 +11,12 @@ import (
 )
 
 // RosterFile is the list of people the organization's server reads, and InboxDir is
-// where the front door leaves it what its admins did, for its change record.
+// where gusto cloud leaves it what its admins did, for its change record.
 func (s *Store) RosterFile(slug string) string { return filepath.Join(s.DataDir(slug), "members.json") }
 func (s *Store) InboxDir(slug string) string   { return filepath.Join(s.DataDir(slug), "inbox") }
 
 // PublishRoster writes the organization's people where its server reads them. The people are read and the
-// file is written under a lock, so two front doors that publish together leave the list of the later read.
+// file is written under a lock, so two gusto cloud servers that publish together leave the list of the later read.
 func (s *Store) PublishRoster(ctx context.Context, slug string) error {
 
 	return s.db.InTx(ctx, func(tx dbkit.Tx) error {
@@ -78,7 +78,7 @@ func (s *Store) RecordSignIn(ctx context.Context, email, org string) error {
 	return nil
 }
 
-// givenName is the name a person gave the front door: a demo's visitor types theirs on the form. Nobody else is asked yet.
+// givenName is the name a person gave gusto cloud: a demo's visitor types theirs on the form. Nobody else is asked yet.
 func givenName(org Org, person Person) string {
 	if org.Demo != nil && person.Email == org.Admin {
 		return org.Demo.Name

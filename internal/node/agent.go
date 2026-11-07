@@ -34,7 +34,7 @@ type Status struct {
 	Capacity
 }
 
-// startRequest is what the front door sends to start a server.
+// startRequest is what gusto cloud sends to start a server.
 type startRequest struct {
 	Slug    string   `json:"slug"`
 	Command []string `json:"command"`

@@ -153,9 +153,9 @@ It checks:
 
 - main is deployed: the `deploy` and `demo bundle` runs of its head passed
 - the landing, demo and sign-up pages answer, `/app` sends a stranger to sign in, and signing in reaches the code page
-- the organization is ready, sends a stranger to the front door, and serves its connector client document
+- the organization is ready, sends a stranger to gusto cloud, and serves its connector client document
 - both certificates have 14 days or more left
-- the front door and a node are running, and no sign-in mail failed in 24 hours
+- gusto cloud and a node are running, and no sign-in mail failed in 24 hours
 - the organization's newest task did not fail. An older failure is printed as a note
 
 It does not start a demo, because the demo page asks for a Turnstile check. It does not run a task.

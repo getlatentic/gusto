@@ -51,7 +51,7 @@ func (s *Store) StartDemo(ctx context.Context, name, email, company string) (Per
 }
 
 // startDemoIn checks the day's counts and makes the demo in one step under the lock all demos take, so
-// that two front doors cannot both take the last place.
+// that two gusto cloud servers cannot both take the last place.
 func (s *Store) startDemoIn(ctx context.Context, tx dbkit.Tx, name, address, title string) (Person, Org, error) {
 	if err := s.lock(ctx, tx, "demos"); err != nil {
 		return Person{}, Org{}, err

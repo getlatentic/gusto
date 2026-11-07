@@ -131,7 +131,7 @@ func (s *server) offerModels() error {
 	if agent, model, found := strings.Cut(s.cfg.news.chatDefault, "="); found {
 		s.pages.UseChatDefault(strings.TrimSpace(agent), strings.TrimSpace(model))
 	}
-	reg, offeredNow, err := openRegistry(s.way, s.cfg.access.frontDoor != "", s.cfg.core.local, func() { s.pages.UseInBuilding(s.way.InBuilding()) })
+	reg, offeredNow, err := openRegistry(s.way, s.cfg.access.cloudURL != "", s.cfg.core.local, func() { s.pages.UseInBuilding(s.way.InBuilding()) })
 	if err != nil {
 		return err
 	}
@@ -192,7 +192,7 @@ func (s *server) startBackground() error {
 }
 
 // openDoors is who may come in and how: the organization's roster, the settings it is governed by, a room's live connection,
-// and the front door of the organization's cloud.
+// and gusto cloud of the organization's cloud.
 func (s *server) openDoors() error {
 	if path := s.cfg.served.members; path != "" {
 		s.pages.UseRoster(path)
@@ -202,12 +202,12 @@ func (s *server) openDoors() error {
 	if err := s.pages.UseLive(roomlive.Options{MaxConnections: s.cfg.news.liveConn}); err != nil {
 		return err
 	}
-	front, err := frontDoorOf(s.cfg.access, s.cfg.core.org)
+	front, err := cloudOf(s.cfg.access, s.cfg.core.org)
 	if err != nil {
 		return err
 	}
 	if front != nil {
-		s.pages.UseFrontDoor(*front)
+		s.pages.UseCloud(*front)
 	}
 	return nil
 }

@@ -22,7 +22,7 @@ const (
 	openPause    = 50 * time.Millisecond
 )
 
-// openDatabase opens the database. Front doors started together on a SQLite file that does not exist yet each
+// openDatabase opens the database. Gusto cloud servers started together on a SQLite file that does not exist yet each
 // ask for the write-ahead log at once, and all but one are told the file is busy, so a busy answer is asked again.
 func openDatabase(ctx context.Context, url, root string) (*dbkit.DB, error) {
 	for attempt := 1; ; attempt++ {
@@ -60,7 +60,7 @@ func timeOf(n nullTime) time.Time {
 }
 
 // lock holds a lock named key until the transaction ends. It is what makes a check and the write that
-// depends on it one step for every front door on a Postgres database; SQLite's write lock already does.
+// depends on it one step for every gusto cloud server on a Postgres database; SQLite's write lock already does.
 func (s *Store) lock(ctx context.Context, tx dbkit.Tx, key string) error {
 	if s.db.Dialect() != dbkit.Postgres {
 		return nil

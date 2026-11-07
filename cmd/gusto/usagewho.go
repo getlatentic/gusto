@@ -60,7 +60,7 @@ func providerOf(engines []catalog.Entry, cfg serveSettings) (usage.ProviderFunc,
 	if err != nil {
 		return nil, err
 	}
-	reg, offered, err := openRegistry(way, cfg.access.frontDoor != "", cfg.core.local, func() {})
+	reg, offered, err := openRegistry(way, cfg.access.cloudURL != "", cfg.core.local, func() {})
 	if err != nil {
 		return nil, err
 	}

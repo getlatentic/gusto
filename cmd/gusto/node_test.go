@@ -61,15 +61,15 @@ func TestANodeIsMadeFromItsSettingsAndListensOnThePrivateAddressOnly(t *testing.
 func TestANodeWithASettingWrongOrMissingIsRefusedByNameAndNeverStarts(t *testing.T) {
 	t.Parallel()
 	for name, tune := range map[string]func(map[string]string){
-		"a name that is not one":        func(s map[string]string) { s["GUSTO_NODE_NAME"] = "Cell A" },
-		"a name that is the front door": func(s map[string]string) { s["GUSTO_NODE_NAME"] = "orchestrator" },
-		"no name":                       func(s map[string]string) { s["GUSTO_NODE_NAME"] = "" },
-		"an address that is a name":     func(s map[string]string) { s["GUSTO_NODE_PRIVATE"] = "cell.internal" },
-		"an IPv6 address":               func(s map[string]string) { s["GUSTO_NODE_PRIVATE"] = "fd00::1" },
-		"no directory":                  func(s map[string]string) { s["GUSTO_NODES_DIR"] = "" },
-		"no secret file":                func(s map[string]string) { s["GUSTO_NODE_SECRET_FILE"] = "" },
-		"a secret file that is not":     func(s map[string]string) { s["GUSTO_NODE_SECRET_FILE"] = "/nonexistent/secret" },
-		"a port that is not a number":   func(s map[string]string) { s["GUSTO_NODE_PORT"] = "eighty" },
+		"a name that is not one":      func(s map[string]string) { s["GUSTO_NODE_NAME"] = "Cell A" },
+		"a name that is gusto cloud":  func(s map[string]string) { s["GUSTO_NODE_NAME"] = "orchestrator" },
+		"no name":                     func(s map[string]string) { s["GUSTO_NODE_NAME"] = "" },
+		"an address that is a name":   func(s map[string]string) { s["GUSTO_NODE_PRIVATE"] = "cell.internal" },
+		"an IPv6 address":             func(s map[string]string) { s["GUSTO_NODE_PRIVATE"] = "fd00::1" },
+		"no directory":                func(s map[string]string) { s["GUSTO_NODES_DIR"] = "" },
+		"no secret file":              func(s map[string]string) { s["GUSTO_NODE_SECRET_FILE"] = "" },
+		"a secret file that is not":   func(s map[string]string) { s["GUSTO_NODE_SECRET_FILE"] = "/nonexistent/secret" },
+		"a port that is not a number": func(s map[string]string) { s["GUSTO_NODE_PORT"] = "eighty" },
 	} {
 		cfg, err := nodeFrom(t, tune)
 		if err == nil {
@@ -87,7 +87,7 @@ func TestANodeWithASettingWrongOrMissingIsRefusedByNameAndNeverStarts(t *testing
 	}
 }
 
-func TestTheFrontDoorHasNoPoolUntilItIsToldWhereNodesRegisterAndIsThisMachineANodeOnlyIfSaidSo(t *testing.T) {
+func TestGustoCloudHasNoPoolUntilItIsToldWhereNodesRegisterAndIsThisMachineANodeOnlyIfSaidSo(t *testing.T) {
 	t.Parallel()
 	local := &cloud.LocalNode{}
 	if pool, err := nodePool(cloudFrom(t, nil).nodes, local); pool != nil || err != nil {
@@ -111,7 +111,7 @@ func TestTheFrontDoorHasNoPoolUntilItIsToldWhereNodesRegisterAndIsThisMachineANo
 	}
 }
 
-func TestTheFrontDoorPlacesOnNodesOnlyWhenTheyAreConfigured(t *testing.T) {
+func TestGustoCloudPlacesOnNodesOnlyWhenTheyAreConfigured(t *testing.T) {
 	t.Parallel()
 	_, plain, err := openCloud(t.Context(), cloudFrom(t, map[string]string{"GUSTO_CLOUD_SERVERS": ""}))
 	if err != nil || plain == nil || plain.Nodes != nil {
@@ -126,7 +126,7 @@ func TestTheFrontDoorPlacesOnNodesOnlyWhenTheyAreConfigured(t *testing.T) {
 	}
 }
 
-func TestTheFrontDoorStartsHostsForNodesOnlyWhenItIsToldHowAndToldEnough(t *testing.T) {
+func TestGustoCloudStartsHostsForNodesOnlyWhenItIsToldHowAndToldEnough(t *testing.T) {
 	t.Parallel()
 	plain := &cloud.Controller{}
 	if scaler, err := nodeScaler(cloudFrom(t, nil).scaler, plain); scaler != nil || err != nil {

@@ -82,7 +82,7 @@ func (s *Server) appURL(slug, id string) string {
 // orgURL is the address of an organization's server as a browser reaches it.
 func (s *Server) orgURL(slug string) string { return OrgAddress(s.URL, s.Domain, slug) }
 
-// OrgAddress is the address of an organization's server as a browser reaches it, under a front door at public that serves
+// OrgAddress is the address of an organization's server as a browser reaches it, under a gusto cloud server at public that serves
 // organizations on their own names in domain.
 func OrgAddress(public *url.URL, domain, slug string) string {
 	host := slug + "." + domain
@@ -139,8 +139,8 @@ func (s *Server) forward(w http.ResponseWriter, r *http.Request, slug, app strin
 	}).ServeHTTP(w, r)
 }
 
-// rewrite sends a request on to the address as the front door saw it: the client
-// is who the front door says, and none of the front door's own cookies go. What the
+// rewrite sends a request on to the address as gusto cloud saw it: the client
+// is who gusto cloud says, and none of gusto cloud's own cookies go. What the
 // client claimed about itself is not believed, since the organization's server
 // writes down where a person signed in from.
 func (s *Server) rewrite(address, appSignature string) func(*httputil.ProxyRequest) {
@@ -155,7 +155,7 @@ func (s *Server) rewrite(address, appSignature string) func(*httputil.ProxyReque
 		pr.Out.Header.Set("X-Forwarded-For", s.source(pr.In))
 		pr.Out.Header.Set("X-Forwarded-Proto", scheme)
 		pr.Out.Header.Set("X-Forwarded-Host", pr.In.Host)
-		// Which app a request is for is said by the front door alone: whatever the client sent is
+		// Which app a request is for is said by gusto cloud alone: whatever the client sent is
 		// dropped, and a request that is not for an app carries none.
 		pr.Out.Header.Del(web.AppHeader)
 		if appSignature != "" {

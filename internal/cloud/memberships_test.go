@@ -236,7 +236,7 @@ func TestAPersonInSeveralOrganizationsChoosesOneAndOpensOnlyTheirOwn(t *testing.
 			t.Errorf("the choice is remembered:\n%s", page)
 		}
 		if status, _, header := eve.get2("/"); status != http.StatusSeeOther || header.Get("Location") != "/open" {
-			t.Errorf("once chosen, the front door takes them into it: %d %v", status, header)
+			t.Errorf("once chosen, gusto cloud takes them into it: %d %v", status, header)
 		}
 		if _, page := eve.get("/org?org=initech-com"); !strings.Contains(page, ">Globex</h1>") {
 			t.Errorf("an organization they are not in is not chosen:\n%s", page)
@@ -265,7 +265,7 @@ func TestAPersonInSeveralOrganizationsChoosesOneAndOpensOnlyTheirOwn(t *testing.
 	})
 }
 
-// The switcher on an organization's pages asks the front door for the person's organizations. Only an
+// The switcher on an organization's pages asks gusto cloud for the person's organizations. Only an
 // organization's own address is told it may read the answer with the person's cookie.
 func TestTheSwitcherListsAPersonsOrganizationsToTheirOrganizationsPagesOnly(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
@@ -286,7 +286,7 @@ func TestTheSwitcherListsAPersonsOrganizationsToTheirOrganizationsPagesOnly(t *t
 			{Name: "Globex", Slug: "globex-com", Open: "http://cloud.test/open?org=globex-com"},
 		}
 		if !slices.Equal(answer.Orgs, want) {
-			t.Errorf("their own organizations, each opened through the front door: %+v", answer.Orgs)
+			t.Errorf("their own organizations, each opened through gusto cloud: %+v", answer.Orgs)
 		}
 		if header.Get("Access-Control-Allow-Origin") != "http://globex-com.cloud.test" || header.Get("Access-Control-Allow-Credentials") != "true" {
 			t.Errorf("an organization's page may read it: %v", header)

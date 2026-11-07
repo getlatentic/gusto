@@ -150,7 +150,7 @@ func (a *App) pause(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/?notice="+url.QueryEscape(notice), http.StatusSeeOther)
 }
 
-// limits keeps the limits the operator chose, or goes back to the ones the front door started with.
+// limits keeps the limits the operator chose, or goes back to the ones gusto cloud started with.
 func (a *App) limits(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

@@ -19,7 +19,7 @@ const (
 	Failed  State = "failed"
 )
 
-// Runtime is what the front door knows of an organization's server: which node it
+// Runtime is what gusto cloud knows of an organization's server: which node it
 // is on, the two ports it was given, and how it is doing. It is written by the
 // controller alone, beside the organization's record and apart from it.
 type Runtime struct {
@@ -32,8 +32,8 @@ type Runtime struct {
 	Error     string    `json:"error,omitempty"`
 	Restarts  int       `json:"restarts,omitempty"`
 	Updated   time.Time `json:"updated"`
-	// Command is what the server was started with. A front door whose command is another restarts it, which is how an
-	// organization's server comes to the front door's release.
+	// Command is what the server was started with. A gusto cloud server whose command is another restarts it, which is how an
+	// organization's server comes to gusto cloud's release.
 	Command string `json:"command,omitempty"`
 }
 
@@ -60,7 +60,7 @@ func (s *Store) Runtime(ctx context.Context, slug string) (Runtime, error) {
 }
 
 // SetRuntime keeps the state of an organization's server. Two organizations on one node cannot be given
-// the same port, even by two front doors.
+// the same port, even by two gusto cloud servers.
 func (s *Store) SetRuntime(ctx context.Context, slug string, rt Runtime) error {
 	rt.Updated = s.now().UTC().Truncate(time.Second)
 	_, err := s.db.ExecContext(ctx, putRuntime.SQL(1),

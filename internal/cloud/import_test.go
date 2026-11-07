@@ -67,7 +67,7 @@ func TestTheOldFilesAreLoadedIntoTheDatabaseAndLeftAsTheyWere(t *testing.T) {
 		}
 		key, _ := os.ReadFile(filepath.Join(root, "secret"))
 		if got, err := s.sessionKey(t.Context()); err != nil || string(got) != string(key) {
-			t.Errorf("a restart of the front door signs nobody out: %v", err)
+			t.Errorf("a restart of gusto cloud signs nobody out: %v", err)
 		}
 	})
 }
@@ -217,7 +217,7 @@ func TestTheImportRunsOnceAndRunningItAgainChangesNothing(t *testing.T) {
 	})
 }
 
-func TestTwoFrontDoorsStartedTogetherImportOnce(t *testing.T) {
+func TestTwoGustoCloudServersStartedTogetherImportOnce(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		root, _ := oldLayout(t)
 		const doors = 4

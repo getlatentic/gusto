@@ -76,7 +76,7 @@ func (r *Registry) EnsureFrom(user, host string, spares Spares) (computer Comput
 	if err := r.underLimit(); err != nil {
 		return Computer{}, false, err
 	}
-	// A mark asking for a removed computer to be removed is not for this one, which is made now: a front door of an earlier
+	// A mark asking for a removed computer to be removed is not for this one, which is made now: a gusto cloud server of an earlier
 	// release, or a crash between Retired's two steps, can leave one.
 	if err := os.Remove(r.retireFile(id)); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return Computer{}, false, err
@@ -218,7 +218,7 @@ func (r *Registry) write(computer Computer) error {
 }
 
 // retireFile is the mark that asks for a person's computer to be removed. It is a file of
-// its own and not a change to the record, because the front door makes it and the
+// its own and not a change to the record, because gusto cloud makes it and the
 // organization's server, which reaches the gateway, acts on it, and two processes
 // changing one record would lose a change.
 func (r *Registry) retireFile(id string) string { return filepath.Join(r.dir, id+".retire") }

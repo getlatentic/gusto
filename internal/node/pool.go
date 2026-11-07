@@ -23,7 +23,7 @@ type Pool struct {
 	GoneAfter time.Duration
 	// MinFreeMiB is the least memory a node needs to be given another organization.
 	MinFreeMiB int
-	// Local is this machine as a node, or nothing when it only runs the front door.
+	// Local is this machine as a node, or nothing when it only runs gusto cloud.
 	Local cloud.Node
 	// Measure says what this machine has left, as an agent does for its own.
 	Measure func() Capacity

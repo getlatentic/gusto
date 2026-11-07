@@ -64,7 +64,7 @@ func TestAnOrganizationsServerIsMadeAndStartedWithOnlyItsOwnDirectoriesKeysAndSe
 			}
 		}
 		if said["mailVisible"] != false {
-			t.Error("the front door's mail password reached an organization's server")
+			t.Error("gusto cloud's mail password reached an organization's server")
 		}
 		if !strings.HasPrefix(fmt.Sprint(said["addr"]), "127.0.0.1:") || said["addr"] == said["proxyAddr"] {
 			t.Errorf("a server listens on the loopback, and its proxy is another port: %v %v", said["addr"], said["proxyAddr"])
@@ -227,7 +227,7 @@ func TestAServerThatCannotStartIsFailedWithAReasonAndTriedAgainLessOften(t *test
 	})
 }
 
-// A server that is slow to start is not waited for by the front door: asking where
+// A server that is slow to start is not waited for by gusto cloud: asking where
 // it is answers at once, and says it is starting.
 func TestRoutingDoesNotWaitForAServerThatIsStarting(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
@@ -262,7 +262,7 @@ func TestRoutingDoesNotWaitForAServerThatIsStarting(t *testing.T) {
 	})
 }
 
-// Run starts every organization, and leaves them running when it ends, for the next leader; StopAll, when the front door
+// Run starts every organization, and leaves them running when it ends, for the next leader; StopAll, when gusto cloud
 // stops, asks each to stop.
 func TestRunStartsEveryOrganizationAndStopAllStopsThem(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
@@ -312,9 +312,9 @@ func TestAServerThatIgnoresBeingAskedToStopIsMadeToAfterTheGrace(t *testing.T) {
 	})
 }
 
-// What was Ready before the front door restarted is starting until it answers again,
+// What was Ready before gusto cloud restarted is starting until it answers again,
 // and not gone: a request in that moment is told to wait.
-func TestAnOrganizationThatWasReadyIsStartingAgainWhenTheFrontDoorRestarts(t *testing.T) {
+func TestAnOrganizationThatWasReadyIsStartingAgainWhenGustoCloudRestarts(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		first := controlled(t, s)

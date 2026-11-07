@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// home is what gusto is, for everybody, signed in or not, when this front door has a landing page. One without is only the
+// home is what gusto is, for everybody, signed in or not, when this gusto cloud server has a landing page. One without is only the
 // way in.
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	if s.demoOffered() {

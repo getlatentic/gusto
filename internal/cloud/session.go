@@ -29,7 +29,7 @@ type Sessions struct {
 const SessionLife = 30 * 24 * time.Hour
 
 // OpenSessions reads the signing key the database holds, and makes it when there is none, so that
-// every front door on one database signs and checks the same cookies and a restart signs nobody out.
+// every gusto cloud server on one database signs and checks the same cookies and a restart signs nobody out.
 // secure is whether the cookie is for a site served over https.
 func (s *Store) OpenSessions(ctx context.Context, secure bool) (*Sessions, error) {
 	key, err := s.sessionKey(ctx)
@@ -173,7 +173,7 @@ func linkHash(secret string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// ownCookie says whether a cookie is the front door's, over https or not, which no organization's server is sent.
+// ownCookie says whether a cookie is gusto cloud's, over https or not, which no organization's server is sent.
 func ownCookie(name string) bool {
 	switch name {
 	case "gusto_cloud", "__Host-gusto_cloud", "gusto_org", "__Host-gusto_org", "gusto_joined", "__Host-gusto_joined":

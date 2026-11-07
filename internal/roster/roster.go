@@ -1,4 +1,4 @@
-// Package roster is who is in an organization, kept in a file that its front door
+// Package roster is who is in an organization, kept in a file that its gusto cloud
 // writes and its server reads. Gusto cloud owns the people, since it signs them
 // in and invites them; the server only shows them, so it holds no second copy that
 // could disagree.

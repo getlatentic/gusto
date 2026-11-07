@@ -134,7 +134,7 @@ func TestAFullConsoleListsItsSectionsInOrder(t *testing.T) {
 		}
 	}
 	if strings.Contains(seen, "Organization and billing") {
-		t.Error("a console with no front door links to an organization page")
+		t.Error("a console with no gusto cloud links to an organization page")
 	}
 }
 
@@ -298,7 +298,7 @@ func TestTheAddressesTheAdminPagesHadStillWork(t *testing.T) {
 }
 
 func TestTheConsoleNamesTheOrganizationAndAnotherOrganizationsTokenDoesNotOpenIt(t *testing.T) {
-	here := behindAFrontDoor(t)
+	here := behindCloud(t)
 	here.server.UseAdmins(nil)
 	stranger := here.enterWith(t, tokenFor(t, "other-com", "eve@other.com", "admin", time.Now()))
 	if stranger.Code != http.StatusForbidden {

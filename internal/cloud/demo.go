@@ -9,7 +9,7 @@ import (
 	"github.com/getlatentic/gusto/internal/quota"
 )
 
-// DemoSettings make the front door offer a demo: an organization that a visitor starts without signing up, that
+// DemoSettings make gusto cloud offer a demo: an organization that a visitor starts without signing up, that
 // has a time, and that is deleted when the time is up. A demo is offered when Length is set.
 type DemoSettings struct {
 	// Length is how long a demo lasts from when its server is ready, and Extend is what the one extension adds.
@@ -34,7 +34,7 @@ type DemoSettings struct {
 	Staff []string
 }
 
-// Enabled says the front door offers a demo.
+// Enabled says gusto cloud offers a demo.
 func (d DemoSettings) Enabled() bool { return d.Length > 0 }
 
 // Public says a visitor may start a demo, rather than only the host's staff.

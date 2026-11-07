@@ -113,7 +113,7 @@ func orDefault(d, fallback time.Duration) time.Duration {
 func InstanceOf(nodeName string) string { return "i-" + strings.TrimPrefix(nodeName, "cell-") }
 
 // Run decides when it is woken, and every so often in case a change was missed, until the context ends. Nodes are left
-// running when it ends, since another gusto cloud will find them.
+// running when it ends, since another gusto cloud server will find them.
 func (s *Scaler) Run(ctx context.Context, every time.Duration) {
 	tick := time.NewTicker(every)
 	defer tick.Stop()
@@ -170,7 +170,7 @@ func (s *Scaler) Tick() {
 	slog.Info("a host was started", "host", id, "because", why, "waiting", waiting)
 }
 
-// settling says a node registered a moment ago. It is counted from when it was first seen to be a node, so a front door
+// settling says a node registered a moment ago. It is counted from when it was first seen to be a node, so a gusto cloud server
 // that starts again waits the same moment for the nodes it finds.
 func (s *Scaler) settling(alive map[string]Registration) bool {
 	if s.firstSeen == nil {
@@ -219,7 +219,7 @@ func (s *Scaler) reap(hosts []Instance, alive map[string]Registration) int {
 }
 
 // lastHeard is when a node was started or last said it was there, whichever is later. The registration keeps the second, so a
-// front door that starts again knows it.
+// gusto cloud that starts again knows it.
 func (s *Scaler) lastHeard(host Instance) time.Time {
 	_, age, err := Registered(s.Pool.Dir, NodeOf(host.ID), s.clock())
 	if heard := s.clock().Add(-age); err == nil && heard.After(host.Launched) {
@@ -244,7 +244,7 @@ func (s *Scaler) busy() int {
 }
 
 // retire stops a node that has had nothing on it for as long as a node may, unless an organization waits for room or is being
-// placed or started. A restarted front door gives each idle node the whole of that time again, which delays a stop and never
+// placed or started. A restarted gusto cloud gives each idle node the whole of that time again, which delays a stop and never
 // hastens one.
 func (s *Scaler) retire(hosts []Instance, alive map[string]Registration) {
 	if s.idleSince == nil {

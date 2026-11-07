@@ -319,16 +319,16 @@ func TestAnAppIsRemovedOnlyThroughTheAgentItBelongsTo(t *testing.T) {
 	}
 }
 
-// behindAFrontDoorSharing is a server that is acme-com's in a hosted gusto, and shares apps.
-func behindAFrontDoorSharing(t *testing.T) (*site, *runnerFake, *gatewayFake) {
+// behindCloudSharing is a server that is acme-com's in a hosted gusto, and shares apps.
+func behindCloudSharing(t *testing.T) (*site, *runnerFake, *gatewayFake) {
 	t.Helper()
 	site, runner, gateway := sharingSite(t)
-	site.server.UseFrontDoor(FrontDoor{Key: entryKey, Org: "acme-com", URL: "https://cloud.test"})
+	site.server.UseCloud(Cloud{Key: entryKey, Org: "acme-com", URL: "https://cloud.test"})
 	site.handler = site.server.Handler()
 	return site, runner, gateway
 }
 
-// appRequest is a request as the front door passes one for an app's own host name.
+// appRequest is a request as gusto cloud passes one for an app's own host name.
 func (s *site) appRequest(t *testing.T, id, method, path string, cookies ...*http.Cookie) *httptest.ResponseRecorder {
 	t.Helper()
 	request := httptest.NewRequest(method, path, nil)
@@ -342,7 +342,7 @@ func (s *site) appRequest(t *testing.T, id, method, path string, cookies ...*htt
 	return recorder
 }
 
-// signedInTo is a person the front door signed in on the app's host name, with the cookie they were given.
+// signedInTo is a person gusto cloud signed in on the app's host name, with the cookie they were given.
 func (s *site) signedInTo(t *testing.T, id string) *http.Cookie {
 	t.Helper()
 	token := tokenFor(t, "acme-com", "ada@acme.com", "runner", time.Now())
@@ -362,7 +362,7 @@ func (s *site) signedInTo(t *testing.T, id string) *http.Cookie {
 // An app the agent wrote with absolute paths, which is what an agent writes, works: it has its own
 // host name, so /click is the app's and not the organization's.
 func TestAnAppHasAHostNameOfItsOwnSoWhatItWroteWorksAsItWroteIt(t *testing.T) {
-	site, _, gateway := behindAFrontDoorSharing(t)
+	site, _, gateway := behindCloudSharing(t)
 	where := startedInstance(t, site)
 	id := sharedApp(t, site, where)
 	app, _ := site.server.apps.Get(id)
@@ -387,8 +387,8 @@ func TestAnAppHasAHostNameOfItsOwnSoWhatItWroteWorksAsItWroteIt(t *testing.T) {
 	}
 }
 
-func TestAnAppsHostNameSignsInWithTheFrontDoorsTokenAndSendsAStrangerThere(t *testing.T) {
-	site, _, _ := behindAFrontDoorSharing(t)
+func TestAnAppsHostNameSignsInWithGustoCloudsTokenAndSendsAStrangerThere(t *testing.T) {
+	site, _, _ := behindCloudSharing(t)
 	id := sharedApp(t, site, startedInstance(t, site))
 
 	stranger := site.appRequest(t, id, "GET", "/")
@@ -414,8 +414,8 @@ func TestAnAppsHostNameSignsInWithTheFrontDoorsTokenAndSendsAStrangerThere(t *te
 	}
 }
 
-func TestOnlyTheFrontDoorCanNameAnApp(t *testing.T) {
-	site, _, _ := behindAFrontDoorSharing(t)
+func TestOnlyGustoCloudCanNameAnApp(t *testing.T) {
+	site, _, _ := behindCloudSharing(t)
 	id := sharedApp(t, site, startedInstance(t, site))
 	for name, header := range map[string]string{
 		"an unsigned id":         id,
@@ -431,20 +431,20 @@ func TestOnlyTheFrontDoorCanNameAnApp(t *testing.T) {
 			t.Errorf("%s: %d", name, recorder.Code)
 		}
 	}
-	// A server that is not behind a front door has no key to check it by, and believes nobody.
+	// A server that is not behind gusto cloud has no key to check it by, and believes nobody.
 	alone, _, _ := sharingSite(t)
 	request := httptest.NewRequest("GET", "/", nil)
 	request.Header.Set(AppHeader, SignApp(entryKey, id))
 	recorder := httptest.NewRecorder()
 	alone.handler.ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusBadRequest {
-		t.Errorf("a server with no front door took an app's header: %d", recorder.Code)
+		t.Errorf("a server with no gusto cloud took an app's header: %d", recorder.Code)
 	}
 }
 
 // On an app's host name nothing of the organization's own pages can be reached, whatever is asked for.
 func TestOnAnAppsHostNameEveryPathIsTheAppsAndNoneIsAPageOfTheOrganization(t *testing.T) {
-	site, _, gateway := behindAFrontDoorSharing(t)
+	site, _, gateway := behindCloudSharing(t)
 	id := sharedApp(t, site, startedInstance(t, site))
 	cookie := site.signedInTo(t, id)
 	for _, path := range []string{"/spend", "/instances/anything", "/jobs", "/tokens", "/logout", "/apps/" + id + "/", "/static/app.css"} {
@@ -462,7 +462,7 @@ func TestOnAnAppsHostNameEveryPathIsTheAppsAndNoneIsAPageOfTheOrganization(t *te
 }
 
 func TestAnAppSetsItsOwnCookiesOnItsHostOnlyAndNeverOneOfTheOrganizationsOrForTheWholeDomain(t *testing.T) {
-	site, _, gateway := behindAFrontDoorSharing(t)
+	site, _, gateway := behindCloudSharing(t)
 	id := sharedApp(t, site, startedInstance(t, site))
 	cookie := site.signedInTo(t, id)
 	gateway.Server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -499,7 +499,7 @@ func TestAnAppSetsItsOwnCookiesOnItsHostOnlyAndNeverOneOfTheOrganizationsOrForTh
 // A browser's POST names the origin it drew the page at, and the gateway refuses one that is not its own.
 // That is what stopped the first app an agent built from counting a click.
 func TestABrowsersPostIsPassedOnAsFromTheGatewaysOwnOriginInBothWaysAnAppIsServed(t *testing.T) {
-	site, _, gateway := behindAFrontDoorSharing(t)
+	site, _, gateway := behindCloudSharing(t)
 	id := sharedApp(t, site, startedInstance(t, site))
 	app, _ := site.server.apps.Get(id)
 	cookie := site.signedInTo(t, id)
@@ -519,7 +519,7 @@ func TestABrowsersPostIsPassedOnAsFromTheGatewaysOwnOriginInBothWaysAnAppIsServe
 		t.Errorf("the gateway was asked as %q, referred by %q", asked.Header.Get("Origin"), asked.Header.Get("Referer"))
 	}
 
-	// The same, on a server with no front door, where the app is a path of the organization's own origin.
+	// The same, on a server with no gusto cloud, where the app is a path of the organization's own origin.
 	alone, _, aloneGateway := sharingSite(t)
 	aloneID := sharedApp(t, alone, startedInstance(t, alone))
 	request := httptest.NewRequest("POST", "/apps/"+aloneID+"/click", nil)
@@ -555,7 +555,7 @@ func quietGateway(t *testing.T) (*gatewayFake, *int32) {
 }
 
 func TestARequestToAYoungAppThatIsNotAnsweredIsAskedAgainOnANewConnectionAndALaterOneIsNot(t *testing.T) {
-	site, runner, _ := behindAFrontDoorSharing(t)
+	site, runner, _ := behindCloudSharing(t)
 	gateway, held := quietGateway(t)
 	runner.gateway = gateway
 	site.server.appFirstByte = 200 * time.Millisecond

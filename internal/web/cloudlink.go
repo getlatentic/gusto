@@ -10,39 +10,39 @@ import (
 	"github.com/getlatentic/gusto/internal/entry"
 )
 
-// FrontDoor makes this server one organization's in a hosted gusto. Nobody signs
-// in here: the front door signs a person in, and hands their browser a token
+// Cloud makes this server one organization's in a hosted gusto. Nobody signs
+// in here: gusto cloud signs a person in, and hands their browser a token
 // that this server checks against a key only the two of them hold. An address
-// here that wants a sign-in sends the person to the front door.
-type FrontDoor struct {
+// here that wants a sign-in sends the person to gusto cloud.
+type Cloud struct {
 	// Key is what tokens are made and checked with, Org is the address of the
 	// organization this server is and Name what it is called, and URL is where
-	// the front door is.
+	// gusto cloud is.
 	Key  []byte
 	Org  string
 	Name string
 	URL  string
 }
 
-type frontDoor struct {
-	FrontDoor
+type cloudLink struct {
+	Cloud
 	seen *entry.Seen
 }
 
-// sessionLife is how long what the front door vouched for is trusted, and the
+// sessionLife is how long what gusto cloud vouched for is trusted, and the
 // most a person lingers here after they are removed from the organization. Past
-// it they go back through the front door, which asks whether they still belong.
+// it they go back through gusto cloud, which asks whether they still belong.
 const sessionLife = time.Hour
 
-// UseFrontDoor puts this server behind a front door.
-func (s *Server) UseFrontDoor(f FrontDoor) {
-	s.front = &frontDoor{FrontDoor: f, seen: &entry.Seen{}}
+// UseCloud puts this server behind gusto cloud.
+func (s *Server) UseCloud(f Cloud) {
+	s.front = &cloudLink{Cloud: f, seen: &entry.Seen{}}
 	s.keeper.life = sessionLife
 }
 
-// page is the address of a page of the front door, for this organization: a person who is in several
+// page is the address of a page of gusto cloud, for this organization: a person who is in several
 // organizations comes back to the one they left.
-func (f *frontDoor) page(path string, query url.Values) string {
+func (f *cloudLink) page(path string, query url.Values) string {
 	if query == nil {
 		query = url.Values{}
 	}
@@ -50,19 +50,19 @@ func (f *frontDoor) page(path string, query url.Values) string {
 	return f.URL + path + "?" + query.Encode()
 }
 
-// exit is where a person who signed out here goes next: the front door, with a token that asks it to sign them
+// exit is where a person who signed out here goes next: gusto cloud, with a token that asks it to sign them
 // out too, or else they would be let straight back in.
-func (f *frontDoor) exit(email string) string {
+func (f *cloudLink) exit(email string) string {
 	token, err := entry.MintExit(f.Key, f.Org, email, time.Now())
 	if err != nil {
-		slog.Error("a sign-out could not be passed to the front door", "error", err)
+		slog.Error("a sign-out could not be passed to gusto cloud", "error", err)
 		return f.page("/org", nil)
 	}
 	return f.page("/signout", url.Values{"t": {token}})
 }
 
-// toFrontDoor sends somebody to be signed in where people are.
-func (s *Server) toFrontDoor(w http.ResponseWriter, r *http.Request) {
+// toCloud sends somebody to be signed in where people are.
+func (s *Server) toCloud(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Has("desktop") {
 		s.render(w, "login.html", map[string]any{"Desktop": true, "Provider": true, "Refused": s.refusal(r)})
 		return
@@ -70,9 +70,9 @@ func (s *Server) toFrontDoor(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.front.page("/open", nil), http.StatusSeeOther)
 }
 
-// enter signs a person in with a token the front door made for them. A token that
+// enter signs a person in with a token gusto cloud made for them. A token that
 // is wrong, old, for another organization or already used gets a page that says
-// so and links to the front door, and never a redirect there, which two
+// so and links to gusto cloud, and never a redirect there, which two
 // servers that disagreed about a key would follow for ever.
 func (s *Server) enter(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
@@ -95,7 +95,7 @@ func (s *Server) enter(w http.ResponseWriter, r *http.Request) {
 }
 
 // leaseExtend is where a person extends the host this organization runs on, or nothing
-// when the server is not behind a front door. The page asks the host, and the host says
+// when the server is not behind gusto cloud. The page asks the host, and the host says
 // whether it has a lease, so the script is harmless on one that has none.
 func (s *Server) leaseExtend() string {
 	if s.front == nil {

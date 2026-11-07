@@ -101,14 +101,14 @@ func (s *servedSettings) declare(set *settings.Set) {
 	set.Bool(&s.integrationsPrivate, "GUSTO_INTEGRATIONS_PRIVATE", "let an integration be imported from a private address")
 }
 
-// accessSettings is who may sign in, and how: the identity provider, the allowed people and groups, and the front door of
+// accessSettings is who may sign in, and how: the identity provider, the allowed people and groups, and gusto cloud of
 // the organization's gusto cloud.
 type accessSettings struct {
 	issuer, clientID, clientSecret, redirect, groupsClaim string
 	scopes                                                []string
 	allowed, runnerGroups, adminGroups, admins            []string
 	foundKeys, localRepos                                 []string
-	frontDoor, entryKey, orgName                          string
+	cloudURL, entryKey, orgName                           string
 }
 
 func (a *accessSettings) declare(set *settings.Set) {
@@ -124,7 +124,8 @@ func (a *accessSettings) declare(set *settings.Set) {
 	set.List(&a.admins, "GUSTO_ADMINS", "the people who are admins, comma-separated")
 	set.List(&a.foundKeys, "GUSTO_FOUND_KEYS", "the model keys found on a person's own computer")
 	set.List(&a.localRepos, "GUSTO_LOCAL_REPOS", "the repositories on a person's own computer a task may start from")
-	set.String(&a.frontDoor, "GUSTO_FRONT_DOOR", "", "the address of the gusto cloud that sends people here")
+	set.String(&a.cloudURL, "GUSTO_CLOUD_URL", "", "the address of the gusto cloud that sends people here")
+	set.Renamed("GUSTO_CLOUD_URL", "GUSTO_FRONT_DOOR")
 	set.String(&a.entryKey, "GUSTO_ENTRY_KEY", "", "the file of the key gusto cloud signs a person's entry with")
 	set.String(&a.orgName, "GUSTO_ORG_NAME", "", "what the organization is called, which its pages show")
 }

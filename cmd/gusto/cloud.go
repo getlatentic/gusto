@@ -58,7 +58,7 @@ func cloudCommand() int {
 	if err != nil {
 		return fail(err)
 	}
-	door := &frontDoor{front: front, controller: controller, scaler: scaler}
+	door := &cloudService{front: front, controller: controller, scaler: scaler}
 	door.startBackground(ctx, cfg.nodes.dir)
 	controlled := door.leadInTurn(ctx, time.Duration(cfg.front.leaderSeconds)*time.Second)
 	if err := serveCloud(ctx, cfg.front.addr, front); err != nil {
@@ -69,16 +69,16 @@ func cloudCommand() int {
 	return 0
 }
 
-// frontDoor is a running gusto cloud: its pages, the controller of the organizations' servers when it starts them, and
+// cloudService is a running gusto cloud: its pages, the controller of the organizations' servers when it starts them, and
 // the scaler of hosts when it starts those.
-type frontDoor struct {
+type cloudService struct {
 	front      *cloud.Server
 	controller *cloud.Controller
 	scaler     *node.Scaler
 }
 
-// startBackground starts what every front door does, leader or not.
-func (d *frontDoor) startBackground(ctx context.Context, nodesDir string) {
+// startBackground starts what every gusto cloud server does, leader or not.
+func (d *cloudService) startBackground(ctx context.Context, nodesDir string) {
 	if d.scaler != nil {
 		d.controller.OnWaiting = d.scaler.Wake
 		d.front.Prewarm = d.scaler.Prewarm
@@ -92,9 +92,9 @@ func (d *frontDoor) startBackground(ctx context.Context, nodesDir string) {
 	}
 }
 
-// leadInTurn makes this front door one of those on the database that take turns to lead. The channel closes once it no
+// leadInTurn makes this gusto cloud server one of those on the database that take turns to lead. The channel closes once it no
 // longer leads and has stopped the servers it controlled.
-func (d *frontDoor) leadInTurn(ctx context.Context, ttl time.Duration) <-chan struct{} {
+func (d *cloudService) leadInTurn(ctx context.Context, ttl time.Duration) <-chan struct{} {
 	if d.controller != nil {
 		d.controller.Follow()
 	}
@@ -110,9 +110,9 @@ func (d *frontDoor) leadInTurn(ctx context.Context, ttl time.Duration) <-chan st
 	return controlled
 }
 
-// lead runs what one front door on the database does while its lease holds: the controller, the demo and quota sweeps and
+// lead runs what one gusto cloud server on the database does while its lease holds: the controller, the demo and quota sweeps and
 // the scaler. The others serve pages and route from the database.
-func (d *frontDoor) lead(ctx context.Context, epoch int64) {
+func (d *cloudService) lead(ctx context.Context, epoch int64) {
 	if d.controller != nil {
 		d.controller.Lead(epoch)
 		defer d.controller.Follow()
@@ -129,7 +129,7 @@ func (d *frontDoor) lead(ctx context.Context, epoch int64) {
 	wg.Wait()
 }
 
-// serveCloud serves the front door's pages on address until ctx ends.
+// serveCloud serves gusto cloud's pages on address until ctx ends.
 func serveCloud(ctx context.Context, address string, front *cloud.Server) error {
 	// There is no write timeout: an organization's task stream stays open for as long as
 	// the task runs, and gusto cloud carries it.
@@ -152,7 +152,7 @@ func serveCloud(ctx context.Context, address string, front *cloud.Server) error 
 	return nil
 }
 
-// holderName tells this front door apart from every other on the database: its host, its process and a random part, since
+// holderName tells this gusto cloud server apart from every other on the database: its host, its process and a random part, since
 // a process number is used again after a restart.
 func holderName() string {
 	host, _ := os.Hostname()
@@ -204,7 +204,7 @@ func openAccounts(ctx context.Context, cfg cloudSettings) (*cloud.Store, error) 
 	return store, nil
 }
 
-// frontOf is the front door's pages on the accounts in store, and the controller of the organizations' servers when it
+// frontOf is gusto cloud's pages on the accounts in store, and the controller of the organizations' servers when it
 // starts them.
 func frontOf(ctx context.Context, store *cloud.Store, public *url.URL, stripe *cloud.Stripe, cfg cloudSettings) (*cloud.Server, *cloud.Controller, error) {
 	sessions, err := store.OpenSessions(ctx, public.Scheme == "https")
@@ -273,7 +273,7 @@ func organizationServers(store *cloud.Store, public *url.URL, cfg cloudSettings)
 	local := &cloud.LocalNode{}
 	controller := &cloud.Controller{
 		Store: store, Node: local, Command: []string{exe, "serve"}, Env: env, DemoEnv: demoEnv,
-		FrontDoor: public.Scheme + "://" + public.Host, PortFrom: cfg.servers.portFrom,
+		CloudURL: public.Scheme + "://" + public.Host, PortFrom: cfg.servers.portFrom,
 		Wait: time.Duration(cfg.servers.startWaitSeconds) * time.Second, Concurrent: cfg.signup.concurrent, IndexDir: indexDir,
 	}
 	pool, err := nodePool(cfg.nodes, local)

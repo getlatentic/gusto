@@ -86,12 +86,12 @@ func TestANodeThatDoesNotAnswerIsNotPlacedOnEvenWhenItIsTheOnlyOne(t *testing.T)
 	}
 }
 
-func TestThisMachineIsANodeToPlaceOnOnlyWhenTheFrontDoorSaysSo(t *testing.T) {
+func TestThisMachineIsANodeToPlaceOnOnlyWhenGustoCloudSaysSo(t *testing.T) {
 	remote := newAgent(t, "cell-a", 6000)
 	pool := pooled(t, 1000, map[string]*agentNode{"cell-a": remote})
 	pool.Measure = func() Capacity { return Capacity{MemoryAvailableMiB: 15000} }
 	if placed, _ := pool.Place(); placed.Name() != "cell-a" {
-		t.Errorf("a front door that runs no servers placed on %s", placed.Name())
+		t.Errorf("a gusto cloud server that runs no servers placed on %s", placed.Name())
 	}
 	pool.Local = &cloud.LocalNode{}
 	if placed, _ := pool.Place(); placed.Name() != "local" {
@@ -111,7 +111,7 @@ func controlledOn(t *testing.T, pool *Pool) (*cloud.Controller, *cloud.Store) {
 	}
 	exe, _ := os.Executable()
 	c := &cloud.Controller{Store: store, Nodes: pool, Command: []string{exe, "serve"}, Env: []string{"CELL_FAKE_ORG=1", "PATH=" + os.Getenv("PATH")},
-		FrontDoor: "https://cloud.test", PortFrom: 26000 + int(time.Now().UnixNano()%9000), Wait: 20 * time.Second, Concurrent: 1, StopGrace: time.Second}
+		CloudURL: "https://cloud.test", PortFrom: 26000 + int(time.Now().UnixNano()%9000), Wait: 20 * time.Second, Concurrent: 1, StopGrace: time.Second}
 	return c, store
 }
 
@@ -294,7 +294,7 @@ func TestAServerIsToldToListenOnItsNodesPrivateAddressAndPortsAreTakenOnlyFromTh
 	if err != nil {
 		t.Fatal(err)
 	}
-	c := &cloud.Controller{Store: store, Nodes: nodesOf{"cell-a": a, "cell-b": b}, Command: []string{"serve"}, FrontDoor: "https://cloud.test", PortFrom: 9100, Wait: 5 * time.Second}
+	c := &cloud.Controller{Store: store, Nodes: nodesOf{"cell-a": a, "cell-b": b}, Command: []string{"serve"}, CloudURL: "https://cloud.test", PortFrom: 9100, Wait: 5 * time.Second}
 	provision := func(email, name string) (string, cloud.Runtime) {
 		_, org, err := store.SignUp(t.Context(), cloud.Signup{Email: email, OrgName: name})
 		if err != nil {
@@ -344,9 +344,9 @@ func containsEnv(env []string, want string) bool {
 	return false
 }
 
-// A front door is restarted at every deploy, and the servers on other nodes keep running through it and are found
+// A gusto cloud server is restarted at every deploy, and the servers on other nodes keep running through it and are found
 // running by the one that starts.
-func TestServersOnOtherHostsOutliveTheFrontDoorThatStartedThemAndAreAdoptedByTheNext(t *testing.T) {
+func TestServersOnOtherHostsOutliveGustoCloudThatStartedThemAndAreAdoptedByTheNext(t *testing.T) {
 	host := newAgent(t, "cell-a", 12000)
 	pool := pooled(t, 1000, map[string]*agentNode{"cell-a": host})
 	first, store := controlledOn(t, pool)
@@ -361,10 +361,10 @@ func TestServersOnOtherHostsOutliveTheFrontDoorThatStartedThemAndAreAdoptedByThe
 	}
 	first.Run(canceled(), time.Hour)
 	if !host.servers.Alive(org.Slug) {
-		t.Fatal("the server ended with the front door that started it")
+		t.Fatal("the server ended with gusto cloud that started it")
 	}
 
-	next := &cloud.Controller{Store: store, Nodes: pool, Command: first.Command, Env: first.Env, FrontDoor: "https://cloud.test", PortFrom: first.PortFrom, Wait: 20 * time.Second, Concurrent: 1}
+	next := &cloud.Controller{Store: store, Nodes: pool, Command: first.Command, Env: first.Env, CloudURL: "https://cloud.test", PortFrom: first.PortFrom, Wait: 20 * time.Second, Concurrent: 1}
 	pids := func() string { return strings.Join(host.servers.Running(), ",") }
 	was := pids()
 	if err := next.Provision(t.Context(), org.Slug); err != nil {
@@ -372,7 +372,7 @@ func TestServersOnOtherHostsOutliveTheFrontDoorThatStartedThemAndAreAdoptedByThe
 	}
 	after, _ := next.Route(t.Context(), org.Slug)
 	if after != before || pids() != was {
-		t.Errorf("the next front door started another: %q then %q, %q then %q", before, after, was, pids())
+		t.Errorf("the next gusto cloud server started another: %q then %q, %q then %q", before, after, was, pids())
 	}
 }
 
@@ -395,7 +395,7 @@ func TestANodeRegistersItselfBeatsAndTakesItsRegistrationAwayWhenItStops(t *test
 		t.Fatalf("%+v", first)
 	}
 	waitFor(t, "a later beat", func() bool { again, _, _ := Registered(dir, "cell-a", time.Now()); return again.Beat > first.Beat })
-	// It answers, at the address it registered, to the front door.
+	// It answers, at the address it registered, to gusto cloud.
 	remote := newRemote(first, secret)
 	if status, err := remote.Status(); err != nil || status.Name != "cell-a" {
 		t.Fatalf("%+v %v", status, err)

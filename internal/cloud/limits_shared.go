@@ -9,7 +9,7 @@ import (
 )
 
 // Limiter allows most events for a key in any window of per, counted in the database under the
-// name scope, so that every front door sharing it is held to one count.
+// name scope, so that every gusto cloud server sharing it is held to one count.
 func (s *Store) Limiter(scope string, most int, per time.Duration) *Limiter {
 	return &Limiter{most: most, per: per, store: s, scope: scope}
 }

@@ -50,7 +50,7 @@
 
 {{template "foot" .}}
 
-{{/* A person's role: a choice that is sent to the front door, which owns roles, when there is one, and the role in words
+{{/* A person's role: a choice that is sent to gusto cloud, which owns roles, when there is one, and the role in words
      otherwise. The only admin is not offered the choice: an organization keeps one. */}}
 {{define "people-role"}}{{with .Person}}
 {{if and $.Action (not (and (eq .Role "admin") (le $.Admins 1)))}}

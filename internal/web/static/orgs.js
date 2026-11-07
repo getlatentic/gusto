@@ -1,6 +1,6 @@
-// The organization switcher behind the mark at the top of the rail. The front door knows which organizations the
+// The organization switcher behind the mark at the top of the rail. Gusto cloud knows which organizations the
 // person is in, so the list is asked of it when the menu first opens; until it answers, or if it cannot, the menu
-// shows this organization and the link to the front door's page of them.
+// shows this organization and the link to gusto cloud's page of them.
 (function () {
   var panel = document.getElementById("orgs");
   var open = document.querySelector("[data-orgs]");

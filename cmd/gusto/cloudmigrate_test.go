@@ -48,7 +48,7 @@ func TestCloudMigrateReportsWithoutChangingAnythingAndImportsOnRequest(t *testin
 	}
 }
 
-func TestTheFrontDoorKeepsItsAccountsWhereTheDatabaseAddressSaysAndStartsOnTheOldFiles(t *testing.T) {
+func TestGustoCloudKeepsItsAccountsWhereTheDatabaseAddressSaysAndStartsOnTheOldFiles(t *testing.T) {
 	t.Parallel()
 	root := oldCloudRoot(t)
 	elsewhere := filepath.Join(t.TempDir(), "elsewhere", "accounts.db")
@@ -65,7 +65,7 @@ func TestTheFrontDoorKeepsItsAccountsWhereTheDatabaseAddressSaysAndStartsOnTheOl
 		t.Error("the default database was made as well")
 	}
 	if found, _ := front.Store.HasAccount(t.Context(), "ada@acme.com"); !found {
-		t.Error("the front door started on the old files without taking them in")
+		t.Error("gusto cloud started on the old files without taking them in")
 	}
 }
 

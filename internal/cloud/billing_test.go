@@ -399,7 +399,7 @@ func TestSeatWords(t *testing.T) {
 	}
 }
 
-// Every organization has the starting credit on the models gusto provides, a demo a smaller one, and a front door that starts
+// Every organization has the starting credit on the models gusto provides, a demo a smaller one, and a gusto cloud server that starts
 // writes every quota again so organizations made before a change in the limits have it too.
 func TestEveryOrganizationHasACreditAndAStartWritesEveryQuotaAgain(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {

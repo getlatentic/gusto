@@ -80,10 +80,10 @@ type Server struct {
 	listing  taskIndex
 	keyring  signing.Keyring
 	// front is set when this server is one organization's in a hosted gusto, and
-	// then rosterPath is the list of its people that the front door writes, and
-	// inbox is where the front door leaves what its admins did, for the change
+	// then rosterPath is the list of its people that gusto cloud writes, and
+	// inbox is where gusto cloud leaves what its admins did, for the change
 	// record.
-	front      *frontDoor
+	front      *cloudLink
 	rosterPath string
 	inbox      string
 	taking     sync.Mutex
@@ -156,7 +156,7 @@ func New(index *tasks.Index, instances *instance.Store, queue *tasks.Queue, pass
 		"ownerLabel": s.ownerLabel,
 		"initials":   s.initials,
 		"askedBy":    askerOf,
-		// Where a host that has a lease is extended, which is at the front door.
+		// Where a host that has a lease is extended, which is at gusto cloud.
 		"leaseExtend": s.leaseExtend,
 		"appLink":     s.appLink,
 		"costOf":      s.costOf,
@@ -179,7 +179,7 @@ func (s *Server) UseSessionFile(path string) error { return s.keeper.keep(path) 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	if s.front != nil {
-		mux.HandleFunc("GET /login", s.toFrontDoor)
+		mux.HandleFunc("GET /login", s.toCloud)
 		mux.HandleFunc("GET /auth/entry", s.enter)
 	} else {
 		mux.HandleFunc("GET /login", s.loginPage)
