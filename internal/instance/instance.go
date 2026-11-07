@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -74,6 +75,8 @@ type Store struct {
 	// events is each room's log of what happened in it, and watchers are told when one is added.
 	events   *roomlog.Set
 	watchers []func(room string)
+	// gone is the ids of removed instances, whose directories are set aside, so that none is given out again.
+	gone map[string]struct{}
 }
 
 func Open(root string) (*Store, error) {
@@ -96,9 +99,10 @@ func Open(root string) (*Store, error) {
 			continue
 		}
 		if err := store.load(filepath.Join(root, entry.Name())); err != nil {
-			continue
+			slog.Warn("a directory in the instances folder is not an instance and is left alone", "dir", entry.Name(), "error", err)
 		}
 	}
+	store.gone = readGone(root)
 	return store, nil
 }
 
@@ -144,32 +148,55 @@ func (s *Store) Start(proposed string, wanted Instance) (Instance, error) {
 	}
 	wanted.ID = id
 	wanted.Started = time.Now().Unix()
+	if err := s.create(wanted); err != nil {
+		// The directory is this call's own, made by claim, and nothing in it is anybody's work yet. Left behind it would hold
+		// the id for ever, since a directory with no instance.json is not an instance.
+		if cleared := os.RemoveAll(s.Dir(id)); cleared != nil {
+			err = errors.Join(err, cleared)
+		}
+		return Instance{}, err
+	}
+	return wanted, nil
+}
+
+// create fills a claimed directory and makes the instance and its first conversation, writing both before either is held, so a
+// failure leaves nothing in memory and nothing that lists as an instance.
+func (s *Store) create(wanted Instance) error {
+	id := wanted.ID
 	for _, each := range []string{s.AgentFolder(id), s.State(id), s.threadsDir(id)} {
 		if err := os.MkdirAll(each, 0o755); err != nil {
-			return Instance{}, err
+			return err
 		}
 	}
 	if err := fill(s.AgentFolder(id), wanted.Repo); err != nil {
-		return Instance{}, err
+		return err
 	}
 	s.guard.Lock()
 	defer s.guard.Unlock()
-	s.put(wanted)
-	s.threads[id] = map[string]Thread{}
 	if err := s.write(wanted); err != nil {
-		return Instance{}, err
+		return err
 	}
-	_, err = s.open(id, "")
-	return wanted, err
+	first := s.numbered(id, "", "")
+	if err := s.writeThread(first); err != nil {
+		return err
+	}
+	s.put(wanted)
+	s.threads[id] = map[string]Thread{first.ID: first}
+	return nil
 }
 
 // claim makes the instance's directory, which only one caller can do for any
-// one id, so the id it returns is this caller's alone.
+// one id, so the id it returns is this caller's alone. An id that was removed is
+// not given out again: the tasks it ran name it, and a new instance with it would
+// be taken for the old one.
 func (s *Store) claim(proposed string) (string, error) {
 	for n := 1; ; n++ {
 		id := proposed
 		if n > 1 {
 			id = fmt.Sprintf("%s-%d", proposed, n)
+		}
+		if s.wasRemoved(id) {
+			continue
 		}
 		err := os.Mkdir(s.Dir(id), 0o755)
 		if err == nil {
@@ -251,7 +278,7 @@ func (s *Store) load(dir string) error {
 			return err
 		}
 	}
-	threads, err := readThreads(filepath.Join(dir, "threads"))
+	threads, err := readThreads(filepath.Join(dir, "threads"), held.ID)
 	if err != nil {
 		return err
 	}

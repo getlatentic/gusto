@@ -1,6 +1,7 @@
 package computer
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/filelock"
 	"github.com/getlatentic/gusto/internal/quota"
 	"github.com/getlatentic/gusto/internal/workspace"
 )
@@ -19,12 +21,44 @@ import (
 // Registry is one organization's computers, one file each. It belongs to that
 // organization: it makes computers for nobody else, so a record of another's
 // cannot get in by a mistake in what calls it.
+//
+// The organization's server and gusto cloud both open the directory, and each opens it again for each thing it does, so what
+// reads a record and then writes it holds mu for the registry and a lock on a file in the directory for every other, in this
+// process and in the next.
 type Registry struct {
-	dir   string
-	org   string
-	mu    sync.Mutex
-	limit *quota.File
-	now   func() time.Time
+	dir      string
+	org      string
+	mu       sync.Mutex
+	limit    *quota.File
+	now      func() time.Time
+	lockWait time.Duration
+}
+
+// lockFile is the file whose lock keeps one program at a time changing the directory's records.
+const lockFile = ".lock"
+
+// defaultLockWait is how long a change waits for another program's, which holds the lock for the time it takes to read and write a few
+// small files.
+const defaultLockWait = 10 * time.Second
+
+// hold is the right to read a record and write it back, with no other program doing so, until the returned release.
+func (r *Registry) hold() (release func(), err error) {
+	r.mu.Lock()
+	wait := r.lockWait
+	if wait <= 0 {
+		wait = defaultLockWait
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), wait)
+	defer cancel()
+	held, err := filelock.Wait(ctx, filepath.Join(r.dir, lockFile))
+	if err != nil {
+		r.mu.Unlock()
+		return nil, fmt.Errorf("the record of computers is being changed by another program: %w", err)
+	}
+	return func() {
+		held.Release()
+		r.mu.Unlock()
+	}, nil
 }
 
 // Open is the organization's record under dir, which is made when it is not there.
@@ -61,8 +95,11 @@ func (r *Registry) EnsureFrom(user, space, host string, spares Spares) (computer
 	if user == "" {
 		return Computer{}, false, errors.New("a computer is a person's, and no person was named")
 	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	release, err := r.hold()
+	if err != nil {
+		return Computer{}, false, err
+	}
+	defer release()
 	id := ID(r.org, space, user)
 	found, err := r.read(id)
 	if err == nil {
@@ -74,16 +111,23 @@ func (r *Registry) EnsureFrom(user, space, host string, spares Spares) (computer
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return Computer{}, false, err
 	}
+	computer, err = r.begin(id, user, space, host, spares)
+	return computer, err == nil, err
+}
+
+// begin writes the record of a computer that is being made for a person who has none, taking a spare sandbox's name when
+// there is one. Called with the lock held.
+func (r *Registry) begin(id, user, space, host string, spares Spares) (Computer, error) {
 	if err := r.underLimit(); err != nil {
-		return Computer{}, false, err
+		return Computer{}, err
 	}
 	// A mark asking for a removed computer to be removed is not for this one, which is made now: a gusto cloud server of an earlier
 	// release, or a crash between Retired's two steps, can leave one.
 	if err := os.Remove(r.retireFile(id)); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return Computer{}, false, err
+		return Computer{}, err
 	}
 	now := r.now().UTC().Truncate(time.Second)
-	computer = Computer{ID: id, Org: r.org, User: user, Workspace: workspace.Stored(space), Sandbox: Name(r.org, space, user), Host: host, State: Creating, Created: now}
+	computer := Computer{ID: id, Org: r.org, User: user, Workspace: workspace.Stored(space), Sandbox: Name(r.org, space, user), Host: host, State: Creating, Created: now}
 	spare, spared := takeFrom(spares)
 	if spared {
 		computer.Sandbox = spare
@@ -92,9 +136,9 @@ func (r *Registry) EnsureFrom(user, space, host string, spares Spares) (computer
 		if spared {
 			spares.Return(spare)
 		}
-		return Computer{}, false, err
+		return Computer{}, err
 	}
-	return computer, true, nil
+	return computer, nil
 }
 
 // sharedWith refuses a record that is another person's, or another workspace's, whose id a person's computer hashed to.
@@ -141,8 +185,16 @@ func (r *Registry) Of(user, space string) (Computer, error) {
 
 // Change makes a change to a computer's record and keeps it.
 func (r *Registry) Change(id string, change func(*Computer)) (Computer, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	release, err := r.hold()
+	if err != nil {
+		return Computer{}, err
+	}
+	defer release()
+	return r.change(id, change)
+}
+
+// change is Change with the lock held.
+func (r *Registry) change(id string, change func(*Computer)) (Computer, error) {
 	computer, err := r.read(id)
 	if err != nil {
 		return Computer{}, err
@@ -237,8 +289,11 @@ func (r *Registry) retireFile(id string) string { return filepath.Join(r.dir, id
 // was removed already: a mark on a removed one would remove the next one made for them.
 func (r *Registry) RetireIn(user, space string) error {
 	id := ID(r.org, space, strings.ToLower(strings.TrimSpace(user)))
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	release, err := r.hold()
+	if err != nil {
+		return err
+	}
+	defer release()
 	held, err := r.read(id)
 	if errors.Is(err, fs.ErrNotExist) || (err == nil && !held.Live()) {
 		return nil
@@ -252,8 +307,11 @@ func (r *Registry) RetireIn(user, space string) error {
 // Retire asks for each of a person's computers to be removed, in every workspace, which is what leaving the organization does.
 func (r *Registry) Retire(user string) error {
 	user = strings.ToLower(strings.TrimSpace(user))
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	release, err := r.hold()
+	if err != nil {
+		return err
+	}
+	defer release()
 	all, err := r.all()
 	if err != nil {
 		return err
@@ -279,8 +337,11 @@ func (r *Registry) mark(id string) error {
 
 // RetireAll asks for every computer of the organization to be removed, which is what ending the organization does.
 func (r *Registry) RetireAll() error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	release, err := r.hold()
+	if err != nil {
+		return err
+	}
+	defer release()
 	all, err := r.all()
 	if err != nil {
 		return err
@@ -315,11 +376,14 @@ func (r *Registry) Retiring() ([]Computer, error) {
 
 // Retired records that a computer was removed, and clears the mark.
 func (r *Registry) Retired(id string) error {
-	if _, err := r.Change(id, func(c *Computer) { c.State, c.Note = Deleted, "removed" }); err != nil {
+	release, err := r.hold()
+	if err != nil {
 		return err
 	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	defer release()
+	if _, err := r.change(id, func(c *Computer) { c.State, c.Note = Deleted, "removed" }); err != nil {
+		return err
+	}
 	if err := os.Remove(r.retireFile(id)); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}

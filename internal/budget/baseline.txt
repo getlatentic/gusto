@@ -22,8 +22,6 @@
 21 15 internal/cloud/address.go:NormalEmail
 41 18 internal/cloud/billing.go:(*Store).RecordSubscription
 25 14 internal/cloud/billing_pages.go:(*Server).planOf
-60 19 internal/cloud/controller.go:(*Controller).provision
-32 12 internal/cloud/controller.go:(*Controller).supervise
 41 11 internal/cloud/mail_cloudflare.go:(Cloudflare).once
 38 11 internal/cloud/memberships_sql.go:(*Store).Verify
 40 12 internal/cloud/org.go:(*Server).drawOrg
@@ -33,8 +31,7 @@
 41 11 internal/cloud/turnstile.go:(Turnstile).Check
 40 13 internal/compare/board.go:(*Board).Sample
 27 11 internal/compare/reading.go:(rank).read
-40 13 internal/computer/registry.go:(*Registry).EnsureFrom
-38 11 internal/connector/connector.go:(*Connectors).Token
+35 11 internal/connector/connector.go:(*Connectors).Token
 46 15 internal/connector/connector.go:(*Connectors).ask
 57 16 internal/connector/discover.go:Discover
 29 11 internal/crew/crew.go:(*Store).ChooseApp

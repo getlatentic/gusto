@@ -57,13 +57,24 @@ type Connectors struct {
 	http   *http.Client
 	vault  *vault
 
+	now func() time.Time
+
 	mu      sync.Mutex
 	pending map[string]pending
-	// refreshing makes one refresh of a person's tokens at a time; a call that waits for it finds the new token.
-	refreshing map[string]*sync.Mutex
+	// locks makes one change to a person's tokens at a time, and one renewal; a call that waits for it finds the new token.
+	// A lock nobody holds or waits for is forgotten.
+	locks map[string]*signInLock
+	// unsaved are tokens a renewal gave that could not be written. The app has already retired the refresh token on disk, so
+	// they are the sign-in until they can be written.
+	unsaved map[string]tokens
 	// disconnects counts each person's disconnects from each connector, so a sign-in that came back before one is not kept
 	// after it.
 	disconnects map[string]uint64
+}
+
+type signInLock struct {
+	mu    sync.Mutex
+	users int
 }
 
 // pending is a sign-in a person set out on and has not come back from.
@@ -91,6 +102,29 @@ type tokens struct {
 	Broken bool `json:"broken,omitempty"`
 }
 
+// Standing is where a person's sign-in to a connector is.
+type Standing int
+
+const (
+	// NotSignedIn is no sign-in at all.
+	NotSignedIn Standing = iota
+	// SignedIn is a sign-in that works, or that can be renewed.
+	SignedIn
+	// NeedsSignIn is a sign-in that was made and no longer works: the app stopped renewing it, or it ran out with nothing to
+	// renew it with. The person has to sign in again.
+	NeedsSignIn
+)
+
+func (t tokens) standing(now time.Time) Standing {
+	switch {
+	case t.Broken:
+		return NeedsSignIn
+	case t.Refresh == "" && !t.Expires.IsZero() && !t.Expires.After(now):
+		return NeedsSignIn
+	}
+	return SignedIn
+}
+
 // ErrGrantGone is the app saying a sign-in's refresh token is no longer good: revoked, expired, or already used.
 var ErrGrantGone = errors.New("the app no longer takes this sign-in")
 
@@ -116,8 +150,8 @@ func Open(config Config) (*Connectors, error) {
 		client = &http.Client{Timeout: callTime, Transport: &http.Transport{DialContext: gateway.PublicDialer(config.Private), ResponseHeaderTimeout: callTime},
 			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	}
-	return &Connectors{config: config, http: client, vault: held, pending: map[string]pending{}, refreshing: map[string]*sync.Mutex{},
-		disconnects: map[string]uint64{}}, nil
+	return &Connectors{config: config, http: client, vault: held, pending: map[string]pending{}, locks: map[string]*signInLock{},
+		unsaved: map[string]tokens{}, disconnects: map[string]uint64{}, now: time.Now}, nil
 }
 
 // Apps is the connectors offered here.
@@ -165,7 +199,7 @@ func (c *Connectors) Begin(ctx context.Context, person, space string, entry Entr
 	state, verifier := randomText(), randomText()
 	sum := sha256.Sum256([]byte(verifier))
 	c.remember(state, pending{Person: strings.ToLower(person), Workspace: workspace.Of(space), Connector: entry.ID, Verifier: verifier, Client: client, Server: server,
-		Redirect: c.redirect(), Started: time.Now()})
+		Redirect: c.redirect(), Started: c.now()})
 	query := url.Values{
 		"response_type": {"code"}, "client_id": {client.ID}, "redirect_uri": {c.redirect()}, "state": {state},
 		"code_challenge": {base64.RawURLEncoding.EncodeToString(sum[:])}, "code_challenge_method": {"S256"}, "resource": {server.Resource},
@@ -187,8 +221,8 @@ func (c *Connectors) Begin(ctx context.Context, person, space string, entry Entr
 // Finish takes the code a sign-in came back with, for the person it was begun for, trades it for tokens and keeps them. It says
 // which connector the person is now signed in to, and in which workspace.
 func (c *Connectors) Finish(ctx context.Context, person, state, code string) (connector, space string, err error) {
-	begun, found := c.take(state)
-	if !found || begun.Person != strings.ToLower(person) || time.Since(begun.Started) > signInTime {
+	begun, found := c.take(state, strings.ToLower(person))
+	if !found {
 		return "", "", errors.New("that sign-in is not one under way here: start it again")
 	}
 	name := tokenName(begun.Person, begun.Workspace, begun.Connector)
@@ -199,29 +233,23 @@ func (c *Connectors) Finish(ctx context.Context, person, state, code string) (co
 	if err != nil {
 		return "", "", err
 	}
-	got.Client, got.Server, got.Since = begun.Client, begun.Server, time.Now()
-	lock := c.lockFor(name)
-	lock.Lock()
-	defer lock.Unlock()
+	got.Client, got.Server, got.Since = begun.Client, begun.Server, c.now()
+	defer c.lock(name)()
 	if c.disconnectsOf(name) != seen {
 		return "", "", errors.New("you disconnected while this sign-in was finishing: sign in again to connect")
 	}
 	// Signing in again keeps what the person chose for their agents.
-	var held tokens
-	if found, err := c.vault.get(name, &held); err == nil && found {
+	if held, found, err := c.load(name); err == nil && found {
 		got.ForAgents = held.ForAgents
 	}
-	return begun.Connector, begun.Workspace, c.vault.put(name, got)
+	return begun.Connector, begun.Workspace, c.save(name, got)
 }
 
 // Token is the person's access token for a connector, refreshed first when it has run out or is about to.
 func (c *Connectors) Token(ctx context.Context, person, space, connector string) (string, error) {
 	name := tokenName(strings.ToLower(person), space, connector)
-	lock := c.lockFor(name)
-	lock.Lock()
-	defer lock.Unlock()
-	var held tokens
-	found, err := c.vault.get(name, &held)
+	defer c.lock(name)()
+	held, found, err := c.load(name)
 	if err != nil {
 		return "", err
 	}
@@ -231,7 +259,7 @@ func (c *Connectors) Token(ctx context.Context, person, space, connector string)
 	if held.Broken {
 		return "", fmt.Errorf("%s's sign-in to %s is no longer taken by the app: sign in again", person, connector)
 	}
-	if held.Expires.IsZero() || time.Until(held.Expires) > time.Minute {
+	if held.Expires.IsZero() || held.Expires.Sub(c.now()) > time.Minute {
 		return held.Access, nil
 	}
 	if held.Refresh == "" {
@@ -240,7 +268,7 @@ func (c *Connectors) Token(ctx context.Context, person, space, connector string)
 	fresh, err := c.ask(ctx, held.Server, held.Client, url.Values{"grant_type": {"refresh_token"}, "refresh_token": {held.Refresh}, "resource": {held.Server.Resource}})
 	if errors.Is(err, ErrGrantGone) {
 		held.Broken = true
-		if err := c.vault.put(name, held); err != nil {
+		if err := c.save(name, held); err != nil {
 			slog.Error("a sign-in the app refused could not be kept as broken", "connector", connector, "error", err)
 		}
 	}
@@ -251,34 +279,86 @@ func (c *Connectors) Token(ctx context.Context, person, space, connector string)
 		fresh.Refresh = held.Refresh
 	}
 	fresh.Client, fresh.Server, fresh.Since, fresh.ForAgents = held.Client, held.Server, held.Since, held.ForAgents
-	return fresh.Access, c.vault.put(name, fresh)
+	return fresh.Access, c.keepRenewed(name, held, fresh)
 }
 
-// Connected says whether a person is signed in to a connector, and since when. A sign-in the app no longer renews is not.
+// keepRenewed keeps the tokens a renewal gave. When they could not be written and the app gave a new refresh token, the one
+// on disk is already dead, so the new ones are held until they can be written; else the sign-in would show as connected and
+// never work again. When the refresh token is the same one, nothing is lost: the next renewal asks again.
+func (c *Connectors) keepRenewed(name string, old, fresh tokens) error {
+	err := c.save(name, fresh)
+	if err == nil || fresh.Refresh == old.Refresh {
+		if err != nil {
+			slog.Warn("renewed tokens could not be written; the next call renews again", "error", err)
+		}
+		return nil
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if _, held := c.unsaved[name]; held || len(c.unsaved) < mostPending {
+		c.unsaved[name] = fresh
+		slog.Error("renewed tokens could not be written; they are held in memory until they can be", "error", err)
+		return nil
+	}
+	old.Broken = true
+	if c.vault.put(name, old) != nil {
+		c.vault.remove(name)
+	}
+	return err
+}
+
+// load is the tokens kept for a sign-in, those not yet written first.
+func (c *Connectors) load(name string) (tokens, bool, error) {
+	c.mu.Lock()
+	held, waiting := c.unsaved[name]
+	c.mu.Unlock()
+	if waiting {
+		return held, true, nil
+	}
+	found, err := c.vault.get(name, &held)
+	return held, found, err
+}
+
+// save writes a sign-in's tokens, which are then no longer unsaved.
+func (c *Connectors) save(name string, held tokens) error {
+	if err := c.vault.put(name, held); err != nil {
+		return err
+	}
+	c.mu.Lock()
+	delete(c.unsaved, name)
+	c.mu.Unlock()
+	return nil
+}
+
+// Standing says where a person's sign-in to a connector is, and since when it was made.
+func (c *Connectors) Standing(person, space, connector string) (Standing, time.Time) {
+	held, found, err := c.load(tokenName(strings.ToLower(person), space, connector))
+	if err != nil || !found {
+		return NotSignedIn, time.Time{}
+	}
+	return held.standing(c.now()), held.Since
+}
+
+// Connected says whether a person is signed in to a connector, and since when. A sign-in that no longer works is not.
 func (c *Connectors) Connected(person, space, connector string) (time.Time, bool) {
-	var held tokens
-	found, err := c.vault.get(tokenName(strings.ToLower(person), space, connector), &held)
-	if err != nil || !found || held.Broken {
+	standing, since := c.Standing(person, space, connector)
+	if standing != SignedIn {
 		return time.Time{}, false
 	}
-	return held.Since, true
+	return since, true
 }
 
 // ForAgents is the person's default for whether their agents may use a connector they are signed in to.
 func (c *Connectors) ForAgents(person, space, connector string) bool {
-	var held tokens
-	found, err := c.vault.get(tokenName(strings.ToLower(person), space, connector), &held)
+	held, found, err := c.load(tokenName(strings.ToLower(person), space, connector))
 	return err == nil && found && held.ForAgents
 }
 
 // SetForAgents changes a person's default for whether their agents may use a connector they are signed in to.
 func (c *Connectors) SetForAgents(person, space, connector string, on bool) error {
 	name := tokenName(strings.ToLower(person), space, connector)
-	lock := c.lockFor(name)
-	lock.Lock()
-	defer lock.Unlock()
-	var held tokens
-	found, err := c.vault.get(name, &held)
+	defer c.lock(name)()
+	held, found, err := c.load(name)
 	if err != nil {
 		return err
 	}
@@ -286,17 +366,16 @@ func (c *Connectors) SetForAgents(person, space, connector string, on bool) erro
 		return fmt.Errorf("%s is not signed in to %s", person, connector)
 	}
 	held.ForAgents = on
-	return c.vault.put(name, held)
+	return c.save(name, held)
 }
 
 // Disconnect forgets a person's tokens for a connector. The app keeps its own record of the sign-in until the person ends it there.
 func (c *Connectors) Disconnect(person, space, connector string) error {
 	name := tokenName(strings.ToLower(person), space, connector)
-	lock := c.lockFor(name)
-	lock.Lock()
-	defer lock.Unlock()
+	defer c.lock(name)()
 	c.mu.Lock()
 	c.disconnects[name]++
+	delete(c.unsaved, name)
 	c.mu.Unlock()
 	return c.vault.remove(name)
 }
@@ -403,7 +482,7 @@ func (c *Connectors) ask(ctx context.Context, server Server, client Client, form
 	}
 	held := tokens{Access: got.Access, Refresh: got.Refresh}
 	if got.ExpiresIn > 0 {
-		held.Expires = time.Now().Add(time.Duration(got.ExpiresIn) * time.Second)
+		held.Expires = c.now().Add(time.Duration(got.ExpiresIn) * time.Second)
 	}
 	return held, nil
 }
@@ -423,21 +502,38 @@ func (c *Connectors) remember(state string, begun pending) {
 	c.pending[state] = begun
 }
 
-func (c *Connectors) take(state string) (pending, bool) {
+// take is the sign-in a state names, when it is the person's and is not too old. Only the person's own is used up: somebody else
+// coming back with their state ends nothing of theirs.
+func (c *Connectors) take(state, person string) (pending, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	begun, found := c.pending[state]
+	if !found || begun.Person != person {
+		return pending{}, false
+	}
 	delete(c.pending, state)
-	return begun, found
+	return begun, c.now().Sub(begun.Started) <= signInTime
 }
 
-func (c *Connectors) lockFor(name string) *sync.Mutex {
+// lock holds one sign-in's lock and gives back the way to let it go.
+func (c *Connectors) lock(name string) (unlock func()) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.refreshing[name] == nil {
-		c.refreshing[name] = &sync.Mutex{}
+	each := c.locks[name]
+	if each == nil {
+		each = &signInLock{}
+		c.locks[name] = each
 	}
-	return c.refreshing[name]
+	each.users++
+	c.mu.Unlock()
+	each.mu.Lock()
+	return func() {
+		each.mu.Unlock()
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		if each.users--; each.users == 0 {
+			delete(c.locks, name)
+		}
+	}
 }
 
 // tokenName is where a person's tokens for a connector in a workspace are kept; the address is hashed, so the folder names

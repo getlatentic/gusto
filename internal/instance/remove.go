@@ -2,8 +2,10 @@ package instance
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -31,8 +33,40 @@ func (s *Store) Remove(id string) error {
 		return err
 	}
 	s.drop(id)
+	s.gone[id] = struct{}{}
+	// The room's log moved with its directory. Its copy in memory goes too, or a room made under the same name would read the
+	// window of this one.
+	if err := s.events.Drop(id); err != nil {
+		slog.Warn("a removed room's event log could not be dropped", "room", id, "error", err)
+	}
 	s.wake(id)
 	return nil
+}
+
+// wasRemoved says whether an instance with this id was removed.
+func (s *Store) wasRemoved(id string) bool {
+	s.guard.Lock()
+	defer s.guard.Unlock()
+	_, gone := s.gone[id]
+	return gone
+}
+
+// readGone is the ids of the instances set aside under root. A set-aside directory is named for its id and the second it was
+// removed, so an id is what is left when the last dash and the digits after it are taken off.
+func readGone(root string) map[string]struct{} {
+	gone := map[string]struct{}{}
+	listing, _ := os.ReadDir(filepath.Join(root, removed))
+	for _, entry := range listing {
+		name := entry.Name()
+		at := strings.LastIndex(name, "-")
+		if at <= 0 {
+			continue
+		}
+		if _, err := strconv.ParseInt(name[at+1:], 10, 64); err == nil {
+			gone[name[:at]] = struct{}{}
+		}
+	}
+	return gone
 }
 
 func hidden(name string) bool { return strings.HasPrefix(name, ".") }

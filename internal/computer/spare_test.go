@@ -109,6 +109,12 @@ func TestAComputerThatWasRemovedIsGivenASpareToo(t *testing.T) {
 func TestASpareIsGivenBackWhenTheComputerIsRefused(t *testing.T) {
 	r := open(t, "acme")
 	spares := &shelf{names: []string{"s-spare"}}
+	// The directory has been used, so the file its lock is on is there to be held, though nothing can be written to it.
+	release, err := r.hold()
+	if err != nil {
+		t.Fatal(err)
+	}
+	release()
 	if err := os.Chmod(r.dir, 0o500); err != nil {
 		t.Fatal(err)
 	}

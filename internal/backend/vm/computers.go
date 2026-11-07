@@ -135,7 +135,7 @@ func now() time.Time { return time.Now().UTC().Truncate(time.Second) }
 // tendComputers removes the computers people were removed from the organization
 // for, and stops those nobody has used for a while. Removing needs the gateway, which
 // this server reaches and gusto cloud does not, so gusto cloud only marks them.
-func tendComputers(ctx context.Context, cfg openshell.Config, registry *computer.Registry, use *computerUse, serving func(person string) bool, every, idle time.Duration) {
+func tendComputers(ctx context.Context, cfg openshell.Config, registry *computer.Registry, use *computerUse, serving func(person, space string) bool, every, idle time.Duration) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -166,13 +166,13 @@ func retire(cfg openshell.Config, registry *computer.Registry) {
 
 // rest stops the computers nobody has used for a while: none of their tasks is running, under the computer's lock, and none
 // serves a shared app.
-func rest(cfg openshell.Config, registry *computer.Registry, use *computerUse, serving func(string) bool, idle time.Duration) {
+func rest(cfg openshell.Config, registry *computer.Registry, use *computerUse, serving func(person, space string) bool, idle time.Duration) {
 	all, err := registry.All()
 	if err != nil {
 		return
 	}
 	for _, each := range all {
-		if each.State != computer.Running || each.LastActive.IsZero() || time.Since(each.LastActive) < idle || serving(each.User) {
+		if each.State != computer.Running || each.LastActive.IsZero() || time.Since(each.LastActive) < idle || serving(each.User, each.Workspace) {
 			continue
 		}
 		use.stopIdle(each.ID, func() {
