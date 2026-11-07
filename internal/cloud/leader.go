@@ -61,7 +61,7 @@ func (s *Store) Resign(ctx context.Context, holder string) error {
 }
 
 // SetRuntimeAt is SetRuntime for gusto cloud that leads at epoch, and is refused with ErrNotLeading when the lease has
-// moved on. The check and the write are one step for every gusto cloud server. An epoch of 0 is a controller no lease governs.
+// moved on, and with errNoOrg when the organization is gone. The check and the write are one step for every gusto cloud server. An epoch of 0 is a controller no lease governs.
 func (s *Store) SetRuntimeAt(ctx context.Context, epoch int64, slug string, rt Runtime) error {
 	switch {
 	case epoch == 0:
@@ -85,9 +85,7 @@ func (s *Store) SetRuntimeAt(ctx context.Context, epoch int64, slug string, rt R
 		if current != epoch {
 			return ErrNotLeading
 		}
-		_, err := tx.ExecContext(ctx, putRuntime.SQL(1),
-			slug, string(rt.State), rt.Node, rt.Port, rt.ProxyPort, rt.Error, rt.Restarts, s.stamp(rt.Updated), rt.Command)
-		return err
+		return s.writeRuntime(ctx, tx, slug, rt)
 	})
 }
 

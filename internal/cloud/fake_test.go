@@ -14,7 +14,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/cloud/cloudtest"
 	"github.com/getlatentic/gusto/internal/entry"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // The test binary is also the organization's server: a controller that is told to
@@ -59,6 +61,15 @@ func fakeOrgServer() {
 			"proxyAddr": os.Getenv("GUSTO_PROXY_ADDR"), "front": os.Getenv("GUSTO_CLOUD_URL"), "orgName": os.Getenv("GUSTO_ORG_NAME"), "concurrency": os.Getenv("GUSTO_TASK_CONCURRENCY"),
 			"mailVisible": os.Getenv("GUSTO_CLOUD_MAIL") != "", "operatorSetting": os.Getenv("OPERATOR_SETTING"),
 		})
+	})
+	// The organization's public key, as a real server serves it: what shows the server is the organization's.
+	mux.HandleFunc("/keys/{file}", func(w http.ResponseWriter, r *http.Request) {
+		key, err := os.ReadFile(filepath.Join(os.Getenv(signing.KeyringEnv), r.PathValue("file")))
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Write(key)
 	})
 	mux.HandleFunc("/die", func(http.ResponseWriter, *http.Request) { os.Exit(3) })
 	// A WebSocket's upgrade, answered with the host and origin it was given, and then a line echoed for each line sent.
@@ -120,7 +131,7 @@ func controlled(t *testing.T, store *Store, extra ...string) *Controller {
 	c := &Controller{
 		Store: store, Node: &LocalNode{}, Command: []string{exe, "serve"},
 		Env:      append([]string{"CLOUD_FAKE_ORG=1", "OPERATOR_SETTING=given", "PATH=" + os.Getenv("PATH")}, extra...),
-		CloudURL: "https://cloud.test", PortFrom: 38000 + int(time.Now().UnixNano()%5000),
+		CloudURL: "https://cloud.test", PortFrom: cloudtest.PortsFrom(),
 		Wait: 20 * time.Second, Concurrent: 2, StopGrace: time.Second,
 	}
 	t.Cleanup(c.StopAll)

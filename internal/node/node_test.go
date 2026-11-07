@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/cloud"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // The test binary is also an organization's server: a node that is told to start it with CELL_FAKE_ORG=1
@@ -28,6 +29,14 @@ func TestMain(m *testing.M) {
 		}
 		mux := http.NewServeMux()
 		mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
+		mux.HandleFunc("/keys/{file}", func(w http.ResponseWriter, r *http.Request) {
+			key, err := os.ReadFile(filepath.Join(os.Getenv(signing.KeyringEnv), r.PathValue("file")))
+			if err != nil {
+				http.NotFound(w, r)
+				return
+			}
+			w.Write(key)
+		})
 		mux.HandleFunc("/whoami", func(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(map[string]string{"org": os.Getenv("GUSTO_ORG"), "cell": os.Getenv("GUSTO_NODE"), "addr": os.Getenv("GUSTO_ADDR")})
 		})
