@@ -159,10 +159,10 @@
   var said = document.getElementById("said");
   var path = box.form.getAttribute("action").replace(/\/say$/, "");
   var version = turns.dataset.version;
-  var asking = false;
-  function look() {
-    if (document.hidden || asking || (window.gustoLive && window.gustoLive.online)) { return; }
-    asking = true;
+  var refreshing = false;
+  function refresh() {
+    if (document.hidden || refreshing || (window.gustoLive && window.gustoLive.online)) { return; }
+    refreshing = true;
     fetch(path + "/version", { credentials: "same-origin" })
       .then(function (answer) { return answer.ok ? answer.text() : null; })
       .then(function (now) {
@@ -176,9 +176,9 @@
         });
       })
       .catch(function () {})
-      .then(function () { asking = false; });
+      .then(function () { refreshing = false; });
   }
-  setInterval(look, 3000);
+  setInterval(refresh, 3000);
 })();
 
 // The room's files panel arrives in the file panel after the page loaded, so what it does is listened for on the whole page: its

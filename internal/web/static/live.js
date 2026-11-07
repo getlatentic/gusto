@@ -4,6 +4,10 @@
 // The room's page is complete without it. Until the socket is subscribed, and whenever it is not, room.js asks every few
 // seconds whether anything changed, as it always did; and a message sent while the socket is down is sent by the form.
 //
+// A socket can go quiet without saying so: a phone puts the page to sleep, or a network drops it. So a page that shows a turn that
+// has not ended asks the server every few seconds whether the room is still as it was last drawn, as does a quiet one less often,
+// and each does so at once on coming back to the page; the conversation is fetched again when the room has moved on.
+//
 // The stream is positioned: the page says where in the room's event log it was drawn (data-seq, data-epoch), and the server
 // replays what happened since, in order, so nothing is lost or shown twice across a reconnect or a restart. When it cannot
 // (the log was reset, or the page was left too long) the whole conversation is fetched again.
@@ -24,6 +28,8 @@
   var empty = document.getElementById("empty");
   var unsent = document.getElementById("unsent");
   var live = window.gustoLive = { online: false };
+  // Where the conversation stood when what is shown was drawn, in the words of the version route.
+  var known = turns.dataset.version || "";
 
   var client = new Centrifuge((location.protocol === "https:" ? "wss://" : "ws://") + location.host + turns.dataset.live, {
     minReconnectDelay: 500,
@@ -65,6 +71,7 @@
   function put(frame) {
     var node = fragment(frame.html);
     if (!node) { return; }
+    if (frame.ver) { known = frame.ver; }
     var follow = nearEnd();
     var existing = document.getElementById(frame.id);
     if (existing) { existing.replaceWith(node); } else { turns.appendChild(node); }
@@ -83,11 +90,16 @@
   function snapshot() {
     if (fetching) { return; }
     fetching = true;
+    var drawn = "";
     fetch(path + "/turns", { credentials: "same-origin" })
-      .then(function (answer) { return answer.ok ? answer.text() : null; })
+      .then(function (answer) {
+        drawn = answer.headers.get("X-Room-Version") || "";
+        return answer.ok ? answer.text() : null;
+      })
       .then(function (html) {
         if (html === null) { return; }
         var follow = nearEnd();
+        known = drawn;
         turns.innerHTML = html;
         greeted();
         settle(turns);
@@ -101,6 +113,28 @@
         later.forEach(apply);
       });
   }
+
+  // Asks whether the room has changed since what is shown was drawn. A page with no version to compare with has nothing to ask.
+  var checking = false;
+  function check() {
+    if (checking || fetching || !known) { return; }
+    checking = true;
+    fetch(path + "/version", { credentials: "same-origin", cache: "no-store" })
+      .then(function (answer) { return answer.ok ? answer.text() : null; })
+      .then(function (now) { if (now !== null && now !== known) { snapshot(); } })
+      .catch(function () {})
+      .then(function () { checking = false; });
+  }
+  // Every ten seconds while a turn is running, and a third as often when the room is quiet.
+  var ticks = 0;
+  setInterval(function () {
+    ticks += 1;
+    if (!live.online || document.hidden) { return; }
+    if (turns.querySelector("[data-pending]") || ticks % 3 === 0) { check(); }
+  }, 10000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) { check(); } });
+  window.addEventListener("online", check);
+  window.addEventListener("pageshow", function (event) { if (event.persisted) { check(); } });
 
   function apply(frame) {
     if (frame.v !== 1) { location.reload(); return; }

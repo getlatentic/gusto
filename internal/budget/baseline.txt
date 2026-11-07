@@ -106,7 +106,7 @@
 39 13 internal/web/chat.go:(*Server).chatThread
 40 16 internal/web/cloudfolders.go:(*Server).cloudFolderThread
 36 13 internal/web/connectors.go:(*Server).giveConnectors
-83 10 internal/web/conversation.go:(*Server).conversationPage
+82 10 internal/web/conversation.go:(*Server).conversationPage
 42 13 internal/web/fileedit.go:(*Server).saveFile
 30 13 internal/web/firstmodel.go:(*Server).providerNameFor
 40 13 internal/web/firstmodel.go:providerModels

@@ -75,6 +75,7 @@ type Frame struct {
 	Seq    uint64 `json:"seq"`
 	ID     string `json:"id,omitempty"`
 	HTML   string `json:"html,omitempty"`
+	Ver    string `json:"ver,omitempty"`
 }
 
 func (f Frame) encode() []byte {
