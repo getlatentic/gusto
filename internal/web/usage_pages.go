@@ -122,7 +122,7 @@ func (s *Server) viewUsage(r *http.Request, query usageQuery, base string) (usag
 	}
 	facets = chosenIn(facets, query.Values)
 	view := usageView{Query: query, Values: query.Values, Everyone: person == "", Facets: facets, Building: s.usage.building(),
-		Figures: figuresOf(totals), Rows: rowsOf(sessions, base), Columns: columnsOf(query, base),
+		Figures: figuresOf(totals, query.Values), Rows: rowsOf(sessions, base), Columns: columnsOf(query, base),
 		Export: query.link("/api/usage.csv", map[string]string{"sort": "", "dir": "", "limit": "", "after": ""}),
 		States: s.usageStates(query, base), Filtered: filteredBeyond(query.Values, person), Clear: clearedOf(query.Values, base)}
 	if view.ShowWho = s.describeRows(view.Rows) > 1 || view.Everyone; !view.ShowWho {
@@ -137,8 +137,8 @@ func (s *Server) viewUsage(r *http.Request, query usageQuery, base string) (usag
 	return view, nil
 }
 
-func figuresOf(t usage.Totals) usageFigures {
-	spent, caption := usageSpent(t)
+func figuresOf(t usage.Totals, values url.Values) usageFigures {
+	spent, caption := usageSpent(t, usagePeriod(values))
 	return usageFigures{Spent: spent, SpentCaption: caption, Unpriced: unpricedNote(t), Calls: t.Calls, Refused: t.Refused, In: compact(t.InputTokens),
 		Out: compact(t.OutputTokens), Cache: cacheRate(t.CachedTokens, t.InputTokens)}
 }
