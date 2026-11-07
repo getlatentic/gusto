@@ -5,13 +5,19 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/getlatentic/gusto/internal/dbkit"
 )
 
 var upsertTask = dbkit.Upsert{Table: "tasks", Columns: rowColumns, Conflict: []string{"id"}, Update: rowColumns[1:]}
 
-// maxRowsPerTx is the most rows UpsertMany puts in one statement.
+// onlyForward ends the upsert with the test of Row.Replaces, which the database makes on the row it holds at the moment it
+// writes, so two writers racing for one task cannot leave the one that is behind.
+const onlyForward = ` WHERE excluded.progress > tasks.progress OR (excluded.progress = tasks.progress AND excluded.ended >= tasks.ended)`
+
+// maxRowsPerTxis the most rows UpsertMany puts in one statement.
 const maxRowsPerTx = 500
 
 // store is the SQL implementation of Store.
@@ -29,6 +35,8 @@ func (s *store) Upsert(ctx context.Context, row Row) error { return s.UpsertMany
 
 func (s *store) UpsertMany(ctx context.Context, rows []Row) error {
 	rows = lastOfEach(rows)
+	// Every writer takes the rows' locks in one order, so two batches that share tasks cannot wait on each other.
+	slices.SortFunc(rows, func(a, b Row) int { return strings.Compare(a.ID, b.ID) })
 	for start := 0; start < len(rows); start += maxRowsPerTx {
 		if err := s.upsertChunk(ctx, rows[start:min(start+maxRowsPerTx, len(rows))]); err != nil {
 			return err
@@ -37,11 +45,14 @@ func (s *store) UpsertMany(ctx context.Context, rows []Row) error {
 	return ctx.Err()
 }
 
-// lastOfEach drops all but the last row of any task named twice, since one statement may not change a row twice.
+// lastOfEach drops all but one row of any task named twice, since one statement may not change a row twice. The one it keeps
+// is the one that writing them in turn would have left.
 func lastOfEach(rows []Row) []Row {
 	last := make(map[string]int, len(rows))
 	for i, r := range rows {
-		last[r.ID] = i
+		if at, seen := last[r.ID]; !seen || r.Replaces(rows[at]) {
+			last[r.ID] = i
+		}
 	}
 	if len(last) == len(rows) {
 		return rows
@@ -61,7 +72,7 @@ func (s *store) upsertChunk(ctx context.Context, rows []Row) error {
 		args = r.appendArgs(args)
 	}
 	err := s.db.InTx(ctx, func(tx dbkit.Tx) error {
-		_, err := tx.ExecContext(ctx, upsertTask.SQL(len(rows)), args...)
+		_, err := tx.ExecContext(ctx, upsertTask.SQL(len(rows))+onlyForward, args...)
 		return err
 	})
 	if err != nil {

@@ -35,7 +35,9 @@ func (f *Fake) UpsertMany(ctx context.Context, rows []taskindex.Row) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	for _, r := range rows {
-		f.rows[r.ID] = r
+		if held, found := f.rows[r.ID]; !found || r.Replaces(held) {
+			f.rows[r.ID] = r
+		}
 	}
 	return nil
 }
