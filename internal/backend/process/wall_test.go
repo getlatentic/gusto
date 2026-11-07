@@ -70,7 +70,7 @@ nc -z -w 2 127.0.0.1 ` + port(proxy) + ` && echo "proxy: reached" || echo "proxy
 nc -z -w 2 127.0.0.1 ` + port(other) + ` && echo "another local service: REACHED" || echo "another local service: refused"
 nc -z -w 2 1.1.1.1 443 && echo "internet: REACHED" || echo "internet: refused"`
 	command := exec.Command("/bin/sh", "-c", script)
-	command.Dir = dir.Workspace()
+	command.Dir = dir.WorkingFolder()
 	wrap(command)
 	out, _ := command.CombinedOutput()
 	for _, want := range []string{"workspace: written", "state: written", "gusto secret: refused", "key: refused", "home: refused",
@@ -85,7 +85,7 @@ nc -z -w 2 1.1.1.1 443 && echo "internet: REACHED" || echo "internet: refused"`
 	if _, err := os.Stat(intruder); err == nil {
 		t.Error("the agent wrote a file in the person's home")
 	}
-	if !strings.Contains(string(mustRead(t, filepath.Join(dir.Workspace(), "made.txt"))), "mine") {
+	if !strings.Contains(string(mustRead(t, filepath.Join(dir.WorkingFolder(), "made.txt"))), "mine") {
 		t.Error("the agent's work in its own folder is not there")
 	}
 }

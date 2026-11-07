@@ -15,8 +15,8 @@ Not reviewed: the identity provider, nginx and TLS on the host, third-party agen
 | # | Severity | Finding | Status |
 | --- | --- | --- | --- |
 | 1 | High | A repository address starting with a dash was read by git as an option. `--upload-pack=<command>` ran on the host, outside any box | Fixed. Only https and ssh forms; a dash is refused; `git clone` gets `--`; `ext::`, `git://` and `http://` are off |
-| 2 | High | With no GitHub App, a repository that was a path on the server's disk was cloned. Any runner could read another person's workspace through the file viewer | Fixed. A path must be under a directory in `GUSTO_LOCAL_REPOS`, empty by default |
-| 3 | High | The runner is root in the box and staged the workspace with the agent's git configuration. A filter or fsmonitor ran as root. Reproduced | Fixed. The runner stages in a repository of its own, with no workspace configuration and no trust in the workspace's ownership |
+| 2 | High | With no GitHub App, a repository that was a path on the server's disk was cloned. Any runner could read another person's agents' folders through the file viewer | Fixed. A path must be under a directory in `GUSTO_LOCAL_REPOS`, empty by default |
+| 3 | High | The runner is root in the box and staged the working folder with the agent's git configuration. A filter or fsmonitor ran as root. Reproduced | Fixed. The runner stages in a repository of its own, with no working folder configuration and no trust in the working folder's ownership |
 | 4 | High | Go 1.26.1 on the box carried 19 vulnerabilities this server calls | Fixed. Go 1.26.8 in `go.mod`. `govulncheck` reports none |
 | 5 | Medium | Pages and the verifier's hash followed a link in a task's `out/`. A runner with no separate agent user lets the agent plant one | Fixed. Record files are read only when they are files; verify names a link. Depth only, since the agent user blocks it |
 | 6 | Medium | No limit on wrong shared passwords or bearer credentials | Fixed. Ten from one address in ten minutes turns it away |
@@ -28,14 +28,14 @@ Not reviewed: the identity provider, nginx and TLS on the host, third-party agen
 | 12 | Low | Google sign-in had state but no PKCE and no nonce | Fixed. Both, tested against a provider that checks them |
 | 13 | Low | The model's redirect would be followed with the credential's headers | Fixed. A redirect is not followed |
 | 14 | Info | A spending cap is checked before a call and counted after, so calls in flight can pass it | Accepted. The excess is bounded by the calls in flight. getlatentic/planning#369 |
-| 15 | Info | `gusto pr open` clones the workspace with `--shared` | Accepted. Needs git 2.38.1 or later. `gusto doctor` should check: getlatentic/planning#370 |
+| 15 | Info | `gusto pr open` clones the working folder with `--shared` | Accepted. Needs git 2.38.1 or later. `gusto doctor` should check: getlatentic/planning#370 |
 | 16 | Info | `opencode-ai`, `@anthropic-ai/claude-code` and `@earendil-works/pi-coding-agent`, three of six agent packages in the runner image, are unpinned | Fixed. Every package is pinned by version and sha512 in `pkg/harness/pins.json`, and the image build refuses a tarball that differs. getlatentic/planning#361, #683 |
 | 17 | Info | On macOS a container runtime's bind mount ignores permissions, so the agent can write `out/` | Documented. Development only. `gusto doctor` should detect it: getlatentic/planning#370 |
 
 ## Checked and sound
 
 - Every handler that takes an id answers somebody else's object as missing: tasks, agents, threads, comparisons, files, bundles, the stream, the file viewer.
-- The folder viewer stays inside the workspace. A bundle stores links as links.
+- The folder viewer stays inside the agent's folder. A bundle stores links as links.
 - Model Markdown has raw HTML off and `javascript:` and `data:` links stripped. Record files are plain text with `nosniff`.
 - The session cookie is signed, HttpOnly, SameSite=Lax and Secure over TLS. Its role cannot change without the key.
 - An API token is 32 random bytes, stored as a hash, compared in constant time.

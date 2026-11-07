@@ -3,7 +3,7 @@
 // gusto pr open commits a run's job.json and out/ on a ref beside the pull request,
 // with the pull request's commit as its parent. Check fetches that ref with
 // git, holds the manifest to the hash the pull request names, re-hashes every
-// file against the manifest, rebuilds the workspace from the hashed patch, and
+// file against the manifest, rebuilds the working folder from the hashed patch, and
 // runs the check. Nothing here talks to GitHub's API or to a gusto server, so the
 // check needs nothing from the platform that produced the record.
 package review
@@ -84,7 +84,7 @@ func Check(ctx context.Context, remote, digest, into string) (Report, error) {
 	return gated(ctx, dir)
 }
 
-// gated runs the gate in the rebuilt workspace and sets its answer beside the
+// gated runs the gate in the rebuilt working folder and sets its answer beside the
 // one the manifest records.
 func gated(ctx context.Context, dir task.Dir) (Report, error) {
 	manifest, err := evidence.Read(dir)

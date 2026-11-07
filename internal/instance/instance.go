@@ -1,16 +1,16 @@
-// Package instance is an agent with a workspace.
+// Package instance is an agent with a folder.
 //
 // An instance is what a person picks from the catalog and keeps: an agent, the
-// model it thinks with, and a workspace that stays. A thread is one conversation
+// model it thinks with, and a folder that stays. A thread is one conversation
 // with it, and an instance has as many as somebody wants to hold at once.
 //
-// The two are separate because they have different lifetimes. The workspace and
+// The two are separate because they have different lifetimes. The folder and
 // the agent's own data directory belong to the instance and outlive every
 // conversation; what the agent remembers of a conversation belongs to the
 // thread and is asked for again by name when that thread is resumed.
 //
 // Nothing here is a second way to run things. A turn is an ordinary task that
-// mounts the instance's workspace instead of cloning a repository, and it is
+// mounts the instance's folder instead of cloning a repository, and it is
 // queued, sandboxed, streamed and recorded exactly as any other task is.
 package instance
 
@@ -31,7 +31,7 @@ import (
 	"github.com/getlatentic/gusto/internal/roomlog"
 )
 
-// Instance is the workspace: what an agent runs under and works in.
+// Instance is an agent and its folder: what an agent runs under and works in.
 type Instance struct {
 	ID string `json:"id"`
 	// Title is what the people using it call it: the template's name, or one
@@ -42,7 +42,7 @@ type Instance struct {
 	Repo    string `json:"repo,omitempty"`
 	// Setup names the configuration every turn on this instance is given.
 	Setup string `json:"setup,omitempty"`
-	// Folder names a folder on somebody's computer that this instance's workspace is kept the same as, by a key the desktop app
+	// Folder names a folder on somebody's computer that this instance's folder is kept the same as, by a key the desktop app
 	// makes of the folder's path. The server never holds the path.
 	Folder string `json:"folder,omitempty"`
 	// Sensitivity is every turn's, so work that may not leave the building
@@ -105,10 +105,10 @@ func (s *Store) Root() string { return s.root }
 // Dir is where an instance keeps everything that stays.
 func (s *Store) Dir(id string) string { return filepath.Join(s.root, id) }
 
-// Workspace is the directory an agent works in, across every thread.
-func (s *Store) Workspace(id string) string { return filepath.Join(s.Dir(id), "workspace") }
+// AgentFolder is the directory an agent works in, across every thread.
+func (s *Store) AgentFolder(id string) string { return filepath.Join(s.Dir(id), "workspace") }
 
-// State is where an agent keeps its own memory. It is outside the workspace
+// State is where an agent keeps its own memory. It is outside the folder
 // because that is where agents put it: opencode keeps its sessions under its
 // data directory, not beside the files it edits. Threads share it, and the
 // agent tells them apart by the name each thread remembers.
@@ -120,12 +120,12 @@ func (s *Store) AgentState(id, agent string) string {
 	return filepath.Join(s.Dir(id), "agents", agent, "state")
 }
 
-// Merges is where a room keeps the files it is merging into its workspace, on the same file system as the workspace.
+// Merges is where a room keeps the files it is merging into its folder, on the same file system as the folder.
 func (s *Store) Merges(id string) string { return filepath.Join(s.Dir(id), "merge") }
 
 func (s *Store) threadsDir(id string) string { return filepath.Join(s.Dir(id), "threads") }
 
-// Start makes an instance, and fills its workspace from a repository when one
+// Start makes an instance, and fills its folder from a repository when one
 // is given. Cloning happens here rather than in a turn, so it happens once and
 // so a repository credential stays outside the box with the agent.
 //
@@ -142,12 +142,12 @@ func (s *Store) Start(proposed string, wanted Instance) (Instance, error) {
 	}
 	wanted.ID = id
 	wanted.Started = time.Now().Unix()
-	for _, each := range []string{s.Workspace(id), s.State(id), s.threadsDir(id)} {
+	for _, each := range []string{s.AgentFolder(id), s.State(id), s.threadsDir(id)} {
 		if err := os.MkdirAll(each, 0o755); err != nil {
 			return Instance{}, err
 		}
 	}
-	if err := fill(s.Workspace(id), wanted.Repo); err != nil {
+	if err := fill(s.AgentFolder(id), wanted.Repo); err != nil {
 		return Instance{}, err
 	}
 	s.guard.Lock()
@@ -253,9 +253,9 @@ func (s *Store) load(dir string) error {
 	if err != nil {
 		return err
 	}
-	// A workspace is a repository. One written before that was true becomes one
+	// A folder is a repository. One written before that was true becomes one
 	// now rather than failing the next turn taken on it, which is what a
-	// workspace with nothing to diff against does.
+	// folder with nothing to diff against does.
 	if err := repair(filepath.Join(dir, "workspace")); err != nil {
 		return err
 	}
@@ -275,36 +275,36 @@ func readInstance(dir string) (Instance, error) {
 	return held, err
 }
 
-// fill makes the workspace a repository. With a repository named it is that
+// fill makes the folder a repository. With a repository named it is that
 // one, cloned once here rather than in every turn, so a credential for it stays
 // outside the box with the agent. With none it is an empty repository, because
-// a turn says what it changed by diffing the workspace, and a directory that is
+// a turn says what it changed by diffing the folder, and a directory that is
 // not a repository has nothing to diff against.
-func fill(workspace, repo string) error {
+func fill(folder, repo string) error {
 	if repo == "" {
-		return run(workspace, "init", "--quiet", ".")
+		return run(folder, "init", "--quiet", ".")
 	}
 	forge, err := repoaccess.FromEnv()
 	if err != nil {
 		return err
 	}
-	if err := forge.Clone(context.Background(), repo, workspace, "."); err != nil {
+	if err := forge.Clone(context.Background(), repo, folder, "."); err != nil {
 		return fmt.Errorf("that repository could not be cloned: %w", err)
 	}
 	return nil
 }
 
-// repair makes an existing workspace a repository if it is not one already. A
+// repair makes an existing folder a repository if it is not one already. A
 // directory that is not there belongs to an instance that is not there either,
 // and is left alone.
-func repair(workspace string) error {
-	if _, err := os.Stat(workspace); err != nil {
+func repair(folder string) error {
+	if _, err := os.Stat(folder); err != nil {
 		return nil
 	}
-	if _, err := os.Stat(filepath.Join(workspace, ".git")); err == nil {
+	if _, err := os.Stat(filepath.Join(folder, ".git")); err == nil {
 		return nil
 	}
-	return run(workspace, "init", "--quiet", ".")
+	return run(folder, "init", "--quiet", ".")
 }
 
 func run(at string, args ...string) error {

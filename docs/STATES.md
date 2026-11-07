@@ -83,7 +83,7 @@ After a hard kill the file still says `running`. The next start decides from the
 | The runner, on an error before the check | No manifest | `failed`, `exit` 2 in the box, -1 on the host |
 | `gusto serve` | Written by the container that outlives it | The manifest's verdict, or `interrupted` |
 
-- A killed agent does not fail a task. The check decides, on whatever the agent left in the workspace.
+- A killed agent does not fail a task. The check decides, on whatever the agent left in the working folder.
 - `harnessExit` is what the process the runner started reported, and nothing deeper. An agent that is a shell reports its child's kill as its own status, such as 137.
 - `stoppedAtBudget` and `stoppedBy` are the fields that name a cause.
 - Inside the box, `gusto inside` turns an error into exit 2 and the queue reads a non-zero exit (`cmd/gusto/main.go`). On the host (reading `job.json`, cloning, starting the container) the error reaches the queue as an error and becomes `exit` -1.
@@ -106,11 +106,11 @@ A watcher is not told about a server restart. The cookie key is made at boot, so
 A person stops a turn of their own, and an admin stops anybody's, with the Stop button on the conversation or `POST /api/jobs/{id}/stop` with a person's token.
 
 - A queued task is interrupted at once and never runs. Its record has `stoppedBy`.
-- A running task is told to stop. The server writes `stop.json` in the task's directory (who, and when) and interrupts the container's client. `gusto inside` then kills the agent and everything the agent started, keeps what it did in the workspace, and writes the manifest with `stoppedBy`. The server signs it. The task ends `interrupted`, not `failed`, because the check's answer over half a piece of work is not a verdict on the agent.
+- A running task is told to stop. The server writes `stop.json` in the task's directory (who, and when) and interrupts the container's client. `gusto inside` then kills the agent and everything the agent started, keeps what it did in the working folder, and writes the manifest with `stoppedBy`. The server signs it. The task ends `interrupted`, not `failed`, because the check's answer over half a piece of work is not a verdict on the agent.
 - A container still there after sixty seconds is removed by its name, `gusto-<task id>`.
 - A task that is over answers 409 and is not changed.
 - A run stopped by a signal alone, as when a server shuts down, has `stoppedBy: "a signal"`.
-- This does not stop what the agent started in the workspace and left running after its turn, such as an app it served.
+- This does not stop what the agent started in the working folder and left running after its turn, such as an app it served.
 
 ## Open points
 

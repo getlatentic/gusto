@@ -52,9 +52,9 @@ func TestAPersonsTurnsShareAHomeOfTheirOwnAndARoomOrAScriptHasNone(t *testing.T)
 	}
 }
 
-// A conversation's turn has its workspace and its memory mounted, a room's turn only its memory, and a task of its own neither.
-func TestATurnIsGivenTheConversationsWorkspaceAndMemory(t *testing.T) {
-	conversation := staying(backend.Turn{Spec: task.Spec{Session: "s"}, Workspace: "/w", State: "/m"})
+// A conversation's turn has its folder and its memory mounted, a room's turn only its memory, and a task of its own neither.
+func TestATurnIsGivenTheConversationsFolderAndMemory(t *testing.T) {
+	conversation := staying(backend.Turn{Spec: task.Spec{Session: "s"}, AgentFolder: "/w", State: "/m"})
 	if len(conversation) != 2 || conversation[0].To != "/job/workspace" || conversation[1].From != "/m" {
 		t.Errorf("a conversation's turn was given %+v", conversation)
 	}

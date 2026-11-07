@@ -19,7 +19,7 @@ const Command = "/usr/bin/sandbox-exec"
 type Policy struct {
 	// Home is the person's home, which is closed to reading but for Readable.
 	Home string
-	// Writable are the folders the task may write: its workspace, its own home and state, and where it caches what it downloads.
+	// Writable are the folders the task may write: its working folder, its own home and state, and where it caches what it downloads.
 	Writable []string
 	// Readable are the folders under Home the task may still read: its own, and the ones its engine is installed in.
 	Readable []string

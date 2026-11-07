@@ -43,7 +43,7 @@ Not held:
 
 ## Isolation
 
-In a container, the default, each run mounts only its own directory. An agent cannot read the other run's workspace, record or `comparison.json`. `-here` runs both in this process with separate directories and no other barrier. Use it only for agents you trust, such as a fixture.
+In a container, the default, each run mounts only its own directory. An agent cannot read the other run's working folder, record or `comparison.json`. `-here` runs both in this process with separate directories and no other barrier. Use it only for agents you trust, such as a fixture.
 
 ## Exit code
 

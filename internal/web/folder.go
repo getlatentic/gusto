@@ -39,10 +39,10 @@ func changes(dir task.Dir) (names, deleted []string) {
 // anything, and a page is not the place to read a gigabyte.
 const mostShown = 512 << 10
 
-// resolveInFolder resolves a path inside a workspace, and refuses it when it leaves it, by a link or otherwise, or reaches
+// resolveInFolder resolves a path inside a folder, and refuses it when it leaves it, by a link or otherwise, or reaches
 // into git's own directory. The path is as the person asked, cleaned and rooted.
-func resolveInFolder(workspace, asked string) (string, bool) {
-	root, err := filepath.EvalSymlinks(workspace)
+func resolveInFolder(folder, asked string) (string, bool) {
+	root, err := filepath.EvalSymlinks(folder)
 	if err != nil {
 		return "", false
 	}
@@ -85,7 +85,7 @@ func (s *Server) folderPage(w http.ResponseWriter, r *http.Request) {
 	if !found {
 		return
 	}
-	root := s.instances.Workspace(agentHeld.ID)
+	root := s.instances.AgentFolder(agentHeld.ID)
 	var files []held
 	_ = filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {

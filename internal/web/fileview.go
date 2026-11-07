@@ -88,7 +88,7 @@ func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	asked := filepath.Clean("/" + r.URL.Query().Get("path"))
-	resolved, ok := resolveInFolder(s.instances.Workspace(held.ID), asked)
+	resolved, ok := resolveInFolder(s.instances.AgentFolder(held.ID), asked)
 	if !ok {
 		http.NotFound(w, r)
 		return
@@ -181,7 +181,7 @@ func (s *Server) folderRaw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	asked := filepath.Clean("/" + r.URL.Query().Get("path"))
-	resolved, ok := resolveInFolder(s.instances.Workspace(held.ID), asked)
+	resolved, ok := resolveInFolder(s.instances.AgentFolder(held.ID), asked)
 	if !ok {
 		http.NotFound(w, r)
 		return

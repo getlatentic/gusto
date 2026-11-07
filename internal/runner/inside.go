@@ -92,11 +92,11 @@ type inside struct {
 	// the manifest says it was.
 	digest   string
 	endpoint string
-	// before is the workspace as the agent was given it, which its changes are diffed against.
+	// before is the working folder as the agent was given it, which its changes are diffed against.
 	before string
 }
 
-// prepareInside readies a run: the agent's adapter, in the home it is given, admitted to the model it names, and the workspace
+// prepareInside readies a run: the agent's adapter, in the home it is given, admitted to the model it names, and the working folder
 // checked out and snapshotted. A run that may not reach its model is refused in its record.
 func prepareInside(dir task.Dir, spec task.Spec, env harness.Env) (*inside, error) {
 	configured, err := harness.Open(dir, spec.Harness)
@@ -129,7 +129,7 @@ func (r *inside) agentTurn(ctx context.Context, agent *agent, record *Record) (i
 	if err != nil {
 		return 0, err
 	}
-	command := r.adapter.CommandIn(ctx, r.spec, r.dir.Workspace(), r.env)
+	command := r.adapter.CommandIn(ctx, r.spec, r.dir.WorkingFolder(), r.env)
 	if r.env.Wrap != nil {
 		r.env.Wrap(command)
 	}

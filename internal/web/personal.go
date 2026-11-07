@@ -89,8 +89,8 @@ func (s *Server) threadJSON(w http.ResponseWriter, r *http.Request) {
 	answerJSON(w, http.StatusOK, threadWithTurns{Thread: thread, Said: said})
 }
 
-// workspaceFile is one file of an agent's folder as a helper needs it to keep a copy.
-type workspaceFile struct {
+// syncedFile is one file of an agent's folder as a helper needs it to keep a copy.
+type syncedFile struct {
 	Path     string `json:"path"`
 	Size     int64  `json:"size"`
 	Modified int64  `json:"modified"`
@@ -109,13 +109,13 @@ func (s *Server) filesJSON(w http.ResponseWriter, r *http.Request) {
 	if !found {
 		return
 	}
-	files, cut := workspaceFiles(s.instances.Workspace(held.ID))
+	files, cut := folderFiles(s.instances.AgentFolder(held.ID))
 	answerJSON(w, http.StatusOK, map[string]any{"files": files, "cut": cut})
 }
 
-// workspaceFiles is every file in a folder by path, leaving out git's own, and whether the listing stopped at mostFiles.
-func workspaceFiles(root string) ([]workspaceFile, bool) {
-	files, cut := []workspaceFile{}, false
+// folderFiles is every file in a folder by path, leaving out git's own, and whether the listing stopped at mostFiles.
+func folderFiles(root string) ([]syncedFile, bool) {
+	files, cut := []syncedFile{}, false
 	_ = filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 		switch {
 		case err != nil:
@@ -136,7 +136,7 @@ func workspaceFiles(root string) ([]workspaceFile, bool) {
 		if err != nil {
 			return nil
 		}
-		files = append(files, workspaceFile{Path: filepath.ToSlash(relative), Size: info.Size(), Modified: info.ModTime().Unix(), ModifiedNs: info.ModTime().UnixNano()})
+		files = append(files, syncedFile{Path: filepath.ToSlash(relative), Size: info.Size(), Modified: info.ModTime().Unix(), ModifiedNs: info.ModTime().UnixNano()})
 		return nil
 	})
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
@@ -150,7 +150,7 @@ func (s *Server) fileBytes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	asked := filepath.Clean("/" + r.URL.Query().Get("path"))
-	resolved, ok := resolveInFolder(s.instances.Workspace(held.ID), asked)
+	resolved, ok := resolveInFolder(s.instances.AgentFolder(held.ID), asked)
 	if !ok {
 		http.NotFound(w, r)
 		return

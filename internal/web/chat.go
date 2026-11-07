@@ -61,7 +61,7 @@ func (s *Server) startIn(r *http.Request) startFolder {
 	if !found {
 		return startFolder{}
 	}
-	if _, ok := s.workspaceDir(id, dir); !ok {
+	if _, ok := s.agentFolderDir(id, dir); !ok {
 		return startFolder{}
 	}
 	name := s.agentOf(held).Name

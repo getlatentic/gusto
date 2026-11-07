@@ -74,12 +74,12 @@ func (b *Backend) Start(context.Context) (func(), error) { return func() {}, nil
 // looking at the PATH costs nothing, so it is looked at each time.
 func (b *Backend) Offered() []catalog.Entry { return catalog.SurveyOf(catalog.Machine(), b.cfg.Agents) }
 
-// Run runs the turn's agent here. A turn in a container gets the instance's workspace and state mounted over its own; here the
-// task's workspace is made a link to the instance's, and the agent is given a home of the task's own with the instance's state
+// Run runs the turn's agent here. A turn in a container gets the instance's working folder and state mounted over its own; here the
+// task's working folder is made a link to the instance's, and the agent is given a home of the task's own with the instance's state
 // as its data, so a conversation works the same way in both places.
 func (b *Backend) Run(ctx context.Context, turn backend.Turn) (int, error) {
-	if turn.Workspace != "" {
-		if err := pointAt(turn.Workspace, turn.Dir); err != nil {
+	if turn.AgentFolder != "" {
+		if err := pointAt(turn.AgentFolder, turn.Dir); err != nil {
 			return 0, err
 		}
 	}
@@ -140,22 +140,22 @@ func agentEnv(turn backend.Turn) (harness.Env, error) {
 	return harness.Env{Base: base, ModelURL: url, ModelToken: token}, nil
 }
 
-// pointAt makes a task's workspace a link to the instance's.
+// pointAt makes a task's working folder a link to the instance's.
 //
-// The task directory is made before it is queued, which leaves a real, empty directory where the workspace goes; a link cannot
+// The task directory is made before it is queued, which leaves a real, empty directory where the working folder goes; a link cannot
 // be put over one. Remove refuses a directory with anything in it, so a task that has its own checkout is never quietly
 // replaced.
-func pointAt(workspace string, dir task.Dir) error {
+func pointAt(workingFolder string, dir task.Dir) error {
 	if err := dir.Make(); err != nil {
 		return err
 	}
-	if err := os.Remove(dir.Workspace()); err != nil && !os.IsNotExist(err) {
+	if err := os.Remove(dir.WorkingFolder()); err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	// A link's relative target is read from the link's own folder, not from where the server runs.
-	target, err := filepath.Abs(workspace)
+	target, err := filepath.Abs(workingFolder)
 	if err != nil {
 		return err
 	}
-	return linkDir(target, dir.Workspace())
+	return linkDir(target, dir.WorkingFolder())
 }

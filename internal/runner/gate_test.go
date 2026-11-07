@@ -13,7 +13,7 @@ import (
 
 func TestAGateThatNeverEndsIsStoppedWithItsChildrenWhenTheRunEnds(t *testing.T) {
 	dir := task.Dir(t.TempDir())
-	for _, d := range []string{dir.Workspace(), dir.OutFile("")} {
+	for _, d := range []string{dir.WorkingFolder(), dir.OutFile("")} {
 		if err := os.MkdirAll(d, 0o755); err != nil {
 			t.Fatal(err)
 		}

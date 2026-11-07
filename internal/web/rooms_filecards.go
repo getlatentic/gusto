@@ -50,7 +50,7 @@ func (s *Server) fileCards(room string, changed, deleted []string) *turnFiles {
 	if len(changed) == 0 {
 		return nil
 	}
-	root := s.instances.Workspace(room)
+	root := s.instances.AgentFolder(room)
 	files := &turnFiles{}
 	for _, name := range changed {
 		card := s.fileCard(room, root, name, slices.Contains(deleted, name))

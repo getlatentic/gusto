@@ -13,13 +13,13 @@ func (s *Store) Seed(id string, files map[string]string) error {
 	if len(files) == 0 {
 		return nil
 	}
-	workspace := s.Workspace(id)
+	folder := s.AgentFolder(id)
 	for name, text := range files {
 		clean := filepath.Clean(name)
 		if filepath.IsAbs(clean) || strings.HasPrefix(clean, "..") {
 			return fmt.Errorf("%q is not a file in the folder", name)
 		}
-		path := filepath.Join(workspace, clean)
+		path := filepath.Join(folder, clean)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			return err
 		}
@@ -27,9 +27,9 @@ func (s *Store) Seed(id string, files map[string]string) error {
 			return err
 		}
 	}
-	if err := run(workspace, "add", "-A"); err != nil {
+	if err := run(folder, "add", "-A"); err != nil {
 		return err
 	}
-	return run(workspace, "-c", "user.name=gusto", "-c", "user.email=gusto@localhost",
+	return run(folder, "-c", "user.name=gusto", "-c", "user.email=gusto@localhost",
 		"commit", "--quiet", "-m", "the template's sample files")
 }

@@ -59,13 +59,13 @@ func run(credentialsDir, project, gateway, image string) error {
 		return err
 	}
 	defer stop()
-	workspace, err := stage(project)
+	workingFolder, err := stage(project)
 	if err != nil {
 		return err
 	}
 	cfg := openshell.Config{Binary: "openshell", Gateway: gateway, Image: image, Host: "host.openshell.internal", CPU: "2", Memory: "3Gi"}
 	for n, turn := range turns {
-		if err := oneTurn(cfg, tokens, workspace, n, turn.harness, turn.model, turn.brief); err != nil {
+		if err := oneTurn(cfg, tokens, workingFolder, n, turn.harness, turn.model, turn.brief); err != nil {
 			return fmt.Errorf("turn %d (%s): %w", n+1, turn.harness, err)
 		}
 	}
@@ -74,27 +74,27 @@ func run(credentialsDir, project, gateway, image string) error {
 }
 
 // stage is a copy of the project as a git repository at a directory named
-// workspace, which is what a sandbox takes.
+// working folder, which is what a sandbox takes.
 func stage(project string) (string, error) {
 	parent, err := os.MkdirTemp("", "shared-")
 	if err != nil {
 		return "", err
 	}
-	workspace := filepath.Join(parent, "workspace")
-	steps := [][]string{{"cp", "-R", project, workspace}, {"git", "-C", workspace, "init", "-q"}, {"git", "-C", workspace, "add", "-A"},
-		{"git", "-C", workspace, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "start"}}
+	workingFolder := filepath.Join(parent, "workspace")
+	steps := [][]string{{"cp", "-R", project, workingFolder}, {"git", "-C", workingFolder, "init", "-q"}, {"git", "-C", workingFolder, "add", "-A"},
+		{"git", "-C", workingFolder, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "start"}}
 	for _, step := range steps {
 		if out, err := exec.Command(step[0], step[1:]...).CombinedOutput(); err != nil {
 			return "", fmt.Errorf("%v: %w: %s", step, err, out)
 		}
 	}
-	return workspace, nil
+	return workingFolder, nil
 }
 
 // oneTurn runs one harness in the sandbox. The first turn makes the sandbox and
 // the later ones find it by its name, each with a token of its own, so what each
 // turn spent is its own in the proxy's record.
-func oneTurn(cfg openshell.Config, tokens *proxy.Tokens, workspace string, n int, name, model, brief string) error {
+func oneTurn(cfg openshell.Config, tokens *proxy.Tokens, workingFolder string, n int, name, model, brief string) error {
 	adapter, err := harness.Load("", name)
 	if err != nil {
 		return err
@@ -111,7 +111,7 @@ func oneTurn(cfg openshell.Config, tokens *proxy.Tokens, workspace string, n int
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	if n == 0 {
-		if err := box.Start(ctx, workspace); err != nil {
+		if err := box.Start(ctx, workingFolder); err != nil {
 			return err
 		}
 	}

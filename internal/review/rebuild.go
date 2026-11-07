@@ -9,7 +9,7 @@ import (
 )
 
 // rebuilt checks out the commit the task ran against and applies the hashed
-// patch to it, which is the workspace the gate passed in. The pull request's
+// patch to it, which is the working folder the gate passed in. The pull request's
 // commit has to hold the same tree, or the code under review is not the code
 // whose gate passed.
 func rebuilt(ctx context.Context, found fetched, dir task.Dir) ([]string, error) {
@@ -17,17 +17,17 @@ func rebuilt(ctx context.Context, found fetched, dir task.Dir) ([]string, error)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := git(ctx, "-C", found.workspace, "checkout", "--quiet", "--detach", found.at); err != nil {
+	if _, err := git(ctx, "-C", found.workingFolder, "checkout", "--quiet", "--detach", found.at); err != nil {
 		return nil, err
 	}
-	if _, err := git(ctx, "-C", found.workspace, "apply", "--index", patch); err != nil {
+	if _, err := git(ctx, "-C", found.workingFolder, "apply", "--index", patch); err != nil {
 		return []string{fmt.Sprintf("diff.patch does not apply on %s, the parent of the pull request's commit: %v", found.at, err)}, nil
 	}
-	tree, err := git(ctx, "-C", found.workspace, "write-tree")
+	tree, err := git(ctx, "-C", found.workingFolder, "write-tree")
 	if err != nil {
 		return nil, err
 	}
-	want, err := git(ctx, "-C", found.workspace, "rev-parse", found.change+"^{tree}")
+	want, err := git(ctx, "-C", found.workingFolder, "rev-parse", found.change+"^{tree}")
 	if err != nil {
 		return nil, err
 	}

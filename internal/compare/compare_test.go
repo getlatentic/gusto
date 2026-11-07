@@ -68,10 +68,10 @@ func TestEachRunKeepsItsOwnEvidenceAndNeitherSeesTheOther(t *testing.T) {
 	}
 
 	yes, maybe := sides[0].Task(where), sides[1].Task(where)
-	if yes.Workspace() == maybe.Workspace() || yes.Out() == maybe.Out() {
+	if yes.WorkingFolder() == maybe.WorkingFolder() || yes.Out() == maybe.Out() {
 		t.Fatal("the runs share a directory")
 	}
-	if read(t, filepath.Join(yes.Workspace(), "answer.txt")) != "yes" || read(t, filepath.Join(maybe.Workspace(), "answer.txt")) != "maybe" {
+	if read(t, filepath.Join(yes.WorkingFolder(), "answer.txt")) != "yes" || read(t, filepath.Join(maybe.WorkingFolder(), "answer.txt")) != "maybe" {
 		t.Fatal("one harness's work reached the other's workspace")
 	}
 	for _, side := range sides {
@@ -106,10 +106,10 @@ func TestTheCommitIsPinnedBeforeAnyRunClones(t *testing.T) {
 	}
 	for _, side := range sides {
 		dir := side.Task(where)
-		if at := git(t, dir.Workspace(), "rev-parse", "HEAD"); at != started {
+		if at := git(t, dir.WorkingFolder(), "rev-parse", "HEAD"); at != started {
 			t.Fatalf("%s worked on %s rather than the pinned %s", side.Harness, at, started)
 		}
-		if _, err := os.Stat(filepath.Join(dir.Workspace(), "later.txt")); err == nil {
+		if _, err := os.Stat(filepath.Join(dir.WorkingFolder(), "later.txt")); err == nil {
 			t.Fatalf("%s saw a commit made after the pin", side.Harness)
 		}
 	}

@@ -452,13 +452,13 @@ a crash between them ends the turn with the process. Accepting an agent that is 
 
 One finished task and the sweep that removes it when it is due (`internal/retention/sweep.go`, `internal/retention/holds.go`,
 `internal/web/retention.go`). An admin holds the task. A sweep reads whether the task is held and removes it when it is not.
-The task may be a turn of a room, which its owner removes, and an operator may delete it. The policy keeps the workspace for
+The task may be a turn of a room, which its owner removes, and an operator may delete it. The policy keeps the working folder for
 ever or for some days.
 
 | Property | What it says | Broken without | Go test |
 | --- | --- | --- | --- |
 | `TheHeldAreKept` | The sweep never removes a task that is held. | `guard`: the sweep read the holds once, and removed a task held after that | `TestAHoldPlacedWhileASweepRunsKeepsTheTask` |
-| `ForeverIsForever` | A workspace the policy keeps for ever is never removed. | `forever`: a record with days and a workspace with none took the workspace with it | `TestARecordCannotGoWhileItsWorkspaceIsKeptForEver` |
+| `ForeverIsForever` | A working folder the policy keeps for ever is never removed. | `forever`: a record with days and a working folder with none took the working folder with it | `TestARecordCannotGoWhileItsWorkspaceIsKeptForEver` |
 | `RemovedRoomsTurnsGo` | A due turn of a room that was removed goes, or is held. | `rooms`: no turn of a room was ever swept, and removing a room keeps its turns | `TestATurnOfARoomThatWasRemovedIsSweptAndOneOfAKeptRoomIsNot` |
 | `NoHoldOutlivesItsTask` | A hold on a task that is gone ends. | `forget`: holds on removed tasks stayed for ever | `TestAHoldOnATaskThatIsGoneIsEnded` |
 

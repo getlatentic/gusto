@@ -46,7 +46,7 @@ func TestAHarnessAndItsGateRunWithTheEnvironmentGivenAndNotTheServers(t *testing
 		gate, _ := os.ReadFile(dir.OutFile("gate.log"))
 		t.Fatalf("exit %d, %v: the gate saw the server's environment or no token\n%s", exit, err, gate)
 	}
-	seen, _ := os.ReadFile(filepath.Join(dir.Workspace(), "seen.txt"))
+	seen, _ := os.ReadFile(filepath.Join(dir.WorkingFolder(), "seen.txt"))
 	if string(seen) != "token=given-token password=absent" {
 		t.Errorf("the harness saw %q", seen)
 	}

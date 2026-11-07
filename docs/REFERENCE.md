@@ -46,7 +46,7 @@ Trust and review: [THREAT_MODEL.md](THREAT_MODEL.md), [SECURITY.md](SECURITY.md)
 - The pull request names the agent, model and check, links the manifest and transcript, and prints the check command.
 - `-dry-run` prints the plan and does nothing. The flags that override what `gusto pr open` reads from the task are in [CLI.md](CLI.md).
 
-A reviewer runs the printed command. It fetches the record ref with the reviewer's own git credentials, re-hashes every file, rebuilds the workspace from `diff.patch` and runs the check. It exits 1 and names what disagrees. `-into <dir>` keeps the unpacked task.
+A reviewer runs the printed command. It fetches the record ref with the reviewer's own git credentials, re-hashes every file, rebuilds the working folder from `diff.patch` and runs the check. It exits 1 and names what disagrees. `-into <dir>` keeps the unpacked task.
 
 ```bash
 gusto pr verify <repository> <manifest sha256>
@@ -286,7 +286,7 @@ docker build -t gusto:dev \
 | `GUSTO_KEYRING` | a directory of `<name>.pub` keys that `verify`, `show`, `serve`, `pr open` and `export` trust, retired keys included |
 | `GUSTO_SIGNER` | who the manifest names. This is the runner's own word |
 | `GUSTO_CHANGES` | the file recording platform changes: sign-ins, refusals, role, setup and settings changes. Hash-chained, and signed when a key is set. `gusto changes verify` checks it. [CHANGES.md](CHANGES.md) |
-| `GUSTO_RETENTION` | the directory holding `policy.json`, the holds and the last sweep. A task's workspace is removed first, its signed record later. `GUSTO_RETENTION_MINUTES` sets the interval, 60 by default. `gusto retention` lists what a sweep would remove. [RETENTION.md](RETENTION.md) |
+| `GUSTO_RETENTION` | the directory holding `policy.json`, the holds and the last sweep. A task's working folder is removed first, its signed record later. `GUSTO_RETENTION_MINUTES` sets the interval, 60 by default. `gusto retention` lists what a sweep would remove. [RETENTION.md](RETENTION.md) |
 | `GUSTO_GITHUB_TOKEN` | the token `gusto pr open` pushes and opens pull requests with. `GUSTO_GITHUB_API` overrides the API address |
 | `GUSTO_GITHUB_APP_ID`, `GUSTO_GITHUB_APP_KEY` | a GitHub App that reaches the repositories tasks name. Each task gets a token for one repository, revoked when the work is done. Set both or neither. [REPOS.md](REPOS.md) |
 | `GUSTO_GITHUB_URL` | a GitHub Enterprise Server's address, with `GUSTO_GITHUB_API`. github.com when unset |

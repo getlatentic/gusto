@@ -17,9 +17,9 @@ import (
 // the exact bytes git holds. Only the names a task directory gives its evidence
 // are written, and only as plain files: anything else in the commit is
 // reported and never written, so a crafted commit cannot put a file in the
-// workspace or outside the directory.
+// working folder or outside the directory.
 func unpack(ctx context.Context, found fetched, dir task.Dir) ([]string, error) {
-	listing, err := git(ctx, "-C", found.workspace, "ls-tree", "-r", "-z", found.evidence)
+	listing, err := git(ctx, "-C", found.workingFolder, "ls-tree", "-r", "-z", found.evidence)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func unpack(ctx context.Context, found fetched, dir task.Dir) ([]string, error) 
 			wrong = append(wrong, fmt.Sprintf("the record carries %s, which a task directory does not hold", name))
 			continue
 		}
-		if err := written(ctx, found.workspace, blob, filepath.Join(dir.Path(), filepath.FromSlash(name))); err != nil {
+		if err := written(ctx, found.workingFolder, blob, filepath.Join(dir.Path(), filepath.FromSlash(name))); err != nil {
 			return nil, err
 		}
 	}
@@ -66,8 +66,8 @@ func taskFile(name string) bool {
 	return found && file != "" && file != "." && file != ".." && !strings.Contains(file, "/")
 }
 
-func written(ctx context.Context, workspace, blob, path string) error {
-	text, err := gitBytes(ctx, "-C", workspace, "cat-file", "blob", blob)
+func written(ctx context.Context, workingFolder, blob, path string) error {
+	text, err := gitBytes(ctx, "-C", workingFolder, "cat-file", "blob", blob)
 	if err != nil {
 		return err
 	}

@@ -14,7 +14,7 @@ import (
 const removed = ".removed"
 
 // Remove takes an instance out of the store. Its directory is moved aside, not
-// deleted: the workspace is somebody's work, and a person who removed the wrong
+// deleted: the folder is somebody's work, and a person who removed the wrong
 // one can move it back. The tasks it ran are records of their own and stay.
 func (s *Store) Remove(id string) error {
 	s.guard.Lock()

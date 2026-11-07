@@ -38,7 +38,7 @@ func write(t *testing.T, path, text string) {
 	}
 }
 
-// aTask is a task dir whose workspace already holds a repository whose gate fails
+// aTask is a task dir whose working folder already holds a repository whose gate fails
 // until answer.txt says yes, as the server leaves it after the checkout.
 func aTask(t *testing.T) (task.Dir, task.Spec) {
 	t.Helper()
@@ -49,9 +49,9 @@ func aTask(t *testing.T) (task.Dir, task.Spec) {
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	write(t, filepath.Join(dir.Workspace(), "answer.txt"), "no")
+	write(t, filepath.Join(dir.WorkingFolder(), "answer.txt"), "no")
 	for _, args := range [][]string{{"init", "--quiet"}, {"add", "answer.txt"}, {"-c", "user.email=t@t", "-c", "user.name=t", "commit", "--quiet", "-m", "start"}} {
-		command := exec.Command("git", append([]string{"-C", dir.Workspace()}, args...)...)
+		command := exec.Command("git", append([]string{"-C", dir.WorkingFolder()}, args...)...)
 		if output, err := command.CombinedOutput(); err != nil {
 			t.Fatalf("git %v: %v: %s", args, err, output)
 		}
@@ -284,23 +284,23 @@ func TestAHarnessTheImageDoesNotCarryIsRefusedByNameAndTheSandboxRemoved(t *test
 
 // A harness that keeps its state in a folder wants the folder to exist before it
 // starts, as it does in a container, and in the sandbox's home.
-// A new conversation's workspace holds nothing but its git directory. A gateway refuses an upload that selects no file, so the
-// workspace is made in the sandbox and not uploaded.
-func TestAWorkspaceWithNothingInItIsMadeInTheSandboxAndNotUploaded(t *testing.T) {
+// A new conversation's working folder holds nothing but its git directory. A gateway refuses an upload that selects no file, so the
+// working folder is made in the sandbox and not uploaded.
+func TestAWorkingFolderWithNothingInItIsMadeInTheSandboxAndNotUploaded(t *testing.T) {
 	root := installFake(t)
 	dir, _ := aTask(t)
 	for _, name := range []string{"answer.txt"} {
-		if err := os.Remove(filepath.Join(dir.Workspace(), name)); err != nil {
+		if err := os.Remove(filepath.Join(dir.WorkingFolder(), name)); err != nil {
 			t.Fatal(err)
 		}
 	}
 	box := sandboxFor(t, dir)
-	if err := box.Start(context.Background(), dir.Workspace()); err != nil {
+	if err := box.Start(context.Background(), dir.WorkingFolder()); err != nil {
 		t.Fatal(err)
 	}
 	calls, _ := os.ReadFile(filepath.Join(root, "calls.log"))
 	for _, call := range strings.Split(string(calls), "\n") {
-		if strings.HasPrefix(call, "sandbox upload") && strings.Contains(call, dir.Workspace()) {
+		if strings.HasPrefix(call, "sandbox upload") && strings.Contains(call, dir.WorkingFolder()) {
 			t.Errorf("an empty workspace was uploaded: %s", call)
 		}
 	}
@@ -327,8 +327,8 @@ func TestAHarnessesStateFolderExistsInTheSandboxBeforeItStarts(t *testing.T) {
 }
 
 // An agent that speaks the Agent Client Protocol is held a conversation with, in
-// the directory the sandbox has the workspace at and not one of this machine's.
-func TestAnACPHarnessIsSpokenToInTheSandboxsWorkspace(t *testing.T) {
+// the directory the sandbox has the working folder at and not one of this machine's.
+func TestAnACPHarnessIsSpokenToInTheSandboxsWorkingFolder(t *testing.T) {
 	root := installFake(t)
 	dir, _ := aTask(t)
 	agent := `while IFS= read -r line; do
@@ -366,7 +366,7 @@ done`
 	if !strings.Contains(string(calls), "ssh-config") || !strings.Contains(string(calls), "ssh gusto-") {
 		t.Errorf("a conversation should be held over ssh, since exec cannot carry one: %s", calls)
 	}
-	asked, err := os.ReadFile(filepath.Join(dir.Workspace(), "asked-new.json"))
+	asked, err := os.ReadFile(filepath.Join(dir.WorkingFolder(), "asked-new.json"))
 	if err != nil || !strings.Contains(string(asked), `"cwd":"/sandbox/workspace"`) {
 		t.Errorf("the session should begin in the sandbox's workspace: %s %v", asked, err)
 	}

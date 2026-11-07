@@ -13,7 +13,7 @@ import (
 )
 
 // Git pushes by shelling out to git in a scratch repository of its own, so the
-// task's workspace, which is record, is never touched.
+// task's working folder, which is record, is never touched.
 type Git struct {
 	// Token, when set, is sent to Host and to no other.
 	Token string
@@ -64,12 +64,12 @@ func (g Git) env() []string {
 	return repoaccess.WithToken(env, or(g.Host, "https://github.com"), g.Token)
 }
 
-// ranAgainst is the commit the workspace was checked out at. The patch is a
+// ranAgainst is the commit the working folder was checked out at. The patch is a
 // diff against it, so it is the one commit the patch is sure to apply to.
 func ranAgainst(dir task.Dir) (string, error) {
-	at, err := run(context.Background(), nil, "-C", dir.Workspace(), "rev-parse", "--verify", "HEAD")
+	at, err := run(context.Background(), nil, "-C", dir.WorkingFolder(), "rev-parse", "--verify", "HEAD")
 	if err != nil {
-		return "", fmt.Errorf("the workspace does not say which commit the task ran against: %w", err)
+		return "", fmt.Errorf("the working folder does not say which commit the task ran against: %w", err)
 	}
 	return at, nil
 }

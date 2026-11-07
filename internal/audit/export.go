@@ -115,7 +115,7 @@ func carryAll(from, to task.Dir, id string, manifest evidence.Manifest, options 
 
 // sourceFiles are the files of a task an export carries: job.json, the
 // server's state.json when there is one, and everything in out/. The
-// workspace stays behind: what changed in it is out/diff.patch.
+// working folder stays behind: what changed in it is out/diff.patch.
 func sourceFiles(from task.Dir) ([]string, error) {
 	names, err := filesIn(from)
 	if err != nil {

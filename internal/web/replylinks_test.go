@@ -13,10 +13,10 @@ func TestALinkToAnAgentsFileOpensTheFile(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	id := strings.TrimPrefix(startedInstance(t, site), "/instances/")
-	workspace := site.server.instances.Workspace(id)
-	os.MkdirAll(filepath.Join(workspace, "src", "app"), 0o755)
-	os.WriteFile(filepath.Join(workspace, "index.html"), []byte("x"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "src", "main.go"), []byte("x"), 0o644)
+	folder := site.server.instances.AgentFolder(id)
+	os.MkdirAll(filepath.Join(folder, "src", "app"), 0o755)
+	os.WriteFile(filepath.Join(folder, "index.html"), []byte("x"), 0o644)
+	os.WriteFile(filepath.Join(folder, "src", "main.go"), []byte("x"), 0o644)
 	back := "/instances/" + id + "/threads/1"
 
 	drawn := func(text, dir string) string { return string(site.server.replyIn(text, id, dir, back)) }

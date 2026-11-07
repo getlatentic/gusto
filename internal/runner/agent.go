@@ -11,7 +11,7 @@ import (
 
 // agent is the user an agent runs as inside the box. The runner stays root
 // there, so the record in out/ is written by the runner alone: the agent, and
-// whatever code it runs, can read its workspace and its own home and cannot
+// whatever code it runs, can read its working folder and its own home and cannot
 // touch the record, the proxy's log included. A runner that is not root, or an
 // image that names no agent, has nobody to hand the work to and runs the
 // harness as itself: a laptop, `gusto inside` by hand, GUSTO_SANDBOX=here.
@@ -31,13 +31,13 @@ func agentIn(place Place) agent {
 	return agent{uid: place.AgentUID, gid: place.AgentUID, present: true, keptHome: place.KeptHome}
 }
 
-// handOver gives the agent its workspace and home, closes out/ to it, and
+// handOver gives the agent its working folder and home, closes out/ to it, and
 // sets the command to start as the agent.
 func (a agent) handOver(dir task.Dir, command *exec.Cmd) error {
 	if !a.present {
 		return nil
 	}
-	for _, mine := range append([]string{dir.Workspace()}, a.homeToGive()...) {
+	for _, mine := range append([]string{dir.WorkingFolder()}, a.homeToGive()...) {
 		if mine == "" {
 			continue
 		}
@@ -69,10 +69,10 @@ func chownTree(root string, uid, gid int) error {
 	})
 }
 
-// takeBack gives the task directory, the workspace and the home to whoever owns the task directory, once the record is written
+// takeBack gives the task directory, the working folder and the home to whoever owns the task directory, once the record is written
 // and the harness is gone. That is the server that made the directory, on the machine the box runs on. The runner's own user is
 // not: under a container runtime whose root is the machine's root, what the box left would be files the server can list and
-// cannot open or remove. The workspace is a conversation's own folder when it is mounted from elsewhere, and is handed over
+// cannot open or remove. The working folder is a conversation's own folder when it is mounted from elsewhere, and is handed over
 // again, whole, at the start of the next turn. It does what it can: a file it cannot change is left, and the run is not failed.
 func (a agent) takeBack(dir task.Dir) {
 	if !a.present {
@@ -82,7 +82,7 @@ func (a agent) takeBack(dir task.Dir) {
 	if owner, owned := ownerOfPath(dir.Path()); owned {
 		uid, gid = owner.uid, owner.gid
 	}
-	for _, mine := range append([]string{dir.Path(), dir.Workspace()}, a.homeToTakeBack()...) {
+	for _, mine := range append([]string{dir.Path(), dir.WorkingFolder()}, a.homeToTakeBack()...) {
 		if mine != "" {
 			_ = chownTree(mine, uid, gid)
 		}

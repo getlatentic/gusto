@@ -59,7 +59,7 @@ const DefaultProcesses = 512
 // unsetProcesses is the limit for a sandbox whose configuration names none.
 var unsetProcesses = DefaultProcesses
 
-// Workdir is where the workspace is inside a sandbox. It is under the home a
+// Workdir is where the working folder is inside a sandbox. It is under the home a
 // sandbox user has, /sandbox: the file rules can only be laid on a path that
 // exists when the sandbox starts, so a directory made at the root is refused.
 const Workdir = "/sandbox/workspace"
@@ -82,7 +82,7 @@ type Sandbox struct {
 	// sshConfig is the file that says how to reach the sandbox with ssh, and
 	// sshHost the name it gives it. Both are made when a conversation needs them.
 	sshConfig, sshHost string
-	// A workspace is a sandbox that outlives a task: it is made once, each task works in a
+	// A computer is a sandbox that outlives a task: it is made once, each task works in a
 	// directory of its own in it, and the task's part of the guard's log is what came
 	// after the lines that were there when it began.
 	persistent bool
@@ -107,10 +107,10 @@ func New(cfg Config, id string, adapter harness.Adapter, modelURL, hostModelURL,
 	return s, nil
 }
 
-// taskName is what a directory in a workspace may be called.
+// taskName is what a directory on a computer may be called.
 var taskName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,80}$`)
 
-// dirName is a task's id as a directory's name in a workspace. A name of plain letters,
+// dirName is a task's id as a directory's name on a computer. A name of plain letters,
 // digits and hyphens is itself. Any other, with a letter from another alphabet or
 // a slash or dots in it, is made plain and given a digest of the whole, so it cannot
 // reach outside its directory and two that are alike stay two.
@@ -138,13 +138,13 @@ func dirName(id string) string {
 	return name + hex.EncodeToString(sum[:])[:8]
 }
 
-// NewComputer prepares a task in a workspace: a sandbox that lasts, called name, that this
+// NewComputer prepares a task on a computer: a sandbox that lasts, called name, that this
 // task works in a directory of. The sandbox is made when it is not there, and is
 // not removed when the task ends.
 //
 // A turn in a conversation is given the instance it is a turn on. The agent ties a
 // conversation to the directory it began in, so every turn of an instance works in the
-// same directory of the workspace, which is kept between turns. Any other task works in one
+// same directory of the computer, which is kept between turns. Any other task works in one
 // of its own, which goes when the task does.
 func NewComputer(cfg Config, name, task, instance string, adapter harness.Adapter, modelURL, hostModelURL, token string) (*Sandbox, error) {
 	s, err := New(cfg, task, adapter, modelURL, hostModelURL, token)
@@ -159,7 +159,7 @@ func NewComputer(cfg Config, name, task, instance string, adapter harness.Adapte
 	return s, nil
 }
 
-// tasksDir is where the tasks of a workspace are, each in a directory of its own.
+// tasksDir is where the tasks of a computer are, each in a directory of its own.
 const tasksDir = Home + "/jobs"
 
 // Home is the home of the user a sandbox runs the agent as.
@@ -186,7 +186,7 @@ func (s *Sandbox) Equip(ctx context.Context, dir task.Dir, spec task.Spec, adapt
 			return err
 		}
 	}
-	// What an earlier task in a workspace put where the agent looks for skills is not
+	// What an earlier task on a computer put where the agent looks for skills is not
 	// this task's.
 	if s.persistent && adapter.Skills != "" {
 		if _, err := output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--", "rm", "-rf", harness.Rehome(adapter.Skills, s.home))); err != nil {
@@ -368,16 +368,16 @@ func step(args []string) string {
 	return strings.Join(words, " ")
 }
 
-// Start makes the sandbox, with its policy, and puts the workspace in it. A workspace
+// Start makes the sandbox, with its policy, and puts the working folder in it. A working folder
 // is made only when it is not there, and is started again when it was stopped.
-func (s *Sandbox) Start(ctx context.Context, workspace string) error {
+func (s *Sandbox) Start(ctx context.Context, workingFolder string) error {
 	if s.persistent {
-		return s.startInComputer(ctx, workspace)
+		return s.startInComputer(ctx, workingFolder)
 	}
-	return s.makeSandbox(ctx, workspace)
+	return s.makeSandbox(ctx, workingFolder)
 }
 
-func (s *Sandbox) makeSandbox(ctx context.Context, workspace string) error {
+func (s *Sandbox) makeSandbox(ctx context.Context, workingFolder string) error {
 	policy, err := os.CreateTemp("", "gusto-sandbox-policy-")
 	if err != nil {
 		return err
@@ -396,16 +396,16 @@ func (s *Sandbox) makeSandbox(ctx context.Context, workspace string) error {
 	if err := s.create(ctx, append(args, "--", "sleep", "infinity")); err != nil {
 		return err
 	}
-	absolute, err := filepath.Abs(workspace)
+	absolute, err := filepath.Abs(workingFolder)
 	if err != nil {
 		return err
 	}
-	// An upload puts a directory under its own name, so the workspace goes to
+	// An upload puts a directory under its own name, so the working folder goes to
 	// the sandbox's home and lands at Workdir.
 	if filepath.Base(absolute) != filepath.Base(Workdir) {
-		return fmt.Errorf("the workspace is %s, and a sandbox names it %s", absolute, filepath.Base(Workdir))
+		return fmt.Errorf("the working folder is %s, and a sandbox names it %s", absolute, filepath.Base(Workdir))
 	}
-	// A new conversation's workspace holds nothing but its git directory, which an upload leaves behind, and an upload that selects
+	// A new conversation's working folder holds nothing but its git directory, which an upload leaves behind, and an upload that selects
 	// nothing is refused: the folder is made in the sandbox instead.
 	if empty, err := holdsNothing(absolute); err != nil {
 		return err
@@ -600,7 +600,7 @@ func quoted(text string) string {
 	return "'" + strings.ReplaceAll(text, "'", `'\''`) + "'"
 }
 
-// Fetch replaces into with the workspace as the sandbox now holds it.
+// Fetch replaces into with the working folder as the sandbox now holds it.
 func (s *Sandbox) Fetch(into string) error {
 	staging, err := os.MkdirTemp(filepath.Dir(into), ".fetch-")
 	if err != nil {
@@ -653,7 +653,7 @@ func (s *Sandbox) Guard() (events, policy []byte, err error) {
 	return events, policy, nil
 }
 
-// Close removes the sandbox, and a task's directory in a workspace and no more of it.
+// Close removes the sandbox, and a task's directory on a computer and no more of it.
 func (s *Sandbox) Close() error {
 	if s.sshConfig != "" {
 		os.Remove(s.sshConfig)

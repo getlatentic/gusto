@@ -41,7 +41,7 @@ func TestARunnerWithNoAgentTakesBackNothing(t *testing.T) {
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	file := dir.Workspace() + "/made-by-the-harness"
+	file := dir.WorkingFolder() + "/made-by-the-harness"
 	if err := os.WriteFile(file, []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}

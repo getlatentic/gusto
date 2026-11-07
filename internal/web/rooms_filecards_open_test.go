@@ -11,7 +11,7 @@ import (
 // A room's file card opens in the side panel and downloads under its own name, as it does in a chat.
 func TestARoomsFileCardOpensInThePanelAndDownloadsUnderItsName(t *testing.T) {
 	here, id, _ := aRoom(t, &roomWork{}, [2]string{"Scout", "fixture"})
-	if err := os.WriteFile(filepath.Join(here.server.instances.Workspace(id), "audience.md"), []byte("- Teams that run agents\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(here.server.instances.AgentFolder(id), "audience.md"), []byte("- Teams that run agents\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if added := here.as(t, alice).ask(t, "POST", "/rooms/"+id+"/members", url.Values{"who": {bob}}); added.Code != http.StatusSeeOther {

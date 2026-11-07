@@ -14,13 +14,13 @@ import (
 )
 
 // A folder of the person's cloud computer is named by where it is: nothing for the top, where their agents' folders are, then an agent's
-// id, then a path from the root of that agent's workspace ("20261009-0211-alpha/src/app"). Nothing outside a workspace can be named.
+// id, then a path from the root of that agent's folder ("20261009-0211-alpha/src/app"). Nothing outside a folder can be named.
 
 // shownFolder is one folder in the explorer.
 type shownFolder struct {
 	Name string `json:"name"`
 	At   string `json:"at"`
-	// Harness says what works in it, for a folder that is an agent's whole workspace.
+	// Harness says what works in it, for a folder that is the whole of an agent's folder.
 	Harness string `json:"harness,omitempty"`
 	// Modified is when it was last changed, in seconds, or when the agent was last used.
 	Modified int64 `json:"modified,omitempty"`
@@ -50,7 +50,7 @@ type shownFolders struct {
 
 const filesShown = 60
 
-// splitAt separates "id/some/path" into the agent and the path in its workspace.
+// splitAt separates "id/some/path" into the agent and the path in its folder.
 func splitAt(at string) (id, dir string) {
 	id, dir, _ = strings.Cut(strings.Trim(at, "/"), "/")
 	return id, dir
@@ -65,13 +65,13 @@ func (s *Server) folderAgent(r *http.Request, id string) (instance.Instance, boo
 	return held, true
 }
 
-// workspaceDir is the folder of an agent's workspace that a path names, resolved so that a link inside the workspace cannot lead out of it.
-func (s *Server) workspaceDir(id, dir string) (string, bool) {
+// agentFolderDir is the folder inside an agent's folder that a path names, resolved so that a link inside the folder cannot lead out of it.
+func (s *Server) agentFolderDir(id, dir string) (string, bool) {
 	cleaned, err := task.CleanDir(dir)
 	if err != nil {
 		return "", false
 	}
-	root, err := filepath.EvalSymlinks(s.instances.Workspace(id))
+	root, err := filepath.EvalSymlinks(s.instances.AgentFolder(id))
 	if err != nil {
 		return "", false
 	}
@@ -97,7 +97,7 @@ func (s *Server) chatFolders(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	here, ok := s.workspaceDir(id, dir)
+	here, ok := s.agentFolderDir(id, dir)
 	if !ok {
 		http.NotFound(w, r)
 		return
@@ -162,7 +162,7 @@ func plainFolderName(name string) bool {
 	return true
 }
 
-// newChatFolder makes a folder: inside an agent's folder it is a folder of its workspace, and at the top it is a new agent's own.
+// newChatFolder makes a folder: inside an agent's folder it is a folder in it, and at the top it is a new agent's own.
 func (s *Server) newChatFolder(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.FormValue("name"))
 	if !plainFolderName(name) {
@@ -178,7 +178,7 @@ func (s *Server) newChatFolder(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	parent, ok := s.workspaceDir(id, dir)
+	parent, ok := s.agentFolderDir(id, dir)
 	if !ok {
 		http.NotFound(w, r)
 		return
@@ -206,7 +206,7 @@ func (s *Server) cloudFolderThread(r *http.Request, at, model string) (instance.
 	if !found {
 		return held, instance.Thread{}, "that folder is not one of yours"
 	}
-	if _, ok := s.workspaceDir(id, dir); !ok {
+	if _, ok := s.agentFolderDir(id, dir); !ok {
 		return held, instance.Thread{}, "that folder is not there"
 	}
 	dir, _ = task.CleanDir(dir)

@@ -18,7 +18,7 @@ This record says what the people who run the platform did to it: who signed in, 
 | `connector.connected`, `connector.disconnected` | A person signs in to an app with their own account, or takes the sign-in away from their agents. The tokens are never written |
 | `sandbox.confirmed` | A person on their own computer confirms, once, that agents run with no sandbox |
 | `chat.default` | An admin sets or clears what a new chat runs on, with the agent and model before and after |
-| `retention.hold`, `retention.release`, `retention.swept` | An admin keeps a task or a person's work from being removed, or lets it go. A sweep removed workspaces or records, with the counts and the records named |
+| `retention.hold`, `retention.release`, `retention.swept` | An admin keeps a task or a person's work from being removed, or lets it go. A sweep removed working folders or records, with the counts and the records named |
 | `server.started`, `settings.changed` | The server starts, with the settings that decide who may do what. One of those settings differs from the last start |
 
 Every line has who, what, when and where the request came from. It never holds a password.

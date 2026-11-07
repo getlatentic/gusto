@@ -54,9 +54,9 @@ func TestAHarnessRunHereReadsItsOwnHomeAndNotThePersons(t *testing.T) {
 }
 
 // A turn run in this process has no container to mount the instance into, so
-// its workspace is a link. The task directory is made before it is queued, which
+// its working folder is a link. The task directory is made before it is queued, which
 // leaves a real directory in the way — and a link cannot be put over one.
-func TestATurnRunHereWorksInTheInstancesWorkspace(t *testing.T) {
+func TestATurnRunHereWorksInTheInstancesWorkingFolder(t *testing.T) {
 	instance := filepath.Join(t.TempDir(), "workspace")
 	if err := os.MkdirAll(instance, 0o755); err != nil {
 		t.Fatal(err)
@@ -71,7 +71,7 @@ func TestATurnRunHereWorksInTheInstancesWorkspace(t *testing.T) {
 	if err := pointAt(instance, dir); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(dir.Workspace(), "already.txt")); err != nil {
+	if _, err := os.Stat(filepath.Join(dir.WorkingFolder(), "already.txt")); err != nil {
 		t.Fatalf("the turn does not work in the instance's workspace: %v", err)
 	}
 	// And doing it twice is doing it once, because a turn can be run again.
@@ -81,8 +81,8 @@ func TestATurnRunHereWorksInTheInstancesWorkspace(t *testing.T) {
 }
 
 // gusto on a person's computer keeps its folders relative to its own, and a link's relative target is read from the link's
-// folder, so the link has to name the workspace whole.
-func TestATurnRunHereFindsTheWorkspaceWhenTheFoldersAreRelative(t *testing.T) {
+// folder, so the link has to name the working folder whole.
+func TestATurnRunHereFindsTheWorkingFolderWhenTheFoldersAreRelative(t *testing.T) {
 	t.Chdir(t.TempDir())
 	if err := os.MkdirAll(filepath.Join("sessions", "a", "workspace"), 0o755); err != nil {
 		t.Fatal(err)
@@ -94,24 +94,24 @@ func TestATurnRunHereFindsTheWorkspaceWhenTheFoldersAreRelative(t *testing.T) {
 	if err := pointAt(filepath.Join("sessions", "a", "workspace"), dir); err != nil {
 		t.Fatal(err)
 	}
-	if info, err := os.Stat(dir.Workspace()); err != nil || !info.IsDir() {
+	if info, err := os.Stat(dir.WorkingFolder()); err != nil || !info.IsDir() {
 		t.Fatalf("the link goes nowhere: %v", err)
 	}
 }
 
 // A task with a checkout of its own is not a turn, and must not lose it.
-func TestAWorkspaceWithSomethingInItIsNotReplacedByALink(t *testing.T) {
+func TestAWorkingFolderWithSomethingInItIsNotReplacedByALink(t *testing.T) {
 	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir.Workspace(), "mine.txt"), []byte("mine\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir.WorkingFolder(), "mine.txt"), []byte("mine\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := pointAt(t.TempDir(), dir); err == nil {
 		t.Fatal("a workspace with a file in it was replaced by a link")
 	}
-	if _, err := os.Stat(filepath.Join(dir.Workspace(), "mine.txt")); err != nil {
+	if _, err := os.Stat(filepath.Join(dir.WorkingFolder(), "mine.txt")); err != nil {
 		t.Errorf("the file was lost: %v", err)
 	}
 }

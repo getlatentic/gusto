@@ -30,7 +30,7 @@ func aRoomWithTwoAgents(t *testing.T, files map[string]string) (*roomRuns, insta
 		}
 	}
 	for name, text := range files {
-		path := filepath.Join(instances.Workspace(held.ID), name)
+		path := filepath.Join(instances.AgentFolder(held.ID), name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -71,7 +71,7 @@ func sayings(rooms *roomRuns, held instance.Instance) []string {
 
 func TestTwoAgentsOfARoomRunAtTheSameTimeEachOnACopyOfTheFolder(t *testing.T) {
 	rooms, held := aRoomWithTwoAgents(t, map[string]string{"plan.md": "v1", "notes.md": "n1"})
-	folder := rooms.instances.Workspace(held.ID)
+	folder := rooms.instances.AgentFolder(held.ID)
 	barrier := make(chan struct{})
 	var inside sync.WaitGroup
 	inside.Add(2)
@@ -84,10 +84,10 @@ func TestTwoAgentsOfARoomRunAtTheSameTimeEachOnACopyOfTheFolder(t *testing.T) {
 			exit, err := rooms.around(t.Context(), spec, dir, func() (int, error) {
 				inside.Done()
 				<-barrier
-				if strings.HasPrefix(file(t, dir.Workspace(), who.file), "(") {
+				if strings.HasPrefix(file(t, dir.WorkingFolder(), who.file), "(") {
 					t.Error("no copy to work on")
 				}
-				return 0, os.WriteFile(filepath.Join(dir.Workspace(), who.file), []byte("changed by "+who.agent), 0o644)
+				return 0, os.WriteFile(filepath.Join(dir.WorkingFolder(), who.file), []byte("changed by "+who.agent), 0o644)
 			})
 			if err != nil || exit != 0 {
 				t.Errorf("%s: %d %v", who.agent, exit, err)
@@ -110,7 +110,7 @@ func TestTwoAgentsOfARoomRunAtTheSameTimeEachOnACopyOfTheFolder(t *testing.T) {
 
 func TestTwoAgentsThatChangedOneFileLeaveBothVersionsAndANoteInTheRoom(t *testing.T) {
 	rooms, held := aRoomWithTwoAgents(t, map[string]string{"report.md": "draft"})
-	folder := rooms.instances.Workspace(held.ID)
+	folder := rooms.instances.AgentFolder(held.ID)
 	var inside, all sync.WaitGroup
 	inside.Add(2)
 	proceed := make(chan struct{})
@@ -122,7 +122,7 @@ func TestTwoAgentsThatChangedOneFileLeaveBothVersionsAndANoteInTheRoom(t *testin
 			if _, err := rooms.around(t.Context(), spec, dir, func() (int, error) {
 				inside.Done()
 				<-proceed
-				return 0, os.WriteFile(filepath.Join(dir.Workspace(), "report.md"), []byte("by "+agent), 0o644)
+				return 0, os.WriteFile(filepath.Join(dir.WorkingFolder(), "report.md"), []byte("by "+agent), 0o644)
 			}); err != nil {
 				t.Error(err)
 			}
@@ -154,7 +154,7 @@ func TestTwoAgentsThatChangedOneFileLeaveBothVersionsAndANoteInTheRoom(t *testin
 func TestTwoAgentsThatChangedDifferentLinesOfOneFileLeaveOneFileWithBoth(t *testing.T) {
 	const summary = "# Summary\n\n## Market\ntbd\n\n## Plan\ntbd\n"
 	rooms, held := aRoomWithTwoAgents(t, map[string]string{"summary.md": summary})
-	folder := rooms.instances.Workspace(held.ID)
+	folder := rooms.instances.AgentFolder(held.ID)
 	var inside, all sync.WaitGroup
 	inside.Add(2)
 	proceed := make(chan struct{})
@@ -167,7 +167,7 @@ func TestTwoAgentsThatChangedDifferentLinesOfOneFileLeaveOneFileWithBoth(t *test
 				inside.Done()
 				<-proceed
 				written := strings.Replace(summary, each.section, strings.TrimSuffix(each.section, "tbd")+"by "+each.agent, 1)
-				return 0, os.WriteFile(filepath.Join(dir.Workspace(), "summary.md"), []byte(written), 0o644)
+				return 0, os.WriteFile(filepath.Join(dir.WorkingFolder(), "summary.md"), []byte(written), 0o644)
 			}); err != nil {
 				t.Error(err)
 			}
@@ -192,10 +192,10 @@ func TestTwoAgentsThatChangedDifferentLinesOfOneFileLeaveOneFileWithBoth(t *test
 
 func TestATurnThatFailedOrWasStoppedChangesNothingInTheRoomsFolder(t *testing.T) {
 	rooms, held := aRoomWithTwoAgents(t, map[string]string{"a.md": "v1"})
-	folder := rooms.instances.Workspace(held.ID)
+	folder := rooms.instances.AgentFolder(held.ID)
 	touch := func(dir task.Dir) {
-		os.WriteFile(filepath.Join(dir.Workspace(), "a.md"), []byte("half"), 0o644)
-		os.WriteFile(filepath.Join(dir.Workspace(), "b.md"), []byte("new"), 0o644)
+		os.WriteFile(filepath.Join(dir.WorkingFolder(), "a.md"), []byte("half"), 0o644)
+		os.WriteFile(filepath.Join(dir.WorkingFolder(), "b.md"), []byte("new"), 0o644)
 	}
 	failing, spec := aRoomTurn(t, rooms, held, "a1")
 	if exit, _ := rooms.around(t.Context(), spec, failing, func() (int, error) { touch(failing); return 1, nil }); exit != 1 {
@@ -213,7 +213,7 @@ func TestATurnThatFailedOrWasStoppedChangesNothingInTheRoomsFolder(t *testing.T)
 	if file(t, folder, "a.md") != "v1" || !strings.HasPrefix(file(t, folder, "b.md"), "(") {
 		t.Errorf("a turn that did not pass reached the folder: %q %q", file(t, folder, "a.md"), file(t, folder, "b.md"))
 	}
-	if entries, _ := os.ReadDir(failing.Workspace()); len(entries) != 0 {
+	if entries, _ := os.ReadDir(failing.WorkingFolder()); len(entries) != 0 {
 		t.Error("the turn's copy was kept")
 	}
 }
@@ -277,7 +277,7 @@ func TestATurnWhoseAskerLeftOrWhoseAgentWasTakenOutMidTurnWritesNothing(t *testi
 			rooms.askedBy = func(task.Dir) string { return "bea@acme.com" }
 			dir, spec := aRoomTurn(t, rooms, held, "a1")
 			exit, err := rooms.around(t.Context(), spec, dir, func() (int, error) {
-				if err := os.WriteFile(filepath.Join(dir.Workspace(), "plan.md"), []byte("v2"), 0o644); err != nil {
+				if err := os.WriteFile(filepath.Join(dir.WorkingFolder(), "plan.md"), []byte("v2"), 0o644); err != nil {
 					return 1, err
 				}
 				return 0, each.leave(rooms, held)
@@ -285,7 +285,7 @@ func TestATurnWhoseAskerLeftOrWhoseAgentWasTakenOutMidTurnWritesNothing(t *testi
 			if exit != 0 || err != nil {
 				t.Fatalf("exit %d, %v", exit, err)
 			}
-			if got := file(t, rooms.instances.Workspace(held.ID), "plan.md"); got != "v1" {
+			if got := file(t, rooms.instances.AgentFolder(held.ID), "plan.md"); got != "v1" {
 				t.Errorf("the room's file became %q", got)
 			}
 			if said := sayings(rooms, held); len(said) != 1 || !strings.Contains(said[0], each.said) {

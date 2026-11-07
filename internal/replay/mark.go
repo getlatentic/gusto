@@ -25,10 +25,10 @@ type Mark struct {
 	// Manifest is the SHA-256 of the original's out/manifest.json, which names
 	// one run of that directory even if it is run again.
 	Manifest string `json:"manifest"`
-	// Commit is where the rerun's workspace starts: the commit the original
+	// Commit is where the rerun's working folder starts: the commit the original
 	// started from, and the ref job.json now carries.
 	Commit string `json:"commit"`
-	// PinnedBy is the reference in the original workspace the commit was read off.
+	// PinnedBy is the reference in the original working folder the commit was read off.
 	PinnedBy string `json:"pinnedBy"`
 	// HarnessCommits counts what the original agent committed on top of the
 	// commit. Its diff.patch does not show those changes.

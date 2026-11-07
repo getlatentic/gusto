@@ -22,7 +22,7 @@ type Record struct {
 	Version int `json:"version"`
 	// Submission is the task the runs were made from, as an absolute path.
 	Submission string `json:"submission"`
-	// Commit is where every run's workspace starts, and PinnedBy the reference
+	// Commit is where every run's working folder starts, and PinnedBy the reference
 	// it was resolved from.
 	Commit   string `json:"commit"`
 	PinnedBy string `json:"pinnedBy"`

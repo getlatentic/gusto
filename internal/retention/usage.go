@@ -8,9 +8,9 @@ import (
 
 // Usage is what the tasks take on disk, and how far back they go.
 type Usage struct {
-	Bytes      int64
-	Tasks      int
-	Workspaces int64
+	Bytes          int64
+	Tasks          int
+	WorkingFolders int64
 	// Oldest is the finished task kept longest, or nil when none has finished.
 	Oldest *Oldest
 }
@@ -29,7 +29,7 @@ func Measure(root string, all []tasks.Record) Usage {
 		dir := filepath.Join(root, record.ID)
 		used.Tasks++
 		used.Bytes += size(dir)
-		used.Workspaces += size(filepath.Join(dir, "workspace"))
+		used.WorkingFolders += size(filepath.Join(dir, "workspace"))
 		if !record.State.Done() {
 			continue
 		}

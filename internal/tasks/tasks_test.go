@@ -332,7 +332,7 @@ func TestARecoveredTaskIsNotChargedForTheOutage(t *testing.T) {
 }
 
 // turnQueued is a turn in a conversation: a task that names the instance whose
-// workspace it will write in.
+// folder it will write in.
 func turnQueued(t *testing.T, index *Index, instance, thread, brief string) Record {
 	t.Helper()
 	record := Record{
@@ -355,7 +355,7 @@ func turnQueued(t *testing.T, index *Index, instance, thread, brief string) Reco
 	return record
 }
 
-// Threads share one workspace, so two turns of one instance running at once
+// Threads share one folder, so two turns of one instance running at once
 // would be two containers editing the same files.
 func TestTwoTurnsOfOneInstanceDoNotRunAtOnce(t *testing.T) {
 	index := at(t)
@@ -386,7 +386,7 @@ func TestTwoTurnsOfOneInstanceDoNotRunAtOnce(t *testing.T) {
 }
 
 // Only an instance's own turns wait for it. A task that is not a turn has no
-// workspace to share and is claimed while one runs.
+// folder to share and is claimed while one runs.
 func TestATaskThatIsNotATurnDoesNotWaitForAnInstance(t *testing.T) {
 	index := at(t)
 	turnQueued(t, index, "20260926-1200-work", "1", "fix the bug")

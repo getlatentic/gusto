@@ -468,7 +468,7 @@ func TestARoomListsItsFilesByWhoMadeThemAndTakesUploadsFromItsPeople(t *testing.
 	mine.ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"who": {bob}})
 	mine.ask(t, "POST", thread+"/say", url.Values{"said": {"write the brief"}})
 	work.waitTurns(t, here, 1)
-	if err := os.WriteFile(filepath.Join(here.server.instances.Workspace(id), "brief.md"), []byte("the brief\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(here.server.instances.AgentFolder(id), "brief.md"), []byte("the brief\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -492,7 +492,7 @@ func TestARoomListsItsFilesByWhoMadeThemAndTakesUploadsFromItsPeople(t *testing.
 	if got := upload(his, "notes.txt", "again"); got != http.StatusNoContent {
 		t.Fatalf("a second upload of the same name answered %d", got)
 	}
-	if kept, _ := os.ReadFile(filepath.Join(here.server.instances.Workspace(id), "notes (2).txt")); string(kept) != "again" {
+	if kept, _ := os.ReadFile(filepath.Join(here.server.instances.AgentFolder(id), "notes (2).txt")); string(kept) != "again" {
 		t.Errorf("a second file of the same name was kept as %q", kept)
 	}
 	if got := upload(here.as(t, "carol@example.com"), "x.txt", "no"); got != http.StatusNotFound {

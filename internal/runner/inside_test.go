@@ -257,7 +257,7 @@ func TestATaskThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testi
 	done := make(chan error, 1)
 	started := time.Now()
 	go func() { _, err := runner.InsideContext(ctx, dir, runner.Place{}); done <- err }()
-	waitForFile(t, filepath.Join(dir.Workspace(), "made.txt"))
+	waitForFile(t, filepath.Join(dir.WorkingFolder(), "made.txt"))
 	stop()
 	select {
 	case err := <-done:
@@ -277,7 +277,7 @@ func TestATaskThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testi
 	if manifest.StoppedBy != "ada@acme.example" || manifest.StoppedAtBudget {
 		t.Errorf("the manifest says %+v", manifest)
 	}
-	if made, err := os.ReadFile(filepath.Join(dir.Workspace(), "made.txt")); err != nil || !strings.Contains(string(made), "started-work") {
+	if made, err := os.ReadFile(filepath.Join(dir.WorkingFolder(), "made.txt")); err != nil || !strings.Contains(string(made), "started-work") {
 		t.Errorf("what the job had done was not kept: %q %v", made, err)
 	}
 }
@@ -291,7 +291,7 @@ func TestAStopWithNoNoteIsASignalAndATaskThatWasNotStoppedSaysNothing(t *testing
 	spec := task.Spec{Brief: "x", Repo: repo(t), Harness: "slow", Budget: task.Budget{Turns: 1, Seconds: 120}}
 	spec.Write(dir)
 	ctx, stop := context.WithCancel(context.Background())
-	go func() { waitForFile(t, filepath.Join(dir.Workspace(), "up.txt")); stop() }()
+	go func() { waitForFile(t, filepath.Join(dir.WorkingFolder(), "up.txt")); stop() }()
 	if _, err := runner.InsideContext(ctx, dir, runner.Place{}); err != nil {
 		t.Fatal(err)
 	}

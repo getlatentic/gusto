@@ -62,11 +62,11 @@ func TestAThreadSaysWhatWasSaidInItAsAList(t *testing.T) {
 	_ = mine
 }
 
-func TestAWorkspaceListsItsFilesAndGivesThemWholeButStaysInsideItself(t *testing.T) {
+func TestAFolderListsItsFilesAndGivesThemWholeButStaysInsideItself(t *testing.T) {
 	here := withTokens(t)
 	where, _ := started(t, here.as(t, alice))
 	id := strings.TrimPrefix(where, "/instances/")
-	root := here.server.instances.Workspace(id)
+	root := here.server.instances.AgentFolder(id)
 	outside := t.TempDir()
 	os.WriteFile(filepath.Join(outside, "secret.txt"), []byte("not yours"), 0o600)
 	for path, text := range map[string]string{"notes.txt": "hello world", "src/main.go": "package main", ".git/config": "internal"} {

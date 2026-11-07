@@ -14,13 +14,13 @@ func TestABranchRefIsPinnedWhereTheRemoteHadItAtCloneTime(t *testing.T) {
 	hermetic(t)
 	bare := remote(t)
 	started := git(t, bare, "rev-parse", "main")
-	workspace := t.TempDir()
-	git(t, workspace, "clone", "--quiet", bare, ".")
-	git(t, workspace, "checkout", "--quiet", "main")
-	write(t, workspace+"/answer.txt", "yes")
-	git(t, workspace, "-c", "user.email=h@example.com", "-c", "user.name=H", "commit", "--quiet", "-am", "the harness's own")
+	workingFolder := t.TempDir()
+	git(t, workingFolder, "clone", "--quiet", bare, ".")
+	git(t, workingFolder, "checkout", "--quiet", "main")
+	write(t, workingFolder+"/answer.txt", "yes")
+	git(t, workingFolder, "-c", "user.email=h@example.com", "-c", "user.name=H", "commit", "--quiet", "-am", "the harness's own")
 
-	pin, err := replay.Pinned(workspace, "main")
+	pin, err := replay.Pinned(workingFolder, "main")
 
 	if err != nil {
 		t.Fatal(err)
@@ -34,22 +34,22 @@ func TestACommitIDRefIsItsOwnPin(t *testing.T) {
 	hermetic(t)
 	bare := remote(t)
 	started := git(t, bare, "rev-parse", "main")
-	workspace := t.TempDir()
-	git(t, workspace, "clone", "--quiet", bare, ".")
+	workingFolder := t.TempDir()
+	git(t, workingFolder, "clone", "--quiet", bare, ".")
 
-	pin, err := replay.Pinned(workspace, started)
+	pin, err := replay.Pinned(workingFolder, started)
 
 	if err != nil || pin.Commit != started {
 		t.Fatalf("want %s, got %+v, %v", started, pin, err)
 	}
 }
 
-func TestAWorkspaceThatNoLongerNamesTheRefIsRefused(t *testing.T) {
+func TestAWorkingFolderThatNoLongerNamesTheRefIsRefused(t *testing.T) {
 	hermetic(t)
-	workspace := t.TempDir()
-	git(t, workspace, "clone", "--quiet", remote(t), ".")
+	workingFolder := t.TempDir()
+	git(t, workingFolder, "clone", "--quiet", remote(t), ".")
 
-	if _, err := replay.Pinned(workspace, "no-such-branch"); err == nil {
+	if _, err := replay.Pinned(workingFolder, "no-such-branch"); err == nil {
 		t.Fatal("a ref the clone never saw has no commit to pin")
 	}
 }

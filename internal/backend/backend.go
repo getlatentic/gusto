@@ -44,9 +44,9 @@ type Turn struct {
 	Spec task.Spec
 	// Person is who the turn counts against, as an address, or nothing for a token or a script.
 	Person string
-	// Workspace is the instance's folder a conversation's turn works on, or nothing for a task of its own and a room's turn,
+	// AgentFolder is the instance's folder a conversation's turn works on, or nothing for a task of its own and a room's turn,
 	// whose copy of the room's folder is in Dir already.
-	Workspace string
+	AgentFolder string
 	// State is where the agent keeps its memory of the conversation, or nothing for a task of its own.
 	State string
 	// Exit is how the turn's agent reaches its model.

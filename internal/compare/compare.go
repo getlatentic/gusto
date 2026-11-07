@@ -4,7 +4,7 @@
 // Every run is an ordinary task directory made from the same submission, and the
 // runs differ in the agent alone: the brief, the check, the budget, the model
 // when one is named, and the commit, pinned once before any run starts. Each
-// run has its own workspace and its own record, and a container mounts only
+// run has its own working folder and its own record, and a container mounts only
 // its own run, so no agent can see what another did. The comparison is the
 // directory above the runs, and comparison.json in it names them.
 package compare

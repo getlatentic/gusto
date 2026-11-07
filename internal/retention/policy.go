@@ -1,8 +1,8 @@
 // Package retention removes finished work on a schedule an operator sets.
 //
-// A finished task keeps two things for different lengths of time: its workspace,
+// A finished task keeps two things for different lengths of time: its working folder,
 // which is the bulk of the disk and what shipping and rerun need, and its
-// record, which is the signed evidence and is small. The workspace goes first.
+// record, which is the signed evidence and is small. The working folder goes first.
 // A task on hold, or asked for by a person on hold, is kept whole.
 package retention
 
@@ -23,16 +23,16 @@ const PolicyFile = "policy.json"
 // States a task can finish in, and so the states a policy is set for.
 var States = []string{string(tasks.Passed), string(tasks.Failed), string(tasks.Interrupted)}
 
-// Policy is how many days after a task ends it loses its workspace and then its
+// Policy is how many days after a task ends it loses its working folder and then its
 // record, by the state it ended in. A state with no entry, or zero, is kept.
 type Policy struct {
-	WorkspaceDays map[string]int `json:"workspaceDays,omitempty"`
-	RecordDays    map[string]int `json:"recordDays,omitempty"`
+	WorkingFolderDays map[string]int `json:"workspaceDays,omitempty"`
+	RecordDays        map[string]int `json:"recordDays,omitempty"`
 }
 
 // Any says whether the policy removes anything at all.
 func (p Policy) Any() bool {
-	for _, days := range p.WorkspaceDays {
+	for _, days := range p.WorkingFolderDays {
 		if days > 0 {
 			return true
 		}
@@ -46,10 +46,10 @@ func (p Policy) Any() bool {
 }
 
 // Check refuses a policy that names a state a task cannot end in, a negative
-// number, or a record that would go before its workspace, a workspace kept for
+// number, or a record that would go before its working folder, a working folder kept for
 // ever among them.
 func (p Policy) Check() error {
-	for name, set := range map[string]map[string]int{"workspaceDays": p.WorkspaceDays, "recordDays": p.RecordDays} {
+	for name, set := range map[string]map[string]int{"workspaceDays": p.WorkingFolderDays, "recordDays": p.RecordDays} {
 		for state, days := range set {
 			if !contains(States, state) {
 				return fmt.Errorf("%s names %q, which is not a state a task ends in: %s", name, state, strings.Join(States, ", "))
@@ -60,13 +60,13 @@ func (p Policy) Check() error {
 		}
 	}
 	for state, records := range p.RecordDays {
-		workspace := p.WorkspaceDays[state]
-		if records > 0 && workspace == 0 {
-			return fmt.Errorf("a %s task's record is kept %d days and its workspace for ever, but removing the record removes the workspace: "+
+		workingFolder := p.WorkingFolderDays[state]
+		if records > 0 && workingFolder == 0 {
+			return fmt.Errorf("a %s task's record is kept %d days and its working folder for ever, but removing the record removes the working folder: "+
 				"set workspaceDays for %s to %d or fewer", state, records, state, records)
 		}
-		if records > 0 && workspace > records {
-			return fmt.Errorf("a %s task's workspace is kept %d days and its record %d: the record cannot go first", state, workspace, records)
+		if records > 0 && workingFolder > records {
+			return fmt.Errorf("a %s task's working folder is kept %d days and its record %d: the record cannot go first", state, workingFolder, records)
 		}
 	}
 	return nil
@@ -106,13 +106,13 @@ func LoadPolicy(dir string) (Policy, error) {
 func (p Policy) Rows() []Row {
 	var rows []Row
 	for _, state := range States {
-		rows = append(rows, Row{State: state, Workspace: p.WorkspaceDays[state], Record: p.RecordDays[state]})
+		rows = append(rows, Row{State: state, WorkingFolder: p.WorkingFolderDays[state], Record: p.RecordDays[state]})
 	}
 	return rows
 }
 
 // Row is one state's retention. Zero is kept for ever.
 type Row struct {
-	State             string
-	Workspace, Record int
+	State                 string
+	WorkingFolder, Record int
 }

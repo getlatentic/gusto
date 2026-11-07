@@ -34,7 +34,7 @@ func Prepare(old task.Dir, parent string) (task.Dir, error) {
 	if spec.Session != "" {
 		return "", fmt.Errorf("%s is a turn in a conversation, which has no check to rerun", old)
 	}
-	pin, err := Pinned(old.Workspace(), spec.Ref)
+	pin, err := Pinned(old.WorkingFolder(), spec.Ref)
 	if err != nil {
 		return "", err
 	}

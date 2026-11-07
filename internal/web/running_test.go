@@ -11,7 +11,7 @@ import (
 )
 
 // startedTheOldWay writes an instance the way the two-step start left one on
-// disk: a computer with a workspace, and no conversation opened on it.
+// disk: a computer with a folder, and no conversation opened on it.
 func startedTheOldWay(t *testing.T, root, id string) {
 	t.Helper()
 	dir := filepath.Join(root, id)

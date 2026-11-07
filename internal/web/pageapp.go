@@ -21,7 +21,7 @@ func (s *Server) servePage(w http.ResponseWriter, r *http.Request, app apps.App,
 		return
 	}
 	asked := path.Clean("/" + strings.TrimPrefix(r.URL.Path, prefix))
-	folder := filepath.Join(s.instances.Workspace(app.Instance), filepath.FromSlash(app.Folder))
+	folder := filepath.Join(s.instances.AgentFolder(app.Instance), filepath.FromSlash(app.Folder))
 	resolved, found := pageFile(folder, asked)
 	if !found {
 		http.NotFound(w, r)

@@ -16,8 +16,8 @@ import (
 // so what runs in the box has nothing of the record to write, and a sandbox
 // cannot be made to run as root for the sake of one.
 type Box interface {
-	// Start makes the box and puts the workspace in it.
-	Start(ctx context.Context, workspace string) error
+	// Start makes the box and puts the working folder in it.
+	Start(ctx context.Context, workingFolder string) error
 	// Wrap is a command that runs the one given inside the box, with its
 	// standard input, output and exit status carried through.
 	Wrap(ctx context.Context, command *exec.Cmd) *exec.Cmd
@@ -25,7 +25,7 @@ type Box interface {
 	// written to its standard input arrives at once, and what it writes is read
 	// as it is written.
 	Attach(ctx context.Context, command *exec.Cmd) (*exec.Cmd, error)
-	// Fetch replaces into with the workspace as the box now holds it.
+	// Fetch replaces into with the working folder as the box now holds it.
 	Fetch(into string) error
 	// Equip puts the task's skills where the agent finds them in the box.
 	Equip(ctx context.Context, dir task.Dir, spec task.Spec, adapter harness.Adapter) error
@@ -35,7 +35,7 @@ type Box interface {
 	// Env is what an agent in the box is started with: where its model is, and
 	// nothing of this process's environment.
 	Env() harness.Env
-	// Workdir is where the workspace is inside the box.
+	// Workdir is where the working folder is inside the box.
 	Workdir() string
 	// Guard is what the box's own guard recorded, and the policy it enforced, to
 	// be kept in the record.

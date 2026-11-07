@@ -96,7 +96,7 @@ func tidy(value any) string {
 		encoded, _ := json.Marshal(held)
 		text = string(encoded)
 	}
-	text = inWorkspace(text)
+	text = inAgentFolder(text)
 	text = strings.Join(strings.Fields(text), " ")
 	if len(text) > 120 {
 		text = text[:120] + "…"
@@ -104,18 +104,18 @@ func tidy(value any) string {
 	return text
 }
 
-// workspaceRoot is where an agent's folder is on whatever it runs in: /job/workspace in a container, and in a computer
+// agentFolderRoot is where an agent's folder is on whatever it runs in: /job/workspace in a container, and in a computer
 // /sandbox/jobs/<instance>/workspace. A person reads a file by its name in the folder, not by where the folder is.
-var workspaceRoot = regexp.MustCompile(`/(?:job|sandbox/jobs/[A-Za-z0-9._-]+)/workspace/?`)
+var agentFolderRoot = regexp.MustCompile(`/(?:job|sandbox/jobs/[A-Za-z0-9._-]+)/workspace/?`)
 
-// inWorkspace is the text with the agent's folder taken off the front of each path in it: a path in the folder is its
-// name there, and the folder on its own is called workspace.
-func inWorkspace(text string) string {
-	return workspaceRoot.ReplaceAllStringFunc(text, func(found string) string {
+// inAgentFolder is the text with the agent's folder taken off the front of each path in it: a path in the folder is its
+// name there, and the folder on its own is called the folder.
+func inAgentFolder(text string) string {
+	return agentFolderRoot.ReplaceAllStringFunc(text, func(found string) string {
 		if strings.HasSuffix(found, "/") {
 			return ""
 		}
-		return "workspace"
+		return "the folder"
 	})
 }
 

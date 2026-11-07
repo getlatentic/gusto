@@ -107,7 +107,7 @@ func (s *Server) diskMetrics(out *exposition) {
 	}
 	used := s.disk.get(s)
 	out.gauge("gusto_jobs_disk_bytes", "Bytes the tasks take, working folders included. Measured at most once a minute.", float64(used.Bytes))
-	out.gauge("gusto_jobs_workspace_bytes", "Of them, the working folders.", float64(used.Workspaces))
+	out.gauge("gusto_jobs_workspace_bytes", "Of them, the working folders.", float64(used.WorkingFolders))
 	if used.Oldest != nil {
 		out.gauge("gusto_oldest_finished_job_timestamp_seconds", "When the finished task kept longest ended.", float64(used.Oldest.Ended))
 	}

@@ -83,8 +83,8 @@ func (r *roomRuns) copy(ctx context.Context, spec task.Spec, dir task.Dir) (*roo
 	if err := r.seedState(ctx, spec); err != nil {
 		return nil, err
 	}
-	return r.hub.Begin(ctx, roomwork.Room{Folder: r.instances.Workspace(spec.Session), Meta: r.instances.Merges(spec.Session)},
-		dir.Workspace(), r.nameOf(spec))
+	return r.hub.Begin(ctx, roomwork.Room{Folder: r.instances.AgentFolder(spec.Session), Meta: r.instances.Merges(spec.Session)},
+		dir.WorkingFolder(), r.nameOf(spec))
 }
 
 // bring merges a passed turn into the room's folder, and tells the room of the files two agents changed. What may write to the

@@ -89,7 +89,7 @@
 {{define "records-keeping"}}
 <section class="{{template "ui-figures"}}">
   <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Used}}</span><span class="{{template "ui-figure-label"}}">used by {{.Jobs}} task{{if ne .Jobs 1}}s{{end}}</span></div>
-  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Workspaces}}</span><span class="{{template "ui-figure-label"}}">of it in working folders</span></div>
+  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.WorkingFolders}}</span><span class="{{template "ui-figure-label"}}">of it in working folders</span></div>
   <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{with .OldestAt}}{{.}}{{else}}none{{end}}</span><span class="{{template "ui-figure-label"}}">{{with .Oldest}}oldest task kept, <a class="underline" href="/jobs/{{.}}">{{.}}</a>{{else}}no task has finished{{end}}</span></div>
 </section>
 
@@ -100,7 +100,7 @@
   <table class="{{template "ui-table"}}">
     <thead><tr><th>A task that</th><th>loses its working folder after</th><th>loses its record after</th></tr></thead>
     <tbody>
-      {{range .Policy}}<tr><td>{{.State}}</td><td>{{if .Workspace}}{{.Workspace}} days{{else}}<span class="text-muted">kept</span>{{end}}</td><td>{{if .Record}}{{.Record}} days{{else}}<span class="text-muted">kept</span>{{end}}</td></tr>{{end}}
+      {{range .Policy}}<tr><td>{{.State}}</td><td>{{if .WorkingFolder}}{{.WorkingFolder}} days{{else}}<span class="text-muted">kept</span>{{end}}</td><td>{{if .Record}}{{.Record}} days{{else}}<span class="text-muted">kept</span>{{end}}</td></tr>{{end}}
     </tbody>
   </table>
   {{else}}

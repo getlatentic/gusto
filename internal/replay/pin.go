@@ -13,7 +13,7 @@ import (
 // Pin is the commit a run started from, and the name it was read off.
 type Pin struct {
 	Commit string
-	// By is the reference in the old workspace that still holds the commit as
+	// By is the reference in the old working folder that still holds the commit as
 	// it was when the run cloned.
 	By string
 	// Committed counts the commits the agent made on top of it. Those are the
@@ -21,7 +21,7 @@ type Pin struct {
 	Committed int
 }
 
-// Pinned reads the commit a finished run started from out of its workspace.
+// Pinned reads the commit a finished run started from out of its working folder.
 //
 // The workspace's HEAD is not that commit. An agent that commits moves HEAD
 // onto its own work, and a rerun pinned there would start with the answer
@@ -30,19 +30,19 @@ type Pin struct {
 // refs/remotes/origin/* and refs/tags/* keep what the repository held at clone
 // time, and the runner checked the task's ref out from exactly those. So the ref
 // is resolved against them, and a ref that is a commit id is its own answer.
-func Pinned(workspace, ref string) (Pin, error) {
+func Pinned(workingFolder, ref string) (Pin, error) {
 	for _, name := range candidates(ref) {
-		commit, err := git(workspace, "rev-parse", "--verify", "--quiet", "--end-of-options", name+"^{commit}")
+		commit, err := git(workingFolder, "rev-parse", "--verify", "--quiet", "--end-of-options", name+"^{commit}")
 		if err != nil {
 			continue
 		}
-		committed, err := committedSince(workspace, commit)
+		committed, err := committedSince(workingFolder, commit)
 		if err != nil {
 			return Pin{}, err
 		}
 		return Pin{Commit: commit, By: name, Committed: committed}, nil
 	}
-	return Pin{}, fmt.Errorf("the workspace in %s no longer says which commit %q named when the task cloned it", workspace, ref)
+	return Pin{}, fmt.Errorf("the working folder in %s no longer says which commit %q named when the task cloned it", workingFolder, ref)
 }
 
 // candidates are the names a clone leaves for the ref, in the order the runner's
@@ -61,8 +61,8 @@ var commitID = regexp.MustCompile(`^[0-9a-f]{7,64}$`)
 // committedSince counts what HEAD holds that the pin does not: the commits the
 // harness made. Its diff.patch shows none of them, since the runner diffs the
 // working tree.
-func committedSince(workspace, commit string) (int, error) {
-	count, err := git(workspace, "rev-list", "--count", commit+"..HEAD")
+func committedSince(workingFolder, commit string) (int, error) {
+	count, err := git(workingFolder, "rev-list", "--count", commit+"..HEAD")
 	if err != nil {
 		return 0, err
 	}
@@ -71,7 +71,7 @@ func committedSince(workspace, commit string) (int, error) {
 	return n, err
 }
 
-// git reads; nothing it runs here writes to the old workspace, which is
+// git reads; nothing it runs here writes to the old working folder, which is
 // evidence.
 func git(at string, args ...string) (string, error) {
 	command := exec.Command("git", append([]string{"-C", at}, args...)...)
@@ -87,7 +87,7 @@ func git(at string, args ...string) (string, error) {
 // Resolve pins a ref before any run has cloned it, the same way Pinned reads it
 // off a finished run: from a clone's record of the remote. The clone takes no
 // working tree and no file contents, and is gone when Resolve returns, so tasks
-// that must start from one commit can each clone their own workspace at it.
+// that must start from one commit can each clone their own working folder at it.
 func Resolve(repo, ref string) (Pin, error) {
 	scratch, err := os.MkdirTemp("", "gusto-pin-")
 	if err != nil {
