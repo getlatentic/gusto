@@ -33,6 +33,9 @@ type App struct {
 	scope   string
 	secrets []string
 	revoked bool
+	// rotating gives a new refresh token with each one it takes, and takes only the latest; refreshless gives none.
+	rotating, refreshless bool
+	refresh               string
 }
 
 // New is an app that runs until the test ends.
@@ -78,6 +81,20 @@ func (a *App) Revoke() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.revoked = true
+}
+
+// Rotates makes the app give a new refresh token each time one is used, and take only the latest, as many apps do.
+func (a *App) Rotates() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.rotating = true
+}
+
+// GivesNoRefresh makes the app give no refresh token from now on, so a sign-in ends when its access token does.
+func (a *App) GivesNoRefresh() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.refreshless = true
 }
 
 // Clients is how many clients it has registered.
@@ -149,11 +166,7 @@ func (a *App) token(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	if id, secret, basic := r.BasicAuth(); basic {
-		a.secrets = append(a.secrets, "basic "+id+" "+secret)
-	} else if secret := r.PostForm.Get("client_secret"); secret != "" {
-		a.secrets = append(a.secrets, "form "+r.PostForm.Get("client_id")+" "+secret)
-	}
+	a.noteSecret(r)
 	switch r.Form.Get("grant_type") {
 	case "authorization_code":
 		challenge, found := a.codes[r.Form.Get("code")]
@@ -164,7 +177,7 @@ func (a *App) token(w http.ResponseWriter, r *http.Request) {
 		}
 		delete(a.codes, r.Form.Get("code"))
 	case "refresh_token":
-		if a.revoked || r.Form.Get("refresh_token") != "refresh-1" {
+		if a.revoked || r.Form.Get("refresh_token") != a.currentRefresh() {
 			refuse(w)
 			return
 		}
@@ -172,8 +185,35 @@ func (a *App) token(w http.ResponseWriter, r *http.Request) {
 	a.issued++
 	access := fmt.Sprintf("access-%d", a.issued)
 	a.tokens[access] = true
-	json.NewEncoder(w).Encode(map[string]any{"access_token": access, "refresh_token": "refresh-1",
-		"expires_in": int(a.lasts.Seconds()), "token_type": "Bearer"})
+	answer := map[string]any{"access_token": access, "expires_in": int(a.lasts.Seconds()), "token_type": "Bearer"}
+	if !a.refreshless {
+		a.refresh = a.nextRefresh()
+		answer["refresh_token"] = a.refresh
+	}
+	json.NewEncoder(w).Encode(answer)
+}
+
+// noteSecret writes down how the call sent a client's secret, if it did. a.mu is held.
+func (a *App) noteSecret(r *http.Request) {
+	if id, secret, basic := r.BasicAuth(); basic {
+		a.secrets = append(a.secrets, "basic "+id+" "+secret)
+	} else if secret := r.PostForm.Get("client_secret"); secret != "" {
+		a.secrets = append(a.secrets, "form "+r.PostForm.Get("client_id")+" "+secret)
+	}
+}
+
+func (a *App) currentRefresh() string {
+	if a.refresh == "" {
+		return "refresh-1"
+	}
+	return a.refresh
+}
+
+func (a *App) nextRefresh() string {
+	if !a.rotating {
+		return "refresh-1"
+	}
+	return fmt.Sprintf("refresh-%d", a.issued)
 }
 
 func refuse(w http.ResponseWriter) {
