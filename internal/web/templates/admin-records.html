@@ -34,6 +34,7 @@
 {{template "foot" .}}
 
 {{define "records-activity"}}
+{{if or .LeftOut .WithServer}}<p class="mb-3 text-sm text-muted">{{if .WithServer}}Showing the server starting too. <a class="text-accent-ink no-underline hover:underline" href="/admin/records?tab=activity">Show only what people did</a>{{else}}{{.LeftOut}} time{{if ne .LeftOut 1}}s{{end}} the server started {{if ne .LeftOut 1}}are{{else}}is{{end}} left out. <a class="text-accent-ink no-underline hover:underline" href="/admin/records?tab=activity&amp;server=1">Show {{if ne .LeftOut 1}}them{{else}}it{{end}}</a>{{end}}</p>{{end}}
 {{if .Rows}}
 <div class="{{template "ui-card"}} overflow-x-auto">
   <table class="{{template "ui-table"}}">

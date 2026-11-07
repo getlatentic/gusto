@@ -33,7 +33,7 @@ A change is applied and then recorded. When the record cannot be written, the se
 
 - Compose and the chart: `$GUSTO_DATA/changes/changes.jsonl` on the volume.
 
-An admin downloads the file from `/admin/activity.jsonl`. A script with the shared password, or with an API token that may read the change record, reads `/api/changes`. Both give the file as it is.
+The Activity page (`/admin/records?tab=activity`) lists people's actions and leaves out `server.started`, which every deploy writes, saying how many it left out; `&server=1` shows them. The download holds everything. An admin downloads the file from `/admin/activity.jsonl`. A script with the shared password, or with an API token that may read the change record, reads `/api/changes`. Both give the file as it is.
 
 ## Why an edit shows
 
