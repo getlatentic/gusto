@@ -1,4 +1,4 @@
-package cell
+package node
 
 import (
 	"errors"
@@ -18,7 +18,7 @@ func TestTheKeptHostIsStoppedWhenIdleAndStartedAgainRatherThanANewOne(t *testing
 	if r.hosts.launched != 1 || !r.hosts.hosts[0].Kept {
 		t.Fatalf("the first host is not the kept one: %+v", r.hosts.hosts)
 	}
-	r.cell("i-0aaa1111", false)
+	r.node("i-0aaa1111", false)
 	r.waiting = 0
 	r.tick(time.Minute)
 	r.tick(11 * time.Minute)
@@ -36,7 +36,7 @@ func TestAHostBesideTheKeptOneIsRemovedWhenIdle(t *testing.T) {
 	r := scaling(t)
 	r.scaler.Keep = 1
 	r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now, Kept: true}}
-	r.cell("i-0aaa1111", true)
+	r.node("i-0aaa1111", true)
 	r.waiting = 1
 	r.hosts.next = "i-0bbb2222"
 	r.tick(time.Minute)
@@ -44,7 +44,7 @@ func TestAHostBesideTheKeptOneIsRemovedWhenIdle(t *testing.T) {
 	if r.hosts.launched != 1 || r.hosts.hosts[1].Kept {
 		t.Fatalf("a second host is made, and is not kept, while one is: %+v", r.hosts.hosts)
 	}
-	r.cell("i-0bbb2222", false)
+	r.node("i-0bbb2222", false)
 	r.waiting = 0
 	r.tick(time.Minute)
 	r.tick(11 * time.Minute)
@@ -64,7 +64,7 @@ func TestAKeptHostStillStoppingIsNotStartedAndNoSecondIsKept(t *testing.T) {
 	}
 }
 
-func TestAKeptHostThatNeverBecomesACellIsRemoved(t *testing.T) {
+func TestAKeptHostThatNeverBecomesANodeIsRemoved(t *testing.T) {
 	r := scaling(t)
 	r.scaler.Keep = 1
 	r.waiting = 1
@@ -221,7 +221,7 @@ func TestAKeptHostThatWasJustStoppedIsNotSweptAway(t *testing.T) {
 	r := scaling(t)
 	r.scaler.Keep = 1
 	r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now, Kept: true}}
-	r.cell("i-0aaa1111", false)
+	r.node("i-0aaa1111", false)
 	r.tick(time.Minute)
 	r.tick(11 * time.Minute)
 	r.tick(time.Minute)
@@ -231,7 +231,7 @@ func TestAKeptHostThatWasJustStoppedIsNotSweptAway(t *testing.T) {
 	}
 }
 
-// A kept host made from an image that is no longer the current one is removed, and a new host made from the current image, rather
+// A kept node made from an image that is no longer the current one is removed, and a new node made from the current image, rather
 // than started again: on its way up it would run the whole set-up, which once left it a disk it could not boot from.
 func TestAKeptHostOfAnOlderImageIsReplacedRatherThanStartedAgain(t *testing.T) {
 	r := scaling(t)
@@ -266,7 +266,7 @@ func TestTheSweepRemovesAKeptHostOfAnOlderImageAndLeavesOneOfTheCurrent(t *testi
 	if len(r.hosts.terminated) != 0 {
 		t.Errorf("the kept host of the current image was removed: %v", r.hosts.terminated)
 	}
-	// An image that cannot be read makes no host out of date.
+	// An image that cannot be read makes no node out of date.
 	r.hosts.image = ""
 	r.hosts.stopped = append(r.hosts.stopped, Instance{ID: "i-0old00000", Kept: true, Stopped: true, Image: "ami-0old11111"})
 	r.scaler.Keep = 2

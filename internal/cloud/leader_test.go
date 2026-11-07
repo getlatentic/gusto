@@ -81,7 +81,7 @@ func TestAControllerThatLostTheLeaseStartsNothing(t *testing.T) {
 		if err := old.Provision(t.Context(), org.Slug); !errors.Is(err, ErrNotLeading) {
 			t.Errorf("a controller that lost the lease provisioned: %v", err)
 		}
-		if old.Cell.Alive(org.Slug) {
+		if old.Node.Alive(org.Slug) {
 			t.Error("a controller that lost the lease started a server")
 		}
 	})
@@ -96,7 +96,7 @@ func TestAFollowerStartsNothingAndRoutesWhereTheLeaderStarted(t *testing.T) {
 		epoch, _ := a.Lead(t.Context(), "a", 30*time.Second)
 		leader.Lead(epoch)
 		follower.Follow()
-		if err := follower.Provision(t.Context(), org.Slug); err != nil || follower.Cell.Alive(org.Slug) {
+		if err := follower.Provision(t.Context(), org.Slug); err != nil || follower.Node.Alive(org.Slug) {
 			t.Fatalf("a follower provisioned: %v", err)
 		}
 		if err := leader.Provision(t.Context(), org.Slug); err != nil {
@@ -120,7 +120,7 @@ func TestTheLeaderProvisionsAnOrganizationSignedUpElsewhere(t *testing.T) {
 		leader.Lead(epoch)
 		leader.supervise(t.Context())
 		deadline := time.Now().Add(20 * time.Second)
-		for !leader.Cell.Alive(org.Slug) {
+		for !leader.Node.Alive(org.Slug) {
 			if time.Now().After(deadline) {
 				t.Fatal("the leader did not provision an organization with no runtime")
 			}

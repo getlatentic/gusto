@@ -1,4 +1,4 @@
-package cell
+package node
 
 import (
 	"encoding/json"
@@ -12,11 +12,11 @@ import (
 	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
-// expected is how long after a visitor begins asking for a demo a host is started for it before it waits: the time it takes
+// expected is how long after a visitor begins asking for a demo a node is started for it before it waits: the time it takes
 // to send the form, and a little more.
 const expected = 2 * time.Minute
 
-// Prewarm says a visitor has begun asking for a demo, so a host is started now, while they finish, if none is up or on its
+// Prewarm says a visitor has begun asking for a demo, so a node is started now, while they finish, if none is up or on its
 // way. It never blocks.
 func (s *Scaler) Prewarm() {
 	s.guard.Lock()
@@ -25,8 +25,8 @@ func (s *Scaler) Prewarm() {
 	s.Wake()
 }
 
-// expecting says a host should be started for a visitor about to wait, and counts it against the day's prewarms. It is
-// asked only when nothing waits, no host is up and none is starting.
+// expecting says a node should be started for a visitor about to wait, and counts it against the day's prewarms. It is
+// asked only when nothing waits, no node is up and none is starting.
 func (s *Scaler) expecting() bool {
 	s.guard.Lock()
 	expected := s.clock().Before(s.expectUntil)

@@ -6,6 +6,7 @@ package settings
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 	"strconv"
 	"strings"
@@ -19,7 +20,9 @@ type Set struct {
 
 type entry struct {
 	name string
-	help string
+	// was is the name the setting had, read when name is not set, and read is the name the value came from.
+	was, read string
+	help      string
 	// shown is the default as help says it, or nothing when there is none worth saying.
 	shown  string
 	secret bool
@@ -46,6 +49,16 @@ func (s *Set) declare(e *entry) {
 	}
 	s.entries = append(s.entries, e)
 	s.byName[e.name] = e
+}
+
+// Renamed says that the setting declared as is was called was, so a value set under the old name is still read, with a warning
+// that names the new one. A name not declared, or renamed twice, is a mistake in gusto's own code, so it panics.
+func (s *Set) Renamed(is, was string) {
+	e, found := s.byName[is]
+	if !found || e.was != "" {
+		panic("settings: " + is + " is not declared, or was renamed already")
+	}
+	e.was = was
 }
 
 // String is a setting of any text, with fallback when it is not set.
@@ -143,7 +156,13 @@ func (s *Set) Load(lookup func(name string) string) error {
 	var problems []error
 	for _, e := range s.entries {
 		e.reset()
-		e.raw = lookup(e.name)
+		e.read, e.raw = e.name, lookup(e.name)
+		if e.raw == "" && e.was != "" {
+			e.read, e.raw = e.was, lookup(e.was)
+			if e.raw != "" {
+				slog.Warn("a setting is read by its old name, which a later release stops reading", "old", e.was, "new", e.name)
+			}
+		}
 		if e.raw == "" {
 			continue
 		}
@@ -156,9 +175,9 @@ func (s *Set) Load(lookup func(name string) string) error {
 
 func (e *entry) problem(err error) error {
 	if e.secret {
-		return fmt.Errorf("%s is not right: %w", e.name, err)
+		return fmt.Errorf("%s is not right: %w", e.read, err)
 	}
-	return fmt.Errorf("%s is %q, and %w", e.name, e.raw, err)
+	return fmt.Errorf("%s is %q, and %w", e.read, e.raw, err)
 }
 
 // Raw is what a setting was set to when the set was loaded, or nothing for one not set or declared secret.
@@ -177,6 +196,9 @@ func (s *Set) Params() []Param {
 		text := e.help
 		if e.shown != "" && !strings.Contains(text, "(default ") {
 			text += " (default " + e.shown + ")"
+		}
+		if e.was != "" {
+			text += "; " + e.was + " is its old name"
 		}
 		params = append(params, Param{Name: e.name, Text: text})
 	}

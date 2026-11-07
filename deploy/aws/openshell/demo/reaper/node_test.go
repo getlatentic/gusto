@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-// onACell runs the script as a cell's host with the clock at 100000, the front door's beat at the time
+// onANode runs the script as a node's host with the clock at 100000, the front door's beat at the time
 // given (a negative one for no beat file), and the host up for so long.
-func onACell(t *testing.T, beatAt, uptime int) (poweredOff bool, output string) {
+func onANode(t *testing.T, beatAt, uptime int) (poweredOff bool, output string) {
 	t.Helper()
 	dir := t.TempDir()
 	bin := filepath.Join(dir, "bin")
@@ -38,7 +38,7 @@ func onACell(t *testing.T, beatAt, uptime int) (poweredOff bool, output string) 
 	return strings.TrimSpace(string(text)) == "poweroff", string(out)
 }
 
-func TestACellWorksWhileItsFrontDoorIsHeardAndPowersOffWhenItIsNot(t *testing.T) {
+func TestANodeWorksWhileItsFrontDoorIsHeardAndPowersOffWhenItIsNot(t *testing.T) {
 	for name, tc := range map[string]struct {
 		beatAt, uptime int
 		off            bool
@@ -53,7 +53,7 @@ func TestACellWorksWhileItsFrontDoorIsHeardAndPowersOffWhenItIsNot(t *testing.T)
 		"heard, but up as long as any host may":  {99990, 4 * 3600, true},
 	} {
 		t.Run(name, func(t *testing.T) {
-			off, out := onACell(t, tc.beatAt, tc.uptime)
+			off, out := onANode(t, tc.beatAt, tc.uptime)
 			if off != tc.off {
 				t.Errorf("powered off: %v, wanted %v: %s", off, tc.off, out)
 			}
@@ -64,7 +64,7 @@ func TestACellWorksWhileItsFrontDoorIsHeardAndPowersOffWhenItIsNot(t *testing.T)
 	}
 }
 
-func TestACellHasNoLeaseSoAStrayOneDoesNotEndIt(t *testing.T) {
+func TestANodeHasNoLeaseSoAStrayOneDoesNotEndIt(t *testing.T) {
 	dir := t.TempDir()
 	bin := filepath.Join(dir, "bin")
 	os.MkdirAll(bin, 0o755)

@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/cell"
 	"github.com/getlatentic/gusto/internal/cloud"
+	"github.com/getlatentic/gusto/internal/node"
 	"github.com/getlatentic/gusto/internal/owner"
 	"github.com/getlatentic/gusto/internal/settings"
 )
@@ -56,7 +56,7 @@ func operatorCommand() int {
 	defer store.Close()
 	var hosts owner.Hosts
 	if cfg.hosts.launch == "ec2" {
-		hosts = &cell.EC2{Project: cfg.hosts.project}
+		hosts = &node.EC2{Project: cfg.hosts.project}
 	}
 	app, err := owner.New(store, hosts)
 	if err != nil {

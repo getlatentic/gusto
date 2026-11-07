@@ -19,8 +19,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/cell"
 	"github.com/getlatentic/gusto/internal/cloud"
+	"github.com/getlatentic/gusto/internal/node"
 	"github.com/getlatentic/gusto/internal/web"
 )
 
@@ -29,7 +29,7 @@ var files embed.FS
 
 // Hosts lists the hosts that run organizations' servers.
 type Hosts interface {
-	Running() ([]cell.Instance, error)
+	Running() ([]node.Instance, error)
 }
 
 // App is the operator's pages over the gusto cloud's own records.

@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/cell"
 	"github.com/getlatentic/gusto/internal/cloud"
+	"github.com/getlatentic/gusto/internal/node"
 )
 
-type hosts []cell.Instance
+type hosts []node.Instance
 
-func (h hosts) Running() ([]cell.Instance, error) { return h, nil }
+func (h hosts) Running() ([]node.Instance, error) { return h, nil }
 
 func app(t *testing.T) (*App, *cloud.Store) {
 	t.Helper()

@@ -305,7 +305,7 @@ func TestEveryFrontDoorOnADatabaseSignsAndChecksTheSameCookies(t *testing.T) {
 	})
 }
 
-func TestTwoOrganizationsOnOneCellAreNeverGivenOnePort(t *testing.T) {
+func TestTwoOrganizationsOnOneNodeAreNeverGivenOnePort(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		set.PerDomain = 100
 		ds := doors(t, set, 2)
@@ -319,7 +319,7 @@ func TestTwoOrganizationsOnOneCellAreNeverGivenOnePort(t *testing.T) {
 		}
 		var given atomic.Int32
 		race(ds, len(slugs), func(s *Store, i int) {
-			if s.SetRuntime(t.Context(), slugs[i], Runtime{State: Starting, Cell: "cell-a", Port: 9100, ProxyPort: 9101}) == nil {
+			if s.SetRuntime(t.Context(), slugs[i], Runtime{State: Starting, Node: "cell-a", Port: 9100, ProxyPort: 9101}) == nil {
 				given.Add(1)
 			}
 		})

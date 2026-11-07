@@ -1,4 +1,4 @@
-package cell
+package node
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// Instance is a host that was started to be a host, and when it was last started. A kept host is stopped rather than removed
+// Instance is a machine that was started to be a node, and when it was last started. A kept node is stopped rather than removed
 // when it is idle; Stopped says it is stopped now, and not still stopping. Image is the machine image it was made from.
 type Instance struct {
 	ID       string
@@ -18,50 +18,50 @@ type Instance struct {
 	Image    string
 }
 
-// Launcher starts and stops the machines hosts run on.
+// Launcher starts and stops the machines nodes run on.
 type Launcher interface {
-	// Launch makes a host, which registers as a cell when it is ready.
+	// Launch makes a node, which registers as a node when it is ready.
 	Launch(kept bool) (id string, err error)
 	Terminate(id string) error
-	// Running is the hosts started for cells that are not gone or stopped.
+	// Running is the nodes started for nodes that are not gone or stopped.
 	Running() ([]Instance, error)
-	// Stopped is the hosts that are stopping or stopped, whether kept or not; Start starts one, and Stop stops a kept host that is running.
+	// Stopped is the nodes that are stopping or stopped, whether kept or not; Start starts one, and Stop stops a kept node that is running.
 	Stopped() ([]Instance, error)
 	Start(id string) error
 	Stop(id string) error
-	// LowerDisk takes a stopped host's disk down to the baseline throughput, which is billed while it is stopped; it does nothing
+	// LowerDisk takes a stopped node's disk down to the baseline throughput, which is billed while it is stopped; it does nothing
 	// to a disk already there.
 	LowerDisk(id string) error
-	// CurrentImage is the machine image a new host is made from now, and empty when that is not known.
+	// CurrentImage is the machine image a new node is made from now, and empty when that is not known.
 	CurrentImage() (string, error)
 }
 
-// Scaler keeps as many hosts as the organizations need: one is started when an organization waits for room and none is
-// on its way, and a host with no organization on it for a while is stopped. With nothing to run there is no host, and
+// Scaler keeps as many nodes as the organizations need: one is started when an organization waits for room and none is
+// on its way, and a node with no organization on it for a while is stopped. With nothing to run there is no node, and
 // nothing is paid for.
 type Scaler struct {
 	Pool     *Pool
 	Launcher Launcher
-	// Waiting is how many organizations wait for a host with room.
+	// Waiting is how many organizations wait for a node with room.
 	Waiting func() int
-	// Busy is how many organizations wait for room or are being placed and started. No host is judged idle while any are,
+	// Busy is how many organizations wait for room or are being placed and started. No node is judged idle while any are,
 	// since the one an organization is being placed on may be the idle one. Waiting stands in for it when it is not set.
 	Busy func() int
-	// Max is the most hosts there may be at once.
+	// Max is the most nodes there may be at once.
 	Max int
-	// Idle is how long a host may have nothing on it before it is stopped.
+	// Idle is how long a node may have nothing on it before it is stopped.
 	Idle time.Duration
-	// Boot is how long a host has to register as a host before it is taken to have failed and is stopped.
+	// Boot is how long a node has to register as a node before it is taken to have failed and is stopped.
 	Boot time.Duration
-	// Backoff is how long after a host could not be started another is not tried.
+	// Backoff is how long after a node could not be started another is not tried.
 	Backoff time.Duration
-	// Settle is how long a host that has just registered is given to take the organizations that wait, which are placed
-	// on it when the controller next looks. A host is not started for them in that time, since they are about to have room.
+	// Settle is how long a node that has just registered is given to take the organizations that wait, which are placed
+	// on it when the controller next looks. A node is not started for them in that time, since they are about to have room.
 	Settle time.Duration
-	// Keep is how many hosts are kept: stopped when idle and started again when a host is needed, which a stopped host's
+	// Keep is how many nodes are kept: stopped when idle and started again when a node is needed, which a stopped node's
 	// disk, already read, makes faster than a new one. Zero keeps none.
 	Keep int
-	// Prewarms is the most hosts a day started because a visitor began asking for a demo, before anybody waits. It
+	// Prewarms is the most nodes a day started because a visitor began asking for a demo, before anybody waits. It
 	// bounds what visitors who never send the form can cost. Zero is none.
 	Prewarms int
 
@@ -69,7 +69,7 @@ type Scaler struct {
 	idleSince map[string]time.Time
 	firstSeen map[string]time.Time
 	retryAt   time.Time
-	// lowered is the stopped kept hosts whose disk is known to be at the baseline.
+	// lowered is the stopped kept nodes whose disk is known to be at the baseline.
 	lowered map[string]bool
 
 	wakeOnce sync.Once
@@ -109,10 +109,10 @@ func orDefault(d, fallback time.Duration) time.Duration {
 	return fallback
 }
 
-// InstanceOf is the machine a host runs on. A host is named for its machine when it starts.
-func InstanceOf(cellName string) string { return "i-" + strings.TrimPrefix(cellName, "cell-") }
+// InstanceOf is the machine a node runs on. A node is named for its machine when it starts.
+func InstanceOf(nodeName string) string { return "i-" + strings.TrimPrefix(nodeName, "cell-") }
 
-// Run decides when it is woken, and every so often in case a change was missed, until the context ends. Hosts are left
+// Run decides when it is woken, and every so often in case a change was missed, until the context ends. Nodes are left
 // running when it ends, since another gusto cloud will find them.
 func (s *Scaler) Run(ctx context.Context, every time.Duration) {
 	tick := time.NewTicker(every)
@@ -128,7 +128,7 @@ func (s *Scaler) Run(ctx context.Context, every time.Duration) {
 	}
 }
 
-// Tick makes one decision: it stops hosts that failed to become hosts and hosts that have been idle, and starts a host
+// Tick makes one decision: it stops nodes that failed to become nodes and nodes that have been idle, and starts a node
 // when an organization waits and none is starting.
 func (s *Scaler) Tick() {
 	hosts, err := s.Launcher.Running()
@@ -170,8 +170,8 @@ func (s *Scaler) Tick() {
 	slog.Info("a host was started", "host", id, "because", why, "waiting", waiting)
 }
 
-// settling says a cell registered a moment ago. It is counted from when it was first seen to be a cell, so a front door
-// that starts again waits the same moment for the cells it finds.
+// settling says a node registered a moment ago. It is counted from when it was first seen to be a node, so a front door
+// that starts again waits the same moment for the nodes it finds.
 func (s *Scaler) settling(alive map[string]Registration) bool {
 	if s.firstSeen == nil {
 		s.firstSeen = map[string]time.Time{}
@@ -192,12 +192,12 @@ func (s *Scaler) settling(alive map[string]Registration) bool {
 	return settling
 }
 
-// CellOf is the host a machine runs: the name InstanceOf takes back to the machine.
-func CellOf(instance string) string { return "cell-" + strings.TrimPrefix(instance, "i-") }
+// NodeOf is the node a machine runs: the name InstanceOf takes back to the machine.
+func NodeOf(instance string) string { return "cell-" + strings.TrimPrefix(instance, "i-") }
 
-// reap removes a host that has not been a registered cell for as long as a host has to become one, counted from when it was started
-// or was last heard from, whichever is later: a host that registered a moment ago and went quiet is a cell that is shutting
-// down, as a host does when it powers itself off, and is left for AWS to stop. It says how many are still starting.
+// reap removes a node that has not been a registered node for as long as a node has to become one, counted from when it was started
+// or was last heard from, whichever is later: a node that registered a moment ago and went quiet is a node that is shutting
+// down, as a node does when it powers itself off, and is left for AWS to stop. It says how many are still starting.
 func (s *Scaler) reap(hosts []Instance, alive map[string]Registration) int {
 	now, starting := s.clock(), 0
 	for _, host := range hosts {
@@ -218,20 +218,20 @@ func (s *Scaler) reap(hosts []Instance, alive map[string]Registration) int {
 	return starting
 }
 
-// lastHeard is when a host was started or last said it was there, whichever is later. The registration keeps the second, so a
+// lastHeard is when a node was started or last said it was there, whichever is later. The registration keeps the second, so a
 // front door that starts again knows it.
 func (s *Scaler) lastHeard(host Instance) time.Time {
-	_, age, err := Registered(s.Pool.Dir, CellOf(host.ID), s.clock())
+	_, age, err := Registered(s.Pool.Dir, NodeOf(host.ID), s.clock())
 	if heard := s.clock().Add(-age); err == nil && heard.After(host.Launched) {
 		return heard
 	}
 	return host.Launched
 }
 
-// unregister takes away the registration of a host that was stopped or removed, so that the organizations placed on it are
+// unregister takes away the registration of a node that was stopped or removed, so that the organizations placed on it are
 // placed again rather than tried there until it has been silent for long.
 func (s *Scaler) unregister(id string) {
-	if err := Unregister(s.Pool.Dir, CellOf(id)); err != nil {
+	if err := Unregister(s.Pool.Dir, NodeOf(id)); err != nil {
 		slog.Error("a stopped host's registration could not be taken away", "host", id, "error", err)
 	}
 }
@@ -243,8 +243,8 @@ func (s *Scaler) busy() int {
 	return s.Waiting()
 }
 
-// retire stops a cell that has had nothing on it for as long as a cell may, unless an organization waits for room or is being
-// placed or started. A restarted front door gives each idle cell the whole of that time again, which delays a stop and never
+// retire stops a node that has had nothing on it for as long as a node may, unless an organization waits for room or is being
+// placed or started. A restarted front door gives each idle node the whole of that time again, which delays a stop and never
 // hastens one.
 func (s *Scaler) retire(hosts []Instance, alive map[string]Registration) {
 	if s.idleSince == nil {
@@ -266,7 +266,7 @@ func (s *Scaler) retire(hosts []Instance, alive map[string]Registration) {
 	}
 }
 
-// idleLongEnough says a cell is idle now and has been for as long as a cell may be.
+// idleLongEnough says a node is idle now and has been for as long as a node may be.
 func (s *Scaler) idleLongEnough(id string, registration Registration) bool {
 	if !s.idle(registration) {
 		delete(s.idleSince, id)
@@ -280,13 +280,13 @@ func (s *Scaler) idleLongEnough(id string, registration Registration) bool {
 	return s.clock().Sub(since) >= orDefault(s.Idle, 10*time.Minute)
 }
 
-// idle says a cell has no server on it and no organization waits for room or is being placed or started.
+// idle says a node has no server on it and no organization waits for room or is being placed or started.
 func (s *Scaler) idle(registration Registration) bool {
 	status, err := newRemote(registration, s.Pool.Secret).Status()
 	return err == nil && len(status.Servers) == 0 && s.busy() == 0
 }
 
-// retireIdle stops an idle cell. It is marked first, so that from the moment it is checked the last time nothing is placed or
+// retireIdle stops an idle node. It is marked first, so that from the moment it is checked the last time nothing is placed or
 // started on it; an organization placed on it before then is being placed, and keeps it.
 func (s *Scaler) retireIdle(id string, registration Registration, kept bool) {
 	s.Pool.setRetiring(registration.Name, true)

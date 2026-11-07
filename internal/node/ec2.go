@@ -1,4 +1,4 @@
-package cell
+package node
 
 import (
 	"context"
@@ -14,16 +14,16 @@ import (
 	"time"
 )
 
-// EC2 starts and stops machines for hosts with the AWS command, which uses the role of the host it runs on. The hosts
+// EC2 starts and stops machines for nodes with the AWS command, which uses the role of the machine it runs on. The nodes
 // are made from a launch template, tagged so that only these are ever listed or stopped, and given the start-up
-// script that makes them hosts of this front door.
+// script that makes them nodes of this front door.
 type EC2 struct {
 	// Template is the launch template's name.
 	Template string
 	// UserData is the start-up script with its @NAME@ settings, and Settings what they are to be.
 	UserData string
 	Settings map[string]string
-	// Project is the value of the project tag, which says whose hosts they are. It is gusto-poc when not set.
+	// Project is the value of the project tag, which says whose nodes they are. It is gusto-poc when not set.
 	Project string
 	// ImageParameter is the Systems Manager parameter the launch template reads its image from, and empty when it names one itself.
 	ImageParameter string
@@ -33,9 +33,9 @@ type EC2 struct {
 
 var instanceID = regexp.MustCompile(`^i-[0-9a-f]{8,17}$`)
 
-// A new host's disk is read from the image's snapshot a block at a time, and the template gives it throughput to be read in many
+// A new node's disk is read from the image's snapshot a block at a time, and the template gives it throughput to be read in many
 // streams: a start-up on the baseline took 41 s, with the first read of a parameter timing out, against 8.5 s. That is billed while a
-// host is stopped too, so a kept host's disk, once it has been read, is lowered to the baseline when the host is first stopped.
+// node is stopped too, so a kept node's disk, once it has been read, is lowered to the baseline when the node is first stopped.
 const (
 	baselineIOPS       = "3000"
 	baselineThroughput = 125
@@ -92,7 +92,7 @@ func (e *EC2) scriptFile(encode bool) (string, func(), error) {
 	if encode {
 		script = base64.StdEncoding.EncodeToString([]byte(script))
 	}
-	file, err := os.CreateTemp("", "gusto-cell-userdata-")
+	file, err := os.CreateTemp("", "gusto-node-userdata-")
 	if err != nil {
 		return "", nil, err
 	}
@@ -109,9 +109,9 @@ func (e *EC2) scriptFile(encode bool) (string, func(), error) {
 	return file.Name(), remove, nil
 }
 
-// Launch starts a new host. A kept one is stopped rather than removed when it is idle, and started again when a host is needed. It
+// Launch starts a new node. A kept one is stopped rather than removed when it is idle, and started again when a node is needed. It
 // is stopped, and not removed, when it powers itself off too, which the launch template would have removed it for: only a kept
-// host is asked to stop, so the others are removed when they power off.
+// node is asked to stop, so the others are removed when they power off.
 func (e *EC2) Launch(kept bool) (string, error) {
 	path, remove, err := e.scriptFile(false)
 	if err != nil {
@@ -136,7 +136,7 @@ func (e *EC2) Launch(kept bool) (string, error) {
 	return id, nil
 }
 
-// Start starts a stopped kept host with today's start-up script, which it runs on every start, so it comes up as this front
+// Start starts a stopped kept node with today's start-up script, which it runs on every start, so it comes up as this front
 // door's release.
 func (e *EC2) Start(id string) error {
 	if !instanceID.MatchString(id) {
@@ -151,7 +151,7 @@ func (e *EC2) Start(id string) error {
 	if _, err := e.run("ec2", "modify-instance-attribute", "--instance-id", id, "--attribute", "userData", "--value", "file://"+path); err != nil {
 		return err
 	}
-	// A kept host made before hosts were asked to stop when they power off is removed by it unless this is set.
+	// A kept node made before nodes were asked to stop when they power off is removed by it unless this is set.
 	if _, err := e.run("ec2", "modify-instance-attribute", "--instance-id", id, "--instance-initiated-shutdown-behavior", "stop"); err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (e *EC2) Start(id string) error {
 	return err
 }
 
-// Stop stops a kept host and lowers its root disk to the baseline. Its own disk, where its sandboxes were, is blanked by AWS; its root
+// Stop stops a kept node and lowers its root disk to the baseline. Its own disk, where its sandboxes were, is blanked by AWS; its root
 // disk is kept. A disk that cannot be lowered now is lowered at a later stop, so that does not fail the stop.
 func (e *EC2) Stop(id string) error {
 	if !instanceID.MatchString(id) {
@@ -174,7 +174,7 @@ func (e *EC2) Stop(id string) error {
 	return nil
 }
 
-// LowerDisk takes a host's root disk down to the baseline, once: a disk already there is left alone, since a disk may be changed only
+// LowerDisk takes a node's root disk down to the baseline, once: a disk already there is left alone, since a disk may be changed only
 // every six hours.
 func (e *EC2) LowerDisk(id string) error {
 	if !instanceID.MatchString(id) {
@@ -210,7 +210,7 @@ func (e *EC2) Terminate(id string) error {
 
 var imageID = regexp.MustCompile(`^ami-[0-9a-f]{8,17}$`)
 
-// CurrentImage is the image the launch template makes a host from now, read from its parameter.
+// CurrentImage is the image the launch template makes a node from now, read from its parameter.
 func (e *EC2) CurrentImage() (string, error) {
 	if e.ImageParameter == "" {
 		return "", nil
@@ -226,10 +226,10 @@ func (e *EC2) CurrentImage() (string, error) {
 	return image, nil
 }
 
-// Running is the scaler's hosts that are starting or up. A started host's launch time is when it was last started.
+// Running is the scaler's nodes that are starting or up. A started node's launch time is when it was last started.
 func (e *EC2) Running() ([]Instance, error) { return e.listed("pending,running") }
 
-// Stopped is the scaler's hosts that are stopping or stopped. A kept host is stopped when idle; a host that is not kept is stopped
+// Stopped is the scaler's nodes that are stopping or stopped. A kept node is stopped when idle; a node that is not kept is stopped
 // only when it powered itself off.
 func (e *EC2) Stopped() ([]Instance, error) { return e.listed("stopping,stopped") }
 

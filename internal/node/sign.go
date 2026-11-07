@@ -1,8 +1,8 @@
-// Package cell is how the gusto cloud runs organizations' servers on other hosts. A host that runs
+// Package node is how the gusto cloud runs organizations' servers on other nodes. A node that runs
 // them has an agent, which the gusto cloud asks over HTTP with requests signed by a secret only the
-// gusto cloud and the hosts hold, and which registers itself in a directory all of them see, so that
-// adding a host is starting one.
-package cell
+// gusto cloud and the nodes hold, and which registers itself in a directory all of them see, so that
+// adding a node is starting one.
+package node
 
 import (
 	"bytes"
@@ -25,7 +25,7 @@ const (
 	maxBody = 1 << 20
 )
 
-// mac is the signature of a request: its method, everything after the host in its address, the
+// mac is the signature of a request: its method, everything after the node in its address, the
 // time it was made and what it carries.
 func mac(secret []byte, method, target string, at int64, body []byte) string {
 	sum := sha256.Sum256(body)

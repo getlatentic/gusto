@@ -13,8 +13,8 @@ func envCloud() []cmdline.Param {
 	return cmdline.ParamsOf(cfg.declare)
 }
 
-func envHost() []cmdline.Param {
-	var cfg hostSettings
+func envNode() []cmdline.Param {
+	var cfg nodeSettings
 	return cmdline.ParamsOf(cfg.declare)
 }
 
@@ -60,18 +60,12 @@ func runCommands() []*cmdline.Command {
 				"cloud.db under the root by default, or Postgres when GUSTO_DATABASE_URL names it (docs/CLOUD-DATABASE.md).",
 			Env:      envCloud(),
 			Examples: []string{"gusto cloud", "gusto cloud migrate", "gusto cloud computers"},
-			SeeAlso:  []string{"host", "operator"},
+			SeeAlso:  []string{"node", "operator"},
 			Run:      none("cloud", cloudCommand),
 			Subs:     []*cmdline.Command{cloudComputersCommand(), cloudWorkspacesCommand(), cloudMigrateCommand()},
 		},
-		{
-			Name: "host", Group: groupRun, Summary: "Run a host for organizations' servers, for a gusto cloud",
-			Description: "Runs the agent on a host that runs organizations' servers for a gusto cloud on another. It starts and stops " +
-				"what gusto cloud asks, signed with the secret they share, and says every few seconds that it is there.",
-			Env:     envHost(),
-			SeeAlso: []string{"cloud"},
-			Run:     none("host", hostCommand),
-		},
+		nodeCommandOf(),
+		hostCommandOf(),
 		{
 			Name: "operator", Group: groupRun, Summary: "Serve the operator's page for a gusto cloud, on loopback",
 			Description: "Serves the page an operator manages a gusto cloud from. It listens on the loopback of the machine gusto cloud " +

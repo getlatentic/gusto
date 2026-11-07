@@ -14,13 +14,13 @@ func TestADemoServerHasTheDemoSettingsOnTopAndASignUpDoesNot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c := &Controller{Store: store, Cell: &LocalCell{},
+	c := &Controller{Store: store, Node: &LocalNode{},
 		Env:     []string{"GUSTO_SANDBOX=container", "GUSTO_MODELS=m"},
 		DemoEnv: []string{"GUSTO_SANDBOX=openshell", "GUSTO_OPENSHELL_GATEWAY=g"}}
 	for _, each := range []struct {
 		slug, sandbox, gateway string
 	}{{signup.Slug, "container", ""}, {demo.Slug, "openshell", "g"}} {
-		env, err := c.environment(t.Context(), each.slug, Runtime{Port: 1, ProxyPort: 2}, c.Cell)
+		env, err := c.environment(t.Context(), each.slug, Runtime{Port: 1, ProxyPort: 2}, c.Node)
 		if err != nil {
 			t.Fatal(err)
 		}

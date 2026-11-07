@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net"
 	"net/http"
 	"os"
@@ -27,11 +28,11 @@ import (
 // it goes, so a crash between two steps leaves something the next pass finishes.
 type Controller struct {
 	Store *Store
-	// Cell is the one place servers run, when Cells is not set.
-	Cell Cell
-	// Cells is where servers may run when there is more than one. An organization is placed on
-	// one when it is made and stays there, because its computers are on that cell's gateway.
-	Cells CellSet
+	// Node is the one place servers run, when Nodes is not set.
+	Node Node
+	// Nodes is where servers may run when there is more than one. An organization is placed on
+	// one when it is made and stays there, because its computers are on that node's gateway.
+	Nodes NodeSet
 	// Command is the program that is an organization's server, and its arguments.
 	Command []string
 	// Env is the settings every organization's server has, and only those and
@@ -57,11 +58,11 @@ type Controller struct {
 	// IndexDir is where organizations' indexes are kept, in a directory for each, on the local disk of the host a server
 	// runs on. It is the index directory under the store's root when not set.
 	IndexDir string
-	// WaitEvery is how often an organization waiting for a cell is tried again. It is half a second when not set: a cell
+	// WaitEvery is how often an organization waiting for a node is tried again. It is half a second when not set: a node
 	// says it is ready by writing to the shared file system, which cannot tell a reader it changed, and a visitor waits
 	// on the organization.
 	WaitEvery time.Duration
-	// OnWaiting is told when an organization starts waiting for a cell with room, so a cell can be started for it at
+	// OnWaiting is told when an organization starts waiting for a node with room, so a node can be started for it at
 	// once. It is called outside the controller's lock and must not block.
 	OnWaiting func()
 
@@ -149,7 +150,7 @@ func (c *Controller) provision(ctx context.Context, slug string) error {
 	if err := c.prepare(ctx, slug); err != nil {
 		return c.fail(ctx, slug, runtime, err)
 	}
-	cell, err := c.placement(ctx, slug, &runtime)
+	node, err := c.placement(ctx, slug, &runtime)
 	if errors.Is(err, ErrNoCapacity) {
 		return c.wait(ctx, slug, runtime, err)
 	}
@@ -157,26 +158,26 @@ func (c *Controller) provision(ctx context.Context, slug string) error {
 		return c.fail(ctx, slug, runtime, err)
 	}
 	if runtime.Port == 0 {
-		if runtime, err = c.givePorts(ctx, slug, runtime, cell); err != nil {
+		if runtime, err = c.givePorts(ctx, slug, runtime, node); err != nil {
 			return c.fail(ctx, slug, runtime, err)
 		}
 	}
 	if err := c.set(ctx, slug, runtime, Starting, ""); err != nil {
 		return err
 	}
-	env, err := c.environment(ctx, slug, runtime, cell)
+	env, err := c.environment(ctx, slug, runtime, node)
 	if err != nil {
 		return c.fail(ctx, slug, runtime, err)
 	}
 	spec := ServerSpec{Slug: slug, Command: c.Command, Env: env, Log: filepath.Join(c.orgDir(slug), "server.log")}
-	if err := c.endOtherRelease(cell, slug, runtime); err != nil {
+	if err := c.endOtherRelease(node, slug, runtime); err != nil {
 		return c.fail(ctx, slug, runtime, err)
 	}
-	if err := cell.Start(spec); err != nil {
+	if err := node.Start(spec); err != nil {
 		return c.fail(ctx, slug, runtime, err)
 	}
 	runtime.Command = strings.Join(c.Command, " ")
-	if err := c.answers(ctx, cell, runtime.Port); err != nil {
+	if err := c.answers(ctx, node, runtime.Port); err != nil {
 		return c.fail(ctx, slug, runtime, err)
 	}
 	if err := c.set(ctx, slug, runtime, Ready, ""); err != nil {
@@ -212,44 +213,44 @@ func (c *Controller) stillServed(ctx context.Context, slug string) error {
 // endOtherRelease stops an organization's server that was started with another command than this front door's, so that
 // it is started again as this release. A server on a host apart outlives the front door that started it, and would
 // otherwise run the release it was started with until its host goes.
-func (c *Controller) endOtherRelease(cell Cell, slug string, runtime Runtime) error {
-	if runtime.Command == strings.Join(c.Command, " ") || !cell.Alive(slug) {
+func (c *Controller) endOtherRelease(node Node, slug string, runtime Runtime) error {
+	if runtime.Command == strings.Join(c.Command, " ") || !node.Alive(slug) {
 		return nil
 	}
 	slog.Info("an organization's server is of another release, so it is started again", "org", slug, "was", runtime.Command)
-	return cell.Stop(slug, c.grace())
+	return node.Stop(slug, c.grace())
 }
 
-// cellNamed is the cell an organization was placed on.
-func (c *Controller) cellNamed(name string) (Cell, error) {
-	if c.Cells == nil {
-		return c.Cell, nil
+// nodeNamed is the node an organization was placed on.
+func (c *Controller) nodeNamed(name string) (Node, error) {
+	if c.Nodes == nil {
+		return c.Node, nil
 	}
-	return c.Cells.Get(name)
+	return c.Nodes.Get(name)
 }
 
-// placement is the cell an organization's server runs on. One that was placed stays there, since its
-// computers are on that cell's gateway, and one that was not is put on the cell with the most room and
+// placement is the node an organization's server runs on. One that was placed stays there, since its
+// computers are on that node's gateway, and one that was not is put on the node with the most room and
 // has that written down before anything is started on it.
-func (c *Controller) placement(ctx context.Context, slug string, runtime *Runtime) (Cell, error) {
-	if runtime.Cell != "" {
-		cell, err := c.cellNamed(runtime.Cell)
-		if !errors.Is(err, ErrCellGone) {
-			return cell, err
+func (c *Controller) placement(ctx context.Context, slug string, runtime *Runtime) (Node, error) {
+	if runtime.Node != "" {
+		node, err := c.nodeNamed(runtime.Node)
+		if !errors.Is(err, ErrNodeGone) {
+			return node, err
 		}
-		slog.Warn("an organization's host is gone, so it is placed on another", "org", slug, "cell", runtime.Cell)
-		// The ports were the gone cell's, and are not this one's.
-		runtime.Cell, runtime.Port, runtime.ProxyPort = "", 0, 0
+		slog.Warn("an organization's node is gone, so it is placed on another", "org", slug, "node", runtime.Node)
+		// The ports were the gone node's, and are not this one's.
+		runtime.Node, runtime.Port, runtime.ProxyPort = "", 0, 0
 	}
-	cell := c.Cell
-	if c.Cells != nil {
+	node := c.Node
+	if c.Nodes != nil {
 		var err error
-		if cell, err = c.Cells.Place(); err != nil {
+		if node, err = c.Nodes.Place(); err != nil {
 			return nil, err
 		}
 	}
-	runtime.Cell = cell.Name()
-	return cell, c.Store.SetRuntimeAt(ctx, c.epoch.Load(), slug, *runtime)
+	runtime.Node = node.Name()
+	return node, c.Store.SetRuntimeAt(ctx, c.epoch.Load(), slug, *runtime)
 }
 
 // prepare makes what an organization's server keeps: its directories, the key it signs
@@ -294,7 +295,7 @@ func (c *Controller) EntryKey(slug string) ([]byte, error) { return os.ReadFile(
 
 // environment is the whole environment of an organization's server: the operator's
 // settings, then what is the organization's own, which wins.
-func (c *Controller) environment(ctx context.Context, slug string, runtime Runtime, cell Cell) ([]string, error) {
+func (c *Controller) environment(ctx context.Context, slug string, runtime Runtime, node Node) ([]string, error) {
 	password := make([]byte, 24)
 	if _, err := rand.Read(password); err != nil {
 		return nil, err
@@ -303,34 +304,16 @@ func (c *Controller) environment(ctx context.Context, slug string, runtime Runti
 	if err != nil {
 		return nil, err
 	}
-	data := c.Store.DataDir(slug)
-	own := map[string]string{
-		"GUSTO_ADDR":         cell.Listen() + ":" + strconv.Itoa(runtime.Port),
-		"GUSTO_PROXY_ADDR":   "127.0.0.1:" + strconv.Itoa(runtime.ProxyPort),
-		"GUSTO_JOBS":         filepath.Join(data, "jobs"),
-		"GUSTO_SESSIONS":     filepath.Join(data, "sessions"),
-		"GUSTO_SETUPS":       filepath.Join(data, "setups"),
-		"GUSTO_CREW":         filepath.Join(data, "crew"),
-		"GUSTO_PRESETS":      filepath.Join(data, "presets"),
-		"GUSTO_INTEGRATIONS": filepath.Join(data, "integrations"),
-		"GUSTO_COMPARISONS":  filepath.Join(data, "comparisons"),
-		"GUSTO_CHANGES":      filepath.Join(data, "changes", "changes.jsonl"),
-		"GUSTO_RETENTION":    filepath.Join(data, "retention"),
-		signing.KeyEnv:       filepath.Join(data, "keys", slug+".key"),
-		signing.KeyringEnv:   filepath.Join(data, "keys"),
-		"GUSTO_SIGNER":       slug,
-		"GUSTO_QUOTA":        c.Store.QuotaFile(slug),
-		"GUSTO_MEMBERS":      c.Store.RosterFile(slug),
-		"GUSTO_ORG_SETTINGS": filepath.Join(data, "settings.json"),
-		"GUSTO_REGISTRY":     filepath.Join(data, "registry"),
-		"GUSTO_INBOX":        c.Store.InboxDir(slug),
-		"GUSTO_ENTRY_KEY":    c.entryKeyFile(slug),
-		"GUSTO_ORG":          slug,
-		"GUSTO_ORG_NAME":     org.Name,
-		"GUSTO_FRONT_DOOR":   c.FrontDoor,
-		"GUSTO_COMPUTERS":    filepath.Join(data, "computers"),
-		"GUSTO_APPS":         filepath.Join(data, "apps"),
-		"GUSTO_CELL":         cell.Name(),
+	own := c.dataSettings(slug)
+	maps.Copy(own, map[string]string{
+		"GUSTO_ADDR":       node.Listen() + ":" + strconv.Itoa(runtime.Port),
+		"GUSTO_PROXY_ADDR": "127.0.0.1:" + strconv.Itoa(runtime.ProxyPort),
+		"GUSTO_ORG":        slug,
+		"GUSTO_ORG_NAME":   org.Name,
+		"GUSTO_FRONT_DOOR": c.FrontDoor,
+		"GUSTO_NODE":       node.Name(),
+		// The name it had, for a server of an earlier release on a kept node.
+		"GUSTO_CELL": node.Name(),
 		// A person's own conversations share their computer's files and their own state, so they
 		// take turns. A room's agents each work on a copy, so they do not wait for each other.
 		"GUSTO_LIMIT_PERSON":    "1",
@@ -338,7 +321,8 @@ func (c *Controller) environment(ctx context.Context, slug string, runtime Runti
 		// Nobody knows this: a server behind the front door has no password to type.
 		"GUSTO_PASSWORD": hex.EncodeToString(password),
 		"HOME":           filepath.Join(c.orgDir(slug), "home"),
-	}
+	})
+	data := c.Store.DataDir(slug)
 	if c.OrgURL != nil {
 		own["GUSTO_PUBLIC_URL"] = c.OrgURL(slug)
 		own["GUSTO_CONNECTORS"] = filepath.Join(data, "connectors")
@@ -361,9 +345,36 @@ func (c *Controller) environment(ctx context.Context, slug string, runtime Runti
 	return env, nil
 }
 
-// givePorts gives an organization two ports on its cell and writes them down before anyone
+// dataSettings is where an organization's server keeps each kind of its data, all under its own directory.
+func (c *Controller) dataSettings(slug string) map[string]string {
+	data := c.Store.DataDir(slug)
+	return map[string]string{
+		"GUSTO_JOBS":         filepath.Join(data, "jobs"),
+		"GUSTO_SESSIONS":     filepath.Join(data, "sessions"),
+		"GUSTO_SETUPS":       filepath.Join(data, "setups"),
+		"GUSTO_CREW":         filepath.Join(data, "crew"),
+		"GUSTO_PRESETS":      filepath.Join(data, "presets"),
+		"GUSTO_INTEGRATIONS": filepath.Join(data, "integrations"),
+		"GUSTO_COMPARISONS":  filepath.Join(data, "comparisons"),
+		"GUSTO_CHANGES":      filepath.Join(data, "changes", "changes.jsonl"),
+		"GUSTO_RETENTION":    filepath.Join(data, "retention"),
+		signing.KeyEnv:       filepath.Join(data, "keys", slug+".key"),
+		signing.KeyringEnv:   filepath.Join(data, "keys"),
+		"GUSTO_SIGNER":       slug,
+		"GUSTO_QUOTA":        c.Store.QuotaFile(slug),
+		"GUSTO_MEMBERS":      c.Store.RosterFile(slug),
+		"GUSTO_ORG_SETTINGS": filepath.Join(data, "settings.json"),
+		"GUSTO_REGISTRY":     filepath.Join(data, "registry"),
+		"GUSTO_INBOX":        c.Store.InboxDir(slug),
+		"GUSTO_ENTRY_KEY":    c.entryKeyFile(slug),
+		"GUSTO_COMPUTERS":    filepath.Join(data, "computers"),
+		"GUSTO_APPS":         filepath.Join(data, "apps"),
+	}
+}
+
+// givePorts gives an organization two ports on its node and writes them down before anyone
 // else is given any, so two organizations provisioned together do not share one.
-func (c *Controller) givePorts(ctx context.Context, slug string, runtime Runtime, cell Cell) (Runtime, error) {
+func (c *Controller) givePorts(ctx context.Context, slug string, runtime Runtime, node Node) (Runtime, error) {
 	c.portMu.Lock()
 	defer c.portMu.Unlock()
 	orgs, err := c.Store.Orgs(ctx)
@@ -372,11 +383,11 @@ func (c *Controller) givePorts(ctx context.Context, slug string, runtime Runtime
 	}
 	given := map[int]bool{}
 	for _, org := range orgs {
-		if other, err := c.Store.Runtime(ctx, org.Slug); err == nil && other.Cell == runtime.Cell {
+		if other, err := c.Store.Runtime(ctx, org.Slug); err == nil && other.Node == runtime.Node {
 			given[other.Port], given[other.ProxyPort] = true, true
 		}
 	}
-	server, proxy, err := cell.Ports(c.PortFrom, given)
+	server, proxy, err := node.Ports(c.PortFrom, given)
 	if err != nil {
 		return runtime, err
 	}
@@ -397,10 +408,10 @@ func free(port int) bool {
 var healthCheck = &http.Client{Timeout: 2 * time.Second}
 
 // answers waits until the server on the port says it is well, for as long as c.Wait or until ctx ends.
-func (c *Controller) answers(ctx context.Context, cell Cell, port int) error {
+func (c *Controller) answers(ctx context.Context, node Node, port int) error {
 	ctx, cancel := context.WithTimeout(ctx, c.Wait)
 	defer cancel()
-	address := "http://" + net.JoinHostPort(cell.Host(), strconv.Itoa(port)) + "/healthz"
+	address := "http://" + net.JoinHostPort(node.Host(), strconv.Itoa(port)) + "/healthz"
 	every := time.NewTicker(100 * time.Millisecond)
 	defer every.Stop()
 	for {
@@ -453,7 +464,7 @@ func (c *Controller) set(ctx context.Context, slug string, runtime Runtime, stat
 	return nil
 }
 
-// wait leaves an organization waiting for a cell with room, which it is tried for again shortly. It is not a failure
+// wait leaves an organization waiting for a node with room, which it is tried for again shortly. It is not a failure
 // and is not counted as one, since what it waits for is being made.
 func (c *Controller) wait(ctx context.Context, slug string, runtime Runtime, err error) error {
 	c.set(ctx, slug, runtime, Waiting, err.Error())
@@ -476,10 +487,10 @@ func (c *Controller) waitEvery() time.Duration {
 	return 500 * time.Millisecond
 }
 
-// Waiting is how many organizations are waiting for a cell with room, which is what makes another start.
+// Waiting is how many organizations are waiting for a node with room, which is what makes another start.
 func (c *Controller) Waiting() int { return c.count(Waiting) }
 
-// Busy is how many organizations wait for a cell with room or are being placed and started, while which no cell is idle:
+// Busy is how many organizations wait for a node with room or are being placed and started, while which no node is idle:
 // the one an organization is being placed on may be the one with nothing on it yet.
 func (c *Controller) Busy() int { return c.count(Waiting, Provisioning, Starting) }
 
@@ -516,11 +527,11 @@ func (c *Controller) Route(ctx context.Context, slug string) (address string, st
 	if runtime.State != Ready {
 		return "", runtime.State
 	}
-	cell, err := c.cellNamed(runtime.Cell)
-	if err != nil || !cell.Alive(slug) {
+	node, err := c.nodeNamed(runtime.Node)
+	if err != nil || !node.Alive(slug) {
 		return "", Starting
 	}
-	return net.JoinHostPort(cell.Host(), strconv.Itoa(runtime.Port)), Ready
+	return net.JoinHostPort(node.Host(), strconv.Itoa(runtime.Port)), Ready
 }
 
 // Run provisions every organization there is and then keeps their servers running, until the context ends: when this front
@@ -543,7 +554,7 @@ func (c *Controller) Run(ctx context.Context, every time.Duration) {
 		go c.Provision(ctx, org.Slug)
 	}
 	for {
-		// An organization that waits for a cell is looked at often, since a visitor waits on it; otherwise every so often.
+		// An organization that waits for a node is looked at often, since a visitor waits on it; otherwise every so often.
 		next := every
 		if c.Waiting() > 0 {
 			next = min(every, c.waitEvery())
@@ -560,7 +571,7 @@ func (c *Controller) Run(ctx context.Context, every time.Duration) {
 }
 
 // supervise restarts what has stopped or failed, retries what waits, and provisions what was signed up on a front door that
-// does not lead. Whether a server is alive is asked of its cell outside c.mu, so routing does not wait on a cell.
+// does not lead. Whether a server is alive is asked of its node outside c.mu, so routing does not wait on a node.
 func (c *Controller) supervise(ctx context.Context) {
 	var due, waiting []string
 	var ready map[string]Runtime
@@ -649,11 +660,11 @@ func (c *Controller) restart(ctx context.Context, slug string) {
 	}
 }
 
-// alive is whether an organization's server is running on its cell, and a cell that cannot be
+// alive is whether an organization's server is running on its node, and a node that cannot be
 // reached is one whose servers are not known to be.
 func (c *Controller) alive(slug string, runtime Runtime) bool {
-	cell, err := c.cellNamed(runtime.Cell)
-	return err == nil && cell.Alive(slug)
+	node, err := c.nodeNamed(runtime.Node)
+	return err == nil && node.Alive(slug)
 }
 
 // StopAll stops every server this controller holds, when the front door stops. A server on a host apart is left running:
@@ -670,16 +681,16 @@ func (c *Controller) StopAll() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			cell, err := c.cellNamed(runtime.Cell)
+			node, err := c.nodeNamed(runtime.Node)
 			if err != nil {
 				return
 			}
 			// A server on another host does not end with the front door, which is restarted at every deploy, and is
 			// found running by the one that starts.
-			if apart, ok := cell.(interface{ Detached() bool }); ok && apart.Detached() {
+			if apart, ok := node.(interface{ Detached() bool }); ok && apart.Detached() {
 				return
 			}
-			cell.Stop(slug, c.grace())
+			node.Stop(slug, c.grace())
 		}()
 	}
 	wg.Wait()
@@ -704,13 +715,13 @@ func (c *Controller) Remove(ctx context.Context, slug string) {
 	}
 	c.removed[slug] = org.Created
 	c.mu.Unlock()
-	if runtime.Cell == "" {
+	if runtime.Node == "" {
 		if stored, err := c.Store.Runtime(ctx, slug); err == nil {
 			runtime = stored
 		}
 	}
-	if cell, err := c.cellNamed(runtime.Cell); err == nil {
-		cell.Stop(slug, c.grace())
+	if node, err := c.nodeNamed(runtime.Node); err == nil {
+		node.Stop(slug, c.grace())
 	}
 }
 

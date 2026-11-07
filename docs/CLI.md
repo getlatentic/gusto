@@ -29,7 +29,7 @@ gusto runs the AI agents you already use, each in a sandbox, on a task.
 - [`gusto open`](#gusto-open): Open gusto on this computer in the browser, signed in
 - [`gusto local`](#gusto-local): Run gusto for one person on this computer
 - [`gusto cloud`](#gusto-cloud): Run gusto cloud, the hosted server for accounts and routing
-- [`gusto host`](#gusto-host): Run a host for organizations' servers, for a gusto cloud
+- [`gusto node`](#gusto-node): Run a node for organizations' servers, for a gusto cloud
 - [`gusto operator`](#gusto-operator): Serve the operator's page for a gusto cloud, on loopback
 - [`gusto scan`](#gusto-scan): Ask the runner image which agents it carries
 - [`gusto param`](#gusto-param): Print a parameter from AWS Parameter Store, decrypted
@@ -673,7 +673,7 @@ Environment:
 - `GUSTO_OPENSHELL_PROCESSES`: the most processes an agent may have running in a sandbox at once (default 512)
 - `GUSTO_OPENSHELL_REMOTE`: the gateway runs on another machine, so this one needs no hardware virtualization
 - `GUSTO_COMPUTERS`: the directory of the records of the computers an organization's people have
-- `GUSTO_CELL`: where a new computer is made (default local)
+- `GUSTO_NODE`: the node new computers are made on (default local); GUSTO_CELL is its old name
 - `GUSTO_SPARE_COMPUTER`: keep one blank computer ready for the next person who has none
 - `GUSTO_COMPUTER_IDLE_MINUTES`: how long a computer nobody uses runs before it is stopped, in minutes (default 30)
 - `GUSTO_ROOM_COPY_MB`: the most a room's folder may hold for an agent's turn to copy it, in megabytes (default 4096)
@@ -971,22 +971,22 @@ Environment:
 - `GUSTO_CLOUD_INDEX_DIR`: where organizations' indexes are kept when that address is not Postgres: a directory for each, on the local disk of the host its server runs on (default index under GUSTO_CLOUD_ROOT)
 - `GUSTO_CLOUD_PORT_FROM`: the first port an organization's server gets, two each (default 9100)
 - `GUSTO_CLOUD_START_WAIT_SECONDS`: how long a server has to answer once started, in seconds (default 120)
-- `GUSTO_CLOUD_CELLS_DIR`: the directory hosts register in; unset, this machine runs every organization's server
-- `GUSTO_CLOUD_CELL_SECRET_FILE`: the file with the secret gusto cloud and the hosts sign with
-- `GUSTO_CLOUD_CELL_MIN_FREE_MIB`: the memory a host must have free for an organization to be placed on it, in MiB (default 4096)
-- `GUSTO_CLOUD_CELL_GONE_MINUTES`: how long a host may be silent before it is taken to be gone and its organizations are placed on another, in minutes (default 30)
-- `GUSTO_CLOUD_LOCAL_CELL`: this machine is a host too
-- `GUSTO_CLOUD_CELL_LAUNCH`: how a host is started when an organization waits for room; unset, none is (ec2)
-- `GUSTO_CLOUD_CELL_PROJECT`: the project tag of the hosts
-- `GUSTO_CLOUD_CELL_TEMPLATE`: the launch template a host is made from
-- `GUSTO_CLOUD_CELL_USERDATA`: the start-up script a host runs
-- `GUSTO_CLOUD_CELL_SETTINGS`: NAME=value pairs, comma-separated, that fill in the start-up script
-- `GUSTO_CLOUD_CELL_IMAGE_PARAMETER`: the parameter the template reads its image from, so a kept host of an older image is replaced and not started again
-- `GUSTO_CLOUD_CELL_MAX`: the most hosts (default 3)
-- `GUSTO_CLOUD_CELL_IDLE_MINUTES`: how long a host may have nothing on it before it is stopped, in minutes (default 10)
-- `GUSTO_CLOUD_CELL_BOOT_MINUTES`: how long a host has to come up, in minutes (default 10)
-- `GUSTO_CLOUD_CELL_PREWARMS`: the most hosts started in a day for a visitor still filling in the demo form (default 20)
-- `GUSTO_CLOUD_CELL_KEEP`: how many idle hosts are stopped and kept, rather than removed (default 0)
+- `GUSTO_CLOUD_NODES_DIR`: the directory nodes register in; unset, this machine runs every organization's server; GUSTO_CLOUD_CELLS_DIR is its old name
+- `GUSTO_CLOUD_NODE_SECRET_FILE`: the file with the secret gusto cloud and the nodes sign with; GUSTO_CLOUD_CELL_SECRET_FILE is its old name
+- `GUSTO_CLOUD_NODE_MIN_FREE_MIB`: the memory a node must have free for an organization to be placed on it, in MiB (default 4096); GUSTO_CLOUD_CELL_MIN_FREE_MIB is its old name
+- `GUSTO_CLOUD_NODE_GONE_MINUTES`: how long a node may be silent before it is taken to be gone and its organizations are placed on another, in minutes (default 30); GUSTO_CLOUD_CELL_GONE_MINUTES is its old name
+- `GUSTO_CLOUD_LOCAL_NODE`: this machine is a node too; GUSTO_CLOUD_LOCAL_CELL is its old name
+- `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH is its old name
+- `GUSTO_CLOUD_NODE_PROJECT`: the project tag of the nodes' machines; GUSTO_CLOUD_CELL_PROJECT is its old name
+- `GUSTO_CLOUD_NODE_TEMPLATE`: the launch template a node's machine is made from; GUSTO_CLOUD_CELL_TEMPLATE is its old name
+- `GUSTO_CLOUD_NODE_USERDATA`: the start-up script a node's machine runs; GUSTO_CLOUD_CELL_USERDATA is its old name
+- `GUSTO_CLOUD_NODE_SETTINGS`: NAME=value pairs, comma-separated, that fill in the start-up script; GUSTO_CLOUD_CELL_SETTINGS is its old name
+- `GUSTO_CLOUD_NODE_IMAGE_PARAMETER`: the parameter the template reads its image from, so a kept node of an older image is replaced and not started again; GUSTO_CLOUD_CELL_IMAGE_PARAMETER is its old name
+- `GUSTO_CLOUD_NODE_MAX`: the most nodes (default 3); GUSTO_CLOUD_CELL_MAX is its old name
+- `GUSTO_CLOUD_NODE_IDLE_MINUTES`: how long a node may have nothing on it before it is stopped, in minutes (default 10); GUSTO_CLOUD_CELL_IDLE_MINUTES is its old name
+- `GUSTO_CLOUD_NODE_BOOT_MINUTES`: how long a node has to come up, in minutes (default 10); GUSTO_CLOUD_CELL_BOOT_MINUTES is its old name
+- `GUSTO_CLOUD_NODE_PREWARMS`: the most nodes started in a day for a visitor still filling in the demo form (default 20); GUSTO_CLOUD_CELL_PREWARMS is its old name
+- `GUSTO_CLOUD_NODE_KEEP`: how many idle nodes are stopped and kept, rather than removed (default 0); GUSTO_CLOUD_CELL_KEEP is its old name
 
 Examples:
 
@@ -996,7 +996,7 @@ gusto cloud migrate
 gusto cloud computers
 ```
 
-See also: `gusto host`, `gusto operator`
+See also: `gusto node`, `gusto operator`
 
 ### `gusto cloud computers`
 
@@ -1061,15 +1061,15 @@ GUSTO_DATABASE_URL=postgres://db/gusto gusto cloud migrate -import
 
 See also: `gusto cloud`, `gusto operator`
 
-## `gusto host`
+## `gusto node`
 
-Run a host for organizations' servers, for a gusto cloud
+Run a node for organizations' servers, for a gusto cloud
 
 ```text
-gusto host
+gusto node
 ```
 
-Runs the agent on a host that runs organizations' servers for a gusto cloud on another. It starts and stops what gusto cloud asks, signed with the secret they share, and says every few seconds that it is there.
+Runs the agent on a node that runs organizations' servers for a gusto cloud on another machine. It starts and stops what gusto cloud asks, signed with the secret they share, and says every few seconds that it is there.
 
 Flags:
 
@@ -1077,11 +1077,11 @@ Flags:
 
 Environment:
 
-- `GUSTO_CELL_NAME`: what this host is called: lower case letters, digits and hyphens, up to 31
-- `GUSTO_CELL_PRIVATE`: this host's IPv4 address on the private network, which its servers bind to
-- `GUSTO_CELL_PORT`: the port to listen on (default 8060)
-- `GUSTO_CELL_SECRET_FILE`: the file with the secret gusto cloud and the hosts sign with
-- `GUSTO_CELLS_DIR`: the directory every host and gusto cloud see
+- `GUSTO_NODE_NAME`: what this node is called: lower case letters, digits and hyphens, up to 31; GUSTO_CELL_NAME is its old name
+- `GUSTO_NODE_PRIVATE`: this node's IPv4 address on the private network, which its servers bind to; GUSTO_CELL_PRIVATE is its old name
+- `GUSTO_NODE_PORT`: the port to listen on (default 8060); GUSTO_CELL_PORT is its old name
+- `GUSTO_NODE_SECRET_FILE`: the file with the secret gusto cloud and the nodes sign with; GUSTO_CELL_SECRET_FILE is its old name
+- `GUSTO_NODES_DIR`: the directory every node and gusto cloud see; GUSTO_CELLS_DIR is its old name
 
 See also: `gusto cloud`
 
@@ -1115,8 +1115,8 @@ Environment:
 - `GUSTO_CLOUD_DEMO_VIDEO`: the video the landing page shows: an https address of a file or of a page to embed
 - `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo
 - `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
-- `GUSTO_CLOUD_CELL_LAUNCH`: how a host is started when an organization waits for room; unset, none is (ec2)
-- `GUSTO_CLOUD_CELL_PROJECT`: the project tag of the hosts
+- `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH is its old name
+- `GUSTO_CLOUD_NODE_PROJECT`: the project tag of the nodes' machines; GUSTO_CLOUD_CELL_PROJECT is its old name
 
 See also: `gusto cloud`
 
@@ -1227,7 +1227,7 @@ Environment:
 - `GUSTO_OPENSHELL_PROCESSES`: the most processes an agent may have running in a sandbox at once (default 512)
 - `GUSTO_OPENSHELL_REMOTE`: the gateway runs on another machine, so this one needs no hardware virtualization
 - `GUSTO_COMPUTERS`: the directory of the records of the computers an organization's people have
-- `GUSTO_CELL`: where a new computer is made (default local)
+- `GUSTO_NODE`: the node new computers are made on (default local); GUSTO_CELL is its old name
 - `GUSTO_SPARE_COMPUTER`: keep one blank computer ready for the next person who has none
 - `GUSTO_COMPUTER_IDLE_MINUTES`: how long a computer nobody uses runs before it is stopped, in minutes (default 30)
 - `GUSTO_ROOM_COPY_MB`: the most a room's folder may hold for an agent's turn to copy it, in megabytes (default 4096)

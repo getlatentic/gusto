@@ -86,7 +86,7 @@ func TestAnOrganizationsServerIsMadeAndStartedWithOnlyItsOwnDirectoriesKeysAndSe
 			}
 		}
 		runtime, _ := s.Runtime(t.Context(), org.Slug)
-		if runtime.State != Ready || runtime.Port == 0 || runtime.ProxyPort == 0 || runtime.Cell != "local" {
+		if runtime.State != Ready || runtime.Port == 0 || runtime.ProxyPort == 0 || runtime.Node != "local" {
 			t.Errorf("what was done is written down: %+v", runtime)
 		}
 	})
@@ -172,7 +172,7 @@ func TestAServerThatStopsIsStartedAgain(t *testing.T) {
 		first := whoIs(t, address)
 		http.Get("http://" + address + "/die")
 		deadline := time.Now().Add(5 * time.Second)
-		for c.Cell.Alive(org.Slug) && time.Now().Before(deadline) {
+		for c.Node.Alive(org.Slug) && time.Now().Before(deadline) {
 			time.Sleep(20 * time.Millisecond)
 		}
 		if _, state := c.Route(t.Context(), org.Slug); state != Starting {
@@ -281,13 +281,13 @@ func TestRunStartsEveryOrganizationAndStopAllStopsThem(t *testing.T) {
 		cancel()
 		<-stopped
 		for _, org := range []Org{a, b} {
-			if !c.Cell.Alive(org.Slug) {
+			if !c.Node.Alive(org.Slug) {
 				t.Errorf("%s stopped when Run ended", org.Slug)
 			}
 		}
 		c.StopAll()
 		for _, org := range []Org{a, b} {
-			if c.Cell.Alive(org.Slug) {
+			if c.Node.Alive(org.Slug) {
 				t.Errorf("%s is still running", org.Slug)
 			}
 			if marker, _ := os.ReadFile(filepath.Join(s.DataDir(org.Slug), "stopped")); string(marker) != "asked\n" {
@@ -306,8 +306,8 @@ func TestAServerThatIgnoresBeingAskedToStopIsMadeToAfterTheGrace(t *testing.T) {
 		c.Provision(t.Context(), org.Slug)
 		began := time.Now()
 		c.StopAll()
-		if c.Cell.Alive(org.Slug) || time.Since(began) < 250*time.Millisecond || time.Since(began) > 5*time.Second {
-			t.Errorf("stopped in %s, alive %v", time.Since(began), c.Cell.Alive(org.Slug))
+		if c.Node.Alive(org.Slug) || time.Since(began) < 250*time.Millisecond || time.Since(began) > 5*time.Second {
+			t.Errorf("stopped in %s, alive %v", time.Since(began), c.Node.Alive(org.Slug))
 		}
 	})
 }
@@ -362,7 +362,7 @@ func TestPortsGivenAtTheSameMomentAreAllDifferent(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				runtime, err := c.givePorts(t.Context(), org.Slug, Runtime{Cell: "local"}, c.Cell)
+				runtime, err := c.givePorts(t.Context(), org.Slug, Runtime{Node: "local"}, c.Node)
 				if err != nil {
 					t.Error(err)
 					return
@@ -397,10 +397,10 @@ func TestARemovedOrganizationIsNotStartedAgain(t *testing.T) {
 		if _, state := c.Route(t.Context(), org.Slug); state != "" {
 			t.Fatalf("a removed organization is %q", state)
 		}
-		if c.Cell.Alive(org.Slug) {
+		if c.Node.Alive(org.Slug) {
 			t.Error("a removed organization's server was started again")
 		}
-		if err := c.reprovision(t.Context(), org.Slug); err != nil || c.Cell.Alive(org.Slug) {
+		if err := c.reprovision(t.Context(), org.Slug); err != nil || c.Node.Alive(org.Slug) {
 			t.Errorf("a retry for a removed organization started it: %v", err)
 		}
 	})
@@ -417,7 +417,7 @@ func TestAProvisionThatRunsAfterRemoveIsRefused(t *testing.T) {
 		if err := c.Provision(t.Context(), org.Slug); !errors.Is(err, ErrRemoved) {
 			t.Errorf("provisioning a removed organization said %v", err)
 		}
-		if c.Cell.Alive(org.Slug) {
+		if c.Node.Alive(org.Slug) {
 			t.Error("a removed organization's server was started")
 		}
 		if _, state := c.Route(t.Context(), org.Slug); state != "" {
@@ -443,7 +443,7 @@ func TestAnOrganizationGoneFromTheStoreIsNotProvisioned(t *testing.T) {
 		if err := c.Provision(t.Context(), org.Slug); !errors.Is(err, ErrRemoved) {
 			t.Errorf("provisioning a deleted organization said %v", err)
 		}
-		if c.Cell.Alive(org.Slug) {
+		if c.Node.Alive(org.Slug) {
 			t.Error("a deleted organization's server was started")
 		}
 		if _, err := os.Stat(s.OrgDir(org.Slug)); !os.IsNotExist(err) {
@@ -462,7 +462,7 @@ func TestANewOrganizationAtARemovedAddressIsProvisioned(t *testing.T) {
 		if err := c.Provision(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)
 		}
-		if !c.Cell.Alive(org.Slug) {
+		if !c.Node.Alive(org.Slug) {
 			t.Error("a new organization at a removed address was not started")
 		}
 	})

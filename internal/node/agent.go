@@ -1,4 +1,4 @@
-package cell
+package node
 
 import (
 	"encoding/json"
@@ -11,22 +11,22 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// Agent is what runs on a host machine. It starts and stops the organizations' servers the gusto cloud
+// Agent is what runs on a node. It starts and stops the organizations' servers the gusto cloud
 // asks for, on this machine, and says what room there is. It does what a signed request says and
 // nothing else, so the secret is what stands between the network and a command run here.
 type Agent struct {
 	Name    string
 	Private string
 	Secret  []byte
-	Servers *cloud.LocalCell
+	Servers *cloud.LocalNode
 	// Measure says what the machine has left. It is Measure unless a test says otherwise.
 	Measure func() Capacity
-	// Grace is how long each server is given to end when the host goes, thirty seconds when not set.
+	// Grace is how long each server is given to end when the node goes, thirty seconds when not set.
 	Grace time.Duration
 	now   func() time.Time
 }
 
-// Status is what a host says of itself.
+// Status is what a node says of itself.
 type Status struct {
 	Name    string   `json:"name"`
 	Private string   `json:"private"`

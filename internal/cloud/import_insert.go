@@ -92,7 +92,7 @@ func (s *Store) insertRuntimes(ctx context.Context, tx dbkit.Tx, old legacy) (in
 	for slug, rt := range old.runtimes {
 		ok, err := inserted(tx.ExecContext(ctx, `INSERT INTO runtime (slug, state, cell, port, proxy_port, error, restarts, updated)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
-			slug, string(rt.State), rt.Cell, rt.Port, rt.ProxyPort, rt.Error, rt.Restarts, s.stamp(rt.Updated)))
+			slug, string(rt.State), rt.Node, rt.Port, rt.ProxyPort, rt.Error, rt.Restarts, s.stamp(rt.Updated)))
 		if err != nil {
 			return added, err
 		}

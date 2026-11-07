@@ -45,7 +45,7 @@ type Config struct {
 	Notify string
 	// ComputersWait is how long an ending demo waits for its computers to be removed. It is ninety seconds when not set.
 	ComputersWait time.Duration
-	// Prewarm, when it is set, starts a cell for a visitor who has begun the demo form, so it is up by the time they send it.
+	// Prewarm, when it is set, starts a node for a visitor who has begun the demo form, so it is up by the time they send it.
 	// It must not block, and must bound what it starts itself.
 	Prewarm func()
 	// Stripe bills organizations for their seats, when it is set up, and Seats keeps the seats billed equal to the members.

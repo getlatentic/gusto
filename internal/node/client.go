@@ -1,4 +1,4 @@
-package cell
+package node
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// Remote is a host on another host, asked in the words of cloud.Cell.
+// Remote is a node on another machine, asked in the words of cloud.Node.
 type Remote struct {
 	name, agent, private string
 	secret               []byte
@@ -27,7 +27,7 @@ func newRemote(r Registration, secret []byte) *Remote {
 	return &Remote{name: r.Name, agent: r.Agent, private: r.Private, secret: secret, client: &http.Client{Timeout: 10 * time.Second}, now: time.Now}
 }
 
-// Detached says the servers on this host outlive the gusto cloud that started them.
+// Detached says the servers on this node outlive the gusto cloud that started them.
 func (c *Remote) Detached() bool { return true }
 
 func (c *Remote) Name() string   { return c.name }
@@ -75,7 +75,7 @@ func (c *Remote) Stop(slug string, grace time.Duration) error {
 	return c.call("POST", "/v1/servers/"+url.PathEscape(slug)+"/stop", stopRequest{GraceSeconds: int(grace / time.Second)}, nil, grace+15*time.Second)
 }
 
-// Alive is false when the host cannot be asked: a server that is not known to be running is not
+// Alive is false when the node cannot be asked: a server that is not known to be running is not
 // treated as running.
 func (c *Remote) Alive(slug string) bool {
 	var answer struct{ Alive bool }
@@ -93,7 +93,7 @@ func (c *Remote) Ports(from int, taken map[int]bool) (server, proxy int, err err
 	return answer.Server, answer.Proxy, err
 }
 
-// Status is what the host says of itself.
+// Status is what the node says of itself.
 func (c *Remote) Status() (Status, error) {
 	var status Status
 	return status, c.call("GET", "/v1/status", nil, &status, 3*time.Second)

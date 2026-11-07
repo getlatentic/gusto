@@ -32,8 +32,8 @@ type Config struct {
 	// The rest is read only when it is set.
 	Computers *computer.Registry
 	Org       string
-	// Cell is where a new computer is made.
-	Cell string
+	// Node is where a new computer is made.
+	Node string
 	// Apps are the web apps agents built, which run in their owners' computers.
 	Apps *apps.Store
 	// Spare keeps one blank computer ready for the next person who has none.

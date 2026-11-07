@@ -1,4 +1,4 @@
-package cell
+package node
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-// The test binary is also an organization's server: a cell that is told to start it with CELL_FAKE_ORG=1
+// The test binary is also an organization's server: a node that is told to start it with CELL_FAKE_ORG=1
 // gets a real process on a real port.
 func TestMain(m *testing.M) {
 	if os.Getenv("CELL_FAKE_ORG") == "1" {
@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 		mux.HandleFunc("/whoami", func(w http.ResponseWriter, r *http.Request) {
-			json.NewEncoder(w).Encode(map[string]string{"org": os.Getenv("GUSTO_ORG"), "cell": os.Getenv("GUSTO_CELL"), "addr": os.Getenv("GUSTO_ADDR")})
+			json.NewEncoder(w).Encode(map[string]string{"org": os.Getenv("GUSTO_ORG"), "cell": os.Getenv("GUSTO_NODE"), "addr": os.Getenv("GUSTO_ADDR")})
 		})
 		listener, err := net.Listen("tcp", os.Getenv("GUSTO_ADDR"))
 		if err != nil {
@@ -44,18 +44,18 @@ func TestMain(m *testing.M) {
 
 var secret = []byte("0123456789abcdef0123456789abcdef")
 
-// agentHost is a cell: an agent on a listener of its own, its servers, and what it says it has to spare.
-type agentHost struct {
+// agentNode is a node: an agent on a listener of its own, its servers, and what it says it has to spare.
+type agentNode struct {
 	agent   *Agent
 	server  *httptest.Server
-	servers *cloud.LocalCell
+	servers *cloud.LocalNode
 	mu      sync.Mutex
 	free    int
 }
 
-func newAgent(t *testing.T, name string, free int) *agentHost {
+func newAgent(t *testing.T, name string, free int) *agentNode {
 	t.Helper()
-	h := &agentHost{servers: &cloud.LocalCell{}, free: free}
+	h := &agentNode{servers: &cloud.LocalNode{}, free: free}
 	agent := &Agent{Name: name, Private: "127.0.0.1", Secret: secret, Servers: h.servers, Measure: func() Capacity {
 		h.mu.Lock()
 		defer h.mu.Unlock()
@@ -70,21 +70,21 @@ func newAgent(t *testing.T, name string, free int) *agentHost {
 	return h
 }
 
-// stopServers ends every organization's server on the host. A test that leaves servers running registers it after it
+// stopServers ends every organization's server on the node. A test that leaves servers running registers it after it
 // makes the folders they write to, because cleanups run last first and a folder cannot be removed under a server.
-func (h *agentHost) stopServers() {
+func (h *agentNode) stopServers() {
 	for _, slug := range h.servers.Running() {
 		h.servers.Stop(slug, time.Second)
 	}
 }
 
-func (h *agentHost) setFree(n int) { h.mu.Lock(); h.free = n; h.mu.Unlock() }
+func (h *agentNode) setFree(n int) { h.mu.Lock(); h.free = n; h.mu.Unlock() }
 
-func (h *agentHost) registration(name string, at time.Time) Registration {
+func (h *agentNode) registration(name string, at time.Time) Registration {
 	return Registration{Name: name, Agent: strings.TrimPrefix(h.server.URL, "http://"), Private: "127.0.0.1", Beat: at.Unix()}
 }
 
-func remoteTo(h *agentHost, name string) *Remote {
+func remoteTo(h *agentNode, name string) *Remote {
 	return newRemote(h.registration(name, time.Now()), secret)
 }
 
@@ -92,7 +92,7 @@ func fakeOrg(t *testing.T, slug string, port int) cloud.ServerSpec {
 	t.Helper()
 	exe, _ := os.Executable()
 	return cloud.ServerSpec{Slug: slug, Command: []string{exe, "serve"}, Log: filepath.Join(t.TempDir(), "server.log"),
-		Env: []string{"CELL_FAKE_ORG=1", "GUSTO_ORG=" + slug, fmt.Sprintf("GUSTO_ADDR=127.0.0.1:%d", port), "GUSTO_CELL=fake"}}
+		Env: []string{"CELL_FAKE_ORG=1", "GUSTO_ORG=" + slug, fmt.Sprintf("GUSTO_ADDR=127.0.0.1:%d", port), "GUSTO_NODE=fake"}}
 }
 
 func answers(port int) bool {
@@ -154,7 +154,7 @@ func TestARequestIsAcceptedOnlyIfSignedWithTheSecretForWhatItSaysAndRecently(t *
 	if _, err := verify(build("POST", "/v1/servers", nil), nil, now); err == nil {
 		t.Error("an agent with no secret accepted a request")
 	}
-	// Both sides having no secret is a front door and a cell that were never given one, and is not agreement.
+	// Both sides having no secret is a front door and a node that were never given one, and is not agreement.
 	unsecured := httptest.NewRequest("POST", "/v1/servers", nil)
 	sign(unsecured, nil, now, nil)
 	if _, err := verify(unsecured, nil, now); err == nil {
@@ -162,7 +162,7 @@ func TestARequestIsAcceptedOnlyIfSignedWithTheSecretForWhatItSaysAndRecently(t *
 	}
 }
 
-func TestACellRegistersReadsBackAndIsFreshOnlyWhileItIsHeardFrom(t *testing.T) {
+func TestANodeRegistersReadsBackAndIsFreshOnlyWhileItIsHeardFrom(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "cells")
 	now := time.Unix(2_000_000, 0)
 	if err := Register(dir, Registration{Name: "cell-a", Agent: "10.0.0.5:8060", Private: "10.0.0.5", Beat: now.Unix()}); err != nil {
@@ -206,7 +206,7 @@ func TestACellRegistersReadsBackAndIsFreshOnlyWhileItIsHeardFrom(t *testing.T) {
 	}
 }
 
-func TestTheFrontDoorStartsAsksAndStopsAServerOnACellThroughItsAgent(t *testing.T) {
+func TestTheFrontDoorStartsAsksAndStopsAServerOnANodeThroughItsAgent(t *testing.T) {
 	host := newAgent(t, "cell-a", 9000)
 	remote := remoteTo(host, "cell-a")
 	server, proxy, err := remote.Ports(23000+int(time.Now().UnixNano()%9000), map[int]bool{})
@@ -275,7 +275,7 @@ func TestAnAgentDoesWhatIsSignedAndRefusesEverythingElse(t *testing.T) {
 	}
 }
 
-func TestAnUnreachableCellIsNotAliveAndSaysWhy(t *testing.T) {
+func TestAnUnreachableNodeIsNotAliveAndSaysWhy(t *testing.T) {
 	host := newAgent(t, "cell-a", 9000)
 	remote := remoteTo(host, "cell-a")
 	host.server.Close()

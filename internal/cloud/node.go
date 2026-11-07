@@ -27,23 +27,23 @@ type ServerSpec struct {
 	Log     string
 }
 
-// ErrNoCapacity says no cell has room for another organization yet. A cell may be starting for it, so an organization
+// ErrNoCapacity says no node has room for another organization yet. A node may be starting for it, so an organization
 // that meets it waits and is tried again soon, and is not failed.
 var ErrNoCapacity = errors.New("no host has room yet")
 
-// Cell is where organizations' servers run. The first is this machine. Another is
-// a host with an agent on it, which the controller asks in the same words.
+// Node is where organizations' servers run. The first is this machine. Another is
+// a node with an agent on it, which the controller asks in the same words.
 //
-// An organization's data is on storage every cell and the front door see at the same paths, so a
-// server started on any cell reads and writes what the front door does.
-type Cell interface {
+// An organization's data is on storage every node and the front door see at the same paths, so a
+// server started on any node reads and writes what the front door does.
+type Node interface {
 	Name() string
-	// Host is where the front door reaches the servers on this cell, and Listen the address they
-	// bind to. On this machine they are both loopback; on another host Listen is the address of
-	// its private network, which only the front door's hosts may reach.
+	// Node is where the front door reaches the servers on this node, and Listen the address they
+	// bind to. On this machine they are both loopback; on another node Listen is the address of
+	// its private network, which only the front door's nodes may reach.
 	Host() string
 	Listen() string
-	// Ports finds two ports the cell has free, from the first up, that are not in taken.
+	// Ports finds two ports the node has free, from the first up, that are not in taken.
 	Ports(from int, taken map[int]bool) (server, proxy int, err error)
 	// Start runs the server, and does nothing when it is already running.
 	Start(spec ServerSpec) error
@@ -53,10 +53,10 @@ type Cell interface {
 	Alive(slug string) bool
 }
 
-// LocalCell runs organizations' servers as children of this process. They end
+// LocalNode runs organizations' servers as children of this process. They end
 // when it does, so a front door that is killed leaves none of them holding a port
 // that its successor wants.
-type LocalCell struct {
+type LocalNode struct {
 	mu       sync.Mutex
 	children map[string]*child
 }
@@ -67,11 +67,11 @@ type child struct {
 	done    chan struct{}
 }
 
-func (l *LocalCell) Name() string   { return "local" }
-func (l *LocalCell) Host() string   { return "127.0.0.1" }
-func (l *LocalCell) Listen() string { return "127.0.0.1" }
+func (l *LocalNode) Name() string   { return "local" }
+func (l *LocalNode) Host() string   { return "127.0.0.1" }
+func (l *LocalNode) Listen() string { return "127.0.0.1" }
 
-func (l *LocalCell) Ports(from int, taken map[int]bool) (server, proxy int, err error) {
+func (l *LocalNode) Ports(from int, taken map[int]bool) (server, proxy int, err error) {
 	var found []int
 	for port := from; port < from+20000 && len(found) < 2; port++ {
 		if !taken[port] && free(port) {
@@ -84,7 +84,7 @@ func (l *LocalCell) Ports(from int, taken map[int]bool) (server, proxy int, err 
 	return found[0], found[1], nil
 }
 
-func (l *LocalCell) Start(spec ServerSpec) error {
+func (l *LocalNode) Start(spec ServerSpec) error {
 	if l.Alive(spec.Slug) {
 		return nil
 	}
@@ -133,7 +133,7 @@ func finished(c *child) bool {
 }
 
 // Running is the organizations whose servers are running here.
-func (l *LocalCell) Running() []string {
+func (l *LocalNode) Running() []string {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	var slugs []string
@@ -146,14 +146,14 @@ func (l *LocalCell) Running() []string {
 	return slugs
 }
 
-func (l *LocalCell) Alive(slug string) bool {
+func (l *LocalNode) Alive(slug string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	held, running := l.children[slug]
 	return running && !finished(held)
 }
 
-func (l *LocalCell) Stop(slug string, grace time.Duration) error {
+func (l *LocalNode) Stop(slug string, grace time.Duration) error {
 	l.mu.Lock()
 	held, running := l.children[slug]
 	l.mu.Unlock()
@@ -194,14 +194,14 @@ func valueOf(env []string, name string) string {
 	return value
 }
 
-// ErrCellGone says a cell is not coming back: it is not registered, or has been silent for so long that its host is gone.
-// An organization placed on one is placed again, and its computers, which were on that cell's gateway, are made anew.
-var ErrCellGone = errors.New("the host is gone")
+// ErrNodeGone says a node is not coming back: it is not registered, or has been silent for so long that its machine is gone.
+// An organization placed on one is placed again, and its computers, which were on that node's gateway, are made anew.
+var ErrNodeGone = errors.New("the host is gone")
 
-// CellSet is the cells organizations' servers may be placed on.
-type CellSet interface {
-	// Get is the cell with that name, or says why it cannot be reached.
-	Get(name string) (Cell, error)
-	// Place chooses the cell for an organization that has none: the one with the most room.
-	Place() (Cell, error)
+// NodeSet is the nodes organizations' servers may be placed on.
+type NodeSet interface {
+	// Get is the node with that name, or says why it cannot be reached.
+	Get(name string) (Node, error)
+	// Place chooses the node for an organization that has none: the one with the most room.
+	Place() (Node, error)
 }

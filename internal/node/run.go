@@ -1,4 +1,4 @@
-package cell
+package node
 
 import (
 	"context"
@@ -9,9 +9,9 @@ import (
 	"time"
 )
 
-// Run serves the agent on the address until the context ends, and says every few seconds that the host is
+// Run serves the agent on the address until the context ends, and says every few seconds that the node is
 // there, so the gusto cloud places on it and reaches it. When it ends it stops the servers it started, all at once,
-// which a host that is going has no use for, and takes its registration away. Stopping them together keeps the whole well
+// which a node that is going has no use for, and takes its registration away. Stopping them together keeps the whole well
 // inside the time the service is given to stop, however many there are.
 func (a *Agent) Run(ctx context.Context, listen, dir string, every time.Duration) error {
 	listener, err := net.Listen("tcp", listen)

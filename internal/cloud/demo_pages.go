@@ -34,8 +34,8 @@ func (s *Server) demoForm(w http.ResponseWriter, r *http.Request) {
 	s.drawDemoForm(w, http.StatusOK, s.seen(page, "/demo", "Start a "+minuteLong(page.DemoLeft)+" demo of "+siteName+": your own organization, with agents working on computers of their own, and nothing to sign up for."))
 }
 
-// warmDemo starts a cell for a visitor who has begun the form, which the form's script asks for on their first keystroke. A
-// page load that types nothing asks for nothing. It answers the same whether or not a cell was started, so it says nothing
+// warmDemo starts a node for a visitor who has begun the form, which the form's script asks for on their first keystroke. A
+// page load that types nothing asks for nothing. It answers the same whether or not a node was started, so it says nothing
 // about the demos to whoever asks.
 func (s *Server) warmDemo(w http.ResponseWriter, r *http.Request) {
 	if !s.demoOffered() {

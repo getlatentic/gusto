@@ -11,9 +11,9 @@ import (
 func TestAnOrganizationsServerKnowsItsOwnAddressAndWhereItsSignInsAre(t *testing.T) {
 	store := open(t, Settings{})
 	public, _ := url.Parse("https://gusto.example:8443")
-	c := &Controller{Store: store, Cell: &LocalCell{}, FrontDoor: "https://gusto.example:8443",
+	c := &Controller{Store: store, Node: &LocalNode{}, FrontDoor: "https://gusto.example:8443",
 		OrgURL: func(slug string) string { return OrgAddress(public, "gusto.example", slug) }}
-	env, err := c.environment(t.Context(), "acme", Runtime{Port: 1, ProxyPort: 2}, c.Cell)
+	env, err := c.environment(t.Context(), "acme", Runtime{Port: 1, ProxyPort: 2}, c.Node)
 	if err != nil {
 		t.Fatal(err)
 	}

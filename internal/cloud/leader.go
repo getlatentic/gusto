@@ -86,7 +86,7 @@ func (s *Store) SetRuntimeAt(ctx context.Context, epoch int64, slug string, rt R
 			return ErrNotLeading
 		}
 		_, err := tx.ExecContext(ctx, putRuntime.SQL(1),
-			slug, string(rt.State), rt.Cell, rt.Port, rt.ProxyPort, rt.Error, rt.Restarts, s.stamp(rt.Updated), rt.Command)
+			slug, string(rt.State), rt.Node, rt.Port, rt.ProxyPort, rt.Error, rt.Restarts, s.stamp(rt.Updated), rt.Command)
 		return err
 	})
 }

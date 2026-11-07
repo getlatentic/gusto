@@ -60,9 +60,9 @@ func (c *Controller) routeFollowed(ctx context.Context, slug string) (string, St
 	if runtime.State != Ready {
 		return "", runtime.State
 	}
-	cell, err := c.cellNamed(runtime.Cell)
+	node, err := c.nodeNamed(runtime.Node)
 	if err != nil {
 		return "", Starting
 	}
-	return net.JoinHostPort(cell.Host(), strconv.Itoa(runtime.Port)), Ready
+	return net.JoinHostPort(node.Host(), strconv.Itoa(runtime.Port)), Ready
 }

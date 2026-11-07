@@ -147,3 +147,31 @@ func TestUnderReadsWhatWasSetFirst(t *testing.T) {
 		}
 	}
 }
+
+// A renamed setting is read by its old name when the new one is not set, the new name wins when both are, and a value under
+// the old name that does not parse is refused by the name it was set under.
+func TestARenamedSettingStillReadsItsOldName(t *testing.T) {
+	read := func(values map[string]string) (int, error) {
+		var port int
+		set := New()
+		set.Int(&port, "GUSTO_NODE_PORT", 8060, 1, "the port")
+		set.Renamed("GUSTO_NODE_PORT", "GUSTO_CELL_PORT")
+		return port, set.Load(func(name string) string { return values[name] })
+	}
+	if port, err := read(map[string]string{"GUSTO_CELL_PORT": "9000"}); err != nil || port != 9000 {
+		t.Errorf("the old name alone gave %d, %v", port, err)
+	}
+	if port, err := read(map[string]string{"GUSTO_CELL_PORT": "9000", "GUSTO_NODE_PORT": "9100"}); err != nil || port != 9100 {
+		t.Errorf("both names gave %d, %v", port, err)
+	}
+	if _, err := read(map[string]string{"GUSTO_CELL_PORT": "many"}); err == nil || !strings.Contains(err.Error(), "GUSTO_CELL_PORT") {
+		t.Errorf("a bad value under the old name said %v", err)
+	}
+	set := New()
+	var port int
+	set.Int(&port, "GUSTO_NODE_PORT", 8060, 1, "the port")
+	set.Renamed("GUSTO_NODE_PORT", "GUSTO_CELL_PORT")
+	if text := set.Params()[0].Text; !strings.Contains(text, "GUSTO_CELL_PORT is its old name") {
+		t.Errorf("help says %q", text)
+	}
+}
