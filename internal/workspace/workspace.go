@@ -19,6 +19,14 @@ func Of(id string) string {
 	return id
 }
 
+// Stored is how a record names its workspace: not at all for the first, as the records made before workspaces do.
+func Stored(id string) string {
+	if id = Of(id); id != First {
+		return id
+	}
+	return ""
+}
+
 // Same says whether two records are in one workspace.
 func Same(a, b string) bool { return Of(a) == Of(b) }
 

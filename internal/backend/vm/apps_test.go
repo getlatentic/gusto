@@ -126,7 +126,7 @@ func TestAnAppOfAPersonWithNoComputerIsRefused(t *testing.T) {
 
 func TestAComputerWithAnAppPeopleUseIsNotIdle(t *testing.T) {
 	runner, _, _ := anAppsHost(t, 200)
-	live, _ := runner.store.New(appsInstance, "Ada@Acme.com", "node a.js", 8080, 3)
+	live, _ := runner.store.New(apps.Sharer{Instance: appsInstance, Owner: "Ada@Acme.com"}, "node a.js", 8080, 3)
 	if !runner.serving("ada@acme.com") || runner.serving("bob@acme.com") {
 		t.Fatal("an app that is starting is one somebody waits for")
 	}

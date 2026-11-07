@@ -10,13 +10,29 @@ import (
 // workspaceRow is a workspace as the organization's page shows it: who is in it, and who of the organization could be added.
 type workspaceRow struct {
 	Workspace
+	People []spacePerson
 	Others []string
 }
 
+// spacePerson is a person in a workspace, who may be taken out of it when they are in another too.
+type spacePerson struct {
+	Email     string
+	Removable bool
+}
+
 func workspaceRows(spaces []Workspace, members []Person) []workspaceRow {
+	in := map[string]int{}
+	for _, space := range spaces {
+		for _, email := range space.Members {
+			in[email]++
+		}
+	}
 	rows := make([]workspaceRow, 0, len(spaces))
 	for _, space := range spaces {
 		row := workspaceRow{Workspace: space}
+		for _, email := range space.Members {
+			row.People = append(row.People, spacePerson{Email: email, Removable: in[email] > 1})
+		}
 		for _, member := range members {
 			if !slices.Contains(space.Members, member.Email) {
 				row.Others = append(row.Others, member.Email)
@@ -29,6 +45,18 @@ func workspaceRows(spaces []Workspace, members []Person) []workspaceRow {
 
 // The forms on the organization's page that an admin changes its workspaces with. Each change goes in the organization's
 // change record, and its server reads who is in which workspace from the list of people it is sent.
+
+// peopleRoutes are the forms an admin changes the organization's people and workspaces with.
+func (s *Server) peopleRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("POST /org/invite", s.guard(s.invite))
+	mux.HandleFunc("POST /org/invites/cancel", s.guard(s.cancelInvitation))
+	mux.HandleFunc("POST /org/people/remove", s.guard(s.removePerson))
+	mux.HandleFunc("POST /org/people/role", s.guard(s.changeRole))
+	mux.HandleFunc("POST /org/workspaces", s.guard(s.makeWorkspace))
+	mux.HandleFunc("POST /org/workspaces/rename", s.guard(s.renameWorkspace))
+	mux.HandleFunc("POST /org/workspaces/add", s.guard(s.addToWorkspace))
+	mux.HandleFunc("POST /org/workspaces/remove", s.guard(s.removeFromWorkspace))
+}
 
 func (s *Server) makeWorkspace(w http.ResponseWriter, r *http.Request, person Person) {
 	made, err := s.Store.MakeWorkspace(r.Context(), person.Org, person, r.PostFormValue("name"))

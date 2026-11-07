@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -88,15 +89,26 @@ func Valid(id string) bool {
 	return err == nil
 }
 
+// Sharer is whose agent an app is shared from: its instance, the person whose agent it is, and the workspace it is in.
+type Sharer struct{ Instance, Owner, Workspace string }
+
+func (who Sharer) app() App {
+	return App{Instance: who.Instance, Owner: strings.ToLower(who.Owner), Workspace: workspace.Stored(who.Workspace)}
+}
+
 // New makes an app that is starting, when its agent has fewer than most starting or live.
-func (s *Store) New(instance, owner, command string, port, most int) (App, error) {
-	return s.add(App{Instance: instance, Owner: strings.ToLower(owner), Command: command, Port: port, State: Starting}, most)
+func (s *Store) New(who Sharer, command string, port, most int) (App, error) {
+	app := who.app()
+	app.Command, app.Port, app.State = command, port, Starting
+	return s.add(app, most)
 }
 
 // NewPage makes a page: a folder of the agent's served as it is, live at once, when its agent has fewer than most starting
 // or live.
-func (s *Store) NewPage(instance, owner, folder string, most int) (App, error) {
-	return s.add(App{Instance: instance, Owner: strings.ToLower(owner), Folder: folder, State: Live}, most)
+func (s *Store) NewPage(who Sharer, folder string, most int) (App, error) {
+	app := who.app()
+	app.Folder, app.State = folder, Live
+	return s.add(app, most)
 }
 
 // add counts the agent's apps and writes the new one under one lock, so two added at once cannot both pass the count.

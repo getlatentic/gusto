@@ -1,6 +1,7 @@
 package web
 
 import (
+	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"strings"
 
@@ -54,20 +55,20 @@ func (s *Server) mayUse(r *http.Request, owner string) bool {
 	return owner != "" && (owner != sharedSignIn || s.soleOwner()) && strings.EqualFold(owner, s.askerName(r))
 }
 
-// owned is the instance the path names when the person asking may use it: its owner, or anybody in it when it is a room.
+// owned is the instance the path names when the person asking may use it: its owner, in its workspace.
 func (s *Server) owned(r *http.Request) (instance.Instance, bool) {
 	held, found := s.instances.Get(r.PathValue("id"))
-	if !found || !s.mayUse(r, held.Who) {
+	if !found || !s.inWorkspace(r, held.Workspace) || !s.mayUse(r, held.Who) {
 		return instance.Instance{}, false
 	}
 	return held, true
 }
 
-// shared is the instance the path names when the person asking owns it or is in it as a room: what they may read, say
-// something in, and keep files in. Changing the instance itself stays with its owner.
+// shared is the instance the path names when the person asking owns it or is in it as a room, in its workspace: what they
+// may read, say something in, and keep files in. Changing the instance itself stays with its owner.
 func (s *Server) shared(r *http.Request) (instance.Instance, bool) {
 	held, found := s.instances.Get(r.PathValue("id"))
-	if !found || !(s.mayUse(r, held.Who) || s.inRoom(r, held)) {
+	if !found || !s.inWorkspace(r, held.Workspace) || !(s.mayUse(r, held.Who) || s.inRoom(r, held)) {
 		return instance.Instance{}, false
 	}
 	return held, true
@@ -86,8 +87,12 @@ func (s *Server) inRoom(r *http.Request, held instance.Instance) bool {
 	return held.Room && held.RoleOf(s.askerName(r)) != ""
 }
 
-// mayUseRecord says whether the person asking may see a task: their own, or a turn in a room they are in.
+// mayUseRecord says whether the person asking may see a task: their own, or a turn in a room they are in, in a workspace
+// they are in.
 func (s *Server) mayUseRecord(r *http.Request, record tasks.Record) bool {
+	if !s.inWorkspace(r, record.Workspace) {
+		return false
+	}
 	if s.mayUse(r, record.Asked) {
 		return true
 	}
@@ -107,9 +112,10 @@ func (s *Server) mine(w http.ResponseWriter, r *http.Request) (instance.Instance
 
 func (s *Server) ownInstances(r *http.Request, all []instance.Instance) []instance.Instance {
 	var kept []instance.Instance
+	here := s.workspaceOf(r)
 	for _, each := range all {
 		// A room is listed among rooms, not among a person's own projects.
-		if !each.Room && s.mayUse(r, each.Who) {
+		if !each.Room && workspace.Same(each.Workspace, here) && s.mayUse(r, each.Who) {
 			kept = append(kept, each)
 		}
 	}
@@ -118,8 +124,9 @@ func (s *Server) ownInstances(r *http.Request, all []instance.Instance) []instan
 
 func (s *Server) ownTasks(r *http.Request, all []tasks.Record) []tasks.Record {
 	var kept []tasks.Record
+	here := s.workspaceOf(r)
 	for _, each := range all {
-		if s.mayUse(r, each.Asked) {
+		if workspace.Same(each.Workspace, here) && s.mayUse(r, each.Asked) {
 			kept = append(kept, each)
 		}
 	}
@@ -128,8 +135,9 @@ func (s *Server) ownTasks(r *http.Request, all []tasks.Record) []tasks.Record {
 
 func (s *Server) ownLineups(r *http.Request, all []compare.Lineup) []compare.Lineup {
 	var kept []compare.Lineup
+	here := s.workspaceOf(r)
 	for _, each := range all {
-		if s.mayUse(r, each.Who) {
+		if workspace.Same(each.Workspace, here) && s.mayUse(r, each.Who) {
 			kept = append(kept, each)
 		}
 	}

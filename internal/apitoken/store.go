@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -80,7 +81,9 @@ type Token struct {
 	// Hash is the SHA-256 of the secret's random part.
 	Hash string `json:"hash"`
 	// Person is who a token with the Work scope acts as. Empty for the organization's tokens.
-	Person    string `json:"person,omitempty"`
+	Person string `json:"person,omitempty"`
+	// Workspace is the workspace an organization's token works in, and empty for the first. A person's token works in theirs.
+	Workspace string `json:"workspace,omitempty"`
 	Made      int64  `json:"made"`
 	By        string `json:"by"`
 	Revoked   int64  `json:"revoked,omitempty"`
@@ -191,6 +194,12 @@ func random(n int) ([]byte, error) {
 // nothing can show again. The name is what records call the token by, so two
 // live tokens cannot share one.
 func (s *Store) Create(name string, scopes []string, by string) (Token, string, error) {
+	return s.CreateIn(name, scopes, by, "")
+}
+
+// CreateIn is Create for a token that works in one workspace of the organization: what it sends is kept there, and it
+// reaches nothing kept in another.
+func (s *Store) CreateIn(name string, scopes []string, by, space string) (Token, string, error) {
 	name = strings.TrimSpace(name)
 	if !plain.MatchString(name) {
 		return Token{}, "", ErrName
@@ -213,7 +222,7 @@ func (s *Store) Create(name string, scopes []string, by string) (Token, string, 
 			return Token{}, "", fmt.Errorf("a token called %s is already in use: revoke it first, or choose another name", name)
 		}
 	}
-	return s.addLocked(Token{Name: name, Scopes: sorted(scopes), By: by})
+	return s.addLocked(Token{Name: name, Scopes: sorted(scopes), By: by, Workspace: workspace.Stored(space)})
 }
 
 // addLocked gives a token an id nothing else has and a secret, and keeps it.

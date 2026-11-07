@@ -51,7 +51,7 @@ func (s *Server) roomAppsLine(record tasks.Record, spec task.Spec) string {
 
 // withheldApps is the name of each app the asker connected that an admin turned on and that this turn was not given.
 func (s *Server) withheldApps(record tasks.Record, given []string) []string {
-	views, err := s.connectorViews(record.Asked)
+	views, err := s.connectorViews(record.Asked, record.Workspace)
 	if err != nil {
 		return nil
 	}

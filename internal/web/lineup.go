@@ -44,7 +44,7 @@ func (s *Server) lineupPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lineup, found := s.lineups.Get(r.PathValue("id"))
-	if !found || !s.mayUse(r, lineup.Who) {
+	if !found || !s.inWorkspace(r, lineup.Workspace) || !s.mayUse(r, lineup.Who) {
 		http.NotFound(w, r)
 		return
 	}

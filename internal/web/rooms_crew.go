@@ -1,6 +1,7 @@
 package web
 
 import (
+	"github.com/getlatentic/gusto/internal/workspace"
 	"html/template"
 	"slices"
 	"strings"
@@ -56,14 +57,14 @@ func (s *Server) ownerLabel(owner, you string) string {
 	return s.personName(owner) + "'s agent"
 }
 
-// crewFor is every workspace agent the person asking may work with.
-func (s *Server) crewFor(who string) []crew.Agent {
+// crewFor is every agent of a workspace the person asking may work with.
+func (s *Server) crewFor(who, space string) []crew.Agent {
 	if s.crew == nil {
 		return nil
 	}
 	var mine []crew.Agent
 	for _, member := range s.crew.List() {
-		if member.MayUse(who) {
+		if member.MayUse(who) && workspace.Same(member.Workspace, space) {
 			mine = append(mine, member)
 		}
 	}

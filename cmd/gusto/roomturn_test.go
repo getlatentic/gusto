@@ -20,7 +20,7 @@ func aRoomWithTwoAgents(t *testing.T, files map[string]string) (*roomRuns, insta
 	if err != nil {
 		t.Fatal(err)
 	}
-	held, err := instances.StartRoom("Launch", "ada@acme.com")
+	held, err := instances.StartRoom("Launch", "ada@acme.com", "")
 	if err != nil {
 		t.Fatal(err)
 	}

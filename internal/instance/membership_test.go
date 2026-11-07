@@ -10,7 +10,7 @@ func aRoom(t *testing.T) (*Store, Instance) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	room, err := store.StartRoom("Launch", "ada@example.com")
+	room, err := store.StartRoom("Launch", "ada@example.com", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,11 +71,11 @@ func TestAPersonTakenOutOfARoomTakesTheirAgentsInTheSameChange(t *testing.T) {
 
 func TestAPersonsOwnRoomWithAnAgentIsMadeOnceAndWhole(t *testing.T) {
 	store, _ := aRoom(t)
-	first, err := store.StartDirect("bob@example.com", Agent{Name: "Atlas", Harness: "fixture", Member: "m1"})
+	first, err := store.StartDirect("bob@example.com", "", Agent{Name: "Atlas", Harness: "fixture", Member: "m1"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	again, _ := store.StartDirect("Bob@example.com", Agent{Name: "Atlas", Harness: "fixture", Member: "m1"})
+	again, _ := store.StartDirect("Bob@example.com", "", Agent{Name: "Atlas", Harness: "fixture", Member: "m1"})
 	if again.ID != first.ID || !first.Direct || len(first.Agents) != 1 || store.Latest(first.ID).Title != "Atlas" {
 		t.Errorf("the room is %+v, and asking again gave %s", first, again.ID)
 	}

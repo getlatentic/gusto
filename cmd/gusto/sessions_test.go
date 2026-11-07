@@ -96,7 +96,7 @@ func TestATurnWorksOnTheInstancesFilesInThePersonsComputerAndTheNextStartsFromWh
 func TestTwoAgentsOfARoomAskedByOnePersonWorkInFoldersOfTheirOwnInTheirComputer(t *testing.T) {
 	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
 	conversational(t)
-	held, err := instances.StartRoom("Launch", "ada@acme.com")
+	held, err := instances.StartRoom("Launch", "ada@acme.com", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +123,7 @@ func TestTwoAgentsOfARoomAskedByOnePersonWorkInFoldersOfTheirOwnInTheirComputer(
 func TestARoomsTurnInAPersonsComputerIsHeldToItsOwnFolders(t *testing.T) {
 	work, index, _, _, root, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
 	conversational(t)
-	held, _ := instances.StartRoom("Launch", "ada@acme.com")
+	held, _ := instances.StartRoom("Launch", "ada@acme.com", "")
 	instances.AddAgent(held.ID, instance.Agent{Name: "Scout", Harness: "fixture"})
 	held, _ = instances.Get(held.ID)
 	roomTurnBy(t, work, index, held, instances.Latest(held.ID).ID, "a1", "ada@acme.com")
@@ -218,7 +218,7 @@ func TestAnAgentInAComputerReachesItsModelOnlyThroughItsForwarder(t *testing.T) 
 func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
 	work, index, registry, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
 	conversational(t)
-	held, _ := instances.StartRoom("Launch", "ada@acme.com")
+	held, _ := instances.StartRoom("Launch", "ada@acme.com", "")
 	instances.AddAgent(held.ID, instance.Agent{Name: "Scout", Harness: "fixture"})
 	instances.SetMember(held.ID, "bob@acme.com", instance.RoleMember)
 	held, _ = instances.Get(held.ID)

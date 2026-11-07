@@ -2,6 +2,7 @@ package web
 
 import (
 	"cmp"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"slices"
 	"time"
@@ -97,7 +98,7 @@ func (s *Server) startTemplate(w http.ResponseWriter, r *http.Request) {
 	wanted := instance.Instance{
 		Title:   held.Title,
 		Harness: chosen, Model: first(s.offeredTo(r)), Setup: held.Name,
-		Sensitivity: string(held.Sensitivity), Who: s.keeper.who(r),
+		Sensitivity: string(held.Sensitivity), Who: s.keeper.who(r), Workspace: workspace.Stored(s.workspaceOf(r)),
 	}
 	started, err := s.instances.Start(tasks.Name(held.Name, time.Now()), wanted)
 	if err != nil {

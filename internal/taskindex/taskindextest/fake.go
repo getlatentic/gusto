@@ -86,7 +86,7 @@ func matches(r taskindex.Row, f taskindex.Filter) bool {
 	if f.Asked != "" && strings.ToLower(f.Asked) != strings.ToLower(r.Asked) {
 		return false
 	}
-	for _, c := range [][2]string{{f.Team, r.Team}, {f.Repo, r.Repo}, {f.AgentType, r.AgentType}, {f.Instance, r.Instance}, {f.Thread, r.Thread}} {
+	for _, c := range [][2]string{{f.Team, r.Team}, {f.Workspace, r.Workspace}, {f.Repo, r.Repo}, {f.AgentType, r.AgentType}, {f.Instance, r.Instance}, {f.Thread, r.Thread}} {
 		if c[0] != "" && c[0] != c[1] {
 			return false
 		}

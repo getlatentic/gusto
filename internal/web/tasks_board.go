@@ -57,7 +57,7 @@ func (s *Server) boardFromIndex(r *http.Request) (board, error) {
 
 func (s *Server) fillBoard(r *http.Request, shown *board, query taskQuery) error {
 	ctx, store := r.Context(), s.listing.store
-	scope := taskindex.Filter{Asked: query.Filter.Asked}
+	scope := taskindex.Filter{Asked: query.Filter.Asked, Workspace: query.Filter.Workspace}
 	counts, err := s.figuresOf(r, scope)
 	if err != nil {
 		return err

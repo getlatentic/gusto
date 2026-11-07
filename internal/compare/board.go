@@ -34,9 +34,10 @@ type Lineup struct {
 	Check    []string `json:"check"`
 	At       int64    `json:"at"`
 	// Who is the person who started it, and the only one besides an admin who
-	// may read it.
-	Who  string  `json:"who,omitempty"`
-	Runs []Entry `json:"runs"`
+	// may read it; Workspace is the workspace it and its runs are in, empty for the first.
+	Who       string  `json:"who,omitempty"`
+	Workspace string  `json:"workspace,omitempty"`
+	Runs      []Entry `json:"runs"`
 }
 
 // Entry is one engine's run in a lineup.

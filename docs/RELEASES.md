@@ -6,7 +6,9 @@ A tag needs a section here named for it, or the release workflow stops and copie
 
 ## Next release
 
-Nothing yet.
+- An organization in gusto cloud has workspaces, such as Engineering and Business. Each holds its own tasks and records, conversations, agents, connections to apps and a computer for each of its people, which only its members reach ([CLOUD.md](CLOUD.md#workspaces)). Every organization has the workspace `main`, which holds everything and everybody it had before, so nobody sees a change until an admin makes a second one at `/org`.
+- The accounts database is at schema 8 (`workspaces`, `workspace_members`, and the workspace an invitation's link joins), and the task index at schema 2 (a `workspace` column). Both migrate on start.
+- `job.json` may name its `workspace`. Its schema now also describes `person`, `agent` and `dir`, which tasks already carried.
 
 ## v0.1.0-rc.2
 

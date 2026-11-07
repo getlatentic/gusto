@@ -83,7 +83,7 @@ func (s *Server) publishApp(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, back, "the port is a number from 1024 to 65535, the one the app listens on")
 		return
 	}
-	app, err := s.apps.New(held.ID, held.Who, command, port, appsPerAgent)
+	app, err := s.apps.New(apps.Sharer{Instance: held.ID, Owner: held.Who, Workspace: held.Workspace}, command, port, appsPerAgent)
 	if errors.Is(err, apps.ErrTooMany) {
 		s.turnAway(w, r, back, tooManyApps)
 		return
@@ -113,7 +113,8 @@ func (s *Server) publishPage(w http.ResponseWriter, r *http.Request, instance, o
 			return
 		}
 	}
-	_, err := s.apps.NewPage(instance, owner, folder, appsPerAgent)
+	held, _ := s.instances.Get(instance)
+	_, err := s.apps.NewPage(apps.Sharer{Instance: instance, Owner: owner, Workspace: held.Workspace}, folder, appsPerAgent)
 	if errors.Is(err, apps.ErrTooMany) {
 		s.turnAway(w, r, back, tooManyApps)
 		return
@@ -355,6 +356,12 @@ func (s *Server) appLink(app apps.App) string {
 	return parsed.Scheme + "://" + s.front.Org + "--" + app.ID + "." + parsed.Host + "/"
 }
 
+// appFor is the app an id names, when it is in a workspace the request is in.
+func (s *Server) appFor(r *http.Request, id string) (apps.App, bool) {
+	app, err := s.apps.Get(id)
+	return app, err == nil && s.inWorkspace(r, app.Workspace)
+}
+
 // app is the path an app is opened at on a server with no gusto cloud. Behind one, an app has a host
 // name of its own, and this sends a link somebody kept there.
 func (s *Server) app(w http.ResponseWriter, r *http.Request) {
@@ -389,8 +396,8 @@ func (s *Server) serveApp(w http.ResponseWriter, r *http.Request, id, prefix str
 		http.NotFound(w, r)
 		return
 	}
-	app, err := s.apps.Get(id)
-	if err != nil {
+	app, found := s.appFor(r, id)
+	if !found {
 		http.NotFound(w, r)
 		return
 	}

@@ -25,7 +25,7 @@ func oldTurn(t *testing.T, site *site, id, room string, days int) {
 
 func TestATurnOfARoomThatWasRemovedIsSweptAndOneOfAKeptRoomIsNot(t *testing.T) {
 	here, _, _ := keeping(t)
-	room, err := here.server.instances.StartRoom("Launch", alice)
+	room, err := here.server.instances.StartRoom("Launch", alice, "")
 	if err != nil {
 		t.Fatal(err)
 	}

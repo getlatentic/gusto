@@ -17,7 +17,7 @@ func TestAnAppIsMadeStartingKeptChangedAndFoundByItsAgent(t *testing.T) {
 		t.Fatal(err)
 	}
 	store.now = func() time.Time { return time.Unix(1000, 0) }
-	one, err := store.New("20260930-1200-notes", "Ada@Acme.com", "node server.js", 8080, 3)
+	one, err := store.New(Sharer{Instance: "20260930-1200-notes", Owner: "Ada@Acme.com"}, "node server.js", 8080, 3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,8 +25,8 @@ func TestAnAppIsMadeStartingKeptChangedAndFoundByItsAgent(t *testing.T) {
 		t.Fatalf("%+v", one)
 	}
 	store.now = func() time.Time { return time.Unix(2000, 0) }
-	two, _ := store.New("20260930-1200-notes", "ada@acme.com", "python3 -m http.server $PORT", 9000, 3)
-	other, _ := store.New("20260930-1300-other", "bob@acme.com", "npm start", 3000, 3)
+	two, _ := store.New(Sharer{Instance: "20260930-1200-notes", Owner: "ada@acme.com"}, "python3 -m http.server $PORT", 9000, 3)
+	other, _ := store.New(Sharer{Instance: "20260930-1300-other", Owner: "bob@acme.com"}, "npm start", 3000, 3)
 
 	changed, err := store.Change(one.ID, func(a *App) {
 		a.State, a.Host, a.Target = Live, "default--sb--app.openshell.localhost:18080", "127.0.0.1:18080"
@@ -89,7 +89,7 @@ func TestAppsAddedAtOnceKeepToTheLimit(t *testing.T) {
 	var added atomic.Int32
 	for range 8 {
 		wg.Go(func() {
-			if _, err := store.New("20260930-1200-notes", "ada@acme.com", "node a.js", 8080, 1); err == nil {
+			if _, err := store.New(Sharer{Instance: "20260930-1200-notes", Owner: "ada@acme.com"}, "node a.js", 8080, 1); err == nil {
 				added.Add(1)
 			} else if !errors.Is(err, ErrTooMany) {
 				t.Error(err)

@@ -68,7 +68,30 @@ An admin with a confirmed address invites people from the organization's page. A
 
 An admin can cancel an invitation, remove a person (not themselves or the last admin), and make a person an admin or a runner. A removed person keeps their other organizations. A person removed from their only organization loses their sign-in to gusto cloud at once. Their organization server reads `members.json` at every request, at most once a second: a removed person is signed out of it, their computers' tokens stop working, and a changed role holds, from their next request.
 
-gusto cloud tells the organization's server about people through two files in its data directory. `members.json` lists people, roles, last sign-in and unanswered invitations. If the server cannot read it, the People page says so. `inbox/` holds one event per invitation, role change and removal. The server is the only writer of the change record. It takes the events in order and removes each file. A file of another kind is set aside as `.rejected`.
+gusto cloud tells the organization's server about people through two files in its data directory. `members.json` lists people, roles, last sign-in, unanswered invitations and the workspaces with who is in each. If the server cannot read it, the People page says so. `inbox/` holds one event per invitation, role change, removal and change to a workspace. The server is the only writer of the change record. It takes the events in order and removes each file. A file of another kind is set aside as `.rejected`.
+
+## Workspaces
+
+An organization holds its billing, seats, model credit, signing key, sign-in and admins. A workspace is a team's space in it, such as Engineering or Business. A workspace holds its own members, tasks and their records, conversations and rooms, agents, connections to apps, shared apps, comparisons and computers. Only its members reach them, whatever their role in the organization.
+
+| Boundary | What keeps it |
+| --- | --- |
+| Between organizations | A server for each organization |
+| Between workspaces | A computer for each person in each workspace, and a check of the workspace on every task, record, conversation, agent, connection and app |
+| Between people | A computer for each person |
+| Between tasks | A sandbox for each task on the computer |
+
+- Every organization has the workspace `main`, named as the organization, with the admin who made it. Everything an organization kept before workspaces is in `main`, and so is everybody who was in it.
+- An admin makes a workspace, renames it, and adds and removes its people at `/org`. The one who makes a workspace is in it. A workspace's id comes from its first name and does not change.
+- An invitation names the workspace the person joins when the organization has more than one, and `main` otherwise.
+- A person stays in at least one workspace while they are in the organization. Removing them from a workspace marks their computer in it for removal and leaves their computers in other workspaces. Removing them from the organization takes them out of every workspace and marks every computer of theirs.
+- An organization has at most 50 workspaces. A person is one seat however many workspaces they are in, and every workspace's computers count against `GUSTO_CLOUD_COMPUTERS`.
+- Gusto cloud lists the workspaces and who is in each in `members.json`. The server reads them there at most once a second, as it reads roles. A server that is not behind gusto cloud has one workspace, `main`, with everybody who signs in in it.
+- A request is in one workspace: an organization's API token's own, or the one the person chose in the switcher while they are still in it, or else their first. What the request makes goes there, and the pages list only what is there. Opening one thing is decided by the workspace that thing is in: a person not in it is answered 404, as for something that is not there.
+- A person in one workspace sees nothing of workspaces in the organization's pages. With two or more, the switcher behind the mark at the top of the rail lists them under their organization's name, and the rail names the one they are in. `/workspace/<id>` chooses one of theirs. Gusto cloud's `/orgs.json` lists each organization's workspaces the person is in, and `/open?org=<slug>&workspace=<id>` opens one.
+- A sign-in to an app is made in a workspace and used only by that workspace's tasks. A task sent to `POST /api/jobs` may name its workspace (`workspace` in `job.json`); a person's token may name any of theirs, and an organization's token only its own, which is the workspace its admin was in when they made it.
+- A room's people and agents are in the room's workspace: a person in no workspace of the room's, or an agent of another workspace, is refused. An agent's name is unique in its workspace.
+- The admin console is the organization's: spending, budgets, people, models and the change record count every workspace.
 
 ## Billing
 
@@ -85,17 +108,17 @@ In Stripe, make a product with a monthly per-unit price and give its id as `GUST
 
 ## Computers
 
-A person has one computer in an organization, made the first time they run a task. Its record is in the organization's directory (`internal/computer`) with these fields: `user`, `org`, `sandbox`, `host` (the host machine), `state` (`creating`, `running`, `stopped`, `failed` or `deleted`), `created` and `lastActive`. The `sandbox` name is `c-`, eight characters of a digest of the organization, and eight of the organization and the person.
+A person has one computer in each workspace they are in, made the first time they run a task there. Its record is in the organization's directory (`internal/computer`) with these fields: `user`, `org`, `workspace` (absent for `main`), `sandbox`, `host` (the host machine), `state` (`creating`, `running`, `stopped`, `failed` or `deleted`), `created` and `lastActive`. The `sandbox` name is `c-`, eight characters of a digest of the organization, and eight of the organization, the workspace and the person. A computer in `main` is hashed without the workspace, so a computer made before workspaces keeps its name.
 
 - A task works in `/sandbox/jobs/<job>/workspace`, removed when the task ends. A turn in a conversation on an instance works in `/sandbox/jobs/instance-<id>/workspace`, kept between turns.
 - A task from a script or token has no person and runs in a sandbox of its own that goes with the task.
 - A person past the organization's number of computers is refused in the task's record, and nothing is made.
-- A computer idle for half an hour with no task running is stopped, which keeps its files. Set `GUSTO_COMPUTER_IDLE_MINUTES` to change it. The next task starts it. Removing a person marks their computer, and the organization's server removes it.
+- A computer idle for half an hour with no task running is stopped, which keeps its files. Set `GUSTO_COMPUTER_IDLE_MINUTES` to change it. The next task starts it. Removing a person from a workspace marks their computer in it, removing them from the organization marks all of theirs, and the organization's server removes what is marked.
 - A turn that leaves an `index.html` in the agent's folder gets a Preview button. The server serves that folder as a page, at once, at `<org>--<id>.<domain>`. On a host name of its own the page keeps what it saves in the browser, and it reaches nothing of the organization's pages.
 - Where agents run on computers, a person can also share an app with a command of its own from the agent's page ([OPENSHELL.md](OPENSHELL.md)). `GUSTO_APPS` is where the server keeps its record of both.
 - An app's host name is the same site as the organization's, so the server refuses any browser request that changes something unless it comes from its own pages.
 - A text file shown whole has Edit, in its page and in its tab beside a chat. A save is refused when the file changed after it was opened. In a room, the room says who changed the file.
-- `gusto cloud computers` lists every computer on the node with its organization and person. It also reports a sandbox with no record, or a record with no sandbox.
+- `gusto cloud computers` lists every computer on the node with its organization, workspace and person. It also reports a sandbox with no record, or a record with no sandbox.
 
 ## The admin console
 

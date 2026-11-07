@@ -2,6 +2,7 @@ package web
 
 import (
 	"cmp"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"slices"
 	"strings"
@@ -103,7 +104,11 @@ func composerHint(held instance.Instance) string {
 func (s *Server) roomsFor(r *http.Request) []railChat {
 	who := s.askerName(r)
 	var rooms []railChat
+	here := s.workspaceOf(r)
 	for _, held := range s.instances.RoomsOf(who) {
+		if !workspace.Same(held.Workspace, here) {
+			continue
+		}
 		thread := s.instances.Latest(held.ID)
 		room := railChat{Name: held.Title, Where: threadPath(thread), When: s.lately(held).Active, Room: true, Unread: s.unreadIn(thread, who), ID: held.ID}
 		if held.Direct && len(held.Agents) == 1 {

@@ -33,7 +33,7 @@ func (s *Server) appsPage(w http.ResponseWriter, r *http.Request) {
 		"Title": productName + " — apps & skills", "Tabs": tabs, "Tab": chosen, "Refused": s.refusal(r),
 	}
 	if chosen == "apps" {
-		views, err := s.connectorViews("")
+		views, err := s.connectorViews("", "")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

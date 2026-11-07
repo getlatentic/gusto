@@ -65,9 +65,8 @@ func (r *Registry) EnsureFrom(user, space, host string, spares Spares) (computer
 	defer r.mu.Unlock()
 	id := ID(r.org, space, user)
 	found, err := r.read(id)
-	if err == nil && (found.User != user || !workspace.Same(found.Workspace, space)) {
-		return Computer{}, false, fmt.Errorf("the record %s is of %s in %s, and %s in %s hashes to it too: no computer is shared",
-			id, found.User, workspace.Of(found.Workspace), user, workspace.Of(space))
+	if err == nil {
+		err = sharedWith(found, user, space)
 	}
 	if err == nil && found.Live() {
 		return found, false, nil
@@ -84,7 +83,7 @@ func (r *Registry) EnsureFrom(user, space, host string, spares Spares) (computer
 		return Computer{}, false, err
 	}
 	now := r.now().UTC().Truncate(time.Second)
-	computer = Computer{ID: id, Org: r.org, User: user, Workspace: stored(space), Sandbox: Name(r.org, space, user), Host: host, State: Creating, Created: now}
+	computer = Computer{ID: id, Org: r.org, User: user, Workspace: workspace.Stored(space), Sandbox: Name(r.org, space, user), Host: host, State: Creating, Created: now}
 	spare, spared := takeFrom(spares)
 	if spared {
 		computer.Sandbox = spare
@@ -96,6 +95,15 @@ func (r *Registry) EnsureFrom(user, space, host string, spares Spares) (computer
 		return Computer{}, false, err
 	}
 	return computer, true, nil
+}
+
+// sharedWith refuses a record that is another person's, or another workspace's, whose id a person's computer hashed to.
+func sharedWith(found Computer, user, space string) error {
+	if found.User == user && workspace.Same(found.Workspace, space) {
+		return nil
+	}
+	return fmt.Errorf("the record %s is of %s in %s, and %s in %s hashes to it too: no computer is shared",
+		found.ID, found.User, workspace.Of(found.Workspace), user, workspace.Of(space))
 }
 
 // underLimit is a refusal when one more computer would pass the quota.
@@ -118,14 +126,6 @@ func (r *Registry) underLimit() error {
 		}
 	}
 	return q.RefuseComputers(live)
-}
-
-// stored is how a computer's record names its workspace: not at all for the first, as the records made before workspaces do.
-func stored(space string) string {
-	if space = workspace.Of(space); space != workspace.First {
-		return space
-	}
-	return ""
 }
 
 // Of is a person's computer in a workspace.

@@ -3,6 +3,7 @@ package taskindex
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"strconv"
 	"strings"
 )
@@ -27,6 +28,10 @@ func (r Row) Sum() string {
 	for _, s := range []string{r.ID, r.State, r.Brief, r.Repo, r.AgentType, r.Model, r.Instance, r.Thread, r.Asked,
 		r.RequestKey, r.StoppedBy, r.Team} {
 		h.Write([]byte(strconv.Itoa(len(s)) + ":" + s))
+	}
+	// A task in the first workspace sums as it did before workspaces, so the rows kept then still match their tasks.
+	if space := workspace.Of(r.Workspace); space != workspace.First {
+		h.Write([]byte("workspace " + strconv.Itoa(len(space)) + ":" + space))
 	}
 	for _, n := range []int64{r.Seq, int64(r.Exit), r.Queued, r.Started, r.Ended} {
 		h.Write([]byte(strconv.FormatInt(n, 10) + ","))

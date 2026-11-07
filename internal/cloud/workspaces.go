@@ -209,26 +209,7 @@ func (s *Store) AddToWorkspace(ctx context.Context, slug string, by Person, id, 
 	if by.Org != slug || by.Role != Admin {
 		return ErrNotAdmin
 	}
-	err = s.db.InTx(ctx, func(tx dbkit.Tx) error {
-		if err := s.lock(ctx, tx, "org:"+slug); err != nil {
-			return err
-		}
-		if err := mustBeWorkspace(ctx, tx, slug, id); err != nil {
-			return err
-		}
-		if _, found, err := fetchMember(ctx, tx, email, slug); err != nil || !found {
-			if err == nil {
-				err = ErrNoMember
-			}
-			return err
-		}
-		ok, err := inserted(tx.ExecContext(ctx, `INSERT INTO workspace_members (org, workspace, email, created) VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING`,
-			slug, id, email, s.stamp(s.now().UTC().Truncate(time.Second))))
-		if err == nil && !ok {
-			err = ErrInWorkspace
-		}
-		return err
-	})
+	err = s.db.InTx(ctx, func(tx dbkit.Tx) error { return s.addToWorkspaceIn(ctx, tx, slug, id, email) })
 	if err != nil {
 		return err
 	}
@@ -261,6 +242,27 @@ func (s *Store) RemoveFromWorkspace(ctx context.Context, slug string, by Person,
 		return err
 	}
 	return registry.RetireIn(email, id)
+}
+
+func (s *Store) addToWorkspaceIn(ctx context.Context, tx dbkit.Tx, slug, id, email string) error {
+	if err := s.lock(ctx, tx, "org:"+slug); err != nil {
+		return err
+	}
+	if err := mustBeWorkspace(ctx, tx, slug, id); err != nil {
+		return err
+	}
+	if _, found, err := fetchMember(ctx, tx, email, slug); err != nil || !found {
+		if err == nil {
+			err = ErrNoMember
+		}
+		return err
+	}
+	ok, err := inserted(tx.ExecContext(ctx, `INSERT INTO workspace_members (org, workspace, email, created) VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING`,
+		slug, id, email, s.stamp(s.now().UTC().Truncate(time.Second))))
+	if err == nil && !ok {
+		err = ErrInWorkspace
+	}
+	return err
 }
 
 func removeFromWorkspaceIn(ctx context.Context, tx dbkit.Tx, slug, id, email string) error {
