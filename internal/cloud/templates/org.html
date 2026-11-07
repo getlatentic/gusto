@@ -44,12 +44,37 @@
         {{if $.IsAdmin}}<form method="post" action="/org/invites/cancel"><input type="hidden" name="email" value="{{.Email}}"><button class="inline-flex h-8 items-center rounded-sm border border-line-strong px-3 text-xs font-medium text-muted hover:bg-wash hover:text-ink" type="submit">Cancel</button></form>{{end}}</li>{{end}}
     </ul>
     {{if .CanInvite}}
-    <form method="post" action="/org/invite" class="mt-4 flex gap-2">
+    <form method="post" action="/org/invite" class="mt-4 flex flex-wrap gap-2">
       <input class="h-9 min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" type="email" name="email" placeholder="colleague@company.com" aria-label="Email address to invite" autocomplete="off" required>
+      {{if gt (len .Workspaces) 1}}<select class="h-9 rounded-sm border border-line-strong bg-surface px-2 text-sm text-ink" name="workspace" aria-label="Workspace they join">{{range .Workspaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>{{end}}
       <button class="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm font-medium text-ink hover:bg-wash" type="submit">Invite</button>
     </form>
     {{end}}
   </section>
+
+  {{if or .IsAdmin (gt (len .Workspaces) 1)}}
+  <section id="workspaces" class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+    <h2 class="mb-1 text-sm font-semibold">Workspaces</h2>
+    <p class="mb-3 text-sm text-muted">Each workspace has its own tasks, records, agents, connectors and computers, which only its members reach. A person has a computer in each workspace they are in.</p>
+    {{range .Workspaces}}
+    <div class="border-b border-line py-3 last:border-b-0">
+      {{if $.IsAdmin}}<form method="post" action="/org/workspaces/rename" class="flex gap-2"><input type="hidden" name="workspace" value="{{.ID}}"><input class="h-9 min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-3 text-sm font-medium text-ink" name="name" value="{{.Name}}" aria-label="Name of the workspace {{.Name}}" maxlength="60" required><button class="inline-flex h-9 items-center rounded-sm border border-line-strong px-3 text-xs font-medium text-muted hover:bg-wash hover:text-ink" type="submit">Rename</button></form>
+      {{else}}<p class="text-sm font-medium">{{.Name}}</p>{{end}}
+      <ul class="mt-2 grid text-sm">
+        {{$space := .ID}}{{range .Members}}<li class="flex min-h-10 items-center gap-3"><span class="flex-1 wrap-anywhere text-muted">{{.}}</span>
+          {{if $.IsAdmin}}<form method="post" action="/org/workspaces/remove"><input type="hidden" name="workspace" value="{{$space}}"><input type="hidden" name="email" value="{{.}}"><button class="inline-flex h-8 items-center rounded-sm border border-line-strong px-3 text-xs font-medium text-muted hover:bg-wash hover:text-ink" type="submit">Remove from workspace</button></form>{{end}}</li>{{end}}
+      </ul>
+      {{if and $.IsAdmin .Others}}<form method="post" action="/org/workspaces/add" class="mt-2 flex gap-2"><input type="hidden" name="workspace" value="{{.ID}}"><select class="h-9 min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-2 text-sm text-ink" name="email" aria-label="Person to add to {{.Name}}">{{range .Others}}<option>{{.}}</option>{{end}}</select><button class="inline-flex h-9 items-center rounded-sm border border-line-strong px-3 text-xs font-medium text-ink hover:bg-wash" type="submit">Add</button></form>{{end}}
+    </div>
+    {{end}}
+    {{if .IsAdmin}}
+    <form method="post" action="/org/workspaces" class="mt-4 flex gap-2">
+      <input class="h-9 min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" name="name" placeholder="Engineering" aria-label="Name of a new workspace" maxlength="60" required>
+      <button class="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm font-medium text-ink hover:bg-wash" type="submit">Make a workspace</button>
+    </form>
+    {{end}}
+  </section>
+  {{end}}
 
   {{if .Org.Demo}}
   <p class="text-sm text-muted">This is a demo. Its time left, and a call with us, are on <a class="underline hover:text-ink" href="/demo/wait">the demo page</a>.</p>

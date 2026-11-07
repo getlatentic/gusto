@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
-	"slices"
+	"reflect"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -282,10 +282,12 @@ func TestTheSwitcherListsAPersonsOrganizationsToTheirOrganizationsPagesOnly(t *t
 			t.Fatalf("%d %v %s", status, err, body)
 		}
 		want := []switchable{
-			{Name: "Acme", Slug: "acme-com", Open: "http://cloud.test/open?org=acme-com"},
-			{Name: "Globex", Slug: "globex-com", Open: "http://cloud.test/open?org=globex-com"},
+			{Name: "Acme", Slug: "acme-com", Open: "http://cloud.test/open?org=acme-com",
+				Workspaces: []switchSpace{{ID: "main", Name: "Acme", Open: "http://cloud.test/open?org=acme-com&workspace=main"}}},
+			{Name: "Globex", Slug: "globex-com", Open: "http://cloud.test/open?org=globex-com",
+				Workspaces: []switchSpace{{ID: "main", Name: "Globex", Open: "http://cloud.test/open?org=globex-com&workspace=main"}}},
 		}
-		if !slices.Equal(answer.Orgs, want) {
+		if !reflect.DeepEqual(answer.Orgs, want) {
 			t.Errorf("their own organizations, each opened through gusto cloud: %+v", answer.Orgs)
 		}
 		if header.Get("Access-Control-Allow-Origin") != "http://globex-com.cloud.test" || header.Get("Access-Control-Allow-Credentials") != "true" {

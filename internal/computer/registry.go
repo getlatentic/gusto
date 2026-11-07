@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/internal/workspace"
 )
 
 // Registry is one organization's computers, one file each. It belongs to that
@@ -46,26 +47,27 @@ func (r *Registry) UseQuota(q *quota.File) {
 
 func (r *Registry) file(id string) string { return filepath.Join(r.dir, id+".json") }
 
-// Ensure is the person's computer, made when they have none. A person has one in
-// an organization, so asking again finds it. Making a new one counts against the
-// organization's quota, and a computer that was deleted is made anew.
-func (r *Registry) Ensure(user, host string) (computer Computer, made bool, err error) {
-	return r.EnsureFrom(user, host, nil)
+// Ensure is the person's computer in a workspace, made when they have none. A person
+// has one in each workspace, so asking again finds it. Making a new one counts against
+// the organization's quota, and a computer that was deleted is made anew.
+func (r *Registry) Ensure(user, space, host string) (computer Computer, made bool, err error) {
+	return r.EnsureFrom(user, space, host, nil)
 }
 
 // EnsureFrom is Ensure that names a new computer's sandbox after a spare one, when spares has one to give. The spare is taken
 // and the record written under one lock, so a person's second request finds the record and not a sandbox made for it twice.
-func (r *Registry) EnsureFrom(user, host string, spares Spares) (computer Computer, made bool, err error) {
+func (r *Registry) EnsureFrom(user, space, host string, spares Spares) (computer Computer, made bool, err error) {
 	user = strings.ToLower(strings.TrimSpace(user))
 	if user == "" {
 		return Computer{}, false, errors.New("a computer is a person's, and no person was named")
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	id := ID(r.org, user)
+	id := ID(r.org, space, user)
 	found, err := r.read(id)
-	if err == nil && found.User != user {
-		return Computer{}, false, fmt.Errorf("the record %s is of %s, and %s hashes to it too: no computer is shared", id, found.User, user)
+	if err == nil && (found.User != user || !workspace.Same(found.Workspace, space)) {
+		return Computer{}, false, fmt.Errorf("the record %s is of %s in %s, and %s in %s hashes to it too: no computer is shared",
+			id, found.User, workspace.Of(found.Workspace), user, workspace.Of(space))
 	}
 	if err == nil && found.Live() {
 		return found, false, nil
@@ -82,7 +84,7 @@ func (r *Registry) EnsureFrom(user, host string, spares Spares) (computer Comput
 		return Computer{}, false, err
 	}
 	now := r.now().UTC().Truncate(time.Second)
-	computer = Computer{ID: id, Org: r.org, User: user, Sandbox: Name(r.org, user), Host: host, State: Creating, Created: now}
+	computer = Computer{ID: id, Org: r.org, User: user, Workspace: stored(space), Sandbox: Name(r.org, space, user), Host: host, State: Creating, Created: now}
 	spare, spared := takeFrom(spares)
 	if spared {
 		computer.Sandbox = spare
@@ -118,11 +120,19 @@ func (r *Registry) underLimit() error {
 	return q.RefuseComputers(live)
 }
 
-// Of is a person's computer.
-func (r *Registry) Of(user string) (Computer, error) {
+// stored is how a computer's record names its workspace: not at all for the first, as the records made before workspaces do.
+func stored(space string) string {
+	if space = workspace.Of(space); space != workspace.First {
+		return space
+	}
+	return ""
+}
+
+// Of is a person's computer in a workspace.
+func (r *Registry) Of(user, space string) (Computer, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	found, err := r.read(ID(r.org, strings.ToLower(strings.TrimSpace(user))))
+	found, err := r.read(ID(r.org, space, strings.ToLower(strings.TrimSpace(user))))
 	if errors.Is(err, fs.ErrNotExist) || (err == nil && !found.Live()) {
 		return Computer{}, ErrNone
 	}
@@ -223,10 +233,10 @@ func (r *Registry) write(computer Computer) error {
 // changing one record would lose a change.
 func (r *Registry) retireFile(id string) string { return filepath.Join(r.dir, id+".retire") }
 
-// Retire asks for a person's computer to be removed, and does nothing when they have none, or theirs was removed already: a
-// mark on a removed one would remove the next one made for them.
-func (r *Registry) Retire(user string) error {
-	id := ID(r.org, strings.ToLower(strings.TrimSpace(user)))
+// RetireIn asks for a person's computer in a workspace to be removed, and does nothing when they have none there, or theirs
+// was removed already: a mark on a removed one would remove the next one made for them.
+func (r *Registry) RetireIn(user, space string) error {
+	id := ID(r.org, space, strings.ToLower(strings.TrimSpace(user)))
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	held, err := r.read(id)
@@ -236,6 +246,30 @@ func (r *Registry) Retire(user string) error {
 	if err != nil {
 		return err
 	}
+	return r.mark(id)
+}
+
+// Retire asks for each of a person's computers to be removed, in every workspace, which is what leaving the organization does.
+func (r *Registry) Retire(user string) error {
+	user = strings.ToLower(strings.TrimSpace(user))
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	all, err := r.all()
+	if err != nil {
+		return err
+	}
+	for _, each := range all {
+		if each.User == user && each.Live() {
+			if err := r.mark(each.ID); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// mark leaves the file that asks for a computer to be removed.
+func (r *Registry) mark(id string) error {
 	file, err := os.OpenFile(r.retireFile(id), os.O_WRONLY|os.O_CREATE, 0o600)
 	if err != nil {
 		return err
@@ -255,11 +289,9 @@ func (r *Registry) RetireAll() error {
 		if !each.Live() {
 			continue
 		}
-		file, err := os.OpenFile(r.retireFile(each.ID), os.O_WRONLY|os.O_CREATE, 0o600)
-		if err != nil {
+		if err := r.mark(each.ID); err != nil {
 			return err
 		}
-		file.Close()
 	}
 	return nil
 }

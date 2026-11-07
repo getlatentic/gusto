@@ -42,10 +42,11 @@ var ErrTooMany = errors.New("the agent already shares as many apps as it may")
 type App struct {
 	ID       string `json:"id"`
 	Instance string `json:"instance"`
-	// Owner is the person whose agent and folder it is.
-	Owner   string `json:"owner"`
-	Command string `json:"command"`
-	Port    int    `json:"port"`
+	// Owner is the person whose agent and folder it is, and Workspace the workspace of their computer it runs on, empty for the first.
+	Owner     string `json:"owner"`
+	Workspace string `json:"workspace,omitempty"`
+	Command   string `json:"command"`
+	Port      int    `json:"port"`
 	// Folder, for a page, is the folder of the agent's own that this server serves as it is, with no command run for it.
 	Folder  string `json:"folder,omitempty"`
 	Sandbox string `json:"sandbox,omitempty"`

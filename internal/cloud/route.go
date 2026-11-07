@@ -15,6 +15,7 @@ import (
 	"github.com/getlatentic/gusto/internal/apps"
 	"github.com/getlatentic/gusto/internal/entry"
 	"github.com/getlatentic/gusto/internal/web"
+	"github.com/getlatentic/gusto/internal/workspace"
 )
 
 // provision starts an organization's server, without making the person wait for it.
@@ -218,7 +219,11 @@ func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 	if err := s.Store.RecordSignIn(r.Context(), person.Email, person.Org); err != nil {
 		slog.Error("a sign-in to an organization was not recorded", "org", person.Org, "error", err)
 	}
-	http.Redirect(w, r, s.orgURL(person.Org)+"/auth/entry?t="+url.QueryEscape(token), http.StatusSeeOther)
+	into := url.Values{"t": {token}}
+	if space := r.URL.Query().Get("workspace"); workspace.Valid(space) == nil {
+		into.Set("workspace", space)
+	}
+	http.Redirect(w, r, s.orgURL(person.Org)+"/auth/entry?"+into.Encode(), http.StatusSeeOther)
 }
 
 // starting is what a person going in sees while their organization's server is not ready: what it is doing, on a

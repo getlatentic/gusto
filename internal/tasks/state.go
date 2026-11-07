@@ -63,6 +63,8 @@ type Record struct {
 	StoppedBy string `json:"stoppedBy,omitempty"`
 	// Team is who the task counts against, for the team limit.
 	Team string `json:"team,omitempty"`
+	// Workspace is the workspace the task is in, and empty for the first. Only its members reach the task.
+	Workspace string `json:"workspace,omitempty"`
 	// Seq is the order this task arrived in. Queued is a second, and two tasks
 	// submitted in one second are two messages a person sent in order, so the
 	// clock alone cannot say which of them goes first.

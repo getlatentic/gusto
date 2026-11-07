@@ -105,7 +105,7 @@ func (b *Backend) Run(ctx context.Context, turn backend.Turn) (int, error) {
 func (b *Backend) owner(turn backend.Turn) sandbox.Owner {
 	owner := sandbox.Owner{Org: b.cfg.Org, Instance: turn.Spec.Session}
 	if turn.Person != "" {
-		owner.Person = computer.ID(b.cfg.Org, turn.Person)
+		owner.Person = computer.ID(b.cfg.Org, turn.Spec.Workspace, turn.Person)
 	}
 	return owner
 }
@@ -126,7 +126,7 @@ func (b *Backend) keptHome(turn backend.Turn) ([]sandbox.Mount, error) {
 	if b.cfg.Homes == "" || turn.Person == "" || turn.InRoom() {
 		return nil, nil
 	}
-	home := filepath.Join(b.cfg.Homes, computer.ID(b.cfg.Org, turn.Person), "home")
+	home := filepath.Join(b.cfg.Homes, computer.ID(b.cfg.Org, turn.Spec.Workspace, turn.Person), "home")
 	if err := os.MkdirAll(home, 0o700); err != nil {
 		return nil, err
 	}

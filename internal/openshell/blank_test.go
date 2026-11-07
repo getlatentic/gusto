@@ -158,7 +158,7 @@ func TestAFirstTaskRunsInTheSpareWithoutMakingASandboxAndAnotherSpareIsMade(t *t
 		if i > 2000 {
 			t.Fatalf("nobody was given the spare %s", spareName)
 		}
-		if held, _, err = registry.EnsureFrom(fmt.Sprintf("p%d@acme.com", i), "cell-1", spare.Offer{Pool: pool, Key: key}); err != nil {
+		if held, _, err = registry.EnsureFrom(fmt.Sprintf("p%d@acme.com", i), "", "cell-1", spare.Offer{Pool: pool, Key: key}); err != nil {
 			t.Fatal(err)
 		}
 		time.Sleep(time.Millisecond)
@@ -171,11 +171,11 @@ func TestAFirstTaskRunsInTheSpareWithoutMakingASandboxAndAnotherSpareIsMade(t *t
 	}
 	calls, _ := os.ReadFile(filepath.Join(root, "calls.log"))
 	for _, line := range strings.Split(string(calls), "\n") {
-		if strings.HasPrefix(line, "sandbox create --name "+computer.Name(org, held.User)) {
+		if strings.HasPrefix(line, "sandbox create --name "+computer.Name(org, "", held.User)) {
 			t.Errorf("the task made a sandbox of its own: %s", line)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(root, computer.Name(org, held.User))); err == nil {
+	if _, err := os.Stat(filepath.Join(root, computer.Name(org, "", held.User))); err == nil {
 		t.Error("a sandbox was made under the person's own name as well as the spare")
 	}
 	eventually(t, "the next spare", func() bool {
@@ -211,8 +211,8 @@ func TestASpareThatCannotBeMadeLeavesNothingAndTheFirstTaskMakesItsOwn(t *testin
 		t.Fatal(err)
 	}
 	time.Sleep(100 * time.Millisecond)
-	held, _, err := registry.EnsureFrom("ada@acme.com", "cell-1", spare.Offer{Pool: pool, Key: key})
-	if err != nil || held.Sandbox != computer.Name(org, "ada@acme.com") {
+	held, _, err := registry.EnsureFrom("ada@acme.com", "", "cell-1", spare.Offer{Pool: pool, Key: key})
+	if err != nil || held.Sandbox != computer.Name(org, "", "ada@acme.com") {
 		t.Fatalf("%q %v", held.Sandbox, err)
 	}
 	os.Remove(filepath.Join(root, "broken"))

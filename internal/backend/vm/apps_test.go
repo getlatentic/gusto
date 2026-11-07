@@ -42,7 +42,7 @@ func anAppsHost(t *testing.T, status int) (*sharedApps, string, computer.Compute
 	if err != nil {
 		t.Fatal(err)
 	}
-	held, _, err := registry.Ensure("ada@acme.com", "local")
+	held, _, err := registry.Ensure("ada@acme.com", "", "local")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -22,7 +22,7 @@ type Report struct {
 
 // countedTables are the tables whose rows the report counts, under the words people read.
 var countedTables = []struct{ name, table string }{
-	{"organisations", "orgs"}, {"people", "people"}, {"memberships", "memberships"}, {"invitations", "invitations"}, {"links", "links"},
+	{"organisations", "orgs"}, {"people", "people"}, {"memberships", "memberships"}, {"workspaces", "workspaces"}, {"invitations", "invitations"}, {"links", "links"},
 	{"leads", "leads"}, {"runtime", "runtime"},
 }
 

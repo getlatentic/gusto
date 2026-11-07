@@ -121,8 +121,12 @@ func (s *Server) drawOrg(ctx context.Context, w http.ResponseWriter, status int,
 	}
 
 	invited, _ := s.Store.Invitations(ctx, org.Slug)
+	spaces, err := s.Store.Workspaces(ctx, org.Slug)
+	if err != nil {
+		slog.Error("an organization's workspaces could not be read", "org", org.Slug, "error", err)
+	}
 	all, _ := s.Store.Memberships(ctx, person.Email)
-	v := view{ComputerOf: byAddress, Members: members, Admins: admins, Invited: invited, IsAdmin: person.Role == Admin,
+	v := view{ComputerOf: byAddress, Members: members, Workspaces: workspaceRows(spaces, members), Admins: admins, Invited: invited, IsAdmin: person.Role == Admin,
 		CanInvite: person.Role == Admin && quota.Invites && len(members)+len(invited) < quota.Members, Server: server, CanOpen: canOpen, Refresh: server != "" && !canOpen, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
 		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice, Several: len(all) > 1, Credit: creditLeft(quota.CreditUSD, s.Store.CreditUsed(org.Slug)),
 		Plan: s.planOf(ctx, org, person), Console: true}

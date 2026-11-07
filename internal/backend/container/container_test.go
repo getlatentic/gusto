@@ -16,7 +16,7 @@ func TestATurnsContainerIsOwnedByItsOrganizationPersonAndAgent(t *testing.T) {
 	b := New(Config{Org: "acme-research-com"})
 	spec := task.Spec{Session: "20261028-1811-opencode"}
 	got := b.owner(backend.Turn{Spec: spec, Person: "bob@acme-research.com"})
-	want := sandbox.Owner{Org: "acme-research-com", Person: computer.ID("acme-research-com", "bob@acme-research.com"), Instance: spec.Session}
+	want := sandbox.Owner{Org: "acme-research-com", Person: computer.ID("acme-research-com", "", "bob@acme-research.com"), Instance: spec.Session}
 	if got != want {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
@@ -34,7 +34,7 @@ func TestAPersonsTurnsShareAHomeOfTheirOwnAndARoomOrAScriptHasNone(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := sandbox.Mount{From: filepath.Join(homes, computer.ID("acme-research-com", "bob@acme-research.com"), "home"), To: sandbox.Home, Kept: true}
+	want := sandbox.Mount{From: filepath.Join(homes, computer.ID("acme-research-com", "", "bob@acme-research.com"), "home"), To: sandbox.Home, Kept: true}
 	if len(mounts) != 1 || mounts[0] != want {
 		t.Fatalf("got %+v, want %+v", mounts, want)
 	}

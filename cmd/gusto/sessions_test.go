@@ -74,7 +74,7 @@ func TestATurnWorksOnTheInstancesFilesInThePersonsComputerAndTheNextStartsFromWh
 	if where, _ := os.ReadFile(filepath.Join(instances.AgentFolder(held.ID), "where.txt")); !strings.HasPrefix(string(where), "/jobs/") {
 		t.Errorf("the turn ran in the person's computer: %q", where)
 	}
-	if got, err := registry.Of("ada@acme.com"); err != nil || got.State != computer.Running {
+	if got, err := registry.Of("ada@acme.com", ""); err != nil || got.State != computer.Running {
 		t.Errorf("%+v %v", got, err)
 	}
 	if manifest, err := record.Read(one); err != nil || manifest.Session != "s-42" {
@@ -235,13 +235,13 @@ func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
 	if _, err := work(dir); err != nil {
 		t.Logf("%v", err)
 	}
-	if _, err := registry.Of("ada@acme.com"); err != nil {
+	if _, err := registry.Of("ada@acme.com", ""); err != nil {
 		t.Errorf("the owner's computer was not used: %v", err)
 	}
-	if got, err := registry.Of("bob@acme.com"); err == nil {
+	if got, err := registry.Of("bob@acme.com", ""); err == nil {
 		t.Errorf("the person who asked was given a computer: %+v", got)
 	}
-	ada, _ := registry.Of("ada@acme.com")
+	ada, _ := registry.Of("ada@acme.com", "")
 	var run record.Run
 	var decision record.Decision
 	readJSON(t, dir.OutFile(record.RunFile), &run)

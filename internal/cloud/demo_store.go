@@ -20,11 +20,13 @@ import (
 // goes with it.
 var endStatements = []string{
 	`DELETE FROM invitations WHERE org = ?`,
+	`DELETE FROM workspace_members WHERE org = ?`,
 	`DELETE FROM people WHERE email IN (SELECT m.email FROM memberships m WHERE m.org = ?
 		AND NOT EXISTS (SELECT 1 FROM memberships o WHERE o.email = m.email AND o.org <> ?))`,
 	`DELETE FROM memberships WHERE org = ?`,
 	`DELETE FROM billing WHERE org = ?`,
 	`DELETE FROM runtime WHERE slug = ?`,
+	`DELETE FROM workspaces WHERE org = ?`,
 	`DELETE FROM orgs WHERE slug = ?`,
 }
 

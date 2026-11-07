@@ -75,6 +75,9 @@ func (s *Store) addMember(ctx context.Context, tx dbkit.Tx, p Person) (bool, err
 // dropMember takes a person out of an organization, and takes their account away when it was the last they were in,
 // since an address that belongs nowhere has nothing to sign in to.
 func dropMember(ctx context.Context, tx dbkit.Tx, email, org string) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM workspace_members WHERE email = ? AND org = ?`, email, org); err != nil {
+		return err
+	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM memberships WHERE email = ? AND org = ?`, email, org); err != nil {
 		return err
 	}

@@ -176,7 +176,7 @@ func TestTheOperatorSeesEveryComputerWithItsOrganizationAndPerson(t *testing.T) 
 			t.Fatal(err)
 		} else if org.Slug != "initech-com" {
 			registry, _ := store.Computers(org.Slug)
-			registry.Ensure(sign.Email, "cell-1")
+			registry.Ensure(sign.Email, "", "cell-1")
 		}
 	}
 	var out strings.Builder
