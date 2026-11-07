@@ -19,7 +19,10 @@
       <summary class="grid size-8 cursor-pointer list-none place-items-center rounded-md text-muted hover:bg-sunken hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="More for this room" title="More">{{template "icon-more"}}</summary>
       <div class="absolute top-full right-0 z-40 mt-1 grid w-56 gap-px rounded-xl border border-line bg-surface p-1.5 shadow-2" role="menu">
         <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-copy-link>{{template "icon-link"}}<span>Copy link</span></button>
+        <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="room-guidelines">{{template "icon-file"}}<span>Room guidelines</span></button>
         <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="room-members">{{template "icon-users"}}<span>Room members</span></button>
+        {{if .Settings.In}}<form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/mute"><input type="hidden" name="mute" value="{{if .Settings.Muted}}off{{else}}on{{end}}"><button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="submit" role="menuitem">{{if .Settings.Muted}}{{template "icon-bell"}}<span>Unmute room</span>{{else}}{{template "icon-bell-off"}}<span>Mute room</span>{{end}}</button></form>{{end}}
+        {{if and .Settings.Runs (not .Instance.Direct)}}<form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/archive"{{if not .Settings.Archived}} data-confirm="Archive {{.Instance.Title}}? It leaves everybody's list and nobody can say anything in it until an admin brings it back."{{end}}><input type="hidden" name="archive" value="{{if .Settings.Archived}}off{{else}}on{{end}}"><button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="submit" role="menuitem">{{template "icon-archive"}}<span>{{if .Settings.Archived}}Unarchive room{{else}}Archive room{{end}}</span></button></form>{{end}}
         <span class="my-1 h-px bg-line" role="separator"></span>
         <form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/members/remove" data-confirm="Leave {{.Instance.Title}}? You can be added again by its admin."><input type="hidden" name="who" value="{{.Me}}"><button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="submit" role="menuitem">{{template "icon-out"}}<span>Leave room</span></button></form>
         {{if .Owns}}<form class="m-0" method="post" action="/instances/{{.Instance.ID}}/remove" data-confirm="Delete {{.Instance.Title}} for everybody in it, with its conversation and its files? This cannot be undone."><button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-bad hover:bg-bad-wash [&>svg]:size-4" type="submit" role="menuitem">{{template "icon-trash"}}<span>Delete room</span></button></form>{{end}}
@@ -29,7 +32,7 @@
 
   <div class="said-so-far relative overflow-y-auto px-6 py-8 focus-visible:-outline-offset-2 @max-[56rem]:px-4 @max-[56rem]:py-6" id="said" tabindex="0" role="region" aria-label="Conversation">
     <div class="mx-auto max-w-[56rem]">
-      <div id="turns"{{with .Version}} data-version="{{.}}"{{end}}{{with .Stream}} data-live="{{.Path}}" data-seq="{{.Seq}}" data-epoch="{{.Epoch}}" data-room="{{$.Instance.ID}}" data-thread="{{$.Thread.ID}}" data-me="{{$.Me}}"{{if $.Sharing}} data-sharing{{end}}{{end}}>{{template "turns" .}}</div>
+      <div id="turns"{{with .Version}} data-version="{{.}}"{{end}}{{with .Stream}} data-live="{{.Path}}" data-seq="{{.Seq}}" data-epoch="{{.Epoch}}" data-room="{{$.Instance.ID}}" data-thread="{{$.Thread.ID}}" data-me="{{$.Me}}" data-settings="{{$.Settings.Mark}}"{{if $.Sharing}} data-sharing{{end}}{{end}}>{{template "turns" .}}</div>
       <p class="sr-only" role="status" id="typing-news"></p>
       {{if .Stream}}<p class="m-0 mt-2 h-5 text-xs text-subtle" id="typing" aria-hidden="true"></p>{{end}}
       <p class="sr-only" role="status" id="turn-news"></p>
@@ -60,7 +63,8 @@
   <form id="model-form" method="post" action="/instances/{{.Instance.ID}}/model"><input type="hidden" name="back" value="{{.Path}}"></form>
   {{if and .Waiting (not .Instance.Room)}}<form id="stop-form" method="post" action="/jobs/{{.Latest}}/stop"><input type="hidden" name="back" value="{{.Path}}"></form>{{end}}
   <div class="composer px-6 pt-2 pb-5 @max-[56rem]:px-3 @max-[56rem]:pb-3">
-    <form class="relative mx-auto max-w-[56rem]" method="post" action="{{.Path}}/say" id="say-form"{{if .Instance.Room}} enctype="multipart/form-data"{{end}}>
+    {{if .Settings.Archived}}<div class="mx-auto flex max-w-[56rem] items-center gap-3 rounded-[1.25rem] border border-line bg-sunken py-3 pr-3 pl-5 text-sm text-muted @max-[56rem]:flex-wrap"><span class="min-w-0 flex-1">This room is archived. Nobody can say anything in it until an admin brings it back.</span>{{if .Settings.Runs}}<form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/archive"><input type="hidden" name="archive" value="off"><button type="submit" class="{{template "ui-btn-quiet"}}">Unarchive</button></form>{{end}}</div>{{end}}
+    <form class="relative mx-auto max-w-[56rem]" method="post" action="{{.Path}}/say" id="say-form"{{if .Instance.Room}} enctype="multipart/form-data"{{end}}{{if .Settings.Archived}} hidden{{end}}>
       <p class="{{template "ui-notice-chat"}} mb-2" id="unsent"{{if .Unsent}} role="alert"{{else}} hidden{{end}}>{{.Unsent}}</p>
       {{if .Instance.Room}}<ul class="absolute bottom-full left-0 z-30 mb-2 grid w-80 max-w-full list-none gap-px rounded-xl border border-line bg-surface p-1.5 shadow-2" id="mention-menu" role="listbox" aria-label="Mention" data-people="{{.Mentions}}" hidden></ul>{{end}}
       <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[1.25rem] border border-line-strong bg-surface py-3 pr-3 pl-5 shadow-1 transition-shadow has-[textarea:focus-visible]:border-focus has-[textarea:focus-visible]:ring-1 has-[textarea:focus-visible]:ring-focus">
@@ -230,7 +234,7 @@
 
 {{template "foot" .}}
 
-{{define "room-dialogs"}}{{$room := .Instance}}{{with .Members}}
+{{define "room-dialogs"}}{{template "room-guidelines" .}}{{$room := .Instance}}{{with .Members}}
 <dialog class="m-auto w-[27rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="room-members" aria-labelledby="room-members-title" data-asked="members">
   <div class="grid grid-cols-[minmax(0,1fr)] gap-1 p-6 pb-5">
     <div class="mb-3 flex items-center justify-between"><h2 class="m-0 text-lg font-semibold" id="room-members-title">Room members</h2><button type="button" class="grid size-7 cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
@@ -294,6 +298,21 @@
   </form>
 </dialog>
 {{end}}{{end}}
+
+{{define "room-guidelines"}}{{$room := .Instance}}
+<dialog class="m-auto w-[30rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="room-guidelines" aria-labelledby="room-guidelines-title" data-asked="guidelines">
+  {{if .Settings.Runs}}<form class="grid gap-4 p-6" method="post" action="/rooms/{{$room.ID}}/guidelines">{{else}}<div class="grid gap-4 p-6">{{end}}
+    <div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="room-guidelines-title">Room guidelines</h2><p class="m-0 mt-1 text-sm text-muted">What every agent in this room is told at the start of each turn. Everybody in the room can read them{{if .Settings.Runs}}; admins change them{{end}}.</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
+    {{with .Settings.Refused}}<p class="m-0 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad" role="alert">{{.}}</p>{{end}}
+    {{if .Settings.Runs}}
+    <textarea class="input min-h-32 resize-y leading-relaxed" name="guidelines" maxlength="{{maxGuidelines}}" placeholder="For example: answer in French, and ask before deleting files." aria-label="Guidelines">{{$room.Guidelines}}</textarea>
+    <div class="flex items-center gap-2"><span class="mr-auto text-xs text-subtle">Up to {{maxGuidelines}} characters</span><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}} h-9">Save</button></div>
+    {{else}}
+    {{with $room.Guidelines}}<p class="m-0 text-sm leading-relaxed whitespace-pre-wrap wrap-anywhere">{{.}}</p>{{else}}<p class="m-0 text-sm text-muted">This room has no guidelines.</p>{{end}}
+    {{end}}
+  {{if .Settings.Runs}}</form>{{else}}</div>{{end}}
+</dialog>
+{{end}}
 
 {{define "turns"}}
 {{if .Instance.Room}}{{template "room-turns" .}}{{else}}

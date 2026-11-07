@@ -164,6 +164,16 @@
     <h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">Profile</h3>
     <dl class="m-0 grid grid-cols-[9rem_1fr] gap-y-2 text-sm"><dt class="text-muted">Email</dt><dd class="m-0">{{if eq $m.Who "the shared sign-in"}}Signs in with this server's password{{else}}{{$m.Who}}{{end}}</dd><dt class="text-muted">Role</dt><dd class="m-0">{{$m.Role}}</dd></dl>
   </section>
+  <section class="grid gap-3 rounded-xl border border-line p-5">
+    <h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">Bio</h3>
+    {{if $p.Bio.Mine}}
+    {{template "ui-flash" $p}}
+    <form class="m-0 grid gap-3" method="post" action="{{$m.Where}}/bio">
+      <label class="{{template "ui-field"}}"><span class="font-normal">What you do, what you are working on, how you like to work. The agents in your rooms read it, and so does everybody who opens this page.</span><textarea class="input min-h-24 resize-y leading-relaxed" name="bio" maxlength="{{maxBio}}" placeholder="For example: I run launches. This month: the pricing page. I like short answers, with the source." aria-label="Your bio">{{$p.Bio.Text}}</textarea></label>
+      <div class="flex items-center gap-2"><span class="mr-auto text-xs text-subtle">Up to {{maxBio}} characters</span><button class="{{template "ui-btn"}} h-9" type="submit">Save</button></div>
+    </form>
+    {{else}}{{with $p.Bio.Text}}<p class="m-0 text-sm leading-relaxed whitespace-pre-wrap wrap-anywhere">{{.}}</p>{{else}}<p class="m-0 text-sm text-subtle">Nothing written yet.</p>{{end}}{{end}}
+  </section>
   {{with $p.Rooms}}<section class="grid gap-2"><h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">Rooms you share</h3>{{range .}}<a class="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-ink no-underline hover:bg-sunken [&>svg]:size-4 [&>svg]:text-subtle" href="{{.Where}}">{{template "icon-users"}}{{.Name}}</a>{{end}}</section>{{end}}
   {{with $p.Made}}<section class="grid gap-2"><h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">Agents they made</h3>{{range .}}<a class="flex h-10 items-center gap-2 rounded-lg px-2 text-sm text-ink no-underline hover:bg-sunken" href="/members/agents/{{.ID}}"><span class="grid size-6 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Name "Size" "sm")}}</span>{{.Name}}{{with .Specialty}}<span class="text-subtle">{{.}}</span>{{end}}</a>{{end}}</section>{{end}}
 </article>

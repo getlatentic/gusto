@@ -85,8 +85,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		if !found {
 			continue
 		}
-		shown := s.fullTurn(record, ledger)
-		turns = append(turns, shown)
+		turns = append(turns, s.fullTurn(record, ledger))
 	}
 	liveApps, appsStarting := previewing(s.appsOf(held.ID))
 	running := ""
@@ -132,6 +131,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		"Stream":     stream,
 		"Members":    s.roomMembersOf(r, held),
 		"Headcount":  len(held.Members) + len(held.Agents),
+		"Settings":   s.roomSettingsOf(r, held),
 		"Refused":    s.refusedIn(r, "members"),
 		"AddRefused": s.refusedIn(r, "add"),
 		"Unsent":     s.refusedIn(r, ""),
@@ -224,6 +224,9 @@ func (s *Server) turns(w http.ResponseWriter, r *http.Request) {
 	if version, _ := page["Version"].(string); version != "" {
 		w.Header().Set("X-Room-Version", version)
 	}
+	if settings, _ := page["Settings"].(roomSettings); settings.Mark != "" {
+		w.Header().Set("X-Room-Settings", settings.Mark)
+	}
 	s.render(w, "turns", page)
 }
 
@@ -241,21 +244,12 @@ func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if held.Room {
-		r.Body = http.MaxBytesReader(w, r.Body, attachLimit)
-	}
-	brief := strings.TrimSpace(r.FormValue("said"))
-	if held.Room {
-		var kept bool
-		if brief, kept = s.withAttachments(w, r, held, thread, brief); !kept {
-			return
-		}
-	}
-	if brief == "" {
-		http.Redirect(w, r, threadPath(thread), http.StatusSeeOther)
+		s.roomSay(w, r, held, thread)
 		return
 	}
-	if held.Room {
-		s.roomSay(w, r, held, thread, brief)
+	brief := strings.TrimSpace(r.FormValue("said"))
+	if brief == "" {
+		http.Redirect(w, r, threadPath(thread), http.StatusSeeOther)
 		return
 	}
 	record, _, err := s.startTurn(s.keeper.who(r), held, thread, brief, "")
@@ -342,7 +336,7 @@ func (s *Server) nameOf(thread instance.Thread) string {
 
 // dialogs are the parts of a room's page that carry their own refusals: what was asked in one comes back with its name in the
 // address.
-var dialogs = []string{"members", "add"}
+var dialogs = []string{"members", "add", "guidelines"}
 
 // refusedIn is why the last thing asked of the page was refused, when it was asked of the part named: a dialog, or with no name,
 // what was said in the conversation, which carries no dialog's name.

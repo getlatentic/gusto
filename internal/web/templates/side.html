@@ -59,6 +59,10 @@
     <div class="flex items-center justify-between pt-1 pr-1 pb-1 pl-3"><span class="text-xs font-semibold text-subtle">Rooms</span><a class="grid size-6 place-items-center rounded-sm text-muted hover:bg-surface hover:text-ink hover:shadow-1" href="/rooms/new" title="New room" aria-label="New room">{{template "icon-add"}}</a></div>
     {{range .Rooms}}{{template "side-row" (dict "Chat" . "Here" $.Here)}}{{end}}
   </section>
+  {{with .Archived}}{{$open := false}}{{range .}}{{if eq .Where $.Here}}{{$open = true}}{{end}}{{end}}<details class="grid gap-px"{{if $open}} open{{end}}>
+    <summary class="flex h-8 cursor-pointer list-none items-center justify-between rounded-sm px-3 text-xs font-medium text-subtle hover:bg-sunken hover:text-ink [&::-webkit-details-marker]:hidden">Archived rooms <span class="tabular-nums">{{len .}}</span></summary>
+    {{range .}}{{template "side-row" (dict "Chat" . "Here" $.Here)}}{{end}}
+  </details>{{end}}
   <div class="px-3 pt-3 pb-1 text-xs font-semibold text-subtle">Projects</div>
   {{template "side-groups" (dict "Groups" .Recent "Here" .Here)}}
   {{with .Older}}<details class="older"><summary class="flex h-8 cursor-pointer list-none items-center justify-between rounded-sm px-3 text-xs font-medium text-subtle hover:bg-sunken hover:text-ink [&::-webkit-details-marker]:hidden">Older projects <span class="n">{{len .}}</span></summary>{{template "side-groups" (dict "Groups" . "Here" $.Here)}}</details>{{end}}

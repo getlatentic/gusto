@@ -60,6 +60,10 @@ type Instance struct {
 	Direct  bool     `json:"direct,omitempty"`
 	Members []Member `json:"members,omitempty"`
 	Agents  []Agent  `json:"agents,omitempty"`
+	// Guidelines is what every agent in the room is told at the start of each turn, set by its admins.
+	Guidelines string `json:"guidelines,omitempty"`
+	// Archived is when the room was archived, in unix seconds, and zero while it is not. Nothing can be said in an archived room.
+	Archived int64 `json:"archived,omitempty"`
 }
 
 // Store is every instance under one directory.
@@ -75,6 +79,8 @@ type Store struct {
 	// events is each room's log of what happened in it, and watchers are told when one is added.
 	events   *roomlog.Set
 	watchers []func(room string)
+	// bios is what the people of the rooms wrote of themselves.
+	bios bios
 	// gone is the ids of removed instances, whose directories are set aside, so that none is given out again.
 	gone map[string]struct{}
 }
@@ -103,6 +109,7 @@ func Open(root string) (*Store, error) {
 		}
 	}
 	store.gone = readGone(root)
+	store.bios.held = readBios(root)
 	return store, nil
 }
 

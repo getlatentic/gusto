@@ -93,6 +93,17 @@ An organization holds its billing, seats, model credit, signing key, sign-in and
 - A room's people and agents are in the room's workspace: a person in no workspace of the room's, or an agent of another workspace, is refused. An agent's name is unique in its workspace.
 - The admin console is the organization's: spending, budgets, people, models and the change record count every workspace.
 
+## Rooms
+
+A room is in one workspace and is shared by its people and agents. Its settings are kept in the room's `instance.json`; a change is written to a copy first and held in memory only once the write succeeded, so a write that fails changes nothing.
+
+- Guidelines are standing instructions of at most 2000 characters. Every person in the room can read them; only a room's admin (or an admin of the server) changes them. Every turn of every agent in the room starts with them, under "Standing instructions for this room". An empty text clears them.
+- Mute is a person's own. A muted room adds nothing to that person's unread counts, the Unread and @me tabs or the rail badges, and nobody else sees it.
+- Archive is the room's, set by an admin and not offered on a person's own conversation with an agent. An archived room leaves everybody's rail and is listed under Archived rooms; it still opens, but nothing can be said in it (a message is refused with a note, and an agent's reply does not hand work on) until an admin unarchives it.
+- Each of the three is one event in the room's log, so a page that has the room open draws it again, and one entry in the change record (`room.guidelines`, with the old and new text, `room.muted` and `room.archived`). Setting a room to what it already is writes and records nothing.
+- A person writes a bio of themselves (at most 600 characters) on their own page in Members; nobody writes another person's, and everybody who can open the page can read it. Every turn in a room is told what the room's people say of themselves, after who is there, up to 6000 characters in all: a person whose bio would pass that is left out of that turn. Bios are kept in `.bios.json` beside the instances, are written before they are held, and each change is in the change record (`person.bio`, with the old and new text).
+- A turn that is running when a room is archived finishes and its reply is posted.
+
 ## Billing
 
 With the Stripe settings set, an organization pays $25 a month for each person in it. A demo is never billed.

@@ -92,13 +92,17 @@
     if (fetching) { return; }
     fetching = true;
     var drawn = "";
+    var settings = "";
     fetch(path + "/turns", { credentials: "same-origin" })
       .then(function (answer) {
         drawn = answer.headers.get("X-Room-Version") || "";
+        settings = answer.headers.get("X-Room-Settings") || "";
         return answer.ok ? answer.text() : null;
       })
       .then(function (html) {
         if (html === null) { return; }
+        // The guidelines and whether the room is archived are drawn with the page, so a change to either draws it again.
+        if (settings && turns.dataset.settings && settings !== turns.dataset.settings) { location.reload(); return; }
         var follow = nearEnd();
         known = drawn;
         turns.innerHTML = html;
