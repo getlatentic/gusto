@@ -9,10 +9,10 @@ import (
 
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// A job run in the server's own process is given an environment of its own: the harness and the gate see what they were given
+// A task run in the server's own process is given an environment of its own: the harness and the gate see what they were given
 // and nothing of the process they run in, where the server keeps its secrets.
 func TestAHarnessAndItsGateRunWithTheEnvironmentGivenAndNotTheServers(t *testing.T) {
 	t.Setenv("GUSTO_PASSWORD", "the-servers-own-secret")
@@ -23,11 +23,11 @@ func TestAHarnessAndItsGateRunWithTheEnvironmentGivenAndNotTheServers(t *testing
 	write(t, filepath.Join(mine, "plain", "adapter.json"), `{"name": "plain", "program": "sh", "needs": "nothing",
 		"argv": ["-c", "printf 'token=%s password=%s' \"$GUSTO_MODEL_TOKEN\" \"${GUSTO_PASSWORD:-absent}\" > seen.txt; printf yes > answer.txt"]}`)
 	t.Setenv("GUSTO_HARNESSES", mine)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    repo(t),
 		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes && test -z "${GUSTO_PASSWORD:-}" && test "$GUSTO_MODEL_TOKEN" = given-token`},

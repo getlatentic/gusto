@@ -8,13 +8,13 @@ import (
 
 	"github.com/getlatentic/gusto/internal/rules"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// admit decides whether this job can start here at all. Each check is one a
-// harness would otherwise fail minutes later, in its own words, and the job
+// admit decides whether this task can start here at all. Each check is one a
+// harness would otherwise fail minutes later, in its own words, and the task
 // would read as the harness failing rather than as never having started.
-func admit(spec job.Spec, adapter harness.Adapter, env harness.Env) error {
+func admit(spec task.Spec, adapter harness.Adapter, env harness.Env) error {
 	if err := Carries(spec.Harness, adapter); err != nil {
 		return err
 	}
@@ -26,7 +26,7 @@ func admit(spec job.Spec, adapter harness.Adapter, env harness.Env) error {
 		return err
 	}
 	// The rules judge where the model is; what is asked is whether the address the harness is given answers, which is the
-	// proxy when the job runs in this process.
+	// proxy when the task runs in this process.
 	if adapter.Needs == harness.NeedsLocal && env.ModelURL != "" {
 		return Reachable(env.ModelURL)
 	}
@@ -54,7 +54,7 @@ func Carries(name string, adapter harness.Adapter) error {
 // conversation all show. A run that does start truncates it, so a refusal
 // never outlives the next attempt. The reason is still returned, so the
 // process exits the way any runner error does.
-func Refuse(dir job.Dir, reason error) error {
+func Refuse(dir task.Dir, reason error) error {
 	said := "gusto refused this task before the agent started: " + reason.Error() + "\n"
 	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 		return errors.Join(reason, err)

@@ -19,7 +19,7 @@ import (
 )
 
 // Where says which file in a task directory the proxy writes its record to.
-type Where func(job string) (string, bool)
+type Where func(task string) (string, bool)
 
 // Proxy adds the credential on the way out, writes down what went and what it
 // cost, and refuses a call once a cap is spent.
@@ -105,15 +105,15 @@ func (p *Proxy) Handler() http.Handler {
 		// mean rewriting that configuration per task, so the header is accepted
 		// too: the container presents the token exactly where it would have
 		// presented a credential, and the proxy trades it for the real one.
-		if _, known := p.tokenSource().Job(token); !known {
+		if _, known := p.tokenSource().Task(token); !known {
 			if bearer := bearerOf(r); bearer != "" {
-				if _, known := p.tokenSource().Job(bearer); known {
+				if _, known := p.tokenSource().Task(bearer); known {
 					rest = path.Clean("/" + strings.TrimPrefix(r.URL.Path, "/model"))
 					token = bearer
 				}
 			}
 		}
-		ticket, known := p.tokenSource().Job(token)
+		ticket, known := p.tokenSource().Task(token)
 		if !known {
 			// The same answer for a token that never existed and one that has
 			// ended, so this cannot be used to learn which tasks are running.
@@ -144,7 +144,7 @@ func split(full string) (token, rest string) {
 }
 
 func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest string) {
-	job := ticket.Job
+	task := ticket.Task
 	credential, held := p.credentialFor(r.Context(), ticket)
 	if !held {
 		// The task was given this credential when it started, so losing it here
@@ -159,11 +159,11 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		return
 	}
 	sent := time.Now()
-	if refusal := p.ledger.Allow(job, credential.Name, asked.model, credential.Public); refusal != nil {
+	if refusal := p.ledger.Allow(task, credential.Name, asked.model, credential.Public); refusal != nil {
 		refused := spend.RefusedCall(rest, asked.model, sent.Unix(), refusal)
 		refused.Own = credential.Public
 		report(r.Context(), refused)
-		p.refuse(w, job, refused)
+		p.refuse(w, task, refused)
 		return
 	}
 	// What leaves is masked before it is translated, so that the provider sees the mask whatever shape the agent called in.
@@ -217,13 +217,13 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		if errors.Is(context.Cause(ctx), errSilent) {
 			call.Error, call.Took = errSilent.Error(), since(sent)
 			report(r.Context(), call)
-			p.note(job, call)
+			p.note(task, call)
 			http.Error(w, errSilent.Error(), http.StatusGatewayTimeout)
 			return
 		}
 		call.Error, call.Took = err.Error(), since(sent)
 		report(r.Context(), call)
-		p.note(job, call)
+		p.note(task, call)
 		http.Error(w, "the model did not answer", http.StatusBadGateway)
 		return
 	}
@@ -269,7 +269,7 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 	call.Status, call.Took = answer.StatusCode, since(sent)
 	priced := p.priced(call, meter.Usage())
 	report(r.Context(), priced)
-	p.note(job, priced)
+	p.note(task, priced)
 }
 
 // priced puts the provider's count and its cost on a call. Either stays null

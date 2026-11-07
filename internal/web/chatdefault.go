@@ -20,7 +20,7 @@ func (d chatDefault) words() string {
 }
 
 // UseChatDefault is what a new chat runs on when neither the person nor the organization's admins have chosen: a pair the operator
-// knows finishes a job, so that a first chat on a deployment that offers every model to every engine still gets a reply.
+// knows finishes a task, so that a first chat on a deployment that offers every model to every engine still gets a reply.
 func (s *Server) UseChatDefault(harness, model string) {
 	s.operatorDefault = chatDefault{Harness: harness, Model: model}
 }

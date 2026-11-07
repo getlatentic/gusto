@@ -9,7 +9,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/integration"
 	"github.com/getlatentic/gusto/pkg/gateway"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 	"github.com/getlatentic/gusto/schema"
 )
 
@@ -73,14 +73,14 @@ func world(t *testing.T, on bool) (*Store, *integration.Store, string) {
 	return store, integrations, version.ID
 }
 
-func carry(t *testing.T, store *Store, name string) (*job.Setup, job.Dir, error) {
+func carry(t *testing.T, store *Store, name string) (*task.Setup, task.Dir, error) {
 	t.Helper()
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	carried, err := store.Carry(name, Servers{}, dir)
 	return carried, dir, err
 }
 
-func TestAJobGetsTheWholeSkillAndTheServersItCanUseFromAnIntegrationThatIsOn(t *testing.T) {
+func TestATaskGetsTheWholeSkillAndTheServersItCanUseFromAnIntegrationThatIsOn(t *testing.T) {
 	store, _, id := world(t, true)
 	if err := store.Save(Setup{Name: "team", Integrations: []string{"reports"}}, Servers{}); err != nil {
 		t.Fatal(err)
@@ -117,7 +117,7 @@ func TestAJobGetsTheWholeSkillAndTheServersItCanUseFromAnIntegrationThatIsOn(t *
 	}
 }
 
-func TestAJobDoesNotStartWithAnIntegrationThatIsOffOrWasTurnedOffSinceTheSetupWasSaved(t *testing.T) {
+func TestATaskDoesNotStartWithAnIntegrationThatIsOffOrWasTurnedOffSinceTheSetupWasSaved(t *testing.T) {
 	store, integrations, _ := world(t, false)
 	if err := store.Save(Setup{Name: "team", Integrations: []string{"reports"}}, Servers{}); err != nil {
 		t.Fatalf("a setup may name an integration that is off: %v", err)
@@ -164,7 +164,7 @@ func TestASetupNamesOnlyIntegrationsThatWereImportedOnceEach(t *testing.T) {
 	}
 }
 
-func TestTwoSkillsOfOneNameDoNotMeetInAJob(t *testing.T) {
+func TestTwoSkillsOfOneNameDoNotMeetInATask(t *testing.T) {
 	store, _, _ := world(t, true)
 	store.Save(Setup{Name: "team", Integrations: []string{"reports"}}, Servers{})
 	if err := store.Write("team", Skill{Name: "summarize", Description: "Our own.", Body: "ours"}); err != nil {
@@ -206,7 +206,7 @@ func TestTwoIntegrationsWithAServerOfTheSameNameStayApart(t *testing.T) {
 	}
 }
 
-func TestWhatAJobRecordsOfItsIntegrationsIsWhatTheJobSchemaAsks(t *testing.T) {
+func TestWhatATaskRecordsOfItsIntegrationsIsWhatTheTaskSchemaAsks(t *testing.T) {
 	store, _, _ := world(t, true)
 	store.Save(Setup{Name: "team", Integrations: []string{"reports"}}, Servers{})
 	carried, _, err := carry(t, store, "team")
@@ -218,7 +218,7 @@ func TestWhatAJobRecordsOfItsIntegrationsIsWhatTheJobSchemaAsks(t *testing.T) {
 			Setup json.RawMessage `json:"setup"`
 		} `json:"properties"`
 	}
-	if err := json.Unmarshal(schema.Job(), &whole); err != nil || len(whole.Properties.Setup) == 0 {
+	if err := json.Unmarshal(schema.Task(), &whole); err != nil || len(whole.Properties.Setup) == 0 {
 		t.Fatalf("the job schema has no setup: %v", err)
 	}
 	record, _ := json.Marshal(carried)
@@ -231,7 +231,7 @@ func TestWhatAJobRecordsOfItsIntegrationsIsWhatTheJobSchemaAsks(t *testing.T) {
 	}
 }
 
-func TestTwoServersWhoseNamesBecomeTheSameNameStopTheJobAndNotOverwriteEachOther(t *testing.T) {
+func TestTwoServersWhoseNamesBecomeTheSameNameStopTheTaskAndNotOverwriteEachOther(t *testing.T) {
 	store, integrations, _ := world(t, false)
 	_, version, _ := integrations.Import(plugin(t, "clash", map[string]string{"mcp.json": `{` + mcpSchema + `, "mcpServers": {
 		"a_b": {"type": "streamable-http", "url": "https://one.example.com/mcp"},
@@ -295,7 +295,7 @@ func TestAnIntegrationThatIsOnForSomePeopleIsCarriedForThemAndRefusesTheRest(t *
 	store.Save(Setup{Name: "team", Integrations: []string{"reports"}}, Servers{})
 	integrations.SetFor("reports", []string{"ada@acme.example", "*@finance.acme.example"}, "ada")
 	for asker, allowed := range map[string]bool{"ada@acme.example": true, "bo@finance.acme.example": true, "cy@acme.example": false, "": false} {
-		dir := job.Dir(t.TempDir())
+		dir := task.Dir(t.TempDir())
 		carried, err := store.CarryFor("team", Servers{}, dir, asker)
 		if allowed && (err != nil || len(carried.Skills) != 1) {
 			t.Errorf("%q: %+v %v", asker, carried, err)
@@ -305,7 +305,7 @@ func TestAnIntegrationThatIsOnForSomePeopleIsCarriedForThemAndRefusesTheRest(t *
 		}
 	}
 	integrations.SetFor("reports", nil, "ada")
-	if _, err := store.CarryFor("team", Servers{}, job.Dir(t.TempDir()), ""); err != nil {
+	if _, err := store.CarryFor("team", Servers{}, task.Dir(t.TempDir()), ""); err != nil {
 		t.Errorf("an integration on for everybody was refused: %v", err)
 	}
 }

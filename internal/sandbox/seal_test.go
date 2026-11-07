@@ -8,7 +8,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // hostKey makes a key on the host and opens it as the one to sign with.
@@ -63,7 +63,7 @@ func TestTheHostSignsTheManifestTheBoxLeft(t *testing.T) {
 	_, keyring, identity := hostKey(t)
 	c := with("true", "gusto:dev")
 	c.Signing = identity
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}

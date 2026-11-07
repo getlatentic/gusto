@@ -3,7 +3,7 @@ package ship
 import (
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 func TestTheGitHubRepositoryIsReadOffTheRemote(t *testing.T) {
@@ -31,7 +31,7 @@ func TestABranchNameIsSafeForGit(t *testing.T) {
 		"/jobs/20260926-0900-fix the THING!": "gusto/20260926-0900-fix-the-thing-0123456789ab",
 		"/jobs/...":                          "gusto/job-0123456789ab",
 	} {
-		if got := branchName(job.Dir(dir), "0123456789abcdef"); got != want {
+		if got := branchName(task.Dir(dir), "0123456789abcdef"); got != want {
 			t.Errorf("%s: got %s, want %s", dir, got, want)
 		}
 	}

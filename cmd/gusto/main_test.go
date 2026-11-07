@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestMain lets the test binary stand in for gusto where a job's wrapper runs it as `gusto sandbox-run`.
+// TestMain lets the test binary stand in for gusto where a task's wrapper runs it as `gusto sandbox-run`.
 func TestMain(m *testing.M) {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {

@@ -1,6 +1,6 @@
 # Limits on what one person or team runs at once
 
-`GUSTO_JOB_CONCURRENCY` sets how many tasks the server runs at once. Two settings stop one person or team from taking all of them.
+`GUSTO_TASK_CONCURRENCY` sets how many tasks the server runs at once. Two settings stop one person or team from taking all of them.
 
 | Setting | Meaning | Chart |
 | --- | --- | --- |

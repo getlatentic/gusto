@@ -6,12 +6,12 @@ import (
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/landlock"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // wrapProcess holds a task to the policy with Linux's Landlock, applied by gusto itself just before it starts the engine. A Linux
 // computer keeps its programs outside the home too, so every folder of the PATH is readable. The policy is written beside the task.
-func wrapProcess(dir job.Dir, p wallPolicy) (func(*exec.Cmd), error) {
+func wrapProcess(dir task.Dir, p wallPolicy) (func(*exec.Cmd), error) {
 	self, err := os.Executable()
 	if err != nil {
 		return nil, err

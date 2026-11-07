@@ -16,8 +16,8 @@ import (
 // run with the task: the task's agent is not given the program, its files or its credentials, and the program is given nothing of the
 // task but what it is asked.
 type Tool struct {
-	// Job and Name make the container's name.
-	Job, Name string
+	// Task and Name make the container's name.
+	Task, Name string
 	// Plugin is the plugin's folder on this machine, which the program reads and cannot change. Data is a folder it may write.
 	Plugin, Data string
 	Command      string
@@ -48,8 +48,8 @@ func (c Containers) toolNetwork() string {
 var notName = regexp.MustCompile(`[^A-Za-z0-9_.-]+`)
 
 // ToolName is the name a program's container has, so that it can be found and removed by it.
-func ToolName(job, name string) string {
-	return "gusto-tool-" + strings.Trim(notName.ReplaceAllString(job+"-"+name, "-"), "-.")
+func ToolName(task, name string) string {
+	return "gusto-tool-" + strings.Trim(notName.ReplaceAllString(task+"-"+name, "-"), "-.")
 }
 
 // inside is where the plugin and its folder to write are in the box.
@@ -75,7 +75,7 @@ func (c Containers) ToolArgs(tool Tool) ([]string, error) {
 		return nil, err
 	}
 	expand := strings.NewReplacer("${PLUGIN_ROOT}", insidePlugin, "${PLUGIN_DATA}", insideData)
-	args := []string{"run", "--rm", "-i", "--init", "--name", ToolName(tool.Job, tool.Name),
+	args := []string{"run", "--rm", "-i", "--init", "--name", ToolName(tool.Task, tool.Name),
 		"--network=" + c.toolNetwork(),
 		"--read-only", "--tmpfs=/tmp:rw,nosuid,size=64m",
 		"--cap-drop=ALL", "--security-opt=no-new-privileges", "--user=65534:65534",
@@ -146,6 +146,6 @@ func (c Containers) ToolCommand(_ context.Context, tool Tool) (*exec.Cmd, func()
 	if err := os.Chmod(tool.Data, 0o777); err != nil {
 		return nil, nil, err
 	}
-	name := ToolName(tool.Job, tool.Name)
+	name := ToolName(tool.Task, tool.Name)
 	return exec.Command(c.Runtime, args...), func() { _ = exec.Command(c.Runtime, "rm", "-f", name).Run() }, nil
 }

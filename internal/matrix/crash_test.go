@@ -9,7 +9,7 @@ import (
 	"github.com/getlatentic/gusto/internal/matrix"
 	"github.com/getlatentic/gusto/internal/replay"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A stop after an earlier attempt was moved aside, and before the cell was made again, leaves no directory: the next measure
@@ -41,7 +41,7 @@ func TestACellsTimeIsTheTimeOfTheRunItHolds(t *testing.T) {
 		t.Fatal("the first run was not timed")
 	}
 	afterwards := matrix.Way{Where: "here, in this process", Open: func(string) (replay.Run, func(), error) {
-		return func(dir job.Dir) error {
+		return func(dir task.Dir) error {
 			return errors.Join(replay.Here(signing.Identity{})(dir), errors.New("the runner failed after the verdict"))
 		}, func() {}, nil
 	}}

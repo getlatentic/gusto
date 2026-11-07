@@ -13,7 +13,7 @@ import (
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/integration"
 	"github.com/getlatentic/gusto/internal/setup"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // UseSetups hands the pages the store of setups and the MCP servers this
@@ -50,26 +50,26 @@ func (s *Server) setupsPage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// setupOf is what a job on this instance is given, named for job.json.
-func setupOf(held instance.Instance) *job.Setup {
+// setupOf is what a task on this instance is given, named for job.json.
+func setupOf(held instance.Instance) *task.Setup {
 	if held.Setup == "" {
 		return nil
 	}
-	return &job.Setup{Name: held.Setup}
+	return &task.Setup{Name: held.Setup}
 }
 
 // sensitivityOf is what a turn on this instance is labeled: the instance's
 // own, or internal.
-func sensitivityOf(held instance.Instance) job.Sensitivity {
+func sensitivityOf(held instance.Instance) task.Sensitivity {
 	if held.Sensitivity == "" {
-		return job.Internal
+		return task.Internal
 	}
-	return job.Sensitivity(held.Sensitivity)
+	return task.Sensitivity(held.Sensitivity)
 }
 
-// equip carries the setup a job names into its directory, and puts in
+// equip carries the setup a task names into its directory, and puts in
 // job.json what it actually held, whatever the sender said it held.
-func (s *Server) equip(spec *job.Spec, dir job.Dir, asker string) error {
+func (s *Server) equip(spec *task.Spec, dir task.Dir, asker string) error {
 	if spec.Setup == nil {
 		return nil
 	}

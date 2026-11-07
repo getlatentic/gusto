@@ -17,10 +17,10 @@ import (
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/runtoken"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/pkg/proxy"
 	"github.com/getlatentic/gusto/pkg/redact"
 	"github.com/getlatentic/gusto/pkg/spend"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // wayOutSettings is how a turn reaches its model and its tools: the credentials the proxy holds, the prices and caps, where the
@@ -60,7 +60,7 @@ func (w *wayOutSettings) declareModels(set *settings.Set) {
 
 func (w *wayOutSettings) declareProxy(set *settings.Set) {
 	set.String(&w.allowedHosts, "GUSTO_ALLOWED_HOSTS", "", "every other host a task may reach through the proxy, comma-separated")
-	set.String(&w.proxySocket, "GUSTO_PROXY_SOCKET", "", "the socket a box with no network reaches the proxy on (default .proxy.sock in GUSTO_JOBS)")
+	set.String(&w.proxySocket, "GUSTO_PROXY_SOCKET", "", "the socket a box with no network reaches the proxy on (default .proxy.sock in GUSTO_TASKS)")
 	set.String(&w.proxyAddr, "GUSTO_PROXY_ADDR", "", "where the proxy listens for a box on a network (default port 8041, on every interface for containers and the loopback otherwise)")
 	set.Int(&w.maxOutput, "GUSTO_PROXY_MAX_OUTPUT_TOKENS", 0, 1, "the most output tokens one model call may ask for (default no limit)")
 	set.Int(&w.silenceSeconds, "GUSTO_PROXY_SILENCE_SECONDS", 0, 1, "how long a model may send nothing before its call is ended, in seconds (default no limit)")
@@ -117,17 +117,17 @@ type WayOut struct {
 	// asker is the person a task acts for, by task, which a run's token names as its subject; see UseAskers.
 	asker atomic.Pointer[func(id string) string]
 	// describe says who and what a run is for, for its record; see UseRunRecords.
-	describe atomic.Pointer[func(job.Dir, job.Spec) evidence.Run]
+	describe atomic.Pointer[func(task.Dir, task.Spec) evidence.Run]
 }
 
 // UseRunRecords says how to describe a run for its signed record: who asked, who pays, and the room's agent, which the server's
 // index and rooms know.
-func (w *WayOut) UseRunRecords(describe func(job.Dir, job.Spec) evidence.Run) {
+func (w *WayOut) UseRunRecords(describe func(task.Dir, task.Spec) evidence.Run) {
 	w.describe.Store(&describe)
 }
 
 // RecordRun keeps, in the run's record, who and what it is for, the sandbox it runs in and how it was given its model token.
-func (w *WayOut) RecordRun(dir job.Dir, spec job.Spec, sandbox string, bound bool) error {
+func (w *WayOut) RecordRun(dir task.Dir, spec task.Spec, sandbox string, bound bool) error {
 	run := evidence.Run{Room: spec.Session, Agent: spec.Agent}
 	if describe := w.describe.Load(); describe != nil {
 		run = (*describe)(dir, spec)
@@ -166,17 +166,17 @@ func (w *WayOut) askerOf(id string) string {
 	return ""
 }
 
-// openWayOut opens the way out cfg describes, with the ledger starting from what every task under jobsRoot has already spent. A
+// openWayOut opens the way out cfg describes, with the ledger starting from what every task under tasksRoot has already spent. A
 // deployment that holds no credential has no proxy, and its boxes ask the model directly, except on a person's own computer,
 // which always has one, since the person adds their models to it as they go.
-func openWayOut(jobsRoot string, cfg wayOutSettings, local bool) (*WayOut, error) {
+func openWayOut(tasksRoot string, cfg wayOutSettings, local bool) (*WayOut, error) {
 	policy, err := spend.LoadPolicy(cfg.spendPolicy)
 	if err != nil {
 		return nil, err
 	}
 	// The ledger exists without a proxy too, so the spend page reports what tasks spent through one before, rather than
 	// nothing.
-	ledger, err := spend.Rebuild(jobsRoot, policy)
+	ledger, err := spend.Rebuild(tasksRoot, policy)
 	if err != nil {
 		return nil, err
 	}
@@ -191,36 +191,36 @@ func openWayOut(jobsRoot string, cfg wayOutSettings, local bool) (*WayOut, error
 	way := &WayOut{
 		cfg:      cfg,
 		direct:   cfg.modelURL,
-		proxy:    proxy.New(tokens, credentials, recordsUnder(jobsRoot), ledger, proxy.ParseAllowlist(cfg.allowedHosts)),
+		proxy:    proxy.New(tokens, credentials, recordsUnder(tasksRoot), ledger, proxy.ParseAllowlist(cfg.allowedHosts)),
 		platform: registry.Platform{Credentials: credentials, Models: cfg.models, Prices: policy.Prices},
 		tokens:   tokens,
 		ledger:   ledger,
-		socket:   firstOf(cfg.proxySocket, filepath.Join(jobsRoot, ".proxy.sock")),
+		socket:   firstOf(cfg.proxySocket, filepath.Join(tasksRoot, ".proxy.sock")),
 		address:  cfg.proxyAddr,
 	}
 	way.held.Store(&credentials)
-	return way, way.equipProxy(jobsRoot)
+	return way, way.equipProxy(tasksRoot)
 }
 
-// recordsUnder is where the proxy writes down what a task sent: proxy.jsonl in the task's out/, under jobsRoot.
-func recordsUnder(jobsRoot string) func(id string) (string, bool) {
+// recordsUnder is where the proxy writes down what a task sent: proxy.jsonl in the task's out/, under tasksRoot.
+func recordsUnder(tasksRoot string) func(id string) (string, bool) {
 	return func(id string) (string, bool) {
 		if strings.ContainsAny(id, `/\`) {
 			return "", false
 		}
-		return filepath.Join(jobsRoot, id, "out", "proxy.jsonl"), true
+		return filepath.Join(tasksRoot, id, "out", "proxy.jsonl"), true
 	}
 }
 
 // equipProxy gives the proxy how far one call may run, the run tokens a sandbox's forwarder trades for, and the tool gateway.
-func (w *WayOut) equipProxy(jobsRoot string) error {
+func (w *WayOut) equipProxy(tasksRoot string) error {
 	w.proxy.UseLimits(proxy.Limits{MaxOutput: w.cfg.maxOutput, Silence: time.Duration(w.cfg.silenceSeconds) * time.Second})
-	issuer, err := runtoken.NewIssuer(runtoken.TokenLife(), func(id string) runtoken.Run { return w.runOf(jobsRoot, id) })
+	issuer, err := runtoken.NewIssuer(runtoken.TokenLife(), func(id string) runtoken.Run { return w.runOf(tasksRoot, id) })
 	if err != nil {
 		return err
 	}
 	w.proxy.UseRunTokens(issuer)
-	if w.gateways, err = openGateways(jobsRoot, w.cfg); err != nil {
+	if w.gateways, err = openGateways(tasksRoot, w.cfg); err != nil {
 		return err
 	}
 	w.proxy.UseGateways(w.gateways.For)
@@ -309,7 +309,7 @@ func (w *WayOut) exit() backend.Exit {
 
 // Token is the token a task's box is given, or none when it needs neither a model nor the gateway. A task that needs no model but
 // has servers behind the gateway is given a token that stands in for no credential: it is how the proxy knows whose servers to call.
-func (w *WayOut) Token(dir job.Dir, spec job.Spec) (string, error) {
+func (w *WayOut) Token(dir task.Dir, spec task.Spec) (string, error) {
 	switch {
 	case needsModel(dir, spec):
 		return w.admit(dir, spec)
@@ -321,7 +321,7 @@ func (w *WayOut) Token(dir job.Dir, spec job.Spec) (string, error) {
 
 // needsModel is whether a task's agent asks a model at all. One that needs none, such as the program the smoke check
 // runs, is not refused for want of a credential, and is given no token.
-func needsModel(dir job.Dir, spec job.Spec) bool {
+func needsModel(dir task.Dir, spec task.Spec) bool {
 	configured, err := harness.Open(dir, spec.Harness)
 	return err != nil || configured.Adapter.Needs != harness.NeedsNothing
 }
@@ -330,7 +330,7 @@ func needsModel(dir job.Dir, spec job.Spec) bool {
 // stands in for the credential. It is refused before anything starts, by name,
 // rather than as a model call that fails somewhere inside a run somebody has
 // to go and read.
-func (w *WayOut) admit(dir job.Dir, spec job.Spec) (string, error) {
+func (w *WayOut) admit(dir task.Dir, spec task.Spec) (string, error) {
 	id, named, err := w.mayReach(dir, spec)
 	if err != nil {
 		return "", err
@@ -340,7 +340,7 @@ func (w *WayOut) admit(dir job.Dir, spec job.Spec) (string, error) {
 
 // admitBound is admit for a task in a sandbox, which holds a key of its own: it is given a secret that its forwarder trades,
 // once, for a run token bound to that key (internal/runtoken).
-func (w *WayOut) admitBound(dir job.Dir, spec job.Spec) (string, error) {
+func (w *WayOut) admitBound(dir task.Dir, spec task.Spec) (string, error) {
 	id, named, err := w.mayReach(dir, spec)
 	if err != nil {
 		return "", err
@@ -350,7 +350,7 @@ func (w *WayOut) admitBound(dir job.Dir, spec job.Spec) (string, error) {
 
 // SandboxToken is admit for a task in a sandbox: with a secret for its forwarder when runs are bound, and a plain token
 // otherwise. It says which.
-func (w *WayOut) SandboxToken(dir job.Dir, spec job.Spec) (token string, bound bool, err error) {
+func (w *WayOut) SandboxToken(dir task.Dir, spec task.Spec) (token string, bound bool, err error) {
 	if w.bindsRuns() {
 		token, err = w.admitBound(dir, spec)
 		return token, true, err
@@ -360,7 +360,7 @@ func (w *WayOut) SandboxToken(dir job.Dir, spec job.Spec) (token string, bound b
 }
 
 // mayReach checks that a task may reach its model, and says the task and the credential it spends.
-func (w *WayOut) mayReach(dir job.Dir, spec job.Spec) (string, string, error) {
+func (w *WayOut) mayReach(dir task.Dir, spec task.Spec) (string, string, error) {
 	id := filepath.Base(dir.Path())
 	named, _ := proxy.Named(spec.Model)
 	credential, held := w.credentials().Get(named)
@@ -383,8 +383,8 @@ func (w *WayOut) mayReach(dir job.Dir, spec job.Spec) (string, string, error) {
 
 // runOf is what a run's token says of it, from the task's own record: the agent and the room of a room's turn, and the person
 // who asked, whom the run acts for. A task the server's index does not hold names nobody.
-func (w *WayOut) runOf(jobsRoot, id string) runtoken.Run {
-	spec, err := job.Read(job.Dir(filepath.Join(jobsRoot, id)))
+func (w *WayOut) runOf(tasksRoot, id string) runtoken.Run {
+	spec, err := task.Read(task.Dir(filepath.Join(tasksRoot, id)))
 	if err != nil {
 		return runtoken.Run{Person: w.askerOf(id)}
 	}
@@ -405,7 +405,7 @@ func (w *WayOut) proxyPort() string {
 
 // Done ends a task's way out, so a container that outlives its server cannot
 // keep spending.
-func (w *WayOut) Done(dir job.Dir) {
+func (w *WayOut) Done(dir task.Dir) {
 	if w.proxy != nil {
 		id := filepath.Base(dir.Path())
 		w.tokens.Drop(id)

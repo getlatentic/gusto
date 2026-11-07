@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/roomlive"
 	"github.com/getlatentic/gusto/internal/roomlive/livetest"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/spend"
 )
 
@@ -43,7 +43,7 @@ type liveRoom struct {
 func newLiveRoom(t *testing.T, work *roomWork, agents ...[2]string) *liveRoom {
 	t.Helper()
 	site, id, thread := aRoom(t, work, agents...)
-	// A running server has the proxy's ledger in memory; without one every page rebuilds it from every job on disk.
+	// A running server has the proxy's ledger in memory; without one every page rebuilds it from every task on disk.
 	ledger, err := spend.Rebuild(site.index.Root(), spend.Policy{})
 	if err != nil {
 		t.Fatal(err)
@@ -272,7 +272,7 @@ func TestAnAgentIsStoppedFromTheSocket(t *testing.T) {
 	made := l.say(ada, "c-1", "take a long time", false)
 	eventually(t, 5*time.Second, "the turn to start", func() bool {
 		record, found := l.site.index.Get(made.Ref)
-		return found && record.State == jobs.Running
+		return found && record.State == tasks.Running
 	})
 	data, rerr := ada.RPC(roomlive.CmdStop, roomlive.Command{V: 1, ID: "s-1", Room: l.id, Ref: made.Ref})
 	if rerr != nil {

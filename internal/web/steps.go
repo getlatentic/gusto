@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // step is one thing an agent did during a turn, said the way a person would:
@@ -27,7 +27,7 @@ var verbs = map[string]string{
 }
 
 // stepsOf is what a turn did, in words.
-func stepsOf(dir job.Dir) []step {
+func stepsOf(dir task.Dir) []step {
 	var steps []step
 	for _, done := range ranBy(dir) {
 		steps = append(steps, describe(done))

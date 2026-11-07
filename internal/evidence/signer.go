@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // The words a record's signer is given where no keyring checked a name. They
@@ -26,7 +26,7 @@ const (
 // the key, so the manifest's signer field, which is a claim, never appears.
 // Every other state is said in words rather than refused, because a page or a
 // pull request describing the record still has to say something about it.
-func SignedBy(dir job.Dir, keyring signing.Keyring) string {
+func SignedBy(dir task.Dir, keyring signing.Keyring) string {
 	signature, manifest, found, err := sealed(dir)
 	switch {
 	case err != nil:

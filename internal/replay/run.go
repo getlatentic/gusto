@@ -8,12 +8,12 @@ import (
 	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Here runs a rerun in this process, the way `gusto inside` does, with its record signed as signs.
 func Here(signs signing.Identity) Run {
-	return func(dir job.Dir) error {
+	return func(dir task.Dir) error {
 		_, err := runner.InsideContext(context.Background(), dir, runner.Place{Signing: signs})
 		return err
 	}
@@ -23,8 +23,8 @@ func Here(signs signing.Identity) Run {
 // happens on this side of the box, so a repository credential never enters it.
 // The exit code is the check's, and the verdict is read from the evidence.
 func Contained(box sandbox.Containers) Run {
-	return func(dir job.Dir) error {
-		spec, err := job.Read(dir)
+	return func(dir task.Dir) error {
+		spec, err := task.Read(dir)
 		if err != nil {
 			return err
 		}

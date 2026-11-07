@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/getlatentic/gusto/internal/compare"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/spend"
 )
 
@@ -14,7 +14,7 @@ type side struct {
 	Engine  string
 	Harness string
 	Model   string
-	Record  jobs.Record
+	Record  tasks.Record
 	// Holding is what a run that has not started waits for.
 	Holding string
 	Checked bool
@@ -67,7 +67,7 @@ func (s *Server) sidesOf(lineup compare.Lineup, ledger *spend.Ledger) ([]side, b
 	sides := make([]side, 0, len(lineup.Runs))
 	running := false
 	for _, entry := range lineup.Runs {
-		record, found := s.index.Get(entry.Job)
+		record, found := s.index.Get(entry.Task)
 		if !found {
 			continue
 		}
@@ -77,7 +77,7 @@ func (s *Server) sidesOf(lineup compare.Lineup, ledger *spend.Ledger) ([]side, b
 	return sides, running
 }
 
-func (s *Server) sideOf(entry compare.Entry, record jobs.Record, ledger *spend.Ledger) side {
+func (s *Server) sideOf(entry compare.Entry, record tasks.Record, ledger *spend.Ledger) side {
 	shown := side{Engine: s.engineName(entry.Harness), Harness: entry.Harness, Model: modelName(record.Model), Record: record, Holding: s.waiting(record.ID)}
 	dir := record.Dir(s.index.Root())
 	if manifest := readManifest(dir); manifest != nil && manifest.Gate != nil {

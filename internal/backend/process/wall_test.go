@@ -13,7 +13,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/landlock"
 	"github.com/getlatentic/gusto/internal/seatbelt"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // An agent that tries to read the person's secrets, write outside its folder and reach the network is held, and one that works in its
@@ -33,7 +33,7 @@ func TestAnAgentBehindTheSandboxIsHeldToItsOwnFolder(t *testing.T) {
 	t.Cleanup(func() { os.RemoveAll(base) })
 	base, _ = filepath.EvalSymlinks(base)
 
-	dir := job.Dir(filepath.Join(base, "jobs", "one"))
+	dir := task.Dir(filepath.Join(base, "jobs", "one"))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestAnAgentBehindTheSandboxIsHeldToItsOwnFolder(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// What the person has that the agent must not reach: gusto's own secret, beside the jobs, and a key in their home.
+	// What the person has that the agent must not reach: gusto's own secret, beside the tasks, and a key in their home.
 	secret := filepath.Join(base, "local.json")
 	key := filepath.Join(base, "id_ed25519")
 	os.WriteFile(secret, []byte(`{"secret":"s"}`), 0o600)
@@ -56,7 +56,7 @@ func TestAnAgentBehindTheSandboxIsHeldToItsOwnFolder(t *testing.T) {
 	defer other.Close()
 	port := func(l net.Listener) string { return strconv.Itoa(l.Addr().(*net.TCPAddr).Port) }
 
-	wrap, err := behindProcessWall(dir, job.Spec{Harness: "opencode"}, home, data, port(proxy), false)
+	wrap, err := behindProcessWall(dir, task.Spec{Harness: "opencode"}, home, data, port(proxy), false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ nc -z -w 2 1.1.1.1 443 && echo "internet: REACHED" || echo "internet: refused"`
 	}
 }
 
-// processWallHere says this computer has a process sandbox that holds a job to a folder and a port.
+// processWallHere says this computer has a process sandbox that holds a task to a folder and a port.
 func processWallHere() bool {
 	switch runtime.GOOS {
 	case "darwin":

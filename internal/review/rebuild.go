@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// rebuilt checks out the commit the job ran against and applies the hashed
+// rebuilt checks out the commit the task ran against and applies the hashed
 // patch to it, which is the workspace the gate passed in. The pull request's
 // commit has to hold the same tree, or the code under review is not the code
 // whose gate passed.
-func rebuilt(ctx context.Context, found fetched, dir job.Dir) ([]string, error) {
+func rebuilt(ctx context.Context, found fetched, dir task.Dir) ([]string, error) {
 	patch, err := filepath.Abs(dir.OutFile("diff.patch"))
 	if err != nil {
 		return nil, err

@@ -6,7 +6,7 @@ import (
 	"context"
 
 	"github.com/getlatentic/gusto/internal/catalog"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Backend runs turns in boxes of one kind. One Backend serves every turn of a server, and runs turns at the same time.
@@ -40,8 +40,8 @@ const (
 
 // Turn is one run of an agent, with what the server knows of it that the task's own folder does not say.
 type Turn struct {
-	Dir  job.Dir
-	Spec job.Spec
+	Dir  task.Dir
+	Spec task.Spec
 	// Person is who the turn counts against, as an address, or nothing for a token or a script.
 	Person string
 	// Workspace is the instance's folder a conversation's turn works on, or nothing for a task of its own and a room's turn,
@@ -72,10 +72,10 @@ type Exit struct {
 type Door interface {
 	// Token is what a box is given in place of a credential, or nothing when its agent needs neither a model nor a tool
 	// server. A turn that may not reach its model is refused here, in its record.
-	Token(dir job.Dir, spec job.Spec) (string, error)
+	Token(dir task.Dir, spec task.Spec) (string, error)
 	// SandboxToken is Token for a box that holds a key of its own: a secret its forwarder trades for a run token bound to
 	// that key, or a plain token when the organization's admins chose them. bound says which.
-	SandboxToken(dir job.Dir, spec job.Spec) (token string, bound bool, err error)
+	SandboxToken(dir task.Dir, spec task.Spec) (token string, bound bool, err error)
 	// RecordRun keeps, in the run's record, who and what it is for, the sandbox it runs in and how it got its token.
-	RecordRun(dir job.Dir, spec job.Spec, sandbox string, bound bool) error
+	RecordRun(dir task.Dir, spec task.Spec, sandbox string, bound bool) error
 }

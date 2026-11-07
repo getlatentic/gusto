@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/computer"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/quota"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // computersOf is the record of the computers people in this organization have, when this server is an organization's and runs
@@ -32,7 +32,7 @@ func computersOf(dir, org, quotaFile string) (*computer.Registry, error) {
 
 // personWhoAsked is the address of the person a task was asked for by, or nothing when
 // it was asked by a token or a script, which have no computer of their own.
-func personWhoAsked(index *jobs.Index, dir job.Dir) string {
+func personWhoAsked(index *tasks.Index, dir task.Dir) string {
 	record, found := index.Get(filepath.Base(dir.Path()))
 	if !found {
 		return ""
@@ -41,7 +41,7 @@ func personWhoAsked(index *jobs.Index, dir job.Dir) string {
 }
 
 // personWhoPays is the person whose computer runs a task: a room's agent's owner, else the person who asked.
-func personWhoPays(index *jobs.Index, dir job.Dir) string {
+func personWhoPays(index *tasks.Index, dir task.Dir) string {
 	record, found := index.Get(filepath.Base(dir.Path()))
 	if !found {
 		return ""

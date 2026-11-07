@@ -28,7 +28,6 @@ import (
 	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/integration"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/notify"
 	"github.com/getlatentic/gusto/internal/orgsettings"
 	"github.com/getlatentic/gusto/internal/preset"
@@ -36,6 +35,7 @@ import (
 	"github.com/getlatentic/gusto/internal/roomlive"
 	"github.com/getlatentic/gusto/internal/setup"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/spend"
 	"github.com/getlatentic/gusto/pkg/wire"
 )
@@ -44,9 +44,9 @@ import (
 var pages embed.FS
 
 type Server struct {
-	index     *jobs.Index
+	index     *tasks.Index
 	instances *instance.Store
-	queue     *jobs.Queue
+	queue     *tasks.Queue
 	// routineNews is told how each run of a routine ended, and where the server says its own pages are.
 	routineNews notify.Every
 	publicURL   string
@@ -109,7 +109,7 @@ type Server struct {
 	roomHold  func(ctx context.Context, folder string, paths []string) (func(changed bool), error)
 	writers   sync.Mutex
 	retention *retained
-	// sockets is what keeps a room's page up to date, and announce is what turns a job's changes into its room's events.
+	// sockets is what keeps a room's page up to date, and announce is what turns a task's changes into its room's events.
 	sockets  *roomlive.Server
 	announce *announcer
 	health   Health
@@ -143,7 +143,7 @@ type Server struct {
 	names rosterBook
 }
 
-func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, password string, identity *Identity, offered []catalog.Entry, models Models) (*Server, error) {
+func New(index *tasks.Index, instances *instance.Store, queue *tasks.Queue, password string, identity *Identity, offered []catalog.Entry, models Models) (*Server, error) {
 	keeper, err := newKeeper(password)
 	if err != nil {
 		return nil, err
@@ -166,7 +166,7 @@ func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, passwo
 	if err != nil {
 		return nil, err
 	}
-	// A server made only to read who is who has no jobs, so nothing to hand on.
+	// A server made only to read who is who has no tasks, so nothing to hand on.
 	if index != nil {
 		index.OnFinish(s.handOff)
 	}
@@ -253,7 +253,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /device", s.guard(s.approveDevice))
 	mux.HandleFunc("POST /device/{id}/revoke", s.guard(s.endDeviceToken))
 	mux.HandleFunc("POST /device/sign-out-everywhere", s.guard(s.signOutEverywhere))
-	mux.HandleFunc("GET /jobs/{id}", s.guard(s.job))
+	mux.HandleFunc("GET /jobs/{id}", s.guard(s.task))
 	mux.HandleFunc("POST /jobs/{id}/stop", s.guard(s.stopPage))
 	mux.HandleFunc("GET /jobs/{id}/files/{name}", s.guard(s.file))
 	mux.HandleFunc("GET /jobs/{id}/bundle", s.guard(s.bundle))

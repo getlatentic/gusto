@@ -54,9 +54,9 @@ func TestAnUnmeasuredCallIsNotMeasuredRatherThanFree(t *testing.T) {
 	}
 }
 
-// A job a cap stopped before anything left spent a measured nothing, which
+// A task a cap stopped before anything left spent a measured nothing, which
 // is zero and not a word.
-func TestAJobRefusedBeforeItsFirstCallSpentZero(t *testing.T) {
+func TestATaskRefusedBeforeItsFirstCallSpentZero(t *testing.T) {
 	export := exported(t, ranWith(t, refusedCall), audit.Options{})
 	matchesTheSchema(t, export)
 	record := summary(t, export)
@@ -112,8 +112,8 @@ func TestADroppedProxyRecordIsRedacted(t *testing.T) {
 }
 
 // Every call is written with the version of the organization's registry it was sent under, and the
-// record says which versions a job's calls were sent under, so a change of models or prices is never
-// mistaken for a change of what the job did.
+// record says which versions a task's calls were sent under, so a change of models or prices is never
+// mistaken for a change of what the task did.
 func TestTheRecordSaysWhichVersionsOfTheModelRegistryTheCallsWereSentUnder(t *testing.T) {
 	calls := []string{
 		`{"path":"/v1/chat/completions","status":200,"tookMs":5,"atUnix":100,"credential":"acme","registry":7,"model":"m","inputTokens":10,"outputTokens":5,"usd":0.1}`,

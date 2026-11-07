@@ -7,7 +7,7 @@ What to watch on a gusto server, and what to do when an alert fires.
 | Path | Answers | Use it for |
 | --- | --- | --- |
 | `/healthz` | `ok` while the process runs | liveness probe. It never depends on the workers or the disk |
-| `/readyz` | `ready`, or 503: fewer workers than `GUSTO_JOB_CONCURRENCY`, or the tasks directory is not writable | readiness probe, and the check a deploy makes before it keeps a new version |
+| `/readyz` | `ready`, or 503: fewer workers than `GUSTO_TASK_CONCURRENCY`, or the tasks directory is not writable | readiness probe, and the check a deploy makes before it keeps a new version |
 | `/metrics` | Prometheus text format | scraping |
 
 `/metrics` needs `Authorization: Bearer`. With API tokens ([TOKENS.md](TOKENS.md)), make a token that may read metrics at `/admin/tokens`. Without, use the shared password. Counters reset to zero on restart.
@@ -38,7 +38,7 @@ Prometheus could not scrape `/metrics` for two minutes.
 
 ### GustoNotReady
 
-Fewer workers run than `GUSTO_JOB_CONCURRENCY`. `/readyz` gives 503. Run `systemctl restart gusto`. Running tasks end and are marked interrupted. If it recurs, read the log for the error that took a worker.
+Fewer workers run than `GUSTO_TASK_CONCURRENCY`. `/readyz` gives 503. Run `systemctl restart gusto`. Running tasks end and are marked interrupted. If it recurs, read the log for the error that took a worker.
 
 ### GustoQueueStuck
 
@@ -50,7 +50,7 @@ A queued task that nothing holds back has waited over five minutes. The log says
 
 Every runner has been busy, with tasks waiting, for half an hour. Nothing is broken. Check Activity.
 - One person takes every runner: set `GUSTO_LIMIT_PERSON` ([LIMITS.md](LIMITS.md)).
-- Too little capacity: raise `GUSTO_JOB_CONCURRENCY` if memory allows (`GUSTO_JOB_MEMORY` times the concurrency must fit), or add a machine.
+- Too little capacity: raise `GUSTO_TASK_CONCURRENCY` if memory allows (`GUSTO_TASK_MEMORY` times the concurrency must fit), or add a machine.
 - A task hangs: shorten its budget in seconds.
 
 ### GustoJobsFailing

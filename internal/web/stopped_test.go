@@ -6,12 +6,12 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-func failedTurn(t *testing.T, files map[string]string) job.Dir {
+func failedTurn(t *testing.T, files map[string]string) task.Dir {
 	t.Helper()
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestTheReasonIsFoundAtTheEndOfALongLog(t *testing.T) {
 // When the proxy saw the model never answer, that is the reason, whatever the agent said on its way out (planning#676).
 func TestATurnWhoseModelNeverAnsweredSaysSo(t *testing.T) {
 	dir := failedTurn(t, map[string]string{"stderr.log": "done\n"})
-	if err := evidence.Write(dir, evidence.Manifest{Job: "j", Harness: "pi", Signer: "unsigned", AtUnix: 1,
+	if err := evidence.Write(dir, evidence.Manifest{Task: "j", Harness: "pi", Signer: "unsigned", AtUnix: 1,
 		ModelUnanswered: &evidence.Unanswered{Calls: 2, Reason: "dial tcp: connect: connection refused"}}); err != nil {
 		t.Fatal(err)
 	}

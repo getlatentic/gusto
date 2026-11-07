@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/spend"
 )
 
@@ -145,7 +145,7 @@ func (s *Server) takeOutMember(room, who, by string) error {
 
 // stopTurns stops every turn of an agent's in a room that has not finished.
 func (s *Server) stopTurns(room, agent, by string) {
-	for _, turn := range s.index.Unfinished(jobs.Record{Instance: room, Agent: agent}.Lane()) {
+	for _, turn := range s.index.Unfinished(tasks.Record{Instance: room, Agent: agent}.Lane()) {
 		_ = runner.NoteStop(turn.Dir(s.index.Root()), by, time.Now().Unix())
 		_, _, _ = s.queue.Cancel(turn.ID, by)
 	}

@@ -7,7 +7,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/backend"
 	"github.com/getlatentic/gusto/internal/matrix"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 type benchmarkFlags struct {
@@ -87,8 +87,8 @@ type benchmarkDoor struct {
 
 func (d benchmarkDoor) Listen() (func(), error) { return d.way.Listen(d.boxes.Reach()) }
 
-func (d benchmarkDoor) Run(dir job.Dir, spec job.Spec) (int, error) {
+func (d benchmarkDoor) Run(dir task.Dir, spec task.Spec) (int, error) {
 	return d.boxes.Run(context.Background(), backend.Turn{Dir: dir, Spec: spec, Exit: d.way.exit()})
 }
 
-func (d benchmarkDoor) Done(dir job.Dir) { d.way.Done(dir) }
+func (d benchmarkDoor) Done(dir task.Dir) { d.way.Done(dir) }

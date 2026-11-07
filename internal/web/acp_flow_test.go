@@ -12,7 +12,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/helper"
 	"github.com/getlatentic/gusto/internal/helper/bridge"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // anEditor is an editor speaking the protocol to the bridge, which is talking to the real server.
@@ -136,7 +136,7 @@ func TestAnEditorCancelsATurnOnTheRealServerAndItReallyStopsAndIsTold(t *testing
 	}
 	var found bool
 	for _, record := range here.index.List() {
-		if record.State == jobs.Interrupted && record.StoppedBy == alice {
+		if record.State == tasks.Interrupted && record.StoppedBy == alice {
 			found = true
 		}
 	}

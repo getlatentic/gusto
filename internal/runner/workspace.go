@@ -12,14 +12,14 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/repoaccess"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Fill puts the repository in workspace/, or makes an empty one when no
 // repository is named. The clone happens here, outside the box, so a credential
 // for the repository never goes in with the agent. A directory that already holds a checkout is left alone,
 // so a run can be repeated against the same tree.
-func Fill(spec job.Spec, dir job.Dir) error {
+func Fill(spec task.Spec, dir task.Dir) error {
 	// A turn in a conversation works in the conversation's directory, which is
 	// mounted over this one. Cloning here would write files nobody reads.
 	if spec.Session != "" {
@@ -61,13 +61,13 @@ func Fill(spec job.Spec, dir job.Dir) error {
 // the programs its configuration names (a filter, an fsmonitor) when it stages
 // files; the runner is root, so staging with the agent's configuration would
 // hand the agent root in the box during the one step that writes the record.
-func Snapshot(dir job.Dir) (string, error) {
+func Snapshot(dir task.Dir) (string, error) {
 	return treeOf(dir)
 }
 
 // Diff writes what the agent changed since before: every file added,
 // removed or edited, new ones with their contents.
-func Diff(dir job.Dir, before string) error {
+func Diff(dir task.Dir, before string) error {
 	defer os.RemoveAll(objectsOf(dir))
 	after, err := treeOf(dir)
 	if err != nil {
@@ -82,9 +82,9 @@ func Diff(dir job.Dir, before string) error {
 	return os.WriteFile(dir.OutFile("diff.patch"), patch, 0o644)
 }
 
-// objectsOf is where a job's trees are kept while it runs, outside the job
+// objectsOf is where a task's trees are kept while it runs, outside the task
 // directory and the workspace, so neither the agent nor the evidence holds it.
-func objectsOf(dir job.Dir) string {
+func objectsOf(dir task.Dir) string {
 	path, err := filepath.Abs(dir.Path())
 	if err != nil {
 		path = dir.Path()
@@ -94,9 +94,9 @@ func objectsOf(dir job.Dir) string {
 }
 
 // ownRepository is the environment that makes git use the runner's repository
-// and the job's workspace, and nothing else's configuration: no system or user
+// and the task's workspace, and nothing else's configuration: no system or user
 // file, and no prompt.
-func ownRepository(dir job.Dir) []string {
+func ownRepository(dir task.Dir) []string {
 	workspace, err := filepath.Abs(dir.Workspace())
 	if err != nil {
 		workspace = dir.Workspace()
@@ -112,7 +112,7 @@ func ownRepository(dir job.Dir) []string {
 }
 
 // treeOf writes the working tree, ignored files left out, as a tree object.
-func treeOf(dir job.Dir) (string, error) {
+func treeOf(dir task.Dir) (string, error) {
 	if _, err := os.Stat(filepath.Join(objectsOf(dir), "HEAD")); err != nil {
 		if output, err := exec.Command("git", "init", "--quiet", "--bare", objectsOf(dir)).CombinedOutput(); err != nil {
 			return "", fmt.Errorf("git init: %w: %s", err, output)

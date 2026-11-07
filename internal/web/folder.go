@@ -8,17 +8,17 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // changed is the files a turn changed, from its patch, for the chat to link to.
-func changed(dir job.Dir) []string {
+func changed(dir task.Dir) []string {
 	names, _ := changes(dir)
 	return names
 }
 
 // changes is every file a turn left different, and of those the ones it deleted.
-func changes(dir job.Dir) (names, deleted []string) {
+func changes(dir task.Dir) (names, deleted []string) {
 	if !dir.PlainOut("diff.patch") {
 		return nil, nil
 	}

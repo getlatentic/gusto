@@ -8,7 +8,7 @@ import (
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/matrix"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 func TestEveryRowIsARunWithItsEvidenceKept(t *testing.T) {
@@ -20,9 +20,9 @@ func TestEveryRowIsARunWithItsEvidenceKept(t *testing.T) {
 		t.Fatalf("two jobs on two pairs should be four runs and four rows, got %d runs and %+v", ran, table.Rows)
 	}
 	for _, row := range table.Rows {
-		dir := job.Dir(filepath.Join(where, row.Run))
+		dir := task.Dir(filepath.Join(where, row.Run))
 		if wrong, err := evidence.Check(dir); err != nil || len(wrong) > 0 || row.Evidence != "checks" {
-			t.Fatalf("%s on %s should keep evidence that checks, got %v %v %q", row.Job, row.Harness, wrong, err, row.Evidence)
+			t.Fatalf("%s on %s should keep evidence that checks, got %v %v %q", row.Task, row.Harness, wrong, err, row.Evidence)
 		}
 		if row.WallSeconds == nil || row.Environment != "a test, here, in this process" {
 			t.Fatalf("every finished run should say how long it took and where: %+v", row)
@@ -39,9 +39,9 @@ func TestEveryRowIsARunWithItsEvidenceKept(t *testing.T) {
 	}
 }
 
-// A job's column is a comparison `gusto compare` can read: one commit, and runs
+// A task's column is a comparison `gusto compare` can read: one commit, and runs
 // that differ in the harness and model alone.
-func TestAJobIsAComparisonPinnedToOneCommit(t *testing.T) {
+func TestATaskIsAComparisonPinnedToOneCommit(t *testing.T) {
 	hermetic(t)
 	bare := remote(t)
 	started := git(t, bare, "rev-parse", "main")
@@ -113,7 +113,7 @@ func TestAgainRunsANamedPairAndKeepsTheOldRun(t *testing.T) {
 		t.Fatalf("says@yes should run again on both jobs and nothing else, and %d runs happened", ran)
 	}
 	kept := filepath.Join(where, "one-line-fix", finishes.Dir()+".attempt-1")
-	if wrong, err := evidence.Check(job.Dir(kept)); err != nil || len(wrong) > 0 {
+	if wrong, err := evidence.Check(task.Dir(kept)); err != nil || len(wrong) > 0 {
 		t.Fatalf("the run that was replaced should be kept with its evidence: %v %v", wrong, err)
 	}
 	if matrix.ExitCode(table) != 0 {

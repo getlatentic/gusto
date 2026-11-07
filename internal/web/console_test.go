@@ -225,7 +225,7 @@ func TestAnAppIsASwitchAndOneThatNeedsSetupSaysSo(t *testing.T) {
 func TestOnlyAnAdminSeesTheLinkToTheConsoleAndItIsTheOnlyOne(t *testing.T) {
 	here := everything(t)
 	runner, admin := here.as(t, alice), here.as(t, boss)
-	oldJob(t, here.site, "seen", 1)
+	oldTask(t, here.site, "seen", 1)
 	where, _ := started(t, runner)
 	pages := []string{"/chat", "/jobs", "/spend", "/presets", "/compare", "/setups", "/engines", "/jobs/seen", where}
 	for _, path := range pages {

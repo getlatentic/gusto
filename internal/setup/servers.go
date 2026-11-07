@@ -10,11 +10,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Servers is every MCP server the deployment offers, by name.
-type Servers map[string]job.Server
+type Servers map[string]task.Server
 
 // OpenServers reads one file a server from dir, named for the server: a
 // program the box runs, {"command", "args", "env"}, or an address it calls,
@@ -48,21 +48,21 @@ func OpenServers(dir string) (Servers, error) {
 	return offered, nil
 }
 
-func readServer(path, name string) (job.Server, error) {
-	if !job.Named(name) {
-		return job.Server{}, fmt.Errorf("%s: %q cannot name an MCP server", path, name)
+func readServer(path, name string) (task.Server, error) {
+	if !task.Named(name) {
+		return task.Server{}, fmt.Errorf("%s: %q cannot name an MCP server", path, name)
 	}
 	text, err := os.ReadFile(path)
 	if err != nil {
-		return job.Server{}, err
+		return task.Server{}, err
 	}
-	var server job.Server
+	var server task.Server
 	if err := json.Unmarshal(text, &server); err != nil {
-		return job.Server{}, fmt.Errorf("%s is not an MCP server: %w", path, err)
+		return task.Server{}, fmt.Errorf("%s is not an MCP server: %w", path, err)
 	}
 	server.Name = name
 	if (server.Command == "") == (server.URL == "") {
-		return job.Server{}, fmt.Errorf("%s names neither a command nor a url, or both", path)
+		return task.Server{}, fmt.Errorf("%s names neither a command nor a url, or both", path)
 	}
 	return server, nil
 }

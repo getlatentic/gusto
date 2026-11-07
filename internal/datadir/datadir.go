@@ -26,7 +26,7 @@ const StampFile = ".gusto-format"
 type Store string
 
 const (
-	Jobs        Store = "jobs"
+	Tasks       Store = "jobs"
 	Sessions    Store = "sessions"
 	Setups      Store = "setups"
 	Comparisons Store = "comparisons"
@@ -42,11 +42,11 @@ const (
 )
 
 // Stores is every kind, in the order they are listed.
-var Stores = []Store{Jobs, Sessions, Setups, Comparisons, Changes, Tokens, Retention, Integrations, Presets, Crew}
+var Stores = []Store{Tasks, Sessions, Setups, Comparisons, Changes, Tokens, Retention, Integrations, Presets, Crew}
 
 // Current is the format each store has in this release.
 var Current = map[Store]int{
-	Jobs: 1, Sessions: 1, Setups: 1, Comparisons: 1, Changes: 1, Tokens: 1, Retention: 1, Integrations: 1, Presets: 1, Crew: 1,
+	Tasks: 1, Sessions: 1, Setups: 1, Comparisons: 1, Changes: 1, Tokens: 1, Retention: 1, Integrations: 1, Presets: 1, Crew: 1,
 }
 
 // Stamp is what a directory says about itself.

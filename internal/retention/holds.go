@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/atomicfile"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // HoldsFile is where a retention directory keeps its holds.
@@ -25,13 +25,13 @@ type Hold struct {
 
 // Held is every hold in force: on single tasks, and on everything a person asked for.
 type Held struct {
-	Jobs   map[string]Hold `json:"jobs,omitempty"`
+	Tasks  map[string]Hold `json:"jobs,omitempty"`
 	People map[string]Hold `json:"people,omitempty"`
 }
 
 // Covers says whether a task is held, by itself or by who asked for it.
-func (h Held) Covers(record jobs.Record) (Hold, bool) {
-	if hold, held := h.Jobs[record.ID]; held {
+func (h Held) Covers(record tasks.Record) (Hold, bool) {
+	if hold, held := h.Tasks[record.ID]; held {
 		return hold, true
 	}
 	if record.Asked != "" {
@@ -45,11 +45,11 @@ func (h Held) Covers(record jobs.Record) (Hold, bool) {
 // Guard says whether a task is held, and removes it when it is not, as one step: a hold placed while a sweep runs keeps what the
 // sweep has not yet removed.
 type Guard interface {
-	UnlessHeld(record jobs.Record, remove func() error) (held bool, err error)
+	UnlessHeld(record tasks.Record, remove func() error) (held bool, err error)
 }
 
 // UnlessHeld is the holds as they were read, for a sweep that plans and removes nothing.
-func (h Held) UnlessHeld(record jobs.Record, remove func() error) (bool, error) {
+func (h Held) UnlessHeld(record tasks.Record, remove func() error) (bool, error) {
 	if _, held := h.Covers(record); held {
 		return true, nil
 	}
@@ -85,19 +85,19 @@ func (h *Holds) read() (Held, error) {
 	return held, json.Unmarshal(text, &held)
 }
 
-// HoldJob keeps one task whole until it is released.
-func (h *Holds) HoldJob(id, by, why string) error {
+// HoldTask keeps one task whole until it is released.
+func (h *Holds) HoldTask(id, by, why string) error {
 	return h.change(func(held *Held) {
-		if held.Jobs == nil {
-			held.Jobs = map[string]Hold{}
+		if held.Tasks == nil {
+			held.Tasks = map[string]Hold{}
 		}
-		held.Jobs[id] = Hold{By: by, At: time.Now().Unix(), Why: why}
+		held.Tasks[id] = Hold{By: by, At: time.Now().Unix(), Why: why}
 	})
 }
 
-// ReleaseJob lets a task be removed on the policy's schedule again.
-func (h *Holds) ReleaseJob(id string) error {
-	return h.change(func(held *Held) { delete(held.Jobs, id) })
+// ReleaseTask lets a task be removed on the policy's schedule again.
+func (h *Holds) ReleaseTask(id string) error {
+	return h.change(func(held *Held) { delete(held.Tasks, id) })
 }
 
 // HoldPerson keeps everything a person asked for, now and later, whole.
@@ -116,7 +116,7 @@ func (h *Holds) ReleasePerson(who string) error {
 }
 
 // UnlessHeld reads the holds and removes the task when none covers it, all while no hold can be placed.
-func (h *Holds) UnlessHeld(record jobs.Record, remove func() error) (bool, error) {
+func (h *Holds) UnlessHeld(record tasks.Record, remove func() error) (bool, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	held, err := h.read()
@@ -136,7 +136,7 @@ func (h *Holds) ForgetGone(kept func(id string) bool) error {
 		return err
 	}
 	var gone []string
-	for id := range held.Jobs {
+	for id := range held.Tasks {
 		if !kept(id) {
 			gone = append(gone, id)
 		}
@@ -146,7 +146,7 @@ func (h *Holds) ForgetGone(kept func(id string) bool) error {
 	}
 	return h.change(func(held *Held) {
 		for _, id := range gone {
-			delete(held.Jobs, id)
+			delete(held.Tasks, id)
 		}
 	})
 }

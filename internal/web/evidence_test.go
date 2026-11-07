@@ -10,25 +10,25 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// leftBehind is a job directory as a runner leaves it, written without running
+// leftBehind is a task directory as a runner leaves it, written without running
 // anything, so a page can be shown evidence of any shape a harness might write.
 type leftBehind struct {
-	state jobs.State
+	state tasks.State
 	out   map[string]string
 	gate  *evidence.Verdict
 }
 
 func (s *site) leave(t *testing.T, id string, run leftBehind) {
 	t.Helper()
-	dir := job.Dir(filepath.Join(s.index.Root(), id))
+	dir := task.Dir(filepath.Join(s.index.Root(), id))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: "read the evidence", Repo: "/repo", Gate: []string{"true"}, Harness: "fixture"}
+	spec := task.Spec{Brief: "read the evidence", Repo: "/repo", Gate: []string{"true"}, Harness: "fixture"}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -41,21 +41,21 @@ func (s *site) leave(t *testing.T, id string, run leftBehind) {
 	if run.gate != nil {
 		sign(t, dir, *run.gate)
 	}
-	if err := s.index.Add(jobs.Record{
+	if err := s.index.Add(tasks.Record{
 		ID: id, State: run.state, Brief: spec.Brief, Repo: spec.Repo, Harness: spec.Harness,
-		Queued: jobs.Now(), Ended: jobs.Now(),
+		Queued: tasks.Now(), Ended: tasks.Now(),
 	}); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func sign(t *testing.T, dir job.Dir, gate evidence.Verdict) {
+func sign(t *testing.T, dir task.Dir, gate evidence.Verdict) {
 	t.Helper()
 	spec, files, err := evidence.Of(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Job: spec, Files: files, Gate: &gate, Signer: "a-test"}); err != nil {
+	if err := evidence.Write(dir, evidence.Manifest{Task: spec, Files: files, Gate: &gate, Signer: "a-test"}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -74,7 +74,7 @@ var passed = &evidence.Verdict{Command: []string{"true"}, Code: 0, Passed: true}
 func TestTheDiffIsDrawnFileByFileWithItsHunks(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	site.leave(t, "diffed", leftBehind{state: jobs.Passed, out: map[string]string{"diff.patch": twoFiles}, gate: passed})
+	site.leave(t, "diffed", leftBehind{state: tasks.Passed, out: map[string]string{"diff.patch": twoFiles}, gate: passed})
 
 	page := site.page(t, "diffed")
 	for _, want := range []string{
@@ -99,7 +99,7 @@ func TestTheDiffIsDrawnFileByFileWithItsHunks(t *testing.T) {
 func TestMarkupFromTheHarnessIsDrawnAsText(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	site.leave(t, "hostile", leftBehind{state: jobs.Failed, out: map[string]string{
+	site.leave(t, "hostile", leftBehind{state: tasks.Failed, out: map[string]string{
 		"transcript.log": "done\n<script>alert('transcript')</script>\n",
 		"diff.patch": "diff --git a/<b>x</b>.html b/<b>x</b>.html\n--- a/<b>x</b>.html\n+++ b/<b>x</b>.html\n" +
 			"@@ -1 +1 @@\n-<p>old</p>\n+<script>alert('diff')</script>\n",
@@ -127,7 +127,7 @@ func TestMarkupFromTheHarnessIsDrawnAsText(t *testing.T) {
 func TestAnEmptyPatchHasNoSection(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	site.leave(t, "idle", leftBehind{state: jobs.Failed, out: map[string]string{"diff.patch": ""}, gate: passed})
+	site.leave(t, "idle", leftBehind{state: tasks.Failed, out: map[string]string{"diff.patch": ""}, gate: passed})
 	if page := site.page(t, "idle"); strings.Contains(page, "What changed") || strings.Contains(page, "No files changed") {
 		t.Error("an empty patch should add nothing to the page")
 	}
@@ -136,7 +136,7 @@ func TestAnEmptyPatchHasNoSection(t *testing.T) {
 func TestABinaryFileIsNamedAndNotDrawn(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	site.leave(t, "binary", leftBehind{state: jobs.Passed, out: map[string]string{
+	site.leave(t, "binary", leftBehind{state: tasks.Passed, out: map[string]string{
 		"diff.patch": "diff --git a/logo.png b/logo.png\nnew file mode 100644\nindex 0000000..8c3f1a2\n" +
 			"Binary files /dev/null and b/logo.png differ\n",
 	}, gate: passed})
@@ -155,7 +155,7 @@ func TestAHugeTranscriptAndPatchAreCutAndLinked(t *testing.T) {
 	long := strings.Repeat(line, 2*drawn/len(line)) + "THE LAST LINE\n"
 	patch := "diff --git a/big.txt b/big.txt\n--- a/big.txt\n+++ b/big.txt\n@@ -0,0 +1 @@\n" +
 		strings.ReplaceAll(long, "the harness", "+the patch")
-	site.leave(t, "huge", leftBehind{state: jobs.Passed, out: map[string]string{
+	site.leave(t, "huge", leftBehind{state: tasks.Passed, out: map[string]string{
 		"transcript.log": long, "diff.patch": patch,
 	}, gate: passed})
 
@@ -180,7 +180,7 @@ func TestAHugeTranscriptAndPatchAreCutAndLinked(t *testing.T) {
 func TestAShortTranscriptIsDrawnWholeWithItsLineBreaks(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	site.leave(t, "short", leftBehind{state: jobs.Passed, out: map[string]string{
+	site.leave(t, "short", leftBehind{state: tasks.Passed, out: map[string]string{
 		"transcript.log": "I read the tests.\nI changed answer.txt.\n",
 	}, gate: passed})
 	page := site.page(t, "short")
@@ -195,7 +195,7 @@ func TestAShortTranscriptIsDrawnWholeWithItsLineBreaks(t *testing.T) {
 func TestTheGateShowsItsCommandItsExitAndWhatItPrinted(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	site.leave(t, "refused", leftBehind{state: jobs.Failed, out: map[string]string{"gate.log": "3 tests failed\n"},
+	site.leave(t, "refused", leftBehind{state: tasks.Failed, out: map[string]string{"gate.log": "3 tests failed\n"},
 		gate: &evidence.Verdict{Command: []string{"sh", "-c", "go test ./... && exit 3"}, Code: 3}})
 
 	page := site.page(t, "refused")
@@ -211,11 +211,11 @@ func TestTheGateShowsItsCommandItsExitAndWhatItPrinted(t *testing.T) {
 	}
 }
 
-// A running job's transcript is the live stream, and its gate has not answered.
-func TestARunningJobIsLeftToTheStream(t *testing.T) {
+// A running task's transcript is the live stream, and its gate has not answered.
+func TestARunningTaskIsLeftToTheStream(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	site.leave(t, "busy", leftBehind{state: jobs.Running, out: map[string]string{"transcript.log": "working\n"}})
+	site.leave(t, "busy", leftBehind{state: tasks.Running, out: map[string]string{"transcript.log": "working\n"}})
 	page := site.page(t, "busy")
 	if !strings.Contains(page, `id="stream"`) || strings.Contains(page, `class="transcript"`) {
 		t.Error("a running job should draw the stream, not the transcript so far")
@@ -246,7 +246,7 @@ var shownCommand = regexp.MustCompile(`<code [^>]*id="verify">([^<]*)</code>`)
 func TestTheVerifyCommandOnThePageVerifiesTheBundle(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	id, _ := site.ranJob(t, wroteTheAnswer)
+	id, _ := site.ranTask(t, wroteTheAnswer)
 
 	found := shownCommand.FindStringSubmatch(site.page(t, id))
 	if found == nil {

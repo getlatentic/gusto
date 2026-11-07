@@ -17,12 +17,12 @@ func TestTheCreditIsReadFromTheQuota(t *testing.T) {
 	if usd, held := credit(); usd != 0 || !held {
 		t.Errorf("an unreadable quota: %v %v", usd, held)
 	}
-	quota.Write(path, quota.Quota{Jobs: 3, CreditUSD: 5})
+	quota.Write(path, quota.Quota{Tasks: 3, CreditUSD: 5})
 	if usd, held := creditOf(quota.Open(path))(); usd != 5 || !held {
 		t.Errorf("%v %v", usd, held)
 	}
 	os.Remove(path)
-	quota.Write(path, quota.Quota{Jobs: 3})
+	quota.Write(path, quota.Quota{Tasks: 3})
 	if usd, held := creditOf(quota.Open(path))(); held {
 		t.Errorf("a quota with no credit: %v %v", usd, held)
 	}

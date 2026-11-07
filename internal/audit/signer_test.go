@@ -10,12 +10,12 @@ import (
 	"github.com/getlatentic/gusto/internal/audit"
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// signedRun runs the fixture job signed by a key kept in ring as name. The
+// signedRun runs the fixture task signed by a key kept in ring as name. The
 // manifest still claims "a-test", which no keyring vouches for.
-func signedRun(t *testing.T, ring, name string) job.Dir {
+func signedRun(t *testing.T, ring, name string) task.Dir {
 	t.Helper()
 	if _, err := signing.Generate(ring, name); err != nil {
 		t.Fatal(err)
@@ -45,7 +45,7 @@ func TestAnExportNamesOnlyTheSignerItsKeyringChecked(t *testing.T) {
 	}
 	keyIn("acme")
 	for name, tc := range map[string]struct {
-		from    func(t *testing.T) job.Dir
+		from    func(t *testing.T) task.Dir
 		keyring signing.Keyring
 		want    string
 	}{
@@ -53,11 +53,11 @@ func TestAnExportNamesOnlyTheSignerItsKeyringChecked(t *testing.T) {
 			from: ran, keyring: keyringAt(t, trusted), want: evidence.Unsigned,
 		},
 		"signed, no keyring": {
-			from:    func(t *testing.T) job.Dir { return signedRun(t, t.TempDir(), "stranger") },
+			from:    func(t *testing.T) task.Dir { return signedRun(t, t.TempDir(), "stranger") },
 			keyring: signing.Keyring{}, want: evidence.NoKeyring,
 		},
 		"signed by a key not in the keyring": {
-			from:    func(t *testing.T) job.Dir { return signedRun(t, t.TempDir(), "stranger") },
+			from:    func(t *testing.T) task.Dir { return signedRun(t, t.TempDir(), "stranger") },
 			keyring: keyringAt(t, trusted), want: "is not in the keyring",
 		},
 	} {

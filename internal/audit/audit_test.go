@@ -10,11 +10,11 @@ import (
 	"github.com/getlatentic/gusto/internal/audit"
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 	"github.com/getlatentic/gusto/schema"
 )
 
-func exported(t *testing.T, from job.Dir, options audit.Options) job.Dir {
+func exported(t *testing.T, from task.Dir, options audit.Options) task.Dir {
 	t.Helper()
 	if options.Now == nil {
 		options.Now = func() int64 { return 200 }
@@ -23,16 +23,16 @@ func exported(t *testing.T, from job.Dir, options audit.Options) job.Dir {
 	if _, err := audit.Export(from, to, options); err != nil {
 		t.Fatal(err)
 	}
-	return job.Dir(to)
+	return task.Dir(to)
 }
 
 // verified checks an export with no keyring, which names no signer.
-func verified(t *testing.T, dir job.Dir) audit.Report {
+func verified(t *testing.T, dir task.Dir) audit.Report {
 	t.Helper()
 	return verifiedWith(t, dir, signing.Keyring{})
 }
 
-func verifiedWith(t *testing.T, dir job.Dir, keyring signing.Keyring) audit.Report {
+func verifiedWith(t *testing.T, dir task.Dir, keyring signing.Keyring) audit.Report {
 	t.Helper()
 	report, err := audit.Verify(dir, keyring)
 	if err != nil {
@@ -41,7 +41,7 @@ func verifiedWith(t *testing.T, dir job.Dir, keyring signing.Keyring) audit.Repo
 	return report
 }
 
-func summary(t *testing.T, dir job.Dir) map[string]any {
+func summary(t *testing.T, dir task.Dir) map[string]any {
 	t.Helper()
 	var record map[string]any
 	if err := json.Unmarshal([]byte(read(t, filepath.Join(dir.Path(), audit.SummaryFile))), &record); err != nil {
@@ -52,7 +52,7 @@ func summary(t *testing.T, dir job.Dir) map[string]any {
 
 // The summary is only worth something if it validates against the schema a
 // stranger reads, so the test validates the bytes the export wrote.
-func matchesTheSchema(t *testing.T, dir job.Dir) {
+func matchesTheSchema(t *testing.T, dir task.Dir) {
 	t.Helper()
 	published, err := os.ReadFile("../../schema/audit/v2.json")
 	if err != nil {
@@ -139,7 +139,7 @@ func TestASummaryThatSaysMoreThanItsFilesFails(t *testing.T) {
 	}
 }
 
-func TestAJobThatDoesNotVerifyIsNotExported(t *testing.T) {
+func TestATaskThatDoesNotVerifyIsNotExported(t *testing.T) {
 	from := ran(t)
 	write(t, from.OutFile("gate.log"), "a different verdict")
 	_, err := audit.Export(from, filepath.Join(t.TempDir(), "export"), audit.Options{Now: func() int64 { return 0 }})
@@ -186,7 +186,7 @@ func mentions(problems []string, want string) bool {
 	return false
 }
 
-// A request log that cannot be read stops the export after job files were
+// A request log that cannot be read stops the export after task files were
 // copied, and nothing of it is left behind.
 func TestAFailedExportLeavesNothing(t *testing.T) {
 	to := filepath.Join(t.TempDir(), "export")

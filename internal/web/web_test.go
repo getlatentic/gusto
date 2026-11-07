@@ -16,11 +16,11 @@ import (
 	"github.com/getlatentic/gusto/pkg/harness"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/preset"
 	"github.com/getlatentic/gusto/internal/setup"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 const password = "a-shared-password"
@@ -28,13 +28,13 @@ const password = "a-shared-password"
 type site struct {
 	server  *Server
 	handler http.Handler
-	index   *jobs.Index
+	index   *tasks.Index
 	cookie  *http.Cookie
 	ran     chan string
 }
 
-// testWork replaces what the test server's queue does with a job, for the test that sets it.
-var testWork jobs.StoppableWork
+// testWork replaces what the test server's queue does with a task, for the test that sets it.
+var testWork tasks.StoppableWork
 
 // testWorkers is how many tasks the test server runs at once, for the test that sets it; zero is one.
 var testWorkers int
@@ -44,14 +44,14 @@ func open(t *testing.T) *site {
 	return openAt(t, t.TempDir())
 }
 
-// openAt is a server over a jobs directory that may already hold jobs, which is
+// openAt is a server over a tasks directory that may already hold tasks, which is
 // how a test shows that what ran before still reads.
 func openAt(t *testing.T, root string) *site {
 	t.Helper()
 	return openKeyed(t, root, signing.Keyring{})
 }
 
-// openKeyed is openAt with the keyring the job page names signers from.
+// openKeyed is openAt with the keyring the task page names signers from.
 func openKeyed(t *testing.T, root string, keyring signing.Keyring) *site {
 	t.Helper()
 	return build(t, root, keyring, offered())
@@ -71,12 +71,12 @@ func build(t *testing.T, root string, keyring signing.Keyring, entries []catalog
 // buildOffering is a server that offers the models given, which are what an agent may think with.
 func buildOffering(t *testing.T, root string, keyring signing.Keyring, entries []catalog.Entry, models Models) *site {
 	t.Helper()
-	index, err := jobs.Open(root)
+	index, err := tasks.Open(root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ran := make(chan string, 4)
-	work := func(_ context.Context, dir job.Dir) (int, error) {
+	work := func(_ context.Context, dir task.Dir) (int, error) {
 		if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 			return 0, err
 		}
@@ -89,7 +89,7 @@ func buildOffering(t *testing.T, root string, keyring signing.Keyring, entries [
 	if testWork != nil {
 		work = testWork
 	}
-	queue := jobs.StartStoppable(index, work, max(testWorkers, 1))
+	queue := tasks.StartStoppable(index, work, max(testWorkers, 1))
 	t.Cleanup(queue.Stop)
 	instances, err := instance.Open(t.TempDir())
 	if err != nil {
@@ -399,7 +399,7 @@ func TestATaskWithNoGateIsRefused(t *testing.T) {
 // With a provider the shared password is the way in when the provider is not,
 // so it is reachable and it is not the second thing on the sign-in page.
 func TestTheSharedPasswordIsNotOfferedBesideAProvider(t *testing.T) {
-	index, err := jobs.Open(t.TempDir())
+	index, err := tasks.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

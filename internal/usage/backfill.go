@@ -51,16 +51,16 @@ type Result struct {
 	Malformed int
 }
 
-// Backfill reads the model calls the index does not hold yet from every task's out/proxy.jsonl under jobsDir. It
+// Backfill reads the model calls the index does not hold yet from every task's out/proxy.jsonl under tasksDir. It
 // asks the store where each task's lines are held up to and parses only the lines past that, or all of them when
 // one is missing, so it can be run again at any time, resumes where an interrupted run stopped, and adds nothing
 // twice.
-func Backfill(ctx context.Context, store Store, jobsDir string, who WhoFunc, provider ProviderFunc, progress *Progress) (Result, error) {
-	return rebuild(ctx, store, jobsDir, who, provider, progress, nil)
+func Backfill(ctx context.Context, store Store, tasksDir string, who WhoFunc, provider ProviderFunc, progress *Progress) (Result, error) {
+	return rebuild(ctx, store, tasksDir, who, provider, progress, nil)
 }
 
 // Repair reads the named tasks again from their first line, as soon as the recorder says it dropped a call of theirs.
-func Repair(ctx context.Context, store Store, jobsDir string, who WhoFunc, provider ProviderFunc, progress *Progress, tasks []string) (Result, error) {
+func Repair(ctx context.Context, store Store, tasksDir string, who WhoFunc, provider ProviderFunc, progress *Progress, tasks []string) (Result, error) {
 	if len(tasks) == 0 {
 		return Result{}, nil
 	}
@@ -68,15 +68,15 @@ func Repair(ctx context.Context, store Store, jobsDir string, who WhoFunc, provi
 	for _, task := range tasks {
 		again[task] = true
 	}
-	return rebuild(ctx, store, jobsDir, who, provider, progress, again)
+	return rebuild(ctx, store, tasksDir, who, provider, progress, again)
 }
 
 const retryAfterFailedRepair = 30 * time.Second
 
 type file struct{ task, path string }
 
-func recordsUnder(jobsDir string, only map[string]bool) ([]file, error) {
-	paths, err := filepath.Glob(filepath.Join(jobsDir, "*", "out", "proxy.jsonl"))
+func recordsUnder(tasksDir string, only map[string]bool) ([]file, error) {
+	paths, err := filepath.Glob(filepath.Join(tasksDir, "*", "out", "proxy.jsonl"))
 	if err != nil {
 		return nil, err
 	}
@@ -90,9 +90,9 @@ func recordsUnder(jobsDir string, only map[string]bool) ([]file, error) {
 	return found, nil
 }
 
-func rebuild(ctx context.Context, store Store, jobsDir string, who WhoFunc, provider ProviderFunc, progress *Progress, only map[string]bool) (Result, error) {
+func rebuild(ctx context.Context, store Store, tasksDir string, who WhoFunc, provider ProviderFunc, progress *Progress, only map[string]bool) (Result, error) {
 	var result Result
-	files, err := recordsUnder(jobsDir, only)
+	files, err := recordsUnder(tasksDir, only)
 	if err != nil {
 		return result, err
 	}
@@ -146,8 +146,8 @@ func indexFile(ctx context.Context, store Store, f file, from int, who WhoFunc, 
 }
 
 // Keep fills the index from the files, then repairs whatever the recorder drops or fails to write, until ctx ends.
-func Keep(ctx context.Context, store Store, jobsDir string, who WhoFunc, provider ProviderFunc, recorder *Recorder, progress *Progress) {
-	if _, err := Backfill(ctx, store, jobsDir, who, provider, progress); err != nil && ctx.Err() == nil {
+func Keep(ctx context.Context, store Store, tasksDir string, who WhoFunc, provider ProviderFunc, recorder *Recorder, progress *Progress) {
+	if _, err := Backfill(ctx, store, tasksDir, who, provider, progress); err != nil && ctx.Err() == nil {
 		logIndexError("the usage index could not be filled from the tasks' records", err)
 	}
 	if recorder == nil {
@@ -158,12 +158,12 @@ func Keep(ctx context.Context, store Store, jobsDir string, who WhoFunc, provide
 		case <-ctx.Done():
 			return
 		case <-recorder.Dropped():
-			repairLost(ctx, store, jobsDir, who, provider, recorder, progress)
+			repairLost(ctx, store, tasksDir, who, provider, recorder, progress)
 		}
 	}
 }
 
-func repairLost(ctx context.Context, store Store, jobsDir string, who WhoFunc, provider ProviderFunc, recorder *Recorder, progress *Progress) {
+func repairLost(ctx context.Context, store Store, tasksDir string, who WhoFunc, provider ProviderFunc, recorder *Recorder, progress *Progress) {
 	// The drops that follow the signal are still arriving; letting them gather means one repair reads each task once.
 	select {
 	case <-ctx.Done():
@@ -171,7 +171,7 @@ func repairLost(ctx context.Context, store Store, jobsDir string, who WhoFunc, p
 	case <-time.After(time.Second):
 	}
 	tasks := recorder.TakeLost()
-	if _, err := Repair(ctx, store, jobsDir, who, provider, progress, tasks); err != nil && ctx.Err() == nil {
+	if _, err := Repair(ctx, store, tasksDir, who, provider, progress, tasks); err != nil && ctx.Err() == nil {
 		logIndexError("the usage index could not catch up with calls it missed", err)
 		select {
 		case <-ctx.Done():

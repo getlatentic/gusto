@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/changelog"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/retention"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // keeping is a site that removes finished work: a workspace after 7 days and a
@@ -26,10 +26,10 @@ func keeping(t *testing.T) (*site, *changelog.Log, string) {
 	return here, log, dir
 }
 
-// oldJob leaves a passed job that ended days ago, with a workspace.
-func oldJob(t *testing.T, site *site, id string, days int) {
+// oldTask leaves a passed task that ended days ago, with a workspace.
+func oldTask(t *testing.T, site *site, id string, days int) {
 	t.Helper()
-	spentJob(t, site.index.Root(), id, "", priced)
+	spentTask(t, site.index.Root(), id, "", priced)
 	work := filepath.Join(site.index.Root(), id, "workspace", "code.go")
 	if err := os.MkdirAll(filepath.Dir(work), 0o755); err != nil {
 		t.Fatal(err)
@@ -38,7 +38,7 @@ func oldJob(t *testing.T, site *site, id string, days int) {
 		t.Fatal(err)
 	}
 	ended := time.Now().AddDate(0, 0, -days).Unix()
-	if err := site.index.Add(jobs.Record{ID: id, State: jobs.Passed, Brief: "brief " + id, Harness: "fixture",
+	if err := site.index.Add(tasks.Record{ID: id, State: tasks.Passed, Brief: "brief " + id, Harness: "fixture",
 		Asked: "amy@acme.test", Queued: ended, Started: ended, Ended: ended}); err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func oldJob(t *testing.T, site *site, id string, days int) {
 
 func TestTheRetentionPageIsAnAdminsAndOnlyWhereWorkIsRemoved(t *testing.T) {
 	here, _, _ := keeping(t)
-	oldJob(t, here, "a-week-old", 10)
+	oldTask(t, here, "a-week-old", 10)
 	if got := here.as(t, "amy@acme.test").ask(t, "GET", "/admin/records?tab=keeping", nil); got.Code != http.StatusForbidden {
 		t.Errorf("a person who runs work got %d", got.Code)
 	}
@@ -77,9 +77,9 @@ func TestTheRetentionPageIsAnAdminsAndOnlyWhereWorkIsRemoved(t *testing.T) {
 
 func TestSweepingRemovesWhatIsDueAndTheChangeRecordSaysSo(t *testing.T) {
 	here, log, dir := keeping(t)
-	oldJob(t, here, "ten-days", 10)
-	oldJob(t, here, "hundred-days", 100)
-	oldJob(t, here, "one-day", 1)
+	oldTask(t, here, "ten-days", 10)
+	oldTask(t, here, "hundred-days", 100)
+	oldTask(t, here, "one-day", 1)
 	here.signIn(t)
 	if got := here.ask(t, "POST", "/admin/retention/sweep", nil); got.Code != http.StatusSeeOther || got.Header().Get("Location") != "/admin/records?tab=keeping" {
 		t.Fatalf("sweeping gave %d", got.Code)
@@ -106,10 +106,10 @@ func TestSweepingRemovesWhatIsDueAndTheChangeRecordSaysSo(t *testing.T) {
 	}
 }
 
-func TestAHoldKeepsAJobAndIsRecordedAndReleased(t *testing.T) {
+func TestAHoldKeepsATaskAndIsRecordedAndReleased(t *testing.T) {
 	here, log, _ := keeping(t)
-	oldJob(t, here, "held", 200)
-	oldJob(t, here, "free", 200)
+	oldTask(t, here, "held", 200)
+	oldTask(t, here, "free", 200)
 	here.signIn(t)
 
 	if page := here.ask(t, "GET", "/jobs/held", nil).Body.String(); strings.Contains(page, "/hold") || strings.Contains(page, "Keep this job whole") {
@@ -149,7 +149,7 @@ func TestAHoldKeepsAJobAndIsRecordedAndReleased(t *testing.T) {
 
 func TestAHoldOnAPersonKeepsEverythingTheyAskedFor(t *testing.T) {
 	here, _, _ := keeping(t)
-	oldJob(t, here, "amys", 200)
+	oldTask(t, here, "amys", 200)
 	here.signIn(t)
 	here.ask(t, "POST", "/admin/retention/holds", url.Values{"who": {"Amy@Acme.test"}, "why": {"legal"}})
 	here.ask(t, "POST", "/admin/retention/sweep", nil)
@@ -168,7 +168,7 @@ func TestAHoldOnAPersonKeepsEverythingTheyAskedFor(t *testing.T) {
 
 func TestASweepThatCannotReadItsHoldsRemovesNothing(t *testing.T) {
 	here, _, dir := keeping(t)
-	oldJob(t, here, "old", 200)
+	oldTask(t, here, "old", 200)
 	if err := os.WriteFile(filepath.Join(dir, retention.HoldsFile), []byte("{not json"), 0o644); err != nil {
 		t.Fatal(err)
 	}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // NoDigest is what a manifest says in place of a digest it never recorded. A
@@ -42,18 +42,18 @@ func Comparable(a, b Manifest) (bool, string) {
 		a.Harness, a.HarnessDigest, b.Harness, b.HarnessDigest)
 }
 
-// harnessComplaints is whether the configured harness the job carries is still
+// harnessComplaints is whether the configured harness the task carries is still
 // the one the manifest names. The digest was taken before the harness started,
 // so a harness that wrote to its own files during the run shows here, as a
-// changed harness, rather than in the manifest. A job that carries none ran a
+// changed harness, rather than in the manifest. A task that carries none ran a
 // harness built into the runner, and an export leaves the harness out; there
 // is nothing here to check either against.
-func harnessComplaints(dir job.Dir, manifest Manifest) []string {
+func harnessComplaints(dir task.Dir, manifest Manifest) []string {
 	if manifest.HarnessDigest == "" {
 		return nil
 	}
 	// A job.json that no longer reads is already reported by its own hash.
-	spec, err := job.Read(dir)
+	spec, err := task.Read(dir)
 	if err != nil {
 		return nil
 	}

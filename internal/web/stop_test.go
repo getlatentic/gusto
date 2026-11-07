@@ -10,15 +10,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // holding is work that runs until it is told to stop, and then writes what a run that was stopped leaves.
 func holding(t *testing.T) (started chan string) {
 	t.Helper()
 	started = make(chan string, 8)
-	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
 		os.MkdirAll(dir.Out(), 0o755)
 		os.WriteFile(dir.OutFile("transcript.log"), []byte("working on it"), 0o644)
 		started <- dir.Path()
@@ -43,7 +43,7 @@ func TestAPersonStopsTheirRunningTurnByTheAPIAndItEndsInterruptedByThem(t *testi
 		t.Fatalf("stopping gave %d %s", stopped.Code, stopped.Body)
 	}
 	record := turnDone(t, here, id)
-	if record.State != jobs.Interrupted || record.StoppedBy != alice {
+	if record.State != tasks.Interrupted || record.StoppedBy != alice {
 		t.Fatalf("the stopped turn is %+v", record)
 	}
 	if note, err := os.ReadFile(record.Dir(here.index.Root()).Path() + "/stop.json"); err != nil || !strings.Contains(string(note), alice) {
@@ -74,7 +74,7 @@ func TestAQueuedTurnThatIsStoppedNeverRunsAndSomebodyElsesCannotBeStopped(t *tes
 		t.Fatalf("stopping a queued turn gave %d %s", got.Code, got.Body)
 	}
 	record, _ := here.index.Get(id)
-	if record.State != jobs.Interrupted || record.StoppedBy != alice {
+	if record.State != tasks.Interrupted || record.StoppedBy != alice {
 		t.Errorf("the queued turn is %+v", record)
 	}
 	here.postAs(ada, "/api/jobs/"+first["job"].(string)+"/stop", "")
@@ -122,7 +122,7 @@ func started2(t *testing.T, here *tokened, who string) (instance, thread string)
 
 // A turn whose model the free credit refused says so, and what to do: add the organization's own key, which an admin is linked to.
 func TestATurnTheCreditStoppedSaysHowToCarryOn(t *testing.T) {
-	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
 		os.MkdirAll(dir.Out(), 0o755)
 		line := `{"path":"/v1/chat/completions","status":402,"atUnix":` + strconv.FormatInt(time.Now().Unix(), 10) +
 			`,"model":"m","inputTokens":0,"outputTokens":0,"usd":0,"refused":{"cap":"credit","limitUsd":5,"spentUsd":5.01,"reason":"the free credit is used"}}`
@@ -144,7 +144,7 @@ func TestATurnTheCreditStoppedSaysHowToCarryOn(t *testing.T) {
 
 // A model the credit cannot count is refused for that, not because the credit is used, and the turn says the real reason.
 func TestATurnRefusedForAnUnpricedModelSaysWhyAndNotThatTheCreditIsUsed(t *testing.T) {
-	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
 		os.MkdirAll(dir.Out(), 0o755)
 		line := `{"path":"/v1/chat/completions","status":402,"atUnix":` + strconv.FormatInt(time.Now().Unix(), 10) +
 			`,"model":"m","inputTokens":0,"outputTokens":0,"usd":0,"refused":{"cap":"credit","limitUsd":5,"spentUsd":0,"reason":"m has no price in the spend policy, so the credit cap cannot count it"}}`
@@ -169,7 +169,7 @@ func TestATurnRefusedForAnUnpricedModelSaysWhyAndNotThatTheCreditIsUsed(t *testi
 
 // A turn whose agent was refused other sites says how many requests were blocked, and opens to the sites, each once.
 func TestATurnListsTheSitesItsAgentWasRefused(t *testing.T) {
-	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
 		os.MkdirAll(dir.Out(), 0o755)
 		at := strconv.FormatInt(time.Now().Unix(), 10)
 		refused := func(host string) string {
@@ -195,7 +195,7 @@ func TestATurnListsTheSitesItsAgentWasRefused(t *testing.T) {
 // A turn a person's budget stopped says so plainly, by their name and the month, and does not repeat the error the agent
 // printed, since the model was never asked.
 func TestATurnStoppedByAPersonsBudgetSaysSoPlainly(t *testing.T) {
-	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
 		os.MkdirAll(dir.Out(), 0o755)
 		line := `{"path":"/v1/chat/completions","status":402,"atUnix":` + strconv.FormatInt(time.Now().Unix(), 10) +
 			`,"model":"m","inputTokens":0,"outputTokens":0,"usd":0,"refused":{"cap":"person","limitUsd":0.01,"spentUsd":0.09,"reason":"over budget"}}`
@@ -221,7 +221,7 @@ func TestATurnStoppedByAPersonsBudgetSaysSoPlainly(t *testing.T) {
 
 // A turn a person's budget stopped part way keeps what the agent said before it, without the agent repeating the refusal.
 func TestATurnStoppedPartWayKeepsTheReplyWithoutTheRefusalRepeated(t *testing.T) {
-	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
 		os.MkdirAll(dir.Out(), 0o755)
 		at := strconv.FormatInt(time.Now().Unix(), 10)
 		lines := `{"path":"/v1/chat/completions","status":200,"atUnix":` + at + `,"model":"m","inputTokens":100,"outputTokens":50,"usd":0.02}` + "\n" +

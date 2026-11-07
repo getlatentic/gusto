@@ -15,7 +15,7 @@ import (
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A harness that makes the change, and says what it was started with.
@@ -38,14 +38,14 @@ func write(t *testing.T, path, text string) {
 	}
 }
 
-// aJob is a job dir whose workspace already holds a repository whose gate fails
+// aTask is a task dir whose workspace already holds a repository whose gate fails
 // until answer.txt says yes, as the server leaves it after the checkout.
-func aJob(t *testing.T) (job.Dir, job.Spec) {
+func aTask(t *testing.T) (task.Dir, task.Spec) {
 	t.Helper()
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), fixture)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -56,14 +56,14 @@ func aJob(t *testing.T) (job.Dir, job.Spec) {
 			t.Fatalf("git %v: %v: %s", args, err, output)
 		}
 	}
-	spec := job.Spec{Brief: "make the answer yes", Repo: "unused", Gate: []string{"sh", "-c", `test "$(cat answer.txt)" = yes`}, Harness: "fixture"}
+	spec := task.Spec{Brief: "make the answer yes", Repo: "unused", Gate: []string{"sh", "-c", `test "$(cat answer.txt)" = yes`}, Harness: "fixture"}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
 	return dir, spec
 }
 
-func sandboxFor(t *testing.T, dir job.Dir) *openshell.Sandbox {
+func sandboxFor(t *testing.T, dir task.Dir) *openshell.Sandbox {
 	t.Helper()
 	configured, err := harness.Open(dir, "fixture")
 	if err != nil {
@@ -80,7 +80,7 @@ func sandboxFor(t *testing.T, dir job.Dir) *openshell.Sandbox {
 // The runner stays outside: it writes the record and signs it, the harness runs
 // in the sandbox with an environment of its own, and what the sandbox's guard
 // saw is in the record the signature covers.
-func TestAJobRunInASandboxLeavesARecordTheHostWroteAndSigned(t *testing.T) {
+func TestATaskRunInASandboxLeavesARecordTheHostWroteAndSigned(t *testing.T) {
 	root := installFake(t)
 	t.Setenv("GUSTO_PASSWORD", "the-servers-own-secret")
 	t.Setenv("GUSTO_SIGNER", "the-servers-signer")
@@ -97,7 +97,7 @@ func TestAJobRunInASandboxLeavesARecordTheHostWroteAndSigned(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir, _ := aJob(t)
+	dir, _ := aTask(t)
 
 	exit, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), host)
 	if err != nil || exit != 0 {
@@ -159,7 +159,7 @@ func TestAJobRunInASandboxLeavesARecordTheHostWroteAndSigned(t *testing.T) {
 
 func TestATamperedGuardLogFailsVerification(t *testing.T) {
 	installFake(t)
-	dir, _ := aJob(t)
+	dir, _ := aTask(t)
 	if exit, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
@@ -171,8 +171,8 @@ func TestATamperedGuardLogFailsVerification(t *testing.T) {
 
 func TestWhatASandboxCannotYetCarryIsRefusedByNameBeforeAnythingStarts(t *testing.T) {
 	root := installFake(t)
-	dir, spec := aJob(t)
-	spec.Setup = &job.Setup{Name: "engineering", Servers: []string{"memory"}}
+	dir, spec := aTask(t)
+	spec.Setup = &task.Setup{Name: "engineering", Servers: []string{"memory"}}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +189,7 @@ func TestADriverSubprocessCarriesNoneOfTheServersSecrets(t *testing.T) {
 	t.Setenv("GUSTO_PASSWORD", "the-servers-own-secret")
 	t.Setenv("GUSTO_MODEL_KEY", "a-real-key")
 	t.Setenv("OPENSHELL_GATEWAY", "kept")
-	dir, _ := aJob(t)
+	dir, _ := aTask(t)
 	if _, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), signing.Identity{}); err != nil {
 		t.Fatal(err)
 	}
@@ -222,11 +222,11 @@ func TestTheCatalogAsksASandboxWhichProgramsTheImageCarriesAndRemovesIt(t *testi
 	}
 }
 
-// A job's skills are put where the harness finds them, under the sandbox's home
+// A task's skills are put where the harness finds them, under the sandbox's home
 // and not under the runner's.
 func TestASkillIsPlacedInTheSandboxsHomeNotTheRunners(t *testing.T) {
 	root := installFake(t)
-	dir, spec := aJob(t)
+	dir, spec := aTask(t)
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), `{
   "name": "fixture", "program": "sh", "skills": "/root/.config/fixture/skills",
@@ -237,7 +237,7 @@ func TestASkillIsPlacedInTheSandboxsHomeNotTheRunners(t *testing.T) {
 		t.Fatal(err)
 	}
 	write(t, filepath.Join(dir.SetupDir(), "skills", "review", "SKILL.md"), "review the change\n")
-	spec.Setup = &job.Setup{Name: "engineering", Skills: []string{"review"}}
+	spec.Setup = &task.Setup{Name: "engineering", Skills: []string{"review"}}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -266,7 +266,7 @@ func TestASkillIsPlacedInTheSandboxsHomeNotTheRunners(t *testing.T) {
 // and the sandbox is removed, rather than the harness failing inside it.
 func TestAHarnessTheImageDoesNotCarryIsRefusedByNameAndTheSandboxRemoved(t *testing.T) {
 	root := installFake(t)
-	dir, _ := aJob(t)
+	dir, _ := aTask(t)
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), `{"name":"fixture","program":"a-program-no-image-carries","argv":[],"needs":"nothing","stream":"plain"}`)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
@@ -288,7 +288,7 @@ func TestAHarnessTheImageDoesNotCarryIsRefusedByNameAndTheSandboxRemoved(t *test
 // workspace is made in the sandbox and not uploaded.
 func TestAWorkspaceWithNothingInItIsMadeInTheSandboxAndNotUploaded(t *testing.T) {
 	root := installFake(t)
-	dir, _ := aJob(t)
+	dir, _ := aTask(t)
 	for _, name := range []string{"answer.txt"} {
 		if err := os.Remove(filepath.Join(dir.Workspace(), name)); err != nil {
 			t.Fatal(err)
@@ -311,7 +311,7 @@ func TestAWorkspaceWithNothingInItIsMadeInTheSandboxAndNotUploaded(t *testing.T)
 
 func TestAHarnessesStateFolderExistsInTheSandboxBeforeItStarts(t *testing.T) {
 	installFake(t)
-	dir, _ := aJob(t)
+	dir, _ := aTask(t)
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), `{
   "name": "fixture", "program": "sh", "keeps": "/root/.local/share/fixture",
@@ -330,7 +330,7 @@ func TestAHarnessesStateFolderExistsInTheSandboxBeforeItStarts(t *testing.T) {
 // the directory the sandbox has the workspace at and not one of this machine's.
 func TestAnACPHarnessIsSpokenToInTheSandboxsWorkspace(t *testing.T) {
 	root := installFake(t)
-	dir, _ := aJob(t)
+	dir, _ := aTask(t)
 	agent := `while IFS= read -r line; do
   id=$(printf '%s' "$line" | sed -n 's/.*"id":\([^,}]*\).*/\1/p')
   case "$line" in
@@ -408,7 +408,7 @@ func TestTheHarnessConfigurationIsCopiedWithTheRunnersHomeRewritten(t *testing.T
 // gateway's is the boundary, and only there.
 func TestAHarnessIsToldItsOwnSandboxIsNotNeededInsideOne(t *testing.T) {
 	installFake(t)
-	dir, _ := aJob(t)
+	dir, _ := aTask(t)
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), `{
   "name": "fixture", "program": "sh",
@@ -426,20 +426,20 @@ func TestAHarnessIsToldItsOwnSandboxIsNotNeededInsideOne(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	outside := configured.Adapter.CommandIn(context.Background(), job.Spec{}, "/w", harness.Env{})
+	outside := configured.Adapter.CommandIn(context.Background(), task.Spec{}, "/w", harness.Env{})
 	if got := outside.Args[len(outside.Args)-1]; got != "workspace-write" {
 		t.Errorf("outside a box the argument stays: %q", got)
 	}
 }
 
 // A gateway that is staging as many archives as it will at once refuses a sandbox
-// for a moment. A job that starts with several others is not failed for it: the
+// for a moment. A task that starts with several others is not failed for it: the
 // sandbox is asked for again, and any other refusal is still a refusal.
 func TestASandboxIsAskedForAgainWhileTheGatewaysStagingSlotsAreBusy(t *testing.T) {
 	root := installFake(t)
 	openshell.SetRetry(5*time.Second, time.Millisecond)
 	defer openshell.SetRetry(2*time.Minute, time.Second)
-	dir, _ := aJob(t)
+	dir, _ := aTask(t)
 
 	write(t, filepath.Join(root, "busy"), "3")
 	if exit, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), signing.Identity{}); err != nil || exit != 0 {
@@ -452,7 +452,7 @@ func TestASandboxIsAskedForAgainWhileTheGatewaysStagingSlotsAreBusy(t *testing.T
 	// A gateway that stays busy past the time allowed is an error, and says why.
 	openshell.SetRetry(50*time.Millisecond, time.Millisecond)
 	write(t, filepath.Join(root, "busy"), "100000")
-	other, _ := aJob(t)
+	other, _ := aTask(t)
 	if _, err := runner.Outside(context.Background(), other, sandboxFor(t, other), signing.Identity{}); err == nil || !strings.Contains(err.Error(), "staging slot") {
 		t.Errorf("a gateway that never has room is a failure that names the slots: %v", err)
 	}
@@ -462,7 +462,7 @@ func TestAnyOtherRefusalToMakeASandboxIsNotAskedAgain(t *testing.T) {
 	root := installFake(t)
 	openshell.SetRetry(5*time.Second, time.Millisecond)
 	defer openshell.SetRetry(2*time.Minute, time.Second)
-	dir, _ := aJob(t)
+	dir, _ := aTask(t)
 	write(t, filepath.Join(root, "broken"), "")
 	if _, err := runner.Outside(context.Background(), dir, sandboxFor(t, dir), signing.Identity{}); err == nil || !strings.Contains(err.Error(), "cannot make this sandbox") {
 		t.Fatalf("%v", err)

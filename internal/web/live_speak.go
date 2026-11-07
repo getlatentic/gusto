@@ -14,7 +14,7 @@ import (
 // note.
 //
 // With a key, saying it again under the same key makes nothing new. The note is found by its key. A turn is found by its key
-// too, but that is a search of every job, so it is made only for a request its sender says is a resend, which a sender only
+// too, but that is a search of every task, so it is made only for a request its sender says is a resend, which a sender only
 // does after losing the answer, and which is the case a restart in between makes.
 func (s *Server) speak(asked string, held instance.Instance, thread instance.Thread, said, key string, resend bool) (string, error) {
 	held = s.liveRoom(held)

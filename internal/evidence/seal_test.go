@@ -8,19 +8,19 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// recorded is a finished job directory: a spec, one output and a manifest that
+// recorded is a finished task directory: a spec, one output and a manifest that
 // claims a signer the keyring may never have heard of.
-func recorded(t *testing.T, answer string) job.Dir {
+func recorded(t *testing.T, answer string) task.Dir {
 	t.Helper()
-	return recordedAt(t, job.Dir(t.TempDir()), answer)
+	return recordedAt(t, task.Dir(t.TempDir()), answer)
 }
 
-// recordedAt is recorded in a directory the caller chose, so several jobs can
+// recordedAt is recorded in a directory the caller chose, so several tasks can
 // sit under one root the way a server keeps them.
-func recordedAt(t *testing.T, dir job.Dir, answer string) job.Dir {
+func recordedAt(t *testing.T, dir task.Dir, answer string) task.Dir {
 	t.Helper()
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
@@ -31,13 +31,13 @@ func recordedAt(t *testing.T, dir job.Dir, answer string) job.Dir {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Job: spec, Files: files, Signer: "whoever-it-claims"}); err != nil {
+	if err := evidence.Write(dir, evidence.Manifest{Task: spec, Files: files, Signer: "whoever-it-claims"}); err != nil {
 		t.Fatal(err)
 	}
 	return dir
 }
 
-func signed(t *testing.T, answer string, key signing.Key) job.Dir {
+func signed(t *testing.T, answer string, key signing.Key) task.Dir {
 	t.Helper()
 	dir := recorded(t, answer)
 	if err := evidence.Seal(dir, key); err != nil {
@@ -71,7 +71,7 @@ func keyringOf(t *testing.T, ring string) signing.Keyring {
 	return keyring
 }
 
-func complaints(t *testing.T, dir job.Dir) []string {
+func complaints(t *testing.T, dir task.Dir) []string {
 	t.Helper()
 	wrong, err := evidence.Check(dir)
 	if err != nil {
@@ -179,7 +179,7 @@ func TestARotatedKeyStillVerifiesTheRecordsItSigned(t *testing.T) {
 	}
 	after := signed(t, "yes", keyIn(t, ring, "acme-2026"))
 	keyring := keyringOf(t, ring)
-	for dir, want := range map[job.Dir]string{before: "acme-2025", after: "acme-2026"} {
+	for dir, want := range map[task.Dir]string{before: "acme-2025", after: "acme-2026"} {
 		attested, err := evidence.Attest(dir, keyring)
 		if err != nil || attested.Signer != want {
 			t.Fatalf("want %s, got %+v: %v", want, attested, err)
@@ -227,7 +227,7 @@ func TestSealIfKeyedSignsWithTheKeyOrNotAtAll(t *testing.T) {
 	if attested, err := evidence.Attest(keyed, keyringOf(t, ring)); err != nil || attested.Signer != "acme" {
 		t.Fatalf("want acme, got %+v: %v", attested, err)
 	}
-	if err := evidence.SealIfKeyed(job.Dir(t.TempDir()), key); err != nil {
+	if err := evidence.SealIfKeyed(task.Dir(t.TempDir()), key); err != nil {
 		t.Fatalf("a directory with no manifest has nothing to sign: %v", err)
 	}
 }

@@ -121,12 +121,12 @@ A turn that has not started says so, and says what holds it:
 | Message | Cause |
 | --- | --- |
 | Waiting for Ada to finish the message before this one. Number 2 in line. | the same agent is on another message |
-| Every runner is busy: 2 of 2. It starts when one is free. Number 3 in line. | `GUSTO_JOB_CONCURRENCY` turns are running |
+| Every runner is busy: 2 of 2. It starts when one is free. Number 3 in line. | `GUSTO_TASK_CONCURRENCY` turns are running |
 | The person or team limit, in [LIMITS.md](LIMITS.md) | a limit |
 
 "Working" is for a turn an agent is on. The room's page, a conversation's page and a comparison's line all say it this way.
 
-Two agents run at the same time only when the server runs two tasks at the same time. `GUSTO_JOB_CONCURRENCY` is 1 by default. Set it to the number of agents that may run at once, with `GUSTO_JOB_MEMORY` times that fitting the machine.
+Two agents run at the same time only when the server runs two tasks at the same time. `GUSTO_TASK_CONCURRENCY` is 1 by default. Set it to the number of agents that may run at once, with `GUSTO_TASK_MEMORY` times that fitting the machine.
 
 ## An agent's memory
 
@@ -154,7 +154,7 @@ An agent belongs to the person who made it. The room keeps its own record of eac
 - Taking an agent out stops its queued and running turns in the room, so nothing it was doing is merged afterwards.
 - Mentioning an agent that waits for an admin asks nobody, and the room says so.
 - An allowance is the dollars an agent may spend in the room in a calendar month, across all its turns, set when it is added or proposed, and changed later from the room's members by the agent's owner or the room's admin. The proxy refuses a call past it, and a call to a model with no price, which it cannot count; a mention past it is not started. The room says why. No allowance is no limit.
-- A turn runs on the computer of the agent's owner and counts against the owner's spending, whoever mentioned the agent. The job's record keeps both: `asked` is who mentioned it and `paidBy` is the owner. It uses the owner's tools, which the room's admin accepted with the agent. An agent with no owner, kept from before agents had owners, runs for the person who asked.
+- A turn runs on the computer of the agent's owner and counts against the owner's spending, whoever mentioned the agent. The task's record keeps both: `asked` is who mentioned it and `paidBy` is the owner. It uses the owner's tools, which the room's admin accepted with the agent. An agent with no owner, kept from before agents had owners, runs for the person who asked.
 - In a person's computer, a room's turn can read and write only its copy of the room, its agent's home and its own temporary folder. Landlock enforces this, not the agent's instructions; see [OPENSHELL.md](OPENSHELL.md).
 
 ## Where it is

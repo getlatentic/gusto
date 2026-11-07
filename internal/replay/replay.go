@@ -16,18 +16,18 @@ import (
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Prepare makes the rerun of old under parent and returns its directory. It
 // refuses a task with nothing to compare against: one that never finished, one
 // whose record changed since, and a turn in a conversation, which has no check
 // and no checkout of its own.
-func Prepare(old job.Dir, parent string) (job.Dir, error) {
+func Prepare(old task.Dir, parent string) (task.Dir, error) {
 	if _, err := Known(old); err != nil {
 		return "", err
 	}
-	spec, err := job.Read(old)
+	spec, err := task.Read(old)
 	if err != nil {
 		return "", err
 	}
@@ -54,7 +54,7 @@ func Prepare(old job.Dir, parent string) (job.Dir, error) {
 
 // Known is the old run's manifest, once its record checks and it carries a
 // verdict to compare against.
-func Known(old job.Dir) (evidence.Manifest, error) {
+func Known(old task.Dir) (evidence.Manifest, error) {
 	wrong, err := evidence.Check(old)
 	if err != nil {
 		return evidence.Manifest{}, fmt.Errorf("%s has no record to rerun against: %w", old, err)
@@ -72,7 +72,7 @@ func Known(old job.Dir) (evidence.Manifest, error) {
 	return manifest, nil
 }
 
-func marking(old job.Dir, pin Pin) (Mark, error) {
+func marking(old task.Dir, pin Pin) (Mark, error) {
 	of, err := filepath.Abs(old.Path())
 	if err != nil {
 		return Mark{}, err
@@ -88,7 +88,7 @@ func marking(old job.Dir, pin Pin) (Mark, error) {
 // adapter. The mark goes first, so a directory a stop cut short is never one a
 // sweep takes for an original: without its job.json it is not a task, and with
 // it, it is a replay.
-func fill(old, fresh job.Dir, harness string, mark Mark) error {
+func fill(old, fresh task.Dir, harness string, mark Mark) error {
 	if err := fresh.Make(); err != nil {
 		return err
 	}
@@ -102,10 +102,10 @@ func fill(old, fresh job.Dir, harness string, mark Mark) error {
 }
 
 // claim makes the replay's directory beside the others under parent, named for
-// the old job and numbered so a second replay of the same job never lands in
+// the old task and numbered so a second replay of the same task never lands in
 // the first one's directory. Mkdir either makes it or finds it taken, so two
 // sweeps at once cannot share one.
-func claim(old job.Dir, parent string) (job.Dir, error) {
+func claim(old task.Dir, parent string) (task.Dir, error) {
 	if parent == "" {
 		parent = filepath.Dir(filepath.Clean(old.Path()))
 	}
@@ -114,7 +114,7 @@ func claim(old job.Dir, parent string) (job.Dir, error) {
 		path := filepath.Join(parent, fmt.Sprintf("%s-replay-%d", base, n))
 		err := os.Mkdir(path, 0o755)
 		if err == nil {
-			return job.Dir(path), nil
+			return task.Dir(path), nil
 		}
 		if !errors.Is(err, os.ErrExist) {
 			return "", err

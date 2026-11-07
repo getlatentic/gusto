@@ -13,7 +13,7 @@ import (
 func aTool(t *testing.T) Tool {
 	t.Helper()
 	root := t.TempDir()
-	return Tool{Job: "20261008-1200-a-turn", Name: "reports-db", Plugin: filepath.Join(root, "plugin"), Data: filepath.Join(root, "data"),
+	return Tool{Task: "20261008-1200-a-turn", Name: "reports-db", Plugin: filepath.Join(root, "plugin"), Data: filepath.Join(root, "data"),
 		Command: "./bin/server", Args: []string{"--data", "${PLUGIN_DATA}/db", "--config", "${PLUGIN_ROOT}/config.json", "${PLUGIN_ROOTS}"},
 		Env: map[string]string{"CONFIG": "${PLUGIN_ROOT}/c.json", "PLUGIN_ROOT": "/elsewhere", "A=B": "x"}, Cwd: "${PLUGIN_DATA}/work"}
 }
@@ -140,7 +140,7 @@ func TestAProgramRunsInARealBoxThatHoldsItInAndTheGatewayCanSpeakToIt(t *testing
 	plugin, data := filepath.Join(root, "plugin"), filepath.Join(root, "data")
 	os.MkdirAll(plugin, 0o755)
 	os.WriteFile(filepath.Join(plugin, "server.js"), []byte(echoServer), 0o644)
-	tool := Tool{Job: "20261008-1200-real", Name: "probe", Plugin: plugin, Data: data, Command: "node", Args: []string{"${PLUGIN_ROOT}/server.js"}}
+	tool := Tool{Task: "20261008-1200-real", Name: "probe", Plugin: plugin, Data: data, Command: "node", Args: []string{"${PLUGIN_ROOT}/server.js"}}
 	command, ended, err := c.ToolCommand(context.Background(), tool)
 	if err != nil {
 		t.Fatal(err)

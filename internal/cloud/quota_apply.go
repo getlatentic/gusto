@@ -12,14 +12,14 @@ import (
 // paidQuota is the quota of a paid organization: the paid limits, with tasks for each seat.
 func (s *Store) paidQuota(seats int) quota.Quota {
 	q := s.set.Limits.Paid
-	q.Jobs *= max(seats, 1)
+	q.Tasks *= max(seats, 1)
 	return q
 }
 
 // lapsedQuota keeps a lapsed organization's people and computers and starts nothing.
 func (s *Store) lapsedQuota() quota.Quota {
 	q := s.set.Limits.Paid
-	q.Jobs, q.Concurrent, q.Invites, q.Note = 0, 0, false, lapsedNote
+	q.Tasks, q.Concurrent, q.Invites, q.Note = 0, 0, false, lapsedNote
 	return q
 }
 

@@ -7,7 +7,7 @@ import (
 	"sort"
 
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Signers is what every signed record under a directory says about its key,
@@ -43,7 +43,7 @@ func SignersUnder(root string, keyring signing.Keyring) (Signers, error) {
 		if !entry.IsDir() {
 			continue
 		}
-		dir := job.Dir(filepath.Join(root, entry.Name()))
+		dir := task.Dir(filepath.Join(root, entry.Name()))
 		if _, err := os.Stat(dir.OutFile("manifest.json")); err != nil {
 			continue
 		}

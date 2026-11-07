@@ -50,9 +50,9 @@ type Controller struct {
 	PortFrom int
 	// Wait is how long a server has to answer once it is started.
 	Wait time.Duration
-	// Concurrent is how many jobs a server's queue runs at once.
+	// Concurrent is how many tasks a server's queue runs at once.
 	Concurrent int
-	// StopGrace is how long a server is given to end its jobs' records when it is
+	// StopGrace is how long a server is given to end its tasks' records when it is
 	// asked to stop, before it is made to.
 	StopGrace time.Duration
 	// IndexDir is where organizations' indexes are kept, in a directory for each, on the local disk of the host a server
@@ -316,8 +316,8 @@ func (c *Controller) environment(ctx context.Context, slug string, runtime Runti
 		"GUSTO_CELL": node.Name(),
 		// A person's own conversations share their computer's files and their own state, so they
 		// take turns. A room's agents each work on a copy, so they do not wait for each other.
-		"GUSTO_LIMIT_PERSON":    "1",
-		"GUSTO_JOB_CONCURRENCY": strconv.Itoa(max(c.Concurrent, 1)),
+		"GUSTO_LIMIT_PERSON":     "1",
+		"GUSTO_TASK_CONCURRENCY": strconv.Itoa(max(c.Concurrent, 1)),
 		// Nobody knows this: a server behind the front door has no password to type.
 		"GUSTO_PASSWORD": hex.EncodeToString(password),
 		"HOME":           filepath.Join(c.orgDir(slug), "home"),
@@ -349,7 +349,7 @@ func (c *Controller) environment(ctx context.Context, slug string, runtime Runti
 func (c *Controller) dataSettings(slug string) map[string]string {
 	data := c.Store.DataDir(slug)
 	return map[string]string{
-		"GUSTO_JOBS":         filepath.Join(data, "jobs"),
+		"GUSTO_TASKS":        filepath.Join(data, "jobs"),
 		"GUSTO_SESSIONS":     filepath.Join(data, "sessions"),
 		"GUSTO_SETUPS":       filepath.Join(data, "setups"),
 		"GUSTO_CREW":         filepath.Join(data, "crew"),

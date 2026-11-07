@@ -8,7 +8,7 @@ Each store has a format number in `.gusto-format` in its directory. A directory 
 
 | Store | Directory | Holds |
 | --- | --- | --- |
-| tasks | `GUSTO_JOBS` | each task's directory, with its signed record |
+| tasks | `GUSTO_TASKS` | each task's directory, with its signed record |
 | sessions | `GUSTO_SESSIONS` | agents, their threads and transcripts |
 | setups | `GUSTO_SETUPS` | skill sets |
 | comparisons | `GUSTO_COMPARISONS` | comparisons started from the pages |

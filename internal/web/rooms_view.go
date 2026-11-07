@@ -10,7 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // roomTurn is what a room's conversation shows of a turn on top of what any conversation does: who said it, which agent
@@ -47,7 +47,7 @@ func (s *Server) roomTimeline(held instance.Instance, thread instance.Thread, tu
 	}
 	// Notes go in last first, so each lands after the turns it followed without moving the places of the ones before it.
 	for _, note := range slices.Backward(thread.Notes) {
-		shown := turn{Record: jobs.Record{ID: note.ID, Queued: note.At}, Said: note.Text, roomTurn: roomTurn{Who: note.Who, Note: true, Notice: note.Notice, File: note.Path}}
+		shown := turn{Record: tasks.Record{ID: note.ID, Queued: note.At}, Said: note.Text, roomTurn: roomTurn{Who: note.Who, Note: true, Notice: note.Notice, File: note.Path}}
 		turns = slices.Insert(turns, min(note.After, len(turns)), shown)
 	}
 	groupBySender(turns)
@@ -55,7 +55,7 @@ func (s *Server) roomTimeline(held instance.Instance, thread instance.Thread, tu
 	return turns
 }
 
-func (s *Server) roomTurnOf(held instance.Instance, record jobs.Record) roomTurn {
+func (s *Server) roomTurnOf(held instance.Instance, record tasks.Record) roomTurn {
 	shown := roomTurn{Who: record.Asked, By: record.Agent, Engine: s.engineName(record.Harness), Echo: record.Answers != ""}
 	shown.Role = shown.Engine
 	shown.Holding = s.holdingOf(held, record)

@@ -41,7 +41,7 @@
 29 11 internal/crew/crew.go:(*Store).ChooseApp
 31 11 internal/datadir/datadir.go:Ensure
 46 16 internal/evidence/evidence.go:Check
-57 18 internal/helper/api.go:(Client).FollowJob
+57 18 internal/helper/api.go:(Client).FollowTask
 44 12 internal/helper/api.go:(Client).send
 36 14 internal/helper/bridge/agent.go:(*Agent).agentToUse
 57 9 internal/helper/bridge/turn.go:(*Agent).prompt
@@ -69,9 +69,9 @@
 40 14 internal/integration/store.go:(*Integration).Compare
 50 13 internal/integration/store.go:(*Store).Import
 33 12 internal/isolation/backends.go:virtualMachine
-16 13 internal/jobs/limits.go:(*Index).hold
-52 12 internal/jobs/queue.go:(*Queue).one
-45 12 internal/jobs/reconcile.go:Rebuild
+16 13 internal/tasks/limits.go:(*Index).hold
+52 12 internal/tasks/queue.go:(*Queue).one
+45 12 internal/tasks/reconcile.go:Rebuild
 42 13 internal/landlock/apply_linux.go:Apply
 42 12 internal/live/live.go:Fingerprint
 29 11 internal/live/settings.go:ReadSettings
@@ -113,9 +113,9 @@
 30 13 internal/web/firstmodel.go:(*Server).providerNameFor
 40 13 internal/web/firstmodel.go:providerModels
 36 11 internal/web/instances.go:(*Server).beginInstance
-45 11 internal/web/jobpage.go:(*Server).job
-35 11 internal/web/jobpage.go:(*Server).talkAround
-33 11 internal/web/jobsboard.go:(*Server).board
+45 11 internal/web/taskpage.go:(*Server).task
+35 11 internal/web/taskpage.go:(*Server).talkAround
+33 11 internal/web/board.go:(*Server).board
 36 12 internal/web/live.go:timelineOf
 46 17 internal/web/live_speak.go:(*Server).speak
 35 14 internal/web/members_agents.go:(*Server).agentFromForm
@@ -146,7 +146,7 @@
 50 15 pkg/gateway/session.go:(*Session).ServeHTTP
 40 13 pkg/gateway/upstream.go:(*Upstream).post
 38 14 pkg/harness/harness.go:(Adapter).CommandIn
-28 14 pkg/job/words.go:Words
+28 14 pkg/task/words.go:Words
 34 12 pkg/proxy/limits.go:capOutput
 128 20 pkg/proxy/proxy.go:(*Proxy).pass
 50 11 pkg/redact/redact.go:(*Redactor).JSON

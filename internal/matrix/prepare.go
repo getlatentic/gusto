@@ -11,20 +11,20 @@ import (
 	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/replay"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// A job in the matrix is a comparison, in the shape `gusto compare` writes and
-// reads: comparison.json above one ordinary job directory a pair, every one
+// A task in the matrix is a comparison, in the shape `gusto compare` writes and
+// reads: comparison.json above one ordinary task directory a pair, every one
 // pinned to one commit. So `gusto compare <matrix>/<job>` prints any column of
 // the matrix, and a matrix is many comparisons side by side.
 
-// prepared is the comparison for one job with a run for every pair, made
+// prepared is the comparison for one task with a run for every pair, made
 // where it was missing. A comparison made before keeps its commit, so a pair
 // added to the plan later works on the same code as the pairs already run, and
 // a run it holds whose directory a stop left without its job.json is made again
 // at that commit.
-func prepared(where string, submission job.Dir, pairs []Pair) (compare.Record, error) {
+func prepared(where string, submission task.Dir, pairs []Pair) (compare.Record, error) {
 	record, err := compare.Read(where)
 	if errors.Is(err, os.ErrNotExist) {
 		record, err = begun(where, submission)
@@ -36,12 +36,12 @@ func prepared(where string, submission job.Dir, pairs []Pair) (compare.Record, e
 	for _, pair := range pairs {
 		run := compare.Run{Harness: pair.Harness, Dir: pair.Dir()}
 		if holds(record, pair.Dir()) {
-			if err := remade(submission, run.Job(where), pair, record.Commit); err != nil {
+			if err := remade(submission, run.Task(where), pair, record.Commit); err != nil {
 				return compare.Record{}, err
 			}
 			continue
 		}
-		if err := made(submission, run.Job(where), pair); err != nil {
+		if err := made(submission, run.Task(where), pair); err != nil {
 			return compare.Record{}, err
 		}
 		added = append(added, run)
@@ -56,7 +56,7 @@ func prepared(where string, submission job.Dir, pairs []Pair) (compare.Record, e
 	return record, writeComparison(where, record)
 }
 
-func begun(where string, submission job.Dir) (compare.Record, error) {
+func begun(where string, submission task.Dir) (compare.Record, error) {
 	of, err := filepath.Abs(submission.Path())
 	if err != nil {
 		return compare.Record{}, err
@@ -64,9 +64,9 @@ func begun(where string, submission job.Dir) (compare.Record, error) {
 	return compare.Record{Submission: of}, os.MkdirAll(where, 0o755)
 }
 
-// made is the submission as a job for one pair: its job.json with the harness,
+// made is the submission as a task for one pair: its job.json with the harness,
 // and the model when the pair names one, and the adapter to run it with.
-func made(submission, dir job.Dir, pair Pair) error {
+func made(submission, dir task.Dir, pair Pair) error {
 	if err := dir.Make(); err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func made(submission, dir job.Dir, pair Pair) error {
 }
 
 // remade makes a run the comparison holds again when its job.json is gone.
-func remade(submission, dir job.Dir, pair Pair, commit string) error {
+func remade(submission, dir task.Dir, pair Pair, commit string) error {
 	if _, err := os.Stat(dir.Spec()); !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
@@ -99,7 +99,7 @@ func pinned(where string, record *compare.Record, added []compare.Run) error {
 		return nil
 	}
 	if record.Commit == "" {
-		spec, err := job.Read(added[0].Job(where))
+		spec, err := task.Read(added[0].Task(where))
 		if err != nil {
 			return err
 		}
@@ -110,7 +110,7 @@ func pinned(where string, record *compare.Record, added []compare.Run) error {
 		record.Commit, record.PinnedBy = pin.Commit, pin.By
 	}
 	for _, run := range added {
-		if err := replay.Rewrite(run.Job(where), run.Job(where), map[string]any{"ref": record.Commit}); err != nil {
+		if err := replay.Rewrite(run.Task(where), run.Task(where), map[string]any{"ref": record.Commit}); err != nil {
 			return err
 		}
 	}
@@ -124,7 +124,7 @@ func held(where string, runs []compare.Run) ([]string, error) {
 	var first map[string]json.RawMessage
 	same := map[string]bool{}
 	for i, run := range runs {
-		fields, err := fieldsOf(run.Job(where))
+		fields, err := fieldsOf(run.Task(where))
 		if err != nil {
 			return nil, err
 		}
@@ -157,7 +157,7 @@ func equal(a, b json.RawMessage) bool {
 	return bytes.Equal(left.Bytes(), right.Bytes())
 }
 
-func fieldsOf(dir job.Dir) (map[string]json.RawMessage, error) {
+func fieldsOf(dir task.Dir) (map[string]json.RawMessage, error) {
 	text, err := os.ReadFile(dir.Spec())
 	if err != nil {
 		return nil, err

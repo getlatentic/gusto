@@ -9,15 +9,15 @@ import (
 
 func TestADirectoryWithDataAndNoStampIsFormatOneToARollbackToo(t *testing.T) {
 	var ran []string
-	withFormats(t, Jobs, 2, noted(Jobs, 1, &ran, true))
+	withFormats(t, Tasks, 2, noted(Tasks, 1, &ran, true))
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "20260101-job"), nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := CanRollback(Jobs, dir, 2); err == nil {
+	if err := CanRollback(Tasks, dir, 2); err == nil {
 		t.Error("a directory at format 1 cannot be rolled back to 2")
 	}
-	if err := Rollback(Jobs, dir, 1, "v0"); err != nil {
+	if err := Rollback(Tasks, dir, 1, "v0"); err != nil {
 		t.Fatal(err)
 	}
 	if len(ran) > 0 {

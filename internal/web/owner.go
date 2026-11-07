@@ -6,7 +6,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // sharedSignIn is who the shared password signs somebody in as. It is the
@@ -87,7 +87,7 @@ func (s *Server) inRoom(r *http.Request, held instance.Instance) bool {
 }
 
 // mayUseRecord says whether the person asking may see a task: their own, or a turn in a room they are in.
-func (s *Server) mayUseRecord(r *http.Request, record jobs.Record) bool {
+func (s *Server) mayUseRecord(r *http.Request, record tasks.Record) bool {
 	if s.mayUse(r, record.Asked) {
 		return true
 	}
@@ -116,8 +116,8 @@ func (s *Server) ownInstances(r *http.Request, all []instance.Instance) []instan
 	return kept
 }
 
-func (s *Server) ownJobs(r *http.Request, all []jobs.Record) []jobs.Record {
-	var kept []jobs.Record
+func (s *Server) ownTasks(r *http.Request, all []tasks.Record) []tasks.Record {
+	var kept []tasks.Record
 	for _, each := range all {
 		if s.mayUse(r, each.Asked) {
 			kept = append(kept, each)

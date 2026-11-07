@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // links is where the pull request sends a reviewer: files at the evidence
@@ -80,7 +80,7 @@ func (l links) section(digest, at string) string {
 
 // evidenceMessage says what the evidence commit is to anybody who finds it
 // with git alone.
-func evidenceMessage(dir job.Dir, digest string) string {
+func evidenceMessage(dir task.Dir, digest string) string {
 	return fmt.Sprintf("gusto record for task %s\n\nout/manifest.json has sha256 %s. The parent commit is the patch it vouches for.\n",
 		filepath.Base(filepath.Clean(dir.Path())), digest)
 }

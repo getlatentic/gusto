@@ -9,7 +9,7 @@ import (
 
 	"github.com/getlatentic/gusto/cmd/internal/cmdline"
 	"github.com/getlatentic/gusto/internal/replay"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 const (
@@ -85,11 +85,11 @@ func renamed(was, is string, run func() int) func() int {
 }
 
 // oneDir is the directory a command that takes only that was given.
-func oneDir(path string, args []string) (job.Dir, int) {
+func oneDir(path string, args []string) (task.Dir, int) {
 	if len(args) != 1 || strings.HasPrefix(args[0], "-") {
 		return "", usageError(path, "needs one task directory")
 	}
-	return job.Dir(args[0]), 0
+	return task.Dir(args[0]), 0
 }
 
 func fail(err error) int {

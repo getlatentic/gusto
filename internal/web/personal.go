@@ -12,8 +12,8 @@ import (
 
 	"github.com/getlatentic/gusto/internal/apitoken"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // The routes below are a person's own work as JSON, for the helper on their computer, an editor and a tray. They are
@@ -32,10 +32,10 @@ func (s *Server) asPerson(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
-// threadWithTurns is a conversation and what was said in it, each turn the job it was.
+// threadWithTurns is a conversation and what was said in it, each turn the task it was.
 type threadWithTurns struct {
 	instance.Thread
-	Said []jobs.Record `json:"said"`
+	Said []tasks.Record `json:"said"`
 }
 
 func (s *Server) instancesJSON(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +80,7 @@ func (s *Server) threadJSON(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	said := []jobs.Record{}
+	said := []tasks.Record{}
 	for _, id := range thread.Turns {
 		if record, ok := s.index.Get(id); ok {
 			said = append(said, record)
@@ -99,7 +99,7 @@ type workspaceFile struct {
 }
 
 // mostFiles bounds one listing. A folder a build ran in can hold hundreds of thousands, and a copy of one is not the
-// helper's job: it says the list was cut, and ignore rules are what keep it short.
+// helper's task: it says the list was cut, and ignore rules are what keep it short.
 const mostFiles = 50000
 
 // filesJSON lists the regular files of an agent's folder. A link is not followed or listed, and git's own directory is not
@@ -189,7 +189,7 @@ func (s *Server) newThreadJSON(w http.ResponseWriter, r *http.Request) {
 	answerJSON(w, http.StatusCreated, thread)
 }
 
-// saidJSON is one turn said in a person's own thread. An Idempotency-Key makes a retry the same turn: the job the first
+// saidJSON is one turn said in a person's own thread. An Idempotency-Key makes a retry the same turn: the task the first
 // send made is given back, with `already` true, and nothing is started.
 func (s *Server) saidJSON(w http.ResponseWriter, r *http.Request) {
 	held, found := s.mine(w, r)

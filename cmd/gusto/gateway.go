@@ -15,15 +15,15 @@ import (
 	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/internal/setup"
 	tools "github.com/getlatentic/gusto/pkg/gateway"
-	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/pkg/redact"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // gateways makes a task's gateway the first time it is asked for, from what the task was given when it started, and ends it with the
 // task. What a task may reach is read from its own directory, which only its owner and the proxy can read, and not from anything the
 // agent sends.
 type gateways struct {
-	jobs string
+	tasks string
 	// policyFile is the tool policy's file, read again when it changes.
 	policyFile string
 	// inProcess says tasks run in the server's own process, where there is no container to run a program in. It is set before
@@ -46,12 +46,12 @@ type gateways struct {
 
 // openGateways opens the gateway as cfg says: the policy file, whether a task discovers its tools or is given them all, and
 // whether the servers may be on a private network.
-func openGateways(jobsRoot string, cfg wayOutSettings) (*gateways, error) {
+func openGateways(tasksRoot string, cfg wayOutSettings) (*gateways, error) {
 	policy, err := tools.ReadPolicy(cfg.toolPolicy)
 	if err != nil {
 		return nil, err
 	}
-	g := &gateways{jobs: jobsRoot, policyFile: cfg.toolPolicy, mode: tools.Mode(cfg.gatewayMode), private: cfg.gatewayPrivate,
+	g := &gateways{tasks: tasksRoot, policyFile: cfg.toolPolicy, mode: tools.Mode(cfg.gatewayMode), private: cfg.gatewayPrivate,
 		sessions: map[string]*tools.Session{}}
 	g.policy.Store(&policy)
 	return g, nil
@@ -89,8 +89,8 @@ func (g *gateways) For(id string) (http.Handler, bool) {
 }
 
 func (g *gateways) open(id string) (*tools.Session, bool) {
-	dir := job.Dir(filepath.Join(g.jobs, id))
-	spec, err := job.Read(dir)
+	dir := task.Dir(filepath.Join(g.tasks, id))
+	spec, err := task.Read(dir)
 	if err != nil || spec.Setup == nil || len(spec.Setup.Gateway) == 0 {
 		return nil, false
 	}
@@ -112,7 +112,7 @@ func (g *gateways) open(id string) (*tools.Session, bool) {
 			servers = append(servers, server)
 		}
 	}
-	caller := tools.Caller{Job: id, Team: spec.Team, Person: askerOf(dir)}
+	caller := tools.Caller{Task: id, Team: spec.Team, Person: askerOf(dir)}
 	// An app is called with the sign-in of the person who asked for the task, whatever the file says.
 	for i := range servers {
 		if servers[i].Connector != "" {
@@ -127,7 +127,7 @@ func (g *gateways) open(id string) (*tools.Session, bool) {
 }
 
 // askerOf is who asked for the task, from its state file.
-func askerOf(dir job.Dir) string {
+func askerOf(dir task.Dir) string {
 	text, err := os.ReadFile(filepath.Join(dir.Path(), "state.json"))
 	if err != nil {
 		return ""
@@ -145,7 +145,7 @@ func (g *gateways) launch(ctx context.Context, id string, server tools.Server) (
 	if g.inProcess {
 		return nil, nil, errors.New("a program runs in a container, and this server runs tasks in its own process")
 	}
-	return g.containers.ToolCommand(ctx, sandbox.Tool{Job: id, Name: server.Name, Plugin: server.Plugin, Data: server.Data,
+	return g.containers.ToolCommand(ctx, sandbox.Tool{Task: id, Name: server.Name, Plugin: server.Plugin, Data: server.Data,
 		Command: server.Command, Args: server.Args, Env: server.Env, Cwd: server.Cwd})
 }
 

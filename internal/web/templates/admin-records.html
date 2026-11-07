@@ -116,7 +116,7 @@
   <table class="{{template "ui-table"}}">
     <thead><tr><th>Task</th><th>Removes</th><th>Ended</th><th class="text-right">Frees</th></tr></thead>
     <tbody>
-      {{range .Upcoming}}<tr><td><a class="underline" href="/jobs/{{.Job}}">{{.Brief}}</a></td><td>{{.Kind}}</td><td class="whitespace-nowrap">{{.Days}} days ago</td><td class="text-right whitespace-nowrap tabular-nums">{{.Bytes}} bytes</td></tr>{{end}}
+      {{range .Upcoming}}<tr><td><a class="underline" href="/jobs/{{.Task}}">{{.Brief}}</a></td><td>{{.Kind}}</td><td class="whitespace-nowrap">{{.Days}} days ago</td><td class="text-right whitespace-nowrap tabular-nums">{{.Bytes}} bytes</td></tr>{{end}}
     </tbody>
   </table>
   {{else}}
@@ -128,11 +128,11 @@
 
 <section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">
   <h2 class="text-sm font-semibold">Holds</h2>
-  {{if or .HeldJobs .HeldPeople}}
+  {{if or .HeldTasks .HeldPeople}}
   <table class="{{template "ui-table"}}">
     <thead><tr><th>What</th><th>Held by</th><th>Why</th><th></th></tr></thead>
     <tbody>
-      {{range $id, $h := .HeldJobs}}<tr><td>task <a class="underline" href="/jobs/{{$id}}">{{$id}}</a></td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
+      {{range $id, $h := .HeldTasks}}<tr><td>task <a class="underline" href="/jobs/{{$id}}">{{$id}}</a></td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
         <td class="text-right"><form method="post" action="/admin/retention/jobs/release"><input type="hidden" name="job" value="{{$id}}"><button type="submit" class="{{template "ui-btn-sm"}}">Release</button></form></td></tr>{{end}}
       {{range $who, $h := .HeldPeople}}<tr><td>everything asked for by {{$who}}</td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
         <td class="text-right"><form method="post" action="/admin/retention/holds/release"><input type="hidden" name="who" value="{{$who}}"><button type="submit" class="{{template "ui-btn-sm"}}">Release</button></form></td></tr>{{end}}

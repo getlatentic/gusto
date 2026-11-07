@@ -7,14 +7,14 @@ import (
 	"github.com/getlatentic/gusto/internal/backend"
 	"github.com/getlatentic/gusto/internal/computer"
 	"github.com/getlatentic/gusto/internal/sandbox"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A turn's container is labelled with the organization, the person as the id their computer would have, and the agent; a task a
 // script sent is nobody's, so it has no person.
 func TestATurnsContainerIsOwnedByItsOrganizationPersonAndAgent(t *testing.T) {
 	b := New(Config{Org: "acme-research-com"})
-	spec := job.Spec{Session: "20261028-1811-opencode"}
+	spec := task.Spec{Session: "20261028-1811-opencode"}
 	got := b.owner(backend.Turn{Spec: spec, Person: "bob@acme-research.com"})
 	want := sandbox.Owner{Org: "acme-research-com", Person: computer.ID("acme-research-com", "bob@acme-research.com"), Instance: spec.Session}
 	if got != want {
@@ -30,7 +30,7 @@ func TestATurnsContainerIsOwnedByItsOrganizationPersonAndAgent(t *testing.T) {
 func TestAPersonsTurnsShareAHomeOfTheirOwnAndARoomOrAScriptHasNone(t *testing.T) {
 	homes := filepath.Join(t.TempDir(), "computers")
 	b := New(Config{Org: "acme-research-com", Homes: homes})
-	mounts, err := b.keptHome(backend.Turn{Spec: job.Spec{Session: "20261105-0900-opencode"}, Person: "bob@acme-research.com"})
+	mounts, err := b.keptHome(backend.Turn{Spec: task.Spec{Session: "20261105-0900-opencode"}, Person: "bob@acme-research.com"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestAPersonsTurnsShareAHomeOfTheirOwnAndARoomOrAScriptHasNone(t *testing.T)
 	}
 	for name, turn := range map[string]backend.Turn{
 		"a script's task": {},
-		"a room's turn":   {Spec: job.Spec{Session: "20261105-0900-room", Agent: "opencode"}, Person: "bob@acme-research.com"},
+		"a room's turn":   {Spec: task.Spec{Session: "20261105-0900-room", Agent: "opencode"}, Person: "bob@acme-research.com"},
 	} {
 		if mounts, err := b.keptHome(turn); err != nil || mounts != nil {
 			t.Errorf("%s was given %+v (%v)", name, mounts, err)
@@ -54,11 +54,11 @@ func TestAPersonsTurnsShareAHomeOfTheirOwnAndARoomOrAScriptHasNone(t *testing.T)
 
 // A conversation's turn has its workspace and its memory mounted, a room's turn only its memory, and a task of its own neither.
 func TestATurnIsGivenTheConversationsWorkspaceAndMemory(t *testing.T) {
-	conversation := staying(backend.Turn{Spec: job.Spec{Session: "s"}, Workspace: "/w", State: "/m"})
+	conversation := staying(backend.Turn{Spec: task.Spec{Session: "s"}, Workspace: "/w", State: "/m"})
 	if len(conversation) != 2 || conversation[0].To != "/job/workspace" || conversation[1].From != "/m" {
 		t.Errorf("a conversation's turn was given %+v", conversation)
 	}
-	if room := staying(backend.Turn{Spec: job.Spec{Session: "s", Agent: "a"}, State: "/m"}); len(room) != 1 || room[0].To != "/root/.local/share" {
+	if room := staying(backend.Turn{Spec: task.Spec{Session: "s", Agent: "a"}, State: "/m"}); len(room) != 1 || room[0].To != "/root/.local/share" {
 		t.Errorf("a room's turn was given %+v", room)
 	}
 	if alone := staying(backend.Turn{}); alone != nil {

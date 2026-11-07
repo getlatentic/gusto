@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/atomicfile"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Verdict is the check's answer. Nothing else in a run has one to give.
@@ -31,7 +31,7 @@ type Verdict struct {
 // agent's calls to a model once it was spent. Reason is written for the
 // person who asked for the task.
 type CapStop struct {
-	// Cap is "job" (a per-task cap) or "team".
+	// Cap is "task" (a per-task cap) or "team".
 	Cap      string  `json:"cap"`
 	Team     string  `json:"team,omitempty"`
 	LimitUSD float64 `json:"limitUsd"`
@@ -59,7 +59,7 @@ type Entry struct {
 // Version is the format of manifest.json. A file without one is version 1.
 type Manifest struct {
 	Version int     `json:"version"`
-	Job     string  `json:"job"`
+	Task    string  `json:"job"`
 	Files   []Entry `json:"files"`
 	// Gate is absent when the task had none to run: a turn in a conversation is
 	// not a claim that anything passed.
@@ -100,7 +100,7 @@ func Now() int64 { return time.Now().Unix() }
 
 // Of hashes the task spec and every file in out/ except the manifest itself and
 // its signature, which is made over the manifest after it is written.
-func Of(dir job.Dir) (string, []Entry, error) {
+func Of(dir task.Dir) (string, []Entry, error) {
 	spec, err := hash(dir.Spec())
 	if err != nil {
 		return "", nil, err
@@ -130,7 +130,7 @@ func Of(dir job.Dir) (string, []Entry, error) {
 // Write keeps the manifest, stamping the version this build writes when the
 // caller left it out. A signature already beside it signed other bytes, so it
 // goes: a rewritten record is unsigned until somebody holding a key signs it.
-func Write(dir job.Dir, manifest Manifest) error {
+func Write(dir task.Dir, manifest Manifest) error {
 	text, err := encode(manifest)
 	if err != nil {
 		return err
@@ -154,8 +154,8 @@ func encode(manifest Manifest) ([]byte, error) {
 }
 
 // Read the manifest. A field this build does not know is ignored, and a version
-// it does not know is refused, for the reasons job.Readable gives.
-func Read(dir job.Dir) (Manifest, error) {
+// it does not know is refused, for the reasons task.Readable gives.
+func Read(dir task.Dir) (Manifest, error) {
 	text, err := os.ReadFile(dir.OutFile("manifest.json"))
 	if err != nil {
 		return Manifest{}, err
@@ -164,7 +164,7 @@ func Read(dir job.Dir) (Manifest, error) {
 	if err := json.Unmarshal(text, &manifest); err != nil {
 		return Manifest{}, err
 	}
-	if err := job.Readable("manifest.json", manifest.Version, Version); err != nil {
+	if err := task.Readable("manifest.json", manifest.Version, Version); err != nil {
 		return Manifest{}, err
 	}
 	if manifest.Version == 0 {
@@ -177,7 +177,7 @@ func Read(dir job.Dir) (Manifest, error) {
 // the manifest names that is gone, every one that appeared since, and a
 // signature that no longer holds for the manifest. Who signed is Attest's
 // question, because it needs a keyring and this check does not.
-func Check(dir job.Dir) ([]string, error) {
+func Check(dir task.Dir) ([]string, error) {
 	manifest, err := Read(dir)
 	if err != nil {
 		return nil, err
@@ -190,7 +190,7 @@ func Check(dir job.Dir) ([]string, error) {
 	if _, err := os.Stat(pendingFile(dir)); err == nil {
 		wrong = append(wrong, "a decision is waiting to be put under the signature ("+PendingFile+")")
 	}
-	if spec != manifest.Job {
+	if spec != manifest.Task {
 		wrong = append(wrong, "job.json changed")
 	}
 	found := map[string]string{}

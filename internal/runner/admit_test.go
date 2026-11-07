@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// absent names a program no machine has, which is what a job naming a harness
+// absent names a program no machine has, which is what a task naming a harness
 // the image was not built with looks like from inside the box.
 const absent = `{
   "name": "absent",
@@ -21,16 +21,16 @@ const absent = `{
   "stream": "plain"
 }`
 
-func refused(t *testing.T) (job.Dir, error) {
+func refused(t *testing.T) (task.Dir, error) {
 	t.Helper()
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "absent.json"), absent)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    repo(t),
 		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
@@ -54,7 +54,7 @@ func TestAHarnessTheRunnerLacksIsRefusedBeforeItStarts(t *testing.T) {
 		}
 	}
 	// Nothing the harness would have written exists, and no manifest claims a
-	// run happened: the job did not start, rather than started and failed.
+	// run happened: the task did not start, rather than started and failed.
 	for _, name := range []string{"harness.log", "stderr.log", "manifest.json"} {
 		if _, err := os.Stat(dir.OutFile(name)); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("%s exists for a job that never started", name)
@@ -62,7 +62,7 @@ func TestAHarnessTheRunnerLacksIsRefusedBeforeItStarts(t *testing.T) {
 	}
 }
 
-func TestTheRefusalIsWhereSomebodyReadingTheJobLooks(t *testing.T) {
+func TestTheRefusalIsWhereSomebodyReadingTheTaskLooks(t *testing.T) {
 	dir, err := refused(t)
 	transcript, readErr := os.ReadFile(dir.OutFile("transcript.log"))
 	if readErr != nil {

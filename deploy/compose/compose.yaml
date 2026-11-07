@@ -55,7 +55,7 @@ services:
       GUSTO_BEHIND_PROXY: ${GUSTO_BEHIND_PROXY:-}
       GUSTO_CONTAINER: docker
       GUSTO_IMAGE: ${GUSTO_RUNNER_IMAGE:-gusto-runner:local}
-      GUSTO_JOBS: ${GUSTO_DATA:-/var/lib/gusto}/jobs
+      GUSTO_TASKS: ${GUSTO_DATA:-/var/lib/gusto}/jobs
       GUSTO_SESSIONS: ${GUSTO_DATA:-/var/lib/gusto}/sessions
       GUSTO_SETUPS: ${GUSTO_DATA:-/var/lib/gusto}/setups
       GUSTO_INTEGRATIONS: ${GUSTO_DATA:-/var/lib/gusto}/integrations

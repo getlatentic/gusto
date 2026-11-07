@@ -30,7 +30,7 @@ var taskStates = []string{"queued", "running", "passed", "failed", "interrupted"
 var taskFields = []string{"q", "state", "person", "agent_type", "team", "repo", "instance", "thread", "from", "to"}
 
 // taskScope is whose tasks the request may read: nobody's name for all of them, and otherwise the one person. It
-// is the rule ownJobs applies to a list in memory, so that the same person sees the same tasks either way.
+// is the rule ownTasks applies to a list in memory, so that the same person sees the same tasks either way.
 func (s *Server) taskScope(r *http.Request) (asked string, none bool) {
 	if s.admin(r) {
 		return "", false

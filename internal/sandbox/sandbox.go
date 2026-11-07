@@ -12,7 +12,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Containers is how this machine starts the containers tasks and programs run in.
@@ -59,7 +59,7 @@ const (
 // Sealed instead.
 //
 // The container is stopped when ctx ends.
-func (c Containers) Run(ctx context.Context, dir job.Dir, model, token string, owner Owner, mounts ...Mount) (int, error) {
+func (c Containers) Run(ctx context.Context, dir task.Dir, model, token string, owner Owner, mounts ...Mount) (int, error) {
 	absolute, err := filepath.Abs(dir.Path())
 	if err != nil {
 		return 0, err
@@ -87,7 +87,7 @@ func (c Containers) Run(ctx context.Context, dir job.Dir, model, token string, o
 // start runs the container, then signs the manifest it left. The manifest is
 // written inside the box, where the agent runs, so the key never goes in: the
 // host signs once the box is gone.
-func (c Containers) start(ctx context.Context, dir job.Dir, args []string) (int, error) {
+func (c Containers) start(ctx context.Context, dir task.Dir, args []string) (int, error) {
 	command := exec.CommandContext(ctx, c.Runtime, args...)
 	// A stop is an interrupt to the runtime's client, which hands it on to the container's first process, `gusto inside`. That
 	// ends the agent and writes down what it did. Killing the client would leave the container running and spending.
@@ -116,7 +116,7 @@ const stopGrace = 60 * time.Second
 
 // containerName is the name a task's container has, so that it can be removed by it whatever became of the client that
 // started it. A task's id is already a name a container may have.
-func containerName(dir job.Dir) string {
+func containerName(dir task.Dir) string {
 	return "gusto-" + filepath.Base(filepath.Clean(dir.Path()))
 }
 

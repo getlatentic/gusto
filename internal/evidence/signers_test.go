@@ -7,13 +7,13 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// sealedUnder makes a job called id under root, signed by signer.
-func sealedUnder(t *testing.T, root, id string, signer signing.Signer) job.Dir {
+// sealedUnder makes a task called id under root, signed by signer.
+func sealedUnder(t *testing.T, root, id string, signer signing.Signer) task.Dir {
 	t.Helper()
-	dir := recordedAt(t, job.Dir(filepath.Join(root, id)), "answer of "+id)
+	dir := recordedAt(t, task.Dir(filepath.Join(root, id)), "answer of "+id)
 	if err := evidence.Seal(dir, signer); err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestARotatedKeyLeavesEveryEarlierRecordVerifiableAndNamed(t *testing.T) {
 	if !found.Sound() || found.Signed["acme-2026-09"] != 2 || found.Signed["acme-2026-10"] != 1 {
 		t.Fatalf("after a rotation: %+v", found)
 	}
-	attested, err := evidence.Attest(job.Dir(filepath.Join(root, "a")), keyringOf(t, ring))
+	attested, err := evidence.Attest(task.Dir(filepath.Join(root, "a")), keyringOf(t, ring))
 	if err != nil || attested.Signer != "acme-2026-09" || attested.Key != older.ID() {
 		t.Fatalf("an earlier record names %+v: %v", attested, err)
 	}
@@ -110,7 +110,7 @@ func TestATamperedManifestIsBrokenAndNotMerelyUnknown(t *testing.T) {
 func TestAnUnsignedRecordIsCountedAndDoesNotFailTheCheck(t *testing.T) {
 	ring, root := t.TempDir(), t.TempDir()
 	keyIn(t, ring, "acme")
-	recordedAt(t, job.Dir(filepath.Join(root, "a")), "unsigned")
+	recordedAt(t, task.Dir(filepath.Join(root, "a")), "unsigned")
 	if found := signersOf(t, root, ring); !found.Sound() || found.Unsigned != 1 {
 		t.Fatalf("with an unsigned record: %+v", found)
 	}

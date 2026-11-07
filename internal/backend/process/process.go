@@ -14,7 +14,7 @@ import (
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Config is how turns are run in this process.
@@ -52,7 +52,7 @@ func (b *Backend) Check() error {
 	}
 	set := isolation.Settings{}
 	if b.cfg.Open {
-		set.JobNetwork = "open"
+		set.TaskNetwork = "open"
 	}
 	wall := isolation.ProcessWall(isolation.This(set))
 	if wall.Ready {
@@ -83,7 +83,7 @@ func (b *Backend) Run(ctx context.Context, turn backend.Turn) (int, error) {
 			return 0, err
 		}
 	}
-	home, data, err := jobHome(turn)
+	home, data, err := taskHome(turn)
 	if err != nil {
 		return 0, err
 	}
@@ -101,9 +101,9 @@ func (b *Backend) Run(ctx context.Context, turn backend.Turn) (int, error) {
 	return runner.InsideWith(ctx, turn.Dir, env, runner.Place{Signing: b.cfg.Signing})
 }
 
-// jobHome is the home an agent run here is given, as a container's /root is: a folder of the task's own, holding each agent's
+// taskHome is the home an agent run here is given, as a container's /root is: a folder of the task's own, holding each agent's
 // configuration as the image does, and the instance's state as its data, which is what a container mounts at /root/.local/share.
-func jobHome(turn backend.Turn) (home, data string, err error) {
+func taskHome(turn backend.Turn) (home, data string, err error) {
 	if home, err = filepath.Abs(filepath.Join(turn.Dir.Path(), "home")); err != nil {
 		return "", "", err
 	}
@@ -145,7 +145,7 @@ func agentEnv(turn backend.Turn) (harness.Env, error) {
 // The task directory is made before it is queued, which leaves a real, empty directory where the workspace goes; a link cannot
 // be put over one. Remove refuses a directory with anything in it, so a task that has its own checkout is never quietly
 // replaced.
-func pointAt(workspace string, dir job.Dir) error {
+func pointAt(workspace string, dir task.Dir) error {
 	if err := dir.Make(); err != nil {
 		return err
 	}

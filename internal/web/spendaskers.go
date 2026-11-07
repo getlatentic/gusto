@@ -6,11 +6,11 @@ import (
 	"github.com/getlatentic/gusto/pkg/spend"
 )
 
-// byAsker is the month's jobs added up under who each counts against, the person who asked or a room agent's owner, in the
+// byAsker is the month's tasks added up under who each counts against, the person who asked or a room agent's owner, in the
 // words a person reads: a name for a person, "Token ci" for a token, and one line for everything the shared password or the
 // API sent before tokens existed.
-func (s *Server) byAsker(jobs []spend.Line) []spend.Line {
-	return plainly(jobs, func(id string) string {
+func (s *Server) byAsker(tasks []spend.Line) []spend.Line {
+	return plainly(tasks, func(id string) string {
 		record, found := s.index.Get(id)
 		if !found {
 			return askerNotRecorded

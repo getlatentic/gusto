@@ -7,16 +7,16 @@ import (
 	"github.com/getlatentic/gusto/internal/apps"
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/quota"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/spend"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // openRecords opens the tasks and the instances. An organization's gusto cloud writes what the organization may run, and this
 // server reads it as it goes; one that cannot read it does not start.
 func (s *server) openRecords() error {
-	index, err := jobs.Open(s.cfg.stores.jobs)
+	index, err := tasks.Open(s.cfg.stores.tasks)
 	if err != nil {
 		return err
 	}
@@ -85,8 +85,8 @@ func (s *server) startTurns() error {
 		s.way.gateways.inProcess = s.cfg.boxes.here()
 		s.way.gateways.containers = s.cfg.boxes.containers.signedBy(s.signs)
 	}
-	s.index.SetLimits(jobs.Limits{Person: s.cfg.way.limitPerson, Team: s.cfg.way.limitTeam})
-	s.rooms = newRoomRuns(s.instances, func(dir job.Dir) string { return personWhoAsked(s.index, dir) }, s.cfg.boxes.roomCopy(), s.signs.Key)
+	s.index.SetLimits(tasks.Limits{Person: s.cfg.way.limitPerson, Team: s.cfg.way.limitTeam})
+	s.rooms = newRoomRuns(s.instances, func(dir task.Dir) string { return personWhoAsked(s.index, dir) }, s.cfg.boxes.roomCopy(), s.signs.Key)
 	s.tellWayOut()
 	// Started before any turn: a backend keeps up what its turns use, such as its image or people's computers.
 	stopBoxes, err := boxes.Start(context.Background())
@@ -94,14 +94,14 @@ func (s *server) startTurns() error {
 		return err
 	}
 	s.started(stopBoxes)
-	s.queue = jobs.StartStoppable(s.index, turns(boxes, s.way, s.instances, s.index, s.rooms), s.cfg.boxes.concurrency)
+	s.queue = tasks.StartStoppable(s.index, turns(boxes, s.way, s.instances, s.index, s.rooms), s.cfg.boxes.concurrency)
 	s.started(s.queue.Stop)
 	return nil
 }
 
 // tellWayOut says how the proxy finds who a run is for: the task's record and its room, which the index and instances hold.
 func (s *server) tellWayOut() {
-	s.way.UseRunRecords(func(dir job.Dir, spec job.Spec) evidence.Run { return runRecord(s.index, s.instances, dir, spec) })
+	s.way.UseRunRecords(func(dir task.Dir, spec task.Spec) evidence.Run { return runRecord(s.index, s.instances, dir, spec) })
 	s.way.UseAskers(func(id string) string {
 		if record, found := s.index.Get(id); found {
 			return record.Asked

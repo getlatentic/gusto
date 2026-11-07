@@ -13,26 +13,26 @@ import (
 	"github.com/getlatentic/gusto/internal/computer"
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/landlock"
 	"github.com/getlatentic/gusto/internal/quota"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // turnBy is a turn in a conversation on an instance, asked for by a person, run by the work.
-func turnBy(t *testing.T, work jobs.Work, index *jobs.Index, instances *instance.Store, held instance.Instance, threadID, who, brief string) job.Dir {
+func turnBy(t *testing.T, work tasks.Work, index *tasks.Index, instances *instance.Store, held instance.Instance, threadID, who, brief string) task.Dir {
 	t.Helper()
 	id, err := index.Reserve(brief, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
 	remembered := instances.Latest(held.ID).Remembered
-	record := jobs.Record{ID: id, State: jobs.Running, Brief: brief, Harness: "fixture", Asked: who, Instance: held.ID, Thread: threadID, Queued: jobs.Now()}
+	record := tasks.Record{ID: id, State: tasks.Running, Brief: brief, Harness: "fixture", Asked: who, Instance: held.ID, Thread: threadID, Queued: tasks.Now()}
 	dir := record.Dir(index.Root())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: brief, Harness: "fixture", Session: held.ID, Thread: threadID, Remembered: remembered}
+	spec := task.Spec{Brief: brief, Harness: "fixture", Session: held.ID, Thread: threadID, Remembered: remembered}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func conversational(t *testing.T) {
 }
 
 func TestATurnWorksOnTheInstancesFilesInThePersonsComputerAndTheNextStartsFromWhatItLeft(t *testing.T) {
-	work, index, registry, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+	work, index, registry, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
 	conversational(t)
 	held, err := instances.Start("20260929-1200-notes", instance.Instance{Title: "Notes", Harness: "fixture", Who: "ada@acme.com"})
 	if err != nil {
@@ -94,7 +94,7 @@ func TestATurnWorksOnTheInstancesFilesInThePersonsComputerAndTheNextStartsFromWh
 // Two agents of a room asked by one person run at the same time in that person's one computer, each in a folder of its own, so
 // neither empties or overwrites the other's working copy there.
 func TestTwoAgentsOfARoomAskedByOnePersonWorkInFoldersOfTheirOwnInTheirComputer(t *testing.T) {
-	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
 	conversational(t)
 	held, err := instances.StartRoom("Launch", "ada@acme.com")
 	if err != nil {
@@ -121,7 +121,7 @@ func TestTwoAgentsOfARoomAskedByOnePersonWorkInFoldersOfTheirOwnInTheirComputer(
 // A room's turn runs behind a Landlock policy that lets it write its own folder, home and temporary folder and nothing else of
 // the person's computer, with that home as HOME. The policy itself is the landlock package's to enforce, and is tested there.
 func TestARoomsTurnInAPersonsComputerIsHeldToItsOwnFolders(t *testing.T) {
-	work, index, _, _, root, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+	work, index, _, _, root, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
 	conversational(t)
 	held, _ := instances.StartRoom("Launch", "ada@acme.com")
 	instances.AddAgent(held.ID, instance.Agent{Name: "Scout", Harness: "fixture"})
@@ -158,18 +158,18 @@ func TestARoomsTurnInAPersonsComputerIsHeldToItsOwnFolders(t *testing.T) {
 }
 
 // roomTurnBy is a turn of a room's agent asked for by a person, run by the work.
-func roomTurnBy(t *testing.T, work jobs.Work, index *jobs.Index, held instance.Instance, threadID, agent, who string) job.Dir {
+func roomTurnBy(t *testing.T, work tasks.Work, index *tasks.Index, held instance.Instance, threadID, agent, who string) task.Dir {
 	t.Helper()
 	id, err := index.Reserve("go "+agent, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
-	record := jobs.Record{ID: id, State: jobs.Running, Brief: "go", Harness: "fixture", Asked: who, Instance: held.ID, Thread: threadID, Agent: agent, Queued: jobs.Now()}
+	record := tasks.Record{ID: id, State: tasks.Running, Brief: "go", Harness: "fixture", Asked: who, Instance: held.ID, Thread: threadID, Agent: agent, Queued: tasks.Now()}
 	dir := record.Dir(index.Root())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	if err := (job.Spec{Brief: "go", Harness: "fixture", Session: held.ID, Thread: threadID, Agent: agent}).Write(dir); err != nil {
+	if err := (task.Spec{Brief: "go", Harness: "fixture", Session: held.ID, Thread: threadID, Agent: agent}).Write(dir); err != nil {
 		t.Fatal(err)
 	}
 	if err := index.Add(record); err != nil {
@@ -184,7 +184,7 @@ func roomTurnBy(t *testing.T, work jobs.Work, index *jobs.Index, held instance.I
 // An agent in a person's computer is told its forwarder's address and no secret, and its call reaches past the proxy: the model
 // behind it is not there in a test, and the proxy says so rather than refusing the call.
 func TestAnAgentInAComputerReachesItsModelOnlyThroughItsForwarder(t *testing.T) {
-	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
 	harnesses := t.TempDir()
 	os.WriteFile(filepath.Join(harnesses, "fixture.json"), []byte(`{"name":"fixture","program":"sh","argv":["-c",
 	  "printf '%s %s' \"$GUSTO_MODEL_URL\" \"$GUSTO_MODEL_TOKEN\" > given.txt; curl -s -X POST \"$GUSTO_MODEL_URL/chat/completions\" -d '{}' > answer.txt; echo done"],
@@ -216,7 +216,7 @@ func TestAnAgentInAComputerReachesItsModelOnlyThroughItsForwarder(t *testing.T) 
 
 // A room's agent runs on its owner's computer, whoever asked: ada's agent, asked by bob, runs in ada's computer, and bob gets none.
 func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
-	work, index, registry, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+	work, index, registry, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
 	conversational(t)
 	held, _ := instances.StartRoom("Launch", "ada@acme.com")
 	instances.AddAgent(held.ID, instance.Agent{Name: "Scout", Harness: "fixture"})
@@ -226,11 +226,11 @@ func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	record := jobs.Record{ID: id, State: jobs.Running, Brief: "go", Harness: "fixture", Asked: "bob@acme.com", PaidBy: "ada@acme.com",
-		Instance: held.ID, Thread: instances.Latest(held.ID).ID, Agent: "a1", Queued: jobs.Now()}
+	record := tasks.Record{ID: id, State: tasks.Running, Brief: "go", Harness: "fixture", Asked: "bob@acme.com", PaidBy: "ada@acme.com",
+		Instance: held.ID, Thread: instances.Latest(held.ID).ID, Agent: "a1", Queued: tasks.Now()}
 	dir := record.Dir(index.Root())
 	dir.Make()
-	(job.Spec{Brief: "go", Harness: "fixture", Session: held.ID, Thread: record.Thread, Agent: "a1"}).Write(dir)
+	(task.Spec{Brief: "go", Harness: "fixture", Session: held.ID, Thread: record.Thread, Agent: "a1"}).Write(dir)
 	index.Add(record)
 	if _, err := work(dir); err != nil {
 		t.Logf("%v", err)
@@ -266,7 +266,7 @@ func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
 // for its run, and starts without a forwarder.
 func TestRunsInAComputerGetPlainTokensWhenTheAdminsChoseThem(t *testing.T) {
 	plain := func(way *WayOut) { way.UseRunTokens(func() bool { return true }) }
-	work, index, _, _, _, instances := organizationWithWayOut(t, quota.Quota{Computers: 4, Jobs: 100}, plain)
+	work, index, _, _, _, instances := organizationWithWayOut(t, quota.Quota{Computers: 4, Tasks: 100}, plain)
 	harnesses := t.TempDir()
 	os.WriteFile(filepath.Join(harnesses, "fixture.json"), []byte(`{"name":"fixture","program":"sh","argv":["-c",
 	  "printf '%s %s' \"$GUSTO_MODEL_URL\" \"$GUSTO_MODEL_TOKEN\" > given.txt; echo done"],
@@ -290,7 +290,7 @@ func TestRunsInAComputerGetPlainTokensWhenTheAdminsChoseThem(t *testing.T) {
 // A turn that changed files and failed before its record was written leaves the instance's
 // files as they were.
 func TestATurnThatFailsLeavesTheInstancesFilesAsTheyWere(t *testing.T) {
-	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
 	conversational(t)
 	held, _ := instances.Start("20260929-1200-notes", instance.Instance{Title: "Notes", Harness: "fixture", Who: "ada@acme.com"})
 	thread := instances.Latest(held.ID)

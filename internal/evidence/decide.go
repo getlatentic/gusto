@@ -12,7 +12,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // PendingFile is a decision on its way under the record's signature, beside out/ so the manifest does not hash it: the
@@ -25,14 +25,14 @@ type pending struct {
 	Signature []byte `json:"signature,omitempty"`
 }
 
-func pendingFile(dir job.Dir) string { return filepath.Join(dir.Path(), PendingFile) }
+func pendingFile(dir task.Dir) string { return filepath.Join(dir.Path(), PendingFile) }
 
 // Decide keeps what was done with what a room's turn changed, and puts it under the record's signature: the manifest is made
 // again with the decision and signed with key, when there is one. All three are made and kept in PendingFile before any is put in
 // place, so a crash part way leaves what Finish completes, and a key that cannot sign changes nothing. A record that no longer
 // checks is not decided, since making its manifest again would vouch for what changed, nor is a signed one with no key to
 // sign it again.
-func Decide(dir job.Dir, decision Decision, key signing.Signer) error {
+func Decide(dir task.Dir, decision Decision, key signing.Signer) error {
 	if err := decidable(dir, key != nil); err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ func Decide(dir job.Dir, decision Decision, key signing.Signer) error {
 }
 
 // decidable says why a record may not be decided, or nothing when it may.
-func decidable(dir job.Dir, signs bool) error {
+func decidable(dir task.Dir, signs bool) error {
 	wrong, err := Check(dir)
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ func decidable(dir job.Dir, signs bool) error {
 }
 
 // prepare makes the decision, the manifest that hashes it with the rest of out/, and the manifest's signature.
-func prepare(dir job.Dir, decision Decision, key signing.Signer) (pending, error) {
+func prepare(dir task.Dir, decision Decision, key signing.Signer) (pending, error) {
 	text, err := json.MarshalIndent(decision, "", "  ")
 	if err != nil {
 		return pending{}, err
@@ -76,7 +76,7 @@ func prepare(dir job.Dir, decision Decision, key signing.Signer) (pending, error
 	if err != nil {
 		return pending{}, err
 	}
-	if manifest.Job, manifest.Files, err = Of(dir); err != nil {
+	if manifest.Task, manifest.Files, err = Of(dir); err != nil {
 		return pending{}, err
 	}
 	manifest.Files = withFile(manifest.Files, DecisionFile, next.Decision)
@@ -112,7 +112,7 @@ func withFile(files []Entry, name string, text []byte) []Entry {
 
 // put puts a pending decision in place: the decision, the manifest, then its signature, which a manifest with no signature
 // takes away. Each step may be done again.
-func put(dir job.Dir, next pending) error {
+func put(dir task.Dir, next pending) error {
 	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func put(dir job.Dir, next pending) error {
 
 // Finish puts in place a decision a crash left pending, as a server does for the turns that were running when the one before it
 // stopped. A pending signature that does not hold for its manifest was not made by Decide, and is refused.
-func Finish(dir job.Dir) error {
+func Finish(dir task.Dir) error {
 	text, err := os.ReadFile(pendingFile(dir))
 	if errors.Is(err, os.ErrNotExist) {
 		return nil

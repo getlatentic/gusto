@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/repoaccess"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Git pushes by shelling out to git in a scratch repository of its own, so the
@@ -27,7 +27,7 @@ type Git struct {
 // record commit by name, so commits that come out different from the plan
 // stop the push.
 func (g Git) Push(ctx context.Context, plan Plan) error {
-	dir := job.Dir(plan.Job)
+	dir := task.Dir(plan.Task)
 	return inScratch(ctx, dir, plan.When, func(s scratch) error {
 		made, err := s.made(ctx, dir, plan)
 		if err != nil {
@@ -66,7 +66,7 @@ func (g Git) env() []string {
 
 // ranAgainst is the commit the workspace was checked out at. The patch is a
 // diff against it, so it is the one commit the patch is sure to apply to.
-func ranAgainst(dir job.Dir) (string, error) {
+func ranAgainst(dir task.Dir) (string, error) {
 	at, err := run(context.Background(), nil, "-C", dir.Workspace(), "rev-parse", "--verify", "HEAD")
 	if err != nil {
 		return "", fmt.Errorf("the workspace does not say which commit the task ran against: %w", err)
@@ -75,7 +75,7 @@ func ranAgainst(dir job.Dir) (string, error) {
 }
 
 // baseBranch is the branch the pull request targets: the one asked for, else
-// the job's ref when the remote has it as a branch, else the remote's default.
+// the task's ref when the remote has it as a branch, else the remote's default.
 // One ls-remote answers both questions and changes nothing on the remote.
 func baseBranch(remote, ref, asked string) (string, error) {
 	if asked != "" {

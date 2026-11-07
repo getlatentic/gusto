@@ -23,14 +23,14 @@ const dialLimit = 15 * time.Second
 // may go ahead, rather than when it closes. A connection can outlive the
 // agent that opened it, and a line written after the manifest hashed the
 // record would read as a record that changed after the run.
-func (p *Proxy) tunnel(w http.ResponseWriter, job, address string, call spend.Call) {
+func (p *Proxy) tunnel(w http.ResponseWriter, task, address string, call spend.Call) {
 	sent := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), dialLimit)
 	defer cancel()
 	remote, err := p.dial(ctx, "tcp", address)
 	if err != nil {
 		call.Error, call.Took = err.Error(), since(sent)
-		p.note(job, call)
+		p.note(task, call)
 		http.Error(w, "that host did not answer", http.StatusBadGateway)
 		return
 	}
@@ -41,7 +41,7 @@ func (p *Proxy) tunnel(w http.ResponseWriter, job, address string, call spend.Ca
 		return
 	}
 	call.Status, call.Took = http.StatusOK, since(sent)
-	p.note(job, call)
+	p.note(task, call)
 	local, buffered, err := hijacker.Hijack()
 	if err != nil {
 		return

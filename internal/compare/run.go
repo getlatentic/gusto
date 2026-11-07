@@ -32,7 +32,7 @@ func Start(where string, run replay.Run) ([]Side, error) {
 		runs.Add(1)
 		go func() {
 			defer runs.Done()
-			failed[i] = run(side.Job(where))
+			failed[i] = run(side.Task(where))
 		}()
 	}
 	runs.Wait()
@@ -56,7 +56,7 @@ func Sides(where string, record Record) []Side {
 
 func sideOf(where string, run Run) Side {
 	side := Side{Run: run}
-	dir := run.Job(where)
+	dir := run.Task(where)
 	side.Manifest, side.Err = evidence.Read(dir)
 	if side.Err != nil {
 		return side

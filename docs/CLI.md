@@ -119,8 +119,8 @@ Environment:
 - `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
 - `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
 - `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
-- `GUSTO_JOB_CPUS`: the CPUs one task's container may use (default 1)
-- `GUSTO_JOB_MEMORY`: the memory one task's container may use (default 3g)
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS is its old name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY is its old name
 - `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
 - `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
 - `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
@@ -273,8 +273,8 @@ Environment:
 - `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
 - `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
 - `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
-- `GUSTO_JOB_CPUS`: the CPUs one task's container may use (default 1)
-- `GUSTO_JOB_MEMORY`: the memory one task's container may use (default 3g)
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS is its old name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY is its old name
 - `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
 - `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
 - `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
@@ -325,8 +325,8 @@ Environment:
 - `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
 - `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
 - `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
-- `GUSTO_JOB_CPUS`: the CPUs one task's container may use (default 1)
-- `GUSTO_JOB_MEMORY`: the memory one task's container may use (default 3g)
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS is its old name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY is its old name
 - `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
 - `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
 - `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
@@ -375,8 +375,8 @@ Environment:
 - `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
 - `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
 - `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
-- `GUSTO_JOB_CPUS`: the CPUs one task's container may use (default 1)
-- `GUSTO_JOB_MEMORY`: the memory one task's container may use (default 3g)
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS is its old name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY is its old name
 - `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
 - `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
 - `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
@@ -588,7 +588,7 @@ Environment:
 - `GUSTO_LOCAL`: a server for one person on their own computer, listening on the loopback only
 - `GUSTO_ORG`: the organization this server is, as its gusto cloud names it
 - `GUSTO_PUBLIC_URL`: this server's address as people reach it, which links and sign-ins come back to
-- `GUSTO_JOBS`: the directory tasks are kept in (default jobs)
+- `GUSTO_TASKS`: the directory tasks are kept in (default jobs); GUSTO_JOBS is its old name
 - `GUSTO_SESSIONS`: the directory conversations and rooms are kept in (default sessions)
 - `GUSTO_SETUPS`: the directory skill sets are kept in (default setups)
 - `GUSTO_COMPARISONS`: the directory comparisons are kept in (default comparisons)
@@ -598,7 +598,7 @@ Environment:
 - `GUSTO_CHANGES`: the file every change to the platform is recorded in (default changes/changes.jsonl)
 - `GUSTO_API_TOKENS`: the file API tokens are kept in
 - `GUSTO_RETENTION`: the directory of the retention policy and what it removed
-- `GUSTO_DATABASE_URL`: the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file beside GUSTO_JOBS)
+- `GUSTO_DATABASE_URL`: the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file beside GUSTO_TASKS)
 - `GUSTO_MIGRATE_IRREVERSIBLE`: let a release change the data in a way an earlier release cannot read
 - `GUSTO_APPS`: the directory the web apps agents built are kept in (default apps)
 - `GUSTO_MCP`: the directory of the operator's MCP servers, one file each
@@ -633,7 +633,7 @@ Environment:
 - `GUSTO_SPEND_POLICY`: the file of prices and team caps
 - `GUSTO_MODELS`: the models offered, as credential/model, comma-separated
 - `GUSTO_ALLOWED_HOSTS`: every other host a task may reach through the proxy, comma-separated
-- `GUSTO_PROXY_SOCKET`: the socket a box with no network reaches the proxy on (default .proxy.sock in GUSTO_JOBS)
+- `GUSTO_PROXY_SOCKET`: the socket a box with no network reaches the proxy on (default .proxy.sock in GUSTO_TASKS)
 - `GUSTO_PROXY_ADDR`: where the proxy listens for a box on a network (default port 8041, on every interface for containers and the loopback otherwise)
 - `GUSTO_PROXY_MAX_OUTPUT_TOKENS`: the most output tokens one model call may ask for (default no limit)
 - `GUSTO_PROXY_SILENCE_SECONDS`: how long a model may send nothing before its call is ended, in seconds (default no limit)
@@ -653,13 +653,13 @@ Environment:
 - `GUSTO_CONNECTOR_CLIENTS`: the file of the clients registered with the apps that need one, or ssm:<name>
 - `GUSTO_CONNECTOR_APPS`: the file of more apps than the catalog's
 - `GUSTO_SANDBOX`: how tasks are held (container, openshell, process, here) (default container)
-- `GUSTO_JOB_NETWORK`: open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR (open)
-- `GUSTO_JOB_CONCURRENCY`: how many tasks run at a time (default 1)
+- `GUSTO_TASK_NETWORK`: open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR (open); GUSTO_JOB_NETWORK is its old name
+- `GUSTO_TASK_CONCURRENCY`: how many tasks run at a time (default 1); GUSTO_JOB_CONCURRENCY is its old name
 - `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
 - `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
 - `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
-- `GUSTO_JOB_CPUS`: the CPUs one task's container may use (default 1)
-- `GUSTO_JOB_MEMORY`: the memory one task's container may use (default 3g)
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS is its old name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY is its old name
 - `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
 - `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
 - `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
@@ -942,13 +942,13 @@ Environment:
 - `GUSTO_CLOUD_FREE_MAIL`: whether free mail providers may sign up; allow is for a demonstration (allow, refuse) (default refuse)
 - `GUSTO_CLOUD_REFUSED_DOMAINS`: more mail domains to turn away, beside the built-in ones, comma-separated
 - `GUSTO_CLOUD_PER_DOMAIN`: how many organizations one mail domain may make (default 3)
-- `GUSTO_CLOUD_TRIAL_JOBS`: the tasks in all an organization may run before its admin's address is confirmed (default 3)
+- `GUSTO_CLOUD_TRIAL_TASKS`: the tasks in all an organization may run before its admin's address is confirmed (default 3); GUSTO_CLOUD_TRIAL_JOBS is its old name
 - `GUSTO_CLOUD_TRIAL_CONCURRENT`: the tasks at once an organization may run before its admin's address is confirmed (default 1)
-- `GUSTO_CLOUD_JOBS`: the tasks a month a confirmed organization may run (default 200)
+- `GUSTO_CLOUD_TASKS`: the tasks a month a confirmed organization may run (default 200); GUSTO_CLOUD_JOBS is its old name
 - `GUSTO_CLOUD_CONCURRENT`: the tasks at once a confirmed organization may run (default 4)
 - `GUSTO_CLOUD_MEMBERS`: the people a confirmed organization may have (default 4)
 - `GUSTO_CLOUD_COMPUTERS`: the computers a confirmed organization may have (default 4)
-- `GUSTO_CLOUD_PAID_JOBS_PER_SEAT`: the tasks a month a paying organization may run for each seat (default 200)
+- `GUSTO_CLOUD_PAID_TASKS_PER_SEAT`: the tasks a month a paying organization may run for each seat (default 200); GUSTO_CLOUD_PAID_JOBS_PER_SEAT is its old name
 - `GUSTO_CLOUD_PAID_MEMBERS`: the people, and the computers, a paying organization may have (default 50)
 - `GUSTO_CLOUD_DEMO_MINUTES`: the minutes a demo lasts from when it is ready (default 0, no demo)
 - `GUSTO_CLOUD_DEMO_EXTEND_MINUTES`: the minutes a demo's one extension adds (default 10)
@@ -1139,8 +1139,8 @@ Environment:
 - `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
 - `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
 - `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
-- `GUSTO_JOB_CPUS`: the CPUs one task's container may use (default 1)
-- `GUSTO_JOB_MEMORY`: the memory one task's container may use (default 3g)
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS is its old name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY is its old name
 - `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
 - `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
 - `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
@@ -1194,7 +1194,7 @@ Environment:
 - `GUSTO_LOCAL`: a server for one person on their own computer, listening on the loopback only
 - `GUSTO_ORG`: the organization this server is, as its gusto cloud names it
 - `GUSTO_PUBLIC_URL`: this server's address as people reach it, which links and sign-ins come back to
-- `GUSTO_JOBS`: the directory tasks are kept in (default jobs)
+- `GUSTO_TASKS`: the directory tasks are kept in (default jobs); GUSTO_JOBS is its old name
 - `GUSTO_SESSIONS`: the directory conversations and rooms are kept in (default sessions)
 - `GUSTO_SETUPS`: the directory skill sets are kept in (default setups)
 - `GUSTO_COMPARISONS`: the directory comparisons are kept in (default comparisons)
@@ -1204,16 +1204,16 @@ Environment:
 - `GUSTO_CHANGES`: the file every change to the platform is recorded in (default changes/changes.jsonl)
 - `GUSTO_API_TOKENS`: the file API tokens are kept in
 - `GUSTO_RETENTION`: the directory of the retention policy and what it removed
-- `GUSTO_DATABASE_URL`: the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file beside GUSTO_JOBS)
+- `GUSTO_DATABASE_URL`: the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file beside GUSTO_TASKS)
 - `GUSTO_MIGRATE_IRREVERSIBLE`: let a release change the data in a way an earlier release cannot read
 - `GUSTO_SANDBOX`: how tasks are held (container, openshell, process, here) (default container)
-- `GUSTO_JOB_NETWORK`: open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR (open)
-- `GUSTO_JOB_CONCURRENCY`: how many tasks run at a time (default 1)
+- `GUSTO_TASK_NETWORK`: open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR (open); GUSTO_JOB_NETWORK is its old name
+- `GUSTO_TASK_CONCURRENCY`: how many tasks run at a time (default 1); GUSTO_JOB_CONCURRENCY is its old name
 - `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
 - `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
 - `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
-- `GUSTO_JOB_CPUS`: the CPUs one task's container may use (default 1)
-- `GUSTO_JOB_MEMORY`: the memory one task's container may use (default 3g)
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS is its old name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY is its old name
 - `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
 - `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
 - `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
@@ -1365,12 +1365,12 @@ Says which key stands behind every signed record in the tasks directory, and whi
 
 Flags:
 
-- `-tasks <directory>`: the directory of tasks to read (default $GUSTO_JOBS, else jobs)
+- `-tasks <directory>`: the directory of tasks to read (default $GUSTO_TASKS, else jobs)
 - `-h, --help`: show this help
 
 Environment:
 
-- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
 - `GUSTO_KEYRING`: the directory of public keys that name a record's signer
 
 Exit codes:
@@ -1448,13 +1448,13 @@ Flags:
 
 - `-dir <directory>`: the retention directory, with policy.json and the holds (default $GUSTO_RETENTION)
 - `-sessions <directory>`: the directory the server keeps rooms in, whose turns stay while the room does (default $GUSTO_SESSIONS, else sessions)
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
 - `-h, --help`: show this help
 
 Environment:
 
 - `GUSTO_RETENTION`: the retention directory, with policy.json and the holds, when -dir is not given
-- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
 
 See also: `gusto data`, `gusto spend`
 
@@ -1480,7 +1480,7 @@ Flags:
 
 Environment:
 
-- `GUSTO_JOBS`: tasks (default jobs)
+- `GUSTO_TASKS`: tasks (default jobs)
 - `GUSTO_SESSIONS`: agents' conversations (default sessions)
 - `GUSTO_MIGRATE_IRREVERSIBLE`: 1 allows a step that cannot be undone
 
@@ -1553,12 +1553,12 @@ Flags:
 
 - `-json`: print the report as JSON
 - `-month <2006-01>`: the month, as 2006-01; this month when left out
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
 - `-h, --help`: show this help
 
 Environment:
 
-- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
 
 Examples:
 
@@ -1607,13 +1607,13 @@ Flags:
 - `-month <2006-01>`: only calls in this month, as 2006-01
 - `-person <person>`: only this person's sessions
 - `-provider <provider>`: only calls this provider answered
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
 - `-h, --help`: show this help
 
 Environment:
 
 - `GUSTO_DATABASE_URL`: where the index is kept: empty for usage.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
-- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
 
 Exit codes:
 
@@ -1643,13 +1643,13 @@ Reads the model calls the index does not hold from every task's proxy record and
 Flags:
 
 - `-from-scratch`: remove every row first, then rebuild them all
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
 - `-h, --help`: show this help
 
 Environment:
 
 - `GUSTO_DATABASE_URL`: where the index is kept: empty for usage.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
-- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
 
 Exit codes:
 
@@ -1706,14 +1706,14 @@ Flags:
 - `-search <text>`: only tasks whose id, brief, asker or repository holds this text
 - `-sort <order>`: the order: queued (the default), ended or seq, from the greatest
 - `-state <state>`: only tasks in this state, or several separated by commas
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
 - `-team <team>`: only this team's tasks
 - `-h, --help`: show this help
 
 Environment:
 
 - `GUSTO_DATABASE_URL`: where the index is kept: empty for tasks.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
-- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
 
 Exit codes:
 
@@ -1743,13 +1743,13 @@ Reads every task's state.json and brings the index up to date: it adds the tasks
 Flags:
 
 - `-from-scratch`: remove every row first, then rebuild them all
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
 - `-h, --help`: show this help
 
 Environment:
 
 - `GUSTO_DATABASE_URL`: where the index is kept: empty for tasks.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
-- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
 
 Exit codes:
 

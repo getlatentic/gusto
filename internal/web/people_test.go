@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/roster"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // withPeople is a server behind a front door whose list of people is the one given,
@@ -28,7 +28,7 @@ func withPeople(t *testing.T, list roster.Roster) (*site, string) {
 	return here, path
 }
 
-// spentNow leaves a job that somebody asked for and that cost this much just now.
+// spentNow leaves a task that somebody asked for and that cost this much just now.
 func spentNow(t *testing.T, here *site, id, asked string, usd float64) {
 	t.Helper()
 	spentNowIn(t, here, id, asked, "", usd)
@@ -38,8 +38,8 @@ func spentNow(t *testing.T, here *site, id, asked string, usd float64) {
 func spentNowIn(t *testing.T, here *site, id, asked, team string, usd float64) {
 	t.Helper()
 	line := fmt.Sprintf(`{"path":"/v1/chat/completions","status":200,"atUnix":%d,"model":"m","inputTokens":10,"outputTokens":5,"usd":%v}`, time.Now().Unix(), usd)
-	spentJobFor(t, here.index.Root(), id, team, asked, line)
-	if err := here.index.Add(jobs.Record{ID: id, State: jobs.Passed, Brief: id, Harness: "fixture", Asked: asked, Queued: time.Now().Unix()}); err != nil {
+	spentTaskFor(t, here.index.Root(), id, team, asked, line)
+	if err := here.index.Add(tasks.Record{ID: id, State: tasks.Passed, Brief: id, Harness: "fixture", Asked: asked, Queued: time.Now().Unix()}); err != nil {
 		t.Fatal(err)
 	}
 }

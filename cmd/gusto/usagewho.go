@@ -9,7 +9,7 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/industry"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/internal/usage"
 	"github.com/getlatentic/gusto/internal/web"
 	"github.com/getlatentic/gusto/pkg/harness"
@@ -56,7 +56,7 @@ func providerOf(engines []catalog.Entry, cfg serveSettings) (usage.ProviderFunc,
 	if cfg.way.registry == "" {
 		return pages.UsageProvider, nil
 	}
-	way, err := openWayOut(cfg.stores.jobs, cfg.way, cfg.core.local)
+	way, err := openWayOut(cfg.stores.tasks, cfg.way, cfg.core.local)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (a *attribution) who(task string) (usage.Who, bool) {
 	if err != nil {
 		return usage.Who{}, false
 	}
-	var record jobs.Record
+	var record tasks.Record
 	if json.Unmarshal(text, &record) != nil {
 		return usage.Who{}, false
 	}

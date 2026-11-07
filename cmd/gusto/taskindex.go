@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/doctor"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/taskindex"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/internal/web"
 )
 
@@ -38,7 +38,7 @@ func (x indexes) taskPlace() string { return x.place(taskIndexFile) }
 // directories in the background, and gives it to the pages. The returned function stops all of that, writing what
 // is still queued first, after workStopped, which waits for the tasks that are running to end, since their last change is
 // one of those the index is to be given.
-func startTasks(index *jobs.Index, pages *web.Server, workStopped func(), databaseURL string) (func(), error) {
+func startTasks(index *tasks.Index, pages *web.Server, workStopped func(), databaseURL string) (func(), error) {
 	where := indexes{url: strings.TrimSpace(databaseURL), tasks: index.Root()}
 	store, err := where.openTasks(context.Background())
 	if err != nil {
@@ -74,7 +74,7 @@ func startTasks(index *jobs.Index, pages *web.Server, workStopped func(), databa
 
 // keepTasks makes the index say what the task directories say, then does so again each time the mirror reports a
 // change it could not write, until ctx ends. A run that fails is tried again later.
-func keepTasks(ctx context.Context, index *jobs.Index, store taskindex.Store, progress *taskindex.Progress) {
+func keepTasks(ctx context.Context, index *tasks.Index, store taskindex.Store, progress *taskindex.Progress) {
 	trouble := index.MirrorTrouble()
 	for ctx.Err() == nil {
 		result, err := index.Reconcile(ctx, store, progress)

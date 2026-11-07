@@ -12,8 +12,8 @@ set -eu
 mode=${1:?start or check}
 
 # state is the word a job's record has for how it stands. The file is indented, so spaces and newlines are taken out first.
-state() { tr -d ' \n' < "$GUSTO_JOBS/$1/state.json" 2>/dev/null | sed -n 's/.*"state":"\([a-z]*\)".*/\1/p'; }
-data=$(dirname "$GUSTO_JOBS")
+state() { tr -d ' \n' < "$GUSTO_TASKS/$1/state.json" 2>/dev/null | sed -n 's/.*"state":"\([a-z]*\)".*/\1/p'; }
+data=$(dirname "$GUSTO_TASKS")
 smoke="$data/smoke"
 
 case "$mode" in
@@ -43,7 +43,7 @@ JSON
   fi
   id=$(GUSTO_SERVER=http://127.0.0.1:8040 gusto submit "$smoke/stop-job" | head -n 1)
   tries=0
-  until [ "$(state "$id")" = running ] && [ -f "$GUSTO_JOBS/$id/workspace/made.txt" ]; do
+  until [ "$(state "$id")" = running ] && [ -f "$GUSTO_TASKS/$id/workspace/made.txt" ]; do
     tries=$((tries + 1))
     [ "$tries" -le 120 ] || { echo "the task was not running with its work done after 120 seconds" >&2; exit 1; }
     sleep 1
@@ -55,18 +55,18 @@ check)
   tries=0
   until [ "$(state "$id")" = interrupted ]; do
     tries=$((tries + 1))
-    [ "$tries" -le 90 ] || { echo "FAIL: the task did not end after it was stopped:" >&2; cat "$GUSTO_JOBS/$id/state.json" >&2; exit 1; }
+    [ "$tries" -le 90 ] || { echo "FAIL: the task did not end after it was stopped:" >&2; cat "$GUSTO_TASKS/$id/state.json" >&2; exit 1; }
     sleep 1
   done
   fail=0
-  tr -d ' \n' < "$GUSTO_JOBS/$id/state.json" | grep -q '"stoppedBy"' || { echo "FAIL: the job's record does not say who stopped it" >&2; fail=1; }
-  grep -q '"stoppedBy"' "$GUSTO_JOBS/$id/out/manifest.json" || { echo "FAIL: the manifest does not say who stopped it" >&2; fail=1; }
-  grep -q did-this-before-it-was-stopped "$GUSTO_JOBS/$id/workspace/made.txt" || { echo "FAIL: what the task had done was not kept" >&2; fail=1; }
+  tr -d ' \n' < "$GUSTO_TASKS/$id/state.json" | grep -q '"stoppedBy"' || { echo "FAIL: the job's record does not say who stopped it" >&2; fail=1; }
+  grep -q '"stoppedBy"' "$GUSTO_TASKS/$id/out/manifest.json" || { echo "FAIL: the manifest does not say who stopped it" >&2; fail=1; }
+  grep -q did-this-before-it-was-stopped "$GUSTO_TASKS/$id/workspace/made.txt" || { echo "FAIL: what the task had done was not kept" >&2; fail=1; }
   left=$(docker ps -a --filter "name=gusto-$id" -q)
   [ -z "$left" ] || { echo "FAIL: the job's container is still there: $left" >&2; fail=1; }
-  GUSTO_KEYRING="${GUSTO_KEYRING:-}" gusto verify "$GUSTO_JOBS/$id" >/dev/null 2>&1 || echo "note: verify did not hold (a stopped task has no check to re-run)"
+  GUSTO_KEYRING="${GUSTO_KEYRING:-}" gusto verify "$GUSTO_TASKS/$id" >/dev/null 2>&1 || echo "note: verify did not hold (a stopped task has no check to re-run)"
   [ "$fail" = 0 ] || exit 1
-  grep -o '"stoppedBy":"[^"]*"' "$GUSTO_JOBS/$id/out/manifest.json" | head -1
+  grep -o '"stoppedBy":"[^"]*"' "$GUSTO_TASKS/$id/out/manifest.json" | head -1
   echo "the task was stopped, ended interrupted, kept its work, and its container is gone"
   ;;
 *) echo "start or check" >&2; exit 2 ;;

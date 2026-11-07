@@ -11,10 +11,10 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/setup"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/gateway"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A room's agent uses an app of whoever asked it only as that person chose, app by app: an app left on inherit follows their
@@ -36,14 +36,14 @@ func TestARoomTurnUsesEachOfItsAskersAppsAsTheyChoseOrTheirDefault(t *testing.T)
 		t.Fatal(err)
 	}
 	turn := func(id, who string) []string {
-		spec, _ := job.Read(placed(t, here, id, jobs.Record{Asked: who, Agent: inRoom.ID, Instance: room.ID}, "opencode"))
+		spec, _ := task.Read(placed(t, here, id, tasks.Record{Asked: who, Agent: inRoom.ID, Instance: room.ID}, "opencode"))
 		if spec.Setup == nil {
 			return nil
 		}
 		return spec.Setup.Connectors
 	}
 	brief := func(id string) string {
-		spec, _ := job.Read(job.Dir(filepath.Join(here.index.Root(), id)))
+		spec, _ := task.Read(task.Dir(filepath.Join(here.index.Root(), id)))
 		return spec.Brief
 	}
 	thread := "/instances/" + room.ID + "/threads/" + here.server.instances.Threads(room.ID)[0].ID
@@ -85,7 +85,7 @@ func TestARoomTurnUsesEachOfItsAskersAppsAsTheyChoseOrTheirDefault(t *testing.T)
 		t.Fatalf("an agent left on inherit was not given the app the person's default allows: %v", got)
 	}
 	var behind []gateway.Server
-	text, _ := os.ReadFile(filepath.Join(job.Dir(filepath.Join(here.index.Root(), "inherited")).SetupDir(), setup.GatewayFile))
+	text, _ := os.ReadFile(filepath.Join(task.Dir(filepath.Join(here.index.Root(), "inherited")).SetupDir(), setup.GatewayFile))
 	if json.Unmarshal(text, &behind) != nil || len(behind) != 1 || behind[0].Person != alice {
 		t.Errorf("the gateway is not given the app as the asker: %s", text)
 	}

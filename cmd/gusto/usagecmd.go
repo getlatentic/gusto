@@ -19,7 +19,7 @@ import (
 
 var envUsage = []cmdline.Param{
 	{Name: "GUSTO_DATABASE_URL", Text: "where the index is kept: empty for usage.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)"},
-	{Name: "GUSTO_JOBS", Text: "the directory of tasks, when -tasks is not given (default jobs)"},
+	{Name: "GUSTO_TASKS", Text: "the directory of tasks, when -tasks is not given (default jobs)"},
 }
 
 func usageCommands() []*cmdline.Command {
@@ -82,7 +82,7 @@ func declareSessions(set *flag.FlagSet) *sessionsFlags {
 	set.StringVar(&f.model, "model", "", "only calls to this `model`")
 	set.StringVar(&f.month, "month", "", "only calls in this month, as `2006-01`")
 	set.IntVar(&f.limit, "limit", 20, "the most `sessions` to list")
-	set.StringVar(&f.tasks, "tasks", "", "the `directory` the server keeps tasks in (default $GUSTO_JOBS, else jobs)")
+	set.StringVar(&f.tasks, "tasks", "", "the `directory` the server keeps tasks in (default $GUSTO_TASKS, else jobs)")
 	set.BoolVar(&f.json, "json", false, "print the sessions as JSON")
 	return f
 }
@@ -221,7 +221,7 @@ type reindexFlags struct {
 func declareReindex(set *flag.FlagSet) *reindexFlags {
 	f := &reindexFlags{}
 	set.BoolVar(&f.fromScratch, "from-scratch", false, "remove every row first, then rebuild them all")
-	set.StringVar(&f.tasks, "tasks", "", "the `directory` the server keeps tasks in (default $GUSTO_JOBS, else jobs)")
+	set.StringVar(&f.tasks, "tasks", "", "the `directory` the server keeps tasks in (default $GUSTO_TASKS, else jobs)")
 	return f
 }
 

@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/getlatentic/gusto/internal/atomicfile"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A turn's record names who and what it was for, and what was done with what it changed, as well as what it did: the run's
@@ -53,9 +53,9 @@ type Decision struct {
 }
 
 // WriteRun keeps who and where a run is for, before it starts.
-func WriteRun(dir job.Dir, run Run) error { return writeOut(dir, RunFile, run) }
+func WriteRun(dir task.Dir, run Run) error { return writeOut(dir, RunFile, run) }
 
-func writeOut(dir job.Dir, name string, value any) error {
+func writeOut(dir task.Dir, name string, value any) error {
 	text, err := json.MarshalIndent(value, "", "  ")
 	if err != nil {
 		return err

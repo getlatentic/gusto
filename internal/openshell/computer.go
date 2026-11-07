@@ -39,7 +39,7 @@ func (s *Sandbox) startInComputer(ctx context.Context, workspace string) error {
 	if filepath.Base(absolute) != "workspace" {
 		return fmt.Errorf("the directory is %s, and a task's working folder is named workspace", absolute)
 	}
-	here := jobsDir + "/" + s.job
+	here := tasksDir + "/" + s.task
 	// What a turn of a conversation left there is the last turn's, and the workspace it is
 	// given now is the whole of what it works on.
 	steps := [][]string{{"rm", "-rf", here}, {"mkdir", "-p", here}}
@@ -112,10 +112,10 @@ func (s *Sandbox) answering(ctx context.Context) error {
 // readyWithin is how long a workspace has to run a command once it is started.
 var readyWithin = 2 * time.Minute
 
-// jobEvents is the part of a workspace's log that is this task's: what came after the
+// taskEvents is the part of a workspace's log that is this task's: what came after the
 // lines that were there when it started. A log that is shorter than that, because
 // it was cut, is kept whole rather than dropped.
-func (s *Sandbox) jobEvents(all []byte) []byte {
+func (s *Sandbox) taskEvents(all []byte) []byte {
 	if !s.persistent || s.logBase == 0 {
 		return all
 	}
@@ -126,15 +126,15 @@ func (s *Sandbox) jobEvents(all []byte) []byte {
 	return bytes.Join(lines[s.logBase:], nil)
 }
 
-// endJob takes away what this task left in a workspace, which is the directory it
+// endTask takes away what this task left in a workspace, which is the directory it
 // worked in and the skills it was given: the next task is given its own. The workspace
 // stays, and so does the directory of a conversation, which its next turn works in.
-func (s *Sandbox) endJob() error {
+func (s *Sandbox) endTask() error {
 	if s.keepDir {
 		return nil
 	}
 	if _, err := output(s.run(context.Background(), "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
-		"rm", "-rf", jobsDir+"/"+s.job)); err != nil {
+		"rm", "-rf", tasksDir+"/"+s.task)); err != nil {
 		return err
 	}
 	return nil
@@ -193,7 +193,7 @@ func (s *Sandbox) held(command *exec.Cmd) (*exec.Cmd, error) {
 		front = []string{s.program(), "sandbox-run"}
 	}
 	if s.confined {
-		policy, err := landlock.Policy{Write: []string{jobsDir + "/" + s.job, s.home}, Temp: s.temp}.JSON()
+		policy, err := landlock.Policy{Write: []string{tasksDir + "/" + s.task, s.home}, Temp: s.temp}.JSON()
 		if err != nil {
 			return nil, err
 		}

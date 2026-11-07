@@ -33,10 +33,10 @@ func (p *Proxy) UseRecorder(r Recorder) {
 // note writes a call to the task's out/proxy.jsonl and counts it in the ledger.
 // The line is the ledger: a server that restarts rebuilds its counts from these
 // lines, and the manifest hashes them with the rest of the evidence.
-func (p *Proxy) note(job string, call spend.Call) {
+func (p *Proxy) note(task string, call spend.Call) {
 	p.counts.add(call)
-	p.ledger.Count(job, call)
-	where, ok := p.where(job)
+	p.ledger.Count(task, call)
+	where, ok := p.where(task)
 	if !ok {
 		return
 	}
@@ -44,54 +44,54 @@ func (p *Proxy) note(job string, call spend.Call) {
 	if err != nil {
 		return
 	}
-	number, written := p.append(job, where, line)
+	number, written := p.append(task, where, line)
 	if written {
-		p.tell(job, number, call)
+		p.tell(task, number, call)
 	}
 }
 
 // append adds a line to the task's record and says which line it is, counted from zero. The first time this
 // process sees a task it counts the lines the file already has.
-func (p *Proxy) append(job, where string, line []byte) (number int, written bool) {
+func (p *Proxy) append(task, where string, line []byte) (number int, written bool) {
 	p.guard.Lock()
 	defer p.guard.Unlock()
 	file, err := os.OpenFile(where, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
-		slog.Error("the proxy could not write down a call", "job", job, "error", err)
+		slog.Error("the proxy could not write down a call", "task", task, "error", err)
 		return 0, false
 	}
 	defer file.Close()
-	number, known := p.lines[job]
+	number, known := p.lines[task]
 	if !known {
 		if number, err = countLines(where); err != nil {
-			slog.Error("the proxy could not count the lines of a task's record", "job", job, "error", err)
+			slog.Error("the proxy could not count the lines of a task's record", "task", task, "error", err)
 			return 0, false
 		}
 	}
 	if _, err := fmt.Fprintf(file, "%s\n", line); err != nil {
-		slog.Error("the proxy could not write down a call", "job", job, "error", err)
+		slog.Error("the proxy could not write down a call", "task", task, "error", err)
 		return 0, false
 	}
 	if p.lines == nil {
 		p.lines = map[string]int{}
 	}
-	p.lines[job] = number + 1
+	p.lines[task] = number + 1
 	return number, true
 }
 
 // tell hands a written call to the recorder. A recorder that panics costs the index a row, which a repair
 // reads back from the file, and costs the task nothing.
-func (p *Proxy) tell(job string, number int, call spend.Call) {
+func (p *Proxy) tell(task string, number int, call spend.Call) {
 	recorder := p.recorder.Load()
 	if recorder == nil {
 		return
 	}
 	defer func() {
 		if recovered := recover(); recovered != nil {
-			slog.Error("the usage recorder failed", "job", job, "error", recovered)
+			slog.Error("the usage recorder failed", "task", task, "error", recovered)
 		}
 	}()
-	(*recorder).Record(job, number, call)
+	(*recorder).Record(task, number, call)
 }
 
 // countLines is how many lines a file has, a last one without its line feed included, and zero for a file not made yet.
@@ -132,8 +132,8 @@ const Refusal = "gusto stopped this task: "
 // client already prints, so the reason reaches the agent's own transcript.
 // 402 rather than 429, because a client retries a 429 and a spent cap does not
 // come back by waiting.
-func (p *Proxy) refuse(w http.ResponseWriter, job string, call spend.Call) {
-	p.note(job, call)
+func (p *Proxy) refuse(w http.ResponseWriter, task string, call spend.Call) {
+	p.note(task, call)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusPaymentRequired)
 	_ = json.NewEncoder(w).Encode(map[string]any{

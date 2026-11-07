@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/compare"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // TableVersion is the version of the table's JSON this code writes and the
@@ -29,7 +29,7 @@ type Table struct {
 // Row is one task on one pair. Every number in it is null when the run did not
 // leave it, because a zero would read as free, or instant, or failed.
 type Row struct {
-	Job     string `json:"job"`
+	Task    string `json:"job"`
 	Harness string `json:"harness"`
 	// Model is what the run asked for, read off its job.json. Empty is a run
 	// that left the model to the harness.
@@ -75,8 +75,8 @@ func Tabulate(where string) (Table, error) {
 // rowOf reads one cell through compare, the way `gusto compare` reads a side, so
 // a matrix and a comparison cannot disagree about a run.
 func rowOf(where, environment string, cell Cell) (Row, error) {
-	row := Row{Job: cell.Job, Harness: cell.Harness, Model: cell.Model, Environment: environment, Run: cell.Dir}
-	if spec, err := job.Read(cell.Run(where)); err == nil {
+	row := Row{Task: cell.Task, Harness: cell.Harness, Model: cell.Model, Environment: environment, Run: cell.Dir}
+	if spec, err := task.Read(cell.Run(where)); err == nil {
 		row.Model = spec.Model
 	}
 	side := sideOf(where, cell)

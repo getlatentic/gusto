@@ -9,7 +9,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/seatbelt"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // wallPolicy is what a task run here may do, whichever sandbox this computer has to hold it to that.
@@ -26,7 +26,7 @@ type wallPolicy struct {
 // workspace, its own home, its conversation's state and its cache; it can read none of the person's home but those, its own folder,
 // and where its engine and the programs on its PATH are; and it reaches nothing on the network but gusto's proxy, unless the network
 // is left open.
-func behindProcessWall(dir job.Dir, spec job.Spec, home, data, proxyPort string, open bool) (func(*exec.Cmd), error) {
+func behindProcessWall(dir task.Dir, spec task.Spec, home, data, proxyPort string, open bool) (func(*exec.Cmd), error) {
 	person, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err

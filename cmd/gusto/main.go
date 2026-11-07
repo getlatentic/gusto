@@ -18,7 +18,7 @@ import (
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 func main() { os.Exit(run(os.Args[1:])) }
@@ -33,7 +33,7 @@ func declareNew(set *flag.FlagSet) *newFlags {
 	set.StringVar(&f.brief, "brief", "", "what to do, in your `words`")
 	set.StringVar(&f.agent, "agent", "opencode", "which agent does the work, from gusto agents")
 	set.StringVar(&f.model, "model", "", "the `model` to ask for")
-	set.StringVar(&f.sensitivity, "sensitivity", string(job.Internal), "`label` the task: public, internal or restricted")
+	set.StringVar(&f.sensitivity, "sensitivity", string(task.Internal), "`label` the task: public, internal or restricted")
 	return f
 }
 
@@ -48,17 +48,17 @@ func newTask(args []string) int {
 	if where == "" || f.repo == "" || f.brief == "" || len(check) == 0 {
 		return usageError("new", "needs a directory, -repo, -brief, and a check after --")
 	}
-	dir := job.Dir(where)
+	dir := task.Dir(where)
 	if err := dir.Make(); err != nil {
 		return fail(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:       f.brief,
 		Repo:        f.repo,
 		Gate:        check,
 		Harness:     f.agent,
 		Model:       f.model,
-		Sensitivity: job.Sensitivity(f.sensitivity),
+		Sensitivity: task.Sensitivity(f.sensitivity),
 	}
 	if err := spec.Write(dir); err != nil {
 		return fail(err)
@@ -77,7 +77,7 @@ func runTask(args []string) int {
 	}
 	// The checkout happens here rather than in the container, so a repository
 	// credential stays on the runner and never enters the box with the agent.
-	spec, err := job.Read(dir)
+	spec, err := task.Read(dir)
 	if err != nil {
 		return fail(err)
 	}
@@ -136,7 +136,7 @@ func verify(args []string) int {
 	if where == "" || set.NArg() > 0 {
 		return usageError("verify", "needs one task directory")
 	}
-	dir := job.Dir(where)
+	dir := task.Dir(where)
 	wrong, err := evidence.Check(dir)
 	if err != nil {
 		return fail(err)
@@ -171,7 +171,7 @@ func verify(args []string) int {
 		fmt.Printf("%d files match, and the task had no check to run again\n", len(manifest.Files))
 		return 0
 	}
-	spec, err := job.Read(dir)
+	spec, err := task.Read(dir)
 	if err != nil {
 		return fail(err)
 	}
@@ -192,7 +192,7 @@ func show(args []string) int {
 	if code != 0 {
 		return code
 	}
-	spec, err := job.Read(dir)
+	spec, err := task.Read(dir)
 	if err != nil {
 		return fail(err)
 	}

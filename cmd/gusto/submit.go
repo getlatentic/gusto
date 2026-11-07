@@ -14,7 +14,7 @@ import (
 	"github.com/getlatentic/gusto/internal/settings"
 	"github.com/getlatentic/gusto/internal/web"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // submit sends a task directory to a server instead of running it here. It is the
@@ -37,7 +37,7 @@ func submit(args []string) int {
 	if secret == "" {
 		return fail(errors.New("set GUSTO_TOKEN to an API token from the server's Tokens page, or GUSTO_PASSWORD to its shared sign-in"))
 	}
-	spec, err := job.Read(dir)
+	spec, err := task.Read(dir)
 	if err != nil {
 		return fail(err)
 	}
@@ -93,7 +93,7 @@ func sending(to string) (string, error) {
 
 // carriedAdapter reads the adapter the task holds for its agent. A task naming a
 // built-in agent holds none, and every server has those already.
-func carriedAdapter(dir job.Dir, name string) (*harness.Adapter, error) {
+func carriedAdapter(dir task.Dir, name string) (*harness.Adapter, error) {
 	text, err := os.ReadFile(filepath.Join(harness.Carried(dir), name+".json"))
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil

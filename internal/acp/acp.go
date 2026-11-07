@@ -11,7 +11,7 @@ import (
 	"io"
 	"sort"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Turn is one message in a conversation.
@@ -22,7 +22,7 @@ type Turn struct {
 	// starts a new one.
 	Session string
 	// Servers are the MCP servers the session may call.
-	Servers []job.Server
+	Servers []task.Server
 	// Auth is the agent's authentication method to use, by the id it lists, for an agent that will not open a session
 	// until one is chosen. Empty asks for none.
 	Auth string
@@ -134,7 +134,7 @@ func open(c *conn, turn Turn, can continuing) (string, error) {
 
 // mcpServers is the servers in the protocol's shape: an address with its
 // headers, or a program with its environment, each as a list of pairs.
-func mcpServers(servers []job.Server) []map[string]any {
+func mcpServers(servers []task.Server) []map[string]any {
 	shaped := make([]map[string]any, 0, len(servers))
 	for _, server := range servers {
 		if server.URL != "" {

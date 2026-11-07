@@ -20,7 +20,7 @@ type Policy struct {
 	// Write are the folders the task may read, write and run programs from.
 	Write []string `json:"write"`
 	// ProxyPort is the one TCP port the task may connect to, which is gusto's proxy. Zero leaves the network open, as
-	// GUSTO_JOB_NETWORK=open does.
+	// GUSTO_TASK_NETWORK=open does.
 	ProxyPort int `json:"proxyPort"`
 	// Temp is the task's own temporary folder. When it is set, the system's shared ones are not writable, since other tasks
 	// on the same computer leave what is theirs there.

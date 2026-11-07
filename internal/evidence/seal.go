@@ -7,7 +7,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // SignatureFile is the detached signature over manifest.json, beside it in
@@ -34,7 +34,7 @@ func (a Attestation) String() string {
 }
 
 // Seal signs manifest.json as it is on disk.
-func Seal(dir job.Dir, signer signing.Signer) error {
+func Seal(dir task.Dir, signer signing.Signer) error {
 	manifest, err := os.ReadFile(dir.OutFile("manifest.json"))
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func Seal(dir job.Dir, signer signing.Signer) error {
 // SealIfKeyed signs with key, and leaves the record unsigned when there is none.
 // A directory with no manifest has nothing to sign: a run that died before
 // writing one is reported by its own error.
-func SealIfKeyed(dir job.Dir, key signing.Signer) error {
+func SealIfKeyed(dir task.Dir, key signing.Signer) error {
 	if key == nil {
 		return nil
 	}
@@ -67,7 +67,7 @@ func SealIfKeyed(dir job.Dir, key signing.Signer) error {
 // not an error here: whether one is acceptable is the verifier's to decide.
 // A signature that does not hold, or one from a key the keyring does not hold,
 // is refused, and the refusal names the file.
-func Attest(dir job.Dir, keyring signing.Keyring) (Attestation, error) {
+func Attest(dir task.Dir, keyring signing.Keyring) (Attestation, error) {
 	signature, manifest, found, err := sealed(dir)
 	if err != nil || !found {
 		return Attestation{}, err
@@ -82,7 +82,7 @@ func Attest(dir job.Dir, keyring signing.Keyring) (Attestation, error) {
 // sealComplaints is what Check says about a signature, which needs no keyring:
 // whether it still holds for the manifest beside it. An unsigned record draws
 // no complaint, because every record made before signing is one.
-func sealComplaints(dir job.Dir) []string {
+func sealComplaints(dir task.Dir) []string {
 	signature, manifest, found, err := sealed(dir)
 	if err != nil {
 		return []string{fmt.Sprintf("%s cannot be read: %v", SignatureFile, err)}
@@ -100,7 +100,7 @@ func sealComplaints(dir job.Dir) []string {
 
 // sealed reads the signature and the manifest bytes it signs. Found is false
 // when there is no signature.
-func sealed(dir job.Dir) (signing.Signature, []byte, bool, error) {
+func sealed(dir task.Dir) (signing.Signature, []byte, bool, error) {
 	text, err := os.ReadFile(dir.OutFile(SignatureFile))
 	if errors.Is(err, os.ErrNotExist) {
 		return signing.Signature{}, nil, false, nil

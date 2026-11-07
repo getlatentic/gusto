@@ -95,8 +95,8 @@ func newOrganization(t *testing.T) *organization {
 	return o
 }
 
-func (o *organization) say(kind, job, state string, at int64) {
-	body, _ := json.Marshal(Turn{Job: job, Brief: "a brief", State: state, At: at})
+func (o *organization) say(kind, task, state string, at int64) {
+	body, _ := json.Marshal(Turn{Task: task, Brief: "a brief", State: state, At: at})
 	o.frames <- "event: " + kind + "\ndata: " + string(body) + "\n\n"
 }
 

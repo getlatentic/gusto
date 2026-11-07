@@ -10,7 +10,7 @@ package schema
 import _ "embed"
 
 //go:embed job/v1.json
-var job []byte
+var task []byte
 
 //go:embed manifest/v1.json
 var manifest []byte
@@ -18,8 +18,8 @@ var manifest []byte
 //go:embed signature/v1.json
 var signature []byte
 
-// Job is the schema of job.json, version 1.
-func Job() []byte { return job }
+// Task is the schema of job.json, version 1.
+func Task() []byte { return task }
 
 // Manifest is the schema of out/manifest.json, version 1.
 func Manifest() []byte { return manifest }

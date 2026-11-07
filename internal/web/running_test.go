@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // startedTheOldWay writes an instance the way the two-step start left one on
@@ -33,7 +33,7 @@ func startedTheOldWay(t *testing.T, root, id string) {
 // started, which is the only way an instance from the old start reaches it.
 func openOver(t *testing.T, instances string) *site {
 	t.Helper()
-	index, err := jobs.Open(t.TempDir())
+	index, err := tasks.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

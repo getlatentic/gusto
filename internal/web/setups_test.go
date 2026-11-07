@@ -11,11 +11,11 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/changelog"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A setup is made once and started with again: every turn on an instance
-// started with it carries its skills and its servers into the job, and
+// started with it carries its skills and its servers into the task, and
 // job.json names them without the servers' definitions.
 func TestEveryTurnOnAnInstanceCarriesItsSetup(t *testing.T) {
 	site := open(t)
@@ -49,8 +49,8 @@ func TestEveryTurnOnAnInstanceCarriesItsSetup(t *testing.T) {
 	id := strings.TrimPrefix(said.Header().Get("Location"), where+"#")
 	site.wait(t, id)
 
-	dir := job.Dir(filepath.Join(site.index.Root(), id))
-	spec, err := job.Read(dir)
+	dir := task.Dir(filepath.Join(site.index.Root(), id))
+	spec, err := task.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

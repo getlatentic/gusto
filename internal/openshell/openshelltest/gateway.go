@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// gateway keeps each sandbox as a directory, enough for a job to run in one.
+// gateway keeps each sandbox as a directory, enough for a task to run in one.
 const gateway = `#!/bin/bash
 root=${OPENSHELL_FAKE_ROOT:?}
 echo "$*" >> "$root/calls.log"

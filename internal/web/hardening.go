@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// maxBody is the most a request may send. A form or a JSON job is a few
+// maxBody is the most a request may send. A form or a JSON task is a few
 // kilobytes; the largest thing posted is a skill's text.
 const maxBody = 4 << 20
 

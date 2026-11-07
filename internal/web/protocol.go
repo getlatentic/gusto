@@ -34,7 +34,7 @@ type call struct {
 }
 
 // protocol is every call of the protocol. A person's work is in four parts: sign in as a person, start or find an instance, say
-// something in one of its threads (which starts a turn, a job), and follow the turn. Following is a stream, and so is the one that
+// something in one of its threads (which starts a turn, a task), and follow the turn. Following is a stream, and so is the one that
 // tells a client when any of its person's turns change.
 func (s *Server) protocol() []call {
 	return []call{
@@ -53,7 +53,7 @@ func (s *Server) protocol() []call {
 		{"POST", "/api/instances/{id}/threads/{thread}/say", whoPerson, "say something in a thread, which starts a turn; an Idempotency-Key makes a retry the same turn", false, s.saidJSON},
 
 		{"GET", "/api/jobs", whoPerson, "the person's tasks, newest first, narrowed by ?q, ?state and the other filters, a page at a time", false, s.tasksJSON},
-		{"GET", "/api/jobs/{id}", whoPerson, "one turn: its steps, its reply and its state", false, s.jobJSON},
+		{"GET", "/api/jobs/{id}", whoPerson, "one turn: its steps, its reply and its state", false, s.taskJSON},
 		{"GET", "/api/jobs/{id}/follow", whoPerson, "follow one turn: each step, the reply as it grows, and the end", true, s.followJSON},
 		{"POST", "/api/jobs/{id}/stop", whoPerson, "stop a turn that is running", false, s.stopJSON},
 		{"GET", "/api/events", whoPerson, "every change to the person's turns, with catch-up from ?since", true, s.eventsJSON},

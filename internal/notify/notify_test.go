@@ -20,7 +20,7 @@ func TestAWebhookSendsTheEventSignedAndNeverTheAnswer(t *testing.T) {
 	}))
 	defer server.Close()
 	hook := Webhook{URL: server.URL, Secret: "s3cret", Client: server.Client()}
-	if err := hook.Notify(Event{Name: "routine.finished", Title: "Morning", State: "finished", Answer: "private words", Job: "j1"}); err != nil {
+	if err := hook.Notify(Event{Name: "routine.finished", Title: "Morning", State: "finished", Answer: "private words", Task: "j1"}); err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(got, "private words") || !strings.Contains(got, `"job":"j1"`) {

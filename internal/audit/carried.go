@@ -9,13 +9,13 @@ import (
 	"sort"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // carriedIn hashes every file in an export except the summary, which cannot
 // hold its own hash. A file counts as covered only when the run's manifest
 // names these exact bytes; a redacted copy is the exporter's, not the run's.
-func carriedIn(dir job.Dir, manifest evidence.Manifest) ([]Carried, error) {
+func carriedIn(dir task.Dir, manifest evidence.Manifest) ([]Carried, error) {
 	names, err := filesIn(dir)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func carriedIn(dir job.Dir, manifest evidence.Manifest) ([]Carried, error) {
 // filesIn lists an export as slash paths inside it: the regular files at its
 // root and in out/. A directory anywhere else is not part of the format, and
 // evidence.Check does not read one either.
-func filesIn(dir job.Dir) ([]string, error) {
+func filesIn(dir task.Dir) ([]string, error) {
 	var names []string
 	for _, branch := range []string{"", "out"} {
 		listing, err := os.ReadDir(filepath.Join(dir.Path(), branch))
@@ -57,7 +57,7 @@ func filesIn(dir job.Dir) ([]string, error) {
 // manifest's own hash is nowhere, because the manifest is what is trusted.
 func vouches(manifest evidence.Manifest, name, sum string) bool {
 	if name == SpecFile {
-		return manifest.Job == sum
+		return manifest.Task == sum
 	}
 	if name == ManifestFile {
 		return true
@@ -69,7 +69,7 @@ func vouches(manifest evidence.Manifest, name, sum string) bool {
 // originalOf is the hash the run recorded for a file of the export.
 func originalOf(manifest evidence.Manifest, name string) (string, bool) {
 	if name == SpecFile {
-		return manifest.Job, true
+		return manifest.Task, true
 	}
 	inside, found := cutOut(name)
 	if !found {

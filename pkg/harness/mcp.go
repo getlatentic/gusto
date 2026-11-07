@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // MCP is how an agent takes MCP servers. Each reads them in a format of its
@@ -47,7 +47,7 @@ func (a Adapter) ReachesGateway() bool { return a.MCP != nil && (a.Stream == ACP
 
 // Give hands a built command the servers a task names, in this agent's own
 // format. An ACP agent is given them on the session instead, by the runner.
-func (a Adapter) Give(command *exec.Cmd, servers []job.Server) error {
+func (a Adapter) Give(command *exec.Cmd, servers []task.Server) error {
 	if len(servers) == 0 {
 		return nil
 	}
@@ -77,7 +77,7 @@ func (a Adapter) Give(command *exec.Cmd, servers []job.Server) error {
 }
 
 // rendered is the servers in this harness's format.
-func (m MCP) rendered(servers []job.Server) (string, error) {
+func (m MCP) rendered(servers []task.Server) (string, error) {
 	switch m.Format {
 	case "claude":
 		return asJSON(map[string]any{"mcpServers": byName(servers, claudeServer)})
@@ -92,7 +92,7 @@ func (m MCP) rendered(servers []job.Server) (string, error) {
 }
 
 // tools is how claude names every tool of a server at once.
-func tools(servers []job.Server) string {
+func tools(servers []task.Server) string {
 	names := make([]string, 0, len(servers))
 	for _, server := range servers {
 		names = append(names, "mcp__"+server.Name)
@@ -100,7 +100,7 @@ func tools(servers []job.Server) string {
 	return strings.Join(names, ",")
 }
 
-func byName(servers []job.Server, shape func(job.Server) map[string]any) map[string]any {
+func byName(servers []task.Server, shape func(task.Server) map[string]any) map[string]any {
 	shaped := map[string]any{}
 	for _, server := range servers {
 		shaped[server.Name] = shape(server)
@@ -108,14 +108,14 @@ func byName(servers []job.Server, shape func(job.Server) map[string]any) map[str
 	return shaped
 }
 
-func claudeServer(server job.Server) map[string]any {
+func claudeServer(server task.Server) map[string]any {
 	if server.URL != "" {
 		return map[string]any{"type": "http", "url": server.URL, "headers": server.Headers}
 	}
 	return map[string]any{"command": server.Command, "args": orEmpty(server.Args), "env": server.Env}
 }
 
-func opencodeServer(server job.Server) map[string]any {
+func opencodeServer(server task.Server) map[string]any {
 	if server.URL != "" {
 		return map[string]any{"type": "remote", "url": server.URL, "headers": server.Headers, "enabled": true}
 	}
@@ -125,7 +125,7 @@ func opencodeServer(server job.Server) map[string]any {
 
 // codexTable is the servers as one TOML inline table. TOML's basic strings
 // escape the way JSON's do, so each value is written as JSON.
-func codexTable(servers []job.Server) string {
+func codexTable(servers []task.Server) string {
 	entries := make([]string, 0, len(servers))
 	for _, server := range servers {
 		fields := []string{`default_tools_approval_mode="approve"`}

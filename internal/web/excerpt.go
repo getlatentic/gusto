@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// drawn is how much of one evidence file the job page draws. A harness can
+// drawn is how much of one evidence file the task page draws. A harness can
 // write a transcript or a patch of any size, and a page that inlines all of it
 // stops being readable long before it stops loading. Past this the page links
 // the raw file, which the server hands over whole.
@@ -30,7 +30,7 @@ type excerpt struct {
 // readExcerpt reads at most limit bytes of one evidence file. A file that is
 // not there is not an error: a run that stopped early leaves some of them
 // unwritten, and the page draws what exists.
-func readExcerpt(dir job.Dir, id, name string, limit int) (excerpt, bool) {
+func readExcerpt(dir task.Dir, id, name string, limit int) (excerpt, bool) {
 	if !dir.PlainOut(name) {
 		return excerpt{}, false
 	}

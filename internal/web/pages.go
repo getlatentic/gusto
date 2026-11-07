@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/changelog"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 var helpers = template.FuncMap{
@@ -52,7 +52,7 @@ var helpers = template.FuncMap{
 	"brain":   modelName,
 	"hue":     fieldClass,
 	"initial": initial,
-	// split is a list text, such as "send jobs, read spending", as its items.
+	// split is a list text, such as "send tasks, read spending", as its items.
 	"split": func(text, by string) []string { return strings.Split(text, by) },
 	// modelOnly is a model without the credential that serves it, which is
 	// what somebody choosing between models reads.
@@ -70,17 +70,17 @@ var helpers = template.FuncMap{
 	// task passed or failed its gate, and one still going says so.
 	"outcome": func(shown run) string {
 		switch {
-		case shown.State == jobs.Queued:
+		case shown.State == tasks.Queued:
 			return "waiting"
-		case shown.State == jobs.Running:
+		case shown.State == tasks.Running:
 			return "working"
-		case shown.State == jobs.Interrupted:
+		case shown.State == tasks.Interrupted:
 			return "interrupted"
-		case shown.Thread != "" && shown.State == jobs.Passed:
+		case shown.Thread != "" && shown.State == tasks.Passed:
 			return "replied"
 		case shown.Thread != "":
 			return "failed"
-		case shown.State == jobs.Passed:
+		case shown.State == tasks.Passed:
 			return "check passed"
 		}
 		return "check failed"
@@ -194,11 +194,11 @@ func (s *Server) signOut(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
-// place writes a job's directory and takes it into the index. It is the same
-// sequence whichever page asked for the job, and the caller wakes the queue
-// once it has recorded whatever else the job belongs to.
-func (s *Server) place(spec job.Spec, record jobs.Record) error {
-	dir := job.Dir(filepath.Join(s.index.Root(), record.ID))
+// place writes a task's directory and takes it into the index. It is the same
+// sequence whichever page asked for the task, and the caller wakes the queue
+// once it has recorded whatever else the task belongs to.
+func (s *Server) place(spec task.Spec, record tasks.Record) error {
+	dir := task.Dir(filepath.Join(s.index.Root(), record.ID))
 	if err := dir.Make(); err != nil {
 		return err
 	}
@@ -252,7 +252,7 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 
 // evidencePage draws one of a run's files as a page of the app, so that the window of the desktop app, which has no address bar, has a way
 // back to the record. It says whether it did: a file that is not text is not drawn, and is given as it is.
-func (s *Server) evidencePage(w http.ResponseWriter, r *http.Request, record jobs.Record, dir job.Dir, name string) bool {
+func (s *Server) evidencePage(w http.ResponseWriter, r *http.Request, record tasks.Record, dir task.Dir, name string) bool {
 	path := dir.OutFile(name)
 	info, err := os.Stat(path)
 	if err != nil || info.IsDir() {
@@ -278,10 +278,10 @@ func (s *Server) evidencePage(w http.ResponseWriter, r *http.Request, record job
 	return true
 }
 
-func (s *Server) find(r *http.Request) (jobs.Record, job.Dir, bool) {
+func (s *Server) find(r *http.Request) (tasks.Record, task.Dir, bool) {
 	record, found := s.index.Get(r.PathValue("id"))
 	if !found || !s.mayUseRecord(r, record) {
-		return jobs.Record{}, "", false
+		return tasks.Record{}, "", false
 	}
 	return record, record.Dir(s.index.Root()), true
 }

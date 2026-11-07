@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // record is what the pull request says about the run behind it: enough for a
@@ -14,7 +14,7 @@ import (
 // passed it, which manifest to check it against, and who signed that manifest
 // as a keyring checked it rather than as the manifest claims.
 type record struct {
-	spec     job.Spec
+	spec     task.Spec
 	manifest evidence.Manifest
 	signer   string
 	digest   string
@@ -47,7 +47,7 @@ func (r record) body() string {
 	return out.String()
 }
 
-// model names what the job asked for and where it answered. Either can be
+// model names what the task asked for and where it answered. Either can be
 // empty: a harness may use its own default, and a harness needing no model has
 // no endpoint.
 func (r record) model() string {
@@ -61,7 +61,7 @@ func (r record) model() string {
 	return asked + " at `" + r.manifest.ModelEndpoint + "`"
 }
 
-func (r record) message(dir job.Dir) string {
+func (r record) message(dir task.Dir) string {
 	return fmt.Sprintf("%s\n\nThe patch from gusto task %s, whose check passed.\nManifest sha256 %s.\n",
 		r.title(), filepath.Base(filepath.Clean(dir.Path())), r.digest)
 }

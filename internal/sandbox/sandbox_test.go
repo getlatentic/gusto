@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// A directory the container cannot read the job from has to be named as the
+// A directory the container cannot read the task from has to be named as the
 // problem. Docker hands over an empty directory rather than refusing a mount of
 // a path it does not share, so the run would otherwise fail somewhere later.
-func TestAJobTheContainerCannotReadIsRefusedByName(t *testing.T) {
+func TestATaskTheContainerCannotReadIsRefusedByName(t *testing.T) {
 	// A present binary with a dead daemon is the common shape in CI and in a
 	// cloud sandbox, and it is not a failure of this code. Ask the runtime
 	// whether it answers, rather than whether it is installed.
@@ -27,7 +27,7 @@ func TestAJobTheContainerCannotReadIsRefusedByName(t *testing.T) {
 	if err := exec.Command(c.Runtime, "image", "inspect", c.Image).Run(); err != nil {
 		t.Skipf("%s is not built on this machine: %s build -t %s .", c.Image, c.Runtime, c.Image)
 	}
-	empty := job.Dir(t.TempDir())
+	empty := task.Dir(t.TempDir())
 	_, err := c.Run(context.Background(), empty, "http://localhost:11434/v1", "", Owner{})
 	if err == nil {
 		t.Fatal("a directory with no job.json must not run")
@@ -37,7 +37,7 @@ func TestAJobTheContainerCannotReadIsRefusedByName(t *testing.T) {
 	}
 }
 
-func TestWhatAJobMayTakeIsYoursToSet(t *testing.T) {
+func TestWhatATaskMayTakeIsYoursToSet(t *testing.T) {
 	t.Parallel()
 	small := plain()
 	small.CPUs, small.Memory = "0.5", "900m"
@@ -46,7 +46,7 @@ func TestWhatAJobMayTakeIsYoursToSet(t *testing.T) {
 	}
 }
 
-// Whether the runtime enforces them is measured by the deploy's smoke job, which
+// Whether the runtime enforces them is measured by the deploy's smoke task, which
 // runs a real container. What can be held here is that every container, sealed
 // or not, is asked for the same restrictions and no more capabilities than the
 // runner needs.

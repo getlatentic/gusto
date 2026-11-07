@@ -25,7 +25,7 @@ func TestAnOrganizationsPagesAskWhetherThePersonHasConfirmedAndMailTheLinkAgain(
 			}
 			return answer
 		}
-		if got := confirmed(ada); got != (confirmation{Email: "ada@acme.com", Jobs: DefaultLimits().Verified.Jobs}) {
+		if got := confirmed(ada); got != (confirmation{Email: "ada@acme.com", Tasks: DefaultLimits().Verified.Tasks}) {
 			t.Errorf("a new admin has not confirmed: %+v", got)
 		}
 

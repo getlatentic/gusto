@@ -15,13 +15,14 @@ import (
 // storeSettings is where the stores every command shares keep their data, and how the data may be changed when a release needs
 // another format.
 type storeSettings struct {
-	jobs, sessions, setups, comparisons, integrations, presets, crew, changes string
-	apiTokens, retention, databaseURL                                         string
-	irreversible                                                              bool
+	tasks, sessions, setups, comparisons, integrations, presets, crew, changes string
+	apiTokens, retention, databaseURL                                          string
+	irreversible                                                               bool
 }
 
 func (s *storeSettings) declare(set *settings.Set) {
-	set.String(&s.jobs, "GUSTO_JOBS", "jobs", "the directory tasks are kept in")
+	set.String(&s.tasks, "GUSTO_TASKS", "jobs", "the directory tasks are kept in")
+	set.Renamed("GUSTO_TASKS", "GUSTO_JOBS")
 	set.String(&s.sessions, "GUSTO_SESSIONS", "sessions", "the directory conversations and rooms are kept in")
 	set.String(&s.setups, "GUSTO_SETUPS", "setups", "the directory skill sets are kept in")
 	set.String(&s.comparisons, "GUSTO_COMPARISONS", "comparisons", "the directory comparisons are kept in")
@@ -31,7 +32,7 @@ func (s *storeSettings) declare(set *settings.Set) {
 	set.String(&s.changes, "GUSTO_CHANGES", filepath.Join("changes", "changes.jsonl"), "the file every change to the platform is recorded in")
 	set.String(&s.apiTokens, "GUSTO_API_TOKENS", "", "the file API tokens are kept in")
 	set.String(&s.retention, "GUSTO_RETENTION", "", "the directory of the retention policy and what it removed")
-	set.Secret(&s.databaseURL, "GUSTO_DATABASE_URL", "the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file beside GUSTO_JOBS)")
+	set.Secret(&s.databaseURL, "GUSTO_DATABASE_URL", "the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file beside GUSTO_TASKS)")
 	set.Bool(&s.irreversible, "GUSTO_MIGRATE_IRREVERSIBLE", "let a release change the data in a way an earlier release cannot read")
 }
 
@@ -52,7 +53,7 @@ func firstOf(given, fallback string) string {
 // tasksDir is the tasks directory a command was given, or the one the settings name.
 func tasksDir(given string) (string, error) {
 	stores, err := loadStores()
-	return firstOf(given, stores.jobs), err
+	return firstOf(given, stores.tasks), err
 }
 
 // indexesFor is where the indexes are, for the tasks directory a command was given, or the one the settings name.
@@ -66,7 +67,7 @@ func indexesFor(tasks string) (indexes, error) {
 // dataDirs is where each store keeps its data. A store that is not set up here is left out.
 func dataDirs(stores storeSettings) map[datadir.Store]string {
 	dirs := map[datadir.Store]string{
-		datadir.Jobs:         stores.jobs,
+		datadir.Tasks:        stores.tasks,
 		datadir.Sessions:     stores.sessions,
 		datadir.Setups:       stores.setups,
 		datadir.Comparisons:  stores.comparisons,

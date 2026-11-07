@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // gatedWork answers every turn, holding each until it is let go, and keeps who was inside at once.
@@ -28,12 +28,12 @@ func newGatedWork() *gatedWork {
 	return &gatedWork{inside: map[string]int{}, peak: map[string]int{}, entered: make(chan string, 64), gate: make(chan struct{})}
 }
 
-func (g *gatedWork) do(ctx context.Context, dir job.Dir) (int, error) {
+func (g *gatedWork) do(ctx context.Context, dir task.Dir) (int, error) {
 	text, err := os.ReadFile(dir.Spec())
 	if err != nil {
 		return 1, err
 	}
-	var spec job.Spec
+	var spec task.Spec
 	if err := json.Unmarshal(text, &spec); err != nil {
 		return 1, err
 	}
@@ -168,8 +168,8 @@ func TestATurnWaitingForARunnerSaysItIsWaitingAndForWhat(t *testing.T) {
 }
 
 // slowly is work whose turns last long enough to overlap with the other agent's.
-func slowly(work *roomWork) func(context.Context, job.Dir) (int, error) {
-	return func(ctx context.Context, dir job.Dir) (int, error) {
+func slowly(work *roomWork) func(context.Context, task.Dir) (int, error) {
+	return func(ctx context.Context, dir task.Dir) (int, error) {
 		time.Sleep(20 * time.Millisecond)
 		return work.do(ctx, dir)
 	}

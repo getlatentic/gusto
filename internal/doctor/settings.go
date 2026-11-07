@@ -11,9 +11,9 @@ import (
 	"github.com/getlatentic/gusto/pkg/harness"
 )
 
-// modelAnswers dials the model the way a job would, before the harness starts.
-// Only a model named in GUSTO_MODEL_URL is checked: without it a job that needs a
-// local model finds out at its own start, and a job that needs none never asks.
+// modelAnswers dials the model the way a task would, before the harness starts.
+// Only a model named in GUSTO_MODEL_URL is checked: without it a task that needs a
+// local model finds out at its own start, and a task that needs none never asks.
 func modelAnswers(endpoint string) Verdict {
 	if endpoint == "" {
 		return skip("GUSTO_MODEL_URL is not set")
@@ -26,7 +26,7 @@ func modelAnswers(endpoint string) Verdict {
 }
 
 // adaptersParse reads every adapter of your own. One that does not parse is
-// otherwise found by the first job that names it, or by the pages offering a
+// otherwise found by the first task that names it, or by the pages offering a
 // harness the server cannot run.
 func adaptersParse(dir string) Verdict {
 	if dir == "" {
@@ -85,7 +85,7 @@ func signIn(password bool) Verdict {
 	return pass("GUSTO_PASSWORD is set")
 }
 
-// sandboxHardware is whether this machine can be where an OpenShell gateway makes microVMs. A deployment that runs jobs
+// sandboxHardware is whether this machine can be where an OpenShell gateway makes microVMs. A deployment that runs tasks
 // in containers needs none, so the check is skipped for it.
 func sandboxHardware(s Settings) Verdict {
 	if s.Sandbox.Sandbox != "openshell" {

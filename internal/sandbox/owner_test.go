@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestAContainerIsLabelledWithItsOrganizationPersonAgentAndJob(t *testing.T) {
+func TestAContainerIsLabelledWithItsOrganizationPersonAgentAndTask(t *testing.T) {
 	args, err := plain().sealedArgv("/jobs/20261028-1811-a-turn", "/jobs/.proxy.sock", "t", Owner{Org: "acme-research-com", Person: "3fa1c2d0", Instance: "20261028-1811-opencode"}, nil)
 	if err != nil {
 		t.Fatal(err)

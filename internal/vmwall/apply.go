@@ -113,7 +113,7 @@ func (p Plan) configure(context.Context) error {
 	return os.WriteFile(p.Config(), []byte(p.ConfigText()), 0o600)
 }
 
-// imagePath is the root file system jobs start from, once it is where gusto keeps it.
+// imagePath is the root file system tasks start from, once it is where gusto keeps it.
 func (p Plan) imagePath() string {
 	if p.ImageFile != "" {
 		abs, err := filepath.Abs(p.ImageFile)

@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 	"github.com/getlatentic/gusto/pkg/wire"
 )
 
@@ -201,7 +201,7 @@ func (a Adapter) Shape() wire.Shape {
 	return wire.Chat
 }
 
-func (a Adapter) Command(ctx context.Context, spec job.Spec, workspace string) *exec.Cmd {
+func (a Adapter) Command(ctx context.Context, spec task.Spec, workspace string) *exec.Cmd {
 	return a.CommandIn(ctx, spec, workspace, Here())
 }
 
@@ -239,16 +239,16 @@ func Here() Env {
 }
 
 // CommandIn is Command for an agent started in an environment given.
-func (a Adapter) CommandIn(ctx context.Context, spec job.Spec, workspace string, env Env) *exec.Cmd {
+func (a Adapter) CommandIn(ctx context.Context, spec task.Spec, workspace string, env Env) *exec.Cmd {
 	wanted := a.Argv
 	if spec.Remembered != "" && len(a.Resume) > 0 {
 		wanted = a.Resume
 	}
 	argv := make([]string, 0, len(wanted))
 	for _, argument := range wanted {
-		// An argument the job left empty is dropped rather than passed as a
+		// An argument the task left empty is dropped rather than passed as a
 		// bare flag: a harness asked for "--model=" refuses to start, and the
-		// job meant "whatever you are configured with".
+		// task meant "whatever you are configured with".
 		filled := a.fill(argument, spec, env)
 		if instead, swapped := a.WhenBoxed[filled]; swapped && env.Boxed {
 			filled = instead
@@ -260,8 +260,8 @@ func (a Adapter) CommandIn(ctx context.Context, spec job.Spec, workspace string,
 	}
 	command := exec.CommandContext(ctx, a.fill(a.Program, spec, env), argv...)
 	command.Dir = workspace
-	// A folder a job names is looked at again here, and one that leaves the workspace is not gone to.
-	if dir, err := job.CleanDir(spec.Dir); err == nil && dir != "" {
+	// A folder a task names is looked at again here, and one that leaves the workspace is not gone to.
+	if dir, err := task.CleanDir(spec.Dir); err == nil && dir != "" {
 		command.Dir = filepath.Join(workspace, filepath.FromSlash(dir))
 	}
 	if a.Stdin != "" {
@@ -278,20 +278,20 @@ func (a Adapter) CommandIn(ctx context.Context, spec job.Spec, workspace string,
 	return command
 }
 
-func (a Adapter) fill(text string, spec job.Spec, env Env) string {
+func (a Adapter) fill(text string, spec task.Spec, env Env) string {
 	provider, alone, found := strings.Cut(spec.Model, "/")
 	if !found {
 		provider, alone = "", spec.Model
 	}
-	// A harness that runs only the models its configuration names is told of the job's own, under the name of the
-	// credential that serves it, and of none when the job names no model: a provider called gusto, which its
+	// A harness that runs only the models its configuration names is told of the task's own, under the name of the
+	// credential that serves it, and of none when the task names no model: a provider called gusto, which its
 	// configuration turns off.
 	if provider == "" {
 		provider = "gusto"
 	}
 	return strings.NewReplacer(
 		"{brief}", spec.Brief,
-		// A job names its model as the credential that serves it and then the
+		// A task names its model as the credential that serves it and then the
 		// model: `platform/qwen…`. A harness with its own provider list wants
 		// the whole thing, and one that passes the name straight to a provider
 		// wants the model alone.

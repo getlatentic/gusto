@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/changelog"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // An admin gives every member a budget and one person their own, sees both on Budgets, and each change is recorded.
@@ -60,7 +60,7 @@ func TestAPersonSeesTheirBudgetAndTheirTasksAreTheirs(t *testing.T) {
 	where := startedThread(t, here)
 	said := here.ask(t, "POST", where+"/say", url.Values{"said": {"hello"}})
 	id := strings.TrimPrefix(said.Header().Get("Location")[strings.Index(said.Header().Get("Location"), "#")+1:], "#")
-	spec, err := job.Read(job.Dir(filepath.Join(here.index.Root(), id)))
+	spec, err := task.Read(task.Dir(filepath.Join(here.index.Root(), id)))
 	record, _ := here.index.Get(id)
 	if err != nil || spec.Person == "" || spec.Person != record.Asked {
 		t.Errorf("the task is not counted as the person's: %q, asked by %q, %v", spec.Person, record.Asked, err)

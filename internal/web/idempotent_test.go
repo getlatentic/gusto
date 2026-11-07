@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // say sends something into a thread with a person's token and, when it has one, a request id.
@@ -28,7 +28,7 @@ func (s *site) say(path, secret, said, key string) (int, map[string]any) {
 
 func quote(text string) string { out, _ := json.Marshal(text); return string(out) }
 
-func countJobsAskedBy(s *site, who string) (n int) {
+func countTasksAskedBy(s *site, who string) (n int) {
 	for _, record := range s.index.List() {
 		if record.Asked == who {
 			n++
@@ -51,18 +51,18 @@ func TestARetriedSendIsTheSameTurnAndAnotherIdIsAnother(t *testing.T) {
 	if code != http.StatusAccepted || again["already"] != true || again["job"] != first["job"] {
 		t.Errorf("the retry gave %d %+v, not the first job again", code, again)
 	}
-	if n := countJobsAskedBy(here.site, alice); n != 1 {
+	if n := countTasksAskedBy(here.site, alice); n != 1 {
 		t.Errorf("a retried send made %d jobs", n)
 	}
 	if _, other := here.say(path, secret, "add a test", "send-2"); other["job"] == first["job"] || other["already"] != false {
 		t.Errorf("another id was taken for the first: %+v", other)
 	}
-	if _, bare := here.say(path, secret, "add a test", ""); bare["already"] != false || countJobsAskedBy(here.site, alice) != 3 {
+	if _, bare := here.say(path, secret, "add a test", ""); bare["already"] != false || countTasksAskedBy(here.site, alice) != 3 {
 		t.Errorf("sends with no id were joined: %+v", bare)
 	}
 }
 
-func TestAnIdBelongsToThePersonWhoSentItAndLastsAsLongAsTheJob(t *testing.T) {
+func TestAnIdBelongsToThePersonWhoSentItAndLastsAsLongAsTheTask(t *testing.T) {
 	here := withTokens(t)
 	_, hers := started(t, here.as(t, alice))
 	_, his := started(t, here.as(t, bob))
@@ -73,7 +73,7 @@ func TestAnIdBelongsToThePersonWhoSentItAndLastsAsLongAsTheJob(t *testing.T) {
 	if a["job"] == b["job"] || b["already"] != false {
 		t.Errorf("bob's id was taken for alice's: %+v %+v", a, b)
 	}
-	reopened, err := jobs.Open(here.index.Root())
+	reopened, err := tasks.Open(here.index.Root())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func TestSendsThatArriveTogetherWithOneIdAreOneTurn(t *testing.T) {
 		}()
 	}
 	wait.Wait()
-	if n := countJobsAskedBy(here.site, alice); n != 1 {
+	if n := countTasksAskedBy(here.site, alice); n != 1 {
 		t.Errorf("eight sends with one id made %d jobs", n)
 	}
 }
@@ -120,7 +120,7 @@ func TestABadIdOrNothingSaidOrSomebodyElsesThreadIsRefused(t *testing.T) {
 	if code, _ := here.say(path, signInADevice(t, here, bob), "hi", "k"); code != http.StatusNotFound {
 		t.Errorf("bob saying something in alice's thread gave %d", code)
 	}
-	if n := countJobsAskedBy(here.site, alice) + countJobsAskedBy(here.site, bob); n != 0 {
+	if n := countTasksAskedBy(here.site, alice) + countTasksAskedBy(here.site, bob); n != 0 {
 		t.Errorf("a refused send made %d jobs", n)
 	}
 }
@@ -144,9 +144,9 @@ func TestAPersonOpensAThreadOfTheirOwnAndNotSomebodyElses(t *testing.T) {
 	}
 }
 
-// post sends a job with an organization's token and a request id.
-func (s *tokened) postJob(secret, key string) (int, Answer) {
-	body, _ := json.Marshal(Submission{Spec: aJob()})
+// post sends a task with an organization's token and a request id.
+func (s *tokened) postTask(secret, key string) (int, Answer) {
+	body, _ := json.Marshal(Submission{Spec: aSpec()})
 	request := httptest.NewRequest("POST", "/api/jobs", bytes.NewReader(body))
 	request.Header.Set("Authorization", "Bearer "+secret)
 	if key != "" {
@@ -159,22 +159,22 @@ func (s *tokened) postJob(secret, key string) (int, Answer) {
 	return recorder.Code, answer
 }
 
-func TestAJobSentTwiceWithOneIdIsOneJobForTheSameTokenAndTwoForAnother(t *testing.T) {
+func TestATaskSentTwiceWithOneIdIsOneTaskForTheSameTokenAndTwoForAnother(t *testing.T) {
 	here := withTokens(t)
-	code, first := here.postJob(here.secrets["ci"], "build-42")
+	code, first := here.postTask(here.secrets["ci"], "build-42")
 	if code != http.StatusCreated || first.ID == "" {
 		t.Fatalf("%d %+v", code, first)
 	}
-	if code, again := here.postJob(here.secrets["ci"], "build-42"); code != http.StatusOK || again.ID != first.ID {
+	if code, again := here.postTask(here.secrets["ci"], "build-42"); code != http.StatusOK || again.ID != first.ID {
 		t.Errorf("the retry gave %d %+v, not the first job again", code, again)
 	}
-	if _, other := here.postJob(here.secrets["everyone"], "build-42"); other.ID == first.ID || other.ID == "" {
+	if _, other := here.postTask(here.secrets["everyone"], "build-42"); other.ID == first.ID || other.ID == "" {
 		t.Errorf("another token's job with the same id was joined: %+v", other)
 	}
 	if n := len(here.index.List()); n != 2 {
 		t.Errorf("%d jobs were made", n)
 	}
-	if code, _ := here.postJob(here.secrets["ci"], strings.Repeat("x", 200)); code != http.StatusBadRequest {
+	if code, _ := here.postTask(here.secrets["ci"], strings.Repeat("x", 200)); code != http.StatusBadRequest {
 		t.Errorf("a long id gave %d", code)
 	}
 }

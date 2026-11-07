@@ -9,14 +9,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // watch streams what the harness is saying, as it says it.
 //
 // The file is the stream: everybody watching reads the same bytes in the same
 // order, a watcher who arrives late is caught up by starting at the beginning,
-// and a job started from the command line in the same directory is watchable
+// and a task started from the command line in the same directory is watchable
 // too. Nothing has to be told about anybody else.
 func (s *Server) watch(w http.ResponseWriter, r *http.Request) {
 	record, dir, found := s.find(r)
@@ -59,7 +59,7 @@ func (s *Server) watch(w http.ResponseWriter, r *http.Request) {
 }
 
 // patience is how long one frame may wait for the watcher to take it. Following
-// a job from a phone on a train is the point, so this is many times the gap
+// a task from a phone on a train is the point, so this is many times the gap
 // between reads; what it rules out is a client that has stopped reading at all.
 var patience = 10 * time.Second
 
@@ -81,7 +81,7 @@ type feed struct {
 	gone    bool
 }
 
-// pour sends every whole line the transcript has gained, so a job that said more
+// pour sends every whole line the transcript has gained, so a task that said more
 // than one read's worth is not cut off at the size of the buffer.
 func (f *feed) pour(t *tail) {
 	for !f.gone {
@@ -130,11 +130,11 @@ func (f *feed) ready() bool {
 	return !f.gone
 }
 
-// latest asks the index rather than the file how the job stands, because a job
-// that wrote nothing still ends. The index has no word on a job only when it
+// latest asks the index rather than the file how the task stands, because a task
+// that wrote nothing still ends. The index has no word on a task only when it
 // never knew it, and then the record the watcher already holds is the newest
 // thing known: it says no more than it did, and in particular no verdict.
-func (s *Server) latest(known jobs.Record) jobs.Record {
+func (s *Server) latest(known tasks.Record) tasks.Record {
 	if now, found := s.index.Get(known.ID); found {
 		return now
 	}

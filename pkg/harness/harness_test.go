@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 func TestTheAdaptersThatShipParse(t *testing.T) {
@@ -29,12 +29,12 @@ func TestTheAdaptersThatShipParse(t *testing.T) {
 	}
 }
 
-func TestAJobsValuesReachTheCommandLine(t *testing.T) {
+func TestATasksValuesReachTheCommandLine(t *testing.T) {
 	adapter, err := Load("", "opencode")
 	if err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: "fix the adder", Model: "ollama/gpt-oss:20b"}
+	spec := task.Spec{Brief: "fix the adder", Model: "ollama/gpt-oss:20b"}
 	command := adapter.Command(context.Background(), spec, t.TempDir())
 	if !slices.Contains(command.Args, "--model=gusto-ollama/gpt-oss:20b") {
 		t.Errorf("the model should reach the command line: %v", command.Args)
@@ -44,12 +44,12 @@ func TestAJobsValuesReachTheCommandLine(t *testing.T) {
 	}
 }
 
-func TestAnArgumentTheJobLeftEmptyIsDropped(t *testing.T) {
+func TestAnArgumentTheTaskLeftEmptyIsDropped(t *testing.T) {
 	adapter, err := Load("", "opencode")
 	if err != nil {
 		t.Fatal(err)
 	}
-	command := adapter.Command(context.Background(), job.Spec{Brief: "b"}, t.TempDir())
+	command := adapter.Command(context.Background(), task.Spec{Brief: "b"}, t.TempDir())
 	for _, argument := range command.Args {
 		if strings.HasSuffix(argument, "=") {
 			t.Fatalf("a bare flag reached the command line: %v", command.Args)
@@ -102,9 +102,9 @@ func writeFile(path, text string) error {
 	return os.WriteFile(path, []byte(text), 0o644)
 }
 
-func TestAnAdapterCarriedByTheJobIsFoundWithNothingElseSet(t *testing.T) {
+func TestAnAdapterCarriedByTheTaskIsFoundWithNothingElseSet(t *testing.T) {
 	t.Setenv("GUSTO_HARNESSES", "")
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := os.MkdirAll(Carried(dir), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -121,13 +121,13 @@ func TestAnAdapterCarriedByTheJobIsFoundWithNothingElseSet(t *testing.T) {
 	}
 }
 
-func TestANewJobKeepsAnAdapterOfYourOwnButNotABuiltInOne(t *testing.T) {
+func TestANewTaskKeepsAnAdapterOfYourOwnButNotABuiltInOne(t *testing.T) {
 	mine := t.TempDir()
 	if err := writeFile(mine+"/mine.json", `{"name":"mine","program":"sh","argv":["-c","true"],"needs":"nothing"}`); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("GUSTO_HARNESSES", mine)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := Keep(dir, "mine"); err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func TestAClientThatAddsItsOwnVersionIsGivenTheRootWithoutOne(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	command := adapter.Command(context.Background(), job.Spec{Model: "anthropic/x"}, t.TempDir())
+	command := adapter.Command(context.Background(), task.Spec{Model: "anthropic/x"}, t.TempDir())
 	var base string
 	for _, set := range command.Env {
 		if after, found := strings.CutPrefix(set, "ANTHROPIC_BASE_URL="); found {
@@ -278,7 +278,7 @@ func TestEveryHarnessThatNamesItsSessionCanResumeIt(t *testing.T) {
 		if adapter.SessionID == "" || adapter.Stream == ACP {
 			continue
 		}
-		command := adapter.Command(context.Background(), job.Spec{Brief: "b", Remembered: "the-session"}, t.TempDir())
+		command := adapter.Command(context.Background(), task.Spec{Brief: "b", Remembered: "the-session"}, t.TempDir())
 		if !strings.Contains(strings.Join(command.Args, " "), "the-session") {
 			t.Errorf("%s records its session and never resumes it: %v", name, command.Args)
 		}
@@ -294,8 +294,8 @@ func TestPiIsGivenItsServersInAFile(t *testing.T) {
 	}
 	file := filepath.Join(t.TempDir(), "mcp", "mcp.json")
 	adapter.MCP.File = file
-	command := adapter.Command(context.Background(), job.Spec{Brief: "b"}, t.TempDir())
-	if err := adapter.Give(command, []job.Server{{Name: "memory", Command: "mcp-server-memory"}}); err != nil {
+	command := adapter.Command(context.Background(), task.Spec{Brief: "b"}, t.TempDir())
+	if err := adapter.Give(command, []task.Server{{Name: "memory", Command: "mcp-server-memory"}}); err != nil {
 		t.Fatal(err)
 	}
 	written, err := os.ReadFile(file)

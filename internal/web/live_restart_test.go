@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/roomlive"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 func TestATurnThatWasRunningWhenTheServerStoppedIsAnnouncedToItsRoomOnTheNextStart(t *testing.T) {
@@ -20,12 +20,12 @@ func TestATurnThatWasRunningWhenTheServerStoppedIsAnnouncedToItsRoomOnTheNextSta
 	room, _ := instances.StartRoom("Launch plan", alice)
 	thread := instances.Latest(room.ID)
 
-	first, err := jobs.Open(root)
+	first, err := tasks.Open(root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	id, _ := first.Reserve("long job", time.Now())
-	record := jobs.Record{ID: id, State: jobs.Queued, Brief: "long job", Harness: "fixture", Instance: room.ID, Thread: thread.ID, Agent: "a1", Queued: jobs.Now()}
+	record := tasks.Record{ID: id, State: tasks.Queued, Brief: "long job", Harness: "fixture", Instance: room.ID, Thread: thread.ID, Agent: "a1", Queued: tasks.Now()}
 	if err := os.MkdirAll(record.Dir(root).Path(), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func TestATurnThatWasRunningWhenTheServerStoppedIsAnnouncedToItsRoomOnTheNextSta
 		t.Fatal(err)
 	}
 
-	reopened, err := jobs.Open(root)
+	reopened, err := tasks.Open(root)
 	if err != nil {
 		t.Fatal(err)
 	}

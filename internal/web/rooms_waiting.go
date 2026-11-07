@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // A turn that has not started says so, and says what holds it. Working is for a turn an agent is on.
@@ -19,12 +19,12 @@ func (s *Server) holdingOfLatest(held instance.Instance, id string) string {
 
 // holdingOf says what a turn that has not started waits for, in the words a room shows, or nothing for a turn that has started
 // or is over. A room's agent takes one message at a time, so a turn behind its own agent's names that agent.
-func (s *Server) holdingOf(held instance.Instance, record jobs.Record) string {
+func (s *Server) holdingOf(held instance.Instance, record tasks.Record) string {
 	wait, queued := s.index.WaitOf(record.ID)
 	if !queued {
 		return ""
 	}
-	if wait.Reason == jobs.AgentBusy {
+	if wait.Reason == tasks.AgentBusy {
 		if agent, found := held.AgentByID(record.Agent); found {
 			return fmt.Sprintf("Waiting for %s to finish the message before this one. Number %d in line.", agent.Name, wait.Position)
 		}

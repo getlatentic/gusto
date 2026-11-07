@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// The job page reads a finished job's evidence for the reviewer: the patch as a
+// The task page reads a finished task's evidence for the reviewer: the patch as a
 // diff, the transcript as text, the gate's verdict beside what it printed, and
 // the command that checks all of it without this server. Every string here was
 // written by a harness nobody trusts, and it reaches the page only through
@@ -21,7 +21,7 @@ type patchView struct {
 	Files []diffFile
 }
 
-func readPatch(dir job.Dir, id string) (patchView, bool) {
+func readPatch(dir task.Dir, id string) (patchView, bool) {
 	patch, found := readExcerpt(dir, id, "diff.patch", drawn)
 	if !found {
 		return patchView{}, false
@@ -41,8 +41,8 @@ type gateView struct {
 	Explains bool
 }
 
-func readGate(record jobs.Record, dir job.Dir, manifest *evidence.Manifest) gateView {
-	gate := gateView{Explains: record.State != jobs.Passed}
+func readGate(record tasks.Record, dir task.Dir, manifest *evidence.Manifest) gateView {
+	gate := gateView{Explains: record.State != tasks.Passed}
 	if manifest != nil && manifest.Gate != nil {
 		gate.Verdict = manifest.Gate
 		gate.Command = shellLine(manifest.Gate.Command)
@@ -74,10 +74,10 @@ func shellWord(word string) string {
 	return "'" + strings.ReplaceAll(word, "'", `'\''`) + "'"
 }
 
-// drawEvidence adds to the job page what the run left behind. The transcript
-// and the gate wait for the job to finish, because until then the live stream
+// drawEvidence adds to the task page what the run left behind. The transcript
+// and the gate wait for the task to finish, because until then the live stream
 // is the transcript and the gate has not answered.
-func drawEvidence(page map[string]any, record jobs.Record, dir job.Dir, manifest *evidence.Manifest) {
+func drawEvidence(page map[string]any, record tasks.Record, dir task.Dir, manifest *evidence.Manifest) {
 	if manifest != nil {
 		page["Manifest"] = manifest
 		page["Build"] = manifest.HarnessVersion
@@ -95,9 +95,9 @@ func drawEvidence(page map[string]any, record jobs.Record, dir job.Dir, manifest
 	page["Gate"] = readGate(record, dir, manifest)
 }
 
-// readManifest is the run's manifest, or nil for a job that has not written
+// readManifest is the run's manifest, or nil for a task that has not written
 // one: queued, running, or stopped before it got that far.
-func readManifest(dir job.Dir) *evidence.Manifest {
+func readManifest(dir task.Dir) *evidence.Manifest {
 	manifest, err := evidence.Read(dir)
 	if err != nil {
 		return nil

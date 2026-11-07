@@ -24,7 +24,7 @@ type Policy struct {
 	// Readable are the folders under Home the task may still read: its own, and the ones its engine is installed in.
 	Readable []string
 	// ProxyPort is the one port on this computer the task may connect to, which is gusto's proxy. Zero opens the network, as
-	// GUSTO_JOB_NETWORK=open does.
+	// GUSTO_TASK_NETWORK=open does.
 	ProxyPort int
 }
 

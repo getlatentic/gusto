@@ -4,16 +4,16 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // usedApps is whose connected apps a room turn could use, and which, for the turn's steps to say.
-func (s *Server) usedApps(record jobs.Record, dir job.Dir) string {
+func (s *Server) usedApps(record tasks.Record, dir task.Dir) string {
 	if !record.InRoom() || !s.hasConnectors() {
 		return ""
 	}
-	spec, err := job.Read(dir)
+	spec, err := task.Read(dir)
 	if err != nil || spec.Setup == nil || len(spec.Setup.Connectors) == 0 {
 		return ""
 	}
@@ -23,7 +23,7 @@ func (s *Server) usedApps(record jobs.Record, dir job.Dir) string {
 // roomAppsLine tells a room's agent which connected apps it has for this message, and which of the asker's it was not let use. It
 // keeps one conversation across the room, so without this it would look for apps an earlier asker gave it, which this asker's turn
 // does not have.
-func (s *Server) roomAppsLine(record jobs.Record, spec job.Spec) string {
+func (s *Server) roomAppsLine(record tasks.Record, spec task.Spec) string {
 	if !record.InRoom() || !s.hasConnectors() {
 		return ""
 	}
@@ -50,7 +50,7 @@ func (s *Server) roomAppsLine(record jobs.Record, spec job.Spec) string {
 }
 
 // withheldApps is the name of each app the asker connected that an admin turned on and that this turn was not given.
-func (s *Server) withheldApps(record jobs.Record, given []string) []string {
+func (s *Server) withheldApps(record tasks.Record, given []string) []string {
 	views, err := s.connectorViews(record.Asked)
 	if err != nil {
 		return nil

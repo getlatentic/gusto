@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/repoaccess"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // setUp is the step between picking a harness and having one: what it thinks
@@ -94,7 +94,7 @@ func (s *Server) beginInstance(r *http.Request, wanted instance.Instance) (start
 	if wanted.Repo != "" {
 		name = filepath.Base(strings.TrimSuffix(wanted.Repo, ".git"))
 	}
-	started, err := s.instances.Start(jobs.Name(name, time.Now()), wanted)
+	started, err := s.instances.Start(tasks.Name(name, time.Now()), wanted)
 	if err != nil {
 		return started, "/presets", err.Error()
 	}
@@ -149,7 +149,7 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 
 // latestTurn is the last thing said in a thread, which is what a list of
 // threads needs to tell them apart.
-func (s *Server) latestTurn(thread instance.Thread) (record jobs.Record) {
+func (s *Server) latestTurn(thread instance.Thread) (record tasks.Record) {
 	if len(thread.Turns) == 0 {
 		return record
 	}

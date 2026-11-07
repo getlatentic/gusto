@@ -20,7 +20,7 @@ import (
 // show it after a restart.
 const lastSweepFile = "last.json"
 
-// usageFor is how long a measure of the disk is kept. It walks every job's
+// usageFor is how long a measure of the disk is kept. It walks every task's
 // directory, and a page that is opened often should not do that each time.
 const usageFor = time.Minute
 
@@ -122,7 +122,7 @@ func (s *Server) recordSweep(report retention.Report) {
 	var records []string
 	for _, action := range report.Actions {
 		if action.Kind == retention.Record && action.Failed == "" {
-			records = append(records, action.Job)
+			records = append(records, action.Task)
 		}
 	}
 	listed := records
@@ -137,7 +137,7 @@ func (s *Server) recordSweep(report retention.Report) {
 	}})
 }
 
-// measured is the disk the jobs take, kept for a minute.
+// measured is the disk the tasks take, kept for a minute.
 func (r *retained) measure(s *Server) retention.Usage {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -154,9 +154,9 @@ func (s *Server) keepingInto(page map[string]any) error {
 		return fmt.Errorf("the holds could not be read: %w", err)
 	}
 	used := s.retention.measure(s)
-	page["Used"], page["Workspaces"], page["Jobs"] = size(used.Bytes), size(used.Workspaces), used.Jobs
+	page["Used"], page["Workspaces"], page["Jobs"] = size(used.Bytes), size(used.Workspaces), used.Tasks
 	page["Policy"], page["Removes"] = s.retention.policy.Rows(), s.retention.policy.Any()
-	page["HeldJobs"], page["HeldPeople"] = held.Jobs, held.People
+	page["HeldTasks"], page["HeldPeople"] = held.Tasks, held.People
 	if used.Oldest != nil {
 		page["Oldest"], page["OldestAt"] = used.Oldest.ID, time.Unix(used.Oldest.Ended, 0).UTC().Format("2 Jan 2006")
 	}
@@ -201,21 +201,21 @@ func (s *Server) sweepNow(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, keepingTab, http.StatusSeeOther)
 }
 
-// holdJob keeps one job whole, and releaseJob ends that.
-func (s *Server) holdJob(w http.ResponseWriter, r *http.Request) {
+// holdTask keeps one task whole, and releaseTask ends that.
+func (s *Server) holdTask(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.FormValue("job"))
 	if _, found := s.index.Get(id); !found {
 		s.turnAway(w, r, keepingTab, "no task has the id "+id)
 		return
 	}
 	why := strings.TrimSpace(r.FormValue("why"))
-	if err := s.retention.holds.HoldJob(id, s.keeper.who(r), why); err != nil {
+	if err := s.retention.holds.HoldTask(id, s.keeper.who(r), why); err != nil {
 		s.turnAway(w, r, keepingTab, err.Error())
 		return
 	}
 	// A sweep removes a task and reads the holds as one step, so a task here now is kept, and one gone went before the hold.
 	if _, found := s.index.Get(id); !found {
-		_ = s.retention.holds.ReleaseJob(id)
+		_ = s.retention.holds.ReleaseTask(id)
 		s.turnAway(w, r, keepingTab, "a sweep removed "+id+" before it could be held")
 		return
 	}
@@ -223,9 +223,9 @@ func (s *Server) holdJob(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, keepingTab, http.StatusSeeOther)
 }
 
-func (s *Server) releaseJob(w http.ResponseWriter, r *http.Request) {
+func (s *Server) releaseTask(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.FormValue("job"))
-	if err := s.retention.holds.ReleaseJob(id); err != nil {
+	if err := s.retention.holds.ReleaseTask(id); err != nil {
 		s.turnAway(w, r, keepingTab, err.Error())
 		return
 	}

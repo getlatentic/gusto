@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // aRoomWithTwoAgents is a room whose folder holds the files given, with agents Ada and Bea.
@@ -43,13 +43,13 @@ func aRoomWithTwoAgents(t *testing.T, files map[string]string) (*roomRuns, insta
 }
 
 // aRoomTurn is the task directory and spec of a turn of one of the room's agents.
-func aRoomTurn(t *testing.T, rooms *roomRuns, held instance.Instance, agent string) (job.Dir, job.Spec) {
+func aRoomTurn(t *testing.T, rooms *roomRuns, held instance.Instance, agent string) (task.Dir, task.Spec) {
 	t.Helper()
-	dir := job.Dir(filepath.Join(t.TempDir(), "turn"))
+	dir := task.Dir(filepath.Join(t.TempDir(), "turn"))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	return dir, job.Spec{Session: held.ID, Thread: rooms.instances.Latest(held.ID).ID, Agent: agent, Harness: "fixture"}
+	return dir, task.Spec{Session: held.ID, Thread: rooms.instances.Latest(held.ID).ID, Agent: agent, Harness: "fixture"}
 }
 
 func file(t *testing.T, folder, name string) string {
@@ -193,7 +193,7 @@ func TestTwoAgentsThatChangedDifferentLinesOfOneFileLeaveOneFileWithBoth(t *test
 func TestATurnThatFailedOrWasStoppedChangesNothingInTheRoomsFolder(t *testing.T) {
 	rooms, held := aRoomWithTwoAgents(t, map[string]string{"a.md": "v1"})
 	folder := rooms.instances.Workspace(held.ID)
-	touch := func(dir job.Dir) {
+	touch := func(dir task.Dir) {
 		os.WriteFile(filepath.Join(dir.Workspace(), "a.md"), []byte("half"), 0o644)
 		os.WriteFile(filepath.Join(dir.Workspace(), "b.md"), []byte("new"), 0o644)
 	}
@@ -246,11 +246,11 @@ func TestAnAgentsMemoryIsItsOwnAndStartsFromTheRoomsState(t *testing.T) {
 func TestAnythingButARoomsTurnIsRunAsItIs(t *testing.T) {
 	rooms, held := aRoomWithTwoAgents(t, nil)
 	ran := false
-	exit, err := rooms.around(t.Context(), job.Spec{Session: held.ID}, job.Dir(t.TempDir()), func() (int, error) { ran = true; return 7, nil })
+	exit, err := rooms.around(t.Context(), task.Spec{Session: held.ID}, task.Dir(t.TempDir()), func() (int, error) { ran = true; return 7, nil })
 	if !ran || exit != 7 || err != nil {
 		t.Errorf("%v %d %v", ran, exit, err)
 	}
-	if got := stateDir(rooms.instances, job.Spec{Session: held.ID}); got != rooms.instances.State(held.ID) {
+	if got := stateDir(rooms.instances, task.Spec{Session: held.ID}); got != rooms.instances.State(held.ID) {
 		t.Errorf("a conversation's memory is %s", got)
 	}
 }
@@ -274,7 +274,7 @@ func TestATurnWhoseAskerLeftOrWhoseAgentWasTakenOutMidTurnWritesNothing(t *testi
 			if err := rooms.instances.SetMember(held.ID, "bea@acme.com", instance.RoleMember); err != nil {
 				t.Fatal(err)
 			}
-			rooms.askedBy = func(job.Dir) string { return "bea@acme.com" }
+			rooms.askedBy = func(task.Dir) string { return "bea@acme.com" }
 			dir, spec := aRoomTurn(t, rooms, held, "a1")
 			exit, err := rooms.around(t.Context(), spec, dir, func() (int, error) {
 				if err := os.WriteFile(filepath.Join(dir.Workspace(), "plan.md"), []byte("v2"), 0o644); err != nil {

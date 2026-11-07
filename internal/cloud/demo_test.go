@@ -34,7 +34,7 @@ func TestAVisitorStartsADemoOrganizationOnTheDemoQuotaAndIsKeptAsALead(t *testin
 		if !strings.HasPrefix(org.Slug, "demo-acme-research-") || ValidSlug(org.Slug) != nil {
 			t.Errorf("an address for a demo: %q", org.Slug)
 		}
-		if got, _ := s.Quota(org.Slug); got.Computers != 2 || got.Members != 2 || !got.Invites || got.Jobs == 0 {
+		if got, _ := s.Quota(org.Slug); got.Computers != 2 || got.Members != 2 || !got.Invites || got.Tasks == 0 {
 			t.Errorf("a demo runs what a demo may: %+v", got)
 		}
 		lead, found := s.LeadOf(t.Context(), org.Slug)
@@ -317,7 +317,7 @@ func TestADemoLimitOfZeroIsNoLimit(t *testing.T) {
 	})
 }
 
-// A demo whose directory holds files this process may not remove still ends: the directory goes to the trash, which a job that
+// A demo whose directory holds files this process may not remove still ends: the directory goes to the trash, which a task that
 // runs as root empties, and the demo no longer counts against the demos that may run at once.
 func TestADemoWithFilesTheFrontDoorCannotRemoveStillEnds(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {

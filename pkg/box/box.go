@@ -8,7 +8,7 @@ import (
 	"os/exec"
 
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Box is a place an agent runs that this process only drives, such as a
@@ -28,7 +28,7 @@ type Box interface {
 	// Fetch replaces into with the workspace as the box now holds it.
 	Fetch(into string) error
 	// Equip puts the task's skills where the agent finds them in the box.
-	Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter harness.Adapter) error
+	Equip(ctx context.Context, dir task.Dir, spec task.Spec, adapter harness.Adapter) error
 	// HostModelURL is where the proxy is from this process, which is not where the
 	// box sees it: the box names this machine by a name of its own.
 	HostModelURL() string

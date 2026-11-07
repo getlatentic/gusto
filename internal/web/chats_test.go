@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // Chat is the home page: the address of the site lands on it, and the list of chats is the side list it carries.
@@ -29,8 +29,8 @@ func TestTheHomePageIsChatAndItsSideListLeadsBackIntoAChat(t *testing.T) {
 	}
 }
 
-// Removing a harness takes it off the list and leaves its jobs in the record.
-func TestARemovedHarnessLeavesTheListAndKeepsItsJobs(t *testing.T) {
+// Removing a harness takes it off the list and leaves its tasks in the record.
+func TestARemovedHarnessLeavesTheListAndKeepsItsTasks(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	id := aTask(t, site, url.Values{"brief": {"count the files"}, "gate": {"true"}})
@@ -53,8 +53,8 @@ func TestARemovedHarnessLeavesTheListAndKeepsItsJobs(t *testing.T) {
 func TestTheRecordFiltersByState(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	site.leave(t, "went-well", leftBehind{state: jobs.Passed, out: map[string]string{}, gate: passed})
-	site.leave(t, "went-badly", leftBehind{state: jobs.Failed, out: map[string]string{}, gate: passed})
+	site.leave(t, "went-well", leftBehind{state: tasks.Passed, out: map[string]string{}, gate: passed})
+	site.leave(t, "went-badly", leftBehind{state: tasks.Failed, out: map[string]string{}, gate: passed})
 	all := site.ask(t, "GET", "/jobs", nil).Body.String()
 	if !strings.Contains(all, `href="/jobs?state=failed"`) {
 		t.Fatal("the failed count is not a filter")
@@ -83,8 +83,8 @@ func TestATurnsPageLeadsBackToItsThread(t *testing.T) {
 	}
 }
 
-// wait holds until a job has run and the record says it finished, because the
-// runner signals before the queue writes down how the job ended.
+// wait holds until a task has run and the record says it finished, because the
+// runner signals before the queue writes down how the task ended.
 func (s *site) wait(t *testing.T, id string) {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
@@ -134,7 +134,7 @@ func TestARefusedMessageSaysWhyAboveTheBox(t *testing.T) {
 	site.signIn(t)
 	where := startedThread(t, site)
 	path := filepath.Join(t.TempDir(), "quota.json")
-	if err := quota.Write(path, quota.Quota{Jobs: 1, Concurrent: 1, Note: "Confirm your email address to raise this limit."}); err != nil {
+	if err := quota.Write(path, quota.Quota{Tasks: 1, Concurrent: 1, Note: "Confirm your email address to raise this limit."}); err != nil {
 		t.Fatal(err)
 	}
 	site.index.UseQuota(quota.Open(path))

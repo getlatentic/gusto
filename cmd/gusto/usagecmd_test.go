@@ -11,7 +11,7 @@ import (
 
 	"github.com/getlatentic/gusto/cmd/internal/cmdline/clitest"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/internal/usage"
 	"github.com/getlatentic/gusto/internal/web"
 )
@@ -19,7 +19,7 @@ import (
 func withUsageData(t *testing.T) (data string) {
 	t.Helper()
 	data = t.TempDir()
-	t.Setenv("GUSTO_JOBS", filepath.Join(data, "jobs"))
+	t.Setenv("GUSTO_TASKS", filepath.Join(data, "jobs"))
 	t.Setenv("GUSTO_SESSIONS", filepath.Join(data, "sessions"))
 	t.Setenv("GUSTO_DATABASE_URL", "")
 	t.Setenv("GUSTO_REGISTRY", "")
@@ -55,7 +55,7 @@ func TestTheUsageCommandsHelpSaysWhatTheyReadAndHowTheyEnd(t *testing.T) {
 			t.Fatalf("%v: exit code %d", path, code)
 		}
 		if len(path) == 2 {
-			for _, want := range []string{"GUSTO_DATABASE_URL", "GUSTO_JOBS", "Examples", "Exit codes"} {
+			for _, want := range []string{"GUSTO_DATABASE_URL", "GUSTO_TASKS", "Examples", "Exit codes"} {
 				if !strings.Contains(out, want) {
 					t.Errorf("%v: help lacks %q:\n%s", path, want, out)
 				}
@@ -214,7 +214,7 @@ func TestAnIndexPlaceNeverHoldsAPassword(t *testing.T) {
 func TestAServerFillsTheIndexAtStartAndStopsCleanly(t *testing.T) {
 	data := withUsageData(t)
 	writeTask(t, data, "20261001-0900-a", "ada@acme.com", modelLine+modelLine)
-	index, err := jobs.Open(filepath.Join(data, "jobs"))
+	index, err := tasks.Open(filepath.Join(data, "jobs"))
 	if err != nil {
 		t.Fatal(err)
 	}

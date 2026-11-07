@@ -89,8 +89,8 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /admin/retention/sweep", retention(s.sweepNow))
 	mux.HandleFunc("POST /admin/retention/holds", retention(s.holdPerson))
 	mux.HandleFunc("POST /admin/retention/holds/release", retention(s.releasePerson))
-	mux.HandleFunc("POST /admin/retention/jobs/hold", retention(s.holdJob))
-	mux.HandleFunc("POST /admin/retention/jobs/release", retention(s.releaseJob))
+	mux.HandleFunc("POST /admin/retention/jobs/hold", retention(s.holdTask))
+	mux.HandleFunc("POST /admin/retention/jobs/release", retention(s.releaseTask))
 
 	setups := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasSetups, next)) }
 	mux.HandleFunc("POST "+setupsPath, setups(s.saveSetup))

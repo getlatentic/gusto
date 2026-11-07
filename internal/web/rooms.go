@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A room is a conversation its people share. Each of its agents keeps a conversation of its own in it and answers when it is
@@ -179,12 +179,12 @@ type roomAsk struct {
 
 // startRoomTurn queues a turn for one of a room's agents. The record keeps what was said as the room shows it; the agent is
 // given that with who is in the room and what was said since it last spoke, since it keeps a conversation of its own.
-func (s *Server) startRoomTurn(asked string, held instance.Instance, thread instance.Thread, said string, agent instance.Agent, how roomAsk) (jobs.Record, error) {
+func (s *Server) startRoomTurn(asked string, held instance.Instance, thread instance.Thread, said string, agent instance.Agent, how roomAsk) (tasks.Record, error) {
 	if fresh, found := s.instances.Thread(held.ID, thread.ID); found {
 		thread = fresh
 	}
 	brief := s.roomBrief(held, thread, agent, asked, said, how.from)
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:       brief,
 		Harness:     agent.Harness,
 		Model:       agent.Model,
@@ -194,28 +194,28 @@ func (s *Server) startRoomTurn(asked string, held instance.Instance, thread inst
 		Remembered:  thread.Sessions[agent.ID],
 		Agent:       agent.ID,
 		Repo:        held.Repo,
-		Budget:      job.Budget{MonthUSD: agent.AllowanceUSD},
+		Budget:      task.Budget{MonthUSD: agent.AllowanceUSD},
 		Setup:       setupOf(held),
 		Sensitivity: sensitivityOf(held),
 	}
 	if agent.Setup != "" {
-		spec.Setup = &job.Setup{Name: agent.Setup}
+		spec.Setup = &task.Setup{Name: agent.Setup}
 	}
 	id, err := s.index.Reserve(said, time.Now())
 	if err != nil {
-		return jobs.Record{}, err
+		return tasks.Record{}, err
 	}
-	record := jobs.Record{
-		ID: id, State: jobs.Queued,
+	record := tasks.Record{
+		ID: id, State: tasks.Queued,
 		Brief: said, Repo: held.Repo, Harness: agent.Harness, Model: agent.Model,
 		Instance: held.ID, Thread: thread.ID, Agent: agent.ID, HandedBy: how.from, Answers: how.answers, Hops: how.hops,
-		Asked: asked, PaidBy: s.ownerOf(agent), Key: how.key, Queued: jobs.Now(),
+		Asked: asked, PaidBy: s.ownerOf(agent), Key: how.key, Queued: tasks.Now(),
 	}
 	if err := s.place(spec, record); err != nil {
-		return jobs.Record{}, err
+		return tasks.Record{}, err
 	}
 	if err := s.instances.Said(held.ID, thread.ID, record.ID, ""); err != nil {
-		return jobs.Record{}, err
+		return tasks.Record{}, err
 	}
 	s.queue.Wake()
 	return record, nil
@@ -223,8 +223,8 @@ func (s *Server) startRoomTurn(asked string, held instance.Instance, thread inst
 
 // handOff starts a turn for each agent a finished room turn's reply mentions, so agents can pass work along. A chain stops after
 // handOffs turns, and a turn that did not finish hands nothing on.
-func (s *Server) handOff(record jobs.Record) {
-	if record.Agent == "" || record.State != jobs.Passed || record.Hops >= handOffs {
+func (s *Server) handOff(record tasks.Record) {
+	if record.Agent == "" || record.State != tasks.Passed || record.Hops >= handOffs {
 		return
 	}
 	held, found := s.instances.Get(record.Instance)

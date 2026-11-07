@@ -128,11 +128,11 @@ func TestThePersonsOwnShellIsAskedForItsPath(t *testing.T) {
 	}
 }
 
-// A computer's own choice of wall is the GUSTO_SANDBOX the rest of gusto reads, so it runs jobs behind it, and a person's own setting
+// A computer's own choice of wall is the GUSTO_SANDBOX the rest of gusto reads, so it runs tasks behind it, and a person's own setting
 // is left alone.
-func TestTheWallChosenIsTheSandboxJobsRunBehind(t *testing.T) {
+func TestTheWallChosenIsTheSandboxTasksRunBehind(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
-	// A computer with no docker and no VM has its own sandbox where it has a process sandbox that holds a job to a folder and a
+	// A computer with no docker and no VM has its own sandbox where it has a process sandbox that holds a task to a folder and a
 	// port, and nothing otherwise.
 	expected := "here"
 	if isolation.ProcessWall(isolation.This(isolation.Settings{})).Ready {

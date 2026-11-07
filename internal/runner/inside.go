@@ -18,7 +18,7 @@ import (
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Place is what a runner is told of where it runs, by the command that starts it.
@@ -35,23 +35,23 @@ type Place struct {
 
 // Inside does the whole run in a place that is nothing but this process, unsigned, and returns the exit code the check
 // earned, so a caller needs nothing but the process status to know what happened.
-func Inside(dir job.Dir) (int, error) { return InsideContext(context.Background(), dir, Place{}) }
+func Inside(dir task.Dir) (int, error) { return InsideContext(context.Background(), dir, Place{}) }
 
 // InsideContext is a run in place that stops early when its context ends, as it does when the budget's seconds run out: the
 // agent is killed, what it did is kept, and the manifest says why it stopped.
-func InsideContext(parent context.Context, dir job.Dir, place Place) (int, error) {
+func InsideContext(parent context.Context, dir task.Dir, place Place) (int, error) {
 	return InsideWith(parent, dir, harness.Here(), place)
 }
 
 // InsideWith is InsideContext for an agent started with the environment given, and not this process's: a task run in the server's
 // own process is given the proxy and its token and nothing of the server's secrets. The check runs with the same environment.
-func InsideWith(parent context.Context, dir job.Dir, env harness.Env, place Place) (int, error) {
+func InsideWith(parent context.Context, dir task.Dir, env harness.Env, place Place) (int, error) {
 	stopRelay, err := relayOut(place.ProxySocket)
 	if err != nil {
 		return 0, err
 	}
 	defer stopRelay()
-	spec, err := job.Read(dir)
+	spec, err := task.Read(dir)
 	if err != nil {
 		return 0, err
 	}
@@ -84,11 +84,11 @@ func InsideWith(parent context.Context, dir job.Dir, env harness.Env, place Plac
 
 // inside is a run of an agent in this process, as prepareInside readied it.
 type inside struct {
-	dir     job.Dir
-	spec    job.Spec
+	dir     task.Dir
+	spec    task.Spec
 	env     harness.Env
 	adapter harness.Adapter
-	// digest is taken from what the job carries, before the agent starts: nothing it writes during the run can change what
+	// digest is taken from what the task carries, before the agent starts: nothing it writes during the run can change what
 	// the manifest says it was.
 	digest   string
 	endpoint string
@@ -98,7 +98,7 @@ type inside struct {
 
 // prepareInside readies a run: the agent's adapter, in the home it is given, admitted to the model it names, and the workspace
 // checked out and snapshotted. A run that may not reach its model is refused in its record.
-func prepareInside(dir job.Dir, spec job.Spec, env harness.Env) (*inside, error) {
+func prepareInside(dir task.Dir, spec task.Spec, env harness.Env) (*inside, error) {
 	configured, err := harness.Open(dir, spec.Harness)
 	if err != nil {
 		return nil, err
@@ -163,10 +163,10 @@ func (r *inside) agentTurn(ctx context.Context, agent *agent, record *Record) (i
 
 // equip is the tool servers the agent is given, the task's own and the gateway's, and its home made fresh with its skills. A
 // tool server that cannot be given is a refusal, in the record.
-func (r *inside) equip(agent *agent) ([]job.Server, error) {
+func (r *inside) equip(agent *agent) ([]task.Server, error) {
 	servers, err := Servers(r.dir)
 	if err == nil {
-		var more []job.Server
+		var more []task.Server
 		more, err = gatewayServers(r.spec, r.env.ModelURL, r.env.ModelToken)
 		servers = append(servers, more...)
 	}

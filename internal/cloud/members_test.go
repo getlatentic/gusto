@@ -170,7 +170,7 @@ func TestAnInvitationIsRefusedWhenTheOrganizationHasFilledSinceItWasSent(t *test
 		s := open(t, Settings{})
 		admin, org := verifiedOrg(t, s, "ada@acme.com", "Acme")
 		secret, _ := s.Invite(t.Context(), org.Slug, admin, "bob@acme.com")
-		if err := quota.Write(s.QuotaFile(org.Slug), quota.Quota{Jobs: 10, Members: 1, Computers: 1, Invites: true}); err != nil {
+		if err := quota.Write(s.QuotaFile(org.Slug), quota.Quota{Tasks: 10, Members: 1, Computers: 1, Invites: true}); err != nil {
 			t.Fatal(err)
 		}
 		if _, _, err := s.Accept(t.Context(), secret); !errors.Is(err, ErrFull) {

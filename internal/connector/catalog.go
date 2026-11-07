@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Entry is a connector an organization may turn on: an app's MCP server, and whether the operator must register a client with
@@ -56,7 +56,7 @@ func find(entries []Entry, id string) (Entry, bool) {
 func WithMore(more []Entry) ([]Entry, error) {
 	all := slices.Clone(Catalog)
 	for _, entry := range more {
-		if !job.Named(entry.ID) || entry.Name == "" || !secureAddress(entry.URL) {
+		if !task.Named(entry.ID) || entry.Name == "" || !secureAddress(entry.URL) {
 			return nil, fmt.Errorf("the app %q needs an id of lower case letters, digits and hyphens, a name, and an https address", entry.ID)
 		}
 		if _, taken := find(all, entry.ID); taken {

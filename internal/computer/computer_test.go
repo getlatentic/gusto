@@ -205,7 +205,7 @@ func TestTheRecordAndTheGatewayAreComparedForThisOrganizationOnly(t *testing.T) 
 		running.Sandbox,
 		Prefix("acme") + "ffffffff", // one of ours the record does not know
 		Name("globex", "bob@globex.com"),
-		"gusto-1a2b3c4d5e6f", // a job's
+		"gusto-1a2b3c4d5e6f", // a task's
 	}
 	drift, err := r.Compare(gateway)
 	if err != nil {

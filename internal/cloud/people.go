@@ -46,7 +46,7 @@ type Org struct {
 }
 
 // Limits are the quotas an organization moves between, and the settings that make
-// them. Paid is for an organization with a subscription, and its Jobs are for each seat.
+// them. Paid is for an organization with a subscription, and its Tasks are for each seat.
 type Limits struct {
 	Trial, Verified, Paid quota.Quota
 }
@@ -58,9 +58,9 @@ const StartingCredit = 5.0
 // DefaultLimits are what a sign-up may run before and after it is verified, and once it pays.
 func DefaultLimits() Limits {
 	return Limits{
-		Trial:    quota.Quota{Jobs: 3, Concurrent: 1, Members: 1, Computers: 1, Note: "Confirm the admin's email address to raise this limit.", CreditUSD: StartingCredit},
-		Verified: quota.Quota{Jobs: 200, Monthly: true, Concurrent: 4, Invites: true, Members: 4, Computers: 4, CreditUSD: StartingCredit},
-		Paid:     quota.Quota{Jobs: 200, Monthly: true, Concurrent: 4, Invites: true, Members: 50, Computers: 50, CreditUSD: StartingCredit},
+		Trial:    quota.Quota{Tasks: 3, Concurrent: 1, Members: 1, Computers: 1, Note: "Confirm the admin's email address to raise this limit.", CreditUSD: StartingCredit},
+		Verified: quota.Quota{Tasks: 200, Monthly: true, Concurrent: 4, Invites: true, Members: 4, Computers: 4, CreditUSD: StartingCredit},
+		Paid:     quota.Quota{Tasks: 200, Monthly: true, Concurrent: 4, Invites: true, Members: 50, Computers: 50, CreditUSD: StartingCredit},
 	}
 }
 

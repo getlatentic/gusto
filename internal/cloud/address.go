@@ -1,6 +1,6 @@
 // Package cloud is the front door of a hosted gusto: the accounts, the
 // organizations they create, and the limits an organization runs under. It runs
-// no jobs. Each organization's work is done by a gusto server of its own.
+// no tasks. Each organization's work is done by a gusto server of its own.
 package cloud
 
 import (

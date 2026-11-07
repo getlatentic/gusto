@@ -12,7 +12,7 @@
 # about a kernel bug: a container shares the host's kernel.
 set -eu
 
-data=$(dirname "$GUSTO_JOBS")
+data=$(dirname "$GUSTO_TASKS")
 smoke="$data/smoke"
 rm -rf "$smoke/isolation-job"
 mkdir -p "$smoke/isolation-repo" "$smoke/isolation-harnesses"
@@ -44,7 +44,7 @@ id=$(GUSTO_SERVER=http://127.0.0.1:8040 gusto submit "$smoke/isolation-job" | he
 echo "submitted $id"
 
 tries=0
-until [ -f "$GUSTO_JOBS/$id/out/manifest.json" ]; do
+until [ -f "$GUSTO_TASKS/$id/out/manifest.json" ]; do
   tries=$((tries + 1))
   if [ "$tries" -gt 120 ]; then
     echo "no manifest after 120 seconds; the task page says why: /jobs/$id" >&2
@@ -53,7 +53,7 @@ until [ -f "$GUSTO_JOBS/$id/out/manifest.json" ]; do
   sleep 1
 done
 
-seen="$GUSTO_JOBS/$id/out/transcript.log"
+seen="$GUSTO_TASKS/$id/out/transcript.log"
 echo "what the task saw:"
 cat "$seen"
 

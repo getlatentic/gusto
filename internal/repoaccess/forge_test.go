@@ -111,7 +111,7 @@ func (f *forge) env(t *testing.T) {
 }
 
 // private makes a repository with one file, installs the App on it when asked,
-// and returns the address a job would name.
+// and returns the address a task would name.
 func (f *forge) private(owner, name string, installation int64) string {
 	f.t.Helper()
 	work := f.t.TempDir()

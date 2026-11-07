@@ -67,20 +67,20 @@ func (c signedInCloud) Say(ctx context.Context, instance, thread, said, key stri
 	return client.Say(ctx, instance, thread, said, key)
 }
 
-func (c signedInCloud) FollowJob(ctx context.Context, job string, told helper.Follower) (helper.Ended, error) {
+func (c signedInCloud) FollowTask(ctx context.Context, task string, told helper.Follower) (helper.Ended, error) {
 	client, err := c.client()
 	if err != nil {
 		return helper.Ended{}, err
 	}
-	return client.FollowJob(ctx, job, told)
+	return client.FollowTask(ctx, task, told)
 }
 
-func (c signedInCloud) StopJob(ctx context.Context, job string) error {
+func (c signedInCloud) StopTask(ctx context.Context, task string) error {
 	client, err := c.client()
 	if err != nil {
 		return err
 	}
-	return client.StopJob(ctx, job)
+	return client.StopTask(ctx, task)
 }
 
 // ACP is the helper as an agent for an editor that speaks the Agent Client Protocol. The editor starts it and talks to it on

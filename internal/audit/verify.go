@@ -11,7 +11,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Report is what Verify found. Problems empty means the export holds.
@@ -28,7 +28,7 @@ type Report struct {
 // compares as written.
 type stored struct {
 	Version    int         `json:"version"`
-	Job        string      `json:"job"`
+	Task       string      `json:"job"`
 	Carried    []Carried   `json:"carried"`
 	Redactions []Redaction `json:"redactions"`
 	Policy     Policy      `json:"policy"`
@@ -46,7 +46,7 @@ type stored struct {
 //     redacted copies.
 //  3. audit.json against a summary derived again from those files, with the
 //     signer named by the verifier's own keyring.
-func Verify(dir job.Dir, keyring signing.Keyring) (Report, error) {
+func Verify(dir task.Dir, keyring signing.Keyring) (Report, error) {
 	written, record, err := readSummary(dir)
 	if err != nil {
 		return Report{}, err
@@ -67,7 +67,7 @@ func Verify(dir job.Dir, keyring signing.Keyring) (Report, error) {
 		return Report{}, err
 	}
 	report.Problems = append(report.Problems, compareCarried(record.Carried, carried)...)
-	derived, err := Summarize(dir, record.Job, record.Redactions, record.Policy, keyring)
+	derived, err := Summarize(dir, record.Task, record.Redactions, record.Policy, keyring)
 	if err != nil {
 		return Report{}, err
 	}
@@ -80,7 +80,7 @@ func Verify(dir job.Dir, keyring signing.Keyring) (Report, error) {
 	return report, nil
 }
 
-func readSummary(dir job.Dir) (map[string]json.RawMessage, stored, error) {
+func readSummary(dir task.Dir) (map[string]json.RawMessage, stored, error) {
 	text, err := os.ReadFile(filepath.Join(dir.Path(), SummaryFile))
 	if err != nil {
 		return nil, stored{}, err
@@ -89,7 +89,7 @@ func readSummary(dir job.Dir) (map[string]json.RawMessage, stored, error) {
 	if err := json.Unmarshal(text, &record); err != nil {
 		return nil, stored{}, fmt.Errorf("%s: %w", SummaryFile, err)
 	}
-	if err := job.Readable(SummaryFile, record.Version, Version); err != nil {
+	if err := task.Readable(SummaryFile, record.Version, Version); err != nil {
 		return nil, stored{}, err
 	}
 	var written map[string]json.RawMessage

@@ -6,18 +6,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // oldTurn leaves a passed turn of a room that ended days ago.
 func oldTurn(t *testing.T, site *site, id, room string, days int) {
 	t.Helper()
-	spentJob(t, site.index.Root(), id, "", priced)
+	spentTask(t, site.index.Root(), id, "", priced)
 	if err := os.MkdirAll(filepath.Join(site.index.Root(), id, "workspace"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	ended := time.Now().AddDate(0, 0, -days).Unix()
-	if err := site.index.Add(jobs.Record{ID: id, State: jobs.Passed, Brief: "a turn", Harness: "fixture", Instance: room,
+	if err := site.index.Add(tasks.Record{ID: id, State: tasks.Passed, Brief: "a turn", Harness: "fixture", Instance: room,
 		Asked: "amy@acme.test", Queued: ended, Started: ended, Ended: ended}); err != nil {
 		t.Fatal(err)
 	}
@@ -42,8 +42,8 @@ func TestATurnOfARoomThatWasRemovedIsSweptAndOneOfAKeptRoomIsNot(t *testing.T) {
 
 func TestAHoldOnATaskThatIsGoneIsEnded(t *testing.T) {
 	here, _, dir := keeping(t)
-	oldJob(t, here, "held-then-gone", 1)
-	if err := here.server.retention.holds.HoldJob("held-then-gone", alice, "an audit"); err != nil {
+	oldTask(t, here, "held-then-gone", 1)
+	if err := here.server.retention.holds.HoldTask("held-then-gone", alice, "an audit"); err != nil {
 		t.Fatal(err)
 	}
 	if err := here.index.Remove("held-then-gone"); err != nil {
@@ -54,7 +54,7 @@ func TestAHoldOnATaskThatIsGoneIsEnded(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, still := held.Jobs["held-then-gone"]; still {
+	if _, still := held.Tasks["held-then-gone"]; still {
 		t.Errorf("a hold on a task that is gone stays for ever in %s", dir)
 	}
 }
