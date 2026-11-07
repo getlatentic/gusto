@@ -212,11 +212,9 @@ func TestAServerThatCannotStartIsFailedWithAReasonAndTriedAgainLessOften(t *test
 		if runtime.State != Failed || !strings.Contains(runtime.Error, "told to fail") || !strings.Contains(runtime.Error, "server.log") {
 			t.Errorf("the reason is what the server said, and where it said it: %+v", runtime)
 		}
-		c.supervise(t.Context())
-		first := c.retry[org.Slug]
-		if first.IsZero() {
-			again, _ := s.Runtime(t.Context(), org.Slug)
-			t.Fatalf("a failure sets when to try again; tried again, it is %+v", again)
+		held, _ := c.stateOf(org.Slug)
+		if !held.retryAt.After(time.Now()) {
+			t.Fatalf("the first failure sets when to try again, and it is not at once: %+v", held)
 		}
 		before, _ := os.ReadFile(filepath.Join(s.OrgDir(org.Slug), "server.log"))
 		c.supervise(t.Context()) // too soon: nothing is tried
