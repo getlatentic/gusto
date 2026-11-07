@@ -2,7 +2,7 @@
 (***************************************************************************)
 (* One person's computer in an organization (internal/computer and        *)
 (* internal/backend/vm): its record, its sandbox on the gateway, the      *)
-(* tasks that run in it, the front door asking for it to be removed when  *)
+(* tasks that run in it, gusto cloud asking for it to be removed when      *)
 (* the person is, and the organization server's tend loop, which removes  *)
 (* what was asked and stops what is idle.  The record keeps one id for    *)
 (* the person, so a computer made again after one was removed is a new    *)
@@ -111,7 +111,7 @@ Close(t) ==
     /\ UNCHANGED <<gen, marked, sandbox, asker, tender, asked, killed, stoppedMid, runs>>
 
 -----------------------------------------------------------------------------
-(* The front door removes the person: Retire marks their computer.  The *)
+(* Gusto cloud removes the person: Retire marks their computer.  The       *)
 (* record is read, but whether it is live is not, unless retireOnlyLive.  *)
 Remove ==
     /\ state # "none" /\ ~marked

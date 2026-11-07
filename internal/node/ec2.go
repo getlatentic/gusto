@@ -16,7 +16,7 @@ import (
 
 // EC2 starts and stops machines for nodes with the AWS command, which uses the role of the machine it runs on. The nodes
 // are made from a launch template, tagged so that only these are ever listed or stopped, and given the start-up
-// script that makes them nodes of this front door.
+// script that makes them nodes of this gusto cloud server.
 type EC2 struct {
 	// Template is the launch template's name.
 	Template string
@@ -43,7 +43,7 @@ const (
 
 var volumeID = regexp.MustCompile(`^vol-[0-9a-f]{8,17}$`)
 
-// awsCall bounds one AWS command, so a front door whose network to AWS hangs still decides again.
+// awsCall bounds one AWS command, so a gusto cloud server whose network to AWS hangs still decides again.
 const awsCall = 2 * time.Minute
 
 func (e *EC2) project() string {

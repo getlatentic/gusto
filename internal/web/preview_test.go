@@ -119,10 +119,10 @@ func TestAPageIsServedFromItsFolderAndNothingElse(t *testing.T) {
 	}
 }
 
-// Behind a front door a page has a host name of its own, so the browser lets it keep what it saves, and nothing fences it.
-func TestAPageBehindAFrontDoorIsItsOwnSite(t *testing.T) {
+// Behind gusto cloud a page has a host name of its own, so the browser lets it keep what it saves, and nothing fences it.
+func TestAPageBehindGustoCloudIsItsOwnSite(t *testing.T) {
 	site := pagesSite(t)
-	site.server.UseFrontDoor(FrontDoor{Key: entryKey, Org: "acme-com", URL: "https://cloud.test"})
+	site.server.UseCloud(Cloud{Key: entryKey, Org: "acme-com", URL: "https://cloud.test"})
 	site.handler = site.server.Handler()
 	instance := strings.TrimPrefix(startedInstance(t, site), "/instances/")
 	folder := filepath.Join(site.server.instances.AgentFolder(instance), "site")

@@ -127,8 +127,8 @@ func TestAHostBeingStoppedIsNotPlacedOnWhileItBeatsOnItsWayDown(t *testing.T) {
 	}
 }
 
-// A front door that starts again counts on from the day's prewarms, which bound what visitors who never send the form cost.
-func TestTheDaysPrewarmsAreCountedOnByAFrontDoorThatStartsAgain(t *testing.T) {
+// A gusto cloud server that starts again counts on from the day's prewarms, which bound what visitors who never send the form cost.
+func TestTheDaysPrewarmsAreCountedOnByAGustoCloudServerThatStartsAgain(t *testing.T) {
 	r := scaling(t)
 	r.scaler.Prewarms, r.scaler.Max = 1, 5
 	r.scaler.Prewarm()
@@ -142,13 +142,13 @@ func TestTheDaysPrewarmsAreCountedOnByAFrontDoorThatStartsAgain(t *testing.T) {
 	again.Prewarm()
 	again.Tick()
 	if r.hosts.launched != 1 {
-		t.Errorf("a front door that started again started another prewarm the same day: %d", r.hosts.launched)
+		t.Errorf("a gusto cloud server that started again started another prewarm the same day: %d", r.hosts.launched)
 	}
 }
 
-// A front door that starts again knows when a quiet node was last heard from, so one that went quiet a moment ago is left to
+// A gusto cloud server that starts again knows when a quiet node was last heard from, so one that went quiet a moment ago is left to
 // shut down rather than removed.
-func TestAHostThatWentQuietAMomentAgoIsLeftByAFrontDoorThatStartsAgain(t *testing.T) {
+func TestAHostThatWentQuietAMomentAgoIsLeftByAGustoCloudServerThatStartsAgain(t *testing.T) {
 	r := scaling(t)
 	r.scaler.Pool.MaxAge = 30 * time.Second
 	r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now, Kept: true}}
@@ -160,7 +160,7 @@ func TestAHostThatWentQuietAMomentAgoIsLeftByAFrontDoorThatStartsAgain(t *testin
 	r.now = r.now.Add(40 * time.Second)
 	again.Tick()
 	if len(r.hosts.terminated) != 0 {
-		t.Errorf("a host heard from 40 seconds ago was removed by a front door that started again: %v", r.hosts.terminated)
+		t.Errorf("a host heard from 40 seconds ago was removed by a gusto cloud server that started again: %v", r.hosts.terminated)
 	}
 }
 

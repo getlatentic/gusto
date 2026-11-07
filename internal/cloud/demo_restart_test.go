@@ -10,16 +10,16 @@ import (
 	"time"
 )
 
-// A demo whose front door is restarted while it is starting carries on starting under the new one, and the visitor's wait
+// A demo whose gusto cloud is restarted while it is starting carries on starting under the new one, and the visitor's wait
 // page takes them in once it is ready (planning#516).
-func TestADemoTheFrontDoorRestartedPartWayThroughStartsAndTheVisitorGoesIn(t *testing.T) {
+func TestADemoGustoCloudRestartedPartWayThroughStartsAndTheVisitorGoesIn(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := demoFront(t, "FAKE_DELAY=3s")
 		visitor := startDemoAs(t, f, "Ada Lovelace", "ada@acme.com", "Acme Research")
 		if _, waiting := visitor.get("/demo/wait"); !strings.Contains(waiting, "Getting your demo ready") {
 			t.Fatalf("the demo is not starting:\n%s", waiting)
 		}
-		// The upgrade: the first front door's servers are stopped part-way through starting, and it is gone.
+		// The upgrade: the first gusto cloud server's servers are stopped part-way through starting, and it is gone.
 		f.server.Controller.StopAll()
 		f.http.Close()
 		f.server.Wait()

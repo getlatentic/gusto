@@ -26,12 +26,12 @@ type Person struct {
 	Verified time.Time `json:"verified,omitzero"`
 	// By is who invited them, and empty for the admin who made the organization.
 	By string `json:"by,omitempty"`
-	// LastSignIn is when the front door last signed them in to their organization's
+	// LastSignIn is when gusto cloud last signed them in to their organization's
 	// server, and the zero time until it has.
 	LastSignIn time.Time `json:"lastSignIn,omitzero"`
 }
 
-// Org is an organization as the front door knows it. Its work is in its own
+// Org is an organization as gusto cloud knows it. Its work is in its own
 // directory and its own server, and this is only who it is and who made it.
 type Org struct {
 	Slug  string `json:"slug"`

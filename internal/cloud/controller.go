@@ -23,7 +23,7 @@ import (
 )
 
 // Controller makes each organization's server exist and keeps it running. An
-// organization is provisioned when it is made and again when the front door starts,
+// organization is provisioned when it is made and again when gusto cloud starts,
 // by steps that are each safe to run again, and the state of each is written down as
 // it goes, so a crash between two steps leaves something the next pass finishes.
 type Controller struct {
@@ -41,8 +41,8 @@ type Controller struct {
 	// DemoEnv is what a demo organization's server has on top of Env, and wins over it: a demo's agents can run in a sandbox
 	// of another kind than a sign-up's, such as a microVM for each person where a sign-up has a container.
 	DemoEnv []string
-	// FrontDoor is the front door's public address, which a server sends people to.
-	FrontDoor string
+	// CloudURL is gusto cloud's public address, which a server sends people to.
+	CloudURL string
 	// OrgURL is the address each organization's server is reached at, which an app a person signs in to sends them back to. With
 	// none, people sign in to no apps.
 	OrgURL func(slug string) string
@@ -80,16 +80,16 @@ type Controller struct {
 	portMu  sync.Mutex
 
 	// epoch is the lease this controller leads with, which fences what it writes: 0 when no lease governs it, and -1
-	// while another front door leads, when this one routes from the database and starts nothing.
+	// while another gusto cloud server leads, when this one routes from the database and starts nothing.
 	epoch atomic.Int64
-	// followed is what routing read from the database while another front door leads.
+	// followed is what routing read from the database while another gusto cloud server leads.
 	followed routeCache
 }
 
 // Lead makes this controller the one that provisions and supervises, at the lease's epoch.
 func (c *Controller) Lead(epoch int64) { c.epoch.Store(epoch) }
 
-// Follow makes this controller route from the database and start nothing, while another front door leads. What it kept
+// Follow makes this controller route from the database and start nothing, while another gusto cloud server leads. What it kept
 // while it led is forgotten, since the leader changes it now.
 func (c *Controller) Follow() {
 	c.epoch.Store(-1)
@@ -115,7 +115,7 @@ func (c *Controller) indexDir() string {
 
 func (c *Controller) orgDir(slug string) string { return c.Store.OrgDir(slug) }
 
-// Provision makes an organization's server exist and start, and says when it answers. A front door that does not lead
+// Provision makes an organization's server exist and start, and says when it answers. A gusto cloud server that does not lead
 // starts nothing: the leader finds the organization and provisions it.
 func (c *Controller) Provision(ctx context.Context, slug string) error {
 	if c.following() {
@@ -210,8 +210,8 @@ func (c *Controller) stillServed(ctx context.Context, slug string) error {
 	return ErrRemoved
 }
 
-// endOtherRelease stops an organization's server that was started with another command than this front door's, so that
-// it is started again as this release. A server on a host apart outlives the front door that started it, and would
+// endOtherRelease stops an organization's server that was started with another command than this gusto cloud server's, so that
+// it is started again as this release. A server on a host apart outlives gusto cloud that started it, and would
 // otherwise run the release it was started with until its host goes.
 func (c *Controller) endOtherRelease(node Node, slug string, runtime Runtime) error {
 	if runtime.Command == strings.Join(c.Command, " ") || !node.Alive(slug) {
@@ -254,7 +254,7 @@ func (c *Controller) placement(ctx context.Context, slug string, runtime *Runtim
 }
 
 // prepare makes what an organization's server keeps: its directories, the key it signs
-// its records with, and the key it and the front door share.
+// its records with, and the key it and gusto cloud share.
 func (c *Controller) prepare(ctx context.Context, slug string) error {
 	data := c.Store.DataDir(slug)
 	for _, dir := range []string{"jobs", "sessions", "setups", "comparisons", "changes", "retention", "keys", "computers", "inbox"} {
@@ -284,7 +284,7 @@ func (c *Controller) prepare(ctx context.Context, slug string) error {
 	return nil
 }
 
-// entryKeyFile is the key the front door makes entry tokens with and the
+// entryKeyFile is the key gusto cloud makes entry tokens with and the
 // organization's server checks them with.
 func (c *Controller) entryKeyFile(slug string) string {
 	return filepath.Join(c.orgDir(slug), "entry.key")
@@ -305,20 +305,13 @@ func (c *Controller) environment(ctx context.Context, slug string, runtime Runti
 		return nil, err
 	}
 	own := c.dataSettings(slug)
+	maps.Copy(own, c.serverSettings(slug, org.Name, runtime, node))
 	maps.Copy(own, map[string]string{
-		"GUSTO_ADDR":       node.Listen() + ":" + strconv.Itoa(runtime.Port),
-		"GUSTO_PROXY_ADDR": "127.0.0.1:" + strconv.Itoa(runtime.ProxyPort),
-		"GUSTO_ORG":        slug,
-		"GUSTO_ORG_NAME":   org.Name,
-		"GUSTO_FRONT_DOOR": c.FrontDoor,
-		"GUSTO_NODE":       node.Name(),
-		// The name it had, for a server of an earlier release on a kept node.
-		"GUSTO_CELL": node.Name(),
 		// A person's own conversations share their computer's files and their own state, so they
 		// take turns. A room's agents each work on a copy, so they do not wait for each other.
 		"GUSTO_LIMIT_PERSON":     "1",
 		"GUSTO_TASK_CONCURRENCY": strconv.Itoa(max(c.Concurrent, 1)),
-		// Nobody knows this: a server behind the front door has no password to type.
+		// Nobody knows this: a server behind gusto cloud has no password to type.
 		"GUSTO_PASSWORD": hex.EncodeToString(password),
 		"HOME":           filepath.Join(c.orgDir(slug), "home"),
 	})
@@ -343,6 +336,21 @@ func (c *Controller) environment(ctx context.Context, slug string, runtime Runti
 		env = append(env, name+"="+value)
 	}
 	return env, nil
+}
+
+// serverSettings is where an organization's server listens, which organization it is, and the gusto cloud and node it is on.
+func (c *Controller) serverSettings(slug, name string, runtime Runtime, node Node) map[string]string {
+	return map[string]string{
+		"GUSTO_ADDR":       node.Listen() + ":" + strconv.Itoa(runtime.Port),
+		"GUSTO_PROXY_ADDR": "127.0.0.1:" + strconv.Itoa(runtime.ProxyPort),
+		"GUSTO_ORG":        slug,
+		"GUSTO_ORG_NAME":   name,
+		"GUSTO_CLOUD_URL":  c.CloudURL,
+		"GUSTO_NODE":       node.Name(),
+		// The names they had, for a server of an earlier release on a kept node.
+		"GUSTO_FRONT_DOOR": c.CloudURL,
+		"GUSTO_CELL":       node.Name(),
+	}
 }
 
 // dataSettings is where an organization's server keeps each kind of its data, all under its own directory.
@@ -443,7 +451,7 @@ func healthy(ctx context.Context, address string) bool {
 	return response.StatusCode == http.StatusOK
 }
 
-// set writes down the state of a server and remembers it for routing. A write refused because another front door leads now
+// set writes down the state of a server and remembers it for routing. A write refused because another gusto cloud server leads now
 // is said, and nothing is remembered: the provision that made it stops. Any other failure to write is logged, and routing
 // follows what is remembered.
 func (c *Controller) set(ctx context.Context, slug string, runtime Runtime, state State, why string) error {
@@ -570,7 +578,7 @@ func (c *Controller) Run(ctx context.Context, every time.Duration) {
 	}
 }
 
-// supervise restarts what has stopped or failed, retries what waits, and provisions what was signed up on a front door that
+// supervise restarts what has stopped or failed, retries what waits, and provisions what was signed up on a gusto cloud server that
 // does not lead. Whether a server is alive is asked of its node outside c.mu, so routing does not wait on a node.
 func (c *Controller) supervise(ctx context.Context) {
 	var due, waiting []string
@@ -667,8 +675,8 @@ func (c *Controller) alive(slug string, runtime Runtime) bool {
 	return err == nil && node.Alive(slug)
 }
 
-// StopAll stops every server this controller holds, when the front door stops. A server on a host apart is left running:
-// it does not end with the front door, which is restarted at every deploy.
+// StopAll stops every server this controller holds, when gusto cloud stops. A server on a host apart is left running:
+// it does not end with gusto cloud, which is restarted at every deploy.
 func (c *Controller) StopAll() {
 	c.mu.Lock()
 	held := make(map[string]Runtime, len(c.states))
@@ -685,7 +693,7 @@ func (c *Controller) StopAll() {
 			if err != nil {
 				return
 			}
-			// A server on another host does not end with the front door, which is restarted at every deploy, and is
+			// A server on another host does not end with gusto cloud, which is restarted at every deploy, and is
 			// found running by the one that starts.
 			if apart, ok := node.(interface{ Detached() bool }); ok && apart.Detached() {
 				return

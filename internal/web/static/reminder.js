@@ -1,5 +1,5 @@
 // Reminds a person who has not confirmed their email address, in the side panel, and mails the link again. Only
-// the front door knows whether they have, so it is asked when a page with the side panel loads.
+// gusto cloud knows whether they have, so it is asked when a page with the side panel loads.
 (function () {
   var card = document.querySelector("[data-reminder]");
   if (!card) { return; }

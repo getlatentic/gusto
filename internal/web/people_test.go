@@ -14,11 +14,11 @@ import (
 	"github.com/getlatentic/gusto/internal/tasks"
 )
 
-// withPeople is a server behind a front door whose list of people is the one given,
+// withPeople is a server behind gusto cloud whose list of people is the one given,
 // with an admin signed in.
 func withPeople(t *testing.T, list roster.Roster) (*site, string) {
 	t.Helper()
-	here := behindAFrontDoor(t)
+	here := behindCloud(t)
 	path := filepath.Join(t.TempDir(), "members.json")
 	if err := roster.Write(path, list); err != nil {
 		t.Fatal(err)
@@ -143,7 +143,7 @@ func TestWhenTheListOfPeopleCannotBeReadThePageSaysSoAndShowsNobody(t *testing.T
 	}
 }
 
-func TestThereIsNoPeoplePageWhereNoFrontDoorKeepsThePeople(t *testing.T) {
+func TestThereIsNoPeoplePageWhereNoGustoCloudKeepsThePeople(t *testing.T) {
 	here := open(t)
 	here.signIn(t)
 	if got := here.ask(t, "GET", "/admin/people", nil); got.Code != http.StatusNotFound {
@@ -154,8 +154,8 @@ func TestThereIsNoPeoplePageWhereNoFrontDoorKeepsThePeople(t *testing.T) {
 	}
 }
 
-// Behind a front door, which owns roles, a role is a choice sent there, and it comes back to this page.
-func TestARoleIsChangedAtTheFrontDoorAndComesBackToPeople(t *testing.T) {
+// Behind gusto cloud, which owns roles, a role is a choice sent there, and it comes back to this page.
+func TestARoleIsChangedAtGustoCloudAndComesBackToPeople(t *testing.T) {
 	here, _ := withPeople(t, roster.Roster{Members: []roster.Member{
 		{Email: "ada@acme.com", Role: "admin"}, {Email: "bea@acme.com", Role: "admin"}, {Email: "bob@acme.com", Role: "runner"},
 	}})
@@ -177,7 +177,7 @@ func TestARoleIsChangedAtTheFrontDoorAndComesBackToPeople(t *testing.T) {
 	}
 }
 
-func TestTheOnlyAdminAndAServerWithNoFrontDoorShowTheRoleInWords(t *testing.T) {
+func TestTheOnlyAdminAndAServerWithNoGustoCloudShowTheRoleInWords(t *testing.T) {
 	here, _ := withPeople(t, roster.Roster{Members: []roster.Member{{Email: "ada@acme.com", Role: "admin"}, {Email: "bob@acme.com", Role: "runner"}}})
 	page := here.ask(t, "GET", "/admin/people", nil).Body.String()
 	if row := rowOf(t, page, "ada@acme.com"); strings.Contains(row, "<select") || !strings.Contains(row, ">admin</span>") {
@@ -189,6 +189,6 @@ func TestTheOnlyAdminAndAServerWithNoFrontDoorShowTheRoleInWords(t *testing.T) {
 
 	alone, _, _ := budgeted(t)
 	if page := alone.ask(t, "GET", "/admin/people", nil).Body.String(); strings.Contains(page, "<select") || strings.Contains(page, "/org/people/role") || !strings.Contains(page, ">runner</span>") {
-		t.Errorf("a server with no front door offers to change a role:\n%s", page)
+		t.Errorf("a server with no gusto cloud offers to change a role:\n%s", page)
 	}
 }

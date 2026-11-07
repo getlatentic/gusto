@@ -622,7 +622,7 @@ Environment:
 - `GUSTO_ADMINS`: the people who are admins, comma-separated
 - `GUSTO_FOUND_KEYS`: the model keys found on a person's own computer
 - `GUSTO_LOCAL_REPOS`: the repositories on a person's own computer a task may start from
-- `GUSTO_FRONT_DOOR`: the address of the gusto cloud that sends people here
+- `GUSTO_CLOUD_URL`: the address of the gusto cloud that sends people here; GUSTO_FRONT_DOOR is its old name
 - `GUSTO_ENTRY_KEY`: the file of the key gusto cloud signs a person's entry with
 - `GUSTO_ORG_NAME`: what the organization is called, which its pages show
 - `GUSTO_MODEL_URL`: the model a task asks directly when this server holds no credential (default http://localhost:11434/v1)
@@ -908,7 +908,7 @@ gusto cloud computers
 gusto cloud migrate
 ```
 
-With no subcommand, runs gusto cloud: sign-up, sign-in and the organizations' records, and the servers it starts for each organization and sends their people to. It runs no tasks itself, and will not start with a setting whose value does not read. The accounts are in a database that several front doors can share: SQLite in cloud.db under the root by default, or Postgres when GUSTO_DATABASE_URL names it (docs/CLOUD-DATABASE.md).
+With no subcommand, runs gusto cloud: sign-up, sign-in and the organizations' records, and the servers it starts for each organization and sends their people to. It runs no tasks itself, and will not start with a setting whose value does not read. The accounts are in a database that several gusto cloud servers can share: SQLite in cloud.db under the root by default, or Postgres when GUSTO_DATABASE_URL names it (docs/CLOUD-DATABASE.md).
 
 Commands:
 
@@ -922,7 +922,7 @@ Flags:
 Environment:
 
 - `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
-- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several front doors can share
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several gusto cloud servers can share
 - `GUSTO_CLOUD_ADDR`: where gusto cloud listens (default 127.0.0.1:8050)
 - `GUSTO_CLOUD_URL`: the address links in mail begin with, such as https://cloud.example.com (default http:// and GUSTO_CLOUD_ADDR)
 - `GUSTO_CLOUD_DOMAIN`: the domain organizations are served under, as <slug>.<domain> (default localhost)
@@ -931,7 +931,7 @@ Environment:
 - `GUSTO_CLOUD_MAIL_TOKEN`: the Cloudflare API token that may send mail, for cloudflare://
 - `GUSTO_CLOUD_LEASE_FILE`: the file that says when a demo host removes itself; a person signed in at /lease extends it, and without it there is no lease
 - `GUSTO_CLOUD_LEASE_STEP_MINUTES`: how much each extension of the lease adds, in minutes (default 30)
-- `GUSTO_CLOUD_LEADER_SECONDS`: how long the lease that makes one front door the leader lasts unrenewed, in seconds (default 30)
+- `GUSTO_CLOUD_LEADER_SECONDS`: how long the lease that makes one gusto cloud server the leader lasts unrenewed, in seconds (default 30)
 - `GUSTO_CLOUD_LEAD_HOOK_URL`: the address each demo lead is sent to, by a signed request
 - `GUSTO_CLOUD_LEAD_HOOK_SECRET`: the secret the lead hook's requests are signed with
 - `GUSTO_CLOUD_TURNSTILE_SITE`: the Cloudflare Turnstile site key of the bot check on the demo form, which fails closed
@@ -1015,7 +1015,7 @@ Flags:
 Environment:
 
 - `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
-- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several front doors can share
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several gusto cloud servers can share
 
 Examples:
 
@@ -1043,7 +1043,7 @@ Flags:
 Environment:
 
 - `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
-- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several front doors can share
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several gusto cloud servers can share
 
 Exit codes:
 
@@ -1103,7 +1103,7 @@ Environment:
 
 - `GUSTO_OPERATOR_ADDR`: where to listen; a loopback address (default 127.0.0.1:8090); GUSTO_OWNER_ADDR is its old name
 - `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
-- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several front doors can share
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several gusto cloud servers can share
 - `GUSTO_CLOUD_DEMO_MINUTES`: the minutes a demo lasts from when it is ready (default 0, no demo)
 - `GUSTO_CLOUD_DEMO_EXTEND_MINUTES`: the minutes a demo's one extension adds (default 10)
 - `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES`: the minutes a demo has to be ready before it is deleted (default 15)

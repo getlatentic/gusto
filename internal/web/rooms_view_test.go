@@ -28,7 +28,7 @@ func TestARoomCallsAPersonByTheNameInTheirAddress(t *testing.T) {
 	}
 }
 
-// A person who gave the front door a name is called by it, and by its initials; nobody else's name changes, and a roster
+// A person who gave gusto cloud a name is called by it, and by its initials; nobody else's name changes, and a roster
 // written again is read again.
 func TestAPersonIsCalledByTheNameTheyGaveAndOthersByTheirAddress(t *testing.T) {
 	site := open(t)

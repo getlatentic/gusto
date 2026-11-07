@@ -56,7 +56,7 @@ func fakeOrgServer() {
 			"proto": r.Header.Get("X-Forwarded-Proto"), "cookie": r.Header.Get("Cookie"), "app": r.Header.Get("X-Gusto-App"),
 			"jobs": os.Getenv("GUSTO_TASKS"), "quota": os.Getenv("GUSTO_QUOTA"), "members": os.Getenv("GUSTO_MEMBERS"), "inbox": os.Getenv("GUSTO_INBOX"), "orgSettings": os.Getenv("GUSTO_ORG_SETTINGS"), "home": os.Getenv("HOME"),
 			"entryKey": os.Getenv("GUSTO_ENTRY_KEY"), "signingKey": os.Getenv("GUSTO_SIGNING_KEY"),
-			"proxyAddr": os.Getenv("GUSTO_PROXY_ADDR"), "front": os.Getenv("GUSTO_FRONT_DOOR"), "orgName": os.Getenv("GUSTO_ORG_NAME"), "concurrency": os.Getenv("GUSTO_TASK_CONCURRENCY"),
+			"proxyAddr": os.Getenv("GUSTO_PROXY_ADDR"), "front": os.Getenv("GUSTO_CLOUD_URL"), "orgName": os.Getenv("GUSTO_ORG_NAME"), "concurrency": os.Getenv("GUSTO_TASK_CONCURRENCY"),
 			"mailVisible": os.Getenv("GUSTO_CLOUD_MAIL") != "", "operatorSetting": os.Getenv("OPERATOR_SETTING"),
 		})
 	})
@@ -119,8 +119,8 @@ func controlled(t *testing.T, store *Store, extra ...string) *Controller {
 	t.Setenv("GUSTO_CLOUD_MAIL", "smtp://user:secret@mail.example.com:587?from=x@example.com")
 	c := &Controller{
 		Store: store, Node: &LocalNode{}, Command: []string{exe, "serve"},
-		Env:       append([]string{"CLOUD_FAKE_ORG=1", "OPERATOR_SETTING=given", "PATH=" + os.Getenv("PATH")}, extra...),
-		FrontDoor: "https://cloud.test", PortFrom: 38000 + int(time.Now().UnixNano()%5000),
+		Env:      append([]string{"CLOUD_FAKE_ORG=1", "OPERATOR_SETTING=given", "PATH=" + os.Getenv("PATH")}, extra...),
+		CloudURL: "https://cloud.test", PortFrom: 38000 + int(time.Now().UnixNano()%5000),
 		Wait: 20 * time.Second, Concurrent: 2, StopGrace: time.Second,
 	}
 	t.Cleanup(c.StopAll)

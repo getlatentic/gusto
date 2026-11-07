@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-// front is a front door on a real listener, with a browser's cookies and mail
+// front is a gusto cloud server on a real listener, with a browser's cookies and mail
 // that lands in a directory.
 type front struct {
 	t      *testing.T

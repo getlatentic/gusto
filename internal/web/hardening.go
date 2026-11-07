@@ -21,8 +21,8 @@ func (s *Server) secure(next http.Handler) http.Handler {
 		nonce := randomValue()
 		h := w.Header()
 		h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'nonce-"+nonce+"'; "+
-			"style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"+s.frontDoorSource()+"; "+
-			"form-action 'self'"+s.frontDoorSource()+"; frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
+			"style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"+s.cloudSource()+"; "+
+			"form-action 'self'"+s.cloudSource()+"; frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "same-origin")
@@ -43,9 +43,9 @@ func (s *Server) secure(next http.Handler) http.Handler {
 	})
 }
 
-// frontDoorSource is the front door, for the content security policy, when this server is behind one: the
+// cloudSource is gusto cloud, for the content security policy, when this server is behind one: the
 // organization switcher asks it which organizations the person is in, and signing out here goes on to sign out there.
-func (s *Server) frontDoorSource() string {
+func (s *Server) cloudSource() string {
 	if s.front == nil {
 		return ""
 	}

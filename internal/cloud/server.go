@@ -17,7 +17,7 @@ import (
 //go:embed templates/*.html static/cloud.css static/hero-light.webp static/hero-dark.webp static/shots/*.webp static/landing-theme.js static/demo-warm.js static/og.png
 var files embed.FS
 
-// Config is what a front door is made from.
+// Config is what a gusto cloud server is made from.
 type Config struct {
 	Store    *Store
 	Mail     Mailer
@@ -32,7 +32,7 @@ type Config struct {
 	// The most sign-ups from one address in an hour, mail to one address in an
 	// hour, and sign-ups in all in an hour.
 	PerAddress, PerMailbox, InAll int
-	// Controller runs the organizations' servers. Without one the front door has
+	// Controller runs the organizations' servers. Without one gusto cloud has
 	// accounts and no organization to open.
 	Controller *Controller
 	// Lease, when there is one, is how long this host has before it removes itself.
@@ -53,7 +53,7 @@ type Config struct {
 	Seats  *SeatSync
 }
 
-// Server is the front door's pages.
+// Server is gusto cloud's pages.
 type Server struct {
 	Config
 	pages   *template.Template
@@ -67,7 +67,7 @@ type Server struct {
 	ender   demoEnder
 }
 
-// New makes the front door.
+// New makes gusto cloud.
 func New(c Config) (*Server, error) {
 	if c.PerAddress <= 0 {
 		c.PerAddress = 10
@@ -93,7 +93,7 @@ func New(c Config) (*Server, error) {
 		invites: c.limiter("invites", 20), codes: c.limiter("codes", codeTries)}, nil
 }
 
-// limiter counts most events an hour. With a store the count is shared by every front door on its database.
+// limiter counts most events an hour. With a store the count is shared by every gusto cloud server on its database.
 func (c Config) limiter(scope string, most int) *Limiter {
 	if c.Store == nil {
 		return NewLimiter(most, time.Hour)
@@ -101,7 +101,7 @@ func (c Config) limiter(scope string, most int) *Limiter {
 	return c.Store.Limiter(scope, most, time.Hour)
 }
 
-// Handler is every page the front door has, and every organization's server behind
+// Handler is every page gusto cloud has, and every organization's server behind
 // its own host name.
 func (s *Server) Handler() http.Handler {
 	pages := s.routes()
@@ -125,7 +125,7 @@ func (s *Server) Handler() http.Handler {
 			return
 		}
 		if slug, ok := s.orgSlug(r.Host); ok {
-			// The page of a demo that has ended is made of the front door's own styles, which the gone server cannot send.
+			// The page of a demo that has ended is made of gusto cloud's own styles, which the gone server cannot send.
 			if _, found := s.Store.LeadOf(r.Context(), slug); found && strings.HasPrefix(r.URL.Path, "/static/") && !s.orgExists(r.Context(), slug) {
 				pages.ServeHTTP(w, r)
 				return

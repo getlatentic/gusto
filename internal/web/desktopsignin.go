@@ -130,7 +130,7 @@ func (s *Server) desktopHandoff(w http.ResponseWriter, r *http.Request) {
 }
 
 // desktopSessionLife is how long the app stays signed in: a person opens it every day and does not want to go to their browser each
-// time. Behind a front door it is the front door's, which is how long a person is trusted after they are removed.
+// time. Behind gusto cloud it is gusto cloud's, which is how long a person is trusted after they are removed.
 func (s *Server) desktopSessionLife() time.Duration {
 	if s.front != nil {
 		return s.keeper.life

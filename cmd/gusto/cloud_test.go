@@ -29,7 +29,7 @@ func cloudFrom(t *testing.T, values map[string]string) cloudSettings {
 	return cfg
 }
 
-func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
+func TestGustoCloudIsMadeFromItsSettings(t *testing.T) {
 	t.Parallel()
 	cfg := cloudFrom(t, map[string]string{
 		"GUSTO_CLOUD_URL": "https://cloud.example.com", "GUSTO_CLOUD_DOMAIN": "example.com",
@@ -66,7 +66,7 @@ func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
 	}
 }
 
-func TestBadFrontDoorSettingsAreRefusedByName(t *testing.T) {
+func TestBadGustoCloudSettingsAreRefusedByName(t *testing.T) {
 	t.Parallel()
 	for name, set := range map[string]map[string]string{
 		"a link address that is not one": {"GUSTO_CLOUD_URL": "cloud.example.com"},
@@ -83,7 +83,7 @@ func TestBadFrontDoorSettingsAreRefusedByName(t *testing.T) {
 }
 
 // The criterion the story ends on: a sign-up cannot make more than a small amount
-// of work until it is verified. The front door writes the limit and the
+// of work until it is verified. Gusto cloud writes the limit and the
 // organization's own server enforces it, and confirming the address lifts it
 // without the server being restarted.
 func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
@@ -98,7 +98,7 @@ func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The organization's server, as it would be started: a tasks directory of its
-	// own under the organization's data directory, and the quota the front door wrote.
+	// own under the organization's data directory, and the quota gusto cloud wrote.
 	index, err := tasks.Open(filepath.Join(front.Store.DataDir(org.Slug), "jobs"))
 	if err != nil {
 		t.Fatal(err)

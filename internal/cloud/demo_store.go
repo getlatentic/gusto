@@ -156,7 +156,7 @@ func (s *Store) StopDemo(ctx context.Context, slug string) error {
 	return err
 }
 
-// MarkEnding records that the sweep has begun to end a demo, before it stops anything, so a front door that starts again
+// MarkEnding records that the sweep has begun to end a demo, before it stops anything, so a gusto cloud server that starts again
 // partway does not make the demo's server again: the mark is in the database, where a crash does not lose it.
 func (s *Store) MarkEnding(ctx context.Context, slug string) error {
 	_, err := s.changeDemo(ctx, slug, func(org *Org) error {

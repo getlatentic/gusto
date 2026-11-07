@@ -25,13 +25,13 @@ func TestAnOrchestratorHasTheNameAndTheLeaseAndNoImageOrCredentials(t *testing.T
 		t.Fatal(err)
 	}
 	if count(done, "certbot ") != 1 || count(done, "gusto-dns ") != 1 {
-		t.Errorf("the front door has a certificate and the name: %v", done)
+		t.Errorf("gusto cloud has a certificate and the name: %v", done)
 	}
 	if count(done, "credentials ") != 0 || h.has("lib/runner-all-rootfs.tar.gz") {
 		t.Errorf("it runs no computer, so it has no image and no model credentials: %v", done)
 	}
 	if !h.has("lease/lease.json") {
-		t.Error("the lease is the front door's")
+		t.Error("the lease is gusto cloud's")
 	}
 	secret := filepath.Join(h.dir, "run", "cell-secret")
 	info, err := os.Stat(secret)
@@ -139,7 +139,7 @@ func TestAnUnknownRoleIsRefused(t *testing.T) {
 	}
 }
 
-func TestTheBotChecksSecretIsKeptForTheFrontDoorToReadAsItsEnvironmentAndForNoOneElse(t *testing.T) {
+func TestTheBotChecksSecretIsKeptForGustoCloudToReadAsItsEnvironmentAndForNoOneElse(t *testing.T) {
 	for _, role := range []string{"all", "orchestrator"} {
 		h := newHost(t)
 		h.put("image/key1.tar.gz", "x")
@@ -182,7 +182,7 @@ func TestAHostWhoseBotCheckSecretIsNotStoredStartsWithoutOneAndLeavesNoStaleSecr
 	}
 }
 
-func TestTheLeadHooksAddressAndSecretAreKeptForTheFrontDoorAloneAndBothAreNeeded(t *testing.T) {
+func TestTheLeadHooksAddressAndSecretAreKeptForGustoCloudAloneAndBothAreNeeded(t *testing.T) {
 	for _, role := range []string{"all", "orchestrator"} {
 		h := newHost(t)
 		h.put("image/key1.tar.gz", "x")

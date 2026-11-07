@@ -33,7 +33,7 @@ func seatWords(seats, usd int) string {
 	return fmt.Sprintf("%d %s at $%d a month each", seats, unit, usd)
 }
 
-// planOf is the organization's plan, and nil when this front door does not bill or the
+// planOf is the organization's plan, and nil when this gusto cloud server does not bill or the
 // organization is a demo.
 func (s *Server) planOf(ctx context.Context, org Org, person Person) *plan {
 	if !s.Stripe.Enabled() || org.Demo != nil {

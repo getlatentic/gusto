@@ -7,9 +7,9 @@ import (
 	"time"
 )
 
-// A front door of a newer release finds the servers on a host apart still running, as the release that started them,
+// A gusto cloud server of a newer release finds the servers on a host apart still running, as the release that started them,
 // and starts each again as its own. One already of its release is left running.
-func TestAServerOfAnotherReleaseIsStartedAgainAsTheFrontDoorsRelease(t *testing.T) {
+func TestAServerOfAnotherReleaseIsStartedAgainAsGustoCloudsRelease(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		before := controlled(t, s)
@@ -26,7 +26,7 @@ func TestAServerOfAnotherReleaseIsStartedAgainAsTheFrontDoorsRelease(t *testing.
 			t.Fatal(err)
 		}
 		if whoIs(t, address)["pid"] != first["pid"] {
-			t.Fatal("a front door of the same release restarted the server")
+			t.Fatal("a gusto cloud server of the same release restarted the server")
 		}
 
 		newer := controlled(t, s)

@@ -154,7 +154,7 @@ func TestARequestIsAcceptedOnlyIfSignedWithTheSecretForWhatItSaysAndRecently(t *
 	if _, err := verify(build("POST", "/v1/servers", nil), nil, now); err == nil {
 		t.Error("an agent with no secret accepted a request")
 	}
-	// Both sides having no secret is a front door and a node that were never given one, and is not agreement.
+	// Both sides having no secret is a gusto cloud server and a node that were never given one, and is not agreement.
 	unsecured := httptest.NewRequest("POST", "/v1/servers", nil)
 	sign(unsecured, nil, now, nil)
 	if _, err := verify(unsecured, nil, now); err == nil {
@@ -199,14 +199,14 @@ func TestANodeRegistersReadsBackAndIsFreshOnlyWhileItIsHeardFrom(t *testing.T) {
 		t.Fatal(err)
 	}
 	if info, _ := os.Stat(filepath.Join(dir, "orchestrator.beat")); info == nil || !info.ModTime().Equal(now) {
-		t.Errorf("the front door's beat: %v", info)
+		t.Errorf("gusto cloud's beat: %v", info)
 	}
 	if names, _ := Fresh(dir, now, time.Hour); len(names) != 2 {
 		t.Errorf("the beat is not a cell: %+v", names)
 	}
 }
 
-func TestTheFrontDoorStartsAsksAndStopsAServerOnANodeThroughItsAgent(t *testing.T) {
+func TestGustoCloudStartsAsksAndStopsAServerOnANodeThroughItsAgent(t *testing.T) {
 	host := newAgent(t, "cell-a", 9000)
 	remote := remoteTo(host, "cell-a")
 	server, proxy, err := remote.Ports(23000+int(time.Now().UnixNano()%9000), map[int]bool{})

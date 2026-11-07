@@ -150,7 +150,7 @@ func (s *Server) signOut(w http.ResponseWriter, r *http.Request) {
 }
 
 // signedOutThere finishes a sign-out a person began in their organization's server, which has ended its own session
-// and vouches, with the key it shares with the front door, that this browser asked. A link without that word is
+// and vouches, with the key it shares with gusto cloud, that this browser asked. A link without that word is
 // sent home and signs nobody out, so another site cannot sign a person out by linking here.
 func (s *Server) signedOutThere(w http.ResponseWriter, r *http.Request) {
 	slug := r.URL.Query().Get("org")

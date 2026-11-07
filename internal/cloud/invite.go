@@ -43,7 +43,7 @@ func (s *Server) cancelInvitation(w http.ResponseWriter, r *http.Request, person
 	http.Redirect(w, r, "/org", http.StatusSeeOther)
 }
 
-// removePerson takes a person out of the organization. Their sign-in at the front door
+// removePerson takes a person out of the organization. Their sign-in at gusto cloud
 // stops at once, since what it says is looked up on each request, and the organization's
 // own server stops trusting them within the hour it last did.
 func (s *Server) removePerson(w http.ResponseWriter, r *http.Request, person Person) {

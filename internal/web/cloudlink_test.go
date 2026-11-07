@@ -14,11 +14,11 @@ import (
 
 var entryKey = []byte("0123456789abcdef0123456789abcdef")
 
-// behindAFrontDoor is a server that is the organization acme-com's in a hosted gusto.
-func behindAFrontDoor(t *testing.T) *site {
+// behindCloud is a server that is the organization acme-com's in a hosted gusto.
+func behindCloud(t *testing.T) *site {
 	t.Helper()
 	s := open(t)
-	s.server.UseFrontDoor(FrontDoor{Key: entryKey, Org: "acme-com", URL: "https://cloud.test"})
+	s.server.UseCloud(Cloud{Key: entryKey, Org: "acme-com", URL: "https://cloud.test"})
 	s.handler = s.server.Handler()
 	return s
 }
@@ -37,8 +37,8 @@ func tokenFor(t *testing.T, org, email, role string, at time.Time) string {
 	return token
 }
 
-func TestAPersonWhoIsSentByTheFrontDoorIsSignedInAsWhoTheyAreWithNoPassword(t *testing.T) {
-	s := behindAFrontDoor(t)
+func TestAPersonWhoIsSentByGustoCloudIsSignedInAsWhoTheyAreWithNoPassword(t *testing.T) {
+	s := behindCloud(t)
 	answer := s.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now()))
 	if answer.Code != http.StatusSeeOther || answer.Header().Get("Location") != "/" {
 		t.Fatalf("%d %v", answer.Code, answer.Header())
@@ -48,7 +48,7 @@ func TestAPersonWhoIsSentByTheFrontDoorIsSignedInAsWhoTheyAreWithNoPassword(t *t
 		t.Fatalf("%+v", cookie)
 	}
 	if left := time.Until(cookie.Expires); left > sessionLife+time.Minute || left < sessionLife-time.Minute {
-		t.Errorf("a front door's word is trusted for an hour, not %s", left)
+		t.Errorf("a gusto cloud server's word is trusted for an hour, not %s", left)
 	}
 	s.cookie = cookie
 	if home := s.ask(t, "GET", "/chat", nil); home.Code != http.StatusOK {
@@ -66,7 +66,7 @@ func TestARunnerIsNotAnAdminAndAnAdminIs(t *testing.T) {
 	admin, _ := recording(t)
 	runner, _ := recording(t)
 	for _, s := range []*site{admin, runner} {
-		s.server.UseFrontDoor(FrontDoor{Key: entryKey, Org: "acme-com", URL: "https://cloud.test"})
+		s.server.UseCloud(Cloud{Key: entryKey, Org: "acme-com", URL: "https://cloud.test"})
 		s.handler = s.server.Handler()
 	}
 	admin.cookie = cookieOf(t, admin.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
@@ -80,7 +80,7 @@ func TestARunnerIsNotAnAdminAndAnAdminIs(t *testing.T) {
 }
 
 func TestATokenThatIsUsedOldForAnotherOrganizationOrMadeWithAnotherKeyIsRefusedWithAPage(t *testing.T) {
-	s := behindAFrontDoor(t)
+	s := behindCloud(t)
 	good := tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())
 	if s.enterWith(t, good).Code != http.StatusSeeOther {
 		t.Fatal("the first use works")
@@ -106,10 +106,10 @@ func TestATokenThatIsUsedOldForAnotherOrganizationOrMadeWithAnotherKeyIsRefusedW
 	}
 }
 
-func TestBehindAFrontDoorThereIsNoPasswordOrProviderToSignInWith(t *testing.T) {
-	s := behindAFrontDoor(t)
+func TestBehindGustoCloudThereIsNoPasswordOrProviderToSignInWith(t *testing.T) {
+	s := behindCloud(t)
 	if login := s.ask(t, "GET", "/login", nil); login.Code != http.StatusSeeOther || login.Header().Get("Location") != "https://cloud.test/open?org=acme-com" {
-		t.Errorf("a stranger is sent to the front door: %d %v", login.Code, login.Header())
+		t.Errorf("a stranger is sent to gusto cloud: %d %v", login.Code, login.Header())
 	}
 	if got := s.ask(t, "POST", "/login", url.Values{"password": {password}}); got.Code == http.StatusSeeOther && got.Header().Get("Location") == "/" {
 		t.Error("the shared password still signs somebody in")
@@ -122,10 +122,10 @@ func TestBehindAFrontDoorThereIsNoPasswordOrProviderToSignInWith(t *testing.T) {
 	}
 }
 
-// Signing out here goes on to the front door with a token that asks it to sign the person out too, or the front door
+// Signing out here goes on to gusto cloud with a token that asks it to sign the person out too, or gusto cloud
 // would let them straight back in. The policy lets the form's redirect go there.
-func TestSigningOutGoesOnToSignOutOfTheFrontDoor(t *testing.T) {
-	s := behindAFrontDoor(t)
+func TestSigningOutGoesOnToSignOutOfGustoCloud(t *testing.T) {
+	s := behindCloud(t)
 	s.cookie = cookieOf(t, s.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
 	out := s.ask(t, "POST", "/logout", url.Values{})
 	to, err := url.Parse(out.Header().Get("Location"))
@@ -133,19 +133,19 @@ func TestSigningOutGoesOnToSignOutOfTheFrontDoor(t *testing.T) {
 		t.Fatalf("%d %v", out.Code, out.Header())
 	}
 	if claims, err := entry.VerifyExit(entryKey, "acme-com", to.Query().Get("t"), time.Now()); err != nil || claims.Email != "ada@acme.com" {
-		t.Errorf("the front door is not asked to sign ada out: %+v %v", claims, err)
+		t.Errorf("gusto cloud is not asked to sign ada out: %+v %v", claims, err)
 	}
 	if policy := out.Header().Get("Content-Security-Policy"); !strings.Contains(policy, "form-action 'self' https://cloud.test;") {
-		t.Errorf("the browser would refuse the way on to the front door: %s", policy)
+		t.Errorf("the browser would refuse the way on to gusto cloud: %s", policy)
 	}
 	if home := s.ask(t, "GET", "/chat", nil); home.Code != http.StatusSeeOther {
 		t.Errorf("ada is still signed in here: %d", home.Code)
 	}
 }
 
-func TestASignInByTheFrontDoorIsInTheRecordOfChanges(t *testing.T) {
+func TestASignInByGustoCloudIsInTheRecordOfChanges(t *testing.T) {
 	s, log := recording(t)
-	s.server.UseFrontDoor(FrontDoor{Key: entryKey, Org: "acme-com", URL: "https://cloud.test"})
+	s.server.UseCloud(Cloud{Key: entryKey, Org: "acme-com", URL: "https://cloud.test"})
 	s.handler = s.server.Handler()
 	s.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now()))
 	signins := ofKind(written(t, log), changelog.SignedIn)
@@ -164,9 +164,9 @@ func cookieOf(t *testing.T, answer *httptest.ResponseRecorder) *http.Cookie {
 	return nil
 }
 
-// A person may be in several organizations, and the menu leads back to the front door's choice of them.
-func TestBehindAFrontDoorTheMenuLeadsToThePersonsOrganizations(t *testing.T) {
-	behind := behindAFrontDoor(t)
+// A person may be in several organizations, and the menu leads back to gusto cloud's choice of them.
+func TestBehindGustoCloudTheMenuLeadsToThePersonsOrganizations(t *testing.T) {
+	behind := behindCloud(t)
 	behind.cookie = cookieOf(t, behind.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
 	if page := behind.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, `href="https://cloud.test/orgs"`) {
 		t.Errorf("the menu does not lead to the person's organizations:\n%s", page[:min(len(page), 900)])
@@ -174,9 +174,9 @@ func TestBehindAFrontDoorTheMenuLeadsToThePersonsOrganizations(t *testing.T) {
 }
 
 // A host that removes itself warns on every page, and the warning links to where it is extended, which
-// is the front door. A server that is not behind one has nowhere to send a person, and carries no script.
-func TestAnOrganizationsPagesCarryTheLeaseScriptOnlyBehindAFrontDoor(t *testing.T) {
-	behind := behindAFrontDoor(t)
+// is gusto cloud. A server that is not behind one has nowhere to send a person, and carries no script.
+func TestAnOrganizationsPagesCarryTheLeaseScriptOnlyBehindGustoCloud(t *testing.T) {
+	behind := behindCloud(t)
 	behind.cookie = cookieOf(t, behind.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
 	page := behind.ask(t, "GET", "/chat", nil).Body.String()
 	if !strings.Contains(page, `src="/static/lease.js`) || !strings.Contains(page, `data-extend="https://cloud.test/lease?org=acme-com"`) {
@@ -196,16 +196,16 @@ func TestAnOrganizationsPagesCarryTheLeaseScriptOnlyBehindAFrontDoor(t *testing.
 	alone := open(t)
 	alone.signIn(t)
 	if page := alone.ask(t, "GET", "/", nil).Body.String(); strings.Contains(page, "lease.js") || strings.Contains(page, "guide.js") {
-		t.Error("a server with no front door carries the script")
+		t.Error("a server with no gusto cloud carries the script")
 	}
 }
 
-// The mark at the top of the rail opens the organization switcher, which asks the front door for the person's
+// The mark at the top of the rail opens the organization switcher, which asks gusto cloud for the person's
 // organizations, and the side panel asks it whether they have confirmed their address: the page's policy lets it ask
 // there and nowhere else. A server on its own has neither.
-func TestTheRailsMarkSwitchesBetweenThePersonsOrganizationsBehindAFrontDoor(t *testing.T) {
+func TestTheRailsMarkSwitchesBetweenThePersonsOrganizationsBehindGustoCloud(t *testing.T) {
 	s := open(t)
-	s.server.UseFrontDoor(FrontDoor{Key: entryKey, Org: "acme-com", Name: "Acme Research", URL: "https://cloud.test"})
+	s.server.UseCloud(Cloud{Key: entryKey, Org: "acme-com", Name: "Acme Research", URL: "https://cloud.test"})
 	s.handler = s.server.Handler()
 	s.cookie = cookieOf(t, s.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "runner", time.Now())))
 	page := s.ask(t, "GET", "/chat", nil)
@@ -217,7 +217,7 @@ func TestTheRailsMarkSwitchesBetweenThePersonsOrganizationsBehindAFrontDoor(t *t
 		}
 	}
 	if policy := page.Header().Get("Content-Security-Policy"); !strings.Contains(policy, "connect-src 'self' https://cloud.test;") {
-		t.Errorf("the switcher may ask the front door: %s", policy)
+		t.Errorf("the switcher may ask gusto cloud: %s", policy)
 	}
 
 	alone := open(t)

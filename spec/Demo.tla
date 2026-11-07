@@ -4,7 +4,7 @@
 (* server made ready by the leader's controller, its clock started, used  *)
 (* by the visitor or a colleague who joined through the organization's    *)
 (* own address, extended once, stopped by the visitor, ended by the       *)
-(* leader's sweep when it is due, and the front door crashing at any      *)
+(* leader's sweep when it is due, and gusto cloud crashing at any          *)
 (* point.  The lead row is kept after the demo, and says how it went.     *)
 (* Each action names the Go function it stands for.                       *)
 (*                                                                         *)
@@ -166,7 +166,7 @@ DeleteRows ==
     /\ UNCHANGED <<dir, server, ready, extended, stopped, ending, phase, leadReady, leadExtended,
                    leadReason, wasReady, endBegun, revived, extendedStopped, up, crashes, failures>>
 
-(* The front door crashes: the sweep's progress is lost; the database, the *)
+(* Gusto cloud crashes: the sweep's progress is lost; the database, the    *)
 (* directory and a server on its host stay.                                *)
 Crash ==
     /\ up /\ crashes < MaxCrashes

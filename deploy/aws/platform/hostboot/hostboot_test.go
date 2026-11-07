@@ -203,7 +203,7 @@ func playOf(t *testing.T, role string) string {
 	return lines[play]
 }
 
-func TestAHostThatIsAllOfItHasOpenShellAndTheFrontDoorAndNoSharedFileSystem(t *testing.T) {
+func TestAHostThatIsAllOfItHasOpenShellAndGustoCloudAndNoSharedFileSystem(t *testing.T) {
 	play := playOf(t, "all")
 	if !strings.Contains(play, "site.yml") || !strings.Contains(play, "demo_role=all") || strings.Contains(play, "demo_efs") || strings.Contains(play, "demo_run") {
 		t.Errorf("%s", play)
@@ -218,7 +218,7 @@ func TestAnOrchestratorIsConfiguredWithoutOpenShellAndWithTheSharedFileSystem(t 
 		}
 	}
 	if strings.Contains(play, "site.yml") {
-		t.Errorf("a front door that runs no computer has no use for OpenShell: %s", play)
+		t.Errorf("a gusto cloud server that runs no computer has no use for OpenShell: %s", play)
 	}
 }
 
@@ -448,7 +448,7 @@ func TestAHostMadeFromTheImageOfANodeWarmsItsDiskAndAnOrdinaryHostDoesNot(t *tes
 	}
 }
 
-// kitted is a node made from the image of key abc123, whose front door has put a kit on the shared file system.
+// kitted is a node made from the image of key abc123, whose gusto cloud has put a kit on the shared file system.
 func kitted(t *testing.T) (b *boot, sum string, extra []string) {
 	t.Helper()
 	b = newBoot(t)
@@ -517,7 +517,7 @@ func TestANodeWhoseKitIsNotTheOneItWasStartedWithIsConfiguredByThePlaybook(t *te
 	}
 }
 
-func TestAFrontDoorThatStartsNodesMakesTheirKitAndStartsThemWithItsSum(t *testing.T) {
+func TestAGustoCloudServerThatStartsNodesMakesTheirKitAndStartsThemWithItsSum(t *testing.T) {
 	b := newBoot(t)
 	b.release(false)
 	src := filepath.Join(b.dir, "src")
@@ -540,7 +540,7 @@ func TestAFrontDoorThatStartsNodesMakesTheirKitAndStartsThemWithItsSum(t *testin
 		}
 	}
 	if made < 0 || !strings.HasSuffix(lines[made], "cell-kit.yml") || played < made {
-		t.Fatalf("the kit is made before the front door is configured: %v", lines)
+		t.Fatalf("the kit is made before gusto cloud is configured: %v", lines)
 	}
 	raw, _ = exec.Command("shasum", "-a", "256", kit).Output()
 	sum := strings.Fields(string(raw))[0]

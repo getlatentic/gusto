@@ -9,7 +9,7 @@ import (
 	"github.com/getlatentic/gusto/internal/roster"
 )
 
-// rosterBook is the organization's people as the roster the front door writes says: what each is called and their role. A
+// rosterBook is the organization's people as the roster gusto cloud writes says: what each is called and their role. A
 // page asks for names many times over, and every request asks for its person's role, so the roster is looked at again at most
 // once a second, and read again only when it changed.
 type rosterBook struct {
@@ -25,7 +25,7 @@ type rosterBook struct {
 const rosterRecheck = time.Second
 
 // member is a person as the newest roster that could be read says. A roster that changed and cannot be read keeps the
-// people known from the one before, which holds every change the front door wrote up to it.
+// people known from the one before, which holds every change gusto cloud wrote up to it.
 func (b *rosterBook) member(path, who string) (roster.Member, bool) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -85,7 +85,7 @@ func (s *Server) personName(who string) string {
 	return nameFromAddress(who)
 }
 
-// memberNow is the role a person has now, as the front door's roster says, for a server behind a front door. checked is false
+// memberNow is the role a person has now, as gusto cloud's roster says, for a server behind gusto cloud. checked is false
 // for a server that has no roster to ask, whose sign-ins stand for as long as they last.
 func (s *Server) memberNow(who string) (role Role, in, checked bool) {
 	if s.front == nil || s.rosterPath == "" || who == sharedSignIn {

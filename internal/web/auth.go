@@ -172,7 +172,7 @@ func (k *keeper) clear(w http.ResponseWriter, r *http.Request) {
 }
 
 // session is who is in a signature this server made and has not yet expired,
-// and their role: the one the front door's roster gives them now, behind a front
+// and their role: the one gusto cloud's roster gives them now, behind a front
 // door, where a person it no longer has is signed in nowhere, and else the role
 // they signed in with.
 //

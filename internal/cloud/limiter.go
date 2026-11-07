@@ -9,7 +9,7 @@ import (
 // Limiter counts events in a window that slides, by key, and refuses one past
 // the most allowed. One made by NewLimiter is kept in memory, where a restart
 // forgets it, which lets a person try again and no more. One made by a Store
-// counts in the database, so that every front door on it counts together.
+// counts in the database, so that every gusto cloud server on it counts together.
 type Limiter struct {
 	mu    sync.Mutex
 	most  int

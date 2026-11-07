@@ -60,7 +60,7 @@ func (s *Server) orgsJSON(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]any{"orgs": list})
 }
 
-// isOrgOrigin says an origin is an organization's address on this front door, by the scheme the front door is on.
+// isOrgOrigin says an origin is an organization's address on this gusto cloud server, by the scheme gusto cloud is on.
 func (s *Server) isOrgOrigin(origin string) bool {
 	parsed, err := url.Parse(origin)
 	if err != nil || parsed.Scheme != s.URL.Scheme || parsed.Path != "" {

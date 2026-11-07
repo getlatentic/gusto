@@ -27,7 +27,7 @@ var demoCrew = []struct{ Name, Specialty, Harness string }{
 	{"Draft", "Writes the first version of a document", "pi"},
 }
 
-// orgAs is a request-maker that speaks to an organization's server as one of its people, through the entry key only the front door
+// orgAs is a request-maker that speaks to an organization's server as one of its people, through the entry key only gusto cloud
 // and that server share.
 type orgAs struct {
 	base   string

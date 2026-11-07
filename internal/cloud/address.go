@@ -1,4 +1,4 @@
-// Package cloud is the front door of a hosted gusto: the accounts, the
+// Package cloud is gusto cloud of a hosted gusto: the accounts, the
 // organizations they create, and the limits an organization runs under. It runs
 // no tasks. Each organization's work is done by a gusto server of its own.
 package cloud
@@ -57,7 +57,7 @@ func setOf(members ...string) map[string]bool {
 	return set
 }
 
-// NormalEmail is an address as the front door keeps it: lower case, with no
+// NormalEmail is an address as gusto cloud keeps it: lower case, with no
 // name, no comment and no space in it. Two spellings of one address are one
 // person.
 func NormalEmail(text string) (string, error) {

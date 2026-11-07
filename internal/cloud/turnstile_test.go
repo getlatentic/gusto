@@ -146,7 +146,7 @@ func TestTheLimitsAreCheckedBeforeCloudflareIsAskedAnything(t *testing.T) {
 	})
 }
 
-func TestABotCheckThatIsHalfSetUpStopsTheFrontDoorStartingAndNoneIsFine(t *testing.T) {
+func TestABotCheckThatIsHalfSetUpStopsGustoCloudStartingAndNoneIsFine(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		for name, tc := range map[string]struct {
 			check Turnstile

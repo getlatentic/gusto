@@ -18,7 +18,7 @@ const (
 	scaleLeads  = 20_000
 )
 
-// TestTheStoreAtScale seeds a large database and prints how long the operations a front door does most take. It runs
+// TestTheStoreAtScale seeds a large database and prints how long the operations a gusto cloud server does most take. It runs
 // only when GUSTO_CLOUD_SCALE=1 is set, and prints with -v.
 func TestTheStoreAtScale(t *testing.T) {
 	if os.Getenv("GUSTO_CLOUD_SCALE") != "1" {

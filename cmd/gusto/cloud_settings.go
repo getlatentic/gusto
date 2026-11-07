@@ -48,7 +48,7 @@ type cloudRecords struct{ root, databaseURL string }
 func (r *cloudRecords) declare(set *settings.Set) {
 	set.String(&r.root, "GUSTO_CLOUD_ROOT", "cloud", "the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address")
 	set.Secret(&r.databaseURL, "GUSTO_DATABASE_URL", "where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// "+
-		"address, whose search_path parameter names the schema, made when missing, and which several front doors can share")
+		"address, whose search_path parameter names the schema, made when missing, and which several gusto cloud servers can share")
 }
 
 func (r cloudRecords) accounts() cloud.Settings {
@@ -78,7 +78,7 @@ func (f *frontSettings) declare(set *settings.Set) {
 	set.String(&f.leaseFile, "GUSTO_CLOUD_LEASE_FILE", "", "the file that says when a demo host removes itself; a person signed in at /lease extends it, "+
 		"and without it there is no lease")
 	set.Int(&f.leaseStepMinutes, "GUSTO_CLOUD_LEASE_STEP_MINUTES", 30, 1, "how much each extension of the lease adds, in minutes")
-	set.Int(&f.leaderSeconds, "GUSTO_CLOUD_LEADER_SECONDS", 30, 1, "how long the lease that makes one front door the leader lasts unrenewed, in seconds")
+	set.Int(&f.leaderSeconds, "GUSTO_CLOUD_LEADER_SECONDS", 30, 1, "how long the lease that makes one gusto cloud server the leader lasts unrenewed, in seconds")
 	set.String(&f.leadHookURL, "GUSTO_CLOUD_LEAD_HOOK_URL", "", "the address each demo lead is sent to, by a signed request")
 	set.Secret(&f.leadHookSecret, "GUSTO_CLOUD_LEAD_HOOK_SECRET", "the secret the lead hook's requests are signed with")
 	set.String(&f.turnstileSite, "GUSTO_CLOUD_TURNSTILE_SITE", "", "the Cloudflare Turnstile site key of the bot check on the demo form, which fails closed")
@@ -88,7 +88,7 @@ func (f *frontSettings) declare(set *settings.Set) {
 	set.Int(&f.inAll, "GUSTO_CLOUD_IN_ALL", 200, 1, "the most sign-ups, and the most demo requests, in all in an hour")
 }
 
-// public is the address links in mail begin with, which is also what the front door's cookies are scoped by.
+// public is the address links in mail begin with, which is also what gusto cloud's cookies are scoped by.
 func (f frontSettings) public() (*url.URL, error) {
 	address := f.url
 	if address == "" {
@@ -200,7 +200,7 @@ func (b *billingSettings) declare(set *settings.Set) {
 }
 
 // stripe is how gusto cloud bills seats, and nil when it bills nothing. Setting some of the three and not all is refused, so
-// a front door never takes payments it cannot hear about.
+// a gusto cloud server never takes payments it cannot hear about.
 func (b billingSettings) stripe() (*cloud.Stripe, error) {
 	s := &cloud.Stripe{Key: b.key, Price: b.price, WebhookSecret: b.webhookSecret, SeatUSD: b.seatUSD}
 	switch {

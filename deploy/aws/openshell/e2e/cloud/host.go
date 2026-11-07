@@ -32,7 +32,7 @@ func (h host) tasksAskedBy(slug, email string) []taskOf {
 	return found
 }
 
-// host is the machine everything runs on: where the front door keeps what it keeps, the programs that say what the gateway
+// host is the machine everything runs on: where gusto cloud keeps what it keeps, the programs that say what the gateway
 // holds, what the agents run in, and the isolation check for a container.
 type host struct{ root, gusto, gateway, sandbox, probe string }
 

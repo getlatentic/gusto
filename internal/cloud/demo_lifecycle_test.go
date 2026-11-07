@@ -51,7 +51,7 @@ func TestAStoppedDemoIsNotExtendedOrStarted(t *testing.T) {
 	})
 }
 
-// A demo the sweep has begun to end is not provisioned again, by a front door that starts partway through the end or by
+// A demo the sweep has begun to end is not provisioned again, by a gusto cloud server that starts partway through the end or by
 // anything else. spec/Demo.before-ending.cfg is the trace.
 func TestADemoBeingEndedIsNotMadeAgain(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {

@@ -15,7 +15,7 @@ const (
 	routeMost  = 4096
 )
 
-// routeCache is the runtimes a front door that does not lead read from the database, so that every request for an
+// routeCache is the runtimes a gusto cloud server that does not lead read from the database, so that every request for an
 // organization is not a query.
 type routeCache struct {
 	mu   sync.Mutex
@@ -46,7 +46,7 @@ func (r *routeCache) put(slug string, runtime Runtime, now time.Time) {
 	r.read[slug] = routeRead{runtime: runtime, at: now}
 }
 
-// routeFollowed is Route for a front door that does not lead: where the leader wrote the server is, read from the database.
+// routeFollowed is Route for a gusto cloud server that does not lead: where the leader wrote the server is, read from the database.
 func (c *Controller) routeFollowed(ctx context.Context, slug string) (string, State) {
 	now := time.Now()
 	runtime, fresh := c.followed.get(slug, now)

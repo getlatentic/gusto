@@ -285,19 +285,19 @@ func (s *Server) ReconcileApps() {
 	}
 }
 
-// AppHeader says which app a request is for. The front door sets it, for a request to an
+// AppHeader says which app a request is for. Gusto cloud sets it, for a request to an
 // app's own host name, and signs it with the key it shares with this server, so a client
 // cannot write it and the request it arrives on can reach nothing but that app.
 const AppHeader = "X-Gusto-App"
 
-// SignApp is the header's value for an app: its id, and a signature only the front door and this server can make.
+// SignApp is the header's value for an app: its id, and a signature only gusto cloud and this server can make.
 func SignApp(key []byte, id string) string {
 	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte("app:" + id))
 	return id + "." + hex.EncodeToString(mac.Sum(nil))
 }
 
-// verifiedApp is the app id in a header the front door signed, or nothing.
+// verifiedApp is the app id in a header gusto cloud signed, or nothing.
 func (s *Server) verifiedApp(header string) (string, bool) {
 	if s.front == nil {
 		return "", false
@@ -310,7 +310,7 @@ func (s *Server) verifiedApp(header string) (string, bool) {
 }
 
 // byApp keeps a request for an app's own host name away from everything else on this
-// server: it is signed in with the token the front door made, and passed to the app, and
+// server: it is signed in with the token gusto cloud made, and passed to the app, and
 // nothing of the organization's pages can be reached on that name.
 func (s *Server) byApp(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -342,7 +342,7 @@ func (s *Server) appOrigin(w http.ResponseWriter, r *http.Request, id string) {
 	s.serveApp(w, r, id, "")
 }
 
-// appLink is where an app is opened: its own host name behind a front door, and a path on this
+// appLink is where an app is opened: its own host name behind gusto cloud, and a path on this
 // server's own where there is none.
 func (s *Server) appLink(app apps.App) string {
 	if s.front == nil {
@@ -355,7 +355,7 @@ func (s *Server) appLink(app apps.App) string {
 	return parsed.Scheme + "://" + s.front.Org + "--" + app.ID + "." + parsed.Host + "/"
 }
 
-// app is the path an app is opened at on a server with no front door. Behind one, an app has a host
+// app is the path an app is opened at on a server with no gusto cloud. Behind one, an app has a host
 // name of its own, and this sends a link somebody kept there.
 func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	if s.apps == nil {

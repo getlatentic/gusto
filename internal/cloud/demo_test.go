@@ -319,7 +319,7 @@ func TestADemoLimitOfZeroIsNoLimit(t *testing.T) {
 
 // A demo whose directory holds files this process may not remove still ends: the directory goes to the trash, which a task that
 // runs as root empties, and the demo no longer counts against the demos that may run at once.
-func TestADemoWithFilesTheFrontDoorCannotRemoveStillEnds(t *testing.T) {
+func TestADemoWithFilesGustoCloudCannotRemoveStillEnds(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, now := clocked(t, demoSet)
 		_, org, _ := s.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")

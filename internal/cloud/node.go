@@ -17,8 +17,8 @@ import (
 )
 
 // ServerSpec is how to run one organization's server: the command, the whole of its
-// environment, and where its output goes. Nothing of the front door's own
-// environment is in it, so what the front door holds, its mail password among
+// environment, and where its output goes. Nothing of gusto cloud's own
+// environment is in it, so what gusto cloud holds, its mail password among
 // it, is not what an organization's server can read.
 type ServerSpec struct {
 	Slug    string
@@ -34,13 +34,13 @@ var ErrNoCapacity = errors.New("no host has room yet")
 // Node is where organizations' servers run. The first is this machine. Another is
 // a node with an agent on it, which the controller asks in the same words.
 //
-// An organization's data is on storage every node and the front door see at the same paths, so a
-// server started on any node reads and writes what the front door does.
+// An organization's data is on storage every node and gusto cloud see at the same paths, so a
+// server started on any node reads and writes what gusto cloud does.
 type Node interface {
 	Name() string
-	// Node is where the front door reaches the servers on this node, and Listen the address they
+	// Node is where gusto cloud reaches the servers on this node, and Listen the address they
 	// bind to. On this machine they are both loopback; on another node Listen is the address of
-	// its private network, which only the front door's nodes may reach.
+	// its private network, which only gusto cloud's nodes may reach.
 	Host() string
 	Listen() string
 	// Ports finds two ports the node has free, from the first up, that are not in taken.
@@ -54,7 +54,7 @@ type Node interface {
 }
 
 // LocalNode runs organizations' servers as children of this process. They end
-// when it does, so a front door that is killed leaves none of them holding a port
+// when it does, so a gusto cloud server that is killed leaves none of them holding a port
 // that its successor wants.
 type LocalNode struct {
 	mu       sync.Mutex

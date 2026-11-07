@@ -24,7 +24,7 @@ func settingOf(env []string, name string) (string, int) {
 func environmentFor(t *testing.T, operator []string, slug string) []string {
 	t.Helper()
 	store := open(t, Settings{})
-	c := &Controller{Store: store, Node: &LocalNode{}, Env: operator, FrontDoor: "https://cloud.test"}
+	c := &Controller{Store: store, Node: &LocalNode{}, Env: operator, CloudURL: "https://cloud.test"}
 	env, err := c.environment(t.Context(), slug, Runtime{Port: 1, ProxyPort: 2}, c.Node)
 	if err != nil {
 		t.Fatal(err)
@@ -89,7 +89,7 @@ func TestAnythingButPostgresGivesEachServerAnIndexOfItsOwnOnTheLocalDisk(t *test
 	onEachDatabase(t, func(t *testing.T) {
 		index := filepath.Join(t.TempDir(), "local", "index")
 		for _, operator := range [][]string{nil, {"GUSTO_DATABASE_URL="}, {"GUSTO_DATABASE_URL=sqlite:///shared/usage.db"}} {
-			c := &Controller{Store: open(t, Settings{}), Node: &LocalNode{}, Env: operator, FrontDoor: "https://cloud.test", IndexDir: index}
+			c := &Controller{Store: open(t, Settings{}), Node: &LocalNode{}, Env: operator, CloudURL: "https://cloud.test", IndexDir: index}
 			got := map[string]string{}
 			for _, slug := range []string{"acme", "globex"} {
 				env, err := c.environment(t.Context(), slug, Runtime{Port: 1, ProxyPort: 2}, c.Node)
@@ -125,7 +125,7 @@ func TestAnythingButPostgresGivesEachServerAnIndexOfItsOwnOnTheLocalDisk(t *test
 func TestTheIndexDirectoryIsTheStoresRootByDefaultAndIsNotInAnOrganizationsDataDirectory(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		store := open(t, Settings{})
-		c := &Controller{Store: store, Node: &LocalNode{}, FrontDoor: "https://cloud.test"}
+		c := &Controller{Store: store, Node: &LocalNode{}, CloudURL: "https://cloud.test"}
 		env, err := c.environment(t.Context(), "acme", Runtime{Port: 1, ProxyPort: 2}, c.Node)
 		if err != nil {
 			t.Fatal(err)

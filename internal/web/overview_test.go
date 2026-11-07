@@ -50,7 +50,7 @@ func callNow(task, person, engine, agent string, usd float64) usage.Row {
 	return row
 }
 
-// withMonth is a server behind a front door, with its people, budgets and an index of model calls holding the rows given.
+// withMonth is a server behind gusto cloud, with its people, budgets and an index of model calls holding the rows given.
 func withMonth(t *testing.T, members []roster.Member, rows ...usage.Row) *site {
 	t.Helper()
 	here, _ := withPeople(t, roster.Roster{Members: members})

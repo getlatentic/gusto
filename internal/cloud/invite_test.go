@@ -136,7 +136,7 @@ func TestARunnerCannotInviteOrRemoveAndTheFormsOfOneOrganizationReachNoOther(t *
 	})
 }
 
-func TestARemovedPersonIsSignedOutOfTheFrontDoorAtOnce(t *testing.T) {
+func TestARemovedPersonIsSignedOutOfGustoCloudAtOnce(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		ada := f.verifiedAdmin("ada@acme.com", "Acme")

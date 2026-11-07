@@ -1,29 +1,29 @@
----------------------------- MODULE FrontDoors ----------------------------
+--------------------------- MODULE CloudServers ---------------------------
 (***************************************************************************)
-(* Several front doors on one database (docs/CLOUD-DATABASE.md), each     *)
-(* running a Controller (internal/cloud/controller.go) over the same       *)
-(* organization, placing it on cells and supervising its server.  Each    *)
+(* Several gusto cloud servers on one database (docs/CLOUD-DATABASE.md),   *)
+(* each running a Controller (internal/cloud/controller.go) over the same  *)
+(* organization, placing it on cells and supervising its server.  Each     *)
 (* action names the Go function it stands for.                             *)
 (*                                                                         *)
 (* Atomicity assumed:                                                      *)
 (*  - a statement on the database is one step;                             *)
-(*  - provision, under one front door's own lock for the slug, is several *)
-(*    steps: read the runtime, place, start, mark ready.  Another front   *)
-(*    door's lock does not hold it back;                                   *)
+(*  - provision, under one gusto cloud server's own lock for the slug, is  *)
+(*    several steps: read the runtime, place, start, mark ready.  Another  *)
+(*    gusto cloud server's lock does not hold it back;                     *)
 (*  - starting a server on a cell for a slug that has one there is a      *)
 (*    no-op (Cell.Start).                                                  *)
 (*                                                                         *)
-(* Fixes is which fixes the code has.  "leader" is that one front door at *)
-(* a time leads: it holds a lease row with an epoch, only it runs the     *)
-(* controller, and a runtime write carries its epoch and is refused when  *)
-(* the lease has moved on.  A leader may pause past its lease and act on  *)
-(* when it wakes, until it notices.                                        *)
+(* Fixes is which fixes the code has.  "leader" is that one gusto cloud    *)
+(* server at a time leads: it holds a lease row with an epoch, only it     *)
+(* runs the controller, and a runtime write carries its epoch and is       *)
+(* refused when the lease has moved on.  A leader may pause past its lease *)
+(* and act on when it wakes, until it notices.                             *)
 (***************************************************************************)
 EXTENDS Naturals, FiniteSets
 
 CONSTANTS
     Fixes,      \* a subset of {"leader"}
-    Doors,      \* the front doors
+    Doors,      \* the gusto cloud servers
     Cells,      \* the cells
     NoCell,     \* a value that is no cell
     MaxEpoch    \* how many times the lease may change hands
@@ -34,19 +34,19 @@ VARIABLES
     rowCell,    \* runtime.cell in the database
     rowState,   \* runtime.state in the database
     servers,    \* the cells running the organization's server
-    pc,         \* where each front door's provision is
-    seen,       \* the runtime each front door's provision read
-    chosen,     \* the cell each front door's provision placed it on
-    mem,        \* each front door's Controller.states entry for the slug
+    pc,         \* where each gusto cloud server's provision is
+    seen,       \* the runtime each gusto cloud server's provision read
+    chosen,     \* the cell each gusto cloud server's provision placed it on
+    mem,        \* each gusto cloud server's Controller.states entry for the slug
     lease,      \* the lease row: who holds it, and its epoch
-    leads       \* the epoch each front door believes it leads with, or 0
+    leads       \* the epoch each gusto cloud server believes it leads with, or 0
 
 vars == <<rowCell, rowState, servers, pc, seen, chosen, mem, lease, leads>>
 
 Leading == "leader" \in Fixes
 
-(* A front door may act as the controller: any of them without the fix,  *)
-(* only one that believes it leads with it.                               *)
+(* A gusto cloud server may act as the controller: any of them without the *)
+(* fix, only one that believes it leads with it.                           *)
 Acts(d) == ~Leading \/ leads[d] > 0
 
 (* A runtime write from d is taken: with the fix, only at the lease's     *)
@@ -77,8 +77,8 @@ Init ==
     /\ leads = [d \in Doors |-> 0]
 
 -----------------------------------------------------------------------------
-(* Run, when a front door starts: an organization with a runtime is set  *)
-(* Starting, in memory and in the database, and then provisioned.         *)
+(* Run, when a gusto cloud server starts: an organization with a runtime   *)
+(* is set Starting, in memory and in the database, and then provisioned.   *)
 RunStarts(d) ==
     /\ Acts(d) /\ pc[d] = "idle" /\ mem[d] = ""
     /\ mem' = [mem EXCEPT ![d] = IF rowState # "" THEN "Starting" ELSE ""]
@@ -86,7 +86,7 @@ RunStarts(d) ==
     /\ UNCHANGED <<rowCell, servers, pc, seen, chosen, lease, leads>>
 
 (* provision: Store.Runtime, then set Provisioning. *)
-(* With the fix, a refused write ends the provision: the front door no   *)
+(* With the fix, a refused write ends the provision: gusto cloud no        *)
 (* longer leads.                                                           *)
 Refuse(d) ==
     /\ pc' = [pc EXCEPT ![d] = "idle"]
@@ -127,7 +127,7 @@ Start(d) ==
     /\ pc' = [pc EXCEPT ![d] = "started"]
     /\ UNCHANGED <<rowCell, rowState, seen, chosen, mem, lease, leads>>
 
-(* The server answers: set Ready, as this front door placed it. *)
+(* The server answers: set Ready, as this gusto cloud server placed it.    *)
 Ready(d) ==
     /\ pc[d] = "started"
     /\ IF Taken(d)
@@ -144,16 +144,16 @@ Dies(c) ==
     /\ servers' = servers \ {c}
     /\ UNCHANGED <<rowCell, rowState, pc, seen, chosen, mem, lease, leads>>
 
-(* supervise: a server this front door holds Ready, and that is not alive *)
-(* on the cell the database names, is provisioned again.                  *)
+(* supervise: a server this gusto cloud server holds Ready, and that is    *)
+(* not alive on the cell the database names, is provisioned again.         *)
 Supervise(d) ==
     /\ pc[d] = "idle" /\ mem[d] = "Ready" /\ rowCell \notin servers
     /\ Read(d)
 
 -----------------------------------------------------------------------------
-(* The lease.  A front door takes it when nobody holds it, at the next    *)
-(* epoch, and starts its controller afresh.  The holder's lease may lapse *)
-(* while it is paused; it notices when it next renews, and stops.          *)
+(* The lease.  A gusto cloud server takes it when nobody holds it, at the  *)
+(* next epoch, and starts its controller afresh.  The holder's lease may   *)
+(* lapse while it is paused; it notices when it next renews, and stops.    *)
 Acquire(d) ==
     /\ Leading /\ lease.holder = NoCell /\ lease.epoch < MaxEpoch /\ leads[d] = 0
     /\ pc[d] = "idle"

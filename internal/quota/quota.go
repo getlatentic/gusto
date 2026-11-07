@@ -1,5 +1,5 @@
 // Package quota is what an organization's server may run, kept in a file its
-// front door writes and the server reads as it goes. A hosted organization's
+// gusto cloud writes and the server reads as it goes. A hosted organization's
 // limit changes when its admin confirms an address, and the server that is
 // running must see that without a restart.
 package quota

@@ -44,7 +44,7 @@ func TestTheJanitorRemovesRetiredComputersAndStopsIdleOnesThatNoOneIsUsing(t *te
 	cy, _ := registry.Of("cy@acme.com")
 	dee, _ := registry.Of("dee@acme.com")
 
-	// Ada was removed from the organization, by the front door, which only marks her computer. Cy has a task running.
+	// Ada was removed from the organization, by gusto cloud, which only marks her computer. Cy has a task running.
 	if err := registry.Retire("ada@acme.com"); err != nil {
 		t.Fatal(err)
 	}

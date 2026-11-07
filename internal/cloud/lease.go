@@ -12,7 +12,7 @@ import (
 
 // Lease is how long a demo host has left. The host writes the file when it starts and
 // removes itself when the deadline passes, so a demo that is forgotten stops costing
-// money. Anybody signed in at the front door can extend it, up to a limit that no
+// money. Anybody signed in at gusto cloud can extend it, up to a limit that no
 // extension passes.
 type Lease struct {
 	path string
@@ -86,7 +86,7 @@ func (l *Lease) Extend() (Left, error) {
 }
 
 // leaseJSON is the time left, for the script on every page that shows the banner. It says
-// nothing else, and answers not found when the front door has no lease.
+// nothing else, and answers not found when gusto cloud has no lease.
 func (s *Server) leaseJSON(w http.ResponseWriter, r *http.Request) {
 	if s.Lease == nil {
 		http.NotFound(w, r)

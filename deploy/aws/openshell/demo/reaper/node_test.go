@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// onANode runs the script as a node's host with the clock at 100000, the front door's beat at the time
+// onANode runs the script as a node's host with the clock at 100000, gusto cloud's beat at the time
 // given (a negative one for no beat file), and the host up for so long.
 func onANode(t *testing.T, beatAt, uptime int) (poweredOff bool, output string) {
 	t.Helper()
@@ -38,19 +38,19 @@ func onANode(t *testing.T, beatAt, uptime int) (poweredOff bool, output string) 
 	return strings.TrimSpace(string(text)) == "poweroff", string(out)
 }
 
-func TestANodeWorksWhileItsFrontDoorIsHeardAndPowersOffWhenItIsNot(t *testing.T) {
+func TestANodeWorksWhileItsGustoCloudIsHeardAndPowersOffWhenItIsNot(t *testing.T) {
 	for name, tc := range map[string]struct {
 		beatAt, uptime int
 		off            bool
 	}{
-		"heard a moment ago":                     {99990, 3000, false},
-		"heard just inside the limit":            {100000 - 299, 3000, false},
-		"silent for exactly the limit":           {100000 - 300, 3000, true},
-		"silent for long":                        {1000, 3000, true},
-		"never heard, and just started":          {-1, 60, false},
-		"never heard, and up past the grace":     {-1, 900, true},
-		"silent, but the front door may be late": {1000, 899, false},
-		"heard, but up as long as any host may":  {99990, 4 * 3600, true},
+		"heard a moment ago":                    {99990, 3000, false},
+		"heard just inside the limit":           {100000 - 299, 3000, false},
+		"silent for exactly the limit":          {100000 - 300, 3000, true},
+		"silent for long":                       {1000, 3000, true},
+		"never heard, and just started":         {-1, 60, false},
+		"never heard, and up past the grace":    {-1, 900, true},
+		"silent, but gusto cloud may be late":   {1000, 899, false},
+		"heard, but up as long as any host may": {99990, 4 * 3600, true},
 	} {
 		t.Run(name, func(t *testing.T) {
 			off, out := onANode(t, tc.beatAt, tc.uptime)

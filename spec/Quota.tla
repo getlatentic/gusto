@@ -6,7 +6,7 @@
 (* address.  Writers change the database: a Stripe event, the seat sync,   *)
 (* a confirmed address.  After its change each calls ApplyQuota, which     *)
 (* reads the database and writes the file.  Writing the file may fail,     *)
-(* and the front door may crash; a start writes every quota again.  db     *)
+(* and gusto cloud may crash; a start writes every quota again.  db        *)
 (* counts the changes, and the file holds the count it was worked out      *)
 (* from.                                                                   *)
 (*                                                                         *)
@@ -114,7 +114,7 @@ Sweep ==
          /\ kind' = [kind EXCEPT ![a] = "other"]
     /\ UNCHANGED <<db, file, due, read, lock, up, crashes, failures>>
 
-(* The front door crashes: its calls and transactions are lost.  Stripe   *)
+(* Gusto cloud crashes: its calls and transactions are lost.  Stripe       *)
 (* sends again an event it was not answered for.  ApplyQuotas writes      *)
 (* every quota on the next start.                                          *)
 Crash ==

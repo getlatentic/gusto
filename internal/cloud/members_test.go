@@ -350,7 +350,7 @@ func TestOneInvitationMakesOnePersonHoweverManyTimeItIsFollowed(t *testing.T) {
 	})
 }
 
-// A person's computer is marked for removal when they are removed, by the front door, which
+// A person's computer is marked for removal when they are removed, by gusto cloud, which
 // leaves the removing to the organization's server.
 func TestRemovingAPersonMarksTheirComputerForRemoval(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {

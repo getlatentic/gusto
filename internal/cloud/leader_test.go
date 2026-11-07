@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// twoDoors is two front doors on one database, on one clock that advance moves.
+// twoDoors is two gusto cloud servers on one database, on one clock that advance moves.
 func twoDoors(t *testing.T, set Settings) (a, b *Store, advance func(time.Duration)) {
 	t.Helper()
 	stores := doors(t, set, 2)
@@ -30,17 +30,17 @@ func twoDoors(t *testing.T, set Settings) (a, b *Store, advance func(time.Durati
 	}
 }
 
-// One front door holds the lease until it runs out; the next to take it gets the next epoch, and what the earlier one writes
+// One gusto cloud server holds the lease until it runs out; the next to take it gets the next epoch, and what the earlier one writes
 // after is refused.
-func TestOneFrontDoorLeadsUntilItsLeaseRunsOut(t *testing.T) {
+func TestOneGustoCloudServerLeadsUntilItsLeaseRunsOut(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		a, b, advance := twoDoors(t, set)
 		org := made(t, a, "ada@acme.com", "Acme")
 		if epoch, err := a.Lead(t.Context(), "a", 30*time.Second); err != nil || epoch != 1 {
-			t.Fatalf("the first front door: %d %v", epoch, err)
+			t.Fatalf("the first gusto cloud server: %d %v", epoch, err)
 		}
 		if epoch, _ := b.Lead(t.Context(), "b", 30*time.Second); epoch != 0 {
-			t.Errorf("a second front door led while the first's lease held: %d", epoch)
+			t.Errorf("a second gusto cloud server led while the first's lease held: %d", epoch)
 		}
 		advance(20 * time.Second)
 		if epoch, _ := a.Lead(t.Context(), "a", 30*time.Second); epoch != 1 {
@@ -66,7 +66,7 @@ func TestOneFrontDoorLeadsUntilItsLeaseRunsOut(t *testing.T) {
 }
 
 // A controller whose lease has moved on starts nothing, however its provision was begun: the trace TLC finds in
-// spec/FrontDoors.tla when writes carry no epoch.
+// spec/CloudServers.tla when writes carry no epoch.
 func TestAControllerThatLostTheLeaseStartsNothing(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		a, b, advance := twoDoors(t, set)
@@ -87,7 +87,7 @@ func TestAControllerThatLostTheLeaseStartsNothing(t *testing.T) {
 	})
 }
 
-// A front door that does not lead starts nothing, and routes to where the leader started the server.
+// A gusto cloud server that does not lead starts nothing, and routes to where the leader started the server.
 func TestAFollowerStartsNothingAndRoutesWhereTheLeaderStarted(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		a, b, _ := twoDoors(t, set)
@@ -110,7 +110,7 @@ func TestAFollowerStartsNothingAndRoutesWhereTheLeaderStarted(t *testing.T) {
 	})
 }
 
-// An organization signed up on a front door that does not lead is provisioned by the leader.
+// An organization signed up on a gusto cloud server that does not lead is provisioned by the leader.
 func TestTheLeaderProvisionsAnOrganizationSignedUpElsewhere(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		a, _, _ := twoDoors(t, set)
@@ -129,8 +129,8 @@ func TestTheLeaderProvisionsAnOrganizationSignedUpElsewhere(t *testing.T) {
 	})
 }
 
-// Two front doors run the leader's work one at a time, and the second takes over when the first stops.
-func TestLeadershipRunsTheWorkOnOneFrontDoorAtATime(t *testing.T) {
+// Two gusto cloud servers run the leader's work one at a time, and the second takes over when the first stops.
+func TestLeadershipRunsTheWorkOnOneGustoCloudServerAtATime(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		stores := doors(t, set, 2)
 		var running, most atomic.Int32
@@ -166,12 +166,12 @@ func TestLeadershipRunsTheWorkOnOneFrontDoorAtATime(t *testing.T) {
 				t.Errorf("%s led after the first stopped", got)
 			}
 		case <-time.After(10 * time.Second):
-			t.Fatal("the second front door did not take over when the first gave the lease up")
+			t.Fatal("the second gusto cloud server did not take over when the first gave the lease up")
 		}
 		stopSecond()
 		wg.Wait()
 		if most.Load() != 1 {
-			t.Errorf("%d front doors led at once", most.Load())
+			t.Errorf("%d gusto cloud servers led at once", most.Load())
 		}
 	})
 }

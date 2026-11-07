@@ -12,7 +12,7 @@ import (
 )
 
 // visitor is one person's browser: its own cookies, and every address it is given reaches
-// the front door on this machine whatever name it carries, as a name in DNS would.
+// gusto cloud on this machine whatever name it carries, as a name in DNS would.
 type visitor struct {
 	email  string
 	client *http.Client

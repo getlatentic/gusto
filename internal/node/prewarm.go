@@ -40,7 +40,7 @@ func (s *Scaler) expecting() bool {
 	return true
 }
 
-// prewarmsFile is the day's count of prewarms, beside the registrations, so a front door that starts again, or another that
+// prewarmsFile is the day's count of prewarms, beside the registrations, so a gusto cloud server that starts again, or another that
 // leads, counts on from it. It is not named as a registration is.
 const prewarmsFile = "prewarms"
 

@@ -91,10 +91,10 @@ const (
 	ConnectorForAgents  = "connector.default"
 )
 
-// FromFrontDoor says whether a kind of event is one that an organization's front
+// FromCloud says whether a kind of event is one that an organization's front
 // door reports. Only these are taken from its inbox: what else is in the record was
 // written by this server about itself.
-func FromFrontDoor(kind string) bool {
+func FromCloud(kind string) bool {
 	switch kind {
 	case MemberInvited, MemberRole, MemberRemoved:
 		return true
