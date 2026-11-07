@@ -30,17 +30,17 @@ The words gusto's pages, commands and docs use, each for one thing. The last col
 
 ## Agents
 
-| Word | Meaning | Older name in the code |
+| Word | Meaning | Other names |
 | --- | --- | --- |
-| agent type | The program that does the work: Claude Code, Codex, OpenCode, pi, Hermes or DeepSeek Agent | harness, engine |
-| adapter | How to run an agent type: the program, its arguments, its environment, and where the numbers sit in its output | adapter |
-| agent | An agent type with what shapes it: skills, connectors, a prompt and a model policy. A person saves one with a name, such as "Finance helper, based on Claude Code", and shares, rents or sells it | harness, configured agent |
+| harness | The program that does the work: Claude Code, Codex, OpenCode, pi, Hermes or DeepSeek Agent. The code and the docs say harness. The pages say agent type, since a person picks one when they make an agent | agent type (pages), engine |
+| adapter | How to run a harness: the program, its arguments, its environment, and where the numbers sit in its output | |
+| agent | A harness with what shapes it: skills, connectors, a prompt and a model policy. A person makes one and names it, such as "Developer agent, made from Claude Code", and shares, rents or sells it | configured agent |
 
-Two people who run OpenCode run the same agent type and, usually, different agents.
+One harness makes many agents. Two people who run OpenCode run the same harness and, usually, different agents.
 
-## agent type
+## harness
 
-A task names its agent type in the `harness` field of `job.json`.
+A task names its harness in the `harness` field of `job.json`.
 
 ```json
 { "harness": "opencode" }
@@ -48,7 +48,7 @@ A task names its agent type in the `harness` field of `job.json`.
 
 ## adapter
 
-An adapter is mechanical, not a preference. gusto writes one per agent type, and every path in it comes from a real run of that program. A guessed path reports no spend and nobody notices. An adapter travels inside a task, so a runner that has never heard of your agent type can still run it.
+An adapter is mechanical, not a preference. gusto writes one per harness, and every path in it comes from a real run of that program. A guessed path reports no spend and nobody notices. An adapter travels inside a task, so a runner that has never heard of your harness can still run it.
 
 ```json
 { "name": "opencode", "program": "opencode",
@@ -89,12 +89,12 @@ Every run records the digest of the agent that ran. Two runs are the same agent'
 ### Where it lives
 
 - `gusto new` copies the agent from `GUSTO_HARNESSES` into the task's `harnesses/`. The runner takes the digest from the task's copy.
-- An agent type built into gusto is not carried. Its digest is of the adapter built into the runner that ran it.
+- A harness built into gusto is not carried. Its digest is of the adapter built into the runner that ran it.
 - There is no registry. Share an agent as a git repository or a tarball. Both give the same digest.
 
 ### What it declares and what the run proves
 
-The adapter, skills, prompt and model policy are files, and the digest covers them. The agent type, an MCP server's process and the model are references: a name in the adapter or in `servers.json`, resolved when the task runs. A digest over a reference does not prove what the reference resolved to. The directory declares, and the record of a run proves. Recording what each reference resolved to is not built yet.
+The adapter, skills, prompt and model policy are files, and the digest covers them. The harness, an MCP server's process and the model are references: a name in the adapter or in `servers.json`, resolved when the task runs. A digest over a reference does not prove what the reference resolved to. The directory declares, and the record of a run proves. Recording what each reference resolved to is not built yet.
 
 ### What it may not change
 

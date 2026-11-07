@@ -150,7 +150,7 @@ An `opencode` task peaked at 662.7 MiB in its container, with the model outside 
 
 ## Adapters
 
-An agent type is the program: `claude`, `codex`, `opencode`. An adapter is how to run it. An agent is the adapter's directory plus its prompt, model policy, skills and MCP servers. Every run records it by digest. See [TERMS.md](TERMS.md).
+A harness is the program: `claude`, `codex`, `opencode`. An adapter is how to run it. An agent is the adapter's directory plus its prompt, model policy, skills and MCP servers. Every run records it by digest. See [TERMS.md](TERMS.md).
 
 `gusto agents` lists them with what each needs: `nothing`, `local`, `account` or `key`. With `nothing`, no model is involved and no endpoint is checked.
 

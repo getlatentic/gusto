@@ -95,11 +95,11 @@ find . \( -name .git -o -name .hg -o -name .svn \) -prune -o -type f -printf '%P
 
 This prints the hex without the prefix and does not refuse links, so run `find . -type l` first. `pkg/harness/digest_test.go` holds a fixture's digest, and these shell steps give the same one. `setup_test.go` holds that an agent and its setup digest as one directory.
 
-- The runner reads the agent once, before the agent starts. It takes the adapter and the digest from that one reading, from the task's `harnesses/` and `setup/`. An agent type built into gusto is not carried. Its digest is of the adapter built into the runner.
+- The runner reads the agent once, before the agent starts. It takes the adapter and the digest from that one reading, from the task's `harnesses/` and `setup/`. A harness built into gusto is not carried. Its digest is of the adapter built into the runner.
 - An agent that writes to its own directory in the task changes the copy the task carries. `evidence.Check` digests the copy again and reports `harnesses/<name> changed`, and `gusto verify` fails the record. A task that carries no agent, and an export, have nothing to check.
-- Two runs with the same `harnessDigest` ran the same agent. `evidence.Comparable` says which it is: the same configuration, the same name configured differently, different agent types, or a run with no digest.
+- Two runs with the same `harnessDigest` ran the same agent. `evidence.Comparable` says which it is: the same configuration, the same name configured differently, different harnesses, or a run with no digest.
 - `harnessDigest` is a new optional field, so the manifest stays at version 1. A manifest written before it reports `no digest recorded`, and is comparable by name only.
-- `harnessVersion` is the agent type's build: the npm package and version the runner image installed, as `package@version`, read from the image's `/etc/gusto/harnesses`, which `deploy/runner/install.mjs` writes after verifying each tarball against `pkg/harness/pins.json`. Two runs with the same digest and different builds are not comparable. It is absent on a computer where the agent type was installed by hand.
+- `harnessVersion` is the harness's build: the npm package and version the runner image installed, as `package@version`, read from the image's `/etc/gusto/harnesses`, which `deploy/runner/install.mjs` writes after verifying each tarball against `pkg/harness/pins.json`. Two runs with the same digest and different builds are not comparable. It is absent on a computer where the harness was installed by hand.
 
 ## The audit export
 
