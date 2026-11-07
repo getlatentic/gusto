@@ -28,6 +28,7 @@ func (s *Server) roomAppsLine(record tasks.Record, spec task.Spec) string {
 		return ""
 	}
 	asker := nameFromAddress(record.Asked)
+	reconnect := s.reconnectNote(record, asker)
 	var given []string
 	if spec.Setup != nil {
 		given = spec.Setup.Connectors
@@ -35,7 +36,7 @@ func (s *Server) roomAppsLine(record tasks.Record, spec task.Spec) string {
 	withheld := ""
 	if names := s.withheldApps(record, given); len(names) > 0 {
 		withheld = " " + asker + " has not let you use their " + strings.Join(names, ", ") + "; if the work needs one, say so in one sentence: " +
-			asker + " can let you use it on your Apps page. Nothing is disconnected, so never suggest reconnecting."
+			asker + " can let you use it on your Apps page." + reconnect
 	}
 	if len(given) > 0 {
 		return "\nFor this message you have " + asker + "'s connected apps: " + strings.Join(s.appNames(given), ", ") + ". Use them only for what " + asker + " asks." + withheld + "\n"
@@ -46,7 +47,27 @@ func (s *Server) roomAppsLine(record tasks.Record, spec task.Spec) string {
 	return "\nFor this message you have no connected apps. A room's agents get a person's apps only for what that person asks, and " + asker +
 		" asked this. Apps you used earlier for someone else are not available now, so do not look for them. If the work needs one, say so in" +
 		" one sentence: " + asker + "'s request does not carry another person's apps, and the person whose app it is can ask for it themselves." +
-		" Nothing is disconnected, so never suggest reconnecting.\n"
+		reconnect + "\n"
+}
+
+// reconnectNote tells a room's agent whether anything of the asker's needs connecting again: only a sign-in that no longer
+// works does, and the rest is connected.
+func (s *Server) reconnectNote(record tasks.Record, asker string) string {
+	views, err := s.connectorViews(record.Asked, record.Workspace)
+	if err != nil {
+		return ""
+	}
+	var names []string
+	for _, view := range views {
+		if view.On && view.Usable && view.SignInAgain {
+			names = append(names, view.Name)
+		}
+	}
+	if len(names) == 0 {
+		return " Nothing is disconnected, so never suggest reconnecting."
+	}
+	return " " + asker + "'s sign-in to " + strings.Join(names, ", ") + " needs signing in again, so you cannot use it: if the work needs it, say so in one sentence:" +
+		" " + asker + " signs in again on their Connections page. Nothing else is disconnected."
 }
 
 // withheldApps is the name of each app the asker connected that an admin turned on and that this turn was not given.

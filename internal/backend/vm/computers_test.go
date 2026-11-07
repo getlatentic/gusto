@@ -103,13 +103,13 @@ func TestAComputerRemovedWhileATaskUsesItStaysRemoved(t *testing.T) {
 func TestTheIdleStopLeavesAComputerATaskIsIn(t *testing.T) {
 	use := newComputerUse()
 	use.enter("c1")
-	if use.stopIdle("c1", func() { t.Error("a computer a task is in was stopped") }) {
+	if use.whenIdle("c1", func() { t.Error("a computer a task is in was stopped") }) {
 		t.Error("the stop said it stopped a busy computer")
 	}
 	use.leave("c1")
 	stopping, release := make(chan struct{}), make(chan struct{})
 	stopped := make(chan bool, 1)
-	go func() { stopped <- use.stopIdle("c1", func() { close(stopping); <-release }) }()
+	go func() { stopped <- use.whenIdle("c1", func() { close(stopping); <-release }) }()
 	<-stopping
 	entered := make(chan struct{})
 	go func() { use.enter("c1"); close(entered) }()
@@ -123,7 +123,7 @@ func TestTheIdleStopLeavesAComputerATaskIsIn(t *testing.T) {
 	if !<-stopped {
 		t.Error("an idle computer was not stopped")
 	}
-	if use.stopIdle("c1", func() { t.Error("the task that started after the stop was stopped") }) {
+	if use.whenIdle("c1", func() { t.Error("the task that started after the stop was stopped") }) {
 		t.Error("the stop said it stopped a busy computer")
 	}
 }

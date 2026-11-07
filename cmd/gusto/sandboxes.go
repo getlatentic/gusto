@@ -27,6 +27,7 @@ type sandboxSettings struct {
 	sandbox, taskNetwork, computers, node           string
 	spare                                           bool
 	idleMinutes, concurrency, roomCopyMB, roomFiles int
+	homeLimitMB                                     int
 	containers                                      containerSettings
 	openShell                                       openShellSettings
 }
@@ -44,6 +45,8 @@ func (b *sandboxSettings) declare(set *settings.Set) {
 	set.Renamed("GUSTO_NODE", "GUSTO_CELL")
 	set.Bool(&b.spare, "GUSTO_SPARE_COMPUTER", "keep one blank computer ready for the next person who has none")
 	set.Int(&b.idleMinutes, "GUSTO_COMPUTER_IDLE_MINUTES", 30, 1, "how long a computer nobody uses runs before it is stopped, in minutes")
+	set.Int(&b.homeLimitMB, "GUSTO_HOME_LIMIT_MB", int(container.DefaultHomeLimit>>20), 1,
+		"the most a person's kept home may take in a container, in megabytes; with GUSTO_COMPUTERS, a turn over it is refused until the person resets the home")
 	set.Int(&b.roomCopyMB, "GUSTO_ROOM_COPY_MB", 4096, 1, "the most a room's folder may hold for an agent's turn to copy it, in megabytes")
 	set.Int(&b.roomFiles, "GUSTO_ROOM_COPY_FILES", 200000, 1, "the most files a room's folder may hold for an agent's turn to copy it")
 }
@@ -86,7 +89,7 @@ func openBackend(cfg serveSettings, signs signing.Identity, shared *apps.Store, 
 			Apps: shared, Spare: boxes.spare, ProxyPort: proxyPort, Idle: time.Duration(boxes.idleMinutes) * time.Minute, Signing: signs,
 		}), nil
 	}
-	return container.New(container.Config{Agents: agents, Org: org, Homes: boxes.computers, Open: open, Containers: boxes.containers.signedBy(signs)}), nil
+	return container.New(container.Config{Agents: agents, Org: org, Homes: boxes.computers, HomeLimit: int64(boxes.homeLimitMB) << 20, Open: open, Containers: boxes.containers.signedBy(signs)}), nil
 }
 
 // turns runs each task as a turn in the backend's boxes. The checkout happens here, outside any box, so a repository credential

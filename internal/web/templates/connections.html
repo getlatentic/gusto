@@ -19,9 +19,9 @@
       <tr>
         <td class="whitespace-nowrap font-medium">{{.Name}}</td>
         <td class="text-muted">{{.What}}</td>
-        <td class="whitespace-nowrap">{{if .Connected}}<span class="{{template "ui-badge-ok"}}">{{ago .Since.Unix}}</span>{{else}}<span class="text-muted">not yet</span>{{end}}</td>
+        <td class="whitespace-nowrap">{{if .Connected}}<span class="{{template "ui-badge-ok"}}">{{ago .Since.Unix}}</span>{{else if .SignInAgain}}<span class="{{template "ui-badge-warn"}}" title="The app no longer takes your sign-in, so your agents cannot use it">sign in again</span>{{else}}<span class="text-muted">not yet</span>{{end}}</td>
         <td class="whitespace-nowrap">{{if .Connected}}<form class="m-0" method="post" action="/connections/{{.ID}}/agents"><select class="select h-8" name="on" aria-label="Whether your agents may use {{.Name}}, unless you choose otherwise for one" data-autosubmit><option value="on"{{if .ForAgents}} selected{{end}}>On</option><option value="off"{{if not .ForAgents}} selected{{end}}>Off</option></select></form>{{else}}<span class="text-muted">&mdash;</span>{{end}}</td>
-        <td class="text-right">{{if .Connected}}<form method="post" action="/connections/{{.ID}}/disconnect"><button class="{{template "ui-btn-sm"}}" type="submit">Disconnect</button></form>{{else}}<a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Connect</a>{{end}}</td>
+        <td class="text-right">{{if .Connected}}<form method="post" action="/connections/{{.ID}}/disconnect"><button class="{{template "ui-btn-sm"}}" type="submit">Disconnect</button></form>{{else if .SignInAgain}}<div class="flex justify-end gap-2"><a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Sign in again</a><form class="m-0" method="post" action="/connections/{{.ID}}/disconnect"><button class="{{template "ui-btn-sm"}}" type="submit">Disconnect</button></form></div>{{else}}<a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Connect</a>{{end}}</td>
       </tr>
       {{end}}
     </tbody>
@@ -29,6 +29,21 @@
 </section>
 {{else}}
 <p class="text-muted">No app is turned on yet. An admin turns them on under Admin, Connectors.</p>
+{{end}}
+
+{{with .Home}}
+<section class="mt-6 grid max-w-prose gap-3">
+  <h2>Your agents' home</h2>
+  <p class="text-sm text-muted">Between tasks your agents keep what they install and download for you in one home, so the next task starts where the last one stopped. Your tasks and conversations are not kept in it.</p>
+  {{if $.HomeReset}}<p class="rounded-sm bg-wash px-4 py-3 text-sm" role="status">Your agents' home is reset. The next task starts with an empty one.</p>{{end}}
+  {{if .Counted}}
+  <p class="text-sm">It takes <strong>{{.Used}}</strong> of the <strong>{{.Limit}}</strong> it may, counted {{ago .At.Unix}}.</p>
+  {{if .Full}}<p class="{{template "ui-notice"}}" role="alert">It is full, so a task you ask for is refused until you reset it.</p>{{end}}
+  <form method="post" action="/connections/home/reset" class="m-0" data-confirm="Reset your agents' home? What they kept in it is deleted: caches, downloads and tools they installed."><button class="{{template "ui-btn-sm-danger"}}" type="submit">Reset the home</button></form>
+  {{else}}
+  <p class="text-sm text-muted">Nothing is counted yet. It is counted when your first task ends.</p>
+  {{end}}
+</section>
 {{end}}
 
 {{template "foot" .}}

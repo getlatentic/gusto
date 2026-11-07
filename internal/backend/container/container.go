@@ -169,6 +169,9 @@ func (b *Backend) homeOf(turn backend.Turn) (id string, kept bool) {
 	return computer.ID(b.cfg.Org, turn.Spec.Workspace, turn.Person), true
 }
 
+// KeepsHomes says whether this backend keeps a home for each person.
+func (b *Backend) KeepsHomes() bool { return b.homes != nil }
+
 // HomeUse is how much of its limit a person's kept home in a workspace took when it was last counted, and false when no turn
 // of theirs has ended in it yet.
 func (b *Backend) HomeUse(person, space string) (HomeUse, bool) {

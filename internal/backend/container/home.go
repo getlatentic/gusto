@@ -192,7 +192,7 @@ func (h *homes) over(dir task.Dir, id string, used int64, outcome string) error 
 	if err := writeNote(dir, homeNote{Outcome: outcome, Used: used, Limit: h.limit}); err != nil {
 		slog.Warn("a turn's record could not say its home was full", "error", err)
 	}
-	return fmt.Errorf("%w: it takes %s of the %s it may, so the turn was %s; remove files from it", ErrHomeFull, size(used), size(h.limit), outcome)
+	return fmt.Errorf("%w: it takes %s of the %s it may, so the turn was %s; reset the home on Connections to start again", ErrHomeFull, size(used), size(h.limit), outcome)
 }
 
 // keepWatching counts the home while the turn runs, and stops the turn with the reason when the home passes its limit.
