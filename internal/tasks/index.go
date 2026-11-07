@@ -29,6 +29,8 @@ type Index struct {
 	// ended today.
 	finished                  map[State]int64
 	lastStarted, lastFinished int64
+	// committed are the running tasks whose work is final, which cannot be stopped any more. See Commit.
+	committed map[string]bool
 	// pump copies each change to a Mirror, when there is one.
 	pump *pump
 	// finishers are told of each task that ends, after its record is written.
@@ -74,7 +76,7 @@ func Open(root string) (*Index, error) {
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return nil, err
 	}
-	index := &Index{root: root, records: map[string]Record{}, finished: map[State]int64{}}
+	index := &Index{root: root, records: map[string]Record{}, finished: map[State]int64{}, committed: map[string]bool{}}
 	sweepRemoving(root)
 	found, rebuilt, err := readTasks(root)
 	if err != nil {
@@ -259,6 +261,9 @@ func (i *Index) Stop(id, by string) (record Record, wasRunning bool, err error) 
 	if record.State.Done() {
 		return record, false, ErrNotStoppable
 	}
+	if i.committed[id] {
+		return record, false, errKept
+	}
 	wasRunning = record.State == Running
 	record.StoppedBy = by
 	if !wasRunning {
@@ -312,6 +317,7 @@ func (i *Index) finish(id string, state State, exit int) (Record, error) {
 	if err := write(record.Dir(i.root), record); err != nil {
 		return Record{}, err
 	}
+	delete(i.committed, id)
 	i.records[id] = record
 	i.mirrored(record)
 	i.finished[state]++
