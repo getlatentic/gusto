@@ -12,6 +12,9 @@ import (
 // invite sends an invitation to join the organization, from an admin. It is mailed
 // once, and asking again for the same address replaces the earlier link.
 func (s *Server) invite(w http.ResponseWriter, r *http.Request, person Person) {
+	if !s.sentFromOwnOrg(w, r, person) {
+		return
+	}
 	if !s.invites.Allow(r.Context(), person.Org) {
 		s.drawOrg(r.Context(), w, http.StatusTooManyRequests, person, "That is a lot of invitations for one hour. Try again later.")
 		return
@@ -32,7 +35,33 @@ func (s *Server) invite(w http.ResponseWriter, r *http.Request, person Person) {
 	s.send(email, person.Email+" invited you to "+org.Name+" on gusto",
 		person.Email+" invited you to join "+org.Name+" on gusto:\n\n"+s.link("/invite", secret)+
 			"\n\nThe link works once and expires in seven days. If you were not expecting it, ignore this mail.\n")
-	http.Redirect(w, r, "/org?sent=1", http.StatusSeeOther)
+	http.Redirect(w, r, s.sentTo(r.PostFormValue("back"), person), http.StatusSeeOther)
+}
+
+// sentTo is where a person goes once their invitation is sent: back to the page of the organization they sent it from, with
+// sent=1 for it to say so, and to gusto cloud's own page for it when the form named no such page.
+func (s *Server) sentTo(back string, person Person) string {
+	to := s.backTo(back, person)
+	if to == "/org" {
+		return "/org?sent=1"
+	}
+	page, err := url.Parse(to)
+	if err != nil {
+		return "/org?sent=1"
+	}
+	query := page.Query()
+	query.Set("sent", "1")
+	page.RawQuery = query.Encode()
+	return page.String()
+}
+
+// sentFromOwnOrg refuses, and says so, a form that another organization's page sent.
+func (s *Server) sentFromOwnOrg(w http.ResponseWriter, r *http.Request, person Person) bool {
+	if origin := r.Header.Get("Origin"); !sameSite(r) && s.orgOf(origin) != person.Org {
+		http.Error(w, "that form was sent from another organization", http.StatusForbidden)
+		return false
+	}
+	return true
 }
 
 func (s *Server) cancelInvitation(w http.ResponseWriter, r *http.Request, person Person) {
@@ -61,8 +90,7 @@ func (s *Server) removePerson(w http.ResponseWriter, r *http.Request, person Per
 // changeRole makes a person of the organization an admin or a runner. A role that is
 // the one they have changes nothing and is not recorded.
 func (s *Server) changeRole(w http.ResponseWriter, r *http.Request, person Person) {
-	if origin := r.Header.Get("Origin"); !sameSite(r) && s.orgOf(origin) != person.Org {
-		http.Error(w, "that form was sent from another organization", http.StatusForbidden)
+	if !s.sentFromOwnOrg(w, r, person) {
 		return
 	}
 	email, _ := NormalEmail(r.PostFormValue("email"))
