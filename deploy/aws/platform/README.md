@@ -29,7 +29,7 @@ made with `cells` at 0, as before.
 
 - The nodes of one demo share an encrypted file system, mounted at `/var/lib/gusto-cloud` on each, in a directory of it
   named for the run. gusto cloud starts an organization's server on a node through the node's agent
-  (`gusto host`, port 8060), and the server reads and writes its data by the path gusto cloud knows it by.
+  (`gusto node`, port 8060), and the server reads and writes its data by the path gusto cloud knows it by.
   gusto cloud removes the directories of earlier runs when it starts, since the computers they describe went with their nodes.
 - A node registers in `cells/` of that directory every ten seconds. A new organization is placed on the node with the
   most free memory, and stays there. When its node has been silent for five minutes it is placed on another node, and its
