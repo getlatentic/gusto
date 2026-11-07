@@ -3,6 +3,10 @@ package cloud
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -278,6 +282,28 @@ func TestARunningServerIsNotWrittenAsStartingWhenGustoCloudStarts(t *testing.T) 
 		}
 		if _, state := second.Route(t.Context(), org.Slug); state != Ready {
 			t.Errorf("found running, it is %q", state)
+		}
+	})
+}
+
+// A process that is not the organization's server may hold its port and say it is well. The controller takes only the
+// organization's own server as answering, and says the start failed. getlatentic/planning#768.
+func TestAnotherProcessOnAnOrganizationsPortIsNotItsServer(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s := open(t, Settings{})
+		c := controlled(t, s)
+		stranger := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) }))
+		defer stranger.Close()
+		port, _ := strconv.Atoi(stranger.URL[strings.LastIndex(stranger.URL, ":")+1:])
+		node := spied(c)
+		node.onPorts = func(int) int { return port }
+		org := made(t, s, "ada@acme.com", "Acme")
+		err := c.Provision(t.Context(), org.Slug)
+		if err == nil || !strings.Contains(err.Error(), "ended as it started") {
+			t.Fatalf("a stranger's answer counted as the organization's: %v", err)
+		}
+		if _, state := c.Route(t.Context(), org.Slug); state != Failed {
+			t.Errorf("%q", state)
 		}
 	})
 }

@@ -1,13 +1,16 @@
 package cloud
 
 import (
+	"bytes"
 	"context"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -27,7 +30,8 @@ var healthCheck = &http.Client{Timeout: 2 * time.Second}
 
 // answers waits for the organization's server to say it is well, for as long as c.Wait. A server whose process has ended will
 // not, so it fails at once with the end of what it wrote. A node that cannot be asked says a server is not running too, so it
-// takes endedAfter answers in a row to call it ended.
+// takes endedAfter answers in a row to call it ended. A process that is not this organization's server may hold the port and
+// say it is well, so the answer counts only from a server that proves it is the organization's.
 func (c *Controller) answers(ctx context.Context, node Node, spec ServerSpec, port int) error {
 	ctx, cancel := context.WithTimeout(ctx, c.Wait)
 	defer cancel()
@@ -35,7 +39,7 @@ func (c *Controller) answers(ctx context.Context, node Node, spec ServerSpec, po
 	every := time.NewTicker(100 * time.Millisecond)
 	defer every.Stop()
 	for gone := 0; ; {
-		if healthy(ctx, base+"/healthz") {
+		if healthy(ctx, base+"/healthz") && c.isTheOrganizations(ctx, base, spec.Slug) {
 			return nil
 		}
 		if gone = gone + 1; node.Alive(spec.Slug) {
@@ -57,6 +61,36 @@ func (c *Controller) answers(ctx context.Context, node Node, spec ServerSpec, po
 
 // endedAfter is how many answers in a row that a server is not running call it ended.
 const endedAfter = 3
+
+// isTheOrganizations says the server at base serves the public key of the organization's own signing key, which only a server
+// started with the organization's key directory does. An organization whose key was never written has nothing to prove it by,
+// and its server is taken as answering.
+func (c *Controller) isTheOrganizations(ctx context.Context, base, slug string) bool {
+	want, err := os.ReadFile(filepath.Join(c.Store.DataDir(slug), "keys", slug+".pub"))
+	if missing(err) {
+		return true
+	}
+	if err != nil {
+		return false
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/keys/"+slug+".pub", nil)
+	if err != nil {
+		return false
+	}
+	response, err := healthCheck.Do(request)
+	if err != nil {
+		return false
+	}
+	defer response.Body.Close()
+	got, err := io.ReadAll(io.LimitReader(response.Body, 4096))
+	return err == nil && response.StatusCode == http.StatusOK && samePEM(want, got)
+}
+
+func samePEM(a, b []byte) bool {
+	first, _ := pem.Decode(a)
+	second, _ := pem.Decode(b)
+	return first != nil && second != nil && first.Type == second.Type && bytes.Equal(first.Bytes, second.Bytes)
+}
 
 // lastWords is the end of a server's log, on one line, for the reason its start failed: at most the last 4 KB read, and the
 // last 300 characters of that kept.

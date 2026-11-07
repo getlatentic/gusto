@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/cloud"
+	"github.com/getlatentic/gusto/internal/cloud/cloudtest"
+	"github.com/getlatentic/gusto/internal/signing"
 )
 
 // pooled is a pool over a directory of registrations, with the nodes given.
@@ -111,7 +113,7 @@ func controlledOn(t *testing.T, pool *Pool) (*cloud.Controller, *cloud.Store) {
 	}
 	exe, _ := os.Executable()
 	c := &cloud.Controller{Store: store, Nodes: pool, Command: []string{exe, "serve"}, Env: []string{"CELL_FAKE_ORG=1", "PATH=" + os.Getenv("PATH")},
-		CloudURL: "https://cloud.test", PortFrom: 26000 + int(time.Now().UnixNano()%9000), Wait: 20 * time.Second, Concurrent: 1, StopGrace: time.Second}
+		CloudURL: "https://cloud.test", PortFrom: cloudtest.PortsFrom(), Wait: 20 * time.Second, Concurrent: 1, StopGrace: time.Second}
 	return c, store
 }
 
@@ -238,13 +240,38 @@ func newANode(t *testing.T, name, private string) *aNode {
 	t.Helper()
 	c := &aNode{name: name, private: private}
 	for i := 0; i < 8; i++ {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) }))
+		server := httptest.NewServer(http.HandlerFunc(c.answer))
 		t.Cleanup(server.Close)
 		var port int
 		fmt.Sscanf(server.URL[strings.LastIndex(server.URL, ":")+1:], "%d", &port)
 		c.ports = append(c.ports, port)
 	}
 	return c
+}
+
+// answer is a server's answer to anything but its key: ok. Its key is the public key of the organization it was last started for
+// at this node, as a real server serves it, which is how the controller knows the server is the organization's.
+func (c *aNode) answer(w http.ResponseWriter, r *http.Request) {
+	file, found := strings.CutPrefix(r.URL.Path, "/keys/")
+	if !found {
+		w.Write([]byte("ok"))
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, spec := range c.started {
+		if containsEnv(spec.Env, "GUSTO_SIGNER="+strings.TrimSuffix(file, ".pub")) {
+			for _, each := range spec.Env {
+				if keyring, ok := strings.CutPrefix(each, signing.KeyringEnv+"="); ok {
+					if key, err := os.ReadFile(filepath.Join(keyring, file)); err == nil {
+						w.Write(key)
+						return
+					}
+				}
+			}
+		}
+	}
+	http.NotFound(w, r)
 }
 
 func (c *aNode) Name() string   { return c.name }
