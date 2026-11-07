@@ -37,7 +37,7 @@ func taskSpec(t *testing.T, site *site, id string) task.Spec {
 	return spec
 }
 
-// The task form is the one way a page runs a gated task, so it carries
+// The task form is the one way a page runs a task with a check, so it carries
 // everything the form it replaced did: the spend is counted against the team
 // and stopped at the cap, and the rules read the sensitivity.
 func TestATaskCarriesItsSensitivityItsTeamAndItsCap(t *testing.T) {
@@ -67,13 +67,13 @@ func TestATaskThatSaysNothingIsInternalAndUncapped(t *testing.T) {
 	}
 }
 
-// A quoted gate is one argument, the same as the command line reads it.
-func TestAQuotedGateSurvivesTheTaskForm(t *testing.T) {
+// A quoted check is one argument, the same as the command line reads it.
+func TestAQuotedCheckSurvivesTheTaskForm(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	spec := taskSpec(t, site, aTask(t, site, url.Values{"brief": {"do it"}, "gate": {`sh -c "test 2 = 2"`}}))
-	if len(spec.Gate) != 3 || spec.Gate[2] != "test 2 = 2" {
-		t.Fatalf("a quoted gate must survive the form: %#v", spec.Gate)
+	if len(spec.Check) != 3 || spec.Check[2] != "test 2 = 2" {
+		t.Fatalf("a quoted check must survive the form: %#v", spec.Check)
 	}
 }
 

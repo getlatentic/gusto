@@ -170,7 +170,7 @@ func TestATaskThatFinishedWhileTheServerWasGoneKeepsItsVerdict(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := evidence.Write(dir, evidence.Manifest{
-		Gate:   &evidence.Verdict{Command: []string{"true"}, Code: 0, Passed: true},
+		Check:  &evidence.Verdict{Command: []string{"true"}, Code: 0, Passed: true},
 		Signer: "a-test",
 		AtUnix: Now(),
 	}); err != nil {
@@ -268,7 +268,7 @@ func TestAVerdictFromAnEarlierRunIsNotThisRunsVerdict(t *testing.T) {
 	}
 	// Written while this run is in flight, but dated before it began.
 	if err := evidence.Write(dir, evidence.Manifest{
-		Gate:   &evidence.Verdict{Code: 0, Passed: true},
+		Check:  &evidence.Verdict{Code: 0, Passed: true},
 		AtUnix: claimed.Started - 30,
 	}); err != nil {
 		t.Fatal(err)
@@ -290,7 +290,7 @@ func TestClaimingATaskClearsTheVerdictOfItsLastRun(t *testing.T) {
 	if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Gate: &evidence.Verdict{Passed: true}, AtUnix: Now()}); err != nil {
+	if err := evidence.Write(dir, evidence.Manifest{Check: &evidence.Verdict{Passed: true}, AtUnix: Now()}); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := index.Claim(); err != nil {
@@ -316,7 +316,7 @@ func TestARecoveredTaskIsNotChargedForTheOutage(t *testing.T) {
 	}
 	finished := claimed.Started + 15
 	if err := evidence.Write(dir, evidence.Manifest{
-		Gate:   &evidence.Verdict{Code: 0, Passed: true},
+		Check:  &evidence.Verdict{Code: 0, Passed: true},
 		AtUnix: finished,
 	}); err != nil {
 		t.Fatal(err)
@@ -415,7 +415,7 @@ func TestTurnsOfDifferentInstancesRunSideBySide(t *testing.T) {
 	}
 }
 
-// A run that ended while the server was gone is graded by the rule the runner applies when it watches: a turn with no gate
+// A run that ended while the server was gone is graded by the rule the runner applies when it watches: a turn with no check
 // whose harness failed, or whose model never answered, failed; and one that was told to stop was interrupted.
 func TestARunThatEndedWhileNobodyWatchedIsGradedAsIfWatched(t *testing.T) {
 	for name, tc := range map[string]struct {
@@ -427,7 +427,7 @@ func TestARunThatEndedWhileNobodyWatchedIsGradedAsIfWatched(t *testing.T) {
 		"model never answered": {evidence.Manifest{ModelUnanswered: &evidence.Unanswered{}}, Failed, 1},
 		"told to stop":         {evidence.Manifest{StoppedBy: "ada@acme.example"}, Interrupted, -1},
 		"answered":             {evidence.Manifest{}, Passed, 0},
-		"gate failed":          {evidence.Manifest{Gate: &evidence.Verdict{Code: 2}}, Failed, 1},
+		"check failed":         {evidence.Manifest{Check: &evidence.Verdict{Code: 2}}, Failed, 1},
 	} {
 		index := at(t)
 		record := queued(t, index, name)

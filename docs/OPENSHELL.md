@@ -74,7 +74,7 @@ An agent in a sandbox holds nothing it could use anywhere else. It is told `http
 | `authorization_details` | `gusto_run`: the room and `model`, `tools` (RFC 9396) |
 | `cnf.jkt` | the thumbprint of the run's key |
 
-Only the agent's command starts a forwarder. The gate and the checks of the image are given no model address, and spend nothing. The code is `internal/runtoken`, `cmd/gusto/boxed.go` and `pkg/proxy/runtokens.go`. A change to these makes a new runner-image key.
+Only the agent's command starts a forwarder. The check and the image's own checks are given no model address, and spend nothing. The code is `internal/runtoken`, `cmd/gusto/boxed.go` and `pkg/proxy/runtokens.go`. A change to these makes a new runner-image key.
 
 ### A room's turn in a person's computer
 

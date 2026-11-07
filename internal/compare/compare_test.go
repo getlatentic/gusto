@@ -51,7 +51,7 @@ func TestOneSubmissionMakesTwoRunsThatDifferOnlyByHarness(t *testing.T) {
 			t.Fatalf("the record should say %s is held, and holds %v", field, record.Held)
 		}
 	}
-	if !sides[0].Manifest.Gate.Passed || sides[1].Manifest.Gate.Passed || compare.ExitCode(sides) != 0 {
+	if !sides[0].Manifest.Check.Passed || sides[1].Manifest.Check.Passed || compare.ExitCode(sides) != 0 {
 		t.Fatalf("yes should pass and maybe fail, and both ran: %+v", sides)
 	}
 }

@@ -45,18 +45,18 @@ func (s *Server) bundle(w http.ResponseWriter, r *http.Request) {
 // task, so unpacking cannot scatter files over whatever directory a person is in.
 //
 // What goes in is what `gusto verify` reads: job.json, whose hash the manifest
-// names and whose gate verify re-runs; out/, which it re-hashes; and workspace/,
-// which is where the gate runs. Measured on a task whose gate is a script in its
+// names and whose check verify re-runs; out/, which it re-hashes; and workspace/,
+// which is where the check runs. Measured on a task whose check is a script in its
 // own checkout: out/ alone stops verify at "no such file or directory" on
 // job.json, out/ with job.json re-hashes the seven files and then reports "the
-// gate now exits -1, and the manifest says 0" because the gate has no directory
-// to run in, and the three together give "7 files match, and the gate still
+// check now exits -1, and the manifest says 0" because the check has no directory
+// to run in, and the three together give "7 files match, and the check still
 // exits 0". Carrying job.json gives nothing away that the manifest does not
 // already commit to the hash of. state.json stays behind: it is this server's
 // cache of what is on disk, and nothing verify does reads it.
 //
 // tar rather than zip, for the mode bits. The same bundle with gate.sh no longer
-// executable reports "the gate now exits -1", so a gate that is a script in the
+// executable reports "the check now exits -1", so a check that is a script in the
 // checkout is only re-runnable while the bit survives, and tar carries it
 // wherever the archive is unpacked. tar is also written in one pass, so the
 // archive streams without the size being known before the first byte.

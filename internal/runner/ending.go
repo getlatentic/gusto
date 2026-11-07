@@ -53,7 +53,7 @@ func (e ending) close(ctx context.Context) (int, error) {
 	if err := evidence.Write(e.dir, evidence.Manifest{
 		Task:            spent,
 		Files:           files,
-		Gate:            e.verdict,
+		Check:           e.verdict,
 		Harness:         e.harness,
 		HarnessDigest:   e.digest,
 		HarnessVersion:  e.version,

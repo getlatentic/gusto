@@ -185,13 +185,13 @@ func (r *inside) equip(agent *agent) ([]task.Server, error) {
 	return servers, placeSkills(r.dir, r.spec, r.adapter)
 }
 
-// check asks the task's gate, with the agent's environment, and ends whatever the gate left running. A turn in a conversation
-// names no gate: it ran, and the evidence says what happened without claiming anything passed.
+// check asks the task's check, with the agent's environment, and ends whatever the check left running. A turn in a conversation
+// names no check: it ran, and the evidence says what happened without claiming anything passed.
 func (r *inside) check(ctx context.Context, agent agent) (*evidence.Verdict, error) {
-	if len(r.spec.Gate) == 0 {
+	if len(r.spec.Check) == 0 {
 		return nil, nil
 	}
-	given, err := gateWith(ctx, r.spec, r.dir, r.env.Base, r.env.Wrap, agent)
+	given, err := checkWith(ctx, r.spec, r.dir, r.env.Base, r.env.Wrap, agent)
 	agent.endAll()
 	if err != nil {
 		return nil, err

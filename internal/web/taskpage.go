@@ -14,7 +14,7 @@ import (
 )
 
 // task is one run and everything it left: what it said, what it ran, what it
-// changed, whether its gate passed, what its calls to a model cost, and the
+// changed, whether its check passed, what its calls to a model cost, and the
 // evidence that vouches for all of it.
 func (s *Server) task(w http.ResponseWriter, r *http.Request) {
 	record, dir, found := s.find(r)
@@ -50,10 +50,10 @@ func (s *Server) task(w http.ResponseWriter, r *http.Request) {
 	page["Steps"] = stepsOf(dir)
 	manifest := readManifest(dir)
 	drawEvidence(page, record, dir, manifest)
-	// A turn in a conversation names no gate, so it has no verdict to be
-	// missing; saying the gate never answered would call a finished turn broken.
-	if err == nil && len(spec.Gate) == 0 {
-		delete(page, "Gate")
+	// A turn in a conversation names no check, so it has no verdict to be
+	// missing; saying the check never answered would call a finished turn broken.
+	if err == nil && len(spec.Check) == 0 {
+		delete(page, "Check")
 	}
 	page["Ran"] = ranBy(dir)
 	page["Calls"] = callsOf(dir)

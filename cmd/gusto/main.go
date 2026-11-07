@@ -55,7 +55,7 @@ func newTask(args []string) int {
 	spec := task.Spec{
 		Brief:       f.brief,
 		Repo:        f.repo,
-		Gate:        check,
+		Check:       check,
 		Harness:     f.agent,
 		Model:       f.model,
 		Sensitivity: task.Sensitivity(f.sensitivity),
@@ -167,7 +167,7 @@ func verify(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	if manifest.Gate == nil {
+	if manifest.Check == nil {
 		fmt.Printf("%d files match, and the task had no check to run again\n", len(manifest.Files))
 		return 0
 	}
@@ -179,8 +179,8 @@ func verify(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	if again.Passed != manifest.Gate.Passed || again.Code != manifest.Gate.Code {
-		fmt.Printf("the check now exits %d, and the record says %d\n", again.Code, manifest.Gate.Code)
+	if again.Passed != manifest.Check.Passed || again.Code != manifest.Check.Code {
+		fmt.Printf("the check now exits %d, and the record says %d\n", again.Code, manifest.Check.Code)
 		return 1
 	}
 	fmt.Printf("%d files match, and the check still exits %d\n", len(manifest.Files), again.Code)
@@ -197,7 +197,7 @@ func show(args []string) int {
 		return fail(err)
 	}
 	fmt.Printf("brief    %s\nrepo     %s\nagent    %s\ncheck    %s\nlabel    %s\n",
-		spec.Brief, spec.Repo, spec.Harness, strings.Join(spec.Gate, " "), spec.Sensitivity)
+		spec.Brief, spec.Repo, spec.Harness, strings.Join(spec.Check, " "), spec.Sensitivity)
 	manifest, err := evidence.Read(dir)
 	if err != nil {
 		fmt.Println("\nno record yet, so this task has not run here")
@@ -210,8 +210,8 @@ func show(args []string) int {
 		return fail(err)
 	}
 	check := "none: a turn in a conversation has no check"
-	if manifest.Gate != nil {
-		check = fmt.Sprintf("exit %d, passed %t", manifest.Gate.Code, manifest.Gate.Passed)
+	if manifest.Check != nil {
+		check = fmt.Sprintf("exit %d, passed %t", manifest.Check.Code, manifest.Check.Passed)
 	}
 	fmt.Printf("\ncheck    %s\nagent    exit %d, stopped at the budget %t\nmodel    %s\nsigner   %s\nfiles    %d\n",
 		check, manifest.HarnessExit, manifest.StoppedAtBudget,

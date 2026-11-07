@@ -81,14 +81,14 @@ func proxied(t *testing.T, upstream string) (front *httptest.Server, token, root
 	})
 	os.WriteFile(filepath.Join(dir.SetupDir(), setup.GatewayFile), definitions, 0o600)
 
-	gates, err := openGateways(root, fromEnv(t).way)
+	gateways, err := openGateways(root, fromEnv(t).way)
 	if err != nil {
 		t.Fatal(err)
 	}
 	tokens := proxy.NewTokens()
 	where := func(id string) (string, bool) { return filepath.Join(root, id, "out", "proxy.jsonl"), true }
 	p := proxy.New(tokens, proxy.Credentials{}, where, spend.NewLedger(spend.Policy{}), proxy.ParseAllowlist(""))
-	p.UseGateways(gates.For)
+	p.UseGateways(gateways.For)
 	front = httptest.NewServer(p.Handler())
 	t.Cleanup(front.Close)
 	token, err = tokens.Mint("20261008-1200-a-turn", "")
@@ -157,11 +157,11 @@ func TestATaskWithNothingBehindTheGatewayHasNoGateway(t *testing.T) {
 	plain := task.Dir(filepath.Join(root, "20261008-1300-plain"))
 	plain.Make()
 	task.Spec{Brief: "x", Repo: "r", Harness: "fixture", Sensitivity: task.Internal, Budget: task.Budget{Turns: 1, Seconds: 60}}.Write(plain)
-	gates, _ := openGateways(root, fromEnv(t).way)
-	if _, has := gates.For("20261008-1300-plain"); has {
+	gateways, _ := openGateways(root, fromEnv(t).way)
+	if _, has := gateways.For("20261008-1300-plain"); has {
 		t.Error("a job with no servers behind the gateway has one")
 	}
-	if _, has := gates.For("../x"); has {
+	if _, has := gateways.For("../x"); has {
 		t.Error("a job id that climbs was taken")
 	}
 	_ = front
@@ -235,18 +235,18 @@ rl.on("line", (line) => {
 		t.Fatalf("gateway = %v", carried.Gateway)
 	}
 
-	gates, err := openGateways(filepath.Join(root, "jobs"), fromEnv(t).way)
-	gates.containers = boxes
+	gateways, err := openGateways(filepath.Join(root, "jobs"), fromEnv(t).way)
+	gateways.containers = boxes
 	if err != nil {
 		t.Fatal(err)
 	}
 	tokens := proxy.NewTokens()
 	p := proxy.New(tokens, proxy.Credentials{}, func(id string) (string, bool) { return filepath.Join(root, "jobs", id, "out", "proxy.jsonl"), true }, spend.NewLedger(spend.Policy{}), proxy.ParseAllowlist(""))
-	p.UseGateways(gates.For)
+	p.UseGateways(gateways.For)
 	front := httptest.NewServer(p.Handler())
 	defer front.Close()
 	token, _ := tokens.Mint("20261008-1200-a-turn", "")
-	defer gates.Forget("20261008-1200-a-turn")
+	defer gateways.Forget("20261008-1200-a-turn")
 
 	endpoint := front.URL + "/model/mcp"
 	found := rpc(t, endpoint, token, "tools/call", map[string]any{"name": "tool_search", "arguments": map[string]any{"query": "customer"}})
@@ -261,7 +261,7 @@ rl.on("line", (line) => {
 	if !strings.Contains(string(record), `"tool":"find"`) || !strings.Contains(string(record), `"outcome":"ok"`) {
 		t.Errorf("the record = %s", record)
 	}
-	gates.Forget("20261008-1200-a-turn")
+	gateways.Forget("20261008-1200-a-turn")
 	out, _ := exec.Command(boxes.Runtime, "ps", "-q", "--filter", "name="+sandbox.ToolName("20261008-1200-a-turn", "crm-db")).Output()
 	if strings.TrimSpace(string(out)) != "" {
 		t.Errorf("the program's box is still running after the job: %s", out)

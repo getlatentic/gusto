@@ -13,8 +13,8 @@ import (
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// runTask is work done on an instance's own computer: a brief, a gate, and the
-// folder the instance already has. It is the one way a page runs a gated task,
+// runTask is work done on an instance's own computer: a brief, a check, and the
+// folder the instance already has. It is the one way a page runs a task with a check,
 // so it takes everything a task can be asked to carry: how sensitive the code
 // is, the team its spend counts against, and a cap on what its calls may cost.
 func (s *Server) runTask(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +52,7 @@ func (s *Server) runTask(w http.ResponseWriter, r *http.Request) {
 func taskOn(held instance.Instance, r *http.Request) (task.Spec, error) {
 	spec := task.Spec{
 		Brief:       strings.TrimSpace(r.FormValue("brief")),
-		Gate:        task.Words(r.FormValue("gate")),
+		Check:       task.Words(r.FormValue("gate")),
 		Harness:     held.Harness,
 		Model:       held.Model,
 		Repo:        held.Repo,
@@ -64,7 +64,7 @@ func taskOn(held instance.Instance, r *http.Request) (task.Spec, error) {
 	if held.Sensitivity == string(task.Restricted) {
 		spec.Sensitivity = task.Restricted
 	}
-	if spec.Brief == "" || len(spec.Gate) == 0 {
+	if spec.Brief == "" || len(spec.Check) == 0 {
 		return task.Spec{}, errors.New("a task needs something to do and a command that says it worked")
 	}
 	if !spec.Sensitivity.Known() {

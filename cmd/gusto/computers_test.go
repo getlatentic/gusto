@@ -144,7 +144,7 @@ func taskBy(t *testing.T, work tasks.Work, index *tasks.Index, who, brief string
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	if err := (task.Spec{Brief: brief, Harness: "fixture", Gate: []string{"true"}}).Write(dir); err != nil {
+	if err := (task.Spec{Brief: brief, Harness: "fixture", Check: []string{"true"}}).Write(dir); err != nil {
 		t.Fatal(err)
 	}
 	if err := index.Add(record); err != nil {

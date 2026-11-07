@@ -37,11 +37,11 @@ func (r record) body() string {
 	out.WriteString("| | |\n| --- | --- |\n")
 	fmt.Fprintf(&out, "| agent | `%s` |\n", r.manifest.Harness)
 	fmt.Fprintf(&out, "| model | %s |\n", r.model())
-	fmt.Fprintf(&out, "| check | exit %d |\n", r.manifest.Gate.Code)
+	fmt.Fprintf(&out, "| check | exit %d |\n", r.manifest.Check.Code)
 	fmt.Fprintf(&out, "| manifest | [sha256 `%s`](%s) |\n", r.digest, r.links.blob("out/manifest.json"))
 	fmt.Fprintf(&out, "| ran against | `%s` |\n", r.at)
 	fmt.Fprintf(&out, "| signer | %s |\n", r.signer)
-	fmt.Fprintf(&out, "\nThe check:\n\n~~~\n%s\n~~~\n", shell(r.manifest.Gate.Command))
+	fmt.Fprintf(&out, "\nThe check:\n\n~~~\n%s\n~~~\n", shell(r.manifest.Check.Command))
 	fmt.Fprintf(&out, "\nThe brief:\n\n%s\n", quoted(r.spec.Brief))
 	out.WriteString(r.links.section(r.digest, r.at))
 	return out.String()
@@ -66,7 +66,7 @@ func (r record) message(dir task.Dir) string {
 		r.title(), filepath.Base(filepath.Clean(dir.Path())), r.digest)
 }
 
-// shell writes the gate as a person would type it. The gate is an argv, and
+// shell writes the check as a person would type it. The check is an argv, and
 // joining it with spaces would lose where one argument ends.
 func shell(argv []string) string {
 	words := make([]string, len(argv))

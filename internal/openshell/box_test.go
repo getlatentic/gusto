@@ -38,7 +38,7 @@ func write(t *testing.T, path, text string) {
 	}
 }
 
-// aTask is a task dir whose working folder already holds a repository whose gate fails
+// aTask is a task dir whose working folder already holds a repository whose check fails
 // until answer.txt says yes, as the server leaves it after the checkout.
 func aTask(t *testing.T) (task.Dir, task.Spec) {
 	t.Helper()
@@ -56,7 +56,7 @@ func aTask(t *testing.T) (task.Dir, task.Spec) {
 			t.Fatalf("git %v: %v: %s", args, err, output)
 		}
 	}
-	spec := task.Spec{Brief: "make the answer yes", Repo: "unused", Gate: []string{"sh", "-c", `test "$(cat answer.txt)" = yes`}, Harness: "fixture"}
+	spec := task.Spec{Brief: "make the answer yes", Repo: "unused", Check: []string{"sh", "-c", `test "$(cat answer.txt)" = yes`}, Harness: "fixture"}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -119,12 +119,12 @@ func TestATaskRunInASandboxLeavesARecordTheHostWroteAndSigned(t *testing.T) {
 		t.Errorf("the job's token is an argument on the host:\n%s", calls)
 	}
 
-	// The change came back, and the gate ran in the sandbox and passed.
+	// The change came back, and the check ran in the sandbox and passed.
 	if patch, _ := os.ReadFile(dir.OutFile("diff.patch")); !strings.Contains(string(patch), "+yes") {
 		t.Errorf("the patch does not say what changed:\n%s", patch)
 	}
 	if verdict, _ := os.ReadFile(dir.OutFile("gates.json")); !strings.Contains(string(verdict), `"passed": true`) {
-		t.Errorf("the gate did not pass in the sandbox: %s", verdict)
+		t.Errorf("the check did not pass in the sandbox: %s", verdict)
 	}
 
 	// What the guard saw and enforced is in the record, and the record verifies and is signed.

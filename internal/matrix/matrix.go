@@ -167,7 +167,7 @@ func (c column) clean(dir task.Dir, pair Pair, commit string) error {
 // Finished says whether the run at dir left the check's verdict.
 func Finished(dir task.Dir) bool {
 	manifest, err := evidence.Read(dir)
-	return err == nil && manifest.Gate != nil
+	return err == nil && manifest.Check != nil
 }
 
 // used is a run directory something has already cloned into or written to.

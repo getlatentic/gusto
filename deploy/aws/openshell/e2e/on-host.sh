@@ -10,7 +10,7 @@ export OPENSHELL_LOCAL_TLS_DIR=$XDG_STATE_HOME/openshell/tls
 
 for old in $(openshell sandbox list 2>/dev/null | awk 'NR>1 && $1 ~ /^gusto-/ {print $1}'); do openshell sandbox delete "$old" >/dev/null 2>&1; done
 
-# A repository whose gate fails until answer.txt says yes.
+# A repository whose check fails until answer.txt says yes.
 cd "$E/repo" && git init -q . && printf no > answer.txt && printf '#!/bin/sh\ntest "$(cat answer.txt)" = yes\n' > test.sh && git add -A \
   && git -c user.email=a@b -c user.name=x commit -qm start
 python3 "$E/fake_model.py" >/dev/null 2>&1 </dev/null &

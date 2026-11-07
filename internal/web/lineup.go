@@ -80,8 +80,8 @@ func (s *Server) sidesOf(lineup compare.Lineup, ledger *spend.Ledger) ([]side, b
 func (s *Server) sideOf(entry compare.Entry, record tasks.Record, ledger *spend.Ledger) side {
 	shown := side{Engine: s.engineName(entry.Harness), Harness: entry.Harness, Model: modelName(record.Model), Record: record, Holding: s.waiting(record.ID)}
 	dir := record.Dir(s.index.Root())
-	if manifest := readManifest(dir); manifest != nil && manifest.Gate != nil {
-		shown.Checked, shown.Passed = true, manifest.Gate.Passed
+	if manifest := readManifest(dir); manifest != nil && manifest.Check != nil {
+		shown.Checked, shown.Passed = true, manifest.Check.Passed
 	}
 	shown.Spent, shown.Metered = spentBy(ledger, record.ID)
 	if patch, found := readPatch(dir, record.ID); found {

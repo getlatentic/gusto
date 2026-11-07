@@ -37,7 +37,7 @@ func taskWithCalls(t *testing.T, root, id string, spec task.Spec, calls ...Call)
 // spent its cap before the restart.
 func TestARestartedServerRemembersWhatATeamSpent(t *testing.T) {
 	root := t.TempDir()
-	spec := task.Spec{Brief: "b", Repo: "r", Gate: []string{"true"}, Harness: "h", Team: "platform"}
+	spec := task.Spec{Brief: "b", Repo: "r", Check: []string{"true"}, Harness: "h", Team: "platform"}
 	taskWithCalls(t, root, "earlier", spec, answered(0.7, september))
 	taskWithCalls(t, root, "later", spec, answered(0.4, september))
 
@@ -64,7 +64,7 @@ func TestAHalfWrittenLineIsPassedOver(t *testing.T) {
 // directory must not be read as this run's.
 func TestTheCapThatStoppedARunIsTheFirstRefusalSinceItStarted(t *testing.T) {
 	root := t.TempDir()
-	spec := task.Spec{Brief: "b", Repo: "r", Gate: []string{"true"}, Harness: "h"}
+	spec := task.Spec{Brief: "b", Repo: "r", Check: []string{"true"}, Harness: "h"}
 	old := RefusedCall("/v1/chat/completions", "m", september.Unix()-60, &Refusal{Cap: "team", Reason: "then"})
 	first := RefusedCall("/v1/chat/completions", "m", september.Unix()+5, &Refusal{Cap: "job", Reason: "now"})
 	again := RefusedCall("/v1/chat/completions", "m", september.Unix()+6, &Refusal{Cap: "team", Reason: "later"})
@@ -126,7 +126,7 @@ func TestACallCountedBeforeItsModelHadAPriceIsPricedOnRebuild(t *testing.T) {
 // read back for them cannot carry somebody else's cost.
 func TestOnlyTheTasksAskedForAreReadBack(t *testing.T) {
 	root := t.TempDir()
-	spec := task.Spec{Brief: "b", Repo: "r", Gate: []string{"true"}, Harness: "h", Team: "platform"}
+	spec := task.Spec{Brief: "b", Repo: "r", Check: []string{"true"}, Harness: "h", Team: "platform"}
 	taskWithCalls(t, root, "mine", spec, answered(0.7, september))
 	taskWithCalls(t, root, "theirs", spec, answered(0.4, september))
 

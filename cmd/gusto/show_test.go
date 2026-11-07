@@ -19,7 +19,7 @@ func claimed(t *testing.T) task.Dir {
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := task.Spec{Brief: "b", Repo: "r", Gate: []string{"true"}, Harness: "h"}
+	spec := task.Spec{Brief: "b", Repo: "r", Check: []string{"true"}, Harness: "h"}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func claimed(t *testing.T) task.Dir {
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifest := evidence.Manifest{Task: hash, Files: files, Gate: &evidence.Verdict{Command: spec.Gate, Passed: true}, Signer: "alice"}
+	manifest := evidence.Manifest{Task: hash, Files: files, Check: &evidence.Verdict{Command: spec.Check, Passed: true}, Signer: "alice"}
 	if err := evidence.Write(dir, manifest); err != nil {
 		t.Fatal(err)
 	}
@@ -100,18 +100,18 @@ func TestShowNamesOnlyTheSignerTheKeyringChecked(t *testing.T) {
 	}
 }
 
-// A turn in a conversation has no gate, and gusto show says so instead of failing on the manifest.
-func TestShowATaskWithNoGate(t *testing.T) {
+// A turn in a conversation has no check, and gusto show says so instead of failing on the manifest.
+func TestShowATaskWithNoCheck(t *testing.T) {
 	dir := claimed(t)
 	manifest, err := evidence.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifest.Gate = nil
+	manifest.Check = nil
 	if err := evidence.Write(dir, manifest); err != nil {
 		t.Fatal(err)
 	}
 	if got := shown(t, dir, ""); got == "" {
-		t.Fatal("gusto show printed no signer line for a job with no gate")
+		t.Fatal("gusto show printed no signer line for a job with no check")
 	}
 }

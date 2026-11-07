@@ -148,7 +148,7 @@ func TestNothingInATasksDirectoryHoldsTheToken(t *testing.T) {
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := task.Spec{Brief: "read it", Repo: address, Ref: "HEAD", Gate: []string{"true"}, Harness: "fixture"}
+	spec := task.Spec{Brief: "read it", Repo: address, Ref: "HEAD", Check: []string{"true"}, Harness: "fixture"}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +191,7 @@ func TestATaskForARepositoryTheAppDoesNotReachIsRefusedInTheRecord(t *testing.T)
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := task.Spec{Brief: "read it", Repo: other, Ref: "HEAD", Gate: []string{"true"}, Harness: "fixture"}
+	spec := task.Spec{Brief: "read it", Repo: other, Ref: "HEAD", Check: []string{"true"}, Harness: "fixture"}
 
 	err := runner.Fill(spec, dir)
 	var refused repoaccess.NotInstalledError

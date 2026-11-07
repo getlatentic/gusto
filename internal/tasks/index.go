@@ -337,7 +337,7 @@ func ended(record Record, root string) Record {
 		return record
 	}
 	// The same rule the runner applied, so a run graded while nobody watched is graded as it would have been.
-	record.Exit = evidence.Earned(manifest.Gate, manifest.HarnessExit, manifest.ModelUnanswered != nil)
+	record.Exit = evidence.Earned(manifest.Check, manifest.HarnessExit, manifest.ModelUnanswered != nil)
 	record.State = Passed
 	if record.Exit != 0 {
 		record.State = Failed

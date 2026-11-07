@@ -66,7 +66,7 @@ type Ran struct {
 // Outcome is what the check decided and the state the server holds for the task.
 type Outcome struct {
 	State     Fact[any]     `json:"state"`
-	Gate      Fact[Verdict] `json:"gate"`
+	Check     Fact[Verdict] `json:"gate"`
 	StartedAt Fact[any]     `json:"startedAt"`
 	EndedAt   Fact[any]     `json:"endedAt"`
 	// FinishedAt is when the manifest was written, which is when the run ended.

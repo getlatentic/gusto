@@ -66,7 +66,7 @@ func Known(old task.Dir) (evidence.Manifest, error) {
 	if err != nil {
 		return evidence.Manifest{}, err
 	}
-	if manifest.Gate == nil {
+	if manifest.Check == nil {
 		return evidence.Manifest{}, fmt.Errorf("%s had no check, so there is no verdict to compare", old)
 	}
 	return manifest, nil

@@ -69,7 +69,7 @@ func aSpec() task.Spec {
 	return task.Spec{
 		Brief:   "Make the adder add",
 		Repo:    "https://github.com/acme/repo",
-		Gate:    []string{"sh", "-c", "test 2 = 2"},
+		Check:   []string{"sh", "-c", "test 2 = 2"},
 		Harness: "opencode",
 	}
 }
@@ -120,8 +120,8 @@ func TestATaskSentOverHTTPIsTheSameDirectoryTheCommandLineMakes(t *testing.T) {
 	if spec.Brief != "Make the adder add" || spec.Repo != "https://github.com/acme/repo" || spec.Harness != "opencode" {
 		t.Fatalf("the spec on disk is %+v", spec)
 	}
-	if len(spec.Gate) != 3 || spec.Gate[2] != "test 2 = 2" {
-		t.Fatalf("the gate on disk is %#v", spec.Gate)
+	if len(spec.Check) != 3 || spec.Check[2] != "test 2 = 2" {
+		t.Fatalf("the check on disk is %#v", spec.Check)
 	}
 	// What a person left out is filled in on the way to disk, the same as a task
 	// made here: a sent task is not a second kind of task.
@@ -142,11 +142,11 @@ func TestATaskMissingAPartIsRefusedAndSaysWhich(t *testing.T) {
 		spec task.Spec
 		says string
 	}{
-		{"no repository", task.Spec{Brief: "do it", Gate: []string{"true"}, Harness: "opencode"}, "this task needs a repository"},
-		{"no brief", task.Spec{Repo: "/repo", Gate: []string{"true"}, Harness: "opencode"}, "this task needs a brief"},
-		{"no gate", task.Spec{Repo: "/repo", Brief: "do it", Harness: "opencode"}, "this task needs a check"},
-		{"a gate of blanks", task.Spec{Repo: "/repo", Brief: "do it", Gate: []string{" "}, Harness: "opencode"}, "this task needs a check"},
-		{"no repository and no gate", task.Spec{Brief: "do it", Harness: "opencode"}, "this task needs a repository and a check"},
+		{"no repository", task.Spec{Brief: "do it", Check: []string{"true"}, Harness: "opencode"}, "this task needs a repository"},
+		{"no brief", task.Spec{Repo: "/repo", Check: []string{"true"}, Harness: "opencode"}, "this task needs a brief"},
+		{"no check", task.Spec{Repo: "/repo", Brief: "do it", Harness: "opencode"}, "this task needs a check"},
+		{"a check of blanks", task.Spec{Repo: "/repo", Brief: "do it", Check: []string{" "}, Harness: "opencode"}, "this task needs a check"},
+		{"no repository and no check", task.Spec{Brief: "do it", Harness: "opencode"}, "this task needs a repository and a check"},
 		{"nothing at all", task.Spec{Harness: "opencode"}, "this task needs a repository, a brief and a check"},
 	} {
 		t.Run(refusal.name, func(t *testing.T) {

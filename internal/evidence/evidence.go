@@ -61,9 +61,9 @@ type Manifest struct {
 	Version int     `json:"version"`
 	Task    string  `json:"job"`
 	Files   []Entry `json:"files"`
-	// Gate is absent when the task had none to run: a turn in a conversation is
+	// Check is absent when the task had none to run: a turn in a conversation is
 	// not a claim that anything passed.
-	Gate    *Verdict `json:"gate,omitempty"`
+	Check   *Verdict `json:"gate,omitempty"`
 	Harness string   `json:"harness"`
 	// HarnessDigest names the configured agent that ran by what it held,
 	// taken before it started. A name is what two teams can both say and mean

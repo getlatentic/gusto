@@ -15,7 +15,7 @@ import (
 )
 
 // Harnesses that are programs, so no model is asked anything. "says" writes the
-// model it was given as the answer, so the model decides whether the gate
+// model it was given as the answer, so the model decides whether the check
 // passes: says@yes finishes and says@no does not. "priced" finishes and reports
 // what it cost the way a harness prints it. "missing" names a program nobody
 // has, so it never leaves a verdict.
@@ -77,7 +77,7 @@ func submitted(t *testing.T, at, name, bare string) string {
 		Brief:   "make the answer yes",
 		Repo:    bare,
 		Ref:     "main",
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: "says",
 		Budget:  task.Budget{Seconds: 60},
 	}

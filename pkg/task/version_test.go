@@ -25,7 +25,7 @@ func TestATaskWithNoVersionReadsAsVersionOne(t *testing.T) {
 
 func TestAWrittenTaskCarriesItsVersion(t *testing.T) {
 	dir := task.Dir(t.TempDir())
-	if err := (task.Spec{Brief: "b", Repo: "r", Gate: []string{"true"}, Harness: "h"}).Write(dir); err != nil {
+	if err := (task.Spec{Brief: "b", Repo: "r", Check: []string{"true"}, Harness: "h"}).Write(dir); err != nil {
 		t.Fatal(err)
 	}
 	text, err := os.ReadFile(dir.Spec())

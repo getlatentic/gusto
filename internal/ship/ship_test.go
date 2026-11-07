@@ -17,18 +17,18 @@ import (
 
 var here = ship.Options{GitHub: "o/r"}
 
-func TestATaskWhoseGateFailedIsRefused(t *testing.T) {
+func TestATaskWhoseCheckFailedIsRefused(t *testing.T) {
 	dir, _ := finished(t, "maybe")
 	_, err := ship.Prepare(dir, here)
 	if !errors.Is(err, ship.ErrRefused) || !strings.Contains(err.Error(), "did not pass") {
-		t.Fatalf("want a refusal naming the gate, got %v", err)
+		t.Fatalf("want a refusal naming the check, got %v", err)
 	}
 }
 
 func TestEvidenceChangedSinceTheRunIsRefused(t *testing.T) {
 	for name, tamper := range map[string]func(t *testing.T, dir task.Dir){
 		"a changed patch": func(t *testing.T, dir task.Dir) {
-			write(t, dir.OutFile("diff.patch"), "something the gate never saw\n")
+			write(t, dir.OutFile("diff.patch"), "something the check never saw\n")
 		},
 		"a file added after the run": func(t *testing.T, dir task.Dir) {
 			write(t, dir.OutFile("extra.patch"), "smuggled in\n")
@@ -49,14 +49,14 @@ func TestEvidenceChangedSinceTheRunIsRefused(t *testing.T) {
 }
 
 // The manifest does not hash itself, so rewriting its verdict leaves every hash
-// intact. gates.json still holds the gate's real answer.
+// intact. gates.json still holds the check's real answer.
 func TestAManifestRewrittenToClaimAPassIsRefused(t *testing.T) {
 	dir, _ := finished(t, "maybe")
 	manifest, err := evidence.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifest.Gate.Passed, manifest.Gate.Code = true, 0
+	manifest.Check.Passed, manifest.Check.Code = true, 0
 	if err := evidence.Write(dir, manifest); err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestTheBranchCarriesThePatchAtTheCommitTheTaskRanAgainst(t *testing.T) {
 	}
 }
 
-func TestThePullRequestNamesTheHarnessTheModelTheGateAndTheManifest(t *testing.T) {
+func TestThePullRequestNamesTheHarnessTheModelTheCheckAndTheManifest(t *testing.T) {
 	dir, _ := finished(t, "yes")
 	fake := &forge{}
 	plan, _ := shipped(t, dir, fake)

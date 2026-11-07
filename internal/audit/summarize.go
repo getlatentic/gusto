@@ -123,13 +123,13 @@ func ranOf(spec Fact[any], manifest evidence.Manifest) Ran {
 }
 
 func outcomeOf(state Fact[any], manifest evidence.Manifest) Outcome {
-	gate := absent[Verdict](None)
-	if manifest.Gate != nil {
-		gate = known(Verdict(*manifest.Gate))
+	check := absent[Verdict](None)
+	if manifest.Check != nil {
+		check = known(Verdict(*manifest.Check))
 	}
 	return Outcome{
 		State:      field(state, "state"),
-		Gate:       gate,
+		Check:      check,
 		StartedAt:  field(state, "startedAt"),
 		EndedAt:    field(state, "endedAt"),
 		FinishedAt: manifest.AtUnix,

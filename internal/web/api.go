@@ -200,7 +200,7 @@ func missing(spec task.Spec) string {
 	if strings.TrimSpace(spec.Brief) == "" {
 		absent = append(absent, "a brief")
 	}
-	if strings.TrimSpace(strings.Join(spec.Gate, "")) == "" {
+	if strings.TrimSpace(strings.Join(spec.Check, "")) == "" {
 		absent = append(absent, "a check")
 	}
 	switch len(absent) {

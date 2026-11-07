@@ -28,7 +28,7 @@ type Report struct {
 	// Claimed is absent when the task had no check, which a turn in a
 	// conversation does not.
 	Claimed *evidence.Verdict
-	Gate    evidence.Verdict
+	Check   evidence.Verdict
 }
 
 // Holds is true when every file matches and the check answers as it did.
@@ -36,7 +36,7 @@ func (r Report) Holds() bool {
 	if r.Claimed == nil {
 		return false
 	}
-	return len(r.Wrong) == 0 && r.Gate.Passed == r.Claimed.Passed && r.Gate.Code == r.Claimed.Code
+	return len(r.Wrong) == 0 && r.Check.Passed == r.Claimed.Passed && r.Check.Code == r.Claimed.Code
 }
 
 // Lines is the report as `gusto verify` words it.
@@ -48,9 +48,9 @@ func (r Report) Lines() []string {
 		if r.Claimed == nil {
 			return []string{"this task had no check, so there is no verdict to check"}
 		}
-		return []string{fmt.Sprintf("the check now exits %d, and the manifest says %d", r.Gate.Code, r.Claimed.Code)}
+		return []string{fmt.Sprintf("the check now exits %d, and the manifest says %d", r.Check.Code, r.Claimed.Code)}
 	}
-	return []string{fmt.Sprintf("%d files match, and the check still exits %d", r.Files, r.Gate.Code)}
+	return []string{fmt.Sprintf("%d files match, and the check still exits %d", r.Files, r.Check.Code)}
 }
 
 var sha256Hex = regexp.MustCompile(`^[0-9a-f]{64}$`)
@@ -81,12 +81,12 @@ func Check(ctx context.Context, remote, digest, into string) (Report, error) {
 			return Report{Wrong: wrong}, err
 		}
 	}
-	return gated(ctx, dir)
+	return rechecked(ctx, dir)
 }
 
-// gated runs the gate in the rebuilt working folder and sets its answer beside the
+// rechecked runs the check in the rebuilt working folder and sets its answer beside the
 // one the manifest records.
-func gated(ctx context.Context, dir task.Dir) (Report, error) {
+func rechecked(ctx context.Context, dir task.Dir) (Report, error) {
 	manifest, err := evidence.Read(dir)
 	if err != nil {
 		return Report{}, err
@@ -99,7 +99,7 @@ func gated(ctx context.Context, dir task.Dir) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
-	return Report{Files: len(manifest.Files), Claimed: manifest.Gate, Gate: again}, nil
+	return Report{Files: len(manifest.Files), Claimed: manifest.Check, Check: again}, nil
 }
 
 func emptyOrNew(dir task.Dir) error {

@@ -67,7 +67,7 @@ type Spec struct {
 	Brief   string   `json:"brief"`
 	Repo    string   `json:"repo"`
 	Ref     string   `json:"ref"`
-	Gate    []string `json:"gate,omitempty"`
+	Check   []string `json:"gate,omitempty"`
 	Harness string   `json:"harness"`
 	Model   string   `json:"model,omitempty"`
 	// Session names the instance this task is a turn on: the computer whose

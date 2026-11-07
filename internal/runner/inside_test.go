@@ -25,7 +25,7 @@ const adapter = `{
   "stream": "plain"
 }`
 
-// repo is a checkout whose gate fails until answer.txt says yes.
+// repo is a checkout whose check fails until answer.txt says yes.
 func repo(t *testing.T) string {
 	t.Helper()
 	at := t.TempDir()
@@ -67,7 +67,7 @@ func ranAs(t *testing.T, signs signing.Identity) (task.Dir, task.Spec) {
 	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    repo(t),
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: "fixture",
 	}
 	if err := spec.Write(dir); err != nil {
@@ -78,7 +78,7 @@ func ranAs(t *testing.T, signs signing.Identity) (task.Dir, task.Spec) {
 		t.Fatal(err)
 	}
 	if exit != 0 {
-		t.Fatalf("the gate should pass once the answer is yes, exit %d: %s", exit, runner.Tail(dir.OutFile("gate.log"), 5))
+		t.Fatalf("the check should pass once the answer is yes, exit %d: %s", exit, runner.Tail(dir.OutFile("gate.log"), 5))
 	}
 	return dir, spec
 }
@@ -139,7 +139,7 @@ func TestAFileAddedAfterTheRunIsReported(t *testing.T) {
 	}
 }
 
-func TestTheGateIsTheVerdictNotTheHarness(t *testing.T) {
+func TestTheCheckIsTheVerdictNotTheHarness(t *testing.T) {
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "liar.json"), `{
   "name": "liar",
@@ -156,7 +156,7 @@ func TestTheGateIsTheVerdictNotTheHarness(t *testing.T) {
 	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    repo(t),
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: "liar",
 	}
 	if err := spec.Write(dir); err != nil {
@@ -188,7 +188,7 @@ func TestABudgetStopsAHarnessThatWillNotFinish(t *testing.T) {
 	spec := task.Spec{
 		Brief:   "never finish",
 		Repo:    repo(t),
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: "slow",
 		Budget:  task.Budget{Turns: 1, Seconds: 1},
 	}
@@ -301,7 +301,7 @@ func TestAStopWithNoNoteIsASignalAndATaskThatWasNotStoppedSaysNothing(t *testing
 
 	finished := task.Dir(t.TempDir())
 	finished.Make()
-	quick := task.Spec{Brief: "x", Repo: repo(t), Harness: "fixture", Gate: []string{"true"}, Budget: task.Budget{Turns: 1, Seconds: 60}}
+	quick := task.Spec{Brief: "x", Repo: repo(t), Harness: "fixture", Check: []string{"true"}, Budget: task.Budget{Turns: 1, Seconds: 60}}
 	quick.Write(finished)
 	write(t, filepath.Join(harnesses, "fixture.json"), `{"name":"fixture","program":"sh","argv":["-c","true"],"needs":"nothing","stream":"plain"}`)
 	if _, err := runner.Inside(finished); err != nil {

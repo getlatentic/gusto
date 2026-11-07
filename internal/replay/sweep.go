@@ -60,7 +60,7 @@ func verdictOf(dir task.Dir) (evidence.Manifest, error) {
 	if err != nil {
 		return evidence.Manifest{}, fmt.Errorf("the rerun in %s left no manifest: %w", dir, err)
 	}
-	if manifest.Gate == nil {
+	if manifest.Check == nil {
 		return evidence.Manifest{}, fmt.Errorf("the rerun in %s left no verdict", dir)
 	}
 	return manifest, nil

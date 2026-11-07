@@ -33,7 +33,7 @@ func cappedRun(t *testing.T, earlier string) task.Dir {
 		t.Fatal(err)
 	}
 	write(t, dir.OutFile("proxy.jsonl"), earlier)
-	spec := task.Spec{Brief: "b", Repo: repo(t), Gate: []string{"true"}, Harness: "capped", Team: "platform"}
+	spec := task.Spec{Brief: "b", Repo: repo(t), Check: []string{"true"}, Harness: "capped", Team: "platform"}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}

@@ -11,7 +11,7 @@ import (
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// Harnesses that are programs. One leaves the answer the gate wants, one leaves
+// Harnesses that are programs. One leaves the answer the check wants, one leaves
 // an answer it refuses, and one leaves the right answer and commits it, which
 // moves the workspace's HEAD off the commit the task started from.
 const (
@@ -72,7 +72,7 @@ func finished(t *testing.T, parent, name, harness, bare string) task.Dir {
 	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    bare,
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: harness,
 	}
 	if err := spec.Write(dir); err != nil {

@@ -67,7 +67,7 @@ func TestAComparisonGivesEveryAgentTheSameTask(t *testing.T) {
 	}
 	first, second := specs[0], specs[1]
 	if first.Harness == second.Harness || first.Ref != lineup.Commit || second.Ref != lineup.Commit ||
-		first.Brief != second.Brief || first.Model != second.Model || strings.Join(first.Gate, " ") != "node --test" ||
+		first.Brief != second.Brief || first.Model != second.Model || strings.Join(first.Check, " ") != "node --test" ||
 		first.Setup == nil || first.Setup.Name != "engineering" {
 		t.Fatalf("the runs were not given the same task:\n%+v\n%+v", first, second)
 	}
@@ -153,7 +153,7 @@ func TestTheComparisonPageSaysWhichDidBetter(t *testing.T) {
 		id := fmt.Sprintf("run-%d", i)
 		spentTask(t, site.index.Root(), id, "", each.lines...)
 		dir := task.Dir(filepath.Join(site.index.Root(), id))
-		if err := evidence.Write(dir, evidence.Manifest{Gate: &evidence.Verdict{Passed: each.passed}}); err != nil {
+		if err := evidence.Write(dir, evidence.Manifest{Check: &evidence.Verdict{Passed: each.passed}}); err != nil {
 			t.Fatal(err)
 		}
 		if err := site.index.Add(tasks.Record{ID: id, State: tasks.Passed, Brief: "fix it", Harness: each.harness, Started: 100, Ended: 100 + each.took}); err != nil {

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestAGateKeepsItsQuotedArgumentWhole(t *testing.T) {
+func TestACheckKeepsItsQuotedArgumentWhole(t *testing.T) {
 	for line, want := range map[string][]string{
 		`go test ./...`:           {"go", "test", "./..."},
 		`sh -c "test 2 = 2"`:      {"sh", "-c", "test 2 = 2"},
@@ -25,7 +25,7 @@ func TestASensitivityNobodyEnforcesIsRefused(t *testing.T) {
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := Spec{Brief: "b", Repo: "r", Gate: []string{"true"}, Harness: "fixture"}
+	spec := Spec{Brief: "b", Repo: "r", Check: []string{"true"}, Harness: "fixture"}
 	for label, want := range map[Sensitivity]bool{
 		"public": true, "internal": true, "restricted": true,
 		"secret": false, "Restricted": false, "confidential": false, "RESTRICTED": false,

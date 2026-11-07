@@ -32,12 +32,12 @@ const fixtureJSON = `{
 const wroteTheAnswer = "printf yes > answer.txt; echo wrote the answer"
 const didNothing = "echo I did not touch a thing"
 
-// refusal is what the gate prints when the answer is still no, and what a reader
+// refusal is what the check prints when the answer is still no, and what a reader
 // of a failed task has come to see.
 const refusal = "answer.txt does not say yes"
 
-// checkout is a repository whose gate is a script in its own tree, so whether
-// the archive carries a mode bit decides whether the gate can be re-run at all.
+// checkout is a repository whose check is a script in its own tree, so whether
+// the archive carries a mode bit decides whether the check can be re-run at all.
 func checkout(t *testing.T) string {
 	t.Helper()
 	at := t.TempDir()
@@ -83,7 +83,7 @@ func (s *site) ranTask(t *testing.T, does string) (string, task.Dir) {
 	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    checkout(t),
-		Gate:    []string{"./gate.sh"},
+		Check:   []string{"./gate.sh"},
 		Harness: "fixture",
 	}
 	if err := spec.Write(dir); err != nil {
@@ -149,7 +149,7 @@ func unpack(t *testing.T, archive io.Reader, into string) map[string]int64 {
 }
 
 // verify is the two things `gusto verify` does: re-hash the evidence against the
-// manifest, and re-run the gate in the working folder and compare the answer.
+// manifest, and re-run the check in the working folder and compare the answer.
 func verify(t *testing.T, dir task.Dir) (string, bool) {
 	t.Helper()
 	wrong, err := evidence.Check(dir)
@@ -171,10 +171,10 @@ func verify(t *testing.T, dir task.Dir) (string, bool) {
 	if err != nil {
 		return err.Error(), false
 	}
-	if again.Passed != manifest.Gate.Passed || again.Code != manifest.Gate.Code {
-		return fmt.Sprintf("the gate now exits %d, and the manifest says %d", again.Code, manifest.Gate.Code), false
+	if again.Passed != manifest.Check.Passed || again.Code != manifest.Check.Code {
+		return fmt.Sprintf("the check now exits %d, and the manifest says %d", again.Code, manifest.Check.Code), false
 	}
-	return fmt.Sprintf("%d files match, and the gate still exits %d", len(manifest.Files), again.Code), true
+	return fmt.Sprintf("%d files match, and the check still exits %d", len(manifest.Files), again.Code), true
 }
 
 func TestTheBundleUnpacksIntoATaskThatVerifies(t *testing.T) {
@@ -199,7 +199,7 @@ func TestTheBundleUnpacksIntoATaskThatVerifies(t *testing.T) {
 	t.Log(said)
 }
 
-func TestTheBundleCarriesWhatVerifyReadsAndKeepsTheGateRunnable(t *testing.T) {
+func TestTheBundleCarriesWhatVerifyReadsAndKeepsTheCheckRunnable(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	id, dir := site.ranTask(t, wroteTheAnswer)
@@ -214,7 +214,7 @@ func TestTheBundleCarriesWhatVerifyReadsAndKeepsTheGateRunnable(t *testing.T) {
 	if _, carried := modes[id+"/state.json"]; carried {
 		t.Error("state.json is this server's own cache and not evidence")
 	}
-	// A gate that is a script in the checkout is only re-runnable while the mode
+	// A check that is a script in the checkout is only re-runnable while the mode
 	// bit survives the archive.
 	if mode := modes[id+"/workspace/gate.sh"]; mode&0o111 == 0 {
 		t.Errorf("gate.sh came out of the bundle as %#o and cannot be run", mode)
@@ -231,7 +231,7 @@ func TestTheBundleCarriesWhatVerifyReadsAndKeepsTheGateRunnable(t *testing.T) {
 	}
 }
 
-// A runner destroyed before the gate leaves a task with no manifest, and an
+// A runner destroyed before the check leaves a task with no manifest, and an
 // archive of it would be a bundle nobody can check.
 func TestATaskWithNoManifestHasNoBundle(t *testing.T) {
 	site := open(t)
@@ -280,37 +280,37 @@ func TestTheFileListShowsTheHashTheManifestClaims(t *testing.T) {
 	}
 }
 
-func TestAFailedTaskShowsWhatTheGateSaid(t *testing.T) {
+func TestAFailedTaskShowsWhatTheCheckSaid(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	id, dir := site.ranTask(t, didNothing)
 	record, _ := site.index.Get(id)
 	if record.State != tasks.Failed {
-		t.Fatalf("a harness that changed nothing should fail the gate, state %q", record.State)
+		t.Fatalf("a harness that changed nothing should fail the check, state %q", record.State)
 	}
 	log, err := os.ReadFile(dir.OutFile("gate.log"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(log), refusal) {
-		t.Fatalf("the gate log does not hold the refusal: %q", log)
+		t.Fatalf("the check log does not hold the refusal: %q", log)
 	}
 
 	page := site.ask(t, "GET", "/jobs/"+id, nil).Body.String()
 	if !strings.Contains(page, refusal) {
-		t.Error("a failed job must show the gate's output inline, because that is the useful part")
+		t.Error("a failed job must show the check's output inline, because that is the useful part")
 	}
 	if !strings.Contains(page, "What the check said") {
-		t.Error("the gate's output needs a heading a reader can find")
+		t.Error("the check's output needs a heading a reader can find")
 	}
 }
 
-func TestAPassingTaskDoesNotRepeatTheGateOutput(t *testing.T) {
+func TestAPassingTaskDoesNotRepeatTheCheckOutput(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	id, _ := site.ranTask(t, wroteTheAnswer)
 	if page := site.ask(t, "GET", "/jobs/"+id, nil).Body.String(); strings.Contains(page, "What the check said") {
-		t.Error("a gate that passed has nothing to explain")
+		t.Error("a check that passed has nothing to explain")
 	}
 }
 

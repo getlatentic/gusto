@@ -26,16 +26,16 @@ ASSUME MaxCrashes \in Nat
 Done == {"Passed", "Failed", "Interrupted"}
 States == {"Queued", "Running"} \cup Done
 
-(* The run's manifest (internal/evidence).  gate is its verdict, or "none" *)
+(* The run's manifest (internal/evidence).  check is its verdict, or "none" *)
 (* for a turn in a conversation; turnOK is that the harness exited 0 and   *)
 (* the model answered; stopped is that the run's context was cancelled.    *)
-Manifests == [written: BOOLEAN, gate: {"pass", "fail", "none"},
+Manifests == [written: BOOLEAN, check: {"pass", "fail", "none"},
               turnOK: BOOLEAN, stopped: BOOLEAN]
-NoManifest == [written |-> FALSE, gate |-> "none", turnOK |-> TRUE, stopped |-> FALSE]
+NoManifest == [written |-> FALSE, check |-> "none", turnOK |-> TRUE, stopped |-> FALSE]
 
 (* evidence.Earned: the exit code a run earned. *)
-Earned(m) == IF m.gate = "pass" THEN 0
-             ELSE IF m.gate = "fail" THEN 1
+Earned(m) == IF m.check = "pass" THEN 0
+             ELSE IF m.check = "fail" THEN 1
              ELSE IF m.turnOK THEN 0 ELSE 1
 
 VARIABLES
@@ -191,8 +191,8 @@ Signal ==
 RunEnds ==
     /\ run = "running"
     /\ run' = "ended"
-    /\ \E gate \in {"pass", "fail", "none"}, ok \in BOOLEAN :
-         manifest' = [written |-> TRUE, gate |-> gate, turnOK |-> ok, stopped |-> cancelled]
+    /\ \E check \in {"pass", "fail", "none"}, ok \in BOOLEAN :
+         manifest' = [written |-> TRUE, check |-> check, turnOK |-> ok, stopped |-> cancelled]
     /\ UNCHANGED <<state, stoppedBy, up, crashes, worker, registered, workExit, workErr,
                    sawStop, cancelled, stopper, stopWasRunning, acked>>
 
@@ -219,8 +219,8 @@ Crash ==
 (* ended: how a run nobody watched turned out. *)
 Recovered ==
     CASE ~manifest.written                          -> "Interrupted"
-      [] Protocol = "before" /\ manifest.gate = "none" -> "Passed"
-      [] Protocol = "before"                        -> IF manifest.gate = "pass" THEN "Passed" ELSE "Failed"
+      [] Protocol = "before" /\ manifest.check = "none" -> "Passed"
+      [] Protocol = "before"                        -> IF manifest.check = "pass" THEN "Passed" ELSE "Failed"
       [] manifest.stopped \/ stoppedBy               -> "Interrupted"
       [] OTHER                                      -> IF Earned(manifest) = 0 THEN "Passed" ELSE "Failed"
 

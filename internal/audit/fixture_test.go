@@ -56,7 +56,7 @@ func ran(t *testing.T) task.Dir {
 	return ranWith(t, firstCall, secondCall, refusedCall, reachedHost, deniedHost)
 }
 
-// ranWith runs the fixture task to its gate and gives it the state.json a
+// ranWith runs the fixture task to its check and gives it the state.json a
 // server would have written, so the export has every source it reads.
 func ranWith(t *testing.T, proxy ...string) task.Dir {
 	t.Helper()
@@ -77,7 +77,7 @@ func ranAs(t *testing.T, signs signing.Identity, proxy ...string) task.Dir {
 	spec := task.Spec{
 		Brief:   brief,
 		Repo:    repo(t),
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: "fixture",
 	}
 	if err := spec.Write(dir); err != nil {
@@ -97,7 +97,7 @@ func ranAs(t *testing.T, signs signing.Identity, proxy ...string) task.Dir {
 	return dir
 }
 
-// repo is a checkout whose gate fails until answer.txt says yes.
+// repo is a checkout whose check fails until answer.txt says yes.
 func repo(t *testing.T) string {
 	t.Helper()
 	at := t.TempDir()
