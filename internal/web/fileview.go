@@ -113,7 +113,7 @@ func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
 		file.Kind = kindText
 	}
 	s.fill(&file, resolved, info.Size())
-	editable(&file, resolved, info.Size())
+	editable(&file, resolved, info.Size(), held.Archived != 0)
 	if r.URL.Query().Get("panel") != "" {
 		s.render(w, "file-panel", map[string]any{"File": file, "Instance": held, "Rail": nil, "Page": "/instances/" + held.ID + "/file" + query})
 		return

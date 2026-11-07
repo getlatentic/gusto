@@ -166,7 +166,7 @@ func (s *Server) stillWhatTheWriterSaw(id, name, full string, saw string) (curre
 
 // writeFile puts a file in the folder whole, or not at all, for a person's computer that keeps the folder in sync.
 func (s *Server) writeFile(w http.ResponseWriter, r *http.Request) {
-	held, found := s.sharedOr404(w, r)
+	held, found := s.sharedForWriting(w, r)
 	if !found {
 		return
 	}
@@ -261,7 +261,7 @@ func (s *Server) putFile(r *http.Request, instance, name string, body io.Reader,
 // removeFile deletes a file of the folder, when it is what the writer saw. A file that is not there, and the writer saw not
 // there, is as deleted as it gets.
 func (s *Server) removeFile(w http.ResponseWriter, r *http.Request) {
-	held, found := s.sharedOr404(w, r)
+	held, found := s.sharedForWriting(w, r)
 	if !found {
 		return
 	}
