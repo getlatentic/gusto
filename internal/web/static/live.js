@@ -21,6 +21,7 @@
   var said = document.getElementById("said");
   var box = form.querySelector("textarea");
   var send = form.querySelector("button[type=submit][title=Send]");
+  var attached = form.querySelector("[data-attach]");
   var typingLine = document.getElementById("typing");
   var typingNews = document.getElementById("typing-news");
   var here = document.getElementById("here");
@@ -281,7 +282,8 @@
   if (box) {
     form.addEventListener("submit", function (event) {
       var text = box.value.trim();
-      if (!live.online || !text) { return; }
+      // A message with files goes as the form sends it, since the socket carries words only.
+      if (!live.online || !text || (attached && attached.files.length)) { return; }
       event.preventDefault();
       if (send && send.disabled) { return; }
       if (send) { send.disabled = true; }

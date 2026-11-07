@@ -240,7 +240,16 @@ func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	if held.Room {
+		r.Body = http.MaxBytesReader(w, r.Body, attachLimit)
+	}
 	brief := strings.TrimSpace(r.FormValue("said"))
+	if held.Room {
+		var kept bool
+		if brief, kept = s.withAttachments(w, r, held, thread, brief); !kept {
+			return
+		}
+	}
 	if brief == "" {
 		http.Redirect(w, r, threadPath(thread), http.StatusSeeOther)
 		return
