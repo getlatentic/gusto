@@ -136,5 +136,8 @@ func sizeWords(size int64) string {
 	case size >= 1<<10:
 		return fmt.Sprintf("%d KB", (size+1<<9)>>10)
 	}
+	if size == 1 {
+		return "1 byte"
+	}
 	return fmt.Sprintf("%d bytes", size)
 }

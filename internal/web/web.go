@@ -128,6 +128,7 @@ type Server struct {
 	reaches   func(model string, shape wire.Shape) (native, ok bool)
 	installer agentInstaller
 	replies   replyNotes
+	progress  progressKept
 	servers   setup.Servers
 	// integrations is the store of imported plugins, and cloner fetches one from a git address.
 	integrations *integration.Store

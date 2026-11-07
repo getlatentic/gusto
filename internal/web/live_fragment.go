@@ -40,6 +40,8 @@ func (s *Server) drawItem(held instance.Instance, event roomlog.Event) (roomlive
 	if !found {
 		return roomlive.Drawn{}, fmt.Errorf("no conversation %s in %s", event.Thread, held.ID)
 	}
+	// Read before the turn is, so that the version never stands for more than the page drawn with it shows.
+	_, version := s.roomActivity(thread)
 	timeline := s.roomTimeline(held, thread, s.sketchTurns(thread))
 	at := slices.IndexFunc(timeline, func(each turn) bool { return each.ID == event.Ref })
 	if at < 0 {
@@ -62,7 +64,7 @@ func (s *Server) drawItem(held instance.Instance, event roomlog.Event) (roomlive
 	if shown.Note {
 		kind = roomlive.FrameNote
 	}
-	return roomlive.Drawn{Type: kind, Thread: thread.ID, ID: shown.ID, HTML: html.String()}, nil
+	return roomlive.Drawn{Type: kind, Thread: thread.ID, ID: shown.ID, HTML: html.String(), Version: version}, nil
 }
 
 // sketchTurns is a conversation's turns with what the timeline needs of them and no more: who spoke and when, without reading

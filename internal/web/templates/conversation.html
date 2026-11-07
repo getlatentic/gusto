@@ -60,11 +60,12 @@
   <form id="model-form" method="post" action="/instances/{{.Instance.ID}}/model"><input type="hidden" name="back" value="{{.Path}}"></form>
   {{if and .Waiting (not .Instance.Room)}}<form id="stop-form" method="post" action="/jobs/{{.Latest}}/stop"><input type="hidden" name="back" value="{{.Path}}"></form>{{end}}
   <div class="composer px-6 pt-2 pb-5 @max-[56rem]:px-3 @max-[56rem]:pb-3">
-    <form class="relative mx-auto max-w-[56rem]" method="post" action="{{.Path}}/say" id="say-form">
+    <form class="relative mx-auto max-w-[56rem]" method="post" action="{{.Path}}/say" id="say-form"{{if .Instance.Room}} enctype="multipart/form-data"{{end}}>
       <p class="{{template "ui-notice-chat"}} mb-2" id="unsent"{{if .Unsent}} role="alert"{{else}} hidden{{end}}>{{.Unsent}}</p>
       {{if .Instance.Room}}<ul class="absolute bottom-full left-0 z-30 mb-2 grid w-80 max-w-full list-none gap-px rounded-xl border border-line bg-surface p-1.5 shadow-2" id="mention-menu" role="listbox" aria-label="Mention" data-people="{{.Mentions}}" hidden></ul>{{end}}
       <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[1.25rem] border border-line-strong bg-surface py-3 pr-3 pl-5 shadow-1 transition-shadow has-[textarea:focus-visible]:border-focus has-[textarea:focus-visible]:ring-1 has-[textarea:focus-visible]:ring-focus">
         {{if .Instance.Room}}
+        <ul class="m-0 flex list-none flex-wrap gap-1.5 p-0 [&[hidden]]:hidden" id="attached" aria-label="Files attached to this message" hidden></ul>
         <div class="relative">
           <div class="pointer-events-none absolute inset-0 overflow-hidden leading-relaxed whitespace-pre-wrap wrap-anywhere text-ink" id="composer-marks" aria-hidden="true"></div>
           <textarea class="relative block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed whitespace-pre-wrap wrap-anywhere text-transparent caret-ink placeholder:text-subtle focus-visible:outline-none" name="said" rows="1" placeholder="{{.Hint}}" aria-label="Message the room" role="combobox" aria-autocomplete="list" aria-controls="mention-menu" aria-expanded="false" aria-describedby="unsent" autofocus required></textarea>
@@ -73,6 +74,7 @@
         <textarea class="block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed focus-visible:outline-none" name="said" rows="1" placeholder="Message" aria-label="Message {{.Agent.Name}}" aria-describedby="unsent" autofocus required></textarea>
         {{end}}
         <div class="flex items-center gap-1">
+          {{if .Instance.Room}}<label class="grid size-9 flex-none cursor-pointer place-items-center rounded-full text-muted hover:bg-sunken hover:text-ink has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-focus [&>svg]:size-[1.125rem]" title="Attach files">{{template "icon-add"}}<span class="sr-only">Attach files</span><input class="sr-only" type="file" name="file" multiple data-attach {{with attachLimits}}data-most="{{.Files}}" data-bytes="{{.Bytes}}"{{end}}></label>{{end}}
           {{if not .Instance.Room}}{{if not .Several}}<span class="text-xs text-muted">{{.Agent.Brain}}</span>{{end}}{{end}}
           <span class="flex-1"></span>
           {{if and .Several (not .Instance.Room)}}{{template "picker" (dict "ID" "model-pick" "Label" "Model" "Name" "model" "Value" .Instance.Model "Options" .Models "Form" "model-form")}}{{end}}
@@ -95,7 +97,7 @@
 </aside>
 <script src="{{asset "/static/filepanel.js"}}"></script>
 <script src="{{asset "/static/composer.js"}}"></script>
-{{if .Instance.Room}}<script src="{{asset "/static/dialogs.js"}}"></script>{{if .Stream}}<script src="{{asset "/static/centrifuge.js"}}"></script><script src="{{asset "/static/live.js"}}"></script>{{end}}<script src="{{asset "/static/room.js"}}"></script>{{end}}
+{{if .Instance.Room}}<script src="{{asset "/static/dialogs.js"}}"></script>{{if .Stream}}<script src="{{asset "/static/centrifuge.js"}}"></script><script src="{{asset "/static/live.js"}}"></script>{{end}}<script src="{{asset "/static/room.js"}}"></script><script src="{{asset "/static/progress.js"}}"></script><script src="{{asset "/static/attach.js"}}"></script>{{end}}
 
 {{if .Several}}<script src="{{asset "/static/picker.js"}}"></script>{{end}}
 <script nonce="{{.Nonce}}">
@@ -305,14 +307,14 @@
 {{end}}
 
 {{define "turn-result"}}{{with .T}}
-  <div class="grid min-w-0 gap-3">
+  <div class="grid min-w-0 gap-1.5">
     {{$apps := .Apps}}{{with .Steps}}
     <details class="group text-xs">
       <summary class="inline-flex min-h-6 w-fit cursor-pointer list-none items-center gap-1 rounded-sm py-0.5 pr-2 pl-1 text-subtle hover:bg-wash hover:text-ink [&::-webkit-details-marker]:hidden"><span class="grid -rotate-90 transition-transform group-open:rotate-0 [&>svg]:size-3.5 [&>svg]:opacity-100">{{template "icon-chevron"}}</span><span>{{len .}} step{{if ne (len .) 1}}s{{end}}</span></summary>
       <div class="[&_ol]:mt-2 [&_ol]:ml-2 [&_ol]:grid [&_ol]:list-none [&_ol]:gap-2 [&_ol]:border-l [&_ol]:border-line-strong [&_ol]:pl-4 [&_.what]:mr-2 [&_.what]:font-semibold [&_.what]:text-ink [&_.detail]:font-mono [&_.detail]:text-xs [&_.detail]:wrap-anywhere [&_.detail]:text-muted">{{with $apps}}<p class="mt-2 mb-0 ml-2 text-muted">Could use {{.}}</p>{{end}}{{template "steps" .}}</div>
     </details>
     {{end}}
-    {{if .Replied}}<div class="prose">{{replyIn .Replied $.P.Instance.ID $.P.Thread.Dir $.P.Path}}</div>{{end}}
+    {{if .Replied}}<div class="prose in-bubble">{{replyIn .Replied $.P.Instance.ID $.P.Thread.Dir $.P.Path}}</div>{{end}}
     {{if not .Files}}{{with .Changed}}<p class="m-0 flex flex-wrap gap-2">{{range .}}<a class="inline-flex items-center gap-1 rounded-sm border border-line bg-surface px-3 py-1 font-mono text-xs text-ink no-underline hover:border-line-strong [&>svg]:size-3.5" href="/instances/{{$.P.Instance.ID}}/file?path={{.}}&amp;from={{$.P.Path}}">{{template "icon-file"}} {{.}}</a>{{end}}</p>{{end}}{{end}}
     {{with .Capped}}{{if and (eq .Cap "credit") (ge .SpentUSD .LimitUSD)}}<p class="m-0 rounded-sm bg-warn-wash px-4 py-3 text-sm">The free credit for the models gusto provides is used: ${{printf "%.2f" .SpentUSD}} of ${{printf "%.2f" .LimitUSD}}. {{if $.P.Admin}}<a class="font-medium text-ink underline" href="/admin/models">Add your organization's own model key</a> to carry on.{{else}}Ask an admin of your organization to add its own model key to carry on.{{end}}</p>{{else}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">{{with $.T.Limit}}{{.}}{{else}}A spending limit stopped this.{{end}}</p>{{end}}{{end}}
     {{if .StoppedBy}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">Stopped by {{.StoppedBy}}.</p>{{else if not .Capped}}{{with .Stopped}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad">It stopped before it finished: <code class="font-mono text-xs wrap-anywhere">{{.}}</code></p>{{end}}{{end}}
@@ -340,7 +342,7 @@
 {{/* One turn or note of a room, drawn alone for a live update as well as in the page. A live update is drawn once for everyone,
 so the one thing that is a viewer's own, which bubbles are theirs, is marked on the element for the browser to apply. */}}
 {{define "room-turn"}}{{with .T}}
-<article id="{{.ID}}">
+<article id="{{.ID}}"{{if and (not .Note) (not .State.Done)}} data-pending{{end}}>
   {{with .Divider}}<p class="my-6 flex items-center gap-3 text-xs text-subtle tabular-nums before:h-px before:w-16 before:bg-line after:h-px after:w-16 after:bg-line justify-center">{{.}}</p>{{end}}
   {{if .Notice}}
   <p class="mx-auto mt-5 flex w-fit max-w-[40rem] items-start gap-2 rounded-xl bg-warn-wash px-3 py-2 text-sm leading-6 text-warn [&>svg]:mt-1 [&>svg]:size-4 [&>svg]:flex-none" role="status">{{template "icon-info"}}<span>{{.Said}}{{with .File}} <a class="font-medium text-inherit" href="/instances/{{$.P.Instance.ID}}/file?path={{.}}&amp;from={{$.P.Path}}">Open it</a>{{end}}</span></p>
@@ -359,8 +361,8 @@ so the one thing that is a viewer's own, which bubbles are theirs, is marked on 
     <span class="row-span-2 grid size-8 place-items-center overflow-hidden rounded-full bg-sunken [&_img]:size-5 [&_.mark]:size-5" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
     <p class="m-0 flex h-5 min-w-0 items-center gap-1.5 text-sm"><span class="font-medium text-ink" title="{{.Engine}}">{{.By}}</span><span class="truncate text-subtle">{{.Role}}</span>{{with .Owner}}<span class="flex-none text-subtle" data-agent-owner="{{.}}" data-yours="· your agent" data-theirs="· {{ownerLabel . ""}}">· {{ownerLabel . $.P.Me}}</span>{{end}}<span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span>{{with .From}}<span class="text-subtle">· asked by {{mentionsIn (print "@" .) $.P.Names}}</span>{{end}}<time class="text-xs text-subtle opacity-0 tabular-nums group-hover:opacity-100">{{clock .Queued}}</time></p>
     {{end}}
-    <div class="col-start-2 mt-1 grid w-fit max-w-[40rem] min-w-0 gap-3 rounded-xl bg-sunken px-3 py-2 text-[0.9375rem] leading-6">
-      {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $.P)}}{{else}}<div class="flex items-center gap-2 text-sm text-muted">{{if .Holding}}<span class="size-3 flex-none rounded-full border-2 border-line-strong" aria-hidden="true"></span><span data-waiting>{{.Holding}}</span>{{else}}<span class="size-3 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span>Working{{end}}<form class="m-0 ml-2" method="post" action="/jobs/{{.ID}}/stop"><input type="hidden" name="back" value="{{$.P.Path}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-ink hover:underline">Stop</button></form></div>{{end}}
+    <div class="col-start-2 mt-1 grid w-fit max-w-[40rem] min-w-[min(14rem,100%)] grid-cols-[minmax(0,1fr)] gap-3 rounded-xl bg-sunken px-3 py-2 text-[0.9375rem] leading-6">
+      {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $.P)}}{{else}}<div class="flex items-center gap-2 text-sm text-muted">{{if .Holding}}<span class="size-3 flex-none rounded-full border-2 border-line-strong" aria-hidden="true"></span><span data-waiting>{{.Holding}}</span>{{else}}<span class="size-3 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span><span class="min-w-0 truncate" data-progress>Working</span>{{end}}<form class="m-0 ml-2 flex-none" method="post" action="/jobs/{{.ID}}/stop"><input type="hidden" name="back" value="{{$.P.Path}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-ink hover:underline">Stop</button></form></div>{{end}}
     </div>
     {{if .State.Done}}{{with .Files}}{{template "file-cards" (dict "F" . "P" $.P)}}{{end}}{{end}}
   </div>
