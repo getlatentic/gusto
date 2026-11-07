@@ -16,8 +16,12 @@ import (
 // limits and the whole policy. Nothing else of a person is in a computer when it is made. The working folder, the environment and
 // the token go in when a task starts, and the person's record names the sandbox, whatever it is called.
 
-// removeWithin is how long the gateway has to remove a sandbox.
-const removeWithin = 2 * time.Minute
+// removeWithin is how long the gateway has to answer a call that ends or stops a sandbox, and killWait how long a killed call
+// has to let go of its pipes.
+var (
+	removeWithin = 2 * time.Minute
+	killWait     = 5 * time.Second
+)
 
 // ComputerPolicy is the policy of a computer for an agent, which is made when the computer is. Two agents whose own
 // folders are in the home get the same policy.

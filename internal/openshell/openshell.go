@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/runtoken"
@@ -92,6 +93,8 @@ type Sandbox struct {
 	workdir string
 	task    string
 	logBase int
+	// closed is set once Close has removed what the task made.
+	closed atomic.Bool
 }
 
 // New prepares the sandbox for a task. modelURL is where the sandbox reaches the
@@ -300,6 +303,8 @@ func (s *Sandbox) run(ctx context.Context, args ...string) *exec.Cmd {
 	}
 	command := exec.CommandContext(ctx, s.cfg.Binary, append(full, args...)...)
 	command.Env = cleanEnv()
+	// A killed command's children can hold its pipes open; this ends the wait for them.
+	command.WaitDelay = killWait
 	return command
 }
 
@@ -653,14 +658,33 @@ func (s *Sandbox) Guard() (events, policy []byte, err error) {
 	return events, policy, nil
 }
 
-// Close removes the sandbox, and a task's directory on a computer and no more of it.
+// Close removes the sandbox, and a task's directory on a computer and no more of it. It is safe to call again, after a start that
+// failed, and with a gateway that does not answer: each gateway call has removeWithin, a sandbox that is not there is removed, and a
+// Close that finished is not repeated.
 func (s *Sandbox) Close() error {
+	if !s.closed.CompareAndSwap(false, true) {
+		return nil
+	}
+	if err := s.close(); err != nil {
+		s.closed.Store(false)
+		return err
+	}
+	return nil
+}
+
+func (s *Sandbox) close() error {
 	if s.sshConfig != "" {
 		os.Remove(s.sshConfig)
 	}
 	if s.persistent {
 		return s.endTask()
 	}
-	_, err := output(s.run(context.Background(), "sandbox", "delete", s.name))
-	return err
+	return s.within(func(ctx context.Context) error { return Remove(ctx, s.cfg, s.name) })
+}
+
+// within runs a gateway call for no longer than removeWithin.
+func (s *Sandbox) within(call func(context.Context) error) error {
+	ctx, cancel := context.WithTimeout(context.Background(), removeWithin)
+	defer cancel()
+	return call(ctx)
 }

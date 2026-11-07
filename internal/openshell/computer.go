@@ -133,8 +133,12 @@ func (s *Sandbox) endTask() error {
 	if s.keepDir {
 		return nil
 	}
-	if _, err := output(s.run(context.Background(), "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
-		"rm", "-rf", tasksDir+"/"+s.task)); err != nil {
+	err := s.within(func(ctx context.Context) error {
+		_, err := output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
+			"rm", "-rf", tasksDir+"/"+s.task))
+		return err
+	})
+	if err != nil && !notThere(err) {
 		return err
 	}
 	return nil
@@ -142,15 +146,16 @@ func (s *Sandbox) endTask() error {
 
 // Delete removes a sandbox by its name, and a sandbox that is not there is removed.
 func Delete(cfg Config, name string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), removeWithin)
-	defer cancel()
-	return Remove(ctx, cfg, name)
+	return (&Sandbox{cfg: cfg}).within(func(ctx context.Context) error { return Remove(ctx, cfg, name) })
 }
 
 // Stop stops a sandbox and keeps what is in it.
 func Stop(cfg Config, name string) error {
-	_, err := output((&Sandbox{cfg: cfg}).run(context.Background(), "sandbox", "stop", name))
-	return err
+	s := &Sandbox{cfg: cfg}
+	return s.within(func(ctx context.Context) error {
+		_, err := output(s.run(ctx, "sandbox", "stop", name))
+		return err
+	})
 }
 
 // Wake has a computer answering, starting it if it was stopped, which is what a person's
