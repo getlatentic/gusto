@@ -150,6 +150,7 @@ func (s *Server) membersData(r *http.Request, here string) map[string]any {
 		"Offered":    s.modelOptionsOf(s.offeredTo(r)),
 		"Skills":     s.skillChoices(),
 		"Keeps":      s.crew != nil,
+		"Invite":     s.inviteOffered(r),
 		"Refused":    s.refusal(r),
 		"MakeOpen":   r.URL.Query().Has("new"),
 	}
