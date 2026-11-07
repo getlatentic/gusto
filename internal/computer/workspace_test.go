@@ -1,6 +1,7 @@
 package computer
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -71,4 +72,37 @@ func ids(t *testing.T, r *Registry) string {
 		found = append(found, each.ID)
 	}
 	return strings.Join(found, ",")
+}
+
+func marked(r *Registry, id string) bool {
+	_, err := os.Stat(r.retireFile(id))
+	return err == nil
+}
+
+// Where computers are containers a person's home is kept under the id of a computer that has no record, and leaving marks it.
+func TestLeavingMarksAHomeThatHasNoRecordAndNotOneThatWasRemoved(t *testing.T) {
+	r := open(t, "acme")
+	if err := r.RetireIn("Ada@acme.com", "business"); err != nil {
+		t.Fatal(err)
+	}
+	if !marked(r, ID("acme", "business", "ada@acme.com")) {
+		t.Error("a home with no record was not marked")
+	}
+	gone, _, _ := r.Ensure("ada@acme.com", "", "cell-1")
+	r.Retire("ada@acme.com")
+	if err := r.Retired(gone.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.RetireIn("ada@acme.com", ""); err != nil {
+		t.Fatal(err)
+	}
+	if marked(r, gone.ID) {
+		t.Error("a computer that was removed was marked, which would remove the next one made for them")
+	}
+	if err := r.Retire("ada@acme.com", "", "engineering"); err != nil {
+		t.Fatal(err)
+	}
+	if marked(r, gone.ID) || !marked(r, ID("acme", "engineering", "ada@acme.com")) {
+		t.Error("leaving the organization marks the homes of the workspaces the person was in, except a removed computer's")
+	}
 }

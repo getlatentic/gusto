@@ -60,6 +60,7 @@ func (a *Agent) Handler() http.Handler {
 	mux.HandleFunc("POST /v1/servers/{slug}/stop", a.stop)
 	mux.HandleFunc("GET /v1/servers/{slug}", a.alive)
 	mux.HandleFunc("GET /v1/ports", a.ports)
+	mux.HandleFunc("GET /v1/ports/{port}", a.held)
 	mux.HandleFunc("GET /v1/status", a.status)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, err := verify(r, a.Secret, a.clock()); err != nil {
@@ -123,6 +124,15 @@ func (a *Agent) ports(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reply(w, http.StatusOK, map[string]int{"server": server, "proxy": proxy})
+}
+
+func (a *Agent) held(w http.ResponseWriter, r *http.Request) {
+	port, err := strconv.Atoi(r.PathValue("port"))
+	if err != nil || port < 1024 || port > 65535 {
+		http.Error(w, "a port is a number from 1024 to 65535", http.StatusBadRequest)
+		return
+	}
+	reply(w, http.StatusOK, map[string]bool{"held": a.Servers.Held(port)})
 }
 
 func (a *Agent) status(w http.ResponseWriter, r *http.Request) {

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/getlatentic/gusto/internal/dbkit"
+	"github.com/getlatentic/gusto/internal/workspace"
 )
 
 // Remove takes a person out of an organization, and leaves them in any other they are in.
@@ -18,40 +19,62 @@ func (s *Store) Remove(ctx context.Context, slug string, by Person, address stri
 		return ErrNotAdmin
 	}
 
-	if err := s.db.InTx(ctx, func(tx dbkit.Tx) error { return s.removeIn(ctx, tx, slug, by.Email, email) }); err != nil {
+	var spaces []string
+	err = s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
+		spaces, err = s.removeIn(ctx, tx, slug, by.Email, email)
+		return err
+	})
+	if err != nil {
 		return err
 	}
 	s.publishRoster(ctx, slug)
-	// Their computer is marked, and the organization's server, which reaches the gateway,
-	// removes it. A person who never had one has nothing marked.
+	// Their computer in each workspace they were in is marked, with or without a record, and the organization's server, which
+	// keeps the files and reaches the gateway, removes it.
 	registry, err := s.Computers(slug)
 	if err != nil {
 		return err
 	}
-	return registry.Retire(email)
+	return registry.Retire(email, spaces...)
 }
 
-func (s *Store) removeIn(ctx context.Context, tx dbkit.Tx, slug, by, email string) error {
+// removeIn drops the person and says which workspaces they were in.
+func (s *Store) removeIn(ctx context.Context, tx dbkit.Tx, slug, by, email string) ([]string, error) {
 	if err := s.lock(ctx, tx, "org:"+slug); err != nil {
-		return err
+		return nil, err
 	}
 	target, found, err := fetchMember(ctx, tx, email, slug)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !found {
-		return ErrNoMember
+		return nil, ErrNoMember
 	}
 	if target.Role == Admin {
 		admins, err := adminsOf(ctx, tx, slug)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if admins <= 1 || target.Email == by {
-			return ErrLastAdmin
+			return nil, ErrLastAdmin
 		}
 	}
-	return dropMember(ctx, tx, email, slug)
+	spaces, err := workspaceIDsOf(ctx, tx, slug, email)
+	if err != nil {
+		return nil, err
+	}
+	return spaces, dropMember(ctx, tx, email, slug)
+}
+
+// workspaceIDsOf is the workspaces a person is in, as the ids their computers are named by. A person in none is in the first.
+func workspaceIDsOf(ctx context.Context, q dbkit.Querier, slug, email string) ([]string, error) {
+	spaces, err := collect(ctx, q, func(r rowScanner) (string, error) {
+		var id string
+		return id, r.Scan(&id)
+	}, `SELECT workspace FROM workspace_members WHERE org = ? AND email = ?`, slug, email)
+	if err == nil && len(spaces) == 0 {
+		spaces = []string{workspace.First}
+	}
+	return spaces, err
 }
 
 // adminsOf is how many admins the organization has.

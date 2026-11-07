@@ -1,6 +1,9 @@
 [Unit]
-Description=Empty gusto cloud's trash: what an ended organization left that gusto cloud may not remove itself
+Description=Empty gusto cloud's trash: what an ended organization, or a person who left one, left that gusto cloud and its servers may not remove themselves
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/find {{ demo_state }}/cloud/trash -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+# A directory that does not exist yet is not a failure, and does not stop the next line.
+ExecStart=-/usr/bin/find {{ demo_state }}/cloud/trash -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+# An organization's server moves a home it may not remove whole to <organization>/data/computers/trash/.
+ExecStart=-/usr/bin/find {{ demo_state }}/cloud/orgs -mindepth 5 -maxdepth 5 -path '*/data/computers/trash/*' -exec rm -rf {} +

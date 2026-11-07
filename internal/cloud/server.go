@@ -231,7 +231,7 @@ func (s *Server) secure(next http.Handler) http.Handler {
 }
 
 // sentFromOrgs are the forms an organization's own pages send here.
-var sentFromOrgs = map[string]bool{"/account/confirm": true, "/org/people/role": true}
+var sentFromOrgs = map[string]bool{"/account/confirm": true, "/org/people/role": true, "/org/invite": true}
 
 // sameSite says a form came from a page of this server. A browser names the
 // page's origin on every form it posts, and says when the site is another.
