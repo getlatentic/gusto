@@ -53,7 +53,12 @@ func (s *Server) clientDocument(w http.ResponseWriter, r *http.Request) {
 type connectorView struct {
 	connector.Entry
 	On, Usable, Connected bool
-	Since                 time.Time
+	// SignInAgain is a sign-in that was made and no longer works, which only the person can make again.
+	SignInAgain bool
+	// Since is when the sign-in was made.
+	Since time.Time
+	// NeedSignIn is, on the admin's page, how many people's sign-ins need making again.
+	NeedSignIn int
 	// ForAgents is the person's default for whether their agents may use the app.
 	ForAgents bool
 }
@@ -96,12 +101,19 @@ func (s *Server) connectorViews(person, space string) ([]connectorView, error) {
 	if err != nil {
 		return nil, err
 	}
+	var needing map[string]int
+	if person == "" {
+		needing = s.connectors.NeedingSignIn()
+	}
 	views := make([]connectorView, 0, len(s.connectors.Apps()))
 	for _, entry := range s.connectors.Apps() {
 		view := connectorView{Entry: entry, On: settings.ConnectorOn(entry.ID), Usable: s.connectors.Usable(entry)}
 		if person != "" {
-			view.Since, view.Connected = s.connectors.Connected(person, space, entry.ID)
+			standing, since := s.connectors.Standing(person, space, entry.ID)
+			view.Since, view.Connected, view.SignInAgain = since, standing == connector.SignedIn, standing == connector.NeedsSignIn
 			view.ForAgents = view.Connected && s.connectors.ForAgents(person, space, entry.ID)
+		} else {
+			view.NeedSignIn = needing[entry.ID]
 		}
 		views = append(views, view)
 	}
@@ -183,8 +195,8 @@ func (s *Server) finishConnecting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) disconnect(w http.ResponseWriter, r *http.Request) {
-	entry, known := s.connectors.App(r.PathValue("id"))
-	if !known {
+	entry, offered := s.offeredConnector(r.PathValue("id"))
+	if !offered {
 		http.NotFound(w, r)
 		return
 	}
@@ -204,7 +216,7 @@ func (s *Server) disconnect(w http.ResponseWriter, r *http.Request) {
 }
 
 // turnConnector lets people sign in to a connector and give it to their agents, or stops them: their agents are not given it
-// from their next task, and what they signed in to stays theirs to end.
+// from their next task, and Connections stops listing it.
 func (s *Server) turnConnector(on bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		entry, known := s.connectors.App(r.PathValue("id"))

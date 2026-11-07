@@ -19,9 +19,9 @@
       <tr>
         <td class="whitespace-nowrap font-medium">{{.Name}}</td>
         <td class="text-muted">{{.What}}</td>
-        <td class="whitespace-nowrap">{{if .Connected}}<span class="{{template "ui-badge-ok"}}">{{ago .Since.Unix}}</span>{{else}}<span class="text-muted">not yet</span>{{end}}</td>
+        <td class="whitespace-nowrap">{{if .Connected}}<span class="{{template "ui-badge-ok"}}">{{ago .Since.Unix}}</span>{{else if .SignInAgain}}<span class="{{template "ui-badge-warn"}}" title="The app no longer takes your sign-in, so your agents cannot use it">sign in again</span>{{else}}<span class="text-muted">not yet</span>{{end}}</td>
         <td class="whitespace-nowrap">{{if .Connected}}<form class="m-0" method="post" action="/connections/{{.ID}}/agents"><select class="select h-8" name="on" aria-label="Whether your agents may use {{.Name}}, unless you choose otherwise for one" data-autosubmit><option value="on"{{if .ForAgents}} selected{{end}}>On</option><option value="off"{{if not .ForAgents}} selected{{end}}>Off</option></select></form>{{else}}<span class="text-muted">&mdash;</span>{{end}}</td>
-        <td class="text-right">{{if .Connected}}<form method="post" action="/connections/{{.ID}}/disconnect"><button class="{{template "ui-btn-sm"}}" type="submit">Disconnect</button></form>{{else}}<a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Connect</a>{{end}}</td>
+        <td class="text-right">{{if .Connected}}<form method="post" action="/connections/{{.ID}}/disconnect"><button class="{{template "ui-btn-sm"}}" type="submit">Disconnect</button></form>{{else if .SignInAgain}}<div class="flex justify-end gap-2"><a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Sign in again</a><form class="m-0" method="post" action="/connections/{{.ID}}/disconnect"><button class="{{template "ui-btn-sm"}}" type="submit">Disconnect</button></form></div>{{else}}<a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Connect</a>{{end}}</td>
       </tr>
       {{end}}
     </tbody>

@@ -119,13 +119,14 @@
       <li class="flex h-12 items-center gap-3 px-2">
         <span class="grid size-8 flex-none place-items-center rounded-full bg-sunken text-muted [&>svg]:size-4" aria-hidden="true">{{template "icon-link"}}</span>
         <span class="min-w-0 flex-1 text-sm font-medium">{{.Name}}</span>
-        <form class="m-0" method="post" action="/members/agents/{{$a.ID}}/apps"><input type="hidden" name="app" value="{{.ID}}">
+        {{if .SignInAgain}}<span class="{{template "ui-badge-warn"}}">sign in again</span><a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Sign in</a>
+        {{else}}<form class="m-0" method="post" action="/members/agents/{{$a.ID}}/apps"><input type="hidden" name="app" value="{{.ID}}">
           <select class="select h-8" name="choice" aria-label="What {{$a.Name}} may do with your {{.Name}}" data-autosubmit>
             <option value="inherit"{{if eq .Choice "inherit"}} selected{{end}}>Inherit ({{if .Default}}on{{else}}off{{end}})</option>
             <option value="allow"{{if eq .Choice "allow"}} selected{{end}}>Allow</option>
             <option value="deny"{{if eq .Choice "deny"}} selected{{end}}>Don&rsquo;t allow</option>
           </select>
-        </form>
+        </form>{{end}}
       </li>
       {{end}}
     </ul>
