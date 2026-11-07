@@ -26,11 +26,13 @@ address="127.0.0.1:$port"
 new="$work/gusto-new"
 (cd "$root" && go build -o "$new" ./cmd/gusto)
 
-# start runs the binary given as a server on the data in $data, and waits for it. GUSTO_JOBS is for a release from before
-# tasks were called tasks, and GUSTO_TASKS for a newer one.
+# start runs the binary given as a server on the data in $data, and waits for it. A published release reads its tasks from
+# GUSTO_JOBS, and this checkout from GUSTO_TASKS, which refuses the old name.
 start() {
-  GUSTO_PASSWORD=upgrade-check GUSTO_ADDR="$address" GUSTO_SANDBOX=here \
-    GUSTO_TASKS="$data/jobs" GUSTO_JOBS="$data/jobs" GUSTO_SESSIONS="$data/sessions" GUSTO_SETUPS="$data/setups" GUSTO_INTEGRATIONS="$data/integrations" GUSTO_PRESETS="$data/presets" GUSTO_CREW="$data/crew" \
+  tasks=GUSTO_TASKS
+  [ "$1" = "$new" ] || tasks=GUSTO_JOBS
+  env "$tasks=$data/jobs" GUSTO_PASSWORD=upgrade-check GUSTO_ADDR="$address" GUSTO_SANDBOX=here \
+    GUSTO_SESSIONS="$data/sessions" GUSTO_SETUPS="$data/setups" GUSTO_INTEGRATIONS="$data/integrations" GUSTO_PRESETS="$data/presets" GUSTO_CREW="$data/crew" \
     GUSTO_COMPARISONS="$data/comparisons" GUSTO_CHANGES="$data/changes/changes.jsonl" \
     GUSTO_LOCAL_REPOS="$data/repo" \
     GUSTO_SIGNING_KEY="$data/signing/upgrade.key" GUSTO_KEYRING="$data/keyring" \

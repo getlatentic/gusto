@@ -6,9 +6,27 @@ A tag needs a section here named for it, or the release workflow stops and copie
 
 ## Next release
 
+**Added**
+
 - An organization in gusto cloud has workspaces, such as Engineering and Business. Each holds its own tasks and records, conversations, agents, connections to apps and a computer for each of its people, which only its members reach ([CLOUD.md](CLOUD.md#workspaces)). Every organization has the workspace `main`, which holds everything and everybody it had before, so nobody sees a change until an admin makes a second one at `/org`.
 - The accounts database is at schema 8 (`workspaces`, `workspace_members`, and the workspace an invitation's link joins), and the task index at schema 2 (a `workspace` column). Both migrate on start.
 - `job.json` may name its `workspace`. Its schema now also describes `person`, `agent` and `dir`, which tasks already carried.
+
+**Changed**
+
+- Settings named after the old words are refused, and the server says the new name ([TERMS.md](TERMS.md)). Rename them before upgrading:
+
+  | Was | Is |
+  | --- | --- |
+  | `GUSTO_JOBS` | `GUSTO_TASKS` |
+  | `GUSTO_JOB_NETWORK`, `GUSTO_JOB_CONCURRENCY`, `GUSTO_JOB_CPUS`, `GUSTO_JOB_MEMORY` | `GUSTO_TASK_NETWORK`, `GUSTO_TASK_CONCURRENCY`, `GUSTO_TASK_CPUS`, `GUSTO_TASK_MEMORY` |
+  | `GUSTO_CLOUD_JOBS`, `GUSTO_CLOUD_TRIAL_JOBS`, `GUSTO_CLOUD_PAID_JOBS_PER_SEAT` | `GUSTO_CLOUD_TASKS`, `GUSTO_CLOUD_TRIAL_TASKS`, `GUSTO_CLOUD_PAID_TASKS_PER_SEAT` |
+  | `GUSTO_CELL`, and each `GUSTO_CELL_*` and `GUSTO_CELLS_DIR` | `GUSTO_NODE`, `GUSTO_NODE_*` and `GUSTO_NODES_DIR` |
+  | each `GUSTO_CLOUD_CELL_*`, `GUSTO_CLOUD_CELLS_DIR` and `GUSTO_CLOUD_LOCAL_CELL` | `GUSTO_CLOUD_NODE_*`, `GUSTO_CLOUD_NODES_DIR` and `GUSTO_CLOUD_LOCAL_NODE` |
+  | `GUSTO_OWNER_ADDR` | `GUSTO_OPERATOR_ADDR` |
+  | `GUSTO_FRONT_DOOR` | `GUSTO_CLOUD_URL` |
+
+- `gusto host` is `gusto node`, and `gusto cloud workspaces` is `gusto cloud computers`. The old names are gone.
 
 ## v0.1.0-rc.2
 
