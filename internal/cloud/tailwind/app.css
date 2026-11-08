@@ -46,3 +46,11 @@
     *, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation-duration: 0s !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
   }
 }
+
+/* The works-with tiles are filtered by the radio chosen above them, with no script. These rules are outside every layer so they beat the
+   display the tiles' utilities give them. */
+.kinds:has(#f-agent:checked) li:not([data-kind="agent"]),
+.kinds:has(#f-model:checked) li:not([data-kind="model"]),
+.kinds:has(#f-place:checked) li:not([data-kind="place"]) { display: none; }
+/* The copy button is drawn only when landing-theme.js is running to answer it. */
+html:not([data-copy]) .copy { display: none; }

@@ -17,6 +17,10 @@
 <header class="sticky top-0 z-50 flex items-center justify-between gap-4 border-b border-line bg-canvas px-[max(1.25rem,calc((100vw-64rem)/2))] py-4">
   <a class="flex items-center gap-3 font-display text-lg leading-none font-semibold tracking-[-0.01em]" href="/"><img class="h-auto w-7" src="{{asset "/static/mark.png"}}" alt=""> gusto</a>
   <nav class="flex items-center gap-5 text-md">
+    <a class="text-muted hover:text-ink max-[48rem]:hidden" href="#run">Run it</a>
+    <a class="text-muted hover:text-ink max-[48rem]:hidden" href="#day-one">What you get</a>
+    <a class="text-muted hover:text-ink max-[48rem]:hidden" href="#pricing">Pricing</a>
+    <a class="text-muted hover:text-ink max-[48rem]:hidden" href="https://github.com/getlatentic/gusto/blob/main/docs/QUICKSTART.md">Docs</a>
     <a class="inline-flex items-center text-muted hover:text-ink" href="https://github.com/getlatentic/gusto" aria-label="gusto on GitHub"><svg viewBox="0 0 16 16" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
     {{if .SignedIn}}<a class="rounded-sm bg-solid px-4 py-2 font-semibold whitespace-nowrap text-on-solid hover:bg-solid-hover" href="/app">Open gusto</a>
     {{else}}<a class="whitespace-nowrap text-muted hover:text-ink" href="/signin">Sign in</a>
@@ -24,8 +28,9 @@
   </nav>
 </header>
 
-<main class="mx-auto max-w-5xl px-5 pb-8">
-<section class="grid gap-5 pt-20">
+<main>
+<section class="mx-auto grid max-w-5xl gap-5 px-5 pt-14 min-[44rem]:pt-20">
+  <p class="text-sm font-semibold tracking-wide text-accent-ink uppercase">Open source · Apache-2.0</p>
   <h1 class="max-w-[18ch] font-display text-[length:clamp(2rem,5vw,3.25rem)] leading-[1.1] font-semibold tracking-[-0.02em]">One workspace for every AI agent your team uses.</h1>
   <p class="max-w-2xl text-lead text-muted">Your team and its agents, from Claude Code to Codex and OpenCode, work together in shared rooms. Each person&rsquo;s apps stay their own, agents reach only the models you approve, and budgets stop spend before it happens.</p>
   <div class="flex flex-wrap gap-3">
@@ -36,90 +41,123 @@
 </section>
 
 {{if .Video}}
-<section class="pt-8" aria-label="gusto, from inside">
+<section class="mx-auto max-w-5xl px-5 pt-10" aria-label="gusto, from inside">
   {{if .VideoFile}}<video class="aspect-video w-full rounded-lg bg-black shadow-2" controls playsinline preload="metadata" poster="{{.VideoPoster}}" src="{{.Video}}"></video>
   {{else}}<iframe class="aspect-video w-full rounded-lg border-0 bg-black shadow-2" src="{{.Video}}" title="gusto" loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>{{end}}
 </section>
 {{else if .Shot}}
-<section class="pt-8" aria-label="gusto in use">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="{{.ShotDark}}">
-    <img class="block h-auto w-full rounded-lg shadow-2 dark:border dark:border-line" src="{{.Shot}}" width="1568" height="1238" alt="Two people and their agents working in one room in gusto">
-  </picture>
-</section>
-{{end}}
-
-</main>
-
-<section id="harnesses" class="bg-canvas py-20 text-ink">
-  <div class="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] gap-12 px-5">
-    <div class="grid content-start gap-5">
-      <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Use the agents your team already wants.</h2>
-      <ul class="grid max-w-2xl grid-cols-2 gap-x-8 gap-y-3 min-[44rem]:grid-cols-3">
-        <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "claude" "size-6"}}Claude Code</li>
-        <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "codex" "size-6"}}Codex</li>
-        <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "opencode" "size-6"}}OpenCode</li>
-        <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "pi" "size-6"}}Pi</li>
-        <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "hermes" "size-6"}}Hermes Agent</li>
-        <li class="flex items-center gap-3 py-2 font-display text-copy leading-tight font-semibold">{{agentMark "dsh" "size-6"}}DeepSeek Agent</li>
-      </ul>
-       <p class="leading-[1.6] max-w-[44rem] text-lead text-muted">Switch agents without rebuilding credentials, model access, spend controls or activity tracking, or bring your own. No proprietary agent framework required.</p>
+<section class="mx-auto max-w-5xl px-5 pt-10" aria-label="gusto in use">
+  <div class="overflow-hidden rounded-lg border border-line-strong bg-surface shadow-2">
+    <div class="flex items-center gap-1.5 border-b border-line bg-wash px-4 py-3" aria-hidden="true"><span class="size-2.5 rounded-full bg-line-strong"></span><span class="size-2.5 rounded-full bg-line-strong"></span><span class="size-2.5 rounded-full bg-line-strong"></span></div>
+    <div class="max-h-[22rem] overflow-hidden min-[44rem]:max-h-[34rem]">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="{{.ShotDark}}">
+        <img class="block h-auto w-full" src="{{.Shot}}" width="1568" height="1238" alt="Two people and their agents working in one room in gusto">
+      </picture>
     </div>
   </div>
 </section>
+{{end}}
+</main>
 
-<section id="how" class="bg-wash py-20 text-ink">
+<section id="run" class="bg-wash py-14 text-ink min-[44rem]:py-20 mt-14 min-[44rem]:mt-20">
   <div class="mx-auto max-w-5xl px-5">
-    <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">How it works</h2>
-    <ol class="mt-12 grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 min-[44rem]:grid-cols-2 min-[64rem]:grid-cols-4">
-      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-solid text-md font-semibold text-on-solid">1</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">Make a room</h3><p class="leading-[1.6] text-md text-muted">A shared chat for your team and its agents.</p></li>
-      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-solid text-md font-semibold text-on-solid">2</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">Add any agent</h3><p class="leading-[1.6] text-md text-muted">Claude Code, Codex, OpenCode and more, each on a model you approve.</p></li>
-      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-solid text-md font-semibold text-on-solid">3</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">Let it use your apps</h3><p class="leading-[1.6] text-md text-muted">On the agent&rsquo;s Apps page. It works as you, only for what you ask.</p></li>
-      <li class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1"><span class="row-span-2 row-start-1 inline-grid size-7 place-items-center rounded-full bg-solid text-md font-semibold text-on-solid">4</span><h3 class="mb-2 font-display text-copy leading-[1.3] font-semibold">Keep spend in check</h3><p class="leading-[1.6] text-md text-muted">Each person has a monthly budget, checked before every model call.</p></li>
-    </ol>
-  </div>
-</section>
-
-<section id="control" class="carbon bg-canvas py-20 text-ink">
-  <div class="mx-auto max-w-5xl px-5">
-    <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">One workspace. One set of controls.</h2>
-    <ul class="mt-12 grid gap-8">
-      <li class="grid grid-cols-[minmax(0,1fr)] items-center gap-5 min-[52rem]:grid-cols-2 min-[52rem]:gap-12 min-[52rem]:even:[&>figure]:order-2"><figure class="m-0 [&_img]:block [&_img]:h-auto [&_img]:w-full [&_img]:rounded-lg [&_img]:bg-surface [&_img]:shadow-2 dark:[&_img]:border dark:[&_img]:border-line">{{darkScreen "apps" "An agent&rsquo;s Apps page, where a person chooses app by app what it may use" 752 333}}</figure><div class="grid gap-2"><h3 class="mb-2 font-display text-xl leading-[1.3] font-semibold">Your apps stay yours</h3><p class="leading-[1.6] max-w-[30rem] text-lg text-muted">Each person chooses, app by app, what an agent may use of theirs, or leaves it to their default. It works as them, only for what they ask. Another person&rsquo;s request never carries their apps, and the agent never holds the sign-in.</p></div></li>
-      <li class="grid grid-cols-[minmax(0,1fr)] items-center gap-5 min-[52rem]:grid-cols-2 min-[52rem]:gap-12 min-[52rem]:even:[&>figure]:order-2"><figure class="m-0 [&_img]:block [&_img]:h-auto [&_img]:w-full [&_img]:rounded-lg [&_img]:bg-surface [&_img]:shadow-2 dark:[&_img]:border dark:[&_img]:border-line">{{darkScreen "blocked" "An agent&rsquo;s reply, with the connections gusto refused listed under it" 660 284}}</figure><div class="grid gap-2"><h3 class="mb-2 font-display text-xl leading-[1.3] font-semibold">Only the models you approve</h3><p class="leading-[1.6] max-w-[30rem] text-lg text-muted">Agents run sealed off. Each reaches its approved model and nothing else, and every connection gusto refused is listed with the reply.</p></div></li>
-      <li class="grid grid-cols-[minmax(0,1fr)] items-center gap-5 min-[52rem]:grid-cols-2 min-[52rem]:gap-12 min-[52rem]:even:[&>figure]:order-2"><figure class="m-0 [&_img]:block [&_img]:h-auto [&_img]:w-full [&_img]:rounded-lg [&_img]:bg-surface [&_img]:shadow-2 dark:[&_img]:border dark:[&_img]:border-line">{{darkScreen "budget" "A reply that stopped because its person&rsquo;s budget was used up" 660 222}}</figure><div class="grid gap-2"><h3 class="mb-2 font-display text-xl leading-[1.3] font-semibold">Budgets that stop agents</h3><p class="leading-[1.6] max-w-[30rem] text-lg text-muted">gusto checks each person&rsquo;s budget before every model call. When it runs out, the agent stops at the next call and the room says why.</p></div></li>
+    <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Choose how to run gusto</h2>
+    <ul class="mt-10 grid grid-cols-[minmax(0,1fr)] gap-5 min-[52rem]:grid-cols-3">
+      <li class="grid content-start gap-3 rounded-lg border border-line-strong bg-surface p-6">
+        <h3 class="font-display text-lg leading-[1.3] font-semibold">Hosted by gusto</h3>
+        <p class="leading-[1.6] text-md text-muted">We run it for you. $25 a person a month, with your own model key or gusto&rsquo;s models on credit.</p>
+        <a class="mt-2 inline-block justify-self-start rounded-sm bg-solid px-5 py-3 font-semibold text-on-solid hover:bg-solid-hover" href="{{if .DemoPublic}}/demo{{else}}/signup{{end}}">{{template "landing-start" .}}</a>
+      </li>
+      <li class="grid content-start gap-3 rounded-lg border border-line-strong bg-surface p-6">
+        <h3 class="font-display text-lg leading-[1.3] font-semibold">Run it yourself</h3>
+        <p class="leading-[1.6] text-md text-muted">The code is open source. Run it on your laptop or in your own cloud, free.</p>
+        <a class="mt-2 inline-block justify-self-start rounded-sm border border-line-strong px-5 py-3 font-semibold hover:bg-wash" href="https://github.com/getlatentic/gusto">Get it on GitHub</a>
+      </li>
+      <li class="grid content-start gap-3 rounded-lg border border-line-strong bg-surface p-6">
+        <h3 class="font-display text-lg leading-[1.3] font-semibold">For your company</h3>
+        <p class="leading-[1.6] text-md text-muted">Your cloud and your compute, with help setting it up.</p>
+        {{if .Book}}<a class="mt-2 inline-block justify-self-start rounded-sm border border-line-strong px-5 py-3 font-semibold hover:bg-wash" href="{{.Book}}">{{template "landing-book" .}}</a>
+        {{else}}<a class="mt-2 inline-block justify-self-start rounded-sm border border-line-strong px-5 py-3 font-semibold hover:bg-wash" href="https://github.com/getlatentic/gusto/blob/main/docs/PILOT.md">Read the pilot guide</a>{{end}}
+      </li>
     </ul>
   </div>
 </section>
 
-<section id="proof" class="bg-canvas py-20 text-ink">
-  <div class="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] items-center gap-12 px-5 min-[52rem]:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-    <div class="grid content-start gap-5">
-      <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Tested across multiple agents.</h2>
-       <p class="leading-[1.6] max-w-[44rem] text-lead text-muted">Same task. Same model. Same environment.</p>
-      <ul class="grid gap-2" aria-label="Agents that finished the task">
-          <li class="grid grid-cols-[auto_1fr] items-center gap-3 rounded-md border border-line bg-surface px-4 py-3">{{agentMark "pi" "size-6"}}<span class="font-display text-copy leading-[1.3] font-semibold">Pi</span></li>
-          <li class="grid grid-cols-[auto_1fr] items-center gap-3 rounded-md border border-line bg-surface px-4 py-3">{{agentMark "claude" "size-6"}}<span class="font-display text-copy leading-[1.3] font-semibold">Claude Code</span></li>
-          <li class="grid grid-cols-[auto_1fr] items-center gap-3 rounded-md border border-line bg-surface px-4 py-3">{{agentMark "codex" "size-6"}}<span class="font-display text-copy leading-[1.3] font-semibold">Codex</span></li>
-          <li class="grid grid-cols-[auto_1fr] items-center gap-3 rounded-md border border-line bg-surface px-4 py-3">{{agentMark "hermes" "size-6"}}<span class="font-display text-copy leading-[1.3] font-semibold">Hermes Agent</span></li>
-          <li class="grid grid-cols-[auto_1fr] items-center gap-3 rounded-md border border-line bg-surface px-4 py-3">{{agentMark "opencode" "size-6"}}<span class="font-display text-copy leading-[1.3] font-semibold">OpenCode</span></li>
-        </ul>
-      <p class="text-[0.875rem] text-muted">Each one fixed the same small bug, and a test confirmed the fix.</p>
+<section id="start" class="bg-canvas py-14 text-ink min-[44rem]:py-20">
+  <div class="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] items-start gap-10 px-5 min-[52rem]:grid-cols-2 min-[52rem]:gap-12">
+    <div class="grid content-start gap-6">
+      <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Start in two steps</h2>
+      <ol class="grid gap-6">
+        <li class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3"><span class="row-span-2 inline-grid size-7 place-items-center rounded-full bg-solid text-md font-semibold text-on-solid">1</span><h3 class="font-display text-copy leading-[1.3] font-semibold">Start gusto.</h3><p class="leading-[1.6] text-md text-muted">One command installs it on your computer, starts it and opens it in your browser. Or use gusto cloud and skip it.</p></li>
+        <li class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3"><span class="row-span-2 inline-grid size-7 place-items-center rounded-full bg-solid text-md font-semibold text-on-solid">2</span><h3 class="font-display text-copy leading-[1.3] font-semibold">Make a room and add an agent.</h3><p class="leading-[1.6] text-md text-muted">Add a model key on the first page, pick an agent, and ask it something. Invite your team when it works for you.</p></li>
+      </ol>
+      <p class="text-md text-muted">gusto is a pre-release: it works, and it changes often. <a class="font-semibold text-ink underline" href="https://github.com/getlatentic/gusto/blob/main/docs/QUICKSTART.md">Read the quickstart</a>.</p>
     </div>
-    <figure class="m-0 [&_img]:block [&_img]:h-auto [&_img]:w-full [&_img]:mask-r-from-82%">{{picture "record" "What one reply cost and how long it took" 616 144}}</figure>
+    <div class="carbon overflow-hidden rounded-lg border border-line-strong bg-canvas text-ink shadow-2">
+      <div class="flex items-center justify-between border-b border-line px-4 py-2"><span class="text-sm text-muted">On your computer</span><button class="copy rounded-sm border border-line-strong px-3 py-1 text-sm font-semibold hover:bg-surface" type="button" data-copy="install">Copy</button></div>
+      <pre class="px-4 py-4 font-mono text-[0.875rem] leading-[1.6] break-all whitespace-pre-wrap"><code id="install">curl -fsSL https://github.com/getlatentic/gusto/releases/download/v0.1.0-rc.2/install.sh | sh -s -- v0.1.0-rc.2</code></pre>
+    </div>
   </div>
 </section>
 
-<section class="bg-wash py-12 text-ink">
-  <div class="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] items-center gap-12 px-5 min-[52rem]:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-    <p class="max-w-[40rem] text-lead">Built for teams that use more than one AI agent, and need credentials, model access, spend and activity to stay under control.</p>
-    <ul class="flex flex-wrap justify-start gap-2"><li class="rounded-full border border-line-strong px-3 py-1 text-sm text-muted">Engineering teams</li><li class="rounded-full border border-line-strong px-3 py-1 text-sm text-muted">Marketing and operations teams</li><li class="rounded-full border border-line-strong px-3 py-1 text-sm text-muted">Regulated organizations</li></ul>
-  </div>
-</section>
-
-<section id="pricing" class="bg-wash py-20 text-ink">
+<section id="day-one" class="bg-wash py-14 text-ink min-[44rem]:py-20">
   <div class="mx-auto max-w-5xl px-5">
-    <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Pricing</h2>
-    <ul class="mt-12 grid grid-cols-[minmax(0,1fr)] gap-5 min-[52rem]:grid-cols-3">
+    <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">What you get from day one</h2>
+    <ul class="mt-10 grid grid-cols-[minmax(0,1fr)] gap-5 min-[44rem]:grid-cols-2 min-[64rem]:grid-cols-3">
+      <li class="grid content-start gap-2 rounded-lg border border-line-strong bg-surface p-6"><h3 class="font-display text-lg leading-[1.3] font-semibold">Shared rooms</h3><p class="leading-[1.6] text-md text-muted">A chat for your team and its agents. Ask any agent by name, and everyone in the room sees its answer and the files it wrote.</p></li>
+      <li class="grid content-start gap-2 rounded-lg border border-line-strong bg-surface p-6"><h3 class="font-display text-lg leading-[1.3] font-semibold">Any agent</h3><p class="leading-[1.6] text-md text-muted">Claude Code, Codex, OpenCode and more, each on a model you approve. Switch without rebuilding credentials or spend controls.</p></li>
+      <li class="grid content-start gap-2 rounded-lg border border-line-strong bg-surface p-6"><h3 class="font-display text-lg leading-[1.3] font-semibold">Your apps stay yours</h3><p class="leading-[1.6] text-md text-muted">Each person chooses, app by app, what an agent may use of theirs. It works as them, only for what they ask, and never holds the sign-in.</p></li>
+      <li class="grid content-start gap-2 rounded-lg border border-line-strong bg-surface p-6"><h3 class="font-display text-lg leading-[1.3] font-semibold">Only the models you approve</h3><p class="leading-[1.6] text-md text-muted">Agents run sealed off. Each reaches its approved model and nothing else, and every connection gusto refused is listed with the reply.</p></li>
+      <li class="grid content-start gap-2 rounded-lg border border-line-strong bg-surface p-6"><h3 class="font-display text-lg leading-[1.3] font-semibold">Budgets that stop agents</h3><p class="leading-[1.6] text-md text-muted">Each person has a monthly budget, checked before every model call. When it runs out, the agent stops and the room says why.</p></li>
+      <li class="grid content-start gap-2 rounded-lg border border-line-strong bg-surface p-6"><h3 class="font-display text-lg leading-[1.3] font-semibold">A record of every run</h3><p class="leading-[1.6] text-md text-muted">Administrators see people, spend and what every run did, with what it cost and how long it took.</p></li>
+    </ul>
+  </div>
+</section>
+
+<section id="works-with" class="bg-canvas py-14 text-ink min-[44rem]:py-20">
+  <div class="mx-auto max-w-5xl px-5">
+    <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Works with your agents, models and computers</h2>
+    <p class="mt-3 max-w-2xl text-lead text-muted">Bring the agents your team already wants, or bring your own. No proprietary agent framework required.</p>
+    <div class="kinds mt-8">
+      <fieldset class="flex flex-wrap gap-2 border-0 p-0">
+        <legend class="sr-only">Show</legend>
+        <label class="cursor-pointer rounded-full border border-line-strong px-4 py-1.5 text-md has-checked:border-transparent has-checked:bg-solid has-checked:text-on-solid has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus"><input class="sr-only" type="radio" name="kind" id="f-all" checked>All</label>
+        <label class="cursor-pointer rounded-full border border-line-strong px-4 py-1.5 text-md has-checked:border-transparent has-checked:bg-solid has-checked:text-on-solid has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus"><input class="sr-only" type="radio" name="kind" id="f-agent">Agents</label>
+        <label class="cursor-pointer rounded-full border border-line-strong px-4 py-1.5 text-md has-checked:border-transparent has-checked:bg-solid has-checked:text-on-solid has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus"><input class="sr-only" type="radio" name="kind" id="f-model">Models</label>
+        <label class="cursor-pointer rounded-full border border-line-strong px-4 py-1.5 text-md has-checked:border-transparent has-checked:bg-solid has-checked:text-on-solid has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus"><input class="sr-only" type="radio" name="kind" id="f-place">Where it runs</label>
+      </fieldset>
+      <ul class="mt-6 grid grid-cols-2 gap-3 min-[44rem]:grid-cols-3 min-[64rem]:grid-cols-4">
+        <li data-kind="agent" class="grid content-start gap-1 rounded-lg border border-line-strong bg-surface p-4"><span class="flex items-center gap-3 font-display text-copy leading-tight font-semibold">{{agentMark "claude" "size-6"}}Claude Code</span><span class="text-sm text-muted">Agent</span></li>
+        <li data-kind="agent" class="grid content-start gap-1 rounded-lg border border-line-strong bg-surface p-4"><span class="flex items-center gap-3 font-display text-copy leading-tight font-semibold">{{agentMark "codex" "size-6"}}Codex</span><span class="text-sm text-muted">Agent</span></li>
+        <li data-kind="agent" class="grid content-start gap-1 rounded-lg border border-line-strong bg-surface p-4"><span class="flex items-center gap-3 font-display text-copy leading-tight font-semibold">{{agentMark "opencode" "size-6"}}OpenCode</span><span class="text-sm text-muted">Agent</span></li>
+        <li data-kind="agent" class="grid content-start gap-1 rounded-lg border border-line-strong bg-surface p-4"><span class="flex items-center gap-3 font-display text-copy leading-tight font-semibold">{{agentMark "pi" "size-6"}}Pi</span><span class="text-sm text-muted">Agent</span></li>
+        <li data-kind="agent" class="grid content-start gap-1 rounded-lg border border-line-strong bg-surface p-4"><span class="flex items-center gap-3 font-display text-copy leading-tight font-semibold">{{agentMark "hermes" "size-6"}}Hermes Agent</span><span class="text-sm text-muted">Agent</span></li>
+        <li data-kind="agent" class="grid content-start gap-1 rounded-lg border border-line-strong bg-surface p-4"><span class="flex items-center gap-3 font-display text-copy leading-tight font-semibold">{{agentMark "dsh" "size-6"}}DeepSeek Agent</span><span class="text-sm text-muted">Agent</span></li>
+        <li data-kind="model" class="grid content-start gap-1 rounded-lg border border-line-strong bg-surface p-4"><span class="font-display text-copy leading-tight font-semibold">Your own model key</span><span class="text-sm text-muted">Models, no markup</span></li>
+        <li data-kind="model" class="grid content-start gap-1 rounded-lg border border-line-strong bg-surface p-4"><span class="font-display text-copy leading-tight font-semibold">gusto&rsquo;s models</span><span class="text-sm text-muted">Models, on prepaid credit</span></li>
+        <li data-kind="place" class="grid content-start gap-1 rounded-lg border border-line-strong bg-surface p-4"><span class="font-display text-copy leading-tight font-semibold">Your laptop</span><span class="text-sm text-muted">Where it runs</span></li>
+        <li data-kind="place" class="grid content-start gap-1 rounded-lg border border-line-strong bg-surface p-4"><span class="font-display text-copy leading-tight font-semibold">Your own cloud</span><span class="text-sm text-muted">Where it runs</span></li>
+        <li data-kind="place" class="grid content-start gap-1 rounded-lg border border-line-strong bg-surface p-4"><span class="font-display text-copy leading-tight font-semibold">gusto cloud</span><span class="text-sm text-muted">Where it runs</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="proof" class="bg-wash py-14 text-ink min-[44rem]:py-20">
+  <div class="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] items-center gap-10 px-5 min-[52rem]:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] min-[52rem]:gap-12">
+    <div class="grid content-start gap-4">
+      <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Tested across multiple agents.</h2>
+      <p class="leading-[1.6] text-lead text-muted">Same task. Same model. Same environment. Pi, Claude Code, Codex, Hermes Agent and OpenCode each fixed the same small bug, and a test confirmed the fix.</p>
+    </div>
+    <figure class="m-0 [&_img]:block [&_img]:h-auto [&_img]:w-full [&_img]:rounded-lg [&_img]:shadow-2 [&_img]:border [&_img]:border-line">{{picture "record" "What one reply cost and how long it took" 616 144}}</figure>
+  </div>
+</section>
+
+<section id="pricing" class="bg-canvas py-14 text-ink min-[44rem]:py-20">
+  <div class="mx-auto max-w-5xl px-5">
+    <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Simple pricing</h2>
+    <ul class="mt-10 grid grid-cols-[minmax(0,1fr)] gap-5 min-[52rem]:grid-cols-3">
       <li class="grid content-start gap-3 rounded-lg border border-line-strong bg-surface p-6"><h3 class="font-display text-lg leading-[1.3] font-semibold">Open source</h3><p class="font-display text-[length:clamp(1.5rem,3vw,2rem)] leading-none font-semibold">Free</p><p class="leading-[1.6] text-md text-muted">Run gusto on a laptop or in your own cloud. Apache-2.0.</p><a class="text-md font-semibold underline" href="https://github.com/getlatentic/gusto">github.com/getlatentic/gusto</a></li>
       <li class="grid content-start gap-3 rounded-lg border border-line-strong bg-surface p-6"><h3 class="font-display text-lg leading-[1.3] font-semibold">gusto cloud</h3><p class="font-display text-[length:clamp(1.5rem,3vw,2rem)] leading-none font-semibold">$25</p><p class="leading-[1.6] text-md text-muted">A person a month. We host it. Use your own model key at no markup, or gusto&rsquo;s models on credit.</p></li>
       <li class="grid content-start gap-3 rounded-lg border border-line-strong bg-surface p-6"><h3 class="font-display text-lg leading-[1.3] font-semibold">Enterprise</h3><p class="font-display text-[length:clamp(1.5rem,3vw,2rem)] leading-none font-semibold">Let&rsquo;s talk</p><p class="leading-[1.6] text-md text-muted">Your cloud and your compute, with help setting it up.</p>{{if .Book}}<a class="text-md font-semibold underline" href="{{.Book}}">{{template "landing-book" .}}</a>{{end}}</li>
@@ -127,27 +165,36 @@
   </div>
 </section>
 
-<section class="bg-canvas py-20 text-ink">
-  <div class="mx-auto max-w-5xl px-5">
-  <h2 class="mb-6 text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Questions</h2>
-  <div class="grid grid-cols-[minmax(0,1fr)] gap-x-12 gap-y-6 min-[44rem]:grid-cols-2">
-    <div class="grid content-start gap-2 border-t border-line-strong pt-4"><h3 class="mb-2 font-display text-lg leading-[1.3] font-semibold">Which agents and models work?</h3><p class="leading-[1.6] text-md text-muted">Claude Code, Codex, OpenCode, Pi and Hermes, on the models your organization connects.</p></div>
-    <div class="grid content-start gap-2 border-t border-line-strong pt-4"><h3 class="mb-2 font-display text-lg leading-[1.3] font-semibold">Where does it run?</h3><p class="leading-[1.6] text-md text-muted">On a laptop or in the cloud. The code is open source under Apache-2.0.</p></div>
-    <div class="grid content-start gap-2 border-t border-line-strong pt-4"><h3 class="mb-2 font-display text-lg leading-[1.3] font-semibold">Who holds the model keys?</h3><p class="leading-[1.6] text-md text-muted">Your organization. Agents reach a model through a proxy and never hold the key.</p></div>
-    <div class="grid content-start gap-2 border-t border-line-strong pt-4"><h3 class="mb-2 font-display text-lg leading-[1.3] font-semibold">Who can see what the agents did?</h3><p class="leading-[1.6] text-md text-muted">Administrators see people, spend and what every run did.</p></div>
-  </div>
+<section id="talk" class="bg-wash py-14 text-ink min-[44rem]:py-20">
+  <div class="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] gap-5 px-5">
+    <h2 class="text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Talk to us</h2>
+    <p class="max-w-2xl leading-[1.6] text-lead text-muted">Running gusto for a whole company, in your cloud and on your compute? Tell us how your team works and we will help you set it up.</p>
+    {{if .Book}}<div><a class="inline-block rounded-sm bg-solid px-5 py-3 font-semibold text-on-solid hover:bg-solid-hover" href="{{.Book}}">{{template "landing-book" .}}</a></div>{{end}}
   </div>
 </section>
 
-<section class="carbon bg-canvas py-20 text-center text-ink">
-  <div class="mx-auto grid max-w-5xl justify-items-center gap-5 px-5">
-<h2 class="max-w-[28ch] text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Use different AI agents without setting up each one from scratch.</h2>
-  <div class="flex flex-wrap justify-center gap-3">
-    <a class="inline-block rounded-sm bg-solid px-5 py-3 font-semibold text-on-solid hover:bg-solid-hover" href="{{if .DemoPublic}}/demo{{else}}/signup{{end}}">{{template "landing-start" .}}</a>
-    {{if .Book}}<a class="inline-block rounded-sm border border-line-strong px-5 py-3 font-semibold hover:bg-surface" href="{{.Book}}">{{template "landing-book" .}}</a>{{end}}
-  </div>
+<section id="help" class="bg-canvas py-10 text-ink">
+  <div class="mx-auto flex max-w-5xl flex-wrap items-baseline gap-x-8 gap-y-2 px-5">
+    <h2 class="font-display text-lg leading-[1.3] font-semibold">Help and support</h2>
+    <a class="text-md font-semibold underline" href="https://github.com/getlatentic/gusto/blob/main/docs/QUICKSTART.md">Quickstart</a>
+    <a class="text-md font-semibold underline" href="https://github.com/getlatentic/gusto/blob/main/docs/REFERENCE.md">Reference</a>
+    <a class="text-md font-semibold underline" href="https://github.com/getlatentic/gusto/issues">GitHub issues</a>
   </div>
 </section>
+
+<section class="carbon bg-canvas py-14 text-center text-ink min-[44rem]:py-20">
+  <div class="mx-auto grid max-w-5xl justify-items-center gap-5 px-5">
+    <h2 class="max-w-[28ch] text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">Use different AI agents without setting up each one from scratch.</h2>
+    <div class="flex flex-wrap justify-center gap-3">
+      <a class="inline-block rounded-sm bg-solid px-5 py-3 font-semibold text-on-solid hover:bg-solid-hover" href="{{if .DemoPublic}}/demo{{else}}/signup{{end}}">{{template "landing-start" .}}</a>
+      {{if .Book}}<a class="inline-block rounded-sm border border-line-strong px-5 py-3 font-semibold hover:bg-surface" href="{{.Book}}">{{template "landing-book" .}}</a>{{end}}
+    </div>
+  </div>
+</section>
+
+<footer class="bg-canvas py-8 text-sm text-muted">
+  <div class="mx-auto flex max-w-5xl flex-wrap justify-between gap-2 px-5"><span>Made by <a class="underline" href="https://getlatentic.com">Latentic</a></span><span>Apache License 2.0</span></div>
+</footer>
 
 </body>
 </html>
