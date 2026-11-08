@@ -33,7 +33,9 @@ func (s *store) Close() error { return s.db.Close() }
 
 func (s *store) Upsert(ctx context.Context, row Row) error { return s.UpsertMany(ctx, []Row{row}) }
 
-func (s *store) UpsertMany(ctx context.Context, rows []Row) error { return s.write(ctx, rows, onlyForward) }
+func (s *store) UpsertMany(ctx context.Context, rows []Row) error {
+	return s.write(ctx, rows, onlyForward)
+}
 
 func (s *store) Restore(ctx context.Context, rows []Row) error { return s.write(ctx, rows, "") }
 
