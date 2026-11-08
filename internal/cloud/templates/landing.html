@@ -29,35 +29,38 @@
 </header>
 
 <main>
-<section class="mx-auto grid max-w-5xl gap-5 px-5 pt-14 min-[44rem]:pt-20">
-  <p class="text-sm font-semibold tracking-wide text-accent-ink uppercase">Open source · Apache-2.0</p>
-  <h1 class="max-w-[18ch] font-display text-[length:clamp(2rem,5vw,3.25rem)] leading-[1.1] font-semibold tracking-[-0.02em]">One workspace for every AI agent your team uses.</h1>
-  <p class="max-w-2xl text-lead text-muted">Your team and its agents, from Claude Code to Codex and OpenCode, work together in shared rooms. Each person&rsquo;s apps stay their own, agents reach only the models you approve, and budgets stop spend before it happens.</p>
-  <div class="flex flex-wrap gap-3">
-    <a class="inline-block rounded-sm bg-solid px-5 py-3 font-semibold text-on-solid hover:bg-solid-hover" href="{{if .DemoPublic}}/demo{{else}}/signup{{end}}">{{template "landing-start" .}}</a>
-    {{if .Book}}<a class="inline-block rounded-sm border border-line-strong px-5 py-3 font-semibold hover:bg-wash" href="{{.Book}}">{{template "landing-book" .}}</a>{{end}}
+<section class="overflow-hidden">
+<div class="mx-auto grid max-w-5xl items-center gap-10 px-5 pt-14 min-[44rem]:pt-20 min-[64rem]:grid-cols-[minmax(0,25rem)_minmax(0,1fr)] min-[64rem]:gap-12">
+  <div class="grid gap-5">
+    <p class="text-sm font-semibold tracking-wide text-accent-ink uppercase">Open source · Apache-2.0</p>
+    <h1 class="font-display text-[length:clamp(2rem,5vw,3rem)] leading-[1.1] font-semibold tracking-[-0.02em]">One workspace for every AI agent your team uses.</h1>
+    <p class="text-lead text-muted">Your team and its agents, from Claude Code to Codex and OpenCode, work together in shared rooms. Each person&rsquo;s apps stay their own, agents reach only the models you approve, and budgets stop spend before it happens.</p>
+    <div class="flex flex-wrap gap-3">
+      <a class="inline-block rounded-sm bg-solid px-5 py-3 font-semibold text-on-solid hover:bg-solid-hover" href="{{if .DemoPublic}}/demo{{else}}/signup{{end}}">{{template "landing-start" .}}</a>
+      {{if .Book}}<a class="inline-block rounded-sm border border-line-strong px-5 py-3 font-semibold hover:bg-wash" href="{{.Book}}">{{template "landing-book" .}}</a>{{end}}
+    </div>
+    <p class="text-[0.875rem] text-muted">{{if .DemoPublic}}Free. No credit card. A {{minuteLong .DemoLeft}} isolated demo, deleted when it ends.{{else}}Free to start, with {{printf "$%.0f" .StartingCredit}} of gusto's models. Then add your own model key. No credit card.{{end}}</p>
   </div>
-  <p class="text-[0.875rem] text-muted">{{if .DemoPublic}}Free. No credit card. A {{minuteLong .DemoLeft}} isolated demo, deleted when it ends.{{else}}Free to start, with {{printf "$%.0f" .StartingCredit}} of gusto's models. Then add your own model key. No credit card.{{end}}</p>
-</section>
-
-{{if .Video}}
-<section class="mx-auto max-w-5xl px-5 pt-10" aria-label="gusto, from inside">
-  {{if .VideoFile}}<video class="aspect-video w-full rounded-lg bg-black shadow-2" controls playsinline preload="metadata" poster="{{.VideoPoster}}" src="{{.Video}}"></video>
-  {{else}}<iframe class="aspect-video w-full rounded-lg border-0 bg-black shadow-2" src="{{.Video}}" title="gusto" loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>{{end}}
-</section>
-{{else if .Shot}}
-<section class="mx-auto max-w-5xl px-5 pt-10" aria-label="gusto in use">
-  <div class="overflow-hidden rounded-lg border border-line-strong bg-surface shadow-2">
-    <div class="flex items-center gap-1.5 border-b border-line bg-wash px-4 py-3" aria-hidden="true"><span class="size-2.5 rounded-full bg-line-strong"></span><span class="size-2.5 rounded-full bg-line-strong"></span><span class="size-2.5 rounded-full bg-line-strong"></span></div>
-    <div class="max-h-[22rem] overflow-hidden min-[44rem]:max-h-[34rem]">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="{{.ShotDark}}">
-        <img class="block h-auto w-full" src="{{.Shot}}" width="1568" height="1238" alt="Two people and their agents working in one room in gusto">
-      </picture>
+  {{if .Video}}
+  <div aria-label="gusto, from inside">
+    {{if .VideoFile}}<video class="aspect-video w-full rounded-lg bg-black shadow-2" controls playsinline preload="metadata" poster="{{.VideoPoster}}" src="{{.Video}}"></video>
+    {{else}}<iframe class="aspect-video w-full rounded-lg border-0 bg-black shadow-2" src="{{.Video}}" title="gusto" loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>{{end}}
+  </div>
+  {{else if .Shot}}
+  <div class="min-w-0 min-[64rem]:w-[58rem]" aria-label="gusto in use">
+    <div class="overflow-hidden rounded-lg border border-line-strong bg-surface shadow-2 min-[64rem]:rounded-r-none min-[64rem]:border-r-0">
+      <div class="flex items-center gap-1.5 border-b border-line bg-wash px-4 py-3" aria-hidden="true"><span class="size-2.5 rounded-full bg-line-strong"></span><span class="size-2.5 rounded-full bg-line-strong"></span><span class="size-2.5 rounded-full bg-line-strong"></span></div>
+      <div class="max-h-[22rem] overflow-hidden min-[44rem]:max-h-[34rem]">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="{{.ShotDark}}">
+          <img class="block h-auto w-full" src="{{.Shot}}" width="1568" height="1238" alt="Two people and their agents working in one room in gusto">
+        </picture>
+      </div>
     </div>
   </div>
+  {{end}}
+</div>
 </section>
-{{end}}
 </main>
 
 <section id="run" class="bg-wash py-14 text-ink min-[44rem]:py-20 mt-14 min-[44rem]:mt-20">
