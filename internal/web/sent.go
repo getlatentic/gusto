@@ -40,7 +40,7 @@ func callerOf(r *http.Request) string {
 // everything else uses. A server with none takes the shared password.
 func (s *Server) sent(scope string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if s.wrong.blocked(clientOf(r), time.Now()) {
+		if s.wrong.blocked(s.clientOf(r), time.Now()) {
 			s.noteRefused(r, "", s.presented(), "too many wrong attempts from this source")
 			tooMany(w)
 			return
@@ -116,7 +116,7 @@ func refusalOf(err error) string {
 // one get one answer, so a guess cannot learn that a token once existed; the
 // record says which it was.
 func (s *Server) turnBack(w http.ResponseWriter, r *http.Request, why, said string) {
-	s.wrong.failed(clientOf(r), time.Now())
+	s.wrong.failed(s.clientOf(r), time.Now())
 	s.noteRefused(r, "", s.presented(), why)
 	w.Header().Set("WWW-Authenticate", `Bearer realm="gusto"`)
 	reply(w, http.StatusUnauthorized, Answer{Refused: said})

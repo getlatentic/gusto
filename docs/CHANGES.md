@@ -22,7 +22,7 @@ This record says what the people who run the platform did to it: who signed in, 
 | `retention.hold`, `retention.release`, `retention.swept` | An admin keeps a task or a person's work from being removed, or lets it go. A sweep removed working folders or records, with the counts and the records named |
 | `server.started`, `settings.changed` | The server starts, with the settings that decide who may do what. One of those settings differs from the last start |
 
-Every line has who, what, when and where the request came from. It never holds a password.
+Every line has who, what, when and where the request came from. It never holds a password. Behind gusto cloud, where the request came from is the address the front door saw, which it forwards in `X-Forwarded-For` and this server believes from a private address only.
 
 The settings are `GUSTO_ALLOWED`, `GUSTO_ADMINS`, `GUSTO_RUNNER_GROUPS`, `GUSTO_ADMIN_GROUPS`, `GUSTO_OIDC_GROUPS_CLAIM`, `GUSTO_OIDC_ISSUER`, `GUSTO_ALLOWED_HOSTS`, `GUSTO_MODELS`, `GUSTO_TASK_NETWORK`, `GUSTO_API_TOKENS`, `GUSTO_LIMIT_PERSON`, `GUSTO_LIMIT_TEAM`, `GUSTO_RETENTION`, and the hashes of the retention policy and the spend policy file. They change outside the pages, so `who` is `the server` and `when` is the next start.
 

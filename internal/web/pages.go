@@ -165,7 +165,7 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
-	from := clientOf(r)
+	from := s.clientOf(r)
 	if s.wrong.blocked(from, time.Now()) {
 		s.noteRefused(r, "", "the shared password", "too many wrong attempts from this source")
 		tooMany(w)

@@ -11,8 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/accesslog"
-
 	"github.com/getlatentic/gusto/internal/changelog"
 )
 
@@ -74,7 +72,7 @@ func (s *Server) note(r *http.Request, kind string, what map[string]string) {
 		return
 	}
 	who, role, _ := s.keeper.session(r)
-	s.record(changelog.Event{Who: who, Role: string(role), From: clientOf(r), Kind: kind, What: what})
+	s.record(changelog.Event{Who: who, Role: string(role), From: s.clientOf(r), Kind: kind, What: what})
 }
 
 // record writes an event. A change has already happened by the time it is
@@ -91,7 +89,7 @@ func (s *Server) noteSignIn(r *http.Request, who string, role Role, how string) 
 	if s.changes == nil {
 		return
 	}
-	from := clientOf(r)
+	from := s.clientOf(r)
 	if was, known := s.changes.LastRole(who); known && was != string(role) {
 		s.record(changelog.Event{Who: who, Role: string(role), From: from, Kind: changelog.RoleChanged,
 			What: map[string]string{"was": was, "now": string(role)}})
@@ -106,7 +104,7 @@ func (s *Server) noteRefused(r *http.Request, who, how, why string) {
 	if s.changes == nil {
 		return
 	}
-	from := clientOf(r)
+	from := s.clientOf(r)
 	what := map[string]string{"how": how, "why": why}
 	allowed, suppressed := s.turnedAway.allow(from, time.Now())
 	if !allowed {
@@ -165,10 +163,6 @@ func (f *refusals) allow(from string, now time.Time) (bool, int) {
 	w.suppressed = 0
 	return true, carried
 }
-
-// clientOf is where a request came from, as the access log says it (accesslog.Remote): a forwarded address is believed from a proxy
-// on this machine, and from any peer when gusto was told it is only reached through one.
-func clientOf(r *http.Request) string { return accesslog.Remote(r) }
 
 // changesFile is the whole log, as the file holds it, for an admin to export
 // and for a verifier to check.
