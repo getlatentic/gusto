@@ -22,7 +22,9 @@ type Backend interface {
 	// Offered is which agents the backend's boxes can run, as last found. It is cheap to ask: a backend whose finding
 	// starts a box keeps what it found.
 	Offered() []catalog.Entry
-	// Run runs a turn's agent in a box and returns its exit code. The box is stopped when ctx ends.
+	// Run runs a turn's agent in a box and returns its exit code. The box is stopped when ctx ends. Whatever a turn made is
+	// removed however it ended, including when the box never started, and removing it is safe to repeat; every call to a gateway
+	// or runtime that does this has a time limit, so a runtime that does not answer cannot hold the turn's worker.
 	Run(ctx context.Context, turn Turn) (int, error)
 }
 

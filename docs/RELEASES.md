@@ -27,6 +27,7 @@ A tag needs a section here named for it, or the release workflow stops and copie
   | `GUSTO_FRONT_DOOR` | `GUSTO_CLOUD_URL` |
 
 - `gusto host` is `gusto node`, and `gusto cloud workspaces` is `gusto cloud computers`. The old names are gone.
+- Ending a sandbox, or stopping one, waits at most two minutes for the OpenShell gateway, so a gateway that does not answer no longer holds a turn's worker. Ending a sandbox twice, or one that was never made, reports nothing.
 
 ## v0.1.0-rc.2
 

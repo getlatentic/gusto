@@ -24,3 +24,6 @@ func PlaceConfig(from, home string) string { return placeConfig(from, home) }
 
 // SetRetry lets a test wait milliseconds where a run waits seconds.
 func SetRetry(total, every time.Duration) { retryFor, retryEvery = total, every }
+
+// SetRemoveWithin lets a test give the gateway milliseconds where a run gives it minutes.
+func SetRemoveWithin(limit time.Duration) { removeWithin = limit }
