@@ -34,6 +34,30 @@ func TestOnlyAnAdminOfAnOrganizationIsOfferedToInviteAPerson(t *testing.T) {
 	}
 }
 
+func TestTheInvitationFormNamesThePageToComeBackTo(t *testing.T) {
+	admin := behindCloud(t)
+	admin.cookie = cookieOf(t, admin.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
+	page := admin.ask(t, "GET", "/members", nil).Body.String()
+	if !strings.Contains(page, `name="back" value="http://`) || !strings.Contains(page, `/members"`) {
+		t.Error("the invitation form does not carry the address of the Members page for gusto cloud to send the person back to")
+	}
+}
+
+func TestMembersSaysTheInvitationWasSentOnlyWhenGustoCloudSaysSo(t *testing.T) {
+	admin := behindCloud(t)
+	admin.cookie = cookieOf(t, admin.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
+	if page := admin.ask(t, "GET", "/members?sent=1", nil).Body.String(); !strings.Contains(page, "The invitation was sent") {
+		t.Error("Members does not say the invitation was sent after gusto cloud sends the person back with sent=1")
+	}
+	if page := admin.ask(t, "GET", "/members", nil).Body.String(); strings.Contains(page, "The invitation was sent") {
+		t.Error("Members says an invitation was sent when none was")
+	}
+	alone := open(t)
+	if page := alone.as(t, alice).ask(t, "GET", "/members?sent=1", nil).Body.String(); strings.Contains(page, "The invitation was sent") {
+		t.Error("a server with no gusto cloud claims an invitation was sent")
+	}
+}
+
 func TestMembersStillMakesAnAgentFromItsPlusWhereThereIsNoInvitation(t *testing.T) {
 	site := openOffering(t, twoHarnesses())
 	page := site.as(t, alice).ask(t, "GET", "/members", nil).Body.String()
