@@ -46,6 +46,8 @@ type turn struct {
 	// Stopped is the harness's last words when the turn failed, which is the
 	// reason as near as the record has one.
 	Stopped string
+	// Home is set when the person's kept home being full is why the turn did not run or was stopped.
+	Home *fullHome
 	// Capped is the spending limit that refused the turn's model, in the proxy's own words, when one did, and Limit the same
 	// in a sentence for the people reading the turn.
 	Capped *spend.Refusal
@@ -163,6 +165,7 @@ func (s *Server) fullTurn(entry tasks.Record, ledger *spend.Ledger) turn {
 	shown.Spent, shown.Metered = spentBy(ledger, entry.ID)
 	if entry.State == tasks.Failed || entry.State == tasks.Interrupted {
 		shown.Stopped = stopped(dir)
+		shown.Home = homeFullOf(dir)
 	}
 	if refusal, err := spend.Stopped(dir.OutFile("proxy.jsonl"), entry.Started); err == nil {
 		shown.Capped = refusal

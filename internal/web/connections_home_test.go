@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/backend/container"
+	"github.com/getlatentic/gusto/internal/changelog"
 )
 
 // connectionsHomes is a backend's kept homes, one for each person and workspace, that keeps what it was asked.
@@ -41,7 +42,7 @@ func (h *connectionsHomes) ResetHome(person, space string) error {
 // A person sees how much of its limit their home takes, is told when it is full, and resets it themselves: only theirs, only in
 // the workspace they are in, and not while their agents work in it.
 func TestAPersonSeesTheirHomeTakesAndResetsIt(t *testing.T) {
-	here, _, _ := connected(t)
+	here, log, _ := connected(t)
 	homes := &connectionsHomes{uses: map[string]container.HomeUse{
 		alice + "/main": {Used: 1536 << 20, Limit: 5 << 30, At: time.Now().Add(-3 * time.Minute)},
 		bob + "/main":   {Used: 6 << 30, Limit: 5 << 30, At: time.Now()},
@@ -77,6 +78,13 @@ func TestAPersonSeesTheirHomeTakesAndResetsIt(t *testing.T) {
 	}
 	if page := ada.ask(t, "GET", "/connections", nil).Body.String(); !strings.Contains(page, "<strong>1.5 GiB</strong>") {
 		t.Error("resetting bob's home touched alice's")
+	}
+	resets := ofKind(written(t, log), changelog.HomeReset)
+	if len(resets) != 1 || resets[0].Who != bob || resets[0].What["workspace"] != "main" || resets[0].What["used"] != "6.0 GiB" {
+		t.Errorf("the reset is not in the change record: %+v", resets)
+	}
+	if said := saidOf(resets[0]); !strings.Contains(said, "6.0 GiB") {
+		t.Errorf("the reset is said as %q", said)
 	}
 }
 
