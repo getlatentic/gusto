@@ -1,8 +1,10 @@
 package web
 
 import (
+	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/getlatentic/gusto/internal/usage"
 )
@@ -34,16 +36,24 @@ func (s *Server) UsageWho(task string) (usage.Who, bool) {
 	if !found {
 		return usage.Who{}, false
 	}
-	return usage.WhoOfTask(record, s.engineName, func(id, roomAgent string) (string, bool) {
-		held, found := s.instances.Get(id)
-		if !found {
-			return "", false
-		}
-		if agent, found := s.liveRoom(held).AgentByID(roomAgent); found && roomAgent != "" {
-			return agent.Name, true
-		}
-		return s.agentOf(held).Name, true
-	}), true
+	return usage.WhoOfTask(record, s.engineName, s.usageAgent), true
+}
+
+// usageAgent is the name usage gives the agent of a task's instance: a room's agent by the name it has in the room, a role's agent
+// by the role, and the agent of a plain chat by its agent type, since the title of a chat is the folder it works in and says
+// nothing of who answers.
+func (s *Server) usageAgent(id, roomAgent string) (string, bool) {
+	held, found := s.instances.Get(id)
+	if !found {
+		return "", false
+	}
+	if agent, found := s.liveRoom(held).AgentByID(roomAgent); found && roomAgent != "" {
+		return agent.Name, true
+	}
+	if !held.Room && held.Setup == "" {
+		return usage.AgentName("", "", s.engineName(held.Harness)), true
+	}
+	return s.agentOf(held).Name, true
 }
 
 // UsageProvider names who answers a model, as the organization's registry names its providers. A model the registry
@@ -81,11 +91,35 @@ func tally(count *int64) string {
 }
 
 // usageSpent is what a total cost as a person reads it. A sum of nothing but unpriced calls is not shown as a figure at all.
-func usageSpent(t usage.Totals) (figure, caption string) {
+func usageSpent(t usage.Totals, period string) (figure, caption string) {
 	if t.Unmeasured > 0 && t.Unmeasured == t.Calls {
-		return "no price", "no price set for these models"
+		return "no price", "no price set for these models, " + period
 	}
-	return headlineUSD(t.USD), "spent"
+	return headlineUSD(t.USD), "spent, " + period
+}
+
+// usagePeriod names the dates the filter covers: both of them, one of them, or all time when it has none, since this page counts
+// every call there is and not a month. A figure that names its period can be read beside the month's figures elsewhere.
+func usagePeriod(values url.Values) string {
+	from, to := dateWords(values.Get("from")), dateWords(values.Get("to"))
+	switch {
+	case from != "" && to != "":
+		return from + " to " + to
+	case from != "":
+		return "since " + from
+	case to != "":
+		return "up to " + to
+	}
+	return "all time"
+}
+
+// dateWords is a date the filter holds as a person reads it, or nothing for what is not a date.
+func dateWords(day string) string {
+	when, err := time.Parse("2006-01-02", day)
+	if err != nil {
+		return ""
+	}
+	return when.Format("2 Jan 2006")
 }
 
 // unpricedNote says which calls the sum leaves out, when it leaves out some but not all, so a sum is never read as complete.
