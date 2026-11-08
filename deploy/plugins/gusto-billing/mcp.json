@@ -1,0 +1,10 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "billing": {
+      "type": "streamable-http",
+      "url": "https://cloud.example.com/billing/mcp",
+      "headers": { "Authorization": "Bearer REPLACE_WITH_THE_ORGANIZATIONS_AGENT_TOKEN" }
+    }
+  }
+}

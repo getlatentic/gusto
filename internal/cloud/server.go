@@ -43,6 +43,8 @@ type Config struct {
 	Leads *LeadHook
 	// Notify is the address mailed when a visitor starts a demo, when it is set.
 	Notify string
+	// Billing sells by the seat through PayPal when it is set.
+	Billing *Billing
 	// ComputersWait is how long an ending demo waits for its computers to be removed. It is ninety seconds when not set.
 	ComputersWait time.Duration
 }
@@ -50,14 +52,15 @@ type Config struct {
 // Server is the front door's pages.
 type Server struct {
 	Config
-	pages   *template.Template
-	signups *Limiter
-	mails   *Limiter
-	all     *Limiter
-	invites *Limiter
-	sending sync.WaitGroup
-	making  sync.WaitGroup
-	ender   demoEnder
+	pages              *template.Template
+	signups            *Limiter
+	mails              *Limiter
+	all                *Limiter
+	invites            *Limiter
+	webhooks, mcpCalls *Limiter
+	sending            sync.WaitGroup
+	making             sync.WaitGroup
+	ender              demoEnder
 }
 
 // New makes the front door.
@@ -81,9 +84,12 @@ func New(c Config) (*Server, error) {
 	if err := c.Leads.Complete(); err != nil {
 		return nil, err
 	}
+	if c.Billing != nil && c.Billing.URL == nil {
+		c.Billing.URL = c.URL
+	}
 	return &Server{Config: c, pages: pages,
 		signups: c.limiter("signups", c.PerAddress), mails: c.limiter("mails", c.PerMailbox), all: c.limiter("all", c.InAll),
-		invites: c.limiter("invites", 20)}, nil
+		invites: c.limiter("invites", 20), webhooks: c.limiter("paypal-webhooks", webhooksPerHour), mcpCalls: c.limiter("billing-mcp", mcpCallsPerHour)}, nil
 }
 
 // limiter counts most events an hour. With a store the count is shared by every front door on its database.
@@ -160,6 +166,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /lease", s.guard(s.leasePage))
 	mux.HandleFunc("POST /lease/extend", s.guard(s.extendLease))
 	mux.HandleFunc("POST /signout", s.signOut)
+	s.billingRoutes(mux)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok\n")) })
 	mux.Handle("GET /static/cloud.css", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/shots/", cached(http.FileServerFS(files)))
@@ -202,7 +209,7 @@ func (s *Server) secure(next http.Handler) http.Handler {
 				http.Error(w, "that form was sent from another site", http.StatusForbidden)
 				return
 			}
-			r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
+			r.Body = http.MaxBytesReader(w, r.Body, bodyLimit(r))
 		}
 		next.ServeHTTP(w, r)
 	})
@@ -250,4 +257,12 @@ func (s *Server) send(to, subject, body string) {
 			log.Printf("cloud: mail to a person was not sent: %v", err)
 		}
 	}()
+}
+
+// bodyLimit is the most a request may send: a form's worth, except PayPal's deliveries, which are bigger.
+func bodyLimit(r *http.Request) int64 {
+	if r.URL.Path == billingWebhookPath {
+		return billingWebhookMax
+	}
+	return 16 << 10
 }

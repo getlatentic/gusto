@@ -42,6 +42,8 @@ type view struct {
 	Trial    quota.Quota
 	Verified quota.Quota
 	Notice   string
+	// Billing is the organization's subscription, when this server sells by PayPal.
+	Billing *billingView
 	// Computers is how many computers the organization has.
 	Computers int
 	// Domain is the company's.

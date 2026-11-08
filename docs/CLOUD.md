@@ -42,6 +42,8 @@ A controller in gusto cloud moves an organization through `provisioning`, `ready
 | `GUSTO_CLOUD_PORT_FROM` | the first port an organization's server gets, two each, 9100 by default |
 | `GUSTO_CLOUD_START_WAIT_SECONDS` | how long a server has to answer once started, 120 by default |
 | `GUSTO_CLOUD_SERVERS` | `off` runs gusto cloud with accounts and no organization servers |
+| `GUSTO_PAYPAL_CLIENT_ID`, `GUSTO_PAYPAL_CLIENT_SECRET`, `GUSTO_PAYPAL_WEBHOOK_ID` | turn on payment by seat through PayPal's **sandbox**: the app's credentials and the id of the webhook registered for `<GUSTO_CLOUD_URL>/billing/paypal/webhook`. All three, or none. Keep them where a secret is kept. They never go to an organization's server |
+| `GUSTO_PAYPAL_PLAN_ID` | the PayPal plan to subscribe to. Without it the product and the plan are made once and remembered |
 | `GUSTO_CLOUD_FREE_MAIL` | `allow` lets free mail providers sign up, for a demonstration |
 
 ## Accounts and sign-up
@@ -121,6 +123,32 @@ Admins choose the models their people may use at `/admin/models`. A provider is 
 - `GUSTO_REGISTRY_KEYS` allows naming a key as `file:<path>`, `ssm:<name>` or `secretsmanager:<id>`. A deployment that hosts other people's organizations leaves these out, because they let an admin name anything the machine can read.
 - A provider must be at an https address that resolves to a public address. The check runs when it is added and on each proxy connection. A call that would reach this machine, a private network or a cloud metadata service is refused. `GUSTO_REGISTRY_PRIVATE=allow` lifts this for a model inside your network. Behind gusto cloud the environment fixes both settings.
 - An admin can limit a person to some models. API tokens belong to nobody, so they are not limited.
+
+## Billing
+
+An organization pays $25 a seat a month, through PayPal Subscriptions. The code talks to PayPal's sandbox only (`https://api-m.sandbox.paypal.com`): no setting points it elsewhere, so a live credential fails to sign in. A card or a PayPal login is entered at PayPal and never reaches gusto. Without the three `GUSTO_PAYPAL_*` credentials there are no billing pages or endpoints.
+
+A seat is a person. The subscription's quantity is the seats the payer approved, and the organization's quota follows it: `people` and `workspaces` equal the paid seats, so an invitation past the last paid seat is refused and says so.
+
+| State | Meaning | What the organization may run |
+| --- | --- | --- |
+| none | never subscribed | the quota its address earned |
+| `pending` | the payer has not approved at PayPal | unchanged |
+| `active` | paid | the plan's quota, with the paid seats |
+| `past_due` | the last payment failed and PayPal is trying again | the same as `active` |
+| `suspended` | PayPal suspended it or an admin cancelled it | no new task and no invitation. Nothing is deleted |
+
+PayPal is the clock. The plan allows three failed payments, and PayPal suspends the subscription after the third. gusto keeps no timer of its own.
+
+**Accounts database.** Migration 2 adds `billing` (one row for each organization that subscribed), `billing_events` (the deliveries already applied), `seat_proposals` and `billing_tokens` (the digest of an agent's token). The tables hold no name, address or card of a payer.
+
+**Webhook.** `POST /billing/paypal/webhook` takes PayPal's deliveries. It sends the body back to PayPal's `verify-webhook-signature` byte for byte and acts only on `SUCCESS`. A delivery without PayPal's five headers is a 400 and one that fails is a 401. The event is a prompt and not the truth: the handler reads the subscription from PayPal and makes the organization's record say the same, so a repeat or an event out of order changes nothing. A subscription that gusto did not make for an organization is ignored. An error that is gusto's to fix is a 500, which makes PayPal send the delivery again. A record whose `update_time` is older than the one applied is not applied.
+
+**Seat changes.** Changing the quantity of a subscription needs the payer's approval at PayPal. So a change goes in three steps, and nothing changes or is charged before the third: a proposal (an admin on the organization page, or an agent), an admin's approval, which asks PayPal to revise the subscription and sends the admin to PayPal, and the payer's approval there. The new seats are applied when PayPal's webhook, or the payer's return, shows the new quantity. A proposal cannot be fewer seats than people, nor more than 500, and one is open at a time.
+
+**Agents.** `POST /billing/mcp` is an MCP endpoint (streamable HTTP, JSON-RPC 2.0) with two tools: `billing_status` and `billing_propose_seats`. An admin makes the organization's bearer token with "New agent token" on the organization page. It is shown once, only its digest is kept, and a new token replaces the old. The token names the organization, so an agent can read and propose for its own organization and no other. No tool approves, pays or subscribes. `deploy/plugins/gusto-billing` is an Agent Plugin with the server and a skill that tells an agent to ask a person before it proposes. Before import, put the front door's address and the token in its `mcp.json`.
+
+**Testing.** The tests run a fake PayPal made from the shapes in PayPal's published OpenAPI schema. It is not a recording of the sandbox. `TestPayPalSandbox` reaches the sandbox when `GUSTO_PAYPAL_CLIENT_ID` and `GUSTO_PAYPAL_CLIENT_SECRET` are set: it makes the plan and a subscription that waits for a payer. `GUSTO_REAL_AGENT=1 go test -run RealAgent ./internal/cloud` runs `codex` against the endpoint and checks that it leaves a proposal and changes nothing.
 
 ## Demos
 

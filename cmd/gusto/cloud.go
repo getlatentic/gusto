@@ -134,8 +134,12 @@ func openCloud() (*cloud.Server, *cloud.Controller, error) {
 	if path := os.Getenv("GUSTO_CLOUD_LEASE_FILE"); path != "" {
 		lease = cloud.OpenLease(path, time.Duration(number("GUSTO_CLOUD_LEASE_STEP_MINUTES", 30))*time.Minute)
 	}
+	billing, err := billingFromEnvironment(store)
+	if err != nil {
+		return nil, nil, err
+	}
 	front, err := cloud.New(cloud.Config{
-		Lease: lease, Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
+		Billing: billing, Lease: lease, Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
 		Domain:     setting("GUSTO_CLOUD_DOMAIN", "localhost"),
 		TrustProxy: os.Getenv("GUSTO_CLOUD_TRUST_PROXY") == "1",
 		Notify:     os.Getenv("GUSTO_CLOUD_DEMO_NOTIFY"),

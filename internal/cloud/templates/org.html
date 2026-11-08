@@ -17,6 +17,7 @@
     <dt>Workspaces</dt><dd>{{.Computers}} of {{.Quota.Computers}}</dd>
     {{if .Server}}<dt>Server</dt><dd><span class="inline-flex items-center gap-2 before:size-2 before:rounded-full before:content-[''] {{if .CanOpen}}before:bg-ok{{else}}before:bg-warn{{end}}">{{if .CanOpen}}Ready{{else}}Starting{{end}}</span></dd>{{end}}
   </dl>
+  {{with .Billing}}{{template "billing" .}}{{end}}
   <h2 class="text-md font-semibold leading-[1.3]">People</h2>
   <ul class="grid gap-2">
     {{range .Members}}<li class="flex items-center gap-3"><span class="flex-1 wrap-anywhere">{{.Email}}</span><span class="text-sm text-muted">{{.Role}}{{with index $.ComputerOf .Email}}, workspace {{.}}{{end}}</span>
