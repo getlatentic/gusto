@@ -41,7 +41,9 @@ func TestAnArchivedRoomTakesNoUploadAndNoEditAndSaysSoOnItsFiles(t *testing.T) {
 	if page := his.ask(t, "GET", "/rooms/"+id+"/files?panel=1", nil).Body.String(); !strings.Contains(page, "data-room-upload") || strings.Contains(page, "This room is archived") {
 		t.Fatal("a room that is not archived does not offer to add files")
 	}
-	opened := func() string { return his.ask(t, "GET", "/instances/"+id+"/file?path=plan.md&panel=1", nil).Body.String() }
+	opened := func() string {
+		return his.ask(t, "GET", "/instances/"+id+"/file?path=plan.md&panel=1", nil).Body.String()
+	}
 	if !strings.Contains(opened(), "data-file-edit") {
 		t.Fatal("a file of a room that is not archived does not open to be changed")
 	}
