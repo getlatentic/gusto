@@ -1,12 +1,14 @@
 package web
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/registry"
@@ -75,6 +77,7 @@ func (s *Server) modelRoutes(mux *http.ServeMux) {
 	providers, access, settings := toModelsTab("providers"), toModelsTab("access"), toModelsTab("settings")
 	mux.HandleFunc("GET "+modelsPath, guard(s.modelsPage))
 	mux.HandleFunc("POST /admin/models/providers", guard(s.registryAction(changelog.ProviderAdded, providers, s.addProvider)))
+	mux.HandleFunc("POST /admin/models/providers/{name}/discover", guard(s.registryAction(changelog.ModelAdded, toProvider, s.importModels)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/key", guard(s.registryAction(changelog.KeyReplaced, toProvider, s.replaceKey)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/addresses", guard(s.registryAction(changelog.AddressAdded, toProvider, s.addAddress)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/addresses/remove", guard(s.registryAction(changelog.AddressRemoved, toProvider, s.removeAddress)))
@@ -153,6 +156,18 @@ func (s *Server) addProvider(r *http.Request) (map[string]string, error) {
 		what["key"] = "stored"
 	}
 	return what, nil
+}
+
+// importModels adds the models a provider lists, off until turned on, each with the price the provider gave.
+func (s *Server) importModels(r *http.Request) (map[string]string, error) {
+	name := r.PathValue("name")
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+	listed, added, err := s.registry.Import(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{"provider": name, "listed": strconv.Itoa(listed), "added": strconv.Itoa(added)}, nil
 }
 
 func (s *Server) replaceKey(r *http.Request) (map[string]string, error) {

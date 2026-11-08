@@ -66,7 +66,7 @@ func New(tokens *Tokens, credentials Credentials, where Where, ledger *spend.Led
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	})
 	p.UseTokens(tokens)
-	p.public = publicClient(p.lookup)
+	p.public = PublicClient(p.lookup)
 	p.SetCredentials(credentials, 0)
 	return p
 }

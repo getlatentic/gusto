@@ -167,6 +167,8 @@ Each organization may spend a credit on the models gusto provides, the operator'
 
 Admins choose the models their people may use at `/admin/models`. A provider is an address, how it takes its key, and perhaps the agents it works with. A model belongs to a provider and may have a price in dollars for a million tokens of input, output and cached input. A team's cap cannot count a model with no price.
 
+A provider may be a gateway that fronts many models, such as Otari, LiteLLM or OpenRouter: give its address (for Otari, `https://api.otari.ai/api`), its key, and the shapes of API it answers (Chat Completions, Anthropic Messages, Responses). **Find its models** then asks the gateway `GET /v1/models` with the stored key, from the server, and adds each chat model it lists, with the price it gives, off until you turn it on. Each model is listed once; the shapes belong to the provider, so an agent that speaks a shape the gateway answers is not translated. Calls go out with the key added by the proxy, are counted in gusto's own ledger at the registry's price, and the key is never shown again or sent to an agent.
+
 - Each change is a version of the registry. It is written to the change record without the key and applies to the next model call. A running task keeps the credential it began with. `out/proxy.jsonl` records the version of each call.
 - A provider or model an admin adds is off until an admin turns it on. The registry keeps its last twenty earlier states, and "Go back to it" restores one as a new change.
 - A key is typed once, kept in a file only the server can read, and never shown again. Retiring a provider forgets its key.
