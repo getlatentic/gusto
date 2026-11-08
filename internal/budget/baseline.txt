@@ -25,7 +25,6 @@
 41 11 internal/cloud/mail_cloudflare.go:(Cloudflare).once
 38 11 internal/cloud/memberships_sql.go:(*Store).Verify
 40 12 internal/cloud/org.go:(*Server).drawOrg
-33 14 internal/cloud/server.go:(*Server).Handler
 53 1 internal/cloud/server.go:(*Server).routes
 31 11 internal/cloud/stripe_events.go:verifyStripe
 41 11 internal/cloud/turnstile.go:(Turnstile).Check

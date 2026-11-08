@@ -176,7 +176,7 @@ Admins choose the models their people may use at `/admin/models`. A provider is 
 
 ## Demos
 
-With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a name, a work email and a company. They get a signed-in organization on a small quota (one computer, one person). Their time starts when the server first answers, with one extension and a link to book a call (`GUSTO_CLOUD_BOOK_URL`). When time is up, gusto cloud asks the server to remove its computers, waits up to ninety seconds, stops the server (a server that is down cannot remove them, and its computers' sandboxes stay on the host until an operator removes them), and deletes the organization, its memberships, its data, and the accounts of people who were in no other organization. A demo not ready within `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organization made as a demo is deleted this way. With `GUSTO_CLOUD_DEMO_STAFF` set, only the addresses and domains it names may start a demo. Everyone else is offered sign-up, or a demo booked with the team.
+With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a name, a work email and a company. They get a signed-in organization on a small quota (one computer, one person). Their time starts when the server first answers, with one extension and a link to book a call (`GUSTO_CLOUD_BOOK_URL`). When time is up, gusto cloud asks the server to remove its computers, waits up to ninety seconds, and ends the demo only once none is left. While one is left the demo stays marked as ending, with its server, its data and the records of its computers, and the next sweep (every tick of `RunDemos`) asks again, so a busy server removes them when it gets to them and nothing is left unnamed on the host. `gusto_demo_ends_deferred_total` counts the endings put off. A server that is down is not started again for this, so a demo whose server is down stays ending until an operator starts the server or removes its sandboxes (getlatentic/planning#831). Then gusto cloud stops the server and deletes the organization, its memberships, its data, and the accounts of people who were in no other organization. A demo not ready within `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES` is deleted the same way. Only an organization made as a demo is deleted this way. With `GUSTO_CLOUD_DEMO_STAFF` set, only the addresses and domains it names may start a demo. Everyone else is offered sign-up, or a demo booked with the team.
 
 - The landing page at `/` is shown to everybody, signed in or not. Its header offers Sign in, or Open gusto (`/app`) to a person who is signed in. A gusto cloud server with no demos has no landing page, and `/` is the way in.
 - Set `GUSTO_CLOUD_TURNSTILE_SITE` and `GUSTO_CLOUD_TURNSTILE_SECRET` to add a Cloudflare Turnstile bot check. It fails closed.
@@ -196,6 +196,21 @@ With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a 
 `gusto operator` serves the page the operator manages a hosted gusto from: demo requests (with a spreadsheet download), demos running, a switch that pauses new demos, the demo limits and the hosts that are up. The limits are the most demos in a day, the most one address and one company may start in a day, and the most at once. They hold from the next demo, on every gusto cloud server, and are kept in the database. `GUSTO_CLOUD_DEMO_PER_DAY`, `GUSTO_CLOUD_DEMO_PER_PERSON`, `GUSTO_CLOUD_DEMO_PER_COMPANY` and `GUSTO_CLOUD_DEMO_MAX` are the starting values.
 
 It is the separate service `gusto-owner`, listening on `127.0.0.1:8090` of gusto cloud's host only. It refuses any other address (`GUSTO_OPERATOR_ADDR`), any request that names another host or comes through a proxy, and any form from another site. Run `deploy/aws/openshell/operator.sh` to open a tunnel through AWS Systems Manager to `http://localhost:8090`. It needs the Session Manager plugin: `brew install --cask session-manager-plugin`.
+
+## Metrics
+
+The front door reports Prometheus metrics at `GET /.gusto/metrics` on its own listener (`GUSTO_CLOUD_ADDR`). The path answers only a request to `localhost`, `127.0.0.1` or `[::1]` that carries no `X-Forwarded-For` or `Forwarded` header, and is not found for any other, so a proxy or the public host name never serves it. A Prometheus, or a CloudWatch agent's Prometheus scrape, on the front door's host reads it (`deploy/alerts/prometheus.example.yml`, job `gusto-front`). Each process has a registry of its own.
+
+| Metric | Meaning |
+| --- | --- |
+| `gusto_front_requests_total{class,status}`, `gusto_front_request_seconds{class}` | requests and their time. `class` is the mux pattern that matched, or `org` and `app` for what is sent on to an organization's server or a computer's app, `lease`, or `unmatched`; `status` is `2xx` to `5xx` |
+| `gusto_orgs{state}` | organizations the controller holds, by waiting, provisioning, starting, ready and failed |
+| `gusto_provision_seconds`, `gusto_provision_failures_total` | how long a provision took, ready or failed, and how many failed. One that waits for room is neither |
+| `gusto_front_leads`, `gusto_front_epoch` | 1 when this front door runs the controller, and the lease epoch it leads with |
+| `gusto_demo_ends_deferred_total` | demo endings put off because computers were still to be removed |
+| `go_*`, `process_*` | the Go runtime and the process |
+
+No label holds a person, an address, a request id or an organization. The decision on where the metrics go is Prometheus on the front door's host. The alerts are `GustoProvisionFailing` and `GustoFrontErrors` (`docs/RUNBOOK.md`). Not yet reported: the cell agent, the organization's server, the database, outbound calls, and `net/http/pprof` (getlatentic/planning#806).
 
 ## Checks and costs
 

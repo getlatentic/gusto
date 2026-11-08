@@ -64,6 +64,8 @@ type view struct {
 	Server  string
 	CanOpen bool
 	Refresh bool
+	// RefreshEvery is how many seconds the page waits to look again, three when it is not set.
+	RefreshEvery int
 	// Steps and Waited say how far a demo is from ready.
 	Steps  []Step
 	Waited string
