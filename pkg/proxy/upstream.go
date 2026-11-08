@@ -20,10 +20,10 @@ func (p *Proxy) clientFor(credential Credential) *http.Client {
 	return p.public
 }
 
-// publicClient is a client that connects only to a public address. A name is resolved once, here, and
+// PublicClient is a client that connects only to a public address. A name is resolved once, here, and
 // the connection is made to an address from that answer, so what was checked is what is connected to and
 // a name whose record changes between the two is no way in.
-func publicClient(resolve Resolver) *http.Client {
+func PublicClient(resolve Resolver) *http.Client {
 	dial := func(ctx context.Context, network, address string) (net.Conn, error) {
 		host, port, err := net.SplitHostPort(address)
 		if err != nil {

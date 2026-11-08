@@ -118,6 +118,7 @@
     <h2 class="flex flex-wrap items-center gap-2 text-base font-semibold">{{.Name}}{{if .Operator}} <span class="text-sm font-normal text-subtle">set by the operator of this gusto</span>{{end}}{{if .Pending}} <span class="{{template "ui-badge-warn"}}">off: waiting for you to turn it on</span>{{end}}</h2>
     {{if not .Operator}}
     <div class="flex flex-wrap items-center gap-2">
+      <form method="post" action="/admin/models/providers/{{.Name}}/discover" title="Asks {{.Name}} which models its key can use and adds each, with its price when it gives one, off until you turn it on"><button type="submit" class="{{template "ui-btn-sm"}}">Find its models</button></form>
       <button type="button" class="{{template "ui-btn-sm"}}" data-open="add-model">Add model</button>
       <button type="button" class="{{template "ui-btn-sm"}}" data-open="add-address">Add address</button>
       {{if eq .Key "stored"}}<button type="button" class="{{template "ui-btn-sm"}}" data-open="replace-key">Replace key</button>{{end}}
