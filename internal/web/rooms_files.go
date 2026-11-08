@@ -2,6 +2,7 @@ package web
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -30,6 +31,17 @@ type roomFile struct {
 type roomFileDay struct {
 	Day   string
 	Files []roomFile
+}
+
+// sharedForWriting is the folder's agent or room for a request that changes its files, which an archived room refuses: it is kept
+// as it was, and a notice of a file changed would be the one thing that still moved in its conversation.
+func (s *Server) sharedForWriting(w http.ResponseWriter, r *http.Request) (instance.Instance, bool) {
+	held, found := s.sharedOr404(w, r)
+	if found && held.Archived != 0 {
+		answerJSON(w, http.StatusConflict, map[string]string{"error": roomArchivedFilesWords})
+		return held, false
+	}
+	return held, found
 }
 
 func (s *Server) roomFilesPanel(w http.ResponseWriter, r *http.Request) {
@@ -61,6 +73,7 @@ func (s *Server) roomFilesPanel(w http.ResponseWriter, r *http.Request) {
 		"Agents":   len(byAgents),
 		"People":   len(byPeople),
 		"Cut":      cut,
+		"Archived": held.Archived != 0,
 	})
 }
 
@@ -120,6 +133,9 @@ func (s *Server) uploadToRoom(w http.ResponseWriter, r *http.Request) {
 // keepUploads puts files somebody added into the room's folder, and gives the names they were kept under. When it cannot, it says
 // which status to answer with.
 func (s *Server) keepUploads(r *http.Request, held instance.Instance, sent []*multipart.FileHeader) ([]string, int, error) {
+	if held.Archived != 0 {
+		return nil, http.StatusConflict, errors.New(roomArchivedFilesWords)
+	}
 	root := s.instances.AgentFolder(held.ID)
 	s.writing(held.ID).Lock()
 	defer s.writing(held.ID).Unlock()

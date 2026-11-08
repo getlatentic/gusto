@@ -4,8 +4,9 @@
       <button class="h-7 min-w-0 flex-1 cursor-pointer truncate rounded-md border-0 bg-transparent px-2 text-xs font-medium text-muted aria-selected:bg-surface aria-selected:text-ink aria-selected:shadow-1" type="button" role="tab" aria-selected="true" data-files-tab="agents">Made by agents <span class="text-subtle tabular-nums">{{.Agents}}</span></button>
       <button class="h-7 min-w-0 flex-1 cursor-pointer truncate rounded-md border-0 bg-transparent px-2 text-xs font-medium text-muted aria-selected:bg-surface aria-selected:text-ink aria-selected:shadow-1" type="button" role="tab" aria-selected="false" data-files-tab="people">Added by people <span class="text-subtle tabular-nums">{{.People}}</span></button>
     </div>
-    <label class="grid size-8 flex-none cursor-pointer place-items-center rounded-md text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" title="Add files to the room">{{template "icon-upload"}}<span class="sr-only">Add files to the room</span><input class="sr-only" type="file" multiple data-room-upload></label>
+    {{if not .Archived}}<label class="grid size-8 flex-none cursor-pointer place-items-center rounded-md text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" title="Add files to the room">{{template "icon-upload"}}<span class="sr-only">Add files to the room</span><input class="sr-only" type="file" multiple data-room-upload></label>{{end}}
   </div>
+  {{if .Archived}}<p class="m-0 text-sm text-muted" role="status">This room is archived, so its files cannot be added to or changed until an admin brings it back.</p>{{end}}
   <p class="m-0 hidden text-sm text-muted" role="status" data-upload-status></p>
   {{template "room-file-days" (dict "Days" .ByAgents "List" "agents" "Room" .Room "From" .From "Empty" "No files made by agents in this room yet.")}}
   {{template "room-file-days" (dict "Days" .ByPeople "List" "people" "Room" .Room "From" .From "Empty" "Nobody has added a file to this room yet." "Hidden" true)}}
