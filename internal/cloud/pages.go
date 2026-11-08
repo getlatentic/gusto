@@ -30,20 +30,33 @@ type view struct {
 	// after they have been.
 	More bool
 	Slug string
+	// Taken says the address a person signed up with has an account, so they are offered a sign-in link to it.
+	Taken bool
+	// WorkOnly says only a work address may sign up or start a demo.
+	WorkOnly bool
+	// SignedIn says the person looking at the landing page is signed in, so it offers to open gusto rather than to sign in.
+	SignedIn bool
 	// Sent says a sign-in link was asked for.
 	Sent bool
 	// Token, Action and Button draw the page that confirms a link.
 	Token, Action, Button string
-	// The organization page.
-	Org      Org
+	// The organization page, and Several when the person looking is in more organizations than this one.
+	Org     Org
+	Several bool
+	// Credit is what is left of the organization's free credit on the models gusto provides.
+	Credit *credit
+	// Plan is how the organization pays, when this gusto cloud server bills.
+	Plan *plan
+	// PayPal is the organization's subscription by PayPal, when this gusto cloud server sells by it.
+	PayPal *payPalView
+	// Orgs are the organizations a person chooses among.
+	Orgs     []Org
 	Person   Person
 	Address  string
 	Quota    quota.Quota
 	Trial    quota.Quota
 	Verified quota.Quota
 	Notice   string
-	// Billing is the organization's subscription, when this server sells by PayPal.
-	Billing *billingView
 	// Computers is how many computers the organization has.
 	Computers int
 	// Domain is the company's.
@@ -53,27 +66,43 @@ type view struct {
 	Server  string
 	CanOpen bool
 	Refresh bool
+	// RefreshEvery is how many seconds the page waits to look again, three when it is not set.
+	RefreshEvery int
 	// Steps and Waited say how far a demo is from ready.
 	Steps  []Step
 	Waited string
 	// The people: who is in, who has been invited and has not answered, whether the
 	// person looking is an admin, and whether they may invite one more.
-	Members   []Person
-	Invited   []Invitation
-	IsAdmin   bool
-	CanInvite bool
+	Members []Person
+	// Workspaces is the organization's workspaces, shown on its page when an admin may change them or there are several.
+	Workspaces []workspaceRow
+	Invited    []Invitation
+	IsAdmin    bool
+	CanInvite  bool
 	// Admins is how many of the members are admins, since the last one cannot be made
 	// a runner and is not offered it.
 	Admins int
 	// Computers of each member by address, for the people who have one.
 	ComputerOf map[string]string
 	Inviter    string
+	// Link is an invitation's address, shown to the person who made it when mail is not the only way it travels.
+	Link string
 	// A demo: the time it has, the state of its server in words, where a call is booked, and whether it may be extended.
 	DemoLeft   time.Duration
 	DemoWords  string
 	Book       string
 	Extendable bool
 	Ended      bool
+	// DemoPublic says a visitor may start a demo; where only the team gives them, the landing page leads to sign-up, with the
+	// StartingCredit an organization begins with.
+	DemoPublic     bool
+	StartingCredit float64
+	// BookFrame is the booking page shown in the page, where the booking service may be framed, and Wide gives a page the room
+	// for it.
+	BookFrame string
+	Wide      bool
+	// Console draws the page in the app's admin layout instead of a card.
+	Console bool
 	// Ending is a demo that has been stopped and is being deleted.
 	Ending bool
 	// Video is the landing page's video, and VideoFile says it is a file and not a page to embed. Shot is the picture shown when there is no video.
@@ -84,12 +113,15 @@ type view struct {
 	// TurnstileSite is the public key of the bot check, which the demo form carries when there is one.
 	TurnstileSite string
 	VideoFile     bool
+	// VideoPoster is the picture a video file is shown with before it plays.
+	VideoPoster string
 	// Name is who a demo is for.
 	Name string
 }
 
 func (s *Server) render(w http.ResponseWriter, status int, page string, v view) {
 	v.Lease = s.Lease != nil
+	v.WorkOnly = s.Store != nil && !s.Store.FreeMailAllowed()
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	if err := s.pages.ExecuteTemplate(w, page, v); err != nil {

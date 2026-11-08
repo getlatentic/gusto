@@ -13,14 +13,14 @@ import (
 
 	"github.com/getlatentic/gusto/cmd/internal/cmdline/clitest"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/taskindex"
 	"github.com/getlatentic/gusto/internal/taskindex/taskindextest"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/internal/web"
 )
 
 // writeState makes a task directory whose state.json holds the record.
-func writeState(t *testing.T, data string, record jobs.Record) {
+func writeState(t *testing.T, data string, record tasks.Record) {
 	t.Helper()
 	dir := filepath.Join(data, "jobs", record.ID)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -38,9 +38,9 @@ func writeState(t *testing.T, data string, record jobs.Record) {
 func someTasks(t *testing.T, data string) {
 	t.Helper()
 	at := time.Date(2026, 10, 5, 9, 30, 0, 0, time.UTC).Unix()
-	writeState(t, data, jobs.Record{ID: "20261005-0930-fix-login", State: jobs.Passed, Brief: "Fix the login form", Harness: "codex", Asked: "ada@acme.com", Repo: "acme/web", Queued: at, Seq: 1})
-	writeState(t, data, jobs.Record{ID: "20261006-1000-migrate", State: jobs.Failed, Brief: "Migrate 100% of users", Harness: "claude-code", Asked: "bob@acme.com", Repo: "acme/api", Queued: at + 86400, Seq: 2, Exit: 1})
-	writeState(t, data, jobs.Record{ID: "20260901-0800-old", State: jobs.Interrupted, Brief: "Old work", Harness: "codex", Asked: "ada@acme.com", Queued: at - 30*86400, Seq: 3, Exit: -1})
+	writeState(t, data, tasks.Record{ID: "20261005-0930-fix-login", State: tasks.Passed, Brief: "Fix the login form", Harness: "codex", Asked: "ada@acme.com", Repo: "acme/web", Queued: at, Seq: 1})
+	writeState(t, data, tasks.Record{ID: "20261006-1000-migrate", State: tasks.Failed, Brief: "Migrate 100% of users", Harness: "claude-code", Asked: "bob@acme.com", Repo: "acme/api", Queued: at + 86400, Seq: 2, Exit: 1})
+	writeState(t, data, tasks.Record{ID: "20260901-0800-old", State: tasks.Interrupted, Brief: "Old work", Harness: "codex", Asked: "ada@acme.com", Queued: at - 30*86400, Seq: 3, Exit: -1})
 }
 
 func TestTheTasksCommandsHelpSaysWhatTheyReadAndHowTheyEnd(t *testing.T) {
@@ -50,7 +50,7 @@ func TestTheTasksCommandsHelpSaysWhatTheyReadAndHowTheyEnd(t *testing.T) {
 			t.Fatalf("%v: exit code %d", path, code)
 		}
 		if len(path) == 2 {
-			for _, want := range []string{"GUSTO_DATABASE_URL", "GUSTO_JOBS", "Examples", "Exit codes"} {
+			for _, want := range []string{"GUSTO_DATABASE_URL", "GUSTO_TASKS", "Examples", "Exit codes"} {
 				if !strings.Contains(out, want) {
 					t.Errorf("%v: help lacks %q:\n%s", path, want, out)
 				}
@@ -140,7 +140,7 @@ func TestTasksListPrintsATableAndFilters(t *testing.T) {
 func TestTasksListPagesPastOneThousand(t *testing.T) {
 	data := withUsageData(t)
 	for n := 0; n < 1105; n++ {
-		writeState(t, data, jobs.Record{ID: fmt.Sprintf("t%04d", n), State: jobs.Passed, Brief: "b", Queued: int64(n), Seq: int64(n + 1)})
+		writeState(t, data, tasks.Record{ID: fmt.Sprintf("t%04d", n), State: tasks.Passed, Brief: "b", Queued: int64(n), Seq: int64(n + 1)})
 	}
 	clitest.Capture(t, func() int { return run([]string{"tasks", "reindex"}) })
 	out, _, _ := clitest.Capture(t, func() int { return run([]string{"tasks", "list", "-json", "-limit", "1100"}) })
@@ -152,11 +152,11 @@ func TestTasksListPagesPastOneThousand(t *testing.T) {
 
 func TestDoctorAndDataStatusReportTheTaskIndex(t *testing.T) {
 	data := withUsageData(t)
-	result := taskIndexCheck()
+	result := taskIndexCheck(indexesOf(fromEnv(t).stores))
 	if result.Status != "pass" || result.Name != "task index" || !strings.Contains(result.Said, "does not exist yet") {
 		t.Errorf("before the server made it: %+v", result)
 	}
-	if line := taskIndexStatusLine(); !strings.Contains(line, "not made yet") {
+	if line := taskIndexStatusLine(indexesOf(fromEnv(t).stores)); !strings.Contains(line, "not made yet") {
 		t.Errorf("data status line before: %q", line)
 	}
 	if _, err := os.Stat(filepath.Join(data, "tasks.db")); err == nil {
@@ -164,10 +164,10 @@ func TestDoctorAndDataStatusReportTheTaskIndex(t *testing.T) {
 	}
 	someTasks(t, data)
 	clitest.Capture(t, func() int { return run([]string{"tasks", "reindex"}) })
-	if result = taskIndexCheck(); result.Status != "pass" || !strings.Contains(result.Said, "schema version") {
+	if result = taskIndexCheck(indexesOf(fromEnv(t).stores)); result.Status != "pass" || !strings.Contains(result.Said, "schema version") {
 		t.Errorf("after: %+v", result)
 	}
-	if line := taskIndexStatusLine(); !strings.Contains(line, "schema version") || !strings.Contains(line, "3 rows") {
+	if line := taskIndexStatusLine(indexesOf(fromEnv(t).stores)); !strings.Contains(line, "schema version") || !strings.Contains(line, "3 rows") {
 		t.Errorf("data status line: %q", line)
 	}
 	out, _, _ := clitest.Capture(t, func() int { return run([]string{"data", "status"}) })
@@ -175,10 +175,10 @@ func TestDoctorAndDataStatusReportTheTaskIndex(t *testing.T) {
 		t.Errorf("data status:\n%s", out)
 	}
 	t.Setenv("GUSTO_DATABASE_URL", "ftp://u:hunter2@h/db")
-	if result = taskIndexCheck(); result.Status != "fail" || strings.Contains(result.Said, "hunter2") || result.Remedy == "" {
+	if result = taskIndexCheck(indexesOf(fromEnv(t).stores)); result.Status != "fail" || strings.Contains(result.Said, "hunter2") || result.Remedy == "" {
 		t.Errorf("a database that cannot be used: %+v", result)
 	}
-	if line := taskIndexStatusLine(); strings.Contains(line, "hunter2") || !strings.Contains(line, "unavailable") {
+	if line := taskIndexStatusLine(indexesOf(fromEnv(t).stores)); strings.Contains(line, "hunter2") || !strings.Contains(line, "unavailable") {
 		t.Errorf("data status line for a bad URL: %q", line)
 	}
 }
@@ -186,7 +186,7 @@ func TestDoctorAndDataStatusReportTheTaskIndex(t *testing.T) {
 func TestAServerFillsTheTaskIndexAtStartKeepsItCurrentAndStopsCleanly(t *testing.T) {
 	data := withUsageData(t)
 	someTasks(t, data)
-	index, err := jobs.Open(filepath.Join(data, "jobs"))
+	index, err := tasks.Open(filepath.Join(data, "jobs"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,7 +199,7 @@ func TestAServerFillsTheTaskIndexAtStartKeepsItCurrentAndStopsCleanly(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	stop, err := startTasks(index, pages, nil)
+	stop, err := startTasks(index, pages, nil, fromEnv(t).stores.databaseURL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,7 +208,7 @@ func TestAServerFillsTheTaskIndexAtStartKeepsItCurrentAndStopsCleanly(t *testing
 		t.Helper()
 		deadline := time.Now().Add(10 * time.Second)
 		for {
-			store, err := openTasks(context.Background(), index.Root())
+			store, err := indexes{url: indexesOf(fromEnv(t).stores).url, tasks: index.Root()}.openTasks(context.Background())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -224,7 +224,7 @@ func TestAServerFillsTheTaskIndexAtStartKeepsItCurrentAndStopsCleanly(t *testing
 		}
 	}
 	waitForRows(1, "passed")
-	added := jobs.Record{ID: "20261007-0800-new", State: jobs.Queued, Brief: "new", Asked: "ada@acme.com", Queued: jobs.Now()}
+	added := tasks.Record{ID: "20261007-0800-new", State: tasks.Queued, Brief: "new", Asked: "ada@acme.com", Queued: tasks.Now()}
 	if err := os.MkdirAll(added.Dir(index.Root()).Path(), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -298,7 +298,7 @@ func TestTheKeeperTriesAgainAfterARunThatFailed(t *testing.T) {
 	shortWaits(t)
 	data := withUsageData(t)
 	someTasks(t, data)
-	index, err := jobs.Open(filepath.Join(data, "jobs"))
+	index, err := tasks.Open(filepath.Join(data, "jobs"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -317,7 +317,7 @@ func TestTheKeeperTriesAgainAfterARunThatFailed(t *testing.T) {
 func TestTheKeeperRepairsWhatTheMirrorCouldNotWrite(t *testing.T) {
 	shortWaits(t)
 	data := withUsageData(t)
-	index, err := jobs.Open(filepath.Join(data, "jobs"))
+	index, err := tasks.Open(filepath.Join(data, "jobs"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -328,7 +328,7 @@ func TestTheKeeperRepairsWhatTheMirrorCouldNotWrite(t *testing.T) {
 	done := make(chan struct{})
 	go func() { keepTasks(ctx, index, store, &taskindex.Progress{}); close(done) }()
 	defer func() { stop(); <-done }()
-	added := jobs.Record{ID: "20261007-0800-new", State: jobs.Queued, Brief: "new", Asked: "ada@acme.com", Queued: jobs.Now()}
+	added := tasks.Record{ID: "20261007-0800-new", State: tasks.Queued, Brief: "new", Asked: "ada@acme.com", Queued: tasks.Now()}
 	if err := os.MkdirAll(added.Dir(index.Root()).Path(), 0o755); err != nil {
 		t.Fatal(err)
 	}

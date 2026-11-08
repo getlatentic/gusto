@@ -1,11 +1,15 @@
 {{template "head" .}}
 
-<div class="{{template "ui-title"}}">
-  <h1>People</h1>
-  <span class="text-sm text-muted">Roles, last sign-in and spend this month</span>
-  <span class="flex-1"></span>
+<div class="{{template "ui-title"}} items-start justify-between">
+  <div class="min-w-0">
+    <h1>People</h1>
+    <p class="{{template "ui-lede"}}">Who is in {{or .OrgName "this organization"}}, and what they may do</p>
+  </div>
   {{with .Manage}}<a class="{{template "ui-btn"}}" href="{{.}}">Invite people</a>{{end}}
 </div>
+{{with .Tabs}}{{if gt (len .) 1}}{{template "ui-tabs" .}}{{end}}{{end}}
+
+{{template "ui-flash" .}}
 
 {{if .Unreadable}}
 <p class="{{template "ui-notice"}}">The list of people could not be read, so none is shown. {{.Unreadable}}</p>
@@ -13,29 +17,50 @@
 
 {{if .SpendUnreadable}}<p class="{{template "ui-notice"}}">Spending could not be read, so none is shown. {{.SpendUnreadable}}</p>{{end}}
 
-<div class="{{template "ui-card"}} overflow-x-auto">
+{{if eq .Tab "invited"}}
+<div class="{{template "ui-card"}} relative overflow-x-auto">
   <table class="{{template "ui-table"}}">
-    <thead><tr><th>Person</th><th>Role</th><th>Last signed in</th><th class="text-right">Spent in {{.Month}}</th></tr></thead>
+    <thead><tr><th>Invited</th><th>By</th><th class="text-right">Link works until</th></tr></thead>
+    <tbody>
+      {{range .Invited}}<tr><td>{{.Email}}</td><td class="text-muted">{{.By}}</td><td class="text-right whitespace-nowrap text-subtle">{{if .Expired}}Expired {{when .Expires}}{{else}}{{when .Expires}}{{end}}</td></tr>{{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<div class="{{template "ui-card"}} relative @max-[56rem]:overflow-x-auto">
+  <table class="{{template "ui-table"}}">
+    <thead><tr><th>Person</th><th>Role</th><th class="text-right">{{if .Budgets}}<a class="text-inherit no-underline hover:underline" href="/admin/budgets">Spent this month</a>{{else}}Spent this month{{end}}</th><th class="text-right">Last in</th></tr></thead>
     <tbody>
       {{range .People}}
       <tr>
-        <td><span class="flex items-center gap-3"><span class="grid size-8 flex-none place-items-center rounded-full bg-wash text-xs font-semibold text-muted" aria-hidden="true">{{initial .Email}}</span><span>{{.Email}}</span></span></td>
-        <td><span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize {{if eq .Role "admin"}}bg-ink text-inverse{{else}}bg-wash text-subtle{{end}}">{{.Role}}</span></td>
-        <td class="text-muted">{{if .LastSignIn}}<span title="{{when .LastSignIn}}">{{ago .LastSignIn}}</span>{{else}}never{{end}}</td>
-        <td class="text-right tabular-nums">{{with .Spent}}{{if eq .Unmeasured 0}}{{usd .USD}}{{else if eq .Calls .Unmeasured}}<span class="text-muted">no price</span>{{else}}{{usd .USD}} <span class="text-muted">at least</span>{{end}}{{else}}<span class="text-muted">nothing</span>{{end}}</td>
+        <td><span class="flex items-center gap-3"><span class="grid size-8 flex-none place-items-center rounded-full border border-line bg-sunken text-xs font-semibold text-muted" aria-hidden="true">{{initial .Name}}</span><span class="grid"><span>{{.Name}}</span><span class="text-xs text-muted">{{.Email}}</span></span></span></td>
+        <td>{{template "people-role" (dict "Person" . "Action" $.RoleAction "Back" $.Back "Admins" $.Admins)}}</td>
+        <td class="text-right whitespace-nowrap tabular-nums">{{$budget := .Budget}}{{with .Spent}}{{if eq .Unmeasured 0}}{{usd .USD}}{{else if eq .Calls .Unmeasured}}<span class="text-muted">no price</span>{{else}}{{usd .USD}} <span class="text-muted">at least</span>{{end}}{{if $budget.Set}} <span class="text-subtle">of {{usd $budget.Limit}}</span>{{end}}{{else}}<span class="text-subtle">nothing</span>{{end}}{{if .Budget.Passed}} <span class="text-xs font-medium text-bad">reached</span>{{end}}</td>
+        <td class="text-right whitespace-nowrap text-subtle">{{if .LastSignIn}}<span title="{{when .LastSignIn}}">{{ago .LastSignIn}}</span>{{else}}never{{end}}</td>
       </tr>
       {{end}}
     </tbody>
   </table>
+  {{template "ui-pager" .Pages}}
 </div>
-
-{{if .Invited}}
-<h2 class="mt-8 mb-3">Waiting to join</h2>
-<div class="{{template "ui-card"}} grid gap-3">
-  {{range .Invited}}<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"><span>{{.Email}}</span><span class="text-xs text-muted">Invited by {{.By}} · link works until {{when .Expires}}</span></div>{{end}}
-</div>
+{{if .Tokens}}<p class="mt-3 text-sm text-muted">Scripts and the command line sign in with <a class="text-accent-ink no-underline hover:underline" href="/admin/tokens">API tokens</a>.</p>{{end}}
 {{end}}
 
 {{end}}
 
 {{template "foot" .}}
+
+{{/* A person's role: a choice that is sent to gusto cloud, which owns roles, when there is one, and the role in words
+     otherwise. The only admin is not offered the choice: an organization keeps one. */}}
+{{define "people-role"}}{{with .Person}}
+{{if and $.Action (not (and (eq .Role "admin") (le $.Admins 1)))}}
+<form method="post" action="{{$.Action}}" class="m-0">
+  <input type="hidden" name="email" value="{{.Email}}">
+  <input type="hidden" name="back" value="{{$.Back}}">
+  <select class="select h-8 text-sm" name="role" aria-label="Role of {{.Name}}" data-autosubmit{{if eq .Role "admin"}} data-confirm-when="runner" data-confirm="Make {{.Name}} a runner? They lose the admin pages and can no longer change budgets or roles."{{end}}>
+    <option value="admin"{{if eq .Role "admin"}} selected{{end}}>Admin</option>
+    <option value="runner"{{if ne .Role "admin"}} selected{{end}}>Runner</option>
+  </select>
+</form>
+{{else}}<span class="capitalize">{{.Role}}</span>{{end}}
+{{end}}{{end}}

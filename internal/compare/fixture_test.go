@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// Harnesses that are programs: one leaves the answer the gate wants, one leaves
+// Harnesses that are programs: one leaves the answer the check wants, one leaves
 // an answer it refuses, and one names a program nobody has.
 const (
 	answersYes = `{"name": "yes", "program": "sh", "argv": ["-c", "printf yes > answer.txt"], "needs": "nothing", "stream": "plain"}`
@@ -54,21 +54,21 @@ func advance(t *testing.T, bare string) {
 	git(t, work, "push", "--quiet", "origin", "main")
 }
 
-// submitted is a job as `gusto new` leaves it: a job.json and nothing run.
-func submitted(t *testing.T, bare string, model string) job.Dir {
+// submitted is a task as `gusto new` leaves it: a job.json and nothing run.
+func submitted(t *testing.T, bare string, model string) task.Dir {
 	t.Helper()
-	dir := job.Dir(filepath.Join(t.TempDir(), "fix"))
+	dir := task.Dir(filepath.Join(t.TempDir(), "fix"))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    bare,
 		Ref:     "main",
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: "yes",
 		Model:   model,
-		Budget:  job.Budget{Seconds: 60},
+		Budget:  task.Budget{Seconds: 60},
 	}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)

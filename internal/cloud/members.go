@@ -6,12 +6,14 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/dbkit"
+	"github.com/getlatentic/gusto/internal/quota"
 )
 
 // Refusals a member's invitation or removal can meet.
 var (
 	ErrNotAdmin     = errors.New("only an admin can do that")
 	ErrNoInvites    = errors.New("this organization cannot invite people until its admin has confirmed their email address")
+	ErrLapsed       = errors.New("this organization's subscription has ended, so it cannot invite people until an admin renews it")
 	ErrFull         = errors.New("this organization has as many people as it may")
 	ErrCannotInvite = errors.New("that address cannot be invited")
 	ErrLastAdmin    = errors.New("an organization keeps its last admin")
@@ -35,27 +37,32 @@ const InviteLife = 7 * 24 * time.Hour
 
 // Members is the people in an organization, its admins first and then in the order
 // they joined.
-func (s *Store) Members(slug string) ([]Person, error) {
-	return membersOf(context.Background(), s.db, slug)
+func (s *Store) Members(ctx context.Context, slug string) ([]Person, error) {
+	return membersOf(ctx, s.db, slug)
 }
 
 func membersOf(ctx context.Context, q dbkit.Querier, slug string) ([]Person, error) {
-	return collect(ctx, q, scanPerson, `SELECT `+personColumns+` FROM people WHERE org = ?
-		ORDER BY CASE WHEN role = 'admin' THEN 0 ELSE 1 END, created, email`, slug)
+	return collect(ctx, q, scanPerson, `SELECT `+personColumns+personFrom+` WHERE m.org = ?
+		ORDER BY CASE WHEN m.role = 'admin' THEN 0 ELSE 1 END, m.created, m.email`, slug)
 }
 
 // Invitations is what an organization has sent that nobody has answered, oldest
 // first. One that ran out is not listed.
-func (s *Store) Invitations(slug string) ([]Invitation, error) {
-	return s.openInvitations(context.Background(), s.db, slug)
+func (s *Store) Invitations(ctx context.Context, slug string) ([]Invitation, error) {
+	return s.openInvitations(ctx, s.db, slug)
 }
 
 // Invite makes an invitation for an address, from an admin. It is refused unless the
 // organization may invite, has room for one more person counting those already
-// invited, and the address is not already somebody's here or elsewhere. The refusal
-// for an address that has an account says nothing of whose, so the form is not a way
-// to find out.
-func (s *Store) Invite(slug string, by Person, address string) (secret string, err error) {
+// invited, and the address is not in this organization already. An address that is
+// in another organization is invited like any other, so the form says nothing of
+// who has an account elsewhere.
+func (s *Store) Invite(ctx context.Context, slug string, by Person, address string) (secret string, err error) {
+	return s.InviteTo(ctx, slug, by, address, "")
+}
+
+// InviteTo is Invite into one of the organization's workspaces, which the person joins when they accept. An empty one is the first.
+func (s *Store) InviteTo(ctx context.Context, slug string, by Person, address, space string) (secret string, err error) {
 	email, err := NormalEmail(address)
 	if err != nil {
 		return "", err
@@ -63,33 +70,46 @@ func (s *Store) Invite(slug string, by Person, address string) (secret string, e
 	if err := workEmail(email, true, s.refused); err != nil {
 		return "", err
 	}
-	if by.Org != slug || by.Role != Admin {
-		return "", ErrNotAdmin
-	}
-	quota, err := s.Quota(slug)
+	quota, err := s.mayInvite(ctx, slug, by)
 	if err != nil {
 		return "", err
 	}
-	if !quota.Invites {
-		return "", ErrNoInvites
-	}
-	ctx := context.Background()
 	err = s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
-		secret, err = s.invite(ctx, tx, slug, by.Email, email, quota.Members)
+		if space != "" {
+			if err := mustBeWorkspace(ctx, tx, slug, space); err != nil {
+				return err
+			}
+		}
+		secret, err = s.invite(ctx, tx, slug, by.Email, email, space, quota.Members)
 		return err
 	})
 	if err != nil {
 		return "", err
 	}
-	s.publishRoster(slug)
+	s.publishRoster(ctx, slug)
 	return secret, nil
 }
 
-func (s *Store) invite(ctx context.Context, tx dbkit.Tx, slug, by, email string, most int) (string, error) {
+// mayInvite is the organization's quota when the person may invite somebody to it, and why not otherwise.
+func (s *Store) mayInvite(ctx context.Context, slug string, by Person) (quota.Quota, error) {
+	if by.Org != slug || by.Role != Admin {
+		return quota.Quota{}, ErrNotAdmin
+	}
+	held, err := s.Quota(slug)
+	if err != nil || held.Invites {
+		return held, err
+	}
+	if billing, found, err := s.Billing(ctx, slug); err == nil && found && billing.Lapsed() {
+		return quota.Quota{}, ErrLapsed
+	}
+	return quota.Quota{}, ErrNoInvites
+}
+
+func (s *Store) invite(ctx context.Context, tx dbkit.Tx, slug, by, email, space string, most int) (string, error) {
 	if err := s.lock(ctx, tx, "org:"+slug); err != nil {
 		return "", err
 	}
-	if _, found, err := fetchPerson(ctx, tx, email); err != nil || found {
+	if _, found, err := fetchMember(ctx, tx, email, slug); err != nil || found {
 		if err == nil {
 			err = ErrCannotInvite
 		}
@@ -99,7 +119,7 @@ func (s *Store) invite(ctx context.Context, tx dbkit.Tx, slug, by, email string,
 		return "", err
 	}
 	now := s.now().UTC().Truncate(time.Second)
-	secret, err := s.putLink(ctx, tx, link{Email: email, Purpose: Invite, Expires: now.Add(InviteLife), Org: slug, Role: Runner, By: by})
+	secret, err := s.putLink(ctx, tx, link{Email: email, Purpose: Invite, Expires: now.Add(InviteLife), Org: slug, Role: Runner, By: by, Workspace: space})
 	if err != nil {
 		return "", err
 	}
@@ -116,7 +136,7 @@ func (s *Store) invite(ctx context.Context, tx dbkit.Tx, slug, by, email string,
 // have. People and the invitations that are open both count, and an address that is
 // already invited does not count twice.
 func (s *Store) roomFor(ctx context.Context, tx dbkit.Tx, slug string, most int, email string) error {
-	members, err := count(ctx, tx, `SELECT count(*) FROM people WHERE org = ?`, slug)
+	members, err := count(ctx, tx, `SELECT count(*) FROM memberships WHERE org = ?`, slug)
 	if err != nil {
 		return err
 	}
@@ -132,7 +152,7 @@ func (s *Store) roomFor(ctx context.Context, tx dbkit.Tx, slug string, most int,
 }
 
 // Cancel takes an invitation back, and its link with it.
-func (s *Store) Cancel(slug string, by Person, address string) error {
+func (s *Store) Cancel(ctx context.Context, slug string, by Person, address string) error {
 	email, err := NormalEmail(address)
 	if err != nil {
 		return err
@@ -140,7 +160,7 @@ func (s *Store) Cancel(slug string, by Person, address string) error {
 	if by.Org != slug || by.Role != Admin {
 		return ErrNotAdmin
 	}
-	ctx := context.Background()
+
 	err = s.db.InTx(ctx, func(tx dbkit.Tx) error {
 		if err := dropInvitationLink(ctx, tx, slug, email); err != nil {
 			return err
@@ -151,6 +171,6 @@ func (s *Store) Cancel(slug string, by Person, address string) error {
 	if err != nil {
 		return err
 	}
-	s.publishRoster(slug)
+	s.publishRoster(ctx, slug)
 	return nil
 }

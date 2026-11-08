@@ -11,11 +11,11 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/changelog"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A setup is made once and started with again: every turn on an instance
-// started with it carries its skills and its servers into the job, and
+// started with it carries its skills and its servers into the task, and
 // job.json names them without the servers' definitions.
 func TestEveryTurnOnAnInstanceCarriesItsSetup(t *testing.T) {
 	site := open(t)
@@ -36,7 +36,7 @@ func TestEveryTurnOnAnInstanceCarriesItsSetup(t *testing.T) {
 	if list := site.ask(t, "GET", "/new/blank", nil).Body.String(); strings.Contains(list, "reviewer") {
 		t.Error("a skill set that is off is offered to people")
 	}
-	if console := site.ask(t, "GET", "/admin/skill-sets", nil).Body.String(); !strings.Contains(console, "reviewer") || !strings.Contains(console, "off") {
+	if console := site.ask(t, "GET", "/admin/apps?tab=skills", nil).Body.String(); !strings.Contains(console, "reviewer") || !strings.Contains(console, "off") {
 		t.Error("the console does not show the skill set that is off")
 	}
 	site.ask(t, "POST", "/admin/skill-sets/reviewer/enable", nil)
@@ -49,8 +49,8 @@ func TestEveryTurnOnAnInstanceCarriesItsSetup(t *testing.T) {
 	id := strings.TrimPrefix(said.Header().Get("Location"), where+"#")
 	site.wait(t, id)
 
-	dir := job.Dir(filepath.Join(site.index.Root(), id))
-	spec, err := job.Read(dir)
+	dir := task.Dir(filepath.Join(site.index.Root(), id))
+	spec, err := task.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

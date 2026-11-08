@@ -2,9 +2,11 @@ package web
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -38,10 +40,8 @@ func TestANewChatRunsOnTheLastChoiceThenTheOrganizationsDefaultThenTheFirstThatC
 
 func TestAnAdminSetsWhatANewChatRunsOnAndTheChangeIsRecorded(t *testing.T) {
 	here, log, path := budgeted(t)
-	overview := here.ask(t, "GET", "/admin", nil).Body.String()
-	if !strings.Contains(overview, `action="/admin/chat-default"`) || !strings.Contains(overview, `value="fixture|platform/test-model"`) {
-		i := strings.Index(overview, "New chats")
-		t.Fatalf("the overview offers no default for a new chat: %s", overview[max(i, 0):min(max(i, 0)+600, len(overview))])
+	if choices := here.server.defaultChoices(httptest.NewRequest("GET", "/admin", nil)); !slices.ContainsFunc(choices, func(c defaultChoice) bool { return c.Value == "fixture|platform/test-model" }) {
+		t.Fatalf("no default for a new chat is offered: %+v", choices)
 	}
 
 	set := here.ask(t, "POST", "/admin/chat-default", url.Values{"default": {"fixture|platform/test-model"}})

@@ -19,7 +19,7 @@ type Signup struct {
 
 // SignUp makes a person, the organization they administer and the organization's
 // directory, on the trial quota. A refusal leaves nothing behind.
-func (s *Store) SignUp(in Signup) (Person, Org, error) {
+func (s *Store) SignUp(ctx context.Context, in Signup) (Person, Org, error) {
 	email, err := NormalEmail(in.Email)
 	if err != nil {
 		return Person{}, Org{}, err
@@ -27,7 +27,7 @@ func (s *Store) SignUp(in Signup) (Person, Org, error) {
 	if err := workEmail(email, s.set.AllowFreeMail, s.refused); err != nil {
 		return Person{}, Org{}, err
 	}
-	ctx := context.Background()
+
 	var person Person
 	var org Org
 	err = s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
@@ -40,8 +40,11 @@ func (s *Store) SignUp(in Signup) (Person, Org, error) {
 	return person, org, nil
 }
 
+// FreeMailAllowed says whether an address at a free mail provider may sign up.
+func (s *Store) FreeMailAllowed() bool { return s.set.AllowFreeMail }
+
 func (s *Store) signUpIn(ctx context.Context, tx dbkit.Tx, in Signup, email, domain string) (Person, Org, error) {
-	if _, found, err := fetchPerson(ctx, tx, email); err != nil || found {
+	if found, err := hasAccount(ctx, tx, email); err != nil || found {
 		if err == nil {
 			err = ErrEmailTaken
 		}

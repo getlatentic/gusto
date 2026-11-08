@@ -1,26 +1,44 @@
 package cloud
 
 import (
+	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 )
 
+// home is what gusto is, for everybody, signed in or not, when this gusto cloud server has a landing page. One without is only the
+// way in.
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.person(r); ok {
-		http.Redirect(w, r, "/org", http.StatusSeeOther)
+	if s.demoOffered() {
+		_, signedIn := s.memberships(r)
+		s.landing(w, signedIn)
+		return
+	}
+	s.app(w, r)
+}
+
+// app takes a signed-in person into their organization, or to choose one when they are in several and have not said
+// which. Anybody else is asked to sign in, or, where there is no landing page, to sign up.
+func (s *Server) app(w http.ResponseWriter, r *http.Request) {
+	if all, ok := s.memberships(r); ok {
+		where := "/orgs"
+		if person, ok := s.chosen(r, all); ok {
+			where = s.entrance(r.Context(), person)
+		}
+		http.Redirect(w, r, where, http.StatusSeeOther)
 		return
 	}
 	if s.demoOffered() {
-		s.landing(w)
+		http.Redirect(w, r, "/signin", http.StatusSeeOther)
 		return
 	}
 	s.signUpPage(w, r)
 }
 
 func (s *Server) signUpPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, http.StatusOK, "signup", view{Title: "Create your organization"})
+	s.render(w, http.StatusOK, "signup", view{Title: "Get started"})
 }
 
 // signUp makes the person and their organization, signs them in, and mails them
@@ -28,27 +46,30 @@ func (s *Server) signUpPage(w http.ResponseWriter, r *http.Request) {
 // what they typed.
 func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 	in := Signup{Email: r.PostFormValue("email"), OrgName: r.PostFormValue("org"), Slug: r.PostFormValue("slug")}
+	var refused error
 	again := func(status int, why string, more bool) {
-		s.render(w, status, "signup", view{Title: "Create your organization", Error: why, Email: in.Email, OrgName: in.OrgName, Slug: in.Slug,
+		s.render(w, status, "signup", view{Title: "Get started", Error: why, Email: in.Email, OrgName: in.OrgName, Slug: in.Slug, Taken: errors.Is(refused, ErrEmailTaken),
 			More: more || in.OrgName != "" || in.Slug != ""})
 	}
-	if !s.all.Allow("all") {
+	if !s.all.Allow(r.Context(), "all") {
 		again(http.StatusServiceUnavailable, "Sign-ups are busy right now. Try again in a little while.", false)
 		return
 	}
-	if !s.signups.Allow(s.source(r)) {
+	if !s.signups.Allow(r.Context(), s.source(r)) {
 		again(http.StatusTooManyRequests, "That is a lot of sign-ups from one place. Try again later.", false)
 		return
 	}
-	person, org, err := s.Store.SignUp(in)
+	person, org, err := s.Store.SignUp(r.Context(), in)
 	if err != nil {
+		refused = err
 		again(refusalStatus(err), refusalText(err), asksForMore(err))
 		return
 	}
-	s.mailVerification(person, org)
-	s.provision(org.Slug)
+	s.mailVerification(r.Context(), person, org)
+	s.provision(r.Context(), org.Slug)
 	s.Sessions.Issue(w, person.Email)
-	http.Redirect(w, r, "/org", http.StatusSeeOther)
+	s.Sessions.Choose(w, org.Slug)
+	http.Redirect(w, r, "/open", http.StatusSeeOther)
 }
 
 // asksForMore says the form needs the organization's name and address, because
@@ -75,7 +96,7 @@ func refusalText(err error) string {
 			return refusalSentence(known)
 		}
 	}
-	log.Printf("cloud: a sign-up failed: %v", err)
+	slog.Error("a sign-up failed", "error", err)
 	return "Something went wrong on our side. Try again."
 }
 
@@ -95,10 +116,10 @@ func refusalStatus(err error) int {
 
 // mailVerification sends the link that shows an address is read. It is not
 // counted against the mailbox's limit, which is for asking again.
-func (s *Server) mailVerification(person Person, org Org) {
-	secret, err := s.Store.MakeLink(person.Email, Verify, VerifyLife)
+func (s *Server) mailVerification(ctx context.Context, person Person, org Org) {
+	secret, err := s.Store.MakeLink(ctx, person.Email, Verify, VerifyLife)
 	if err != nil {
-		log.Printf("cloud: a verification link was not made: %v", err)
+		slog.Error("a verification link was not made", "error", err)
 		return
 	}
 	s.send(person.Email, "Confirm your email address for "+org.Name,
@@ -115,26 +136,36 @@ func (s *Server) signInPage(w http.ResponseWriter, r *http.Request) {
 // to find out who is a customer.
 func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 	email := strings.TrimSpace(r.PostFormValue("email"))
-	if !s.signups.Allow("signin:" + s.source(r)) {
+	if !s.signups.Allow(r.Context(), "signin:"+s.source(r)) {
 		s.render(w, http.StatusTooManyRequests, "signin", view{Title: "Sign in", Email: email, Error: "That is a lot of attempts from one place. Try again later."})
 		return
 	}
-	if normal, err := NormalEmail(email); err == nil && s.mails.Allow(normal) {
-		if _, found, err := s.Store.Person(normal); err == nil && found {
-			s.mailSignIn(normal)
-		}
-	}
-	s.render(w, http.StatusOK, "signin", view{Title: "Sign in", Sent: true})
-}
-
-func (s *Server) mailSignIn(email string) {
-	secret, err := s.Store.MakeLink(email, SignIn, SignInLife)
+	normal, err := NormalEmail(email)
 	if err != nil {
-		log.Printf("cloud: a sign-in link was not made: %v", err)
+		s.render(w, http.StatusUnprocessableEntity, "signin", view{Title: "Sign in", Email: email, Error: "Enter an email address, such as you@company.com."})
 		return
 	}
-	s.send(email, "Your gusto sign-in link",
-		"Follow this link to sign in:\n\n"+s.link("/signin/link", secret)+"\n\nThe link works once and expires in 20 minutes. If you did not ask for it, ignore this mail.\n")
+	if s.mails.Allow(r.Context(), normal) {
+		if found, err := s.Store.HasAccount(r.Context(), normal); err == nil && found {
+			s.mailSignIn(r.Context(), normal)
+		}
+	}
+	s.render(w, http.StatusOK, "signin", view{Title: "Check your email", Email: normal, Sent: true})
+}
+
+func (s *Server) mailSignIn(ctx context.Context, email string) {
+	secret, err := s.Store.MakeLink(ctx, email, SignIn, SignInLife)
+	if err != nil {
+		slog.Error("a sign-in link was not made", "error", err)
+		return
+	}
+	code, err := s.Store.MakeSignInCode(ctx, email)
+	if err != nil {
+		slog.Error("a sign-in code was not made", "error", err)
+		return
+	}
+	subject, body := signInMail(code, s.link("/signin/link", secret), SignInLife)
+	s.send(email, subject, body)
 }
 
 // confirmPage asks a person to press a button before a link is used. A mail
@@ -152,19 +183,23 @@ func (s *Server) confirmPage(purpose Purpose, title, button string) http.Handler
 // useLink spends a link, and signs the person it was made for in.
 func (s *Server) useLink(purpose Purpose) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		email, err := s.Store.UseLink(r.PostFormValue("t"), purpose)
+		email, err := s.Store.UseLink(r.Context(), r.PostFormValue("t"), purpose)
 		if err != nil {
 			s.render(w, http.StatusGone, "signin", view{Title: "Sign in", Error: err.Error() + "."})
 			return
 		}
 		if purpose == Verify {
-			if _, err := s.Store.Verify(email); err != nil {
-				log.Printf("cloud: an address was not verified: %v", err)
+			if err := s.Store.Verify(r.Context(), email); err != nil {
+				slog.Error("an address was not verified", "error", err)
 				s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
 				return
 			}
 		}
+		if purpose == SignIn {
+			s.signedIn(w, r, email)
+			return
+		}
 		s.Sessions.Issue(w, email)
-		http.Redirect(w, r, "/org", http.StatusSeeOther)
+		http.Redirect(w, r, "/app", http.StatusSeeOther)
 	}
 }

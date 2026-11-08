@@ -9,7 +9,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/integration"
 	"github.com/getlatentic/gusto/pkg/gateway"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Integrations is the integrations an organization has imported, which a setup may name. Only the versions an administrator has
@@ -40,7 +40,7 @@ type Use struct {
 
 var unsafeName = regexp.MustCompile(`[^a-z0-9-]+`)
 
-// serverName is what a job calls a server of an integration: the integration's name and the server's, so that two integrations
+// serverName is what a task calls a server of an integration: the integration's name and the server's, so that two integrations
 // that each have a server called api do not meet. It is a name the harnesses take.
 func serverName(plugin, server string) string {
 	name := unsafeName.ReplaceAllString(strings.ToLower(plugin+"-"+server), "-")
@@ -52,7 +52,7 @@ func serverName(plugin, server string) string {
 }
 
 // whyHeld says why a server of an integration cannot be used, or nothing. A streamable HTTP server is used. A program is used when an
-// administrator allowed that version's programs, and runs in a box of its own, outside the job's. The older SSE transport is not one
+// administrator allowed that version's programs, and runs in a box of its own, outside the task's. The older SSE transport is not one
 // the harnesses here take.
 func whyHeld(server integration.Server, programs bool) string {
 	switch server.Transport {
@@ -67,7 +67,7 @@ func whyHeld(server integration.Server, programs bool) string {
 	return server.Name + " uses the older SSE transport"
 }
 
-// definition is the server as the gateway is given it. A program is given the plugin's folder, to read, and a folder of this job's to
+// definition is the server as the gateway is given it. A program is given the plugin's folder, to read, and a folder of this task's to
 // write.
 func definition(one integration.Active, server integration.Server, data string) gateway.Server {
 	name := serverName(one.Name, server.Name)
@@ -124,11 +124,11 @@ func (s *Store) checkIntegrations(names []string) error {
 	return nil
 }
 
-// carryIntegrations puts the skills of the integrations a setup names into a job's directory, and the servers behind the gateway,
-// for the version that is on. The skills and servers of the integrations a setup names into a job's directory, for the version that is
-// on. An integration that is off, or gone, is a job that does not start, since a job that quietly lacked what its setup names
+// carryIntegrations puts the skills of the integrations a setup names into a task's directory, and the servers behind the gateway,
+// for the version that is on. The skills and servers of the integrations a setup names into a task's directory, for the version that is
+// on. An integration that is off, or gone, is a task that does not start, since a task that quietly lacked what its setup names
 // would run as a bare harness under the setup's name.
-func (s *Store) carryIntegrations(held Setup, dir job.Dir, carried *job.Setup, behind *[]gateway.Server, asker string) error {
+func (s *Store) carryIntegrations(held Setup, dir task.Dir, carried *task.Setup, behind *[]gateway.Server, asker string) error {
 	if len(held.Integrations) == 0 {
 		return nil
 	}
@@ -184,7 +184,7 @@ func (s *Store) carryIntegrations(held Setup, dir job.Dir, carried *job.Setup, b
 			*behind = append(*behind, made)
 			carried.Gateway = append(carried.Gateway, made.Name)
 		}
-		carried.Integrations = append(carried.Integrations, job.IntegrationUse{
+		carried.Integrations = append(carried.Integrations, task.IntegrationUse{
 			Name: name, Version: one.Version.ID, Label: one.Version.Label, Commit: one.Version.Source.Commit})
 	}
 	return nil

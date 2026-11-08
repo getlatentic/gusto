@@ -4,9 +4,9 @@ A place to run agents that proves what they did. You give it a brief, some input
 
 ## Who it is for
 
-A platform or developer-experience lead at a company that runs two or more agent tools and cannot say what they spent or what they changed. gusto answers three questions: what did all our agents cost last month, what did they touch, and which one is better on our codebase.
+A company whose teams use two or more AI agents, in engineering and across the business, and the admin who has to say what those agents spent and what they changed. gusto answers three questions: what did all our agents cost last month, what did they touch, and which one works best for us.
 
-Model vendors run their own agents, and none of them compares agents against each other. gusto is neutral between them. It is not for individual developers, who are served by a free command line and a cheap subscription.
+Model vendors run their own agents, and none of them compares agents against each other. gusto is neutral between them. It is not for one person working alone, who is served by a free command line and a cheap subscription.
 
 ## What "governed" means
 
@@ -33,9 +33,9 @@ General: a task as a directory, an agent named by an adapter, one container a ta
 
 ## Terms
 
-See [TERMS.md](TERMS.md). An agent is the program. An adapter is how to run it. A configured agent is the program plus the skills, connectors, prompt and model policy that shape it. Frozen, a configured agent is an image with a digest. A run of one is an instance. An agent that learns writes to a task's output, never to itself. Otherwise the same digest behaves differently and the record proves nothing.
+See [TERMS.md](TERMS.md). A harness is the program. An adapter is how to run it. An agent is the program plus the skills, connectors, prompt and model policy that shape it. Frozen, an agent is an image with a digest. A run of one is an instance. An agent that learns writes to a task's output, never to itself. Otherwise the same digest behaves differently and the record proves nothing.
 
-A catalog is the parts somebody picks from. A registry is where an assembled configured agent lives, fetched by digest. An assembler takes the parts, freezes them into an image and runs it. gusto builds the assembler and the proof of what it did. A bundle vendors its skills, prompt, model policy and adapter, and references its agent and connectors by pinned version. The model and credentials are never in it. A pinned version can serve different bytes later, so a run records what actually resolved beside the digest it was asked for, and a stranger compares the two.
+A catalog is the parts somebody picks from. A registry is where an assembled agent lives, fetched by digest. An assembler takes the parts, freezes them into an image and runs it. gusto builds the assembler and the proof of what it did. A bundle vendors its skills, prompt, model policy and adapter, and references its harness and connectors by pinned version. The model and credentials are never in it. A pinned version can serve different bytes later, so a run records what actually resolved beside the digest it was asked for, and a stranger compares the two.
 
 ## Ways in
 
@@ -52,7 +52,7 @@ The MCP server lets an agent hand a task to a sandbox and get the record back.
 
 | Deferred | Built when |
 | --- | --- |
-| naming the configured agent by digest (getlatentic/planning#283) | two people share a name and mean different things |
+| naming the agent by digest (getlatentic/planning#283) | two people share a name and mean different things |
 | the package format | a second kind of agent needs one |
 | a registry | something needs fetching that a git repository cannot carry |
 | a catalog | somebody has to assemble an agent without reading files |
@@ -62,6 +62,6 @@ Other uses need more. An agent that writes no code needs inputs rather than a re
 
 ## What blocks a user today
 
-Nothing, for one person. The deployed service uses a real model, runs a real agent in a container, holds a conversation across turns and returns a record that verifies on another machine.
+Nothing, for a team. Each person signs up or signs in with their own email. The deployed service uses a real model, runs a real agent in a container, holds a conversation across turns and returns a record that verifies on another machine.
 
-A second person is blocked by spending. One shared sign-in lets everybody who can sign in spend the platform credential. The proxy counts each call and refuses a task or a team past its cap. The count reads a usage shape not yet measured against a real provider, and a team is a label anybody can type. The password goes to nobody until a real run proves the count.
+An admin sets a monthly budget for the organization and one for each member. The proxy counts each call, refuses a task past its cap, and stops at the end of the free credit on gusto's models. The count is not yet reconciled with a provider's invoice.

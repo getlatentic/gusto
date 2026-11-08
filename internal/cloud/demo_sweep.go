@@ -26,7 +26,7 @@ func (s *Server) RunDemos(ctx context.Context, every time.Duration) {
 	tick := time.NewTicker(every)
 	defer tick.Stop()
 	for {
-		s.EndDueDemos()
+		s.EndDueDemos(ctx)
 		select {
 		case <-ctx.Done():
 			s.ender.running.Wait()
@@ -36,9 +36,10 @@ func (s *Server) RunDemos(ctx context.Context, every time.Duration) {
 	}
 }
 
-// EndDueDemos starts to end each demo that is due. It does not wait for them.
-func (s *Server) EndDueDemos() {
-	due, err := s.Store.DemosDue()
+// EndDueDemos starts to end each demo that is due. It does not wait for them, and the asker going away does not stop them.
+func (s *Server) EndDueDemos(ctx context.Context) {
+	ctx = context.WithoutCancel(ctx)
+	due, err := s.Store.DemosDue(ctx)
 	if err != nil {
 		slog.Error("the demos that are due could not be listed", "error", err)
 		return
@@ -57,49 +58,65 @@ func (s *Server) EndDueDemos() {
 		s.ender.running.Add(1)
 		go func() {
 			defer s.ender.running.Done()
-			s.endDemo(slug, reason)
+			s.endDemo(ctx, slug, reason)
 		}()
 	}
 }
 
-// endDemo removes a demo's workspaces, then its server, then the organization. A demo that cannot be ended is tried
-// again at the next sweep, which it is not until this has finished.
-func (s *Server) endDemo(slug, reason string) {
+// endDemo removes a demo's computers, then its server, then the organization. A demo whose computers are not all removed
+// keeps its server, its directory and the records of its computers, and is tried again at the next sweep, which it is
+// not until this has finished: only the organization's server reaches the gateway, so nothing else can name them.
+func (s *Server) endDemo(ctx context.Context, slug, reason string) {
 	defer func() {
 		s.ender.mu.Lock()
 		delete(s.ender.ending, slug)
 		s.ender.mu.Unlock()
 	}()
-	if s.Controller != nil {
-		s.removeComputers(slug)
-		s.Controller.Remove(slug)
+	if err := s.Store.MarkEnding(ctx, slug); err != nil {
+		slog.Error("a demo could not be marked as ending, and is tried again", "org", slug, "error", err)
+		return
 	}
-	if err := s.Store.EndDemo(slug, reason); err != nil {
+	if s.Controller != nil {
+		if !s.removeComputers(slug) {
+			s.Metrics.endDeferred()
+			return
+		}
+		s.Controller.Remove(ctx, slug)
+	}
+	if err := s.Store.EndDemo(ctx, slug, reason); err != nil {
 		slog.Error("a demo could not be ended", "org", slug, "error", err)
 		return
 	}
+	if s.Controller != nil {
+		s.Controller.Ended(slug)
+	}
 	slog.Info("a demo ended", "org", slug, "reason", reason)
-	s.tell("ended", slug)
+	s.tell(ctx, "ended", slug)
 }
 
-// removeComputers asks for the demo's computers to be removed and waits until they are, for as long as it may.
-func (s *Server) removeComputers(slug string) {
+// removeComputers asks for the demo's computers to be removed and waits until they are, for as long as it may. It says
+// whether none is left.
+func (s *Server) removeComputers(slug string) bool {
 	registry, err := s.Store.Computers(slug)
 	if err != nil {
-		slog.Warn("a demo's workspaces could not be read", "org", slug, "error", err)
-		return
+		slog.Warn("a demo's computers could not be read, so it is not ended yet", "org", slug, "error", err)
+		return false
 	}
 	if err := registry.RetireAll(); err != nil {
-		slog.Warn("a demo's workspaces could not be marked", "org", slug, "error", err)
-		return
+		slog.Warn("a demo's computers could not be marked, so it is not ended yet", "org", slug, "error", err)
+		return false
 	}
 	wait := s.computersWait()
-	for deadline := time.Now().Add(wait); time.Now().Before(deadline); time.Sleep(time.Second) {
-		if left, err := registry.Retiring(); err == nil && len(left) == 0 {
-			return
+	for deadline := time.Now().Add(wait); ; time.Sleep(time.Second) {
+		left, err := registry.Retiring()
+		if err == nil && len(left) == 0 {
+			return true
+		}
+		if !time.Now().Before(deadline) {
+			slog.Warn("a demo's computers were not removed in time, so it is not ended yet", "org", slug, "left", len(left))
+			return false
 		}
 	}
-	slog.Warn("a demo's workspaces were not removed in time, so its server is stopped with them still there", "org", slug)
 }
 
 func (s *Server) computersWait() time.Duration {

@@ -1,11 +1,12 @@
 package cloud
 
 import (
-	"github.com/getlatentic/gusto/internal/computer"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/getlatentic/gusto/internal/computer"
 )
 
 // verifiedAdmin signs up an organization, follows the mail's link to confirm the
@@ -75,10 +76,10 @@ func TestAnAdminInvitesAPersonWhoFollowsTheLinkAndJoinsTheOrganization(t *testin
 				t.Fatalf("opening the link asks and does not answer: %d\n%s", status, page)
 			}
 		}
-		if _, found, _ := f.store.Person("bob@acme.com"); found {
+		if _, found, _ := f.store.only(t.Context(), "bob@acme.com"); found {
 			t.Fatal("opening the link made a person")
 		}
-		if status, _, header := bob.post("/invite", url.Values{"t": {tokenOf(link)}}); status != http.StatusSeeOther || header.Get("Location") != "/org" {
+		if status, _, header := bob.post("/invite", url.Values{"t": {tokenOf(link)}}); status != http.StatusSeeOther || header.Get("Location") != "/open" {
 			t.Fatalf("%d %v", status, header)
 		}
 		_, page := bob.get("/org")
@@ -126,7 +127,7 @@ func TestARunnerCannotInviteOrRemoveAndTheFormsOfOneOrganizationReachNoOther(t *
 		if status, _, _ := ada.post("/org/people/remove", url.Values{"email": {"fay@globex.com"}}); status != http.StatusUnprocessableEntity {
 			t.Errorf("Acme's admin cannot remove Globex's person: %d", status)
 		}
-		if _, found, _ := f.store.Person("fay@globex.com"); !found {
+		if _, found, _ := f.store.only(t.Context(), "fay@globex.com"); !found {
 			t.Error("a person of another organization was removed")
 		}
 		if _, page := ada.get("/org"); strings.Contains(page, "globex") || strings.Contains(page, "fay@") {
@@ -135,7 +136,7 @@ func TestARunnerCannotInviteOrRemoveAndTheFormsOfOneOrganizationReachNoOther(t *
 	})
 }
 
-func TestARemovedPersonIsSignedOutOfTheFrontDoorAtOnce(t *testing.T) {
+func TestARemovedPersonIsSignedOutOfGustoCloudAtOnce(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		ada := f.verifiedAdmin("ada@acme.com", "Acme")
@@ -226,14 +227,37 @@ func TestTheOrganizationsPageShowsWhichPeopleHaveComputersAndTheirState(t *testi
 		ada := f.verifiedAdmin("ada@acme.com", "Acme")
 		f.invitedAndJoined(ada, "bob@acme.com")
 		registry, _ := f.store.Computers("acme-com")
-		made, _, _ := registry.Ensure("bob@acme.com", "local")
+		made, _, _ := registry.Ensure("bob@acme.com", "", "local")
 		registry.Change(made.ID, func(c *computer.Computer) { c.State = computer.Running })
 		_, page := ada.get("/org")
-		if !strings.Contains(page, "runner, workspace running") || !strings.Contains(page, "1 of 4") {
-			t.Errorf("Bob's workspace and the count of them:\n%s", page)
+		if !strings.Contains(page, "runner, computer running") || !strings.Contains(page, "1 of 4") {
+			t.Errorf("Bob's computer and the count of them:\n%s", page)
 		}
 		if strings.Contains(page, "admin, computer") {
 			t.Errorf("Ada has none:\n%s", page)
+		}
+	})
+}
+
+// Join pressed a second time while the first press was on its way takes the person in; the link is no use to anybody else,
+// and the page sends the form once.
+func TestJoinPressedTwiceGoesInAndTheUsedLinkStaysUsedForOthers(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		f := newFront(t, Settings{}, nil)
+		admin := f.verifiedAdmin("ada@acme.com", "Acme")
+		admin.post("/org/invite", url.Values{"email": {"bob@acme.com"}})
+		link := f.linkTo("bob@acme.com", "/invite?t=")
+		bob := f.browser()
+		if _, page := bob.get(link); !strings.Contains(page, "data-once") || !strings.Contains(page, "/static/once.") {
+			t.Errorf("the page does not send its form once:\n%s", page)
+		}
+		for press := range 2 {
+			if status, _, header := bob.post("/invite", url.Values{"t": {tokenOf(link)}}); status != http.StatusSeeOther || header.Get("Location") != "/open" {
+				t.Fatalf("press %d: %d %v", press+1, status, header)
+			}
+		}
+		if status, _, _ := f.browser().post("/invite", url.Values{"t": {tokenOf(link)}}); status != http.StatusGone {
+			t.Errorf("another browser was let in by a used link: %d", status)
 		}
 	})
 }

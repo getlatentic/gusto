@@ -16,7 +16,7 @@
   };
   // What the explorer is dressed in. A class a script reads by name (row, folder, file, d-summary, d-choose) stays in the list beside the utilities.
   var look = {
-    icon: "inline-grid flex-none place-items-center [&_svg]:size-full [&_svg]:stroke-current [&_svg]:stroke-[1.75px] [&_svg_*]:[vector-effect:non-scaling-stroke] [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]",
+    icon: "inline-grid flex-none place-items-center [&_svg]:size-full [&_svg]:stroke-current [&_svg]:stroke-[1.75] [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]",
     bare: "[&_svg]:fill-none",
     crumb: "inline-flex min-h-6 cursor-pointer items-center border-0 bg-transparent p-0 font-[inherit] text-muted hover:text-ink",
     input: "rounded-sm border border-line-strong bg-surface px-3 text-ink placeholder:text-faint",
@@ -177,7 +177,7 @@
     function placesList() {
       var side = el("nav", "flex min-h-0 flex-col gap-px overflow-y-auto border-r border-line bg-wash p-3 @max-[40rem]:hidden");
       side.setAttribute("aria-label", "Projects");
-      var top = button(look.place + " font-semibold text-ink", function () { load("", true); }, [icon("cloud"), el("span", "truncate", "Your cloud workspace")]);
+      var top = button(look.place + " font-semibold text-ink", function () { load("", true); }, [icon("cloud"), el("span", "truncate", "Your cloud computer")]);
       if (!state.here.at) { top.setAttribute("aria-current", "true"); }
       side.appendChild(top);
       state.top.slice(0, 14).forEach(function (project) {

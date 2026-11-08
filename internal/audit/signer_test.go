@@ -1,26 +1,30 @@
 package audit_test
 
 import (
+	"context"
 	"encoding/json"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/audit"
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// signedRun runs the fixture job signed by a key kept in ring as name. The
+// signedRun runs the fixture task signed by a key kept in ring as name. The
 // manifest still claims "a-test", which no keyring vouches for.
-func signedRun(t *testing.T, ring, name string) job.Dir {
+func signedRun(t *testing.T, ring, name string) task.Dir {
 	t.Helper()
 	if _, err := signing.Generate(ring, name); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv(signing.KeyEnv, filepath.Join(ring, name+".key"))
-	return ran(t)
+	signs, err := signing.Open(context.Background(), filepath.Join(ring, name+".key"), "a-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ranAs(t, signs, firstCall, secondCall, refusedCall, reachedHost, deniedHost)
 }
 
 func keyringAt(t *testing.T, ring string) signing.Keyring {
@@ -41,19 +45,19 @@ func TestAnExportNamesOnlyTheSignerItsKeyringChecked(t *testing.T) {
 	}
 	keyIn("acme")
 	for name, tc := range map[string]struct {
-		from    func(t *testing.T) job.Dir
+		from    func(t *testing.T) task.Dir
 		keyring signing.Keyring
 		want    string
 	}{
 		"unsigned": {
-			from: ran, keyring: keyringAt(t, trusted), want: evidence.Unsigned,
+			from: ran, keyring: keyringAt(t, trusted), want: record.Unsigned,
 		},
 		"signed, no keyring": {
-			from:    func(t *testing.T) job.Dir { return signedRun(t, t.TempDir(), "stranger") },
-			keyring: signing.Keyring{}, want: evidence.NoKeyring,
+			from:    func(t *testing.T) task.Dir { return signedRun(t, t.TempDir(), "stranger") },
+			keyring: signing.Keyring{}, want: record.NoKeyring,
 		},
 		"signed by a key not in the keyring": {
-			from:    func(t *testing.T) job.Dir { return signedRun(t, t.TempDir(), "stranger") },
+			from:    func(t *testing.T) task.Dir { return signedRun(t, t.TempDir(), "stranger") },
 			keyring: keyringAt(t, trusted), want: "is not in the keyring",
 		},
 	} {
@@ -90,7 +94,7 @@ func TestAVerifierWhoseKeyringDisagreesIsToldBothAnswers(t *testing.T) {
 	ring := t.TempDir()
 	export := exported(t, signedRun(t, ring, "acme"), audit.Options{Keyring: keyringAt(t, ring)})
 	problems := verified(t, export).Problems
-	if !mentions(problems, `evidence.signer says "acme", and this keyring says "`+evidence.NoKeyring+`"`) {
+	if !mentions(problems, `evidence.signer says "acme", and this keyring says "`+record.NoKeyring+`"`) {
 		t.Fatalf("want the signer disagreement named, got %v", problems)
 	}
 	if mentions(problems, "audit.json: evidence is not") {

@@ -1,12 +1,12 @@
 [Unit]
-Description=gusto host: starts and stops organizations' servers for gusto cloud
-After=gusto-boot.service openshell-gateway.service
+Description=gusto node: starts and stops organizations' servers for gusto cloud
+After=gusto-boot.service {{ demo_sandboxes | map('extract', {'container': 'docker.service', 'openshell': 'openshell-gateway.service'}) | join(' ') }}
 Requires=gusto-boot.service
 RequiresMountsFor={{ demo_state }}
 
 [Service]
 User={{ demo_user }}
-SupplementaryGroups=kvm
+SupplementaryGroups={{ demo_sandboxes | map('extract', {'container': 'docker', 'openshell': 'kvm'}) | join(' ') }}
 WorkingDirectory={{ demo_lib }}
 EnvironmentFile=/etc/gusto/org.env
 EnvironmentFile=/etc/gusto/cell.env
@@ -14,8 +14,12 @@ EnvironmentFile=/run/gusto/cell.env
 # The first question asked of the image waits for the gateway to import it. It is asked here, so the cell registers,
 # and is given organizations, once the servers it starts will not wait for that.
 ExecStartPre=/usr/local/bin/gusto scan
+{% if demo_sandbox != public_sandbox %}
+# And of a demo's sandbox, whose settings are a file of plain KEY=VALUE lines.
+ExecStartPre=/bin/sh -c 'set -a; . /etc/gusto/org-demo.env; exec /usr/local/bin/gusto scan'
+{% endif %}
 TimeoutStartSec=900
-ExecStart=/usr/local/bin/gusto host
+ExecStart=/usr/local/bin/gusto node
 Restart=on-failure
 LimitNOFILE=65536
 

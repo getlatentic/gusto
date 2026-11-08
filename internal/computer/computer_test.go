@@ -33,14 +33,14 @@ func limited(t *testing.T, r *Registry, q quota.Quota) string {
 }
 
 func TestASandboxNameFitsAGatewayAndSaysWhichOrganizationItIs(t *testing.T) {
-	name := Name("acme", "ada@acme.com")
+	name := Name("acme", "", "ada@acme.com")
 	if len(name) != 19 || !strings.HasPrefix(name, Marker) || !strings.HasPrefix(name, Prefix("acme")) {
 		t.Errorf("%q", name)
 	}
-	if name != Name("acme", "ada@acme.com") {
+	if name != Name("acme", "", "ada@acme.com") {
 		t.Error("the same person is the same name each time")
 	}
-	if name == Name("acme", "bob@acme.com") || Name("acme", "ada@acme.com") == Name("globex", "ada@acme.com") {
+	if name == Name("acme", "", "bob@acme.com") || Name("acme", "", "ada@acme.com") == Name("globex", "", "ada@acme.com") {
 		t.Error("two people, and one person in two organizations, are different computers")
 	}
 	if Prefix("acme-research") == Prefix("acme-rocket") {
@@ -53,27 +53,27 @@ func TestASandboxNameFitsAGatewayAndSaysWhichOrganizationItIs(t *testing.T) {
 
 func TestAPersonHasOneComputerAndAskingAgainFindsIt(t *testing.T) {
 	r := open(t, "acme")
-	first, made, err := r.Ensure("Ada@Acme.com", "cell-1")
+	first, made, err := r.Ensure("Ada@Acme.com", "", "cell-1")
 	if err != nil || !made {
 		t.Fatalf("%+v %v %v", first, made, err)
 	}
-	if first.User != "ada@acme.com" || first.Org != "acme" || first.State != Creating || first.Host != "cell-1" || first.Sandbox != Name("acme", "ada@acme.com") {
+	if first.User != "ada@acme.com" || first.Org != "acme" || first.State != Creating || first.Host != "cell-1" || first.Sandbox != Name("acme", "", "ada@acme.com") {
 		t.Errorf("%+v", first)
 	}
-	again, made, err := r.Ensure(" ADA@acme.com ", "cell-2")
+	again, made, err := r.Ensure(" ADA@acme.com ", "", "cell-2")
 	if err != nil || made || again.ID != first.ID || again.Host != "cell-1" {
 		t.Errorf("a second ask finds the first: %+v %v %v", again, made, err)
 	}
-	if _, _, err := r.Ensure("  ", "cell-1"); err == nil {
+	if _, _, err := r.Ensure("  ", "", "cell-1"); err == nil {
 		t.Error("a computer is a person's")
 	}
 	if info, err := os.Stat(r.file(first.ID)); err != nil || info.Mode().Perm() != 0o600 {
 		t.Errorf("%v %v", info, err)
 	}
-	if got, err := r.Of("ada@acme.com"); err != nil || got.ID != first.ID {
+	if got, err := r.Of("ada@acme.com", ""); err != nil || got.ID != first.ID {
 		t.Errorf("%+v %v", got, err)
 	}
-	if _, err := r.Of("nobody@acme.com"); !errors.Is(err, ErrNone) {
+	if _, err := r.Of("nobody@acme.com", ""); !errors.Is(err, ErrNone) {
 		t.Errorf("%v", err)
 	}
 }
@@ -81,7 +81,7 @@ func TestAPersonHasOneComputerAndAskingAgainFindsIt(t *testing.T) {
 func TestARecordIsOfOneOrganizationAndRefusesAnotherOnes(t *testing.T) {
 	r := open(t, "acme")
 	other := &Registry{dir: r.dir, org: "globex", now: time.Now}
-	made, _, err := other.Ensure("bob@globex.com", "cell-1")
+	made, _, err := other.Ensure("bob@globex.com", "", "cell-1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,15 +96,15 @@ func TestARecordIsOfOneOrganizationAndRefusesAnotherOnes(t *testing.T) {
 func TestTheNumberOfComputersIsUnderTheOrganizationsQuota(t *testing.T) {
 	r := open(t, "acme")
 	path := limited(t, r, quota.Quota{Computers: 2, Note: "Ask the operator for more."})
-	a, _, _ := r.Ensure("a@acme.com", "cell-1")
-	if _, _, err := r.Ensure("b@acme.com", "cell-1"); err != nil {
+	a, _, _ := r.Ensure("a@acme.com", "", "cell-1")
+	if _, _, err := r.Ensure("b@acme.com", "", "cell-1"); err != nil {
 		t.Fatal(err)
 	}
-	_, _, err := r.Ensure("c@acme.com", "cell-1")
-	if !errors.Is(err, quota.ErrExceeded) || !strings.Contains(err.Error(), "2 workspaces and has 2") || !strings.Contains(err.Error(), "Ask the operator") {
+	_, _, err := r.Ensure("c@acme.com", "", "cell-1")
+	if !errors.Is(err, quota.ErrExceeded) || !strings.Contains(err.Error(), "2 computers and has 2") || !strings.Contains(err.Error(), "Ask the operator") {
 		t.Fatalf("the third is over the quota: %v", err)
 	}
-	if got, made, err := r.Ensure("a@acme.com", "cell-1"); err != nil || made || got.ID != a.ID {
+	if got, made, err := r.Ensure("a@acme.com", "", "cell-1"); err != nil || made || got.ID != a.ID {
 		t.Errorf("a person who has one is not counted twice: %v %v", made, err)
 	}
 	// Removing one frees a place, and the person can have another later.
@@ -114,10 +114,10 @@ func TestTheNumberOfComputersIsUnderTheOrganizationsQuota(t *testing.T) {
 	if all, _ := r.All(); len(all) != 1 {
 		t.Errorf("a deleted computer is not listed: %d", len(all))
 	}
-	if _, _, err := r.Ensure("c@acme.com", "cell-1"); err != nil {
+	if _, _, err := r.Ensure("c@acme.com", "", "cell-1"); err != nil {
 		t.Errorf("a place was freed: %v", err)
 	}
-	again, made, err := r.Ensure("a@acme.com", "cell-1")
+	again, made, err := r.Ensure("a@acme.com", "", "cell-1")
 	if !errors.Is(err, quota.ErrExceeded) {
 		t.Fatalf("their old place is taken: %v %v %v", again, made, err)
 	}
@@ -125,16 +125,16 @@ func TestTheNumberOfComputersIsUnderTheOrganizationsQuota(t *testing.T) {
 	// A quota that cannot be read makes no computer.
 	os.Remove(path)
 	time.Sleep(1100 * time.Millisecond)
-	if _, _, err := r.Ensure("d@acme.com", "cell-1"); err == nil || errors.Is(err, quota.ErrExceeded) || !strings.Contains(err.Error(), "cannot be read") {
+	if _, _, err := r.Ensure("d@acme.com", "", "cell-1"); err == nil || errors.Is(err, quota.ErrExceeded) || !strings.Contains(err.Error(), "cannot be read") {
 		t.Errorf("a quota that cannot be read is a fault: %v", err)
 	}
 }
 
 func TestAPersonWhoseComputerWasDeletedGetsANewOne(t *testing.T) {
 	r := open(t, "acme")
-	first, _, _ := r.Ensure("a@acme.com", "cell-1")
+	first, _, _ := r.Ensure("a@acme.com", "", "cell-1")
 	r.Change(first.ID, func(c *Computer) { c.State = Deleted })
-	second, made, err := r.Ensure("a@acme.com", "cell-2")
+	second, made, err := r.Ensure("a@acme.com", "", "cell-2")
 	if err != nil || !made || second.State != Creating || second.Host != "cell-2" || second.ID != first.ID {
 		t.Errorf("%+v %v %v", second, made, err)
 	}
@@ -142,11 +142,11 @@ func TestAPersonWhoseComputerWasDeletedGetsANewOne(t *testing.T) {
 
 func TestTwoAddressesThatHashTheSameShareNoComputer(t *testing.T) {
 	r := open(t, "acme")
-	first, _, _ := r.Ensure("a@acme.com", "cell-1")
+	first, _, _ := r.Ensure("a@acme.com", "", "cell-1")
 	if _, err := r.Change(first.ID, func(c *Computer) { c.User = "someone.else@acme.com" }); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := r.Ensure("a@acme.com", "cell-1"); err == nil || !strings.Contains(err.Error(), "no workspace is shared") {
+	if _, _, err := r.Ensure("a@acme.com", "", "cell-1"); err == nil || !strings.Contains(err.Error(), "no computer is shared") {
 		t.Errorf("a record of one person is never handed to another: %v", err)
 	}
 }
@@ -156,7 +156,7 @@ func TestComputersAreListedOldestFirstAndOnlyThoseThatAreLive(t *testing.T) {
 	now := time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC)
 	r.now = func() time.Time { return now }
 	for _, user := range []string{"c@acme.com", "a@acme.com", "b@acme.com"} {
-		r.Ensure(user, "cell-1")
+		r.Ensure(user, "", "cell-1")
 		now = now.Add(time.Minute)
 	}
 	all, _ := r.All()
@@ -177,7 +177,7 @@ func TestComputersAskedForTogetherAreNeverMoreThanAreAllowed(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, isNew, err := r.Ensure(fmt.Sprintf("u%d@acme.com", i%20), "cell-1")
+			_, isNew, err := r.Ensure(fmt.Sprintf("u%d@acme.com", i%20), "", "cell-1")
 			if err == nil && isNew {
 				mu.Lock()
 				made++
@@ -193,19 +193,19 @@ func TestComputersAskedForTogetherAreNeverMoreThanAreAllowed(t *testing.T) {
 
 func TestTheRecordAndTheGatewayAreComparedForThisOrganizationOnly(t *testing.T) {
 	r := open(t, "acme")
-	running, _, _ := r.Ensure("run@acme.com", "cell-1")
+	running, _, _ := r.Ensure("run@acme.com", "", "cell-1")
 	r.Change(running.ID, func(c *Computer) { c.State = Running })
-	lost, _, _ := r.Ensure("lost@acme.com", "cell-1")
+	lost, _, _ := r.Ensure("lost@acme.com", "", "cell-1")
 	r.Change(lost.ID, func(c *Computer) { c.State = Running })
-	r.Ensure("new@acme.com", "cell-1") // still being made
-	gone, _, _ := r.Ensure("gone@acme.com", "cell-1")
+	r.Ensure("new@acme.com", "", "cell-1") // still being made
+	gone, _, _ := r.Ensure("gone@acme.com", "", "cell-1")
 	r.Change(gone.ID, func(c *Computer) { c.State = Deleted })
 
 	gateway := []string{
 		running.Sandbox,
 		Prefix("acme") + "ffffffff", // one of ours the record does not know
-		Name("globex", "bob@globex.com"),
-		"gusto-1a2b3c4d5e6f", // a job's
+		Name("globex", "", "bob@globex.com"),
+		"gusto-1a2b3c4d5e6f", // a task's
 	}
 	drift, err := r.Compare(gateway)
 	if err != nil {
@@ -230,8 +230,8 @@ func TestTheRecordAndTheGatewayAreComparedForThisOrganizationOnly(t *testing.T) 
 // removes it.
 func TestAComputerAskedToBeRemovedIsListedUntilItIsRemoved(t *testing.T) {
 	r := open(t, "acme")
-	a, _, _ := r.Ensure("a@acme.com", "cell-1")
-	b, _, _ := r.Ensure("b@acme.com", "cell-1")
+	a, _, _ := r.Ensure("a@acme.com", "", "cell-1")
+	b, _, _ := r.Ensure("b@acme.com", "", "cell-1")
 	if err := r.Retire("nobody@acme.com"); err != nil {
 		t.Errorf("a person with no computer has nothing to remove: %v", err)
 	}
@@ -245,7 +245,7 @@ func TestAComputerAskedToBeRemovedIsListedUntilItIsRemoved(t *testing.T) {
 	if len(retiring) != 1 || retiring[0].ID != a.ID {
 		t.Fatalf("%+v", retiring)
 	}
-	if got, _ := r.Of("a@acme.com"); got.State != Creating {
+	if got, _ := r.Of("a@acme.com", ""); got.State != Creating {
 		t.Errorf("asking changes nothing in the record: %+v", got)
 	}
 	if err := r.Retired(a.ID); err != nil {
@@ -254,18 +254,57 @@ func TestAComputerAskedToBeRemovedIsListedUntilItIsRemoved(t *testing.T) {
 	if retiring, _ := r.Retiring(); len(retiring) != 0 {
 		t.Errorf("%+v", retiring)
 	}
-	if _, err := r.Of("a@acme.com"); !errors.Is(err, ErrNone) {
+	if _, err := r.Of("a@acme.com", ""); !errors.Is(err, ErrNone) {
 		t.Errorf("a removed computer is not the person's: %v", err)
 	}
-	if got, err := r.Of("b@acme.com"); err != nil || got.ID != b.ID {
+	if got, err := r.Of("b@acme.com", ""); err != nil || got.ID != b.ID {
 		t.Errorf("another's is untouched: %+v %v", got, err)
 	}
 	// The person can be given a new one, and it is not retiring.
-	fresh, made, err := r.Ensure("a@acme.com", "cell-1")
+	fresh, made, err := r.Ensure("a@acme.com", "", "cell-1")
 	if err != nil || !made {
 		t.Fatalf("%+v %v %v", fresh, made, err)
 	}
 	if retiring, _ := r.Retiring(); len(retiring) != 0 {
 		t.Errorf("a new computer is not marked by the old one's request: %+v", retiring)
+	}
+}
+
+// A person removed again after their computer was removed leaves no mark, and a mark left by an earlier release is cleared
+// when a computer is made: neither removes the computer they get when they come back. spec/Computer.tla is the model.
+func TestAMarkOnARemovedComputerDoesNotRemoveTheNextOne(t *testing.T) {
+	dir := t.TempDir()
+	registry, err := Open(dir, "acme")
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, _, err := registry.Ensure("ada@acme.com", "", "local")
+	if err != nil {
+		t.Fatal(err)
+	}
+	registry.Retire("ada@acme.com")
+	if err := registry.Retired(first.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := registry.Retire("ada@acme.com"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := registry.Ensure("ada@acme.com", "", "local"); err != nil {
+		t.Fatal(err)
+	}
+	if retiring, _ := registry.Retiring(); len(retiring) != 0 {
+		t.Errorf("the computer made when the person came back is to be removed: %+v", retiring)
+	}
+	again, _ := registry.Of("ada@acme.com", "")
+	registry.Retire("ada@acme.com")
+	registry.Retired(again.ID)
+	if err := os.WriteFile(filepath.Join(dir, again.ID+".retire"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := registry.Ensure("ada@acme.com", "", "local"); err != nil {
+		t.Fatal(err)
+	}
+	if retiring, _ := registry.Retiring(); len(retiring) != 0 {
+		t.Errorf("a mark left on a removed computer removes the next one: %+v", retiring)
 	}
 }

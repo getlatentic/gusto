@@ -2,12 +2,13 @@ package web
 
 import (
 	"fmt"
-	"github.com/getlatentic/gusto/internal/catalog"
 	"net/http"
 	"slices"
 	"strconv"
 
+	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/pkg/proxy"
+	"github.com/getlatentic/gusto/pkg/wire"
 )
 
 // Models is what a deployment offers to think with. Every engine is offered every model: which pairs work well is for
@@ -84,3 +85,8 @@ func trimmed(rate float64) string { return strconv.FormatFloat(rate, 'f', -1, 64
 
 // limitedWords is what a person limited away from every model offered is told.
 const limitedWords = "you may not use any of the models offered here"
+
+// UseReach has the pickers offer an agent only the models its calls can reach, from what the proxy holds.
+func (s *Server) UseReach(reaches func(model string, shape wire.Shape) (native, ok bool)) {
+	s.reaches = reaches
+}

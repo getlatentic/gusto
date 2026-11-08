@@ -49,7 +49,7 @@ Before anybody signs in from elsewhere, put something that terminates TLS in fro
 
 ## Behind your own web server
 
-If the machine already runs nginx or Apache, run `deploy/install/server.sh --behind-proxy`. It keeps gusto on `127.0.0.1:8040` and sets `GUSTO_BEHIND_PROXY=1`, so the address your web server forwards is the one the sign-in lock and the record use. The proxy must not buffer or cut off a streaming reply, and must pass the scheme so the cookie is marked secure.
+If the machine already runs nginx or Apache, run `deploy/install/server.sh --behind-proxy`. It keeps gusto on `127.0.0.1:8040` and sets `GUSTO_BEHIND_PROXY=1`, so the address your web server forwards is the one the sign-in lock and the record use. The proxy must not buffer or cut off a streaming reply, must pass a room's WebSocket, and must pass the scheme so the cookie is marked secure. A room's page works without the WebSocket, by asking every few seconds, so a proxy that cannot pass it costs liveness and not function.
 
 | Need | nginx (`certbot --nginx -d agents.example.com` adds the certificate) | Apache (`a2enmod proxy proxy_http headers`) |
 | --- | --- | --- |
@@ -58,8 +58,17 @@ If the machine already runs nginx or Apache, run `deploy/install/server.sh --beh
 | Pass the client address | `proxy_set_header X-Forwarded-For $remote_addr;` | Apache adds `X-Forwarded-For` itself |
 | Pass the scheme | `proxy_set_header X-Forwarded-Proto $scheme;` | `RequestHeader set X-Forwarded-Proto "https"` |
 | Stream a turn | `proxy_buffering off;` and `proxy_read_timeout 1h;` | `flushpackets=on timeout=3600` on `ProxyPass` |
+| Pass a room's WebSocket (`/live`) | `proxy_set_header Upgrade $http_upgrade;` and `proxy_set_header Connection "upgrade";` with the 1 hour timeout above | `a2enmod proxy_wstunnel`, and `ProxyPass /live ws://127.0.0.1:8040/live` before the `ProxyPass /` |
+
+Put gusto's directives in a server block of its own, with its own `server_name`. The WebSocket and timeout settings then apply to gusto's name only, and the other sites on the same nginx or Apache keep theirs. gusto needs a port nothing else uses: `GUSTO_PUBLISH` sets it. A request for a name no server block claims goes to the first block, or to the one marked `default_server`, which is not gusto's unless you make it so.
 
 Any other TLS front (Cloudflare, a load balancer, Tailscale Serve) works the same way: send to `http://127.0.0.1:8040`, do not buffer, and pass the scheme and the client's address.
+
+When more than one proxy sits between the browser and gusto, each one must do these three things, or a room's page falls back to asking every few seconds:
+
+- Forward the `Upgrade` and `Connection: upgrade` headers on `/live`.
+- Keep a quiet connection open for longer than 30 seconds, the server's ping interval. A default of 60 seconds is enough; a shorter one is not.
+- Pass `Host` as the browser sent it. The server compares the `Origin` the browser sends with `Host` and refuses the socket when they differ.
 
 ## Give it a model
 
@@ -89,7 +98,7 @@ GUSTO_KEYRING=/var/lib/gusto/keys
 | What | Where |
 | --- | --- |
 | Tasks and their record | `$GUSTO_DATA/jobs` (`/var/lib/gusto/jobs` unless moved); the proxy's socket is `.proxy.sock` there. The smoke check keeps its repository in `$GUSTO_DATA/smoke` and its tasks here until you delete them |
-| Workspaces, setups, comparisons | `$GUSTO_DATA/sessions`, `setups`, `comparisons` |
+| Agents' folders, setups, comparisons | `$GUSTO_DATA/sessions`, `setups`, `comparisons` |
 | The change record | `$GUSTO_DATA/changes/changes.jsonl` ([CHANGES.md](../../docs/CHANGES.md)) |
 | The server's log | `docker compose logs server`: one JSON line a request |
 

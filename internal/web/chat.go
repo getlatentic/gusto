@@ -12,6 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/industry"
 	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/pkg/wire"
 )
 
 // pick is one harness in the chat's chooser with the models it may be pointed at.
@@ -27,26 +28,27 @@ func (s *Server) chatPage(w http.ResponseWriter, r *http.Request) {
 	picks := s.picksFor(r)
 	harness, model := defaultPick(picks, s.lastUsed(r), s.orgDefault())
 	s.render(w, "chat.html", map[string]any{
-		"Title":      productName + " — chat",
-		"Nav":        "chat",
-		"Chat":       true,
-		"Picks":      picks,
-		"Harness":    harness,
-		"Model":      model,
-		"Agents":     s.agentOptions(picks),
-		"Models":     s.modelOptions(picks),
-		"Rail":       s.railFor(r, "/chat"),
-		"Here":       "/chat",
-		"Refused":    r.URL.Query().Get("refused"),
-		"Start":      s.startIn(r),
-		"Roles":      s.roleChoices(r),
-		"Role":       s.chosenRole(r),
-		"NeedsModel": s.needsModel(r),
-		"Presets":    modelPresets,
-		"Missing":    s.missingEngines(),
-		"FoundKeys":  s.foundKeys,
-		"Lacking":    s.lacking(),
-		"Wall":       s.wallView(),
+		"Title":       productName + " — chat",
+		"Nav":         "chat",
+		"Chat":        true,
+		"Picks":       picks,
+		"Harness":     harness,
+		"Model":       model,
+		"Agents":      s.agentOptions(picks),
+		"Models":      s.modelOptions(picks),
+		"Rail":        s.railFor(r, "/chat"),
+		"Here":        "/chat",
+		"Refused":     s.refusal(r),
+		"Start":       s.startIn(r),
+		"Roles":       s.roleChoices(r),
+		"Role":        s.chosenRole(r),
+		"NeedsModel":  s.needsModel(r),
+		"Presets":     modelPresets,
+		"Missing":     s.missingEngines(),
+		"HandInstall": s.handInstall(),
+		"FoundKeys":   s.foundKeys,
+		"Lacking":     s.lacking(),
+		"Wall":        s.wallView(),
 	})
 }
 
@@ -59,7 +61,7 @@ func (s *Server) startIn(r *http.Request) startFolder {
 	if !found {
 		return startFolder{}
 	}
-	if _, ok := s.workspaceDir(id, dir); !ok {
+	if _, ok := s.agentFolderDir(id, dir); !ok {
 		return startFolder{}
 	}
 	name := s.agentOf(held).Name
@@ -67,6 +69,18 @@ func (s *Server) startIn(r *http.Request) startFolder {
 		name = path.Base(dir)
 	}
 	return startFolder{At: path.Join(id, dir), Name: name, Harness: s.engineOf(id, held.Harness)}
+}
+
+// home is where a person lands: in the room they were last in when they have no conversation of their own yet, which is how a
+// colleague who was added to a room first sees the product, and on the empty chat otherwise.
+func (s *Server) home(w http.ResponseWriter, r *http.Request) {
+	if len(s.lastUsed(r)) == 0 {
+		if rooms := s.roomsFor(r); len(rooms) > 0 {
+			http.Redirect(w, r, rooms[0].Where, http.StatusSeeOther)
+			return
+		}
+	}
+	http.Redirect(w, r, "/chat", http.StatusSeeOther)
 }
 
 // picksFor is each harness this deployment can run for this person, with the models it may use.
@@ -77,9 +91,37 @@ func (s *Server) picksFor(r *http.Request) []pick {
 	offered := s.offeredTo(r)
 	var picks []pick
 	for _, entry := range s.readyEngines() {
-		picks = append(picks, pick{Entry: entry, Models: offered})
+		picks = append(picks, pick{Entry: entry, Models: s.usableBy(entry.Shape, offered)})
 	}
 	return picks
+}
+
+// usableBy is the models an agent that calls in this shape can use. A model reached through a credential that neither answers
+// nor translates the shape is left out, since every call would fail. Where two credentials reach the same model, the agent is
+// offered it once, through the one that answers its shape as it is.
+func (s *Server) usableBy(shape wire.Shape, offered []string) []string {
+	if s.reaches == nil {
+		return offered
+	}
+	usable := make([]string, 0, len(offered))
+	native := map[string]bool{}
+	at := map[string]int{}
+	for _, model := range offered {
+		isNative, ok := s.reaches(model, shape)
+		if !ok {
+			continue
+		}
+		name := modelName(model)
+		if i, seen := at[name]; seen {
+			if isNative && !native[name] {
+				usable[i], native[name] = model, true
+			}
+			continue
+		}
+		at[name], native[name] = len(usable), isNative
+		usable = append(usable, model)
+	}
+	return usable
 }
 
 // defaultPick is the harness and model last used that can still be used, else the organization's default when it can run, else the
@@ -93,7 +135,7 @@ func defaultPick(picks []pick, recent []yours, org chatDefault) (harness, model 
 			if each.Model == "" || slices.Contains(candidate.Models, each.Model) {
 				return each.Harness, each.Model
 			}
-			return each.Harness, first(candidate.Models)
+			return each.Harness, startingModel(candidate)
 		}
 	}
 	for _, candidate := range picks {
@@ -101,13 +143,30 @@ func defaultPick(picks []pick, recent []yours, org chatDefault) (harness, model 
 			if slices.Contains(candidate.Models, org.Model) {
 				return org.Harness, org.Model
 			}
-			return org.Harness, first(candidate.Models)
+			return org.Harness, startingModel(candidate)
 		}
 	}
 	if len(picks) == 0 {
 		return "", ""
 	}
-	return picks[0].Name, first(picks[0].Models)
+	return picks[0].Name, startingModel(picks[0])
+}
+
+// startingModel is the model an agent type starts on when nobody chose one: the first offered that it finished the benchmark's
+// simplest task with, else the first it was not seen to fail with, else the first offered. An agent that cannot finish on the
+// deployment's default model is not started on it.
+func startingModel(each pick) string {
+	for _, model := range each.Models {
+		if _, finished := each.Finished(model); finished {
+			return model
+		}
+	}
+	for _, model := range each.Models {
+		if _, cannot := each.CannotFinish(model); !cannot {
+			return model
+		}
+	}
+	return first(each.Models)
 }
 
 func first(all []string) string {

@@ -29,9 +29,10 @@ gusto runs the AI agents you already use, each in a sandbox, on a task.
 - [`gusto open`](#gusto-open): Open gusto on this computer in the browser, signed in
 - [`gusto local`](#gusto-local): Run gusto for one person on this computer
 - [`gusto cloud`](#gusto-cloud): Run gusto cloud, the hosted server for accounts and routing
-- [`gusto host`](#gusto-host): Run a host for organizations' servers, for a gusto cloud
+- [`gusto node`](#gusto-node): Run a node for organizations' servers, for a gusto cloud
 - [`gusto operator`](#gusto-operator): Serve the operator's page for a gusto cloud, on loopback
 - [`gusto scan`](#gusto-scan): Ask the runner image which agents it carries
+- [`gusto param`](#gusto-param): Print a parameter from AWS Parameter Store, decrypted
 - [`gusto doctor`](#gusto-doctor): Check this computer can run a task, before one is sent
 
 **Account**
@@ -115,11 +116,19 @@ Flags:
 
 Environment:
 
-- `GUSTO_CONTAINER`: the container runtime to use, docker or podman
-- `GUSTO_IMAGE`: the runner image tasks run in
+- `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
+- `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
+- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS was its name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY was its name
+- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
+- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
+- `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
+- `GUSTO_TOOL_MEMORY`: the memory one tool server's container may use (default 512m)
+- `GUSTO_SIGNING_KEY`: the private key records are signed with: a file from gusto keygen, or awskms://<key>
+- `GUSTO_SIGNER`: the name a record gives for who signed it (default the key's id)
 - `GUSTO_MODEL_URL`: the model endpoint the agent calls
 - `GUSTO_MODEL_TOKEN`: the key for that endpoint
-- `GUSTO_SIGNING_KEY`: the private key the record is signed with, from gusto keygen
 
 Exit codes:
 
@@ -155,9 +164,13 @@ Flags:
 
 Environment:
 
+- `GUSTO_SIGNING_KEY`: the private key records are signed with: a file from gusto keygen, or awskms://<key>
+- `GUSTO_SIGNER`: the name a record gives for who signed it (default the key's id)
+- `GUSTO_PROXY_SOCKET`: in a box with no network, the proxy's socket the agent's calls are relayed to
+- `GUSTO_AGENT_UID`: the user the agent and the check run as when gusto runs as root in a box (default 0, which is gusto's own)
+- `GUSTO_HOME_KEPT`: the agent's home is a person's own, kept between their tasks
 - `GUSTO_MODEL_URL`: the model endpoint the agent calls
 - `GUSTO_MODEL_TOKEN`: the key for that endpoint
-- `GUSTO_SIGNING_KEY`: the private key the record is signed with, from gusto keygen
 
 Exit codes:
 
@@ -257,8 +270,17 @@ Flags:
 
 Environment:
 
-- `GUSTO_CONTAINER`: the container runtime to use, docker or podman
-- `GUSTO_IMAGE`: the runner image tasks run in
+- `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
+- `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
+- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS was its name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY was its name
+- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
+- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
+- `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
+- `GUSTO_TOOL_MEMORY`: the memory one tool server's container may use (default 512m)
+- `GUSTO_SIGNING_KEY`: the private key records are signed with: a file from gusto keygen, or awskms://<key>
+- `GUSTO_SIGNER`: the name a record gives for who signed it (default the key's id)
 
 Exit codes:
 
@@ -300,8 +322,17 @@ Flags:
 
 Environment:
 
-- `GUSTO_CONTAINER`: the container runtime to use, docker or podman
-- `GUSTO_IMAGE`: the runner image tasks run in
+- `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
+- `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
+- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS was its name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY was its name
+- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
+- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
+- `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
+- `GUSTO_TOOL_MEMORY`: the memory one tool server's container may use (default 512m)
+- `GUSTO_SIGNING_KEY`: the private key records are signed with: a file from gusto keygen, or awskms://<key>
+- `GUSTO_SIGNER`: the name a record gives for who signed it (default the key's id)
 
 Exit codes:
 
@@ -341,8 +372,15 @@ Flags:
 Environment:
 
 - `GUSTO_SANDBOX`: openshell runs each task in an OpenShell sandbox
-- `GUSTO_CONTAINER`: the container runtime to use, docker or podman
-- `GUSTO_IMAGE`: the runner image tasks run in
+- `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
+- `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
+- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS was its name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY was its name
+- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
+- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
+- `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
+- `GUSTO_TOOL_MEMORY`: the memory one tool server's container may use (default 512m)
 
 Exit codes:
 
@@ -536,7 +574,7 @@ Serve the pages: submit a task, watch it, read the record
 gusto serve
 ```
 
-Runs the gusto server: the pages for submitting a task, watching it and reading its record, and the queue that runs tasks. It will not start without GUSTO_PASSWORD. Many more settings, for sign-in, limits, models and storage, are read from GUSTO_ variables; docs/REFERENCE.md lists them.
+Runs the gusto server: the pages for submitting a task, watching it and reading its record, and the queue that runs tasks. It will not start without GUSTO_PASSWORD, or with a setting whose value does not read.
 
 Flags:
 
@@ -546,17 +584,113 @@ Environment:
 
 - `GUSTO_PASSWORD`: the server's shared sign-in; required
 - `GUSTO_ADDR`: where to listen (default 127.0.0.1:8040)
-- `GUSTO_JOBS`: the directory tasks are kept in (default jobs)
-- `GUSTO_SESSIONS`: the directory agents' conversations are kept in (default sessions)
-- `GUSTO_SANDBOX`: how tasks are held: container, openshell, process or here
-- `GUSTO_JOB_CONCURRENCY`: how many tasks run at once (default 1)
-- `GUSTO_MODELS`: the models the server offers
-- `GUSTO_OIDC_ISSUER`: sign people in through this OpenID Connect issuer
-- `GUSTO_ALLOWED`: the people who may sign in, separated by commas
-- `GUSTO_ADMINS`: the people who administer the server
-- `GUSTO_API_TOKENS`: the file of API tokens
-- `GUSTO_RETENTION`: the directory of the retention policy and holds
-- `GUSTO_REGISTRY`: the directory of the organization's registry of models
+- `GUSTO_BEHIND_PROXY`: trust the address a proxy in front says a request came from
+- `GUSTO_LOCAL`: a server for one person on their own computer, listening on the loopback only
+- `GUSTO_ORG`: the organization this server is, as its gusto cloud names it
+- `GUSTO_PUBLIC_URL`: this server's address as people reach it, which links and sign-ins come back to
+- `GUSTO_TASKS`: the directory tasks are kept in (default jobs); GUSTO_JOBS was its name
+- `GUSTO_SESSIONS`: the directory conversations and rooms are kept in (default sessions)
+- `GUSTO_SETUPS`: the directory skill sets are kept in (default setups)
+- `GUSTO_COMPARISONS`: the directory comparisons are kept in (default comparisons)
+- `GUSTO_INTEGRATIONS`: the directory imported integrations are kept in (default integrations)
+- `GUSTO_PRESETS`: the directory presets are kept in (default presets)
+- `GUSTO_CREW`: the directory the crew of agents is kept in (default crew)
+- `GUSTO_CHANGES`: the file every change to the platform is recorded in (default changes/changes.jsonl)
+- `GUSTO_API_TOKENS`: the file API tokens are kept in
+- `GUSTO_RETENTION`: the directory of the retention policy and what it removed
+- `GUSTO_DATABASE_URL`: the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file beside GUSTO_TASKS)
+- `GUSTO_MIGRATE_IRREVERSIBLE`: let a release change the data in a way an earlier release cannot read
+- `GUSTO_APPS`: the directory the web apps agents built are kept in (default apps)
+- `GUSTO_MCP`: the directory of the operator's MCP servers, one file each
+- `GUSTO_KEEPER`: the file sign-ins are kept in, so a deploy does not sign people out (default .keeper.json in GUSTO_SESSIONS)
+- `GUSTO_MEMBERS`: the file of the organization's members and their roles
+- `GUSTO_INBOX`: the directory gusto cloud leaves messages for this server in
+- `GUSTO_ORG_SETTINGS`: the file of what the organization's admins chose
+- `GUSTO_QUOTA`: the file of what the organization may run, which its gusto cloud writes
+- `GUSTO_DESKTOP`: the directory the desktop app's downloads are served from
+- `GUSTO_AGENTS`: the directory gusto installs agents into on a person's own computer (default agents)
+- `GUSTO_INTEGRATIONS_PRIVATE`: let an integration be imported from a private address
+- `GUSTO_OIDC_ISSUER`: the identity provider people sign in with
+- `GUSTO_OIDC_CLIENT_ID`: this server's client at the identity provider
+- `GUSTO_OIDC_CLIENT_SECRET`: the client's secret at the identity provider
+- `GUSTO_OIDC_REDIRECT`: the address the identity provider sends a person back to
+- `GUSTO_OIDC_GROUPS_CLAIM`: the claim a person's groups are in
+- `GUSTO_OIDC_SCOPES`: the scopes asked for at sign-in, comma-separated
+- `GUSTO_ALLOWED`: the people and domains who may sign in, comma-separated
+- `GUSTO_RUNNER_GROUPS`: the groups whose members may run tasks
+- `GUSTO_ADMIN_GROUPS`: the groups whose members are admins
+- `GUSTO_ADMINS`: the people who are admins, comma-separated
+- `GUSTO_FOUND_KEYS`: the model keys found on a person's own computer
+- `GUSTO_LOCAL_REPOS`: the repositories on a person's own computer a task may start from
+- `GUSTO_CLOUD_URL`: the address of the gusto cloud that sends people here; GUSTO_FRONT_DOOR was its name
+- `GUSTO_ENTRY_KEY`: the file of the key gusto cloud signs a person's entry with
+- `GUSTO_ORG_NAME`: what the organization is called, which its pages show
+- `GUSTO_MODEL_URL`: the model a task asks directly when this server holds no credential (default http://localhost:11434/v1)
+- `GUSTO_MODEL_UPSTREAM`: the root of the one model provider this server holds a key for, with no version on it
+- `GUSTO_MODEL_KEY`: the key for GUSTO_MODEL_UPSTREAM, which the proxy holds
+- `GUSTO_MODEL_NAME`: what the credential for GUSTO_MODEL_UPSTREAM is called (default the platform credential)
+- `GUSTO_CREDENTIALS`: the directory of credentials the proxy holds, one <name>.json each
+- `GUSTO_SPEND_POLICY`: the file of prices and team caps
+- `GUSTO_MODELS`: the models offered, as credential/model, comma-separated
+- `GUSTO_ALLOWED_HOSTS`: every other host a task may reach through the proxy, comma-separated
+- `GUSTO_PROXY_SOCKET`: the socket a box with no network reaches the proxy on (default .proxy.sock in GUSTO_TASKS)
+- `GUSTO_PROXY_ADDR`: where the proxy listens for a box on a network (default port 8041, on every interface for containers and the loopback otherwise)
+- `GUSTO_PROXY_MAX_OUTPUT_TOKENS`: the most output tokens one model call may ask for (default no limit)
+- `GUSTO_PROXY_SILENCE_SECONDS`: how long a model may send nothing before its call is ended, in seconds (default no limit)
+- `GUSTO_TOOL_POLICY`: the file of which tool servers a task may call, and how
+- `GUSTO_GATEWAY_MODE`: how a task finds the tools behind the gateway (discover, all) (default discover)
+- `GUSTO_GATEWAY_PRIVATE`: let tool servers and connected apps be on a private network
+- `GUSTO_REDACTION`: the file of what the proxy and the gateway mask in what passes through
+- `GUSTO_LIVE`: the file of limits and models read again as it changes
+- `GUSTO_RELOAD_SECONDS`: how often the files read as they change are looked at, in seconds (default 20)
+- `GUSTO_LIMIT_PERSON`: the most tasks one person may have running (default no limit)
+- `GUSTO_LIMIT_TEAM`: the most tasks may run for the whole team (default no limit)
+- `GUSTO_REGISTRY`: the directory of the model providers and models an organization's admins keep
+- `GUSTO_REGISTRY_KEYS`: the kinds of reference a provider's key may be besides one typed in: file, ssm, secretsmanager
+- `GUSTO_REGISTRY_PRIVATE`: allow lets a provider be at a private address or plain http (allow)
+- `GUSTO_KEYCHAIN`: off keeps model keys in files only you can read, not in the keychain (on, off) (default on)
+- `GUSTO_CONNECTORS`: the directory people's connected apps are kept in
+- `GUSTO_CONNECTOR_CLIENTS`: the file of the clients registered with the apps that need one, or ssm:<name>
+- `GUSTO_CONNECTOR_APPS`: the file of more apps than the catalog's
+- `GUSTO_SANDBOX`: how tasks are held (container, openshell, process, here) (default container)
+- `GUSTO_TASK_NETWORK`: open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR (open); GUSTO_JOB_NETWORK was its name
+- `GUSTO_TASK_CONCURRENCY`: how many tasks run at a time (default 1); GUSTO_JOB_CONCURRENCY was its name
+- `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
+- `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
+- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS was its name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY was its name
+- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
+- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
+- `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
+- `GUSTO_TOOL_MEMORY`: the memory one tool server's container may use (default 512m)
+- `GUSTO_OPENSHELL`: the openshell command (default openshell)
+- `GUSTO_OPENSHELL_GATEWAY`: the registered gateway to use (default the selected one)
+- `GUSTO_OPENSHELL_IMAGE`: what a sandbox is made from: an image the gateway can pull, or a root file system archive
+- `GUSTO_OPENSHELL_HOST`: the name a sandbox uses for the machine the gateway runs on (default host.openshell.internal)
+- `GUSTO_OPENSHELL_CPU`: the CPUs one sandbox may use (default 1)
+- `GUSTO_OPENSHELL_MEMORY`: the memory one sandbox may use (default 3Gi)
+- `GUSTO_OPENSHELL_PROCESSES`: the most processes an agent may have running in a sandbox at once (default 512)
+- `GUSTO_OPENSHELL_REMOTE`: the gateway runs on another machine, so this one needs no hardware virtualization
+- `GUSTO_COMPUTERS`: the directory of the records of the computers an organization's people have
+- `GUSTO_NODE`: the node new computers are made on (default local); GUSTO_CELL was its name
+- `GUSTO_SPARE_COMPUTER`: keep one blank computer ready for the next person who has none
+- `GUSTO_COMPUTER_IDLE_MINUTES`: how long a computer nobody uses runs before it is stopped, in minutes (default 30)
+- `GUSTO_HOME_LIMIT_MB`: the most a person's kept home may take in a container, in megabytes; with GUSTO_COMPUTERS, a turn over it is refused until the person resets the home (default 5120)
+- `GUSTO_ROOM_COPY_MB`: the most a room's folder may hold for an agent's turn to copy it, in megabytes (default 4096)
+- `GUSTO_ROOM_COPY_FILES`: the most files a room's folder may hold for an agent's turn to copy it (default 200000)
+- `GUSTO_NOTIFY_WEBHOOK`: the address told how each run of a routine ended, by a signed request
+- `GUSTO_NOTIFY_SECRET`: the secret the webhook's requests are signed with
+- `GUSTO_MAIL`: how mail is sent to the person who added a routine, as GUSTO_CLOUD_MAIL is
+- `GUSTO_MAIL_TOKEN`: the token mail is sent with
+- `GUSTO_MAIL_OUTBOX`: the directory mail is written to when it is not sent (default outbox)
+- `GUSTO_CHAT_DEFAULT`: what a new chat runs on, as agent=model
+- `GUSTO_DEPLOY_RESULT`: how the last deploy went, which the health page shows
+- `GUSTO_RETENTION_MINUTES`: how often retention removes what its policy says, in minutes (default 60)
+- `GUSTO_LIVE_CONNECTIONS`: the most rooms' pages followed live at once (default 10000)
+- `GUSTO_SIGNING_KEY`: the private key records are signed with: a file from gusto keygen, or awskms://<key>
+- `GUSTO_SIGNER`: the name a record gives for who signed it (default the key's id)
+- `GUSTO_KEYRING`: the directory of public keys that name a record's signer
 
 Examples:
 
@@ -582,7 +716,7 @@ Flags:
 
 Environment:
 
-- `GUSTO_LOCAL_HOME`: where gusto keeps your work on this computer
+- `GUSTO_LOCAL_HOME`: where gusto keeps your work, instead of the system's place for an app's data
 
 Examples:
 
@@ -703,7 +837,7 @@ Adds the key in one of your environment variables to your own gusto, with the mo
 
 Arguments:
 
-- `<NAME>`: ANTHROPIC_API_KEY, DEEPSEEK_API_KEY, OPENAI_API_KEY or OPENROUTER_API_KEY
+- `<NAME>`: ANTHROPIC_API_KEY, DEEPSEEK_API_KEY, META_API_KEY, OPENAI_API_KEY or OPENROUTER_API_KEY
 - `<model>`: a model to offer; left out, you pick from what the provider lists
 
 Flags:
@@ -771,15 +905,15 @@ Run gusto cloud, the hosted server for accounts and routing
 
 ```text
 gusto cloud
-gusto cloud workspaces
+gusto cloud computers
 gusto cloud migrate
 ```
 
-With no subcommand, runs gusto cloud: sign-up, sign-in and the organizations' records, and the servers it starts for each organization and sends their people to. It runs no tasks itself. Its settings are the GUSTO_CLOUD_ variables; docs/CLOUD.md lists them. The accounts are in a database that several front doors can share: SQLite in cloud.db under the root by default, or Postgres when GUSTO_DATABASE_URL names it (docs/CLOUD-DATABASE.md).
+With no subcommand, runs gusto cloud: sign-up, sign-in and the organizations' records, and the servers it starts for each organization and sends their people to. It runs no tasks itself, and will not start with a setting whose value does not read. The accounts are in a database that several gusto cloud servers can share: SQLite in cloud.db under the root by default, or Postgres when GUSTO_DATABASE_URL names it (docs/CLOUD-DATABASE.md).
 
 Commands:
 
-- `workspaces`: List every workspace on this host
+- `computers`: List every computer on this node
 - `migrate`: Show the accounts database, or load the old account files into it
 
 Flags:
@@ -788,33 +922,96 @@ Flags:
 
 Environment:
 
-- `GUSTO_CLOUD_ADDR`: where to listen (default 127.0.0.1:8050)
-- `GUSTO_CLOUD_URL`: the address links in mail begin with, such as https://cloud.example.com
-- `GUSTO_CLOUD_DOMAIN`: the domain organizations' servers are under
-- `GUSTO_CLOUD_ORG_ENV`: a file of KEY=VALUE lines every organization's server starts with; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organization a schema of its own for its indexes
-- `GUSTO_CLOUD_INDEX_DIR`: where organizations' indexes are kept when that address is not Postgres: a directory for each, on this host's local disk (default index under GUSTO_CLOUD_ROOT)
-- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
 - `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several gusto cloud servers can share
+- `GUSTO_CLOUD_ADDR`: where gusto cloud listens (default 127.0.0.1:8050)
+- `GUSTO_CLOUD_URL`: the address links in mail begin with, such as https://cloud.example.com (default http:// and GUSTO_CLOUD_ADDR)
+- `GUSTO_CLOUD_DOMAIN`: the domain organizations are served under, as <slug>.<domain> (default localhost)
+- `GUSTO_CLOUD_TRUST_PROXY`: trust the address a proxy in front says a request came from
+- `GUSTO_CLOUD_MAIL`: how mail is sent: outbox writes it to files; smtp://user:pass@host:587?from=a@example.com sends it by SMTP; cloudflare://<account id>?from=a@example.com sends it by Cloudflare (default outbox)
+- `GUSTO_CLOUD_MAIL_TOKEN`: the Cloudflare API token that may send mail, for cloudflare://
+- `GUSTO_CLOUD_LEASE_FILE`: the file that says when a demo host removes itself; a person signed in at /lease extends it, and without it there is no lease
+- `GUSTO_CLOUD_LEASE_STEP_MINUTES`: how much each extension of the lease adds, in minutes (default 30)
+- `GUSTO_CLOUD_LEADER_SECONDS`: how long the lease that makes one gusto cloud server the leader lasts unrenewed, in seconds (default 30)
+- `GUSTO_CLOUD_LEAD_HOOK_URL`: the address each demo lead is sent to, by a signed request
+- `GUSTO_CLOUD_LEAD_HOOK_SECRET`: the secret the lead hook's requests are signed with
+- `GUSTO_CLOUD_TURNSTILE_SITE`: the Cloudflare Turnstile site key of the bot check on the demo form, which fails closed
+- `GUSTO_CLOUD_TURNSTILE_SECRET`: the Cloudflare Turnstile secret of the bot check
+- `GUSTO_CLOUD_PER_ADDRESS`: the most sign-ups, sign-ins and demo requests from one network address in an hour (default 10)
+- `GUSTO_CLOUD_PER_MAILBOX`: the most mail sent to one address in an hour (default 3)
+- `GUSTO_CLOUD_IN_ALL`: the most sign-ups, and the most demo requests, in all in an hour (default 200)
+- `GUSTO_CLOUD_FREE_MAIL`: whether free mail providers may sign up; allow is for a demonstration (allow, refuse) (default refuse)
+- `GUSTO_CLOUD_REFUSED_DOMAINS`: more mail domains to turn away, beside the built-in ones, comma-separated
+- `GUSTO_CLOUD_PER_DOMAIN`: how many organizations one mail domain may make (default 3)
+- `GUSTO_CLOUD_TRIAL_TASKS`: the tasks in all an organization may run before its admin's address is confirmed (default 3); GUSTO_CLOUD_TRIAL_JOBS was its name
+- `GUSTO_CLOUD_TRIAL_CONCURRENT`: the tasks at once an organization may run before its admin's address is confirmed (default 1)
+- `GUSTO_CLOUD_TASKS`: the tasks a month a confirmed organization may run (default 200); GUSTO_CLOUD_JOBS was its name
+- `GUSTO_CLOUD_CONCURRENT`: the tasks at once a confirmed organization may run (default 4)
+- `GUSTO_CLOUD_MEMBERS`: the people a confirmed organization may have (default 4)
+- `GUSTO_CLOUD_COMPUTERS`: the computers a confirmed organization may have (default 4)
+- `GUSTO_CLOUD_PAID_TASKS_PER_SEAT`: the tasks a month a paying organization may run for each seat (default 200); GUSTO_CLOUD_PAID_JOBS_PER_SEAT was its name
+- `GUSTO_CLOUD_PAID_MEMBERS`: the people, and the computers, a paying organization may have (default 50)
+- `GUSTO_CLOUD_DEMO_MINUTES`: the minutes a demo lasts from when it is ready (default 0, no demo)
+- `GUSTO_CLOUD_DEMO_EXTEND_MINUTES`: the minutes a demo's one extension adds (default 10)
+- `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES`: the minutes a demo has to be ready before it is deleted (default 15)
+- `GUSTO_CLOUD_DEMO_MAX`: the most demos at once, until the operator's page sets it (default 5)
+- `GUSTO_CLOUD_DEMO_PER_DAY`: the most demos started in a day, until the operator's page sets it (default 40)
+- `GUSTO_CLOUD_DEMO_PER_PERSON`: the most demos one address may start in a day, until the operator's page sets it (default 2)
+- `GUSTO_CLOUD_DEMO_PER_COMPANY`: the most demos one company may start in a day, until the operator's page sets it (default 6)
+- `GUSTO_CLOUD_BOOK_URL`: where a visitor books a call
+- `GUSTO_CLOUD_DEMO_VIDEO`: the video the landing page shows: an https address of a file or of a page to embed
+- `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo
+- `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
+- `GUSTO_CLOUD_STRIPE_KEY`: the Stripe secret API key organizations are billed by the seat with; the key, the price and the webhook secret are set together or not at all
+- `GUSTO_CLOUD_STRIPE_PRICE`: the Stripe price of one seat for a month
+- `GUSTO_CLOUD_STRIPE_WEBHOOK_SECRET`: the signing secret of the Stripe webhook
+- `GUSTO_CLOUD_SEAT_USD`: the seat's price the organization page shows, in dollars (default 25)
+- `GUSTO_PAYPAL_CLIENT_ID`: the client id of a PayPal sandbox app that organizations pay for seats through; the client id, its secret and the webhook id are set together or not at all
+- `GUSTO_PAYPAL_CLIENT_SECRET`: the secret of the PayPal sandbox app
+- `GUSTO_PAYPAL_WEBHOOK_ID`: the id of the PayPal sandbox webhook registered for <GUSTO_CLOUD_URL>/paypal/webhook
+- `GUSTO_PAYPAL_PLAN_ID`: the PayPal plan of a seat for a month. Without it the product and the plan are made once and remembered
+- `GUSTO_CLOUD_SERVERS`: whether gusto cloud starts organizations' servers; off keeps the accounts only (on, off) (default on)
+- `GUSTO_CLOUD_ORG_ENV`: a file of KEY=VALUE lines every organization's server starts with: the operator's credentials, models and sandbox; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organization a schema of its own for its indexes
+- `GUSTO_CLOUD_DEMO_ENV`: a file of KEY=VALUE lines a demo organization's server starts with on top of GUSTO_CLOUD_ORG_ENV's, such as another sandbox
+- `GUSTO_CLOUD_INDEX_DIR`: where organizations' indexes are kept when that address is not Postgres: a directory for each, on the local disk of the host its server runs on (default index under GUSTO_CLOUD_ROOT)
+- `GUSTO_CLOUD_PORT_FROM`: the first port an organization's server gets, two each (default 9100)
+- `GUSTO_CLOUD_START_WAIT_SECONDS`: how long a server has to answer once started, in seconds (default 120)
+- `GUSTO_CLOUD_NODES_DIR`: the directory nodes register in; unset, this machine runs every organization's server; GUSTO_CLOUD_CELLS_DIR was its name
+- `GUSTO_CLOUD_NODE_SECRET_FILE`: the file with the secret gusto cloud and the nodes sign with; GUSTO_CLOUD_CELL_SECRET_FILE was its name
+- `GUSTO_CLOUD_NODE_MIN_FREE_MIB`: the memory a node must have free for an organization to be placed on it, in MiB (default 4096); GUSTO_CLOUD_CELL_MIN_FREE_MIB was its name
+- `GUSTO_CLOUD_NODE_GONE_MINUTES`: how long a node may be silent before it is taken to be gone and its organizations are placed on another, in minutes (default 30); GUSTO_CLOUD_CELL_GONE_MINUTES was its name
+- `GUSTO_CLOUD_LOCAL_NODE`: this machine is a node too; GUSTO_CLOUD_LOCAL_CELL was its name
+- `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH was its name
+- `GUSTO_CLOUD_NODE_PROJECT`: the project tag of the nodes' machines; GUSTO_CLOUD_CELL_PROJECT was its name
+- `GUSTO_CLOUD_NODE_TEMPLATE`: the launch template a node's machine is made from; GUSTO_CLOUD_CELL_TEMPLATE was its name
+- `GUSTO_CLOUD_NODE_USERDATA`: the start-up script a node's machine runs; GUSTO_CLOUD_CELL_USERDATA was its name
+- `GUSTO_CLOUD_NODE_SETTINGS`: NAME=value pairs, comma-separated, that fill in the start-up script; GUSTO_CLOUD_CELL_SETTINGS was its name
+- `GUSTO_CLOUD_NODE_IMAGE_PARAMETER`: the parameter the template reads its image from, so a kept node of an older image is replaced and not started again; GUSTO_CLOUD_CELL_IMAGE_PARAMETER was its name
+- `GUSTO_CLOUD_NODE_MAX`: the most nodes (default 3); GUSTO_CLOUD_CELL_MAX was its name
+- `GUSTO_CLOUD_NODE_IDLE_MINUTES`: how long a node may have nothing on it before it is stopped, in minutes (default 10); GUSTO_CLOUD_CELL_IDLE_MINUTES was its name
+- `GUSTO_CLOUD_NODE_BOOT_MINUTES`: how long a node has to come up, in minutes (default 10); GUSTO_CLOUD_CELL_BOOT_MINUTES was its name
+- `GUSTO_CLOUD_NODE_PREWARMS`: the most nodes started in a day for a visitor still filling in the demo form (default 20); GUSTO_CLOUD_CELL_PREWARMS was its name
+- `GUSTO_CLOUD_NODE_KEEP`: how many idle nodes are stopped and kept, rather than removed (default 0); GUSTO_CLOUD_CELL_KEEP was its name
 
 Examples:
 
 ```sh
 gusto cloud
 gusto cloud migrate
-gusto cloud workspaces
+gusto cloud computers
 ```
 
-See also: `gusto host`, `gusto operator`
+See also: `gusto node`, `gusto operator`
 
-### `gusto cloud workspaces`
+### `gusto cloud computers`
 
-List every workspace on this host
+List every computer on this node
 
 ```text
-gusto cloud workspaces
+gusto cloud computers
 ```
 
-Lists every workspace on this host, with the organization each is in and whose it is: the operator's view across organizations, read from each one's own record.
+Lists every computer on this node, with the organization each is in and whose it is: the operator's view across organizations, read from each one's own record.
 
 Flags:
 
@@ -822,13 +1019,13 @@ Flags:
 
 Environment:
 
-- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
 - `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several gusto cloud servers can share
 
 Examples:
 
 ```sh
-gusto cloud workspaces
+gusto cloud computers
 ```
 
 See also: `gusto cloud`
@@ -841,7 +1038,7 @@ Show the accounts database, or load the old account files into it
 gusto cloud migrate [-import]
 ```
 
-Says where gusto cloud keeps its accounts, the schema version the database is at and the newest this release reads, and how many organizations, people, invitations, links, demo leads and runtime records it holds. It also says how many records the files of an earlier release (people/, orgs/, tokens/ and demos/ under the root) hold that an import would load, and when the import ran. Asking changes nothing: it makes no file and no schema. With -import it brings the schema up to date and loads those files into the database now, if the database has not had them, and prints how many records of each kind went in and how many were left out. gusto cloud does the same when it starts on a database that has no import record, so this is for doing it first: stop the earlier release, run this, then start the new one. The files are never changed or removed. The import is one transaction, and two runs at once import once. A database that has been imported is not imported again, so a link that was used does not come back.
+Says where gusto cloud keeps its accounts, the schema version the database is at and the newest this release reads, and how many organizations, people, memberships, invitations, links, demo leads and runtime records it holds. It also says how many records the files of an earlier release (people/, orgs/, tokens/ and demos/ under the root) hold that an import would load, and when the import ran. Asking changes nothing: it makes no file and no schema. With -import it brings the schema up to date and loads those files into the database now, if the database has not had them, and prints how many records of each kind went in and how many were left out. gusto cloud does the same when it starts on a database that has no import record, so this is for doing it first: stop the earlier release, run this, then start the new one. The files are never changed or removed. The import is one transaction, and two runs at once import once. A database that has been imported is not imported again, so a link that was used does not come back.
 
 Flags:
 
@@ -850,8 +1047,8 @@ Flags:
 
 Environment:
 
-- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
 - `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several gusto cloud servers can share
 
 Exit codes:
 
@@ -869,15 +1066,15 @@ GUSTO_DATABASE_URL=postgres://db/gusto gusto cloud migrate -import
 
 See also: `gusto cloud`, `gusto operator`
 
-## `gusto host`
+## `gusto node`
 
-Run a host for organizations' servers, for a gusto cloud
+Run a node for organizations' servers, for a gusto cloud
 
 ```text
-gusto host
+gusto node
 ```
 
-Runs the agent on a host that runs organizations' servers for a gusto cloud on another. It starts and stops what gusto cloud asks, signed with the secret they share, and says every few seconds that it is there.
+Runs the agent on a node that runs organizations' servers for a gusto cloud on another machine. It starts and stops what gusto cloud asks, signed with the secret they share, and says every few seconds that it is there.
 
 Flags:
 
@@ -885,11 +1082,11 @@ Flags:
 
 Environment:
 
-- `GUSTO_CELL_NAME`: what this host is called: lower case letters, digits and hyphens, up to 31
-- `GUSTO_CELL_PRIVATE`: this host's IPv4 address on the private network, which its servers bind to
-- `GUSTO_CELL_PORT`: the port to listen on (default 8060)
-- `GUSTO_CELL_SECRET_FILE`: the file with the secret gusto cloud and the hosts sign with
-- `GUSTO_CELLS_DIR`: the directory every host and gusto cloud see
+- `GUSTO_NODE_NAME`: what this node is called: lower case letters, digits and hyphens, up to 31; GUSTO_CELL_NAME was its name
+- `GUSTO_NODE_PRIVATE`: this node's IPv4 address on the private network, which its servers bind to; GUSTO_CELL_PRIVATE was its name
+- `GUSTO_NODE_PORT`: the port to listen on (default 8060); GUSTO_CELL_PORT was its name
+- `GUSTO_NODE_SECRET_FILE`: the file with the secret gusto cloud and the nodes sign with; GUSTO_CELL_SECRET_FILE was its name
+- `GUSTO_NODES_DIR`: the directory every node and gusto cloud see; GUSTO_CELLS_DIR was its name
 
 See also: `gusto cloud`
 
@@ -909,9 +1106,22 @@ Flags:
 
 Environment:
 
-- `GUSTO_OWNER_ADDR`: where to listen; a loopback address (default 127.0.0.1:8090)
-- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)
+- `GUSTO_OPERATOR_ADDR`: where to listen; a loopback address (default 127.0.0.1:8090); GUSTO_OWNER_ADDR was its name
 - `GUSTO_CLOUD_ROOT`: the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)
+- `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several gusto cloud servers can share
+- `GUSTO_CLOUD_DEMO_MINUTES`: the minutes a demo lasts from when it is ready (default 0, no demo)
+- `GUSTO_CLOUD_DEMO_EXTEND_MINUTES`: the minutes a demo's one extension adds (default 10)
+- `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES`: the minutes a demo has to be ready before it is deleted (default 15)
+- `GUSTO_CLOUD_DEMO_MAX`: the most demos at once, until the operator's page sets it (default 5)
+- `GUSTO_CLOUD_DEMO_PER_DAY`: the most demos started in a day, until the operator's page sets it (default 40)
+- `GUSTO_CLOUD_DEMO_PER_PERSON`: the most demos one address may start in a day, until the operator's page sets it (default 2)
+- `GUSTO_CLOUD_DEMO_PER_COMPANY`: the most demos one company may start in a day, until the operator's page sets it (default 6)
+- `GUSTO_CLOUD_BOOK_URL`: where a visitor books a call
+- `GUSTO_CLOUD_DEMO_VIDEO`: the video the landing page shows: an https address of a file or of a page to embed
+- `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo
+- `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
+- `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH was its name
+- `GUSTO_CLOUD_NODE_PROJECT`: the project tag of the nodes' machines; GUSTO_CLOUD_CELL_PROJECT was its name
 
 See also: `gusto cloud`
 
@@ -931,10 +1141,41 @@ Flags:
 
 Environment:
 
-- `GUSTO_CONTAINER`: the container runtime to use, docker or podman
-- `GUSTO_IMAGE`: the runner image tasks run in
+- `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
+- `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
+- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS was its name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY was its name
+- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
+- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
+- `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
+- `GUSTO_TOOL_MEMORY`: the memory one tool server's container may use (default 512m)
 
 See also: `gusto agents`, `gusto doctor`
+
+## `gusto param`
+
+Print a parameter from AWS Parameter Store, decrypted
+
+```text
+gusto param <name>
+```
+
+Prints one parameter, decrypted, with the credentials the AWS configuration finds. A host of gusto cloud reads its secrets with it while it starts. A read that fails or is slow is tried again, up to three times, and a parameter that is not there, or that this host may not read, is answered at once.
+
+Arguments:
+
+- `<name>`: the parameter's name, as /gusto/poc/cell-secret
+
+Flags:
+
+- `-h, --help`: show this help
+
+Examples:
+
+```sh
+gusto param /gusto/poc/cell-secret
+```
 
 ## `gusto doctor`
 
@@ -952,8 +1193,59 @@ Flags:
 
 Environment:
 
-- `GUSTO_CONTAINER`: the container runtime to use, docker or podman
-- `GUSTO_IMAGE`: the runner image tasks run in
+- `GUSTO_PASSWORD`: the server's shared sign-in; required
+- `GUSTO_ADDR`: where to listen (default 127.0.0.1:8040)
+- `GUSTO_BEHIND_PROXY`: trust the address a proxy in front says a request came from
+- `GUSTO_LOCAL`: a server for one person on their own computer, listening on the loopback only
+- `GUSTO_ORG`: the organization this server is, as its gusto cloud names it
+- `GUSTO_PUBLIC_URL`: this server's address as people reach it, which links and sign-ins come back to
+- `GUSTO_TASKS`: the directory tasks are kept in (default jobs); GUSTO_JOBS was its name
+- `GUSTO_SESSIONS`: the directory conversations and rooms are kept in (default sessions)
+- `GUSTO_SETUPS`: the directory skill sets are kept in (default setups)
+- `GUSTO_COMPARISONS`: the directory comparisons are kept in (default comparisons)
+- `GUSTO_INTEGRATIONS`: the directory imported integrations are kept in (default integrations)
+- `GUSTO_PRESETS`: the directory presets are kept in (default presets)
+- `GUSTO_CREW`: the directory the crew of agents is kept in (default crew)
+- `GUSTO_CHANGES`: the file every change to the platform is recorded in (default changes/changes.jsonl)
+- `GUSTO_API_TOKENS`: the file API tokens are kept in
+- `GUSTO_RETENTION`: the directory of the retention policy and what it removed
+- `GUSTO_DATABASE_URL`: the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file beside GUSTO_TASKS)
+- `GUSTO_MIGRATE_IRREVERSIBLE`: let a release change the data in a way an earlier release cannot read
+- `GUSTO_SANDBOX`: how tasks are held (container, openshell, process, here) (default container)
+- `GUSTO_TASK_NETWORK`: open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR (open); GUSTO_JOB_NETWORK was its name
+- `GUSTO_TASK_CONCURRENCY`: how many tasks run at a time (default 1); GUSTO_JOB_CONCURRENCY was its name
+- `GUSTO_CONTAINER`: the container command, docker or podman (default docker, or podman when only it is installed)
+- `GUSTO_IMAGE`: the runner image tasks run in (default gusto:dev)
+- `GUSTO_IMAGE_SOURCE`: where the runner image is fetched from when this computer does not have it: s3:// or http(s)://
+- `GUSTO_TASK_CPUS`: the CPUs one task's container may use (default 1); GUSTO_JOB_CPUS was its name
+- `GUSTO_TASK_MEMORY`: the memory one task's container may use (default 3g); GUSTO_JOB_MEMORY was its name
+- `GUSTO_TOOLS_IMAGE`: the image a tool server that is a program runs in (default GUSTO_IMAGE)
+- `GUSTO_TOOLS_NETWORK`: open gives a tool server the runtime's network (open)
+- `GUSTO_TOOL_CPUS`: the CPUs one tool server's container may use (default 0.5)
+- `GUSTO_TOOL_MEMORY`: the memory one tool server's container may use (default 512m)
+- `GUSTO_OPENSHELL`: the openshell command (default openshell)
+- `GUSTO_OPENSHELL_GATEWAY`: the registered gateway to use (default the selected one)
+- `GUSTO_OPENSHELL_IMAGE`: what a sandbox is made from: an image the gateway can pull, or a root file system archive
+- `GUSTO_OPENSHELL_HOST`: the name a sandbox uses for the machine the gateway runs on (default host.openshell.internal)
+- `GUSTO_OPENSHELL_CPU`: the CPUs one sandbox may use (default 1)
+- `GUSTO_OPENSHELL_MEMORY`: the memory one sandbox may use (default 3Gi)
+- `GUSTO_OPENSHELL_PROCESSES`: the most processes an agent may have running in a sandbox at once (default 512)
+- `GUSTO_OPENSHELL_REMOTE`: the gateway runs on another machine, so this one needs no hardware virtualization
+- `GUSTO_COMPUTERS`: the directory of the records of the computers an organization's people have
+- `GUSTO_NODE`: the node new computers are made on (default local); GUSTO_CELL was its name
+- `GUSTO_SPARE_COMPUTER`: keep one blank computer ready for the next person who has none
+- `GUSTO_COMPUTER_IDLE_MINUTES`: how long a computer nobody uses runs before it is stopped, in minutes (default 30)
+- `GUSTO_HOME_LIMIT_MB`: the most a person's kept home may take in a container, in megabytes; with GUSTO_COMPUTERS, a turn over it is refused until the person resets the home (default 5120)
+- `GUSTO_ROOM_COPY_MB`: the most a room's folder may hold for an agent's turn to copy it, in megabytes (default 4096)
+- `GUSTO_ROOM_COPY_FILES`: the most files a room's folder may hold for an agent's turn to copy it (default 200000)
+- `GUSTO_MODEL_URL`: the model a task asks directly when this server holds no credential (default http://localhost:11434/v1)
+- `GUSTO_MODEL_UPSTREAM`: the root of the one model provider this server holds a key for, with no version on it
+- `GUSTO_MODEL_KEY`: the key for GUSTO_MODEL_UPSTREAM, which the proxy holds
+- `GUSTO_MODEL_NAME`: what the credential for GUSTO_MODEL_UPSTREAM is called (default the platform credential)
+- `GUSTO_CREDENTIALS`: the directory of credentials the proxy holds, one <name>.json each
+- `GUSTO_SPEND_POLICY`: the file of prices and team caps
+- `GUSTO_MODELS`: the models offered, as credential/model, comma-separated
+- `GUSTO_HARNESSES`: the directory of agents of your own, beside the built-in ones
 
 Exit codes:
 
@@ -983,6 +1275,7 @@ Flags:
 Environment:
 
 - `GUSTO_SERVER`: your organization's server, when -server is not given
+- `GUSTO_VAULT`: where this computer keeps its sign-in: the keychain, or a file only you can read (keychain, file) (default keychain)
 
 Examples:
 
@@ -1008,6 +1301,7 @@ Flags:
 Environment:
 
 - `GUSTO_SERVER`: your organization's server, when -server is not given
+- `GUSTO_VAULT`: where this computer keeps its sign-in: the keychain, or a file only you can read (keychain, file) (default keychain)
 
 See also: `gusto login`
 
@@ -1027,6 +1321,7 @@ Flags:
 Environment:
 
 - `GUSTO_SERVER`: your organization's server, when -server is not given
+- `GUSTO_VAULT`: where this computer keeps its sign-in: the keychain, or a file only you can read (keychain, file) (default keychain)
 
 See also: `gusto login`
 
@@ -1052,7 +1347,8 @@ Flags:
 
 Environment:
 
-- `GUSTO_SIGNING_KEY`: the private key the record is signed with, from gusto keygen
+- `GUSTO_SIGNING_KEY`: the private key records are signed with: a file from gusto keygen, or awskms://<key>
+- `GUSTO_SIGNER`: the name a record gives for who signed it (default the key's id)
 - `GUSTO_KEYRING`: the directory of public keys that name a record's signer
 
 Examples:
@@ -1075,13 +1371,13 @@ Says which key stands behind every signed record in the tasks directory, and whi
 
 Flags:
 
-- `-tasks <directory>`: the directory of tasks to read (default $GUSTO_JOBS, else jobs)
+- `-tasks <directory>`: the directory of tasks to read (default $GUSTO_TASKS, else jobs)
 - `-h, --help`: show this help
 
 Environment:
 
+- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
 - `GUSTO_KEYRING`: the directory of public keys that name a record's signer
-- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
 
 Exit codes:
 
@@ -1157,13 +1453,14 @@ Lists what a sweep would remove now and how much it frees, and removes nothing. 
 Flags:
 
 - `-dir <directory>`: the retention directory, with policy.json and the holds (default $GUSTO_RETENTION)
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-sessions <directory>`: the directory the server keeps rooms in, whose turns stay while the room does (default $GUSTO_SESSIONS, else sessions)
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
 - `-h, --help`: show this help
 
 Environment:
 
 - `GUSTO_RETENTION`: the retention directory, with policy.json and the holds, when -dir is not given
-- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
 
 See also: `gusto data`, `gusto spend`
 
@@ -1189,7 +1486,7 @@ Flags:
 
 Environment:
 
-- `GUSTO_JOBS`: tasks (default jobs)
+- `GUSTO_TASKS`: tasks (default jobs)
 - `GUSTO_SESSIONS`: agents' conversations (default sessions)
 - `GUSTO_MIGRATE_IRREVERSIBLE`: 1 allows a step that cannot be undone
 
@@ -1262,12 +1559,12 @@ Flags:
 
 - `-json`: print the report as JSON
 - `-month <2006-01>`: the month, as 2006-01; this month when left out
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
 - `-h, --help`: show this help
 
 Environment:
 
-- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
 
 Examples:
 
@@ -1316,13 +1613,13 @@ Flags:
 - `-month <2006-01>`: only calls in this month, as 2006-01
 - `-person <person>`: only this person's sessions
 - `-provider <provider>`: only calls this provider answered
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
 - `-h, --help`: show this help
 
 Environment:
 
 - `GUSTO_DATABASE_URL`: where the index is kept: empty for usage.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
-- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
 
 Exit codes:
 
@@ -1352,13 +1649,13 @@ Reads the model calls the index does not hold from every task's proxy record and
 Flags:
 
 - `-from-scratch`: remove every row first, then rebuild them all
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
 - `-h, --help`: show this help
 
 Environment:
 
 - `GUSTO_DATABASE_URL`: where the index is kept: empty for usage.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
-- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
 
 Exit codes:
 
@@ -1415,14 +1712,14 @@ Flags:
 - `-search <text>`: only tasks whose id, brief, asker or repository holds this text
 - `-sort <order>`: the order: queued (the default), ended or seq, from the greatest
 - `-state <state>`: only tasks in this state, or several separated by commas
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
 - `-team <team>`: only this team's tasks
 - `-h, --help`: show this help
 
 Environment:
 
 - `GUSTO_DATABASE_URL`: where the index is kept: empty for tasks.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
-- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
 
 Exit codes:
 
@@ -1452,13 +1749,13 @@ Reads every task's state.json and brings the index up to date: it adds the tasks
 Flags:
 
 - `-from-scratch`: remove every row first, then rebuild them all
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_JOBS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
 - `-h, --help`: show this help
 
 Environment:
 
 - `GUSTO_DATABASE_URL`: where the index is kept: empty for tasks.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
-- `GUSTO_JOBS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
 
 Exit codes:
 

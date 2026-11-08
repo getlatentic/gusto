@@ -7,54 +7,54 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// evidenceRef is where gusto pr open leaves the record for a manifest.
-func evidenceRef(digest string) string {
+// recordRef is where gusto pr open leaves the record for a manifest.
+func recordRef(digest string) string {
 	return "refs/gusto/evidence/" + digest
 }
 
-// fetched names the three commits a check reads: the evidence, the pull
-// request's commit under it, and the commit the job ran against under that.
+// fetched names the three commits a check reads: the record, the pull
+// request's commit under it, and the commit the task ran against under that.
 type fetched struct {
-	workspace string
-	evidence  string
-	change    string
-	at        string
+	workingFolder string
+	record        string
+	change        string
+	at            string
 }
 
-// fetch makes the job's workspace a repository and fetches the evidence ref
+// fetch makes the task's working folder a repository and fetches the record ref
 // into it, three commits deep: that is every commit the check reads, so a
 // large repository's history stays on the remote. The reviewer's own git
 // credentials reach the remote, so the check sees what the reviewer may see.
-func fetch(ctx context.Context, remote, digest string, dir job.Dir) (fetched, error) {
-	workspace := dir.Workspace()
-	ref := evidenceRef(digest)
-	if _, err := git(ctx, "init", "--quiet", workspace); err != nil {
+func fetch(ctx context.Context, remote, digest string, dir task.Dir) (fetched, error) {
+	workingFolder := dir.WorkingFolder()
+	ref := recordRef(digest)
+	if _, err := git(ctx, "init", "--quiet", workingFolder); err != nil {
 		return fetched{}, err
 	}
-	if _, err := git(ctx, "-C", workspace, "fetch", "--quiet", "--depth", "3", remote, ref+":"+ref); err != nil {
+	if _, err := git(ctx, "-C", workingFolder, "fetch", "--quiet", "--depth", "3", remote, ref+":"+ref); err != nil {
 		return fetched{}, fmt.Errorf("%s holds no record for that manifest: %w", remote, err)
 	}
-	evidence, err := named(ctx, workspace, ref+"^{commit}", "the record ref names no commit")
+	record, err := named(ctx, workingFolder, ref+"^{commit}", "the record ref names no commit")
 	if err != nil {
 		return fetched{}, err
 	}
-	change, err := named(ctx, workspace, evidence+"^1", "the record commit has no parent, so it vouches for no change")
+	change, err := named(ctx, workingFolder, record+"^1", "the record commit has no parent, so it vouches for no change")
 	if err != nil {
 		return fetched{}, err
 	}
-	at, err := named(ctx, workspace, change+"^1", "the pull request's commit has no parent, so it names no commit the task ran against")
+	at, err := named(ctx, workingFolder, change+"^1", "the pull request's commit has no parent, so it names no commit the task ran against")
 	if err != nil {
 		return fetched{}, err
 	}
-	return fetched{workspace: workspace, evidence: evidence, change: change, at: at}, nil
+	return fetched{workingFolder: workingFolder, record: record, change: change, at: at}, nil
 }
 
 // named is the commit a revision names, or what it means that there is none.
-func named(ctx context.Context, workspace, revision, lack string) (string, error) {
-	commit, err := git(ctx, "-C", workspace, "rev-parse", "--verify", "--quiet", revision)
+func named(ctx context.Context, workingFolder, revision, lack string) (string, error) {
+	commit, err := git(ctx, "-C", workingFolder, "rev-parse", "--verify", "--quiet", revision)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", lack, err)
 	}

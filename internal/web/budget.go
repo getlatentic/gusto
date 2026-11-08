@@ -10,6 +10,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/orgsettings"
+	"github.com/getlatentic/gusto/pkg/spend"
 )
 
 // UseOrgSettings says where the choices an admin makes for the organization are kept,
@@ -31,6 +32,9 @@ type budgetState struct {
 	Passed   bool
 	Over     float64
 	Err      string
+	// Member is what each member may spend in a month, when MemberSet.
+	Member    float64
+	MemberSet bool
 }
 
 // budgetOf says whether what has been spent this month has passed the budget. Spending
@@ -43,33 +47,48 @@ func (s *Server) budgetOf(spent float64) budgetState {
 	if err != nil {
 		return budgetState{Editable: true, Err: err.Error()}
 	}
-	state := budgetState{Editable: true, Set: settings.MonthlyBudgetUSD > 0, Limit: settings.MonthlyBudgetUSD}
-	state.Passed = state.Set && spent > state.Limit
+	state := budgetState{Editable: true, Set: settings.MonthlyBudgetUSD > 0, Limit: settings.MonthlyBudgetUSD,
+		Member: settings.MemberBudgetUSD, MemberSet: settings.MemberBudgetUSD > 0}
+	state.Passed = state.Set && spend.Reached(spent, state.Limit)
 	if state.Passed {
 		state.Over = spent - state.Limit
 	}
 	return state
 }
 
-// setBudget keeps the monthly budget an admin gives, or takes it away when they give none.
+// setBudget keeps the monthly budget an admin gives, or takes it away when they give none. A form that also has "each"
+// sets what each person may spend in the same change, which is how Budgets sets both with one Save.
 func (s *Server) setBudget(w http.ResponseWriter, r *http.Request) {
 	usd, err := parseBudget(r.FormValue("usd"))
 	if err != nil {
-		s.turnAway(w, r, "/admin", err.Error())
+		s.turnAway(w, r, budgetsPath, err.Error())
 		return
 	}
-	var was float64
+	_, both := r.PostForm["each"]
+	each, err := parseBudget(r.PostFormValue("each"))
+	if err != nil {
+		s.turnAway(w, r, budgetsPath, err.Error())
+		return
+	}
+	var was, eachWas float64
 	err = s.orgSettings.Change(func(settings *orgsettings.Settings) {
 		was, settings.MonthlyBudgetUSD = settings.MonthlyBudgetUSD, usd
+		eachWas = settings.MemberBudgetUSD
+		if both {
+			settings.MemberBudgetUSD = each
+		}
 	})
 	if err != nil {
-		s.turnAway(w, r, "/admin", err.Error())
+		s.turnAway(w, r, budgetsPath, err.Error())
 		return
 	}
 	if was != usd {
 		s.note(r, changelog.BudgetSet, map[string]string{"was": budgetWords(was), "now": budgetWords(usd)})
 	}
-	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+	if both && eachWas != each {
+		s.note(r, changelog.MemberBudgetSet, map[string]string{"whose": "", "was": budgetWords(eachWas), "now": budgetWords(each)})
+	}
+	http.Redirect(w, r, budgetsPath, http.StatusSeeOther)
 }
 
 // parseBudget is the dollars an admin typed, to the cent. Nothing typed is no budget.

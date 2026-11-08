@@ -19,7 +19,7 @@ import (
 // that has not been started and that does not end with a request, since the program lives as long as the task does, and what is to be
 // done when the program has ended, which may be nothing. What it makes is what keeps the program out of the machine: the gateway speaks
 // to whatever the command does, and puts nothing around it.
-type Launcher func(ctx context.Context, job string, server Server) (command *exec.Cmd, ended func(), err error)
+type Launcher func(ctx context.Context, task string, server Server) (command *exec.Cmd, ended func(), err error)
 
 const (
 	mostLine     = 8 << 20
@@ -32,7 +32,7 @@ const (
 // message to a line. It starts the program the first time it is used and ends it with the task.
 type Program struct {
 	server Server
-	job    string
+	task   string
 	launch Launcher
 	ids    atomic.Int64
 
@@ -53,8 +53,8 @@ type reply struct {
 }
 
 // StartProgram makes the connection for a server that is a program.
-func StartProgram(server Server, job string, launch Launcher) *Program {
-	return &Program{server: server, job: job, launch: launch, waiting: map[int64]chan reply{}}
+func StartProgram(server Server, task string, launch Launcher) *Program {
+	return &Program{server: server, task: task, launch: launch, waiting: map[int64]chan reply{}}
 }
 
 // Tools is every tool the program has.
@@ -107,7 +107,7 @@ func (p *Program) start(ctx context.Context) error {
 		p.failed = errors.New("this gateway runs no programs")
 		return p.failed
 	}
-	command, ended, err := p.launch(context.Background(), p.job, p.server)
+	command, ended, err := p.launch(context.Background(), p.task, p.server)
 	if err != nil {
 		p.failed = err
 		return err

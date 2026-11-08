@@ -5,13 +5,12 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 )
 
-// KeyringEnv names the directory of public keys a verifier trusts.
+// KeyringEnv is the setting that names the directory of public keys a verifier trusts.
 const KeyringEnv = "GUSTO_KEYRING"
 
 // Named is a public key and the name its keyring file gives it.
@@ -25,19 +24,13 @@ type Named struct {
 // that key signed verifiable.
 type Keyring map[string]Named
 
-// ConfiguredKeyring is the keyring GUSTO_KEYRING names, or an empty one when
-// the variable is unset, in which every signature is from a key not in it.
-func ConfiguredKeyring() (Keyring, error) {
-	dir := os.Getenv(KeyringEnv)
+// OpenKeyring reads every <name>.pub in a directory. The name is the signer's,
+// so two files holding one key would give a record two signers and are refused.
+// No directory is an empty keyring, in which every signature is from a key not in it.
+func OpenKeyring(dir string) (Keyring, error) {
 	if dir == "" {
 		return Keyring{}, nil
 	}
-	return OpenKeyring(dir)
-}
-
-// OpenKeyring reads every <name>.pub in a directory. The name is the signer's,
-// so two files holding one key would give a record two signers and are refused.
-func OpenKeyring(dir string) (Keyring, error) {
 	paths, err := filepath.Glob(filepath.Join(dir, "*.pub"))
 	if err != nil {
 		return nil, err

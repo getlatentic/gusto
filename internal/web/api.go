@@ -12,33 +12,33 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/quota"
 	"github.com/getlatentic/gusto/internal/repoaccess"
 	"github.com/getlatentic/gusto/internal/rules"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// Submission is a job directory on its way to a server: the spec, and the
+// Submission is a task directory on its way to a server: the spec, and the
 // adapter the directory carries. Nothing else has to cross, because the runner
 // makes workspace/ and out/ and clones the repository itself.
 type Submission struct {
-	Spec job.Spec `json:"spec"`
-	// The adapter is how a job for a harness this server has never heard of
-	// still runs here. A job naming a built-in one carries none.
+	Spec task.Spec `json:"spec"`
+	// The adapter is how a task for a harness this server has never heard of
+	// still runs here. A task naming a built-in one carries none.
 	Adapter *harness.Adapter `json:"adapter,omitempty"`
 }
 
-// Answer is the id of the job this server took, or the reason it took none.
+// Answer is the id of the task this server took, or the reason it took none.
 type Answer struct {
 	ID      string `json:"id,omitempty"`
 	Refused string `json:"refused,omitempty"`
 }
 
-// accept queues a job somebody made somewhere else, and refuses by name anything
+// accept queues a task somebody made somewhere else, and refuses by name anything
 // the runner would refuse: whoever sent it is at a terminal waiting for an
-// answer, and a job that cannot run should not become a failed job to go and
+// answer, and a task that cannot run should not become a failed task to go and
 // read.
 func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 	var sent Submission
@@ -69,19 +69,7 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusBadRequest, Answer{Refused: short})
 		return
 	}
-	if err := repoaccess.Acceptable(sent.Spec.Repo, s.localRepos); err != nil {
-		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
-		return
-	}
-	if _, err := job.CleanDir(sent.Spec.Dir); err != nil {
-		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
-		return
-	}
-	if err := repoaccess.AcceptableRef(sent.Spec.Ref); err != nil {
-		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
-		return
-	}
-	if err := sent.Spec.Budget.Check(); err != nil {
+	if err := s.wellFormed(sent.Spec); err != nil {
 		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
 		return
 	}
@@ -98,6 +86,12 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
 		return
 	}
+	space, err := s.sentInto(r, sent.Spec.Workspace)
+	if err != nil {
+		reply(w, http.StatusForbidden, Answer{Refused: err.Error()})
+		return
+	}
+	sent.Spec.Workspace = space
 	id, err := s.queued(sent.Spec, sent.Adapter, callerOf(r), key)
 	if err != nil {
 		status := http.StatusInternalServerError
@@ -110,8 +104,22 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 	reply(w, http.StatusCreated, Answer{ID: id})
 }
 
+// wellFormed refuses a sent task whose repository, folder, ref or budget this server does not take.
+func (s *Server) wellFormed(spec task.Spec) error {
+	if err := repoaccess.Acceptable(spec.Repo, s.localRepos); err != nil {
+		return err
+	}
+	if _, err := task.CleanDir(spec.Dir); err != nil {
+		return err
+	}
+	if err := repoaccess.AcceptableRef(spec.Ref); err != nil {
+		return err
+	}
+	return spec.Budget.Check()
+}
+
 // reachable refuses by name a repository this deployment's GitHub App is not
-// installed on, so whoever sent the job hears it now and not from a job that
+// installed on, so whoever sent the task hears it now and not from a task that
 // failed later.
 func reachable(ctx context.Context, repo string) error {
 	forge, err := repoaccess.FromEnv()
@@ -121,14 +129,14 @@ func reachable(ctx context.Context, repo string) error {
 	return forge.Check(ctx, repo)
 }
 
-// queued writes the job directory and takes it into the index, so a sent job
+// queued writes the task directory and takes it into the index, so a sent task
 // leaves on disk what `gusto new` leaves and the queue picks it up the same way.
-func (s *Server) queued(spec job.Spec, carried *harness.Adapter, asked, key string) (string, error) {
+func (s *Server) queued(spec task.Spec, carried *harness.Adapter, asked, key string) (string, error) {
 	id, err := s.index.Reserve(spec.Brief, time.Now())
 	if err != nil {
 		return "", err
 	}
-	dir := job.Dir(filepath.Join(s.index.Root(), id))
+	dir := task.Dir(filepath.Join(s.index.Root(), id))
 	if err := dir.Make(); err != nil {
 		return "", err
 	}
@@ -141,10 +149,10 @@ func (s *Server) queued(spec job.Spec, carried *harness.Adapter, asked, key stri
 	if err := keep(dir, spec.Harness, carried); err != nil {
 		return "", err
 	}
-	record := jobs.Record{
-		ID: id, State: jobs.Queued, Brief: spec.Brief, Repo: spec.Repo,
-		Harness: spec.Harness, Model: spec.Model, Asked: asked, Key: key, Team: spec.Team,
-		Queued: jobs.Now(),
+	record := tasks.Record{
+		ID: id, State: tasks.Queued, Brief: spec.Brief, Repo: spec.Repo,
+		Harness: spec.Harness, Model: spec.Model, Asked: asked, Key: key, Team: spec.Team, Workspace: spec.Workspace,
+		Queued: tasks.Now(),
 	}
 	if err := s.index.Add(record); err != nil {
 		return "", err
@@ -153,10 +161,10 @@ func (s *Server) queued(spec job.Spec, carried *harness.Adapter, asked, key stri
 	return id, nil
 }
 
-// keep puts the adapter that arrived with the job where a carried adapter lives,
-// so the job travels on complete. A job that brought none takes this machine's,
-// the way a job made here does.
-func keep(dir job.Dir, name string, carried *harness.Adapter) error {
+// keep puts the adapter that arrived with the task where a carried adapter lives,
+// so the task travels on complete. A task that brought none takes this machine's,
+// the way a task made here does.
+func keep(dir task.Dir, name string, carried *harness.Adapter) error {
 	if carried == nil {
 		return harness.Keep(dir, name)
 	}
@@ -170,10 +178,10 @@ func keep(dir job.Dir, name string, carried *harness.Adapter) error {
 	return os.WriteFile(filepath.Join(harness.Carried(dir), name+".json"), append(text, '\n'), 0o644)
 }
 
-// runnable is the adapter the job will run under: the one it carried, or the one
+// runnable is the adapter the task will run under: the one it carried, or the one
 // this machine already has. A harness nobody here has heard of is the refusal
-// only a sent job meets, because the directory crossed a machine.
-func runnable(spec job.Spec, carried *harness.Adapter) (harness.Adapter, error) {
+// only a sent task meets, because the directory crossed a machine.
+func runnable(spec task.Spec, carried *harness.Adapter) (harness.Adapter, error) {
 	if !plainName(spec.Harness) {
 		return harness.Adapter{}, fmt.Errorf("an agent is named in letters, digits and dashes, and this task names %q", spec.Harness)
 	}
@@ -190,9 +198,9 @@ func runnable(spec job.Spec, carried *harness.Adapter) (harness.Adapter, error) 
 	return adapter, nil
 }
 
-// missing says what a runner cannot do without, and which of them this job has
-// none of. Naming them is the difference between fixing a job and guessing at it.
-func missing(spec job.Spec) string {
+// missing says what a runner cannot do without, and which of them this task has
+// none of. Naming them is the difference between fixing a task and guessing at it.
+func missing(spec task.Spec) string {
 	var absent []string
 	if strings.TrimSpace(spec.Repo) == "" {
 		absent = append(absent, "a repository")
@@ -200,7 +208,7 @@ func missing(spec job.Spec) string {
 	if strings.TrimSpace(spec.Brief) == "" {
 		absent = append(absent, "a brief")
 	}
-	if strings.TrimSpace(strings.Join(spec.Gate, "")) == "" {
+	if strings.TrimSpace(strings.Join(spec.Check, "")) == "" {
 		absent = append(absent, "a check")
 	}
 	switch len(absent) {
@@ -213,7 +221,7 @@ func missing(spec job.Spec) string {
 	return "this task needs " + strings.Join(absent[:last], ", ") + " and " + absent[last]
 }
 
-// plainName keeps a harness name a name. It becomes a path inside the job
+// plainName keeps a harness name a name. It becomes a path inside the task
 // directory, and one that arrived over HTTP is not trusted to stay there.
 func plainName(name string) bool {
 	if name == "" {

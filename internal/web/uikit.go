@@ -9,5 +9,6 @@ func (s *Server) uiKitPage(w http.ResponseWriter, r *http.Request) {
 		"Surface": []string{"canvas", "wash", "sunken", "surface", "rail", "hover"},
 		"Agents":  []string{"claude", "codex", "opencode", "hermes", "pi", "dsh", "none"},
 		"States":  []string{"passed", "finished", "live", "running", "queued", "failed", "interrupted", "idle"},
+		"Tabs":    []tab{{Label: "Activity", Href: "#kit-surfaces", On: true}, {Label: "Task checks", Href: "#kit-surfaces"}, {Label: "Keeping", Href: "#kit-surfaces"}},
 	})
 }

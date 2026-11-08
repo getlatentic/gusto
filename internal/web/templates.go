@@ -2,6 +2,7 @@ package web
 
 import (
 	"cmp"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"slices"
 	"time"
@@ -9,8 +10,8 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/industry"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/setup"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // templatePage is one template: what it is for, what it brings, and which of
@@ -23,11 +24,11 @@ func (s *Server) templatePage(w http.ResponseWriter, r *http.Request) {
 	}
 	s.render(w, "template.html", map[string]any{
 		"Title":      productName + " — " + held.Title,
-		"Nav":        "new",
+		"Nav":        "presets",
 		"Template":   held,
 		"Harnesses":  s.runnersOf(held),
 		"InBuilding": s.inBuilding.Load(),
-		"Refused":    r.URL.Query().Get("refused"),
+		"Refused":    s.refusal(r),
 	})
 }
 
@@ -97,9 +98,9 @@ func (s *Server) startTemplate(w http.ResponseWriter, r *http.Request) {
 	wanted := instance.Instance{
 		Title:   held.Title,
 		Harness: chosen, Model: first(s.offeredTo(r)), Setup: held.Name,
-		Sensitivity: string(held.Sensitivity), Who: s.keeper.who(r),
+		Sensitivity: string(held.Sensitivity), Who: s.keeper.who(r), Workspace: workspace.Stored(s.workspaceOf(r)),
 	}
-	started, err := s.instances.Start(jobs.Name(held.Name, time.Now()), wanted)
+	started, err := s.instances.Start(tasks.Name(held.Name, time.Now()), wanted)
 	if err != nil {
 		s.turnAway(w, r, back, err.Error())
 		return

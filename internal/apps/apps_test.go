@@ -4,6 +4,8 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -15,7 +17,7 @@ func TestAnAppIsMadeStartingKeptChangedAndFoundByItsAgent(t *testing.T) {
 		t.Fatal(err)
 	}
 	store.now = func() time.Time { return time.Unix(1000, 0) }
-	one, err := store.New("20260930-1200-notes", "Ada@Acme.com", "node server.js", 8080)
+	one, err := store.New(Sharer{Instance: "20260930-1200-notes", Owner: "Ada@Acme.com"}, "node server.js", 8080, 3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,8 +25,8 @@ func TestAnAppIsMadeStartingKeptChangedAndFoundByItsAgent(t *testing.T) {
 		t.Fatalf("%+v", one)
 	}
 	store.now = func() time.Time { return time.Unix(2000, 0) }
-	two, _ := store.New("20260930-1200-notes", "ada@acme.com", "python3 -m http.server $PORT", 9000)
-	other, _ := store.New("20260930-1300-other", "bob@acme.com", "npm start", 3000)
+	two, _ := store.New(Sharer{Instance: "20260930-1200-notes", Owner: "ada@acme.com"}, "python3 -m http.server $PORT", 9000, 3)
+	other, _ := store.New(Sharer{Instance: "20260930-1300-other", Owner: "bob@acme.com"}, "npm start", 3000, 3)
 
 	changed, err := store.Change(one.ID, func(a *App) {
 		a.State, a.Host, a.Target = Live, "default--sb--app.openshell.localhost:18080", "127.0.0.1:18080"
@@ -76,13 +78,26 @@ func TestAFileThatIsNotAnAppIsSaidSoAndNotSkipped(t *testing.T) {
 	}
 }
 
-func TestAPreviewIsToldFromACommandAPersonTyped(t *testing.T) {
-	if !(App{Command: PreviewPrefix + `"http"]...`}).IsPreview() {
-		t.Error("a preview is not known")
+// Apps added at once keep to the agent's limit: the count and the add are one step. spec/AppPreview.before-limit.cfg is the
+// trace.
+func TestAppsAddedAtOnceKeepToTheLimit(t *testing.T) {
+	store, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, typed := range []string{"", "node server.js", "node -e 'console.log(1)'", "python3 -m http.server"} {
-		if (App{Command: typed}).IsPreview() {
-			t.Errorf("%q is taken for a preview, which would be held to its header", typed)
-		}
+	var wg sync.WaitGroup
+	var added atomic.Int32
+	for range 8 {
+		wg.Go(func() {
+			if _, err := store.New(Sharer{Instance: "20260930-1200-notes", Owner: "ada@acme.com"}, "node a.js", 8080, 1); err == nil {
+				added.Add(1)
+			} else if !errors.Is(err, ErrTooMany) {
+				t.Error(err)
+			}
+		})
+	}
+	wg.Wait()
+	if added.Load() != 1 {
+		t.Errorf("%d apps were added past a limit of one", added.Load())
 	}
 }

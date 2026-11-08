@@ -12,8 +12,8 @@ import (
 
 	"github.com/getlatentic/gusto/internal/apitoken"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // The routes below are a person's own work as JSON, for the helper on their computer, an editor and a tray. They are
@@ -32,10 +32,10 @@ func (s *Server) asPerson(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
-// threadWithTurns is a conversation and what was said in it, each turn the job it was.
+// threadWithTurns is a conversation and what was said in it, each turn the task it was.
 type threadWithTurns struct {
 	instance.Thread
-	Said []jobs.Record `json:"said"`
+	Said []tasks.Record `json:"said"`
 }
 
 func (s *Server) instancesJSON(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +80,7 @@ func (s *Server) threadJSON(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	said := []jobs.Record{}
+	said := []tasks.Record{}
 	for _, id := range thread.Turns {
 		if record, ok := s.index.Get(id); ok {
 			said = append(said, record)
@@ -89,8 +89,8 @@ func (s *Server) threadJSON(w http.ResponseWriter, r *http.Request) {
 	answerJSON(w, http.StatusOK, threadWithTurns{Thread: thread, Said: said})
 }
 
-// workspaceFile is one file of an agent's folder as a helper needs it to keep a copy.
-type workspaceFile struct {
+// syncedFile is one file of an agent's folder as a helper needs it to keep a copy.
+type syncedFile struct {
 	Path     string `json:"path"`
 	Size     int64  `json:"size"`
 	Modified int64  `json:"modified"`
@@ -99,7 +99,7 @@ type workspaceFile struct {
 }
 
 // mostFiles bounds one listing. A folder a build ran in can hold hundreds of thousands, and a copy of one is not the
-// helper's job: it says the list was cut, and ignore rules are what keep it short.
+// helper's task: it says the list was cut, and ignore rules are what keep it short.
 const mostFiles = 50000
 
 // filesJSON lists the regular files of an agent's folder. A link is not followed or listed, and git's own directory is not
@@ -109,8 +109,13 @@ func (s *Server) filesJSON(w http.ResponseWriter, r *http.Request) {
 	if !found {
 		return
 	}
-	root := s.instances.Workspace(held.ID)
-	files, cut := []workspaceFile{}, false
+	files, cut := folderFiles(s.instances.AgentFolder(held.ID))
+	answerJSON(w, http.StatusOK, map[string]any{"files": files, "cut": cut})
+}
+
+// folderFiles is every file in a folder by path, leaving out git's own, and whether the listing stopped at mostFiles.
+func folderFiles(root string) ([]syncedFile, bool) {
+	files, cut := []syncedFile{}, false
 	_ = filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 		switch {
 		case err != nil:
@@ -131,11 +136,11 @@ func (s *Server) filesJSON(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil
 		}
-		files = append(files, workspaceFile{Path: filepath.ToSlash(relative), Size: info.Size(), Modified: info.ModTime().Unix(), ModifiedNs: info.ModTime().UnixNano()})
+		files = append(files, syncedFile{Path: filepath.ToSlash(relative), Size: info.Size(), Modified: info.ModTime().Unix(), ModifiedNs: info.ModTime().UnixNano()})
 		return nil
 	})
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
-	answerJSON(w, http.StatusOK, map[string]any{"files": files, "cut": cut})
+	return files, cut
 }
 
 // fileBytes gives one file of an agent's folder whole, with ranges, resolved inside the folder as the viewer does.
@@ -145,7 +150,7 @@ func (s *Server) fileBytes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	asked := filepath.Clean("/" + r.URL.Query().Get("path"))
-	resolved, ok := resolveInFolder(s.instances.Workspace(held.ID), asked)
+	resolved, ok := resolveInFolder(s.instances.AgentFolder(held.ID), asked)
 	if !ok {
 		http.NotFound(w, r)
 		return
@@ -184,7 +189,7 @@ func (s *Server) newThreadJSON(w http.ResponseWriter, r *http.Request) {
 	answerJSON(w, http.StatusCreated, thread)
 }
 
-// saidJSON is one turn said in a person's own thread. An Idempotency-Key makes a retry the same turn: the job the first
+// saidJSON is one turn said in a person's own thread. An Idempotency-Key makes a retry the same turn: the task the first
 // send made is given back, with `already` true, and nothing is started.
 func (s *Server) saidJSON(w http.ResponseWriter, r *http.Request) {
 	held, found := s.mine(w, r)

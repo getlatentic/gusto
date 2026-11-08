@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Report is what Verify found. Problems empty means the export holds.
@@ -28,17 +28,17 @@ type Report struct {
 // compares as written.
 type stored struct {
 	Version    int         `json:"version"`
-	Job        string      `json:"job"`
+	Task       string      `json:"job"`
 	Carried    []Carried   `json:"carried"`
 	Redactions []Redaction `json:"redactions"`
 	Policy     Policy      `json:"policy"`
-	Evidence   Evidence    `json:"evidence"`
+	Record     Record      `json:"evidence"`
 }
 
 // Verify checks an export in three steps, and names the file behind every
 // problem it finds.
 //
-//  1. The manifest check, through evidence.Check, so whatever that check comes
+//  1. The manifest check, through record.Check, so whatever that check comes
 //     to hold, such as a signature, an export is held to as well. A redacted
 //     file is expected to differ, and only in the way its redaction says.
 //  2. Every file against the hash the export recorded, which covers what the
@@ -46,41 +46,41 @@ type stored struct {
 //     redacted copies.
 //  3. audit.json against a summary derived again from those files, with the
 //     signer named by the verifier's own keyring.
-func Verify(dir job.Dir, keyring signing.Keyring) (Report, error) {
-	written, record, err := readSummary(dir)
+func Verify(dir task.Dir, keyring signing.Keyring) (Report, error) {
+	written, summary, err := readSummary(dir)
 	if err != nil {
 		return Report{}, err
 	}
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		return Report{}, err
 	}
-	complaints, err := evidence.Check(dir)
+	complaints, err := record.Check(dir)
 	if err != nil {
 		return Report{}, err
 	}
-	report := Report{Redacted: redactedNames(record.Redactions)}
-	report.Problems = append(report.Problems, unexcused(complaints, record.Redactions)...)
-	report.Problems = append(report.Problems, falseOriginals(manifest, record.Redactions)...)
+	report := Report{Redacted: redactedNames(summary.Redactions)}
+	report.Problems = append(report.Problems, unexcused(complaints, summary.Redactions)...)
+	report.Problems = append(report.Problems, falseOriginals(manifest, summary.Redactions)...)
 	carried, err := carriedIn(dir, manifest)
 	if err != nil {
 		return Report{}, err
 	}
-	report.Problems = append(report.Problems, compareCarried(record.Carried, carried)...)
-	derived, err := Summarize(dir, record.Job, record.Redactions, record.Policy, keyring)
+	report.Problems = append(report.Problems, compareCarried(summary.Carried, carried)...)
+	derived, err := Summarize(dir, summary.Task, summary.Redactions, summary.Policy, keyring)
 	if err != nil {
 		return Report{}, err
 	}
-	derived = derived.asWritten(record.Version, manifest)
-	report.Problems = append(report.Problems, signerDisagreement(record.Evidence.Signer, derived.Evidence.Signer)...)
+	derived = derived.asWritten(summary.Version, manifest)
+	report.Problems = append(report.Problems, signerDisagreement(summary.Record.Signer, derived.Record.Signer)...)
 	// The signer was compared above, by name; the rest of the record still is.
-	derived.Evidence.Signer = record.Evidence.Signer
+	derived.Record.Signer = summary.Record.Signer
 	report.Problems = append(report.Problems, disagreements(written, derived)...)
 	report.Covered = covered(carried)
 	return report, nil
 }
 
-func readSummary(dir job.Dir) (map[string]json.RawMessage, stored, error) {
+func readSummary(dir task.Dir) (map[string]json.RawMessage, stored, error) {
 	text, err := os.ReadFile(filepath.Join(dir.Path(), SummaryFile))
 	if err != nil {
 		return nil, stored{}, err
@@ -89,7 +89,7 @@ func readSummary(dir job.Dir) (map[string]json.RawMessage, stored, error) {
 	if err := json.Unmarshal(text, &record); err != nil {
 		return nil, stored{}, fmt.Errorf("%s: %w", SummaryFile, err)
 	}
-	if err := job.Readable(SummaryFile, record.Version, Version); err != nil {
+	if err := task.Readable(SummaryFile, record.Version, Version); err != nil {
 		return nil, stored{}, err
 	}
 	var written map[string]json.RawMessage
@@ -100,7 +100,7 @@ func readSummary(dir job.Dir) (map[string]json.RawMessage, stored, error) {
 // unexcused drops the complaints a redaction accounts for. A dropped file is
 // missing and a rewritten one changed; anything else about either file, and
 // every complaint about any other, stands. The wording matched is the wording
-// evidence.Check writes, and a test holds the two together.
+// record.Check writes, and a test holds the two together.
 func unexcused(complaints []string, redactions []Redaction) []string {
 	expected := map[string]bool{}
 	for _, redaction := range redactions {
@@ -125,7 +125,7 @@ func expectedComplaint(redaction Redaction) string {
 
 // falseOriginals refuses a redaction that points at a hash the run never
 // recorded, which would tie the redacted file to somebody else's original.
-func falseOriginals(manifest evidence.Manifest, redactions []Redaction) []string {
+func falseOriginals(manifest record.Manifest, redactions []Redaction) []string {
 	var wrong []string
 	for _, redaction := range redactions {
 		original, named := originalOf(manifest, redaction.File)
@@ -166,7 +166,7 @@ func compareCarried(recorded, found []Carried) []string {
 // disagreements compares audit.json with the summary its files give, one
 // section at a time, so the problem names the section. exportedAt is the one
 // field no file holds, and carried was compared file by file already.
-func disagreements(written map[string]json.RawMessage, derived Record) []string {
+func disagreements(written map[string]json.RawMessage, derived Summary) []string {
 	text, err := json.Marshal(derived)
 	if err != nil {
 		return []string{fmt.Sprintf("%s: %v", SummaryFile, err)}

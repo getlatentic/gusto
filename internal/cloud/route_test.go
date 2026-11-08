@@ -3,6 +3,8 @@ package cloud
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -10,7 +12,7 @@ import (
 	"time"
 )
 
-// withServers is a front door that starts an organization's server, the fake, for
+// withServers is a gusto cloud server that starts an organization's server, the fake, for
 // each sign-up.
 func withServers(t *testing.T, extra ...string) *front {
 	t.Helper()
@@ -41,7 +43,7 @@ func TestSigningUpStartsTheOrganizationsServerAndThePageOffersToOpenIt(t *testin
 		f := withServers(t)
 		b := f.signedUp("ada@acme.com")
 		_, page := b.get("/org")
-		if !strings.Contains(page, "Ready") || !strings.Contains(page, `href="/open"`) || strings.Contains(page, "http-equiv") {
+		if !strings.Contains(page, "Ready") || !strings.Contains(page, `href="/open?org=acme-com"`) || strings.Contains(page, "http-equiv") {
 			t.Errorf("the server is ready and can be opened:\n%s", page)
 		}
 	})
@@ -56,10 +58,14 @@ func TestWhileTheServerIsStartingThePageSaysSoAndLooksAgain(t *testing.T) {
 		if !strings.Contains(page, "Starting") || !strings.Contains(page, `http-equiv="refresh"`) || strings.Contains(page, `href="/open"`) {
 			t.Errorf("%s", page)
 		}
-		if status, _, header := b.get2("/open"); status != http.StatusSeeOther || header.Get("Location") != "/org" {
-			t.Errorf("there is nothing to open yet: %d %v", status, header)
+		status, page, _ := b.get2("/open")
+		if status != http.StatusOK || !strings.Contains(page, `http-equiv="refresh"`) || !strings.Contains(page, "is being set up") && !strings.Contains(page, "is starting") || !strings.Contains(page, `href="/org"`) {
+			t.Errorf("going in waits on a page that looks again, with the settings a click away: %d\n%s", status, page)
 		}
 		f.server.Wait()
+		if status, _, header := b.get2("/open"); status != http.StatusSeeOther || !strings.Contains(header.Get("Location"), "/auth/entry?t=") {
+			t.Errorf("once it is ready, the same address goes in: %d %v", status, header)
+		}
 		if _, page := b.get("/org"); !strings.Contains(page, "Ready") {
 			t.Errorf("%s", page)
 		}
@@ -68,7 +74,7 @@ func TestWhileTheServerIsStartingThePageSaysSoAndLooksAgain(t *testing.T) {
 
 func (b *browser) get2(path string) (int, string, http.Header) { return b.do("GET", path, nil, nil) }
 
-// The whole way in: the person is signed in at the front door, is sent to their
+// The whole way in: the person is signed in at gusto cloud, is sent to their
 // organization's own address with a token, and the organization's server signs them in
 // from it. Nothing about the organization is asked of them again.
 func TestOpeningAnOrganizationSignsThePersonInToItsServer(t *testing.T) {
@@ -89,7 +95,7 @@ func TestOpeningAnOrganizationSignsThePersonInToItsServer(t *testing.T) {
 	}
 }
 
-func TestEachHostNameIsOneOrganizationAndTheFrontDoorIsTheDomainItself(t *testing.T) {
+func TestEachHostNameIsOneOrganizationAndGustoCloudIsTheDomainItself(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := withServers(t)
 		b := f.signedUp("ada@acme.com")
@@ -102,8 +108,8 @@ func TestEachHostNameIsOneOrganizationAndTheFrontDoorIsTheDomainItself(t *testin
 		if status, _, _ := b.at("nobody.cloud.test", "GET", "/whoami", nil); status != http.StatusNotFound {
 			t.Errorf("no organization of that name: %d", status)
 		}
-		if status, page, _ := b.at("cloud.test", "GET", "/signin", nil); status != 200 || !strings.Contains(page, "Email me a link") {
-			t.Errorf("the domain itself is the front door: %d", status)
+		if status, page, _ := b.at("cloud.test", "GET", "/signin", nil); status != 200 || !strings.Contains(page, "Email me a sign-in code") {
+			t.Errorf("the domain itself is gusto cloud: %d", status)
 		}
 		if status, body, _ := b.at("a.acme-com.cloud.test", "GET", "/whoami", nil); status == 200 && strings.Contains(body, "acme-com") {
 			t.Error("a name with two labels is not an organization")
@@ -114,7 +120,7 @@ func TestEachHostNameIsOneOrganizationAndTheFrontDoorIsTheDomainItself(t *testin
 	})
 }
 
-func TestTheFrontDoorSaysWhoTheClientIsAndKeepsItsOwnCookiesToItself(t *testing.T) {
+func TestGustoCloudSaysWhoTheClientIsAndKeepsItsOwnCookiesToItself(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := withServers(t)
 		b := f.signedUp("ada@acme.com")
@@ -127,7 +133,7 @@ func TestTheFrontDoorSaysWhoTheClientIsAndKeepsItsOwnCookiesToItself(t *testing.
 			t.Errorf("what the client claimed is not believed, since the server writes down where people signed in from: %v %v", said["xff"], said["proto"])
 		}
 		if said["cookie"] != "other=1; gusto=session" {
-			t.Errorf("the front door's cookies do not go to an organization's server: %q", said["cookie"])
+			t.Errorf("gusto cloud's cookies do not go to an organization's server: %q", said["cookie"])
 		}
 
 		behind := newFront(t, Settings{}, func(c *Config) { c.TrustProxy = true; c.Controller = controlled(t, c.Store) })
@@ -204,18 +210,18 @@ func TestAnOrganizationThatIsNotReadyIsToldToWaitAndNotSentAnError(t *testing.T)
 	})
 }
 
-func TestWithNoControllerTheFrontDoorRoutesNothing(t *testing.T) {
+func TestWithNoControllerGustoCloudRoutesNothing(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		status, page, _ := f.browser().at("acme-com.cloud.test", "GET", "/", nil)
-		if status != 200 || !strings.Contains(page, "Create your organization") {
+		if status != 200 || !strings.Contains(page, "Get started") {
 			t.Errorf("%d", status)
 		}
 	})
 }
 
 // A stylesheet is kept by a browser for an hour, so its address changes when it does.
-func TestTheFrontDoorsStylesheetIsNamedByItsDigestSoANewReleaseIsFetched(t *testing.T) {
+func TestGustoCloudsStylesheetIsNamedByItsDigestSoANewReleaseIsFetched(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		_, page := f.browser().get("/")
@@ -236,3 +242,49 @@ func TestTheFrontDoorsStylesheetIsNamedByItsDigestSoANewReleaseIsFetched(t *test
 }
 
 func (b *browser) get3(path string) (int, string, http.Header) { return b.do("GET", path, nil, nil) }
+
+// A room's page holds a WebSocket open through gusto cloud to its organization's server. The upgrade passes, the host the
+// browser used reaches the server as it was (the server checks the Origin against it), the cookie that is the server's passes
+// and gusto cloud's does not, and what is sent is answered at once, with nothing held back to fill a buffer.
+func TestAWebSocketPassesThroughGustoCloudToTheOrganizationsServer(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		f := withServers(t)
+		f.signedUp("ada@acme.com")
+		conn, err := net.Dial("tcp", strings.TrimPrefix(f.http.URL, "http://"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer conn.Close()
+		fmt.Fprint(conn, "GET /ws HTTP/1.1\r\nHost: acme-com.cloud.test\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"+
+			"Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\nOrigin: http://acme-com.cloud.test\r\n"+
+			"Cookie: gusto_cloud=front; gusto=session\r\n\r\n")
+		reader := bufio.NewReader(conn)
+		response, err := http.ReadResponse(reader, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if response.StatusCode != http.StatusSwitchingProtocols {
+			t.Fatalf("the upgrade answered %s", response.Status)
+		}
+		if got := response.Header.Get("X-Seen-Host"); got != "acme-com.cloud.test" {
+			t.Errorf("the server saw the host %q, so its origin check would fail", got)
+		}
+		if got := response.Header.Get("X-Seen-Origin"); got != "http://acme-com.cloud.test" {
+			t.Errorf("the server saw the origin %q", got)
+		}
+		if got := response.Header.Get("X-Seen-Cookie"); got != "gusto=session" {
+			t.Errorf("the server saw the cookie %q: gusto cloud's own must not go", got)
+		}
+		for i := range 3 {
+			began := time.Now()
+			fmt.Fprintf(conn, "hello %d\n", i)
+			line, err := reader.ReadString('\n')
+			if err != nil || line != fmt.Sprintf("echo hello %d\n", i) {
+				t.Fatalf("the echo was %q, %v", line, err)
+			}
+			if took := time.Since(began); took > 250*time.Millisecond {
+				t.Errorf("a line took %s to come back: the connection is being buffered", took)
+			}
+		}
+	})
+}

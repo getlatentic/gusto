@@ -37,9 +37,10 @@
   {{with .Missing}}
   <div class="grid gap-2 border-t border-line pt-4">
     <span class="text-sm font-medium text-muted">Not on this computer yet</span>
-    <dl class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">{{range .}}<dt class="text-ink">{{.Title}}</dt><dd class="m-0"><code class="rounded-xs bg-wash px-1 font-mono text-xs wrap-anywhere">{{.Why}}</code></dd>{{end}}</dl>
-    <p class="text-sm text-muted">Then run <code class="rounded-xs bg-wash px-1 font-mono text-xs wrap-anywhere">gusto open</code> in the same terminal, so gusto looks where that terminal does.</p>
+    <dl class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-center gap-x-4 gap-y-2 text-sm">{{range .}}<dt class="text-ink">{{.Title}}</dt><dd class="m-0">{{if installable .Name}}<button type="submit" form="install-{{.Name}}" class="h-8 cursor-pointer {{template "ui-btn-quiet"}}" data-busy="Installing…">Install</button>{{else}}<code class="rounded-xs bg-wash px-1 font-mono text-xs wrap-anywhere">{{.Why}}</code>{{end}}</dd>{{end}}</dl>
+    {{if $.HandInstall}}<p class="text-sm text-muted">After running a command above, run <code class="rounded-xs bg-wash px-1 font-mono text-xs wrap-anywhere">gusto open</code> in the same terminal, so gusto looks where that terminal does.</p>{{end}}
   </div>
   {{end}}
 </form>
+{{range .Missing}}{{if installable .Name}}<form class="hidden" id="install-{{.Name}}" method="post" action="/agents/{{.Name}}/install"><input type="hidden" name="back" value="/chat"></form>{{end}}{{end}}
 {{end}}

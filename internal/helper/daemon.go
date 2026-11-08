@@ -15,6 +15,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/atomicfile"
+	"github.com/getlatentic/gusto/internal/filelock"
 )
 
 // Daemon is the helper running on a person's computer. It keeps one connection to their organization's server, hears what
@@ -114,7 +117,11 @@ func (d *Daemon) set(update func()) {
 	d.mu.Unlock()
 }
 
-// Run serves until the context ends. It refuses to start when a helper is already answering.
+// lockFile is what the running helper holds for as long as it runs, so that two started together cannot both run.
+func lockFile(dir string) string { return filepath.Join(dir, "helper.lock") }
+
+// Run serves until the context ends. It refuses to start while another helper holds the lock, which a helper takes before it
+// says where it is and keeps until it has taken that away.
 func (d *Daemon) Run(ctx context.Context) error {
 	if d.Hub == nil {
 		d.Hub = NewHub()
@@ -125,11 +132,17 @@ func (d *Daemon) Run(ctx context.Context) error {
 	if d.Signed == 0 {
 		d.Signed = 15 * time.Second
 	}
-	if running, err := Discover(d.Dir); err == nil {
-		if _, err := running.Ask(ctx); err == nil {
+	held, err := filelock.Try(lockFile(d.Dir))
+	if errors.Is(err, filelock.ErrHeld) {
+		if running, err := Discover(d.Dir); err == nil {
 			return fmt.Errorf("the helper is already running, on %s", running.Address)
 		}
+		return errors.New("the helper is already running")
 	}
+	if err != nil {
+		return err
+	}
+	defer held.Release()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return err
@@ -164,11 +177,7 @@ func (d *Daemon) publish() error {
 		return err
 	}
 	text, _ := json.Marshal(Local{Address: d.address, Token: d.token, PID: os.Getpid(), Server: d.Server})
-	scratch := StateFile(d.Dir) + ".new"
-	if err := os.WriteFile(scratch, text, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(scratch, StateFile(d.Dir))
+	return atomicfile.WriteFile(StateFile(d.Dir), text, 0o600)
 }
 
 // relay keeps the connection to the server, and gets it back after it is lost. A token it is not given, or the server will

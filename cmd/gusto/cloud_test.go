@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"maps"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -11,23 +12,34 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/cloud"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
-func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
-	// A test binary is not a gusto that can serve an organization.
-	t.Setenv("GUSTO_CLOUD_SERVERS", "off")
-	root := filepath.Join(t.TempDir(), "cloud")
-	t.Setenv("GUSTO_CLOUD_ROOT", root)
-	t.Setenv("GUSTO_CLOUD_URL", "https://cloud.example.com")
-	t.Setenv("GUSTO_CLOUD_DOMAIN", "example.com")
-	t.Setenv("GUSTO_CLOUD_FREE_MAIL", "allow")
-	t.Setenv("GUSTO_CLOUD_TRIAL_JOBS", "7")
-	front, _, err := openCloud()
+// cloudFrom is gusto cloud's settings as values sets them, on a root of the test's own and with no organization servers,
+// since a test binary is not a gusto that can serve one, unless values says otherwise.
+func cloudFrom(t *testing.T, values map[string]string) cloudSettings {
+	t.Helper()
+	with := map[string]string{"GUSTO_CLOUD_SERVERS": "off", "GUSTO_CLOUD_ROOT": filepath.Join(t.TempDir(), "cloud")}
+	maps.Copy(with, values)
+	cfg, err := loadCloud(func(name string) string { return with[name] })
 	if err != nil {
 		t.Fatal(err)
 	}
+	return cfg
+}
+
+func TestGustoCloudIsMadeFromItsSettings(t *testing.T) {
+	t.Parallel()
+	cfg := cloudFrom(t, map[string]string{
+		"GUSTO_CLOUD_URL": "https://cloud.example.com", "GUSTO_CLOUD_DOMAIN": "example.com",
+		"GUSTO_CLOUD_FREE_MAIL": "allow", "GUSTO_CLOUD_TRIAL_TASKS": "7",
+	})
+	front, _, err := openCloud(t.Context(), cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer front.Store.Close()
 	server := httptest.NewServer(front.Handler())
 	defer server.Close()
 
@@ -49,23 +61,21 @@ func TestTheFrontDoorIsMadeFromItsSettings(t *testing.T) {
 	get := httptest.NewRequest("GET", "/org", nil)
 	get.AddCookie(cookie)
 	front.Handler().ServeHTTP(page, get)
-	if !strings.Contains(page.Body.String(), "acme.example.com") || !strings.Contains(page.Body.String(), "7 in all") {
+	if !strings.Contains(page.Body.String(), "acme.example.com") || !strings.Contains(page.Body.String(), ">7</span>") || !strings.Contains(page.Body.String(), "tasks in all") {
 		t.Errorf("the page should show the organization's address and the trial from the settings:\n%s", page.Body)
 	}
 }
 
-func TestBadFrontDoorSettingsAreRefusedByName(t *testing.T) {
-	t.Setenv("GUSTO_CLOUD_SERVERS", "off")
+func TestBadGustoCloudSettingsAreRefusedByName(t *testing.T) {
+	t.Parallel()
 	for name, set := range map[string]map[string]string{
 		"a link address that is not one": {"GUSTO_CLOUD_URL": "cloud.example.com"},
 		"a mail setting that is not one": {"GUSTO_CLOUD_MAIL": "smtp://mail.example.com"},
+		"billing with a key alone":       {"GUSTO_CLOUD_STRIPE_KEY": "sk_test"},
 	} {
 		t.Run(name, func(t *testing.T) {
-			t.Setenv("GUSTO_CLOUD_ROOT", filepath.Join(t.TempDir(), "cloud"))
-			for key, value := range set {
-				t.Setenv(key, value)
-			}
-			if _, _, err := openCloud(); err == nil || !strings.Contains(err.Error(), "GUSTO_CLOUD_") {
+			t.Parallel()
+			if _, _, err := openCloud(t.Context(), cloudFrom(t, set)); err == nil || !strings.Contains(err.Error(), "GUSTO_CLOUD_") {
 				t.Errorf("%v", err)
 			}
 		})
@@ -73,23 +83,23 @@ func TestBadFrontDoorSettingsAreRefusedByName(t *testing.T) {
 }
 
 // The criterion the story ends on: a sign-up cannot make more than a small amount
-// of work until it is verified. The front door writes the limit and the
+// of work until it is verified. Gusto cloud writes the limit and the
 // organization's own server enforces it, and confirming the address lifts it
 // without the server being restarted.
 func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
-	t.Setenv("GUSTO_CLOUD_SERVERS", "off")
-	t.Setenv("GUSTO_CLOUD_ROOT", filepath.Join(t.TempDir(), "cloud"))
-	front, _, err := openCloud()
+	t.Parallel()
+	front, _, err := openCloud(t.Context(), cloudFrom(t, nil))
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, org, err := front.Store.SignUp(cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
+	defer front.Store.Close()
+	_, org, err := front.Store.SignUp(t.Context(), cloud.Signup{Email: "ada@acme.com", OrgName: "Acme"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The organization's server, as it would be started: a jobs directory of its
-	// own under the organization's data directory, and the quota the front door wrote.
-	index, err := jobs.Open(filepath.Join(front.Store.DataDir(org.Slug), "jobs"))
+	// The organization's server, as it would be started: a tasks directory of its
+	// own under the organization's data directory, and the quota gusto cloud wrote.
+	index, err := tasks.Open(filepath.Join(front.Store.DataDir(org.Slug), "jobs"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +110,7 @@ func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		record := jobs.Record{ID: id, State: jobs.Queued, Brief: brief, Harness: "fixture", Asked: "ada@acme.com", Queued: jobs.Now()}
+		record := tasks.Record{ID: id, State: tasks.Queued, Brief: brief, Harness: "fixture", Asked: "ada@acme.com", Queued: tasks.Now()}
 		if err := os.MkdirAll(record.Dir(index.Root()).Path(), 0o755); err != nil {
 			return err
 		}
@@ -116,7 +126,7 @@ func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 		t.Fatalf("the fourth task is over the trial, and the refusal says how to lift it: %v", err)
 	}
 
-	if _, err := front.Store.Verify("ada@acme.com"); err != nil {
+	if err := front.Store.Verify(t.Context(), "ada@acme.com"); err != nil {
 		t.Fatal(err)
 	}
 	time.Sleep(1100 * time.Millisecond)
@@ -126,6 +136,7 @@ func TestASignUpRunsASmallTrialUntilItsAddressIsVerified(t *testing.T) {
 }
 
 func TestTheOperatorsSettingsForEveryOrganizationAreReadFromAFile(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "org.env")
 	os.WriteFile(path, []byte("# what every organization's server has\nGUSTO_CREDENTIALS=/etc/gusto/credentials\n\n  GUSTO_SANDBOX=openshell  \n"), 0o600)
 	env, err := operatorEnv(path)
@@ -155,24 +166,25 @@ func TestTheOperatorsSettingsForEveryOrganizationAreReadFromAFile(t *testing.T) 
 }
 
 func TestTheOperatorSeesEveryComputerWithItsOrganizationAndPerson(t *testing.T) {
+	t.Parallel()
 	store, err := cloud.Open(filepath.Join(t.TempDir(), "cloud"), cloud.Settings{PerDomain: 10})
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, sign := range []cloud.Signup{{Email: "ada@acme.com", OrgName: "Acme"}, {Email: "eve@globex.com", OrgName: "Globex"}, {Email: "ned@initech.com", OrgName: "Initech"}} {
-		if _, org, err := store.SignUp(sign); err != nil {
+		if _, org, err := store.SignUp(t.Context(), sign); err != nil {
 			t.Fatal(err)
 		} else if org.Slug != "initech-com" {
 			registry, _ := store.Computers(org.Slug)
-			registry.Ensure(sign.Email, "cell-1")
+			registry.Ensure(sign.Email, "", "cell-1")
 		}
 	}
 	var out strings.Builder
-	if err := listComputers(&out, store); err != nil {
+	if err := listComputers(t.Context(), &out, store); err != nil {
 		t.Fatal(err)
 	}
 	text := out.String()
-	for _, want := range []string{"ORGANIZATION", "acme-com", "ada@acme.com", "globex-com", "eve@globex.com", "cell-1", "creating", "never", "2 workspaces in 3 organizations"} {
+	for _, want := range []string{"ORGANIZATION", "WORKSPACE", "main", "acme-com", "ada@acme.com", "globex-com", "eve@globex.com", "cell-1", "creating", "never", "2 computers in 3 organizations"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("%q is not in:\n%s", want, text)
 		}

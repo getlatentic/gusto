@@ -29,13 +29,23 @@ func (f *Fake) Upsert(ctx context.Context, row taskindex.Row) error {
 }
 
 func (f *Fake) UpsertMany(ctx context.Context, rows []taskindex.Row) error {
+	return f.write(ctx, rows, false)
+}
+
+func (f *Fake) Restore(ctx context.Context, rows []taskindex.Row) error {
+	return f.write(ctx, rows, true)
+}
+
+func (f *Fake) write(ctx context.Context, rows []taskindex.Row, force bool) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	for _, r := range rows {
-		f.rows[r.ID] = r
+		if held, found := f.rows[r.ID]; force || !found || r.Replaces(held) {
+			f.rows[r.ID] = r
+		}
 	}
 	return nil
 }
@@ -86,7 +96,7 @@ func matches(r taskindex.Row, f taskindex.Filter) bool {
 	if f.Asked != "" && strings.ToLower(f.Asked) != strings.ToLower(r.Asked) {
 		return false
 	}
-	for _, c := range [][2]string{{f.Team, r.Team}, {f.Repo, r.Repo}, {f.AgentType, r.AgentType}, {f.Instance, r.Instance}, {f.Thread, r.Thread}} {
+	for _, c := range [][2]string{{f.Team, r.Team}, {f.Workspace, r.Workspace}, {f.Repo, r.Repo}, {f.AgentType, r.AgentType}, {f.Instance, r.Instance}, {f.Thread, r.Thread}} {
 		if c[0] != "" && c[0] != c[1] {
 			return false
 		}

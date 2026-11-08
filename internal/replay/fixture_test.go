@@ -8,12 +8,12 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// Harnesses that are programs. One leaves the answer the gate wants, one leaves
+// Harnesses that are programs. One leaves the answer the check wants, one leaves
 // an answer it refuses, and one leaves the right answer and commits it, which
-// moves the workspace's HEAD off the commit the job started from.
+// moves the workspace's HEAD off the commit the task started from.
 const (
 	answersYes  = `{"name": "yes", "program": "sh", "argv": ["-c", "printf yes > answer.txt"], "needs": "nothing", "stream": "plain"}`
 	answersNo   = `{"name": "maybe", "program": "sh", "argv": ["-c", "printf maybe > answer.txt"], "needs": "nothing", "stream": "plain"}`
@@ -49,7 +49,7 @@ func remote(t *testing.T) string {
 	return bare
 }
 
-// advance puts a new commit on the remote's main, so a job cloning HEAD now
+// advance puts a new commit on the remote's main, so a task cloning HEAD now
 // would start somewhere else.
 func advance(t *testing.T, bare string) string {
 	t.Helper()
@@ -62,17 +62,17 @@ func advance(t *testing.T, bare string) string {
 	return git(t, work, "rev-parse", "HEAD")
 }
 
-// finished runs a whole job with the named harness under parent.
-func finished(t *testing.T, parent, name, harness, bare string) job.Dir {
+// finished runs a whole task with the named harness under parent.
+func finished(t *testing.T, parent, name, harness, bare string) task.Dir {
 	t.Helper()
-	dir := job.Dir(filepath.Join(parent, name))
+	dir := task.Dir(filepath.Join(parent, name))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    bare,
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: harness,
 	}
 	if err := spec.Write(dir); err != nil {

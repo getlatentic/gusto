@@ -38,6 +38,17 @@ type Server struct {
 	Plugin  string            `json:"plugin,omitempty"`
 	// Data is a folder the program may write, which belongs to this task and goes with it.
 	Data string `json:"data,omitempty"`
+	// Connector, for an app a person signed in to with their own account, names the app; Person is whose sign-in the server is
+	// called with, and Workspace the workspace of the organization the sign-in was made in, empty for the first. The token is
+	// asked for at each call, so one renewed while the task runs is the one sent.
+	Connector string `json:"connector,omitempty"`
+	Person    string `json:"person,omitempty"`
+	Workspace string `json:"workspace,omitempty"`
+}
+
+// Tokens gives a person's current token for an app they signed in to in a workspace, renewing it when it has run out.
+type Tokens interface {
+	Token(ctx context.Context, person, workspace, connector string) (string, error)
 }
 
 // IsProgram says the server is a program and not an address.
@@ -48,6 +59,7 @@ func (s Server) IsProgram() bool { return s.Command != "" }
 type Upstream struct {
 	server Server
 	client *http.Client
+	tokens Tokens
 	ids    atomic.Int64
 
 	mu      sync.Mutex
@@ -68,6 +80,12 @@ func Dial(server Server, private bool) *Upstream {
 // DialWith makes the connection for a server with a client the caller chose, which decides what addresses it reaches.
 func DialWith(server Server, client *http.Client) *Upstream {
 	return &Upstream{server: server, client: client}
+}
+
+// PublicDialer is a dialer that refuses an address on a private network, whatever name it was reached by, unless private allows
+// it. Anything that calls an address a stranger's metadata named uses it.
+func PublicDialer(private bool) func(ctx context.Context, network, address string) (net.Conn, error) {
+	return publicOnly(private)
 }
 
 // publicOnly is a dialer that refuses an address on a private network, whatever name it was reached by.
@@ -102,8 +120,7 @@ func (u *Upstream) Close() {
 	u.mu.Unlock()
 	if session != "" {
 		request, err := http.NewRequest(http.MethodDelete, u.server.URL, nil)
-		if err == nil {
-			u.decorate(request, session)
+		if err == nil && u.decorate(request, session) == nil {
 			if answer, err := u.client.Do(request); err == nil {
 				answer.Body.Close()
 			}
@@ -121,10 +138,13 @@ func (u *Upstream) call(ctx context.Context, method string, params any) (json.Ra
 		if err := u.start(ctx); err != nil {
 			return nil, err
 		}
-		raw, err := u.exchange(ctx, method, params)
+		raw, used, err := u.exchange(ctx, method, params)
 		if errors.Is(err, errSessionGone) && attempt == 0 {
+			// Only the session that was lost is ended: another call may have started a new one meanwhile, which stays.
 			u.mu.Lock()
-			u.ready, u.session = false, ""
+			if u.session == used {
+				u.ready, u.session = false, ""
+			}
 			u.mu.Unlock()
 			continue
 		}
@@ -152,17 +172,28 @@ func (u *Upstream) start(ctx context.Context) error {
 	return nil
 }
 
-func (u *Upstream) exchange(ctx context.Context, method string, params any) (json.RawMessage, error) {
+// exchange sends one message in the session there is now, and says which session that was.
+func (u *Upstream) exchange(ctx context.Context, method string, params any) (json.RawMessage, string, error) {
 	u.mu.Lock()
 	session := u.session
 	u.mu.Unlock()
 	raw, _, err := u.post(ctx, session, u.ids.Add(1)+1, method, params)
-	return raw, err
+	return raw, session, err
 }
 
-func (u *Upstream) decorate(request *http.Request, session string) {
+func (u *Upstream) decorate(request *http.Request, session string) error {
 	for name, value := range u.server.Headers {
 		request.Header.Set(name, value)
+	}
+	if u.server.Connector != "" {
+		if u.tokens == nil {
+			return fmt.Errorf("%s is an app signed in to with a person's own account, and this gateway holds no sign-ins", u.server.Connector)
+		}
+		token, err := u.tokens.Token(request.Context(), u.server.Person, u.server.Workspace, u.server.Connector)
+		if err != nil {
+			return err
+		}
+		request.Header.Set("Authorization", "Bearer "+token)
 	}
 	request.Header.Set("Accept", "application/json, text/event-stream")
 	request.Header.Set("Content-Type", "application/json")
@@ -170,6 +201,7 @@ func (u *Upstream) decorate(request *http.Request, session string) {
 	if session != "" {
 		request.Header.Set("Mcp-Session-Id", session)
 	}
+	return nil
 }
 
 // post sends one message. A request (id above zero) is answered by its result, taken from a JSON body or from the event stream the
@@ -190,7 +222,9 @@ func (u *Upstream) post(ctx context.Context, session string, id int64, method st
 	if err != nil {
 		return nil, "", err
 	}
-	u.decorate(request, session)
+	if err := u.decorate(request, session); err != nil {
+		return nil, "", err
+	}
 	answer, err := u.client.Do(request)
 	if err != nil {
 		return nil, "", err

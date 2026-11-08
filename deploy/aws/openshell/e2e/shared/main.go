@@ -16,9 +16,9 @@ import (
 
 	"github.com/getlatentic/gusto/internal/openshell"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/pkg/proxy"
 	"github.com/getlatentic/gusto/pkg/spend"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 const (
@@ -30,7 +30,7 @@ const (
 
 // turns is what each harness is asked, on the model that serves it.
 var turns = []struct{ harness, model, brief string }{
-	{"claude", "anthropic/deepseek-flash", "Add server.js to this project: a Node web server that uses only the built-in http module and listens on the port in the PORT environment variable, or 8080, on 0.0.0.0 (this machine has no IPv6 dual-stack, so bind IPv4 explicitly, and do not use the name localhost). GET / answers an HTML page titled Invoice total that shows the total of the lines [{price:10,quantity:2},{price:5,quantity:1}], worked out by total() from invoice.js. Install no packages and change no other file."},
+	{"claude", "deepseek/deepseek-flash", "Add server.js to this project: a Node web server that uses only the built-in http module and listens on the port in the PORT environment variable, or 8080, on 0.0.0.0 (this machine has no IPv6 dual-stack, so bind IPv4 explicitly, and do not use the name localhost). GET / answers an HTML page titled Invoice total that shows the total of the lines [{price:10,quantity:2},{price:5,quantity:1}], worked out by total() from invoice.js. Install no packages and change no other file."},
 	{"codex", "deepseek/deepseek-flash", "Two changes, and nothing else. The discount in invoice.js is a hundred times too large: fix it so the tests in this project pass. Then add a GET /health route to server.js that answers ok."},
 }
 
@@ -59,13 +59,13 @@ func run(credentialsDir, project, gateway, image string) error {
 		return err
 	}
 	defer stop()
-	workspace, err := stage(project)
+	workingFolder, err := stage(project)
 	if err != nil {
 		return err
 	}
 	cfg := openshell.Config{Binary: "openshell", Gateway: gateway, Image: image, Host: "host.openshell.internal", CPU: "2", Memory: "3Gi"}
 	for n, turn := range turns {
-		if err := oneTurn(cfg, tokens, workspace, n, turn.harness, turn.model, turn.brief); err != nil {
+		if err := oneTurn(cfg, tokens, workingFolder, n, turn.harness, turn.model, turn.brief); err != nil {
 			return fmt.Errorf("turn %d (%s): %w", n+1, turn.harness, err)
 		}
 	}
@@ -74,27 +74,27 @@ func run(credentialsDir, project, gateway, image string) error {
 }
 
 // stage is a copy of the project as a git repository at a directory named
-// workspace, which is what a sandbox takes.
+// working folder, which is what a sandbox takes.
 func stage(project string) (string, error) {
 	parent, err := os.MkdirTemp("", "shared-")
 	if err != nil {
 		return "", err
 	}
-	workspace := filepath.Join(parent, "workspace")
-	steps := [][]string{{"cp", "-R", project, workspace}, {"git", "-C", workspace, "init", "-q"}, {"git", "-C", workspace, "add", "-A"},
-		{"git", "-C", workspace, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "start"}}
+	workingFolder := filepath.Join(parent, "workspace")
+	steps := [][]string{{"cp", "-R", project, workingFolder}, {"git", "-C", workingFolder, "init", "-q"}, {"git", "-C", workingFolder, "add", "-A"},
+		{"git", "-C", workingFolder, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "start"}}
 	for _, step := range steps {
 		if out, err := exec.Command(step[0], step[1:]...).CombinedOutput(); err != nil {
 			return "", fmt.Errorf("%v: %w: %s", step, err, out)
 		}
 	}
-	return workspace, nil
+	return workingFolder, nil
 }
 
 // oneTurn runs one harness in the sandbox. The first turn makes the sandbox and
 // the later ones find it by its name, each with a token of its own, so what each
 // turn spent is its own in the proxy's record.
-func oneTurn(cfg openshell.Config, tokens *proxy.Tokens, workspace string, n int, name, model, brief string) error {
+func oneTurn(cfg openshell.Config, tokens *proxy.Tokens, workingFolder string, n int, name, model, brief string) error {
 	adapter, err := harness.Load("", name)
 	if err != nil {
 		return err
@@ -111,16 +111,16 @@ func oneTurn(cfg openshell.Config, tokens *proxy.Tokens, workspace string, n int
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	if n == 0 {
-		if err := box.Start(ctx, workspace); err != nil {
+		if err := box.Start(ctx, workingFolder); err != nil {
 			return err
 		}
 	}
-	if err := box.Equip(ctx, job.Dir(os.TempDir()), job.Spec{}, adapter); err != nil {
+	if err := box.Equip(ctx, task.Dir(os.TempDir()), task.Spec{}, adapter); err != nil {
 		return err
 	}
 	// An upload leaves .git behind, so the sandbox's copy gets a history of its own to diff turns against.
 	inside(ctx, box, "the state before turn", "[ -d .git ] || git init -q; git add -A; git -c user.email=t@t -c user.name=t commit -qm before --allow-empty")
-	spec := job.Spec{Brief: brief, Harness: name, Model: model}
+	spec := task.Spec{Brief: brief, Harness: name, Model: model}
 	command := box.Wrap(ctx, adapter.CommandIn(ctx, spec, box.Workdir(), box.Env()))
 	var said bytes.Buffer
 	command.Stdout, command.Stderr = &said, &said

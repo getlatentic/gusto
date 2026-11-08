@@ -8,34 +8,34 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A conversation works in one folder, turn after turn, and nothing commits
 // between them. A turn's patch is what that turn changed, not everything the
 // folder has gathered since it was made.
 func TestATurnsPatchHoldsOnlyWhatThatTurnChanged(t *testing.T) {
-	workspace := t.TempDir()
-	if output, err := exec.Command("git", "-C", workspace, "init", "--quiet").CombinedOutput(); err != nil {
+	workingFolder := t.TempDir()
+	if output, err := exec.Command("git", "-C", workingFolder, "init", "--quiet").CombinedOutput(); err != nil {
 		t.Fatalf("git init: %v: %s", err, output)
 	}
 	turn := func(file, text string) string {
 		t.Helper()
-		dir := job.Dir(t.TempDir())
+		dir := task.Dir(t.TempDir())
 		if err := dir.Make(); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.Remove(dir.Workspace()); err != nil && !os.IsNotExist(err) {
+		if err := os.Remove(dir.WorkingFolder()); err != nil && !os.IsNotExist(err) {
 			t.Fatal(err)
 		}
-		if err := os.Symlink(workspace, dir.Workspace()); err != nil {
+		if err := os.Symlink(workingFolder, dir.WorkingFolder()); err != nil {
 			t.Fatal(err)
 		}
 		before, err := runner.Snapshot(dir)
 		if err != nil {
 			t.Fatal(err)
 		}
-		write(t, filepath.Join(workspace, file), text)
+		write(t, filepath.Join(workingFolder, file), text)
 		if err := runner.Diff(dir, before); err != nil {
 			t.Fatal(err)
 		}
@@ -53,33 +53,34 @@ func TestATurnsPatchHoldsOnlyWhatThatTurnChanged(t *testing.T) {
 	if strings.Contains(second, "notes.md") || !strings.Contains(second, "other.md") {
 		t.Fatalf("the second turn's patch should hold other.md alone:\n%s", second)
 	}
-	status, _ := exec.Command("git", "-C", workspace, "status", "--porcelain").Output()
+	status, _ := exec.Command("git", "-C", workingFolder, "status", "--porcelain").Output()
 	if !strings.Contains(string(status), "?? notes.md") {
 		t.Errorf("the workspace's own index was changed: %q", status)
 	}
 }
 
 // The runner is root in the box, and a workspace's git configuration belongs to
-// the agent. Staging the workspace runs nothing the workspace's own .git names.
-func TestStagingAWorkspaceRunsNothingItsOwnGitConfigurationNames(t *testing.T) {
-	// Other packages' tests stage workspaces in the shared temp directory while
+// the agent. Staging the working folder runs nothing the working folder's own .git names.
+func TestStagingAWorkingFolderRunsNothingItsOwnGitConfigurationNames(t *testing.T) {
+	isolateGit(t)
+	// Other packages' tests stage working folders in the shared temp directory while
 	// this one runs, so what is left behind is only looked for in a directory of its own.
 	t.Setenv("TMPDIR", t.TempDir())
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	workspace := dir.Workspace()
+	workingFolder := dir.WorkingFolder()
 	run := func(args ...string) {
 		t.Helper()
-		if output, err := exec.Command("git", append([]string{"-C", workspace}, args...)...).CombinedOutput(); err != nil {
+		if output, err := exec.Command("git", append([]string{"-C", workingFolder}, args...)...).CombinedOutput(); err != nil {
 			t.Fatalf("git %v: %v: %s", args, err, output)
 		}
 	}
 	run("init", "--quiet")
 	marker := filepath.Join(t.TempDir(), "ran")
-	write(t, filepath.Join(workspace, ".gitattributes"), "* filter=x diff=x\n")
-	write(t, filepath.Join(workspace, "code.txt"), "one\n")
+	write(t, filepath.Join(workingFolder, ".gitattributes"), "* filter=x diff=x\n")
+	write(t, filepath.Join(workingFolder, "code.txt"), "one\n")
 	run("config", "filter.x.clean", "sh -c 'touch "+marker+"; cat'")
 	run("config", "diff.x.textconv", "sh -c 'touch "+marker+"; cat'")
 	run("config", "core.fsmonitor", "sh -c 'touch "+marker+"; exit 1'")
@@ -89,7 +90,7 @@ func TestStagingAWorkspaceRunsNothingItsOwnGitConfigurationNames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	write(t, filepath.Join(workspace, "code.txt"), "two\n")
+	write(t, filepath.Join(workingFolder, "code.txt"), "two\n")
 	if err := runner.Diff(dir, before); err != nil {
 		t.Fatal(err)
 	}
@@ -107,6 +108,22 @@ func TestStagingAWorkspaceRunsNothingItsOwnGitConfigurationNames(t *testing.T) {
 					t.Errorf("%s was left behind", entry.Name())
 				}
 			}
+		}
+	}
+}
+
+// isolateGit takes the variables a git hook exports out of this test's environment. With GIT_DIR set, the git commands a test runs in a
+// temporary folder act on the repository that is being pushed, and write their configuration into it.
+func isolateGit(t *testing.T) {
+	t.Helper()
+	names, err := exec.Command("git", "rev-parse", "--local-env-vars").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range strings.Fields(string(names)) {
+		if value, set := os.LookupEnv(name); set {
+			os.Unsetenv(name)
+			t.Cleanup(func() { os.Setenv(name, value) })
 		}
 	}
 }

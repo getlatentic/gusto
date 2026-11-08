@@ -1,11 +1,11 @@
 # Limits on what one person or team runs at once
 
-`GUSTO_JOB_CONCURRENCY` sets how many tasks the server runs at once. Two settings stop one person or team from taking all of them.
+`GUSTO_TASK_CONCURRENCY` sets how many tasks the server runs at once. Two settings stop one person or team from taking all of them.
 
-| Setting | Meaning | Playbook | Chart |
-| --- | --- | --- | --- |
-| `GUSTO_LIMIT_PERSON` | the most tasks one person runs at once | `limit_person` | `jobs.limitPerson` |
-| `GUSTO_LIMIT_TEAM` | the most tasks one team runs at once | `limit_team` | `jobs.limitTeam` |
+| Setting | Meaning | Chart |
+| --- | --- | --- |
+| `GUSTO_LIMIT_PERSON` | the most tasks one person runs at once | `jobs.limitPerson` |
+| `GUSTO_LIMIT_TEAM` | the most tasks one team runs at once | `jobs.limitTeam` |
 
 Zero or unset is no limit. Compose takes the two variables in `.env`.
 
@@ -26,7 +26,8 @@ The task's page and its Activity line say what holds it, and where it stands in 
 | Amy already has 1 running, the most one person may run at once | the person limit |
 | The team platform already has 2 running, the most a team may run at once | the team limit |
 | Every runner is busy: 2 of 2 | every worker is on a task |
-| Waiting for this agent to finish its last message | a turn of the same agent is running |
+| Waiting for this agent to finish its last message | a turn of the same conversation is running |
+| Waiting for Ada to finish the message before this one | a turn of the same agent in a room is running. The room's other agents run beside it ([ROOM-WORK.md](ROOM-WORK.md)) |
 
 ## A quota for the whole server
 

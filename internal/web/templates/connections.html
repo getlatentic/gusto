@@ -1,0 +1,49 @@
+{{template "head" .}}
+
+<div class="{{template "ui-title"}}">
+  <h1>Connections</h1>
+  <span class="text-sm text-muted">Apps your agents use as you</span>
+</div>
+
+{{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
+{{with .Done}}<p class="mb-4 rounded-sm bg-wash px-4 py-3 text-sm" role="status">You are signed in to {{.}}. Your agents use it from their next task.</p>{{end}}
+
+{{if not .Person}}<p class="mb-4 rounded-sm bg-warn-wash px-4 py-3 text-sm" role="status">You are signed in with the shared password, which is nobody's own. Sign in as yourself to connect your accounts.</p>{{end}}
+{{if .Connectors}}
+<p class="mb-4 max-w-prose text-sm text-muted">Sign in with your own account. Your agents then reach what you can see in the app, and nothing more, and never hold your sign-in. In a room, agents use it only for what you ask, once you let them in that room.</p>
+<section class="{{template "ui-card"}} overflow-x-auto">
+  <table class="{{template "ui-table"}}">
+    <thead><tr><th>App</th><th>What your agents reach</th><th>Connected</th><th>For my agents</th><th></th></tr></thead>
+    <tbody>
+      {{range .Connectors}}{{$offered := .Offered}}
+      <tr>
+        <td class="whitespace-nowrap font-medium">{{.Name}}</td>
+        <td class="text-muted">{{.What}}</td>
+        <td class="whitespace-nowrap">{{if not $offered}}<span class="{{template "ui-badge-warn"}}" title="An admin turned this app off, so your agents are not given it. Your sign-in is kept until you disconnect.">turned off</span>{{else if .Connected}}<span class="{{template "ui-badge-ok"}}">{{ago .Since.Unix}}</span>{{else if .SignInAgain}}<span class="{{template "ui-badge-warn"}}" title="The app no longer takes your sign-in, so your agents cannot use it">sign in again</span>{{else}}<span class="text-muted">not yet</span>{{end}}</td>
+        <td class="whitespace-nowrap">{{if and .Connected $offered}}<form class="m-0" method="post" action="/connections/{{.ID}}/agents"><select class="select h-8" name="on" aria-label="Whether your agents may use {{.Name}}, unless you choose otherwise for one" data-autosubmit><option value="on"{{if .ForAgents}} selected{{end}}>On</option><option value="off"{{if not .ForAgents}} selected{{end}}>Off</option></select></form>{{else}}<span class="text-muted">&mdash;</span>{{end}}</td>
+        <td class="text-right">{{if or .Connected (not $offered)}}<form method="post" action="/connections/{{.ID}}/disconnect"><button class="{{template "ui-btn-sm"}}" type="submit">Disconnect</button></form>{{else if .SignInAgain}}<div class="flex justify-end gap-2"><a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Sign in again</a><form class="m-0" method="post" action="/connections/{{.ID}}/disconnect"><button class="{{template "ui-btn-sm"}}" type="submit">Disconnect</button></form></div>{{else}}<a class="{{template "ui-btn-sm"}}" href="/connections/{{.ID}}/connect">Connect</a>{{end}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</section>
+{{else}}
+<p class="text-muted">No app is turned on yet. An admin turns them on under Admin, Connectors.</p>
+{{end}}
+
+{{with .Home}}
+<section class="mt-6 grid max-w-prose gap-3">
+  <h2>Your agents' home</h2>
+  <p class="text-sm text-muted">Between tasks your agents keep what they install and download for you in one home, so the next task starts where the last one stopped. Your tasks and conversations are not kept in it.</p>
+  {{if $.HomeReset}}<p class="rounded-sm bg-wash px-4 py-3 text-sm" role="status">Your agents' home is reset. The next task starts with an empty one.</p>{{end}}
+  {{if .Counted}}
+  <p class="text-sm">It takes <strong>{{.Used}}</strong> of the <strong>{{.Limit}}</strong> it may, counted {{ago .At.Unix}}.</p>
+  {{if .Full}}<p class="{{template "ui-notice"}}" role="alert">It is full, so a task you ask for is refused until you reset it.</p>{{end}}
+  <form method="post" action="/connections/home/reset" class="m-0" data-confirm="Reset your agents' home? What they kept in it is deleted: caches, downloads and tools they installed."><button class="{{template "ui-btn-sm-danger"}}" type="submit">Reset the home</button></form>
+  {{else}}
+  <p class="text-sm text-muted">Nothing is counted yet. It is counted when your first task ends.</p>
+  {{end}}
+</section>
+{{end}}
+
+{{template "foot" .}}

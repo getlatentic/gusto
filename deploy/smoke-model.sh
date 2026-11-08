@@ -12,7 +12,7 @@
 # about any real model.
 set -eu
 
-data=$(dirname "$GUSTO_JOBS")
+data=$(dirname "$GUSTO_TASKS")
 smoke="$data/smoke"
 rm -rf "$smoke/model-job"
 mkdir -p "$smoke/model-repo" "$smoke/model-harnesses"
@@ -45,7 +45,7 @@ id=$(GUSTO_SERVER=http://127.0.0.1:8040 gusto submit "$smoke/model-job" | head -
 echo "submitted $id"
 
 tries=0
-until [ -f "$GUSTO_JOBS/$id/out/manifest.json" ]; do
+until [ -f "$GUSTO_TASKS/$id/out/manifest.json" ]; do
   tries=$((tries + 1))
   if [ "$tries" -gt 120 ]; then
     echo "no manifest after 120 seconds; the task page says why: /jobs/$id" >&2
@@ -53,9 +53,9 @@ until [ -f "$GUSTO_JOBS/$id/out/manifest.json" ]; do
   fi
   sleep 1
 done
-gusto verify "$GUSTO_JOBS/$id" || true
+gusto verify "$GUSTO_TASKS/$id" || true
 
-calls="$GUSTO_JOBS/$id/out/proxy.jsonl"
+calls="$GUSTO_TASKS/$id/out/proxy.jsonl"
 echo "the proxy's record:"
 cat "$calls"
 for want in '"inputTokens":1000' '"outputTokens":100' '"usd":2'; do

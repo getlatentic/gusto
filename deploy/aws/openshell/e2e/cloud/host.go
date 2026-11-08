@@ -6,24 +6,25 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
 
-// jobOf is the part of a job's record this run reads from the organization's directory.
-type jobOf struct {
+// taskOf is the part of a task's record this run reads from the organization's directory.
+type taskOf struct {
 	ID    string `json:"id"`
 	State string `json:"state"`
 	Asked string `json:"asked"`
 	Exit  int    `json:"exit"`
 }
 
-func (h host) jobsAskedBy(slug, email string) []jobOf {
+func (h host) tasksAskedBy(slug, email string) []taskOf {
 	names, _ := filepath.Glob(filepath.Join(h.data(slug), "jobs", "*", "state.json"))
-	var found []jobOf
+	var found []taskOf
 	for _, name := range names {
 		text, _ := os.ReadFile(name)
-		var record jobOf
+		var record taskOf
 		if json.Unmarshal(text, &record) == nil && record.Asked == email {
 			found = append(found, record)
 		}
@@ -31,33 +32,44 @@ func (h host) jobsAskedBy(slug, email string) []jobOf {
 	return found
 }
 
-// host is the machine everything runs on: where the front door keeps what it keeps, and
-// the programs that say what the gateway holds.
-type host struct{ root, gusto, gateway string }
+// host is the machine everything runs on: where gusto cloud keeps what it keeps, the programs that say what the gateway
+// holds, what the agents run in, and the isolation check for a container.
+type host struct{ root, gusto, gateway, sandbox, probe string }
 
 func (h host) data(slug string) string { return filepath.Join(h.root, "orgs", slug, "data") }
 
-// finished waits until every job the person asked for is done, and there are n of them.
-func (h host) finished(slug, email string, n int, within time.Duration) ([]jobOf, error) {
+// strangers is the first few files in an organization's directory that belong to someone other than the user this runs as,
+// which is the user gusto cloud and its servers run as.
+func (h host) strangers(slug string) ([]string, error) {
+	out, err := exec.Command("find", filepath.Join(h.root, "orgs", slug), "!", "-uid", strconv.Itoa(os.Getuid()), "-print").Output()
+	if err != nil {
+		return nil, err
+	}
+	found := strings.Fields(string(out))
+	return found[:min(len(found), 5)], nil
+}
+
+// finished waits until every task the person asked for is done, and there are n of them.
+func (h host) finished(slug, email string, n int, within time.Duration) ([]taskOf, error) {
 	deadline := time.Now().Add(within)
 	for time.Now().Before(deadline) {
-		jobs := h.jobsAskedBy(slug, email)
+		tasks := h.tasksAskedBy(slug, email)
 		done := 0
-		for _, each := range jobs {
+		for _, each := range tasks {
 			if each.State == "passed" || each.State == "failed" || each.State == "interrupted" {
 				done++
 			}
 		}
-		if len(jobs) >= n && done == len(jobs) {
-			return jobs, nil
+		if len(tasks) >= n && done == len(tasks) {
+			return tasks, nil
 		}
 		time.Sleep(3 * time.Second)
 	}
-	return h.jobsAskedBy(slug, email), fmt.Errorf("%s: %d jobs were not all done in %s", email, n, within)
+	return h.tasksAskedBy(slug, email), fmt.Errorf("%s: %d tasks were not all done in %s", email, n, within)
 }
 
 func (h host) computers() (string, error) {
-	command := exec.Command(h.gusto, "cloud", "workspaces")
+	command := exec.Command(h.gusto, "cloud", "computers")
 	command.Env = append(os.Environ(), "GUSTO_CLOUD_ROOT="+h.root)
 	out, err := command.CombinedOutput()
 	return string(out), err
@@ -78,7 +90,7 @@ func (h host) sandboxes() ([]string, error) {
 	return names, nil
 }
 
-// fileIn is a file of an instance's workspace, wherever the organization keeps instances.
+// fileIn is a file of an instance's folder, wherever the organization keeps instances.
 func (h host) fileIn(slug, instance, name string) (string, error) {
 	found, _ := filepath.Glob(filepath.Join(h.data(slug), "*", instance, "workspace", name))
 	if len(found) == 0 {

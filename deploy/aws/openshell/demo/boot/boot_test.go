@@ -15,13 +15,14 @@ const script = "../../ansible/roles/demo/files/gusto-boot"
 // Fakes of the commands the script calls. The store is a directory, and everything done is
 // appended to a log, so a test reads what the host did and in what order.
 var fakes = map[string]string{
+	"gusto": `#!/bin/bash
+echo "gusto $*" >> "$FAKE_LOG"
+[ "$1" = param ] || { echo "unexpected: $*" >&2; exit 2; }
+case " $FAKE_MISSING " in *" $2 "*) echo "gusto param: there is no parameter $2" >&2; exit 1;; esac
+echo "value-of-$2"`,
 	"aws": `#!/bin/bash
 echo "aws $*" >> "$FAKE_LOG"
 case "$1 $2" in
-"ssm get-parameter")
-  while [ $# -gt 0 ]; do [ "$1" = --name ] && name=$2; shift; done
-  case " $FAKE_MISSING " in *" $name "*) echo "ParameterNotFound: $name" >&2; exit 254;; esac
-  echo "value-of-$name";;
 "s3 cp")
   src=$3; dst=$4
   case "$src" in s3://*) f="$FAKE_STORE/${src#s3://*/}"; [ -f "$f" ] || exit 1; cp "$f" "$dst";;
@@ -39,8 +40,20 @@ mkdir -p "$GUSTO_LE/live/$name"; echo "VALID issued" > "$GUSTO_LE/live/$name/ful
 echo "gusto-dns $*" >> "$FAKE_LOG"`,
 	"curl": `#!/bin/bash
 case "$*" in *-X\ PUT*) echo token;; *public-ipv4*) echo 203.0.113.7;; *local-ipv4*) echo 10.0.7.21;; *instance-id*) echo i-0abc123def4567890;; *) exit 22;; esac`,
+	// Docker's images are files named by tag in a directory beside the store.
+	"docker": `#!/bin/bash
+echo "docker $*" >> "$FAKE_LOG"
+tags=$FAKE_STORE/../docker; mkdir -p "$tags"
+case "$1" in
+image) [ -e "$tags/${3#gusto-runner:}" ];;
+load) [ -f "$4" ] && touch "$tags/latest";;
+tag) touch "$tags/${3#gusto-runner:}";;
+images) ls "$tags";;
+rmi) rm "$tags/${2#gusto-runner:}";;
+*) echo "unexpected: $*" >&2; exit 2;;
+esac`,
 	"credentials.sh": `#!/bin/bash
-echo "credentials $BEDROCK_PARAMETER $DEEPSEEK_PARAMETER $1" >> "$FAKE_LOG"
+echo "credentials $BEDROCK_PARAMETER $DEEPSEEK_PARAMETER $READ_PARAMETER $1" >> "$FAKE_LOG"
 mkdir -p "$1"; echo '{}' > "$1/platform.json"`,
 }
 
@@ -97,7 +110,7 @@ func (h *host) boot(extra ...string) ([]string, error) {
 	text, _ := os.ReadFile(h.log)
 	var done []string
 	for _, line := range strings.Split(strings.TrimSpace(string(text)), "\n") {
-		if line != "" && !strings.HasPrefix(line, "aws ssm get-parameter") {
+		if line != "" && !strings.HasPrefix(line, "gusto param ") {
 			done = append(done, line)
 		}
 	}
@@ -134,7 +147,7 @@ func TestAFirstBootIssuesTheCertificateOnceKeepsItInTheStoreAndPointsTheNameLast
 	if got, _ := os.ReadFile(filepath.Join(h.dir, "lib", "runner-all-rootfs.tar.gz")); string(got) != "the image" {
 		t.Errorf("the image: %q", got)
 	}
-	if !strings.Contains(strings.Join(done, "\n"), "credentials /gusto/poc/model-key /gusto/poc/deepseek-key "+filepath.Join(h.dir, "run", "creds")) {
+	if !strings.Contains(strings.Join(done, "\n"), "credentials /gusto/poc/model-key /gusto/poc/deepseek-key gusto param "+filepath.Join(h.dir, "run", "creds")) {
 		t.Errorf("the credentials are built from the two model keys: %v", done)
 	}
 }
@@ -295,7 +308,7 @@ func TestTheFirstBootStartsTheLeaseAndALaterOneDoesNotGiveMoreTime(t *testing.T)
 	}
 	info, _ := os.Stat(filepath.Join(h.dir, "lease", "lease.json"))
 	if info.Mode().Perm() != 0o644 {
-		t.Errorf("the front door and the reaper both read it: %v", info.Mode())
+		t.Errorf("gusto cloud and the reaper both read it: %v", info.Mode())
 	}
 	// Somebody extended it, and the script ran again.
 	extended := fmt.Sprintf(`{"deadline": %d, "hardMax": %d}`, deadline+1800, hardMax)

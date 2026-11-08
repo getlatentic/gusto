@@ -12,13 +12,13 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/cmd/internal/cmdline"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/taskindex"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 var envTasks = []cmdline.Param{
 	{Name: "GUSTO_DATABASE_URL", Text: "where the index is kept: empty for tasks.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)"},
-	{Name: "GUSTO_JOBS", Text: "the directory of tasks, when -tasks is not given (default jobs)"},
+	{Name: "GUSTO_TASKS", Text: "the directory of tasks, when -tasks is not given (default jobs)"},
 }
 
 func tasksCommands() []*cmdline.Command {
@@ -86,7 +86,7 @@ func declareTasksList(set *flag.FlagSet) *tasksListFlags {
 	set.StringVar(&f.month, "month", "", "only tasks asked for in this month, as `2006-01`")
 	set.StringVar(&f.sort, "sort", "", "the `order`: queued (the default), ended or seq, from the greatest")
 	set.IntVar(&f.limit, "limit", 20, "the most `tasks` to list")
-	set.StringVar(&f.tasks, "tasks", "", "the `directory` the server keeps tasks in (default $GUSTO_JOBS, else jobs)")
+	set.StringVar(&f.tasks, "tasks", "", "the `directory` the server keeps tasks in (default $GUSTO_TASKS, else jobs)")
 	set.BoolVar(&f.json, "json", false, "print the tasks as JSON")
 	return f
 }
@@ -128,8 +128,12 @@ func tasksList(args []string) int {
 	if _, err := taskindex.SortFor(f.sort); err != nil {
 		return usageError("tasks list", err.Error())
 	}
+	where, err := indexesFor(f.tasks)
+	if err != nil {
+		return fail(err)
+	}
 	ctx := context.Background()
-	store, err := openTasks(ctx, orSetting(f.tasks, "GUSTO_JOBS", "jobs"))
+	store, err := where.openTasks(ctx)
 	if err != nil {
 		return fail(fmt.Errorf("%s", taskindex.Scrub(err)))
 	}
@@ -193,7 +197,7 @@ type tasksReindexFlags struct {
 func declareTasksReindex(set *flag.FlagSet) *tasksReindexFlags {
 	f := &tasksReindexFlags{}
 	set.BoolVar(&f.fromScratch, "from-scratch", false, "remove every row first, then rebuild them all")
-	set.StringVar(&f.tasks, "tasks", "", "the `directory` the server keeps tasks in (default $GUSTO_JOBS, else jobs)")
+	set.StringVar(&f.tasks, "tasks", "", "the `directory` the server keeps tasks in (default $GUSTO_TASKS, else jobs)")
 	return f
 }
 
@@ -206,16 +210,19 @@ func tasksReindex(args []string) int {
 	if set.NArg() != 0 {
 		return usageError("tasks reindex", "takes no arguments")
 	}
-	tasks := orSetting(f.tasks, "GUSTO_JOBS", "jobs")
+	where, err := indexesFor(f.tasks)
+	if err != nil {
+		return fail(err)
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	store, err := openTasks(ctx, tasks)
+	store, err := where.openTasks(ctx)
 	if err != nil {
-		return fail(fmt.Errorf("the task index at %s: %s", taskIndexPlace(tasks), taskindex.Scrub(err)))
+		return fail(fmt.Errorf("the task index at %s: %s", where.taskPlace(), taskindex.Scrub(err)))
 	}
 	defer store.Close()
 	progress := &taskindex.Progress{Changed: printTaskProgress}
-	result, err := jobs.Rebuild(ctx, store, tasks, f.fromScratch, progress)
+	result, err := tasks.Rebuild(ctx, store, where.tasks, f.fromScratch, progress)
 	fmt.Fprintln(os.Stderr)
 	if err != nil {
 		return fail(fmt.Errorf("%s", taskindex.Scrub(err)))

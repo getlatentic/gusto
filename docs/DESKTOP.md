@@ -1,6 +1,6 @@
 # The desktop side
 
-The agents stay in the person's workspace in the organization's cloud, and a turn keeps running when the laptop closes. The desktop side runs no agent. The app is a window onto the server's pages, and `gusto-helper` does the local work for the app, editors, the terminal and folders.
+The agents stay on the person's computer in the organization's cloud, and a turn keeps running when the laptop closes. The desktop side runs no agent. The app is a window onto the server's pages, and `gusto-helper` does the local work for the app, editors, the terminal and folders.
 
 ## The app
 
@@ -10,7 +10,7 @@ A release carries the app for macOS (Apple silicon and Intel, a disk image), Win
 
 ## Working in a folder
 
-The folder button on the chat page opens a window like a Finder open panel: projects down the side (a project is an agent's folder), the path along the top, and the folders and files in a list. Double-click opens a folder, **Choose** picks it, **New Folder** makes one (at the top it makes a project). Every turn of the chat starts in that folder. Nothing outside an agent's workspace can be named. This works in the browser and the app.
+The folder button on the chat page opens a window like a Finder open panel: projects down the side (a project is an agent's folder), the path along the top, and the folders and files in a list. Double-click opens a folder, **Choose** picks it, **New Folder** makes one (at the top it makes a project). Every turn of the chat starts in that folder. Nothing outside an agent's folder can be named. This works in the browser and the app.
 
 The app adds **Sync one from this computer**. It opens the system's folder chooser, and the helper keeps that folder the same as an agent's folder in the cloud, by the rule under [Files](#files). The server holds a key made of the folder's path and name, never the path. The helper refuses a whole home folder or disk.
 
@@ -47,13 +47,13 @@ The programs are not signed with an Apple or Windows certificate. macOS refuses 
 
 `gusto-helper` has `login`, `whoami`, `logout`, `run`, `status`, `service`, `sync` and `acp` (`cmd/gusto-helper`, `internal/helper/cli`). `login` uses the device flow ([TOKENS.md](TOKENS.md)), and `logout` ends the token on the server. `gusto` also builds for Windows, for `login`, `whoami`, `submit`, `verify` and `show`.
 
-`gusto-helper run` keeps one connection to the server's event stream, reconnects after a drop, and follows a sign-in or sign-out without a restart. A second `run` is refused while one answers. Its local API listens on `127.0.0.1` at a port the system picks. The address and a token are in `helper.json` in the helper's settings folder, readable by you alone. A request goes to that address (or `localhost` on its port) with `Authorization: Bearer <token>`. The routes are `GET /v1/status`, `/v1/turns` and `/v1/events`.
+`gusto-helper run` keeps one connection to the server's event stream, reconnects after a drop, and follows a sign-in or sign-out without a restart. A second `run` is refused while another holds `helper.lock` in the helper's settings folder, which a helper takes before it says where it is and holds while it runs. Its local API listens on `127.0.0.1` at a port the system picks. The address and a token are in `helper.json` in the helper's settings folder, readable by you alone. A request goes to that address (or `localhost` on its port) with `Authorization: Bearer <token>`. The routes are `GET /v1/status`, `/v1/turns` and `/v1/events`.
 
 `gusto-helper service install -server <address>` starts the helper at login and now: a launch agent on macOS, a systemd user unit on Linux, a scheduled task at logon on Windows. None needs an administrator. `uninstall` removes it and `status` says whether it is there. On Linux, `loginctl enable-linger` keeps it running when you are logged out.
 
 ## Files
 
-`gusto-helper sync -folder ~/work/project` keeps that folder the same as your agent's folder in the cloud, in both directions, as real files. `-dry-run` prints what it would do and does nothing, `-once` compares once, and `-force` goes on after a safety stop. A save, or any word of the agent's turns, starts a comparison, after the saves stop for 0.3 s. A timed comparison runs every five minutes as a backstop. The helper records what both sides held when they last agreed in `sync/` in its settings folder. The rule is in `internal/helper/mirror/plan.go`:
+`gusto-helper sync -folder ~/work/project` keeps that folder the same as your agent's folder in the cloud, in both directions, as real files. `-dry-run` prints what it would do and does nothing, `-once` compares once, and `-force` goes on after a safety stop. A save, or any word of the agent's turns, starts a comparison, after the saves stop for 0.3 s. A timed comparison runs every five minutes as a backstop. The helper records what both sides held when they last agreed in `sync/` in its settings folder. A comparison holds that record, so the helper's own and a `sync` beside it take turns, and each reads what the other left. The rule is in `internal/helper/mirror/plan.go`:
 
 - A change on one side only goes to the other, including a new file or a deletion.
 - A change beats a deletion. A file changed on one side and deleted on the other stays on both.

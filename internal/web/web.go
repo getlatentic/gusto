@@ -7,6 +7,8 @@
 package web
 
 import (
+	"cmp"
+	"context"
 	"embed"
 	"html/template"
 	"log/slog"
@@ -22,26 +24,29 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/compare"
-	"github.com/getlatentic/gusto/internal/computer"
+	"github.com/getlatentic/gusto/internal/connector"
+	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/integration"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/notify"
 	"github.com/getlatentic/gusto/internal/orgsettings"
 	"github.com/getlatentic/gusto/internal/preset"
 	"github.com/getlatentic/gusto/internal/registry"
+	"github.com/getlatentic/gusto/internal/roomlive"
 	"github.com/getlatentic/gusto/internal/setup"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/spend"
+	"github.com/getlatentic/gusto/pkg/wire"
 )
 
 //go:embed templates/*.html
 var pages embed.FS
 
 type Server struct {
-	index     *jobs.Index
+	index     *tasks.Index
 	instances *instance.Store
-	queue     *jobs.Queue
+	queue     *tasks.Queue
 	// routineNews is told how each run of a routine ended, and where the server says its own pages are.
 	routineNews notify.Every
 	publicURL   string
@@ -66,29 +71,31 @@ type Server struct {
 	registry     *registry.Registry
 	// apps and runner are the web apps people share from their agents' computers.
 	apps       *apps.Store
-	runner     AppRunner
+	runner     apps.Runner
 	publishing sync.WaitGroup
-	ledger     *spend.Ledger
-	usage      usageIndex
-	listing    taskIndex
-	keyring    signing.Keyring
+	// checking is the apps a request could not reach that are being asked again, one check for each.
+	checking sync.Map
+	ledger   *spend.Ledger
+	usage    usageIndex
+	listing  taskIndex
+	keyring  signing.Keyring
 	// front is set when this server is one organization's in a hosted gusto, and
-	// then rosterPath is the list of its people that the front door writes, and
-	// inbox is where the front door leaves what its admins did, for the change
+	// then rosterPath is the list of its people that gusto cloud writes, and
+	// inbox is where gusto cloud leaves what its admins did, for the change
 	// record.
-	front      *frontDoor
+	front      *cloudLink
 	rosterPath string
 	inbox      string
 	taking     sync.Mutex
 	admins     map[string]bool
-	// orgSettings is what the organization's admins choose for it, and computers is
-	// the record of the computers its people have.
+	// orgSettings is what the organization's admins choose for it.
 	orgSettings *orgsettings.File
+	connectors  *connector.Connectors
+	keptHomes   KeptHomes
 	// local is how the one person a server on their own computer runs for signs in, or nil.
 	local *localSignIn
 	// operatorDefault is what a new chat runs on when neither the person nor the organization has chosen.
 	operatorDefault chatDefault
-	computers       *computer.Registry
 	// changes is the record of what changed on the platform, and turnedAway
 	// counts the sign-ins written to it.
 	changes *changelog.Log
@@ -97,12 +104,17 @@ type Server struct {
 	// keyed serializes the sends that carry a request id, so that two arriving together are one.
 	keyed sync.Mutex
 	// known remembers the hash of files in agents' folders; locks, with writers, make one writer at a time of each folder.
-	known     hashes
-	locks     map[string]*sync.Mutex
+	known hashes
+	locks map[string]*sync.Mutex
+	// roomHold keeps a room's merges out while a person changes its folder; see UseRoomHold.
+	roomHold  func(ctx context.Context, folder string, paths []string) (func(changed bool), error)
 	writers   sync.Mutex
 	retention *retained
-	health    Health
-	wrong     attempts
+	// sockets is what keeps a room's page up to date, and announce is what turns a task's changes into its room's events.
+	sockets  *roomlive.Server
+	announce *announcer
+	health   Health
+	wrong    attempts
 	// localRepos are the directories a repository may be cloned from on this
 	// server's own disk, which is none unless the operator names them.
 	localRepos []string
@@ -112,7 +124,13 @@ type Server struct {
 	lineups    *compare.Board
 	setups     *setup.Store
 	presets    *preset.Store
-	servers    setup.Servers
+	crew       *crew.Store
+	// reaches says whether an agent calling in a shape can use a model, and whether natively; nil offers every model to every agent.
+	reaches   func(model string, shape wire.Shape) (native, ok bool)
+	installer agentInstaller
+	replies   replyNotes
+	progress  progressKept
+	servers   setup.Servers
 	// integrations is the store of imported plugins, and cloner fetches one from a git address.
 	integrations *integration.Store
 	// desktop is the folder of the desktop app's releases, which the server hands out so that an app updates from the server it is connected to.
@@ -123,25 +141,36 @@ type Server struct {
 	// inBuilding is whether a model inside the deployment's own network is
 	// reachable, without which restricted work cannot start at all.
 	inBuilding atomic.Bool
+	// names is what the roster says each person is called.
+	names rosterBook
 }
 
-func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, password string, identity *Identity, offered []catalog.Entry, models Models) (*Server, error) {
+func New(index *tasks.Index, instances *instance.Store, queue *tasks.Queue, password string, identity *Identity, offered []catalog.Entry, models Models) (*Server, error) {
 	keeper, err := newKeeper(password)
 	if err != nil {
 		return nil, err
 	}
 	s := &Server{index: index, instances: instances, queue: queue, keeper: keeper, identity: identity, catalog: offered, models: models}
+	keeper.now = s.memberNow
 	s.templates, err = template.New("").Funcs(helpers).Funcs(template.FuncMap{
-		"waiting": s.waiting,
-		"askedBy": askerOf,
-		// Where a host that has a lease is extended, which is at the front door.
+		"waiting":    s.waiting,
+		"personName": s.personName,
+		"ownerLabel": s.ownerLabel,
+		"initials":   s.initials,
+		"askedBy":    askerOf,
+		// Where a host that has a lease is extended, which is at gusto cloud.
 		"leaseExtend": s.leaseExtend,
 		"appLink":     s.appLink,
 		"costOf":      s.costOf,
 		"replyIn":     s.replyIn,
+		"installable": s.installable,
 	}).ParseFS(pages, "templates/*.html")
 	if err != nil {
 		return nil, err
+	}
+	// A server made only to read who is who has no tasks, so nothing to hand on.
+	if index != nil {
+		index.OnFinish(s.handOff)
 	}
 	return s, nil
 }
@@ -152,7 +181,7 @@ func (s *Server) UseSessionFile(path string) error { return s.keeper.keep(path) 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	if s.front != nil {
-		mux.HandleFunc("GET /login", s.toFrontDoor)
+		mux.HandleFunc("GET /login", s.toCloud)
 		mux.HandleFunc("GET /auth/entry", s.enter)
 	} else {
 		mux.HandleFunc("GET /login", s.loginPage)
@@ -180,7 +209,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /chat", s.guard(s.startChat))
 	mux.HandleFunc("POST /presets", s.guard(s.savePreset))
 	mux.HandleFunc("POST /presets/{id}/delete", s.guard(s.deletePreset))
-	mux.HandleFunc("GET /new", s.guard(s.catalogPage))
+	mux.HandleFunc("GET /presets", s.guard(s.presetsPage))
+	mux.HandleFunc("GET /new", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/presets", http.StatusMovedPermanently)
+	})
 	mux.HandleFunc("GET /new/blank", s.guard(s.blankPage))
 	mux.HandleFunc("GET /engines", s.guard(s.enginesPage))
 	mux.HandleFunc("GET /compare", s.guard(s.comparePage))
@@ -192,6 +224,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /instances/{id}", s.guard(s.instancePage))
 	mux.HandleFunc("POST /instances/{id}/remove", s.guard(s.removeInstance))
 	mux.HandleFunc("GET /instances/{id}/file", s.guard(s.folderFile))
+	mux.HandleFunc("POST /instances/{id}/file", s.guard(s.saveFile))
 	mux.HandleFunc("GET /instances/{id}/files", s.guard(s.folderPage))
 	mux.HandleFunc("GET /instances/{id}/raw", s.guard(s.folderRaw))
 	mux.HandleFunc("POST /instances/{id}/tasks", s.guard(s.runTask))
@@ -210,12 +243,19 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /templates/{name}", s.guard(s.templatePage))
 	mux.HandleFunc("POST /templates/{name}", s.guard(s.startTemplate))
 	mux.HandleFunc("GET /setups/{name}", s.guard(s.setupPage))
+	s.roomRoutes(mux)
+	if s.sockets != nil {
+		mux.Handle("GET "+livePath, s.sockets.Handler())
+	}
+	s.memberRoutes(mux)
+	s.connectorRoutes(mux)
 	mux.HandleFunc("GET /jobs", s.guard(s.list))
 	s.mountProtocol(mux)
 	mux.HandleFunc("GET /device", s.guard(s.devicePage))
 	mux.HandleFunc("POST /device", s.guard(s.approveDevice))
 	mux.HandleFunc("POST /device/{id}/revoke", s.guard(s.endDeviceToken))
-	mux.HandleFunc("GET /jobs/{id}", s.guard(s.job))
+	mux.HandleFunc("POST /device/sign-out-everywhere", s.guard(s.signOutEverywhere))
+	mux.HandleFunc("GET /jobs/{id}", s.guard(s.task))
 	mux.HandleFunc("POST /jobs/{id}/stop", s.guard(s.stopPage))
 	mux.HandleFunc("GET /jobs/{id}/files/{name}", s.guard(s.file))
 	mux.HandleFunc("GET /jobs/{id}/bundle", s.guard(s.bundle))
@@ -229,7 +269,12 @@ func (s *Server) Handler() http.Handler {
 	// one. A link somebody kept still finds its instance.
 	mux.HandleFunc("GET /talk", moved("/"))
 	mux.HandleFunc("GET /talk/{id}", moved("/instances/{id}"))
-	return s.secure(s.byApp(mux))
+	// The session's cookie goes with a request from any page of the same site, and an app or a page an agent built has an
+	// address of the same site, so only this server's own pages may change anything here. An app served under /apps/ posts to
+	// itself from a sandbox, with no origin, and what it is sent carries none of the person's credentials.
+	protection := http.NewCrossOriginProtection()
+	protection.AddInsecureBypassPattern("/apps/")
+	return s.secure(s.byApp(protection.Handler(mux)))
 }
 
 // moved redirects an address that used to mean something here to where it
@@ -256,12 +301,21 @@ func (s *Server) render(w http.ResponseWriter, page string, data any) {
 		marks := markOf(w)
 		fields["Nonce"] = nonceOf(w)
 		fields["Admin"] = marks.admin
+		fields["Connections"] = s.hasConnectors()
 		if s.front != nil && s.front.Org != "" {
 			fields["Org"] = s.front.Org
+			fields["OrgName"] = cmp.Or(s.front.Name, s.front.Org)
+			fields["Organizations"] = s.front.URL + "/orgs"
+			fields["OrgsFrom"] = s.front.URL + "/orgs.json"
+			fields["AccountFrom"] = s.front.URL + "/account.json"
+			fields["ConfirmAgain"] = s.front.URL + "/account/confirm"
 		}
 		// Every page of the app carries the side list drawn with it, so that moving between pages does not redraw it.
 		if _, carried := fields["Rail"]; !carried && fields["Console"] == nil && marks.req != nil && s.keeper.knows(marks.req) {
 			fields["Rail"] = s.railFor(marks.req, "")
+		}
+		if marks.req != nil && s.keeper.knows(marks.req) {
+			fields["SignedAs"], fields["Workspace"], fields["Workspaces"] = s.signedAs(marks.req), s.workspaceOf(marks.req), s.shownWorkspaces(marks.req)
 		}
 	}
 	if err := s.templates.ExecuteTemplate(w, page, data); err != nil {

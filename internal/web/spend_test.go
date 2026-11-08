@@ -10,18 +10,24 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// spentJob leaves a job directory with a proxy record, as a run through the
+// spentTask leaves a task directory with a proxy record, as a run through the
 // proxy would. The lines are fixtures in the format the proxy writes.
-func spentJob(t *testing.T, root, id, team string, lines ...string) {
+func spentTask(t *testing.T, root, id, team string, lines ...string) {
 	t.Helper()
-	dir := job.Dir(filepath.Join(root, id))
+	spentTaskFor(t, root, id, team, "", lines...)
+}
+
+// spentTaskFor is spentTask for a task a person asked for.
+func spentTaskFor(t *testing.T, root, id, team, person string, lines ...string) {
+	t.Helper()
+	dir := task.Dir(filepath.Join(root, id))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: "b", Repo: "github.com/o/api", Gate: []string{"true"}, Harness: "fixture", Team: team}
+	spec := task.Spec{Brief: "b", Repo: "github.com/o/api", Check: []string{"true"}, Harness: "fixture", Team: team, Person: person}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -38,9 +44,9 @@ const (
 // The month's page says what was spent, and names the team that spent most once there is more than one to name.
 func TestTheSpendPageNamesTheBiggestTeamWhenThereIsMoreThanOne(t *testing.T) {
 	site := open(t)
-	spentJob(t, site.index.Root(), "fix-it", "platform", priced, priced)
-	spentJob(t, site.index.Root(), "write-it", "finance", priced)
-	spentJob(t, site.index.Root(), "said-nothing", "", unmeasured)
+	spentTask(t, site.index.Root(), "fix-it", "platform", priced, priced)
+	spentTask(t, site.index.Root(), "write-it", "finance", priced)
+	spentTask(t, site.index.Root(), "said-nothing", "", unmeasured)
 	site.signIn(t)
 	answer := site.ask(t, "GET", "/spend?month=2026-09", nil)
 	if answer.Code != http.StatusOK {
@@ -61,7 +67,7 @@ func TestTheSpendPageNamesTheBiggestTeamWhenThereIsMoreThanOne(t *testing.T) {
 
 func TestTheSpendReportIsThereForAScript(t *testing.T) {
 	site := open(t)
-	spentJob(t, site.index.Root(), "fix-it", "platform", priced, unmeasured)
+	spentTask(t, site.index.Root(), "fix-it", "platform", priced, unmeasured)
 	request := httptest.NewRequest("GET", "/api/spend?month=2026-09", nil)
 	request.Header.Set("Authorization", "Bearer "+password)
 	answer := httptest.NewRecorder()
@@ -94,7 +100,7 @@ func TestTheSpendPageHasNoBoxForSomethingWithNothingToCompareItWith(t *testing.T
 	said := site.ask(t, "POST", where+"/say", url.Values{"said": {"Draft a SOAP note from the visit notes"}})
 	id := strings.TrimPrefix(said.Header().Get("Location"), where+"#")
 	site.wait(t, id)
-	dir := job.Dir(filepath.Join(site.index.Root(), id))
+	dir := task.Dir(filepath.Join(site.index.Root(), id))
 	if err := os.WriteFile(dir.OutFile("proxy.jsonl"), []byte(priced+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

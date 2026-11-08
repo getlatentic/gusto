@@ -15,7 +15,7 @@ import (
 )
 
 // gateway is the proxy served on a real listener, as a container reaches it,
-// with one job's token minted and the given hosts allowed.
+// with one task's token minted and the given hosts allowed.
 type gateway struct {
 	server *httptest.Server
 	token  string
@@ -29,7 +29,7 @@ func openGateway(t *testing.T, allowed string) gateway {
 	kept := t.TempDir()
 	ledger := spend.NewLedger(spend.Policy{})
 	proxy := New(tokens, Credentials{"": {Address: "http://127.0.0.1:1"}},
-		func(job string) (string, bool) { return filepath.Join(kept, job+".jsonl"), true },
+		func(task string) (string, bool) { return filepath.Join(kept, task+".jsonl"), true },
 		ledger, ParseAllowlist(allowed))
 	server := httptest.NewServer(proxy.Handler())
 	t.Cleanup(server.Close)
@@ -40,7 +40,7 @@ func openGateway(t *testing.T, allowed string) gateway {
 	return gateway{server: server, token: token, record: filepath.Join(kept, "a-job.jsonl"), ledger: ledger}
 }
 
-// client is what a harness in the box uses: HTTPS_PROXY with the job's token
+// client is what a harness in the box uses: HTTPS_PROXY with the task's token
 // as the password.
 func (g gateway) client(t *testing.T, token string, trusted *httptest.Server) *http.Client {
 	t.Helper()
@@ -97,7 +97,7 @@ func TestAHostOnTheAllowlistIsReachedOverHTTPS(t *testing.T) {
 }
 
 // Refused and recorded: the line in out/proxy.jsonl is what puts the attempt
-// in the job's evidence, because the manifest hashes that file.
+// in the task's record, because the manifest hashes that file.
 func TestAHostNotOnTheAllowlistIsRefusedAndRecorded(t *testing.T) {
 	for _, tls := range []bool{true, false} {
 		host, count := reached(t, tls)
@@ -116,7 +116,7 @@ func TestAHostNotOnTheAllowlistIsRefusedAndRecorded(t *testing.T) {
 		if len(calls) != 1 || calls[0].Denied == "" || calls[0].Host != hostOf(host) || calls[0].Status != 403 {
 			t.Fatalf("tls %t: the record is %+v", tls, calls)
 		}
-		if report := gateway.ledger.Allow("a-job", "", ""); report != nil {
+		if report := gateway.ledger.Allow("a-job", "", "", false); report != nil {
 			t.Fatalf("a refused host was counted as spend: %+v", report)
 		}
 	}
@@ -135,7 +135,7 @@ func TestAPlainHTTPHostOnTheAllowlistIsReached(t *testing.T) {
 	}
 }
 
-func TestTheOutboundWayNeedsAJobsToken(t *testing.T) {
+func TestTheOutboundWayNeedsATasksToken(t *testing.T) {
 	host, count := reached(t, false)
 	gateway := openGateway(t, hostOf(host))
 	answer, err := gateway.client(t, "not-a-token", nil).Get(host.URL)

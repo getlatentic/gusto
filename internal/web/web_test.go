@@ -12,14 +12,15 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/getlatentic/gusto/internal/catalog"
+	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/pkg/harness"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/preset"
 	"github.com/getlatentic/gusto/internal/setup"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 const password = "a-shared-password"
@@ -27,27 +28,32 @@ const password = "a-shared-password"
 type site struct {
 	server  *Server
 	handler http.Handler
-	index   *jobs.Index
+	index   *tasks.Index
 	cookie  *http.Cookie
-	ran     chan string
+	// extra is the cookies besides the session's that the browser sends, such as the workspace it chose.
+	extra []*http.Cookie
+	ran   chan string
 }
 
-// testWork replaces what the test server's queue does with a job, for the test that sets it.
-var testWork jobs.StoppableWork
+// testWork replaces what the test server's queue does with a task, for the test that sets it.
+var testWork tasks.StoppableWork
+
+// testWorkers is how many tasks the test server runs at once, for the test that sets it; zero is one.
+var testWorkers int
 
 func open(t *testing.T) *site {
 	t.Helper()
 	return openAt(t, t.TempDir())
 }
 
-// openAt is a server over a jobs directory that may already hold jobs, which is
+// openAt is a server over a tasks directory that may already hold tasks, which is
 // how a test shows that what ran before still reads.
 func openAt(t *testing.T, root string) *site {
 	t.Helper()
 	return openKeyed(t, root, signing.Keyring{})
 }
 
-// openKeyed is openAt with the keyring the job page names signers from.
+// openKeyed is openAt with the keyring the task page names signers from.
 func openKeyed(t *testing.T, root string, keyring signing.Keyring) *site {
 	t.Helper()
 	return build(t, root, keyring, offered())
@@ -67,12 +73,12 @@ func build(t *testing.T, root string, keyring signing.Keyring, entries []catalog
 // buildOffering is a server that offers the models given, which are what an agent may think with.
 func buildOffering(t *testing.T, root string, keyring signing.Keyring, entries []catalog.Entry, models Models) *site {
 	t.Helper()
-	index, err := jobs.Open(root)
+	index, err := tasks.Open(root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ran := make(chan string, 4)
-	work := func(_ context.Context, dir job.Dir) (int, error) {
+	work := func(_ context.Context, dir task.Dir) (int, error) {
 		if err := os.MkdirAll(dir.Out(), 0o755); err != nil {
 			return 0, err
 		}
@@ -85,7 +91,7 @@ func buildOffering(t *testing.T, root string, keyring signing.Keyring, entries [
 	if testWork != nil {
 		work = testWork
 	}
-	queue := jobs.StartStoppable(index, work, 1)
+	queue := tasks.StartStoppable(index, work, max(testWorkers, 1))
 	t.Cleanup(queue.Stop)
 	instances, err := instance.Open(t.TempDir())
 	if err != nil {
@@ -101,6 +107,11 @@ func buildOffering(t *testing.T, root string, keyring signing.Keyring, entries [
 		t.Fatal(err)
 	}
 	server.UsePresets(presets)
+	agents, err := crew.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.UseCrew(agents)
 	setups, err := setup.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -120,6 +131,9 @@ func (s *site) ask(t *testing.T, method, path string, form url.Values) *httptest
 	}
 	if s.cookie != nil {
 		request.AddCookie(s.cookie)
+	}
+	for _, cookie := range s.extra {
+		request.AddCookie(cookie)
 	}
 	recorder := httptest.NewRecorder()
 	s.handler.ServeHTTP(recorder, request)
@@ -171,18 +185,11 @@ func TestAWrongPasswordAdmitsNobody(t *testing.T) {
 	}
 }
 
-// The front door is what somebody already has. With nothing yet it offers
-// the kinds of work an agent comes ready for, and a blank one.
+// The new agent page offers the kinds of work an agent comes ready for.
 func TestSomebodySignedInSeesWhatTheyCanStart(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	home := site.ask(t, "GET", "/", nil).Body.String()
-	for _, want := range []string{"Start an agent", "Or start from a kind of work", `href="/templates/health"`, `href="/new/blank"`} {
-		if !strings.Contains(home, want) {
-			t.Errorf("an empty home page does not offer %s", want)
-		}
-	}
-	answer := site.ask(t, "GET", "/new", nil)
+	answer := site.ask(t, "GET", "/presets", nil)
 	if answer.Code != http.StatusOK || !strings.Contains(answer.Body.String(), `href="/templates/education"`) {
 		t.Fatalf("the new agent page does not offer templates: %d", answer.Code)
 	}
@@ -206,13 +213,13 @@ func TestTheStreamReplaysFromTheStartAndEndsWithTheVerdict(t *testing.T) {
 	}
 }
 
-func TestAFileOutsideTheEvidenceCannotBeAskedFor(t *testing.T) {
+func TestAFileOutsideTheRecordCannotBeAskedFor(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	id := aTask(t, site, url.Values{"brief": {"files"}, "gate": {"true"}})
 	<-site.ran
 	if got := site.ask(t, "GET", "/jobs/"+id+"/files/transcript.log", nil); got.Code != http.StatusOK {
-		t.Fatalf("an evidence file should be readable, got %d", got.Code)
+		t.Fatalf("a record file should be readable, got %d", got.Code)
 	}
 	for _, name := range []string{"..%2f..%2fjob.json", "job.json", "state.json"} {
 		if got := site.ask(t, "GET", "/jobs/"+id+"/files/"+name, nil); got.Code == http.StatusOK {
@@ -333,15 +340,19 @@ func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
 	}
 }
 
-// Chat is the front door and the roles are what a chat can be given, so every page has to name the way to them.
-func TestEveryPageOffersTheWayToThePresets(t *testing.T) {
+// The roles are what an agent can be given, and the workspace's agents are its members, so every page names the way to the members,
+// and the members to the roles and presets.
+func TestEveryPageOffersTheWayToTheMembersAndTheRoles(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	for _, page := range []string{"/", "/jobs", "/spend"} {
+	for _, page := range []string{"/chat", "/jobs", "/spend"} {
 		body := site.ask(t, "GET", page, nil).Body.String()
-		if !strings.Contains(body, `href="/new"`) || !strings.Contains(body, "Presets") {
-			t.Errorf("%s does not offer the way to the presets", page)
+		if !strings.Contains(body, `href="/members"`) || !strings.Contains(body, "Members") {
+			t.Errorf("%s does not offer the way to the members", page)
 		}
+	}
+	if body := site.ask(t, "GET", "/members", nil).Body.String(); !strings.Contains(body, `href="/presets"`) {
+		t.Error("the members do not offer the way to the roles and presets")
 	}
 }
 
@@ -375,14 +386,14 @@ func TestATaskRunsInTheInstancesOwnFolder(t *testing.T) {
 }
 
 // A task needs somewhere to work and a way to know it worked, and nothing else.
-func TestATaskWithNoGateIsRefused(t *testing.T) {
+func TestATaskWithNoCheckIsRefused(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	where := startedInstance(t, site)
-	for _, gate := range []string{"", "  "} {
-		answer := site.ask(t, "POST", where+"/tasks", url.Values{"brief": {"do a thing"}, "gate": {gate}})
+	for _, check := range []string{"", "  "} {
+		answer := site.ask(t, "POST", where+"/tasks", url.Values{"brief": {"do a thing"}, "gate": {check}})
 		if got := answer.Header().Get("Location"); !strings.Contains(got, "refused") {
-			t.Errorf("a task with gate %q was accepted: %d to %q", gate, answer.Code, got)
+			t.Errorf("a task with check %q was accepted: %d to %q", check, answer.Code, got)
 		}
 	}
 	if len(site.index.List()) != 0 {
@@ -393,7 +404,7 @@ func TestATaskWithNoGateIsRefused(t *testing.T) {
 // With a provider the shared password is the way in when the provider is not,
 // so it is reachable and it is not the second thing on the sign-in page.
 func TestTheSharedPasswordIsNotOfferedBesideAProvider(t *testing.T) {
-	index, err := jobs.Open(t.TempDir())
+	index, err := tasks.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -459,7 +470,7 @@ func TestABlankAgentStartsWithOneButton(t *testing.T) {
 	if where := started.Header().Get("Location"); !strings.Contains(where, "/threads/") {
 		t.Fatalf("starting with no engine chosen went to %q", where)
 	}
-	if home := site.ask(t, "GET", "/", nil).Body.String(); !strings.Contains(home, "Research helper") {
+	if instances := site.ask(t, "GET", started.Header().Get("Location"), nil).Body.String(); !strings.Contains(instances, "Research helper") {
 		t.Error("the agent is not listed by the name it was given")
 	}
 }
@@ -467,7 +478,7 @@ func TestABlankAgentStartsWithOneButton(t *testing.T) {
 func TestThePagesAPersonStartsAnAgentFromNeverSayHarness(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	for _, path := range []string{"/new", "/", "/new/blank", "/instances/new?harness=fixture", "/setups"} {
+	for _, path := range []string{"/presets", "/new/blank", "/instances/new?harness=fixture", "/setups"} {
 		body := strings.NewReplacer("harness=", "", `name="harness"`, "").Replace(site.ask(t, "GET", path, nil).Body.String())
 		if strings.Contains(strings.ToLower(body), "harness") {
 			i := strings.Index(strings.ToLower(body), "harness")
@@ -476,19 +487,14 @@ func TestThePagesAPersonStartsAnAgentFromNeverSayHarness(t *testing.T) {
 	}
 }
 
-func TestThePresetsPageOffersPresetsAndTheWelcomePageAlsoOffersAgentsAndNeitherSaysHarness(t *testing.T) {
+func TestThePresetsPageOffersPresetsAndDoesNotSayHarness(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	for _, path := range []string{"/new", "/"} {
-		body := site.ask(t, "GET", path, nil).Body.String()
-		if !strings.Contains(body, `href="/templates/health"`) {
-			t.Errorf("%s offers no preset to start from:\n%s", path, body)
-		}
-		if path == "/" && !strings.Contains(body, `href="/instances/new?harness=fixture"`) {
-			t.Errorf("%s offers no agent to start with:\n%s", path, body)
-		}
-		if strings.Contains(strings.ReplaceAll(body, "harness=fixture", ""), "harness") {
-			t.Errorf("%s says harness to a person", path)
-		}
+	body := site.ask(t, "GET", "/presets", nil).Body.String()
+	if !strings.Contains(body, `href="/templates/health"`) {
+		t.Errorf("/new offers no preset to start from:\n%s", body)
+	}
+	if strings.Contains(strings.ReplaceAll(body, "harness=fixture", ""), "harness") {
+		t.Error("/new says harness to a person")
 	}
 }

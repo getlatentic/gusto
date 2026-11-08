@@ -1,0 +1,9 @@
+[Unit]
+Description=Empty gusto cloud's trash every ten minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=10min
+
+[Install]
+WantedBy=timers.target

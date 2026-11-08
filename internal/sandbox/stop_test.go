@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // runtimeThat is a container runtime that is a script: a `run` takes an interrupt as the real client hands one to its
@@ -46,9 +46,9 @@ func waitForLine(t *testing.T, path, line string) {
 	}
 }
 
-func theJob(t *testing.T) job.Dir {
+func theTask(t *testing.T) task.Dir {
 	t.Helper()
-	dir := job.Dir(filepath.Join(t.TempDir(), "20261008-0900-a-turn"))
+	dir := task.Dir(filepath.Join(t.TempDir(), "20261008-0900-a-turn"))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -57,13 +57,13 @@ func theJob(t *testing.T) job.Dir {
 
 func TestAContainerIsToldToStopByAnInterruptAndRemovedByNameIfItStays(t *testing.T) {
 	script, log := runtimeThat(t, "    trap 'echo heard-interrupt >> "+"$LOGFILE"+"; exit 130' INT\n    echo ready >> "+"$LOGFILE"+"\n    while true; do sleep 0.1; done")
-	t.Setenv("GUSTO_CONTAINER", script)
+	c := with(script, "image")
 	t.Setenv("LOGFILE", log)
-	dir := theJob(t)
+	dir := theTask(t)
 	ctx, stop := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
-		_, err := start(ctx, dir, []string{"run", "--rm", "--name", containerName(dir), "image"})
+		_, err := c.start(ctx, dir, []string{"run", "--rm", "--name", containerName(dir), "image"})
 		done <- err
 	}()
 	waitForLine(t, log, "ready")
@@ -85,8 +85,9 @@ func TestAContainerIsToldToStopByAnInterruptAndRemovedByNameIfItStays(t *testing
 	}
 }
 
-func TestEveryJobsContainerHasAnAddressableName(t *testing.T) {
-	args, err := argv("/var/lib/gusto/jobs/20261008-0900-a-turn", nil, nil)
+func TestEveryTasksContainerHasAnAddressableName(t *testing.T) {
+	t.Parallel()
+	args, err := plain().argv("/var/lib/gusto/jobs/20261008-0900-a-turn", nil, Owner{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

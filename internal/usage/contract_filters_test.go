@@ -57,6 +57,10 @@ var filterTable = []filterCase{
 	{"underscore does not stand for a letter", usage.Filter{Search: "c_d"}, 0, nil},
 	{"backslash is literal", usage.Filter{Search: `\`}, 0, nil},
 	{"search with a filter", usage.Filter{Search: "claude", Person: "ada"}, 2, []string{"s-alpha"}},
+	{"only the sessions listed", usage.Filter{OnlySessions: true, Sessions: []string{"s-alpha", "s-gamma", "s-none"}}, 3, []string{"s-alpha", "s-gamma"}},
+	{"only no sessions is nothing", usage.Filter{OnlySessions: true}, 0, nil},
+	{"sessions without only are ignored", usage.Filter{Sessions: []string{"s-beta"}}, 4, []string{"s-alpha", "s-beta", "s-gamma"}},
+	{"sessions are anded with a field", usage.Filter{OnlySessions: true, Sessions: []string{"s-alpha", "s-beta"}, Person: "bob"}, 1, []string{"s-beta"}},
 }
 
 var filterCases = []contractCase{

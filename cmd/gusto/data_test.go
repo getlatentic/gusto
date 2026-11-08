@@ -10,10 +10,10 @@ import (
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/datadir"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/preset"
 	"github.com/getlatentic/gusto/internal/retention"
 	"github.com/getlatentic/gusto/internal/setup"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // installed points every setting at its own directory and returns them.
@@ -21,12 +21,12 @@ func installed(t *testing.T) map[datadir.Store]string {
 	t.Helper()
 	root := t.TempDir()
 	for name, path := range map[string]string{
-		"GUSTO_JOBS": "jobs", "GUSTO_SESSIONS": "sessions", "GUSTO_SETUPS": "setups", "GUSTO_COMPARISONS": "comparisons", "GUSTO_INTEGRATIONS": "integrations", "GUSTO_PRESETS": "presets",
+		"GUSTO_TASKS": "jobs", "GUSTO_SESSIONS": "sessions", "GUSTO_SETUPS": "setups", "GUSTO_COMPARISONS": "comparisons", "GUSTO_INTEGRATIONS": "integrations", "GUSTO_PRESETS": "presets", "GUSTO_CREW": "crew",
 		"GUSTO_CHANGES": "changes/changes.jsonl", "GUSTO_API_TOKENS": "tokens/tokens.json", "GUSTO_RETENTION": "retention",
 	} {
 		t.Setenv(name, filepath.Join(root, path))
 	}
-	return dataDirs()
+	return dataDirs(fromEnv(t).stores)
 }
 
 // Every store reads a directory that carries the stamp, so a release that
@@ -34,7 +34,7 @@ func installed(t *testing.T) map[datadir.Store]string {
 // rollback needs.
 func TestEveryStoreOpensADirectoryThatCarriesTheStamp(t *testing.T) {
 	dirs := installed(t)
-	if err := ready(); err != nil {
+	if err := ready(fromEnv(t).stores); err != nil {
 		t.Fatal(err)
 	}
 	for store, dir := range dirs {
@@ -42,7 +42,7 @@ func TestEveryStoreOpensADirectoryThatCarriesTheStamp(t *testing.T) {
 			t.Fatalf("%s was not stamped: %v", store, err)
 		}
 	}
-	if _, err := jobs.Open(dirs[datadir.Jobs]); err != nil {
+	if _, err := tasks.Open(dirs[datadir.Tasks]); err != nil {
 		t.Errorf("jobs: %v", err)
 	}
 	if _, err := instance.Open(dirs[datadir.Sessions]); err != nil {
@@ -67,7 +67,7 @@ func TestEveryStoreOpensADirectoryThatCarriesTheStamp(t *testing.T) {
 	if store, err := preset.Open(dirs[datadir.Presets]); err != nil || len(store.List("ada")) != 0 {
 		t.Errorf("presets: %v", err)
 	}
-	if listed, _ := jobs.Scan(dirs[datadir.Jobs]); len(listed) != 0 {
+	if listed, _ := tasks.Scan(dirs[datadir.Tasks]); len(listed) != 0 {
 		t.Error("the stamp was read as a job")
 	}
 }
@@ -81,7 +81,7 @@ func TestStartingOnNewerDataChangesNothingAnywhere(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dirs[datadir.Sessions], datadir.StampFile), []byte(newer), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	err := ready()
+	err := ready(fromEnv(t).stores)
 	if err == nil || !strings.Contains(err.Error(), "format 9") || !strings.Contains(err.Error(), "v9.9.9") {
 		t.Fatalf("%v", err)
 	}
@@ -103,13 +103,13 @@ func TestStartingOnNewerDataChangesNothingAnywhere(t *testing.T) {
 
 func TestDataRollbackNamesAReleaseAndRefusesAnUnknownOne(t *testing.T) {
 	dirs := installed(t)
-	if err := ready(); err != nil {
+	if err := ready(fromEnv(t).stores); err != nil {
 		t.Fatal(err)
 	}
 	if code := dataRollback([]string{"-to", "v0.1.0-rc.2"}); code != 0 {
 		t.Fatalf("rolling back to the release that wrote format 1 gave %d", code)
 	}
-	if stamp, _, _ := datadir.Read(dirs[datadir.Jobs]); stamp.Format != 1 {
+	if stamp, _, _ := datadir.Read(dirs[datadir.Tasks]); stamp.Format != 1 {
 		t.Errorf("stamp %+v", stamp)
 	}
 	if code := dataRollback([]string{"-to", "v9"}); code == 0 {

@@ -1,25 +1,29 @@
 package ship_test
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/ship"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// signedBy finishes the job signed by a key kept in ring as name. The manifest
+// signedBy finishes the task signed by a key kept in ring as name. The manifest
 // still claims "a-test", which no keyring vouches for.
-func signedBy(t *testing.T, ring, name string) job.Dir {
+func signedBy(t *testing.T, ring, name string) task.Dir {
 	t.Helper()
 	if _, err := signing.Generate(ring, name); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv(signing.KeyEnv, filepath.Join(ring, name+".key"))
-	dir, _ := finished(t, "yes")
+	signs, err := signing.Open(context.Background(), filepath.Join(ring, name+".key"), "a-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, _ := finishedAs(t, "yes", signs)
 	return dir
 }
 
@@ -38,20 +42,20 @@ func TestThePullRequestNamesOnlyTheSignerTheKeyringChecked(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, tc := range map[string]struct {
-		from    func(t *testing.T) job.Dir
+		from    func(t *testing.T) task.Dir
 		keyring signing.Keyring
 		want    string
 	}{
 		"unsigned": {
-			from:    func(t *testing.T) job.Dir { dir, _ := finished(t, "yes"); return dir },
-			keyring: keyringAt(t, trusted), want: "| signer | " + evidence.Unsigned + " |",
+			from:    func(t *testing.T) task.Dir { dir, _ := finished(t, "yes"); return dir },
+			keyring: keyringAt(t, trusted), want: "| signer | " + record.Unsigned + " |",
 		},
 		"signed, no keyring": {
-			from:    func(t *testing.T) job.Dir { return signedBy(t, t.TempDir(), "stranger") },
-			keyring: signing.Keyring{}, want: "| signer | " + evidence.NoKeyring + " |",
+			from:    func(t *testing.T) task.Dir { return signedBy(t, t.TempDir(), "stranger") },
+			keyring: signing.Keyring{}, want: "| signer | " + record.NoKeyring + " |",
 		},
 		"signed by a key not in the keyring": {
-			from:    func(t *testing.T) job.Dir { return signedBy(t, t.TempDir(), "stranger") },
+			from:    func(t *testing.T) task.Dir { return signedBy(t, t.TempDir(), "stranger") },
 			keyring: keyringAt(t, trusted), want: "is not in the keyring |",
 		},
 	} {
@@ -72,7 +76,7 @@ func TestThePullRequestNamesTheKeyringsSigner(t *testing.T) {
 	}
 }
 
-func bodyFor(t *testing.T, dir job.Dir, keyring signing.Keyring) string {
+func bodyFor(t *testing.T, dir task.Dir, keyring signing.Keyring) string {
 	t.Helper()
 	options := here
 	options.Keyring = keyring

@@ -9,7 +9,7 @@ import (
 )
 
 // record tells the organization's server what an admin just did to its people, so
-// that the server writes it in its change record. The front door does not write the
+// that the server writes it in its change record. Gusto cloud does not write the
 // record itself: the server is its one writer, and two processes appending to one
 // chained file would fork it. The change has been made by the time this is called, so
 // a failure is said loudly and does not undo it.

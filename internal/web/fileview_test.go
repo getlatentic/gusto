@@ -36,7 +36,7 @@ func viewerSite(t *testing.T) (*site, string, string) {
 	site := open(t)
 	site.signIn(t)
 	id := strings.TrimPrefix(startedInstance(t, site), "/instances/")
-	return site, id, site.server.instances.Workspace(id)
+	return site, id, site.server.instances.AgentFolder(id)
 }
 
 func viewed(t *testing.T, site *site, id, name string) string {
@@ -50,21 +50,21 @@ func viewed(t *testing.T, site *site, id, name string) string {
 
 // A file is shown in the way its kind is read, and never as the bytes of one that is not text.
 func TestAFileIsShownInTheWayItsKindIsRead(t *testing.T) {
-	site, id, workspace := viewerSite(t)
-	os.WriteFile(filepath.Join(workspace, "notes.md"), []byte("# Title\n\nSome *words*.\n\n> quoted\n"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "data.csv"), []byte("name,total\nada,3\n"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "pic.png"), []byte("\x89PNG\r\n\x1a\n\x00\x00"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "paper.pdf"), []byte("%PDF-1.4\n"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "game.html"), []byte("<script>alert(1)</script>"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "blob.bin"), []byte("a\x00b\x00"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "main.go"), []byte("package main\n"), 0o644)
+	site, id, folder := viewerSite(t)
+	os.WriteFile(filepath.Join(folder, "notes.md"), []byte("# Title\n\nSome *words*.\n\n> quoted\n"), 0o644)
+	os.WriteFile(filepath.Join(folder, "data.csv"), []byte("name,total\nada,3\n"), 0o644)
+	os.WriteFile(filepath.Join(folder, "pic.png"), []byte("\x89PNG\r\n\x1a\n\x00\x00"), 0o644)
+	os.WriteFile(filepath.Join(folder, "paper.pdf"), []byte("%PDF-1.4\n"), 0o644)
+	os.WriteFile(filepath.Join(folder, "game.html"), []byte("<script>alert(1)</script>"), 0o644)
+	os.WriteFile(filepath.Join(folder, "blob.bin"), []byte("a\x00b\x00"), 0o644)
+	os.WriteFile(filepath.Join(folder, "main.go"), []byte("package main\n"), 0o644)
 
 	for name, want := range map[string][]string{
 		"notes.md":  {`<article class="prose `, "<blockquote>"},
 		"data.csv":  {"<th>name</th>", "<td>ada</td>"},
 		"pic.png":   {`src="/instances/` + id + `/raw?path=pic.png"`},
 		"paper.pdf": {`<iframe class="`, `src="/instances/` + id + `/raw?path=paper.pdf"`},
-		"game.html": {`sandbox="allow-scripts"`, "View source"},
+		"game.html": {`sandbox="allow-scripts allow-forms allow-modals"`, "View source"},
 		"blob.bin":  {"cannot be shown here", "Download it"},
 		"main.go":   {`data-language="go"><code>package main`, "1 line"},
 	} {
@@ -75,21 +75,21 @@ func TestAFileIsShownInTheWayItsKindIsRead(t *testing.T) {
 			}
 		}
 	}
-	if source := site.ask(t, "GET", "/instances/"+id+"/file?path=game.html&source=1", nil).Body.String(); !strings.Contains(source, `data-language="xml">`) || strings.Contains(source, `sandbox="allow-scripts"`) {
+	if source := site.ask(t, "GET", "/instances/"+id+"/file?path=game.html&source=1", nil).Body.String(); !strings.Contains(source, `data-language="xml">`) || strings.Contains(source, `sandbox="allow-scripts`) {
 		t.Error("the source of a page is not shown as text")
 	}
 }
 
 // Word, PowerPoint and Excel files are read for the words in them.
 func TestAnOfficeFileIsReadForItsWords(t *testing.T) {
-	site, id, workspace := viewerSite(t)
-	zipOf(t, filepath.Join(workspace, "plan.docx"), map[string]string{"word/document.xml": `<w:document xmlns:w="w"><w:body>
+	site, id, folder := viewerSite(t)
+	zipOf(t, filepath.Join(folder, "plan.docx"), map[string]string{"word/document.xml": `<w:document xmlns:w="w"><w:body>
 		<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>The plan</w:t></w:r></w:p>
 		<w:p><w:r><w:t>First we </w:t></w:r><w:r><w:t>begin.</w:t></w:r></w:p></w:body></w:document>`})
-	zipOf(t, filepath.Join(workspace, "deck.pptx"), map[string]string{
+	zipOf(t, filepath.Join(folder, "deck.pptx"), map[string]string{
 		"ppt/slides/slide2.xml": `<p:sld xmlns:p="p" xmlns:a="a"><a:p><a:r><a:t>Second slide</a:t></a:r></a:p></p:sld>`,
 		"ppt/slides/slide1.xml": `<p:sld xmlns:p="p" xmlns:a="a"><a:p><a:r><a:t>Cover</a:t></a:r></a:p><a:p><a:r><a:t>Govern AI</a:t></a:r></a:p></p:sld>`})
-	zipOf(t, filepath.Join(workspace, "sheet.xlsx"), map[string]string{
+	zipOf(t, filepath.Join(folder, "sheet.xlsx"), map[string]string{
 		"xl/sharedStrings.xml":     `<sst><si><t>Name</t></si><si><t>Ada</t></si></sst>`,
 		"xl/worksheets/sheet1.xml": `<worksheet><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1"><v>Total</v></c></row><row r="2"><c r="A2" t="s"><v>1</v></c><c r="B2"><v>7</v></c></row></sheetData></worksheet>`})
 
@@ -105,7 +105,7 @@ func TestAnOfficeFileIsReadForItsWords(t *testing.T) {
 	if !strings.Contains(sheet, "<td>Name</td><td>Total</td>") || !strings.Contains(sheet, "<td>Ada</td><td>7</td>") {
 		t.Errorf("the sheet: %s", sheet)
 	}
-	os.WriteFile(filepath.Join(workspace, "broken.docx"), []byte("not a zip"), 0o644)
+	os.WriteFile(filepath.Join(folder, "broken.docx"), []byte("not a zip"), 0o644)
 	if page := viewed(t, site, id, "broken.docx"); !strings.Contains(page, "cannot be shown here") {
 		t.Error("a file that is not a document was shown as one")
 	}
@@ -114,17 +114,17 @@ func TestAnOfficeFileIsReadForItsWords(t *testing.T) {
 // What the agent wrote is served so that it cannot act as this site: a page runs sealed, a picture is only a picture, and what a browser
 // would not show is a download. Nothing outside the folder is served.
 func TestWhatTheAgentWroteIsServedSealed(t *testing.T) {
-	site, id, workspace := viewerSite(t)
-	os.WriteFile(filepath.Join(workspace, "game.html"), []byte("<h1>x</h1>"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "a.svg"), []byte("<svg/>"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "pack.zip"), []byte("PK\x03\x04\x00\x00"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "notes.md"), []byte("hi"), 0o644)
+	site, id, folder := viewerSite(t)
+	os.WriteFile(filepath.Join(folder, "game.html"), []byte("<h1>x</h1>"), 0o644)
+	os.WriteFile(filepath.Join(folder, "a.svg"), []byte("<svg/>"), 0o644)
+	os.WriteFile(filepath.Join(folder, "pack.zip"), []byte("PK\x03\x04\x00\x00"), 0o644)
+	os.WriteFile(filepath.Join(folder, "notes.md"), []byte("hi"), 0o644)
 	raw := func(path string) *httptest.ResponseRecorder {
 		return site.ask(t, "GET", "/instances/"+id+"/raw?path="+url.QueryEscape(path), nil)
 	}
 
 	page := raw("game.html")
-	if policy := page.Header().Get("Content-Security-Policy"); !strings.Contains(policy, "sandbox allow-scripts") || !strings.Contains(policy, "default-src 'none'") || strings.Contains(policy, "connect-src") && !strings.Contains(policy, "default-src 'none'") {
+	if policy := page.Header().Get("Content-Security-Policy"); !strings.Contains(policy, "sandbox allow-scripts allow-forms ") || !strings.Contains(policy, "form-action 'none'") || !strings.Contains(policy, "default-src 'none'") || strings.Contains(policy, "connect-src") && !strings.Contains(policy, "default-src 'none'") {
 		t.Errorf("a page's policy is %q", policy)
 	}
 	if page.Header().Get("X-Frame-Options") != "" || !strings.Contains(page.Header().Get("Content-Security-Policy"), "frame-ancestors 'self'") || page.Header().Get("X-Content-Type-Options") != "nosniff" || !strings.HasPrefix(page.Header().Get("Content-Type"), "text/html") {
@@ -146,18 +146,21 @@ func TestWhatTheAgentWroteIsServedSealed(t *testing.T) {
 	}
 }
 
-// The Files page is one of the few places the side list leads to, and the pages it leads from carry the side list drawn already.
-func TestTheFilesPageIsInTheSideListWhichEveryPageCarries(t *testing.T) {
+// Files is one of the places the rail leads to, and the list of chats is beside chats alone: the other pages carry the rail and not the list.
+func TestTheListOfChatsIsBesideChatsAndTheRailLeadsToFiles(t *testing.T) {
 	site, id, _ := viewerSite(t)
 	site.ask(t, "POST", "/instances/"+id+"/threads/1/say", url.Values{"said": {"hello"}})
 	files := site.ask(t, "GET", "/files", nil)
 	if files.Code != http.StatusOK || !strings.Contains(files.Body.String(), `id="files-app"`) {
 		t.Fatalf("the files page answered %d", files.Code)
 	}
-	for _, page := range []string{"/files", "/jobs", "/spend", "/"} {
+	for _, page := range []string{"/files", "/jobs", "/spend", "/chat"} {
 		body := site.ask(t, "GET", page, nil).Body.String()
-		if !strings.Contains(body, `href="/files"`) || !strings.Contains(body, `href="/chat?at=`+id+`"`) {
-			t.Errorf("%s does not carry the side list with Files and the project", page)
+		if !strings.Contains(body, `href="/files"`) {
+			t.Errorf("%s does not carry the rail with Files in it", page)
+		}
+		if carries := strings.Contains(body, `href="/chat?at=`+id+`"`); carries != (page == "/chat") {
+			t.Errorf("%s carries the list of chats: %v", page, carries)
 		}
 		if strings.Contains(body, "hx-trigger=\"load\"") || strings.Contains(body, `href="/compare" data-tip`) {
 			t.Errorf("%s loads the side list afterwards or still has Compare in it", page)
@@ -167,8 +170,8 @@ func TestTheFilesPageIsInTheSideListWhichEveryPageCarries(t *testing.T) {
 
 // A file can be asked for as a tab beside a chat: its name, what can be done with it and the file, without the page around it.
 func TestAFileIsGivenAsATabBesideAChatWithoutThePageAroundIt(t *testing.T) {
-	site, id, workspace := viewerSite(t)
-	os.WriteFile(filepath.Join(workspace, "plan.md"), []byte("# The plan\n\nBegin here."), 0o644)
+	site, id, folder := viewerSite(t)
+	os.WriteFile(filepath.Join(folder, "plan.md"), []byte("# The plan\n\nBegin here."), 0o644)
 	answer := site.ask(t, "GET", "/instances/"+id+"/file?path=plan.md&panel=1", nil)
 	body := answer.Body.String()
 	if answer.Code != http.StatusOK || !strings.Contains(body, "The plan") || !strings.Contains(body, "plan.md") || !strings.Contains(body, "Open as a page") {

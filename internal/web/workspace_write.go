@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -115,7 +116,7 @@ func (h *hashes) forget(key string) {
 // hashesJSON gives the hash of each file asked about, leaving out one that is not there or is not a plain file. The listing
 // gives names and sizes cheaply, and this is how a helper learns what a file is only for those that changed.
 func (s *Server) hashesJSON(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
+	held, found := s.sharedOr404(w, r)
 	if !found {
 		return
 	}
@@ -126,7 +127,7 @@ func (s *Server) hashesJSON(w http.ResponseWriter, r *http.Request) {
 		answerJSON(w, http.StatusBadRequest, map[string]string{"error": `send {"paths": [...]}, at most 5000`})
 		return
 	}
-	root := s.instances.Workspace(held.ID)
+	root := s.instances.AgentFolder(held.ID)
 	out := map[string]string{}
 	for _, name := range asked.Paths {
 		full, err := folderPath(root, name)
@@ -163,44 +164,67 @@ func (s *Server) stillWhatTheWriterSaw(id, name, full string, saw string) (curre
 	return sum, saw == "" || saw == sum, nil
 }
 
-// writeFile puts a file in the folder whole, or not at all: it is written beside its place and moved into it. It is refused,
-// naming the file's present hash, when the writer says the file is something other than what it is.
+// writeFile puts a file in the folder whole, or not at all, for a person's computer that keeps the folder in sync.
 func (s *Server) writeFile(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
+	held, found := s.sharedForWriting(w, r)
 	if !found {
 		return
 	}
-	name := r.URL.Query().Get("path")
-	root := s.instances.Workspace(held.ID)
+	put := s.putFile(r, held.ID, r.URL.Query().Get("path"), http.MaxBytesReader(w, r.Body, mostFileBytes), r.Header.Get("X-If-Hash"), r.Header.Get("X-Mode") == "755")
+	if put.status != http.StatusOK {
+		answer := map[string]any{"error": put.err}
+		if put.status == http.StatusPreconditionFailed {
+			answer["hash"] = put.hash
+		}
+		answerJSON(w, put.status, answer)
+		return
+	}
+	answerJSON(w, http.StatusOK, map[string]any{"hash": put.hash, "size": put.size})
+}
+
+// fileWrite is how writing a file went: its status, and the file's hash after, or now when the writer saw something else.
+type fileWrite struct {
+	status int
+	hash   string
+	size   int64
+	err    string
+}
+
+// putFile puts a file in the folder whole, or not at all: it is written beside its place and moved into it. It is refused,
+// naming the file's present hash, when the writer says the file is something other than what it is; a writer that says
+// nothing is not checked.
+func (s *Server) putFile(r *http.Request, instance, name string, body io.Reader, saw string, runs bool) fileWrite {
+	root := s.instances.AgentFolder(instance)
 	full, err := folderPath(root, name)
 	if err != nil {
-		answerJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
+		return fileWrite{status: http.StatusBadRequest, err: err.Error()}
 	}
-	s.writing(held.ID).Lock()
-	defer s.writing(held.ID).Unlock()
-	current, ok, err := s.stillWhatTheWriterSaw(held.ID, name, full, r.Header.Get("X-If-Hash"))
+	s.writing(instance).Lock()
+	defer s.writing(instance).Unlock()
+	done, err := s.holdFolder(r, root, full)
 	if err != nil {
-		answerJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
+		return fileWrite{status: http.StatusServiceUnavailable, err: "the folder is busy: " + err.Error()}
+	}
+	placed := false
+	defer func() { done(placed) }()
+	current, ok, err := s.stillWhatTheWriterSaw(instance, name, full, saw)
+	if err != nil {
+		return fileWrite{status: http.StatusBadRequest, err: err.Error()}
 	}
 	if !ok {
-		answerJSON(w, http.StatusPreconditionFailed, map[string]string{"error": "the file is not what you saw", "hash": current})
-		return
+		return fileWrite{status: http.StatusPreconditionFailed, hash: current, err: "the file is not what you saw"}
 	}
 	if err := os.MkdirAll(filepath.Dir(full), 0o775); err != nil {
-		answerJSON(w, http.StatusInternalServerError, map[string]string{"error": "the folder could not be made"})
-		return
+		return fileWrite{status: http.StatusInternalServerError, err: "the folder could not be made"}
 	}
 	matchOwner(filepath.Dir(full), root)
 	scratch, err := os.CreateTemp(filepath.Dir(full), ".gusto-write-*")
 	if err != nil {
-		answerJSON(w, http.StatusInternalServerError, map[string]string{"error": "the file could not be written"})
-		return
+		return fileWrite{status: http.StatusInternalServerError, err: "the file could not be written"}
 	}
 	defer os.Remove(scratch.Name())
 	digest := sha256.New()
-	written, err := io.Copy(io.MultiWriter(scratch, digest), http.MaxBytesReader(w, r.Body, mostFileBytes))
+	size, err := io.Copy(io.MultiWriter(scratch, digest), body)
 	if err == nil {
 		err = scratch.Sync()
 	}
@@ -213,43 +237,50 @@ func (s *Server) writeFile(w http.ResponseWriter, r *http.Request) {
 		if errors.As(err, &tooBig) {
 			status = http.StatusRequestEntityTooLarge
 		}
-		answerJSON(w, status, map[string]string{"error": "the file could not be written: " + err.Error()})
-		return
+		return fileWrite{status: status, err: "the file could not be written: " + err.Error()}
 	}
 	mode := os.FileMode(0o664)
-	if r.Header.Get("X-Mode") == "755" {
+	if runs {
 		mode = 0o775
 	}
 	if err := os.Chmod(scratch.Name(), mode); err != nil {
-		answerJSON(w, http.StatusInternalServerError, map[string]string{"error": "the file could not be written"})
-		return
+		return fileWrite{status: http.StatusInternalServerError, err: "the file could not be written"}
 	}
 	matchOwner(scratch.Name(), root)
 	if err := os.Rename(scratch.Name(), full); err != nil {
-		answerJSON(w, http.StatusInternalServerError, map[string]string{"error": "the file could not be put in place"})
-		return
+		return fileWrite{status: http.StatusInternalServerError, err: "the file could not be put in place"}
 	}
+	placed = true
+	sum := hex.EncodeToString(digest.Sum(nil))
 	if info, err := os.Lstat(full); err == nil {
-		s.known.remember(held.ID+"\x00"+name, info, hex.EncodeToString(digest.Sum(nil)))
+		s.known.remember(instance+"\x00"+name, info, sum)
 	}
-	answerJSON(w, http.StatusOK, map[string]any{"hash": hex.EncodeToString(digest.Sum(nil)), "size": written})
+	return fileWrite{status: http.StatusOK, hash: sum, size: size}
 }
 
 // removeFile deletes a file of the folder, when it is what the writer saw. A file that is not there, and the writer saw not
 // there, is as deleted as it gets.
 func (s *Server) removeFile(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
+	held, found := s.sharedForWriting(w, r)
 	if !found {
 		return
 	}
 	name := r.URL.Query().Get("path")
-	full, err := folderPath(s.instances.Workspace(held.ID), name)
+	root := s.instances.AgentFolder(held.ID)
+	full, err := folderPath(root, name)
 	if err != nil {
 		answerJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 	s.writing(held.ID).Lock()
 	defer s.writing(held.ID).Unlock()
+	done, err := s.holdFolder(r, root, full)
+	if err != nil {
+		answerJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "the folder is busy: " + err.Error()})
+		return
+	}
+	removed := false
+	defer func() { done(removed) }()
 	current, ok, err := s.stillWhatTheWriterSaw(held.ID, name, full, r.Header.Get("X-If-Hash"))
 	if err != nil {
 		answerJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -264,6 +295,7 @@ func (s *Server) removeFile(w http.ResponseWriter, r *http.Request) {
 			answerJSON(w, http.StatusInternalServerError, map[string]string{"error": "the file could not be removed"})
 			return
 		}
+		removed = true
 		s.known.forget(held.ID + "\x00" + name)
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -281,4 +313,26 @@ func (s *Server) writing(id string) *sync.Mutex {
 		s.locks[id] = &sync.Mutex{}
 	}
 	return s.locks[id]
+}
+
+// UseRoomHold gives the server what keeps the merges of a room's turns out of its folder while a person changes it, and keeps
+// what the person replaced for the turns working there, so a merge neither replaces the person's file nor loses their change.
+func (s *Server) UseRoomHold(hold func(ctx context.Context, folder string, paths []string) (func(changed bool), error)) {
+	s.roomHold = hold
+}
+
+// holdFolder keeps merges out of root while a request changes the files at fulls, which are under root. done says whether it did.
+func (s *Server) holdFolder(r *http.Request, root string, fulls ...string) (done func(changed bool), err error) {
+	if s.roomHold == nil {
+		return func(bool) {}, nil
+	}
+	var paths []string
+	for _, full := range fulls {
+		relative, err := filepath.Rel(root, full)
+		if err != nil {
+			return nil, err
+		}
+		paths = append(paths, filepath.ToSlash(relative))
+	}
+	return s.roomHold(r.Context(), root, paths)
 }

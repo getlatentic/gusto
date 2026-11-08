@@ -1,0 +1,78 @@
+{
+  "name": "muse",
+  "title": "Muse Code",
+  "what": "Meta's coding agent, built for the Muse models and run once per message.",
+  "program": "muse",
+  "package": "muse",
+  "download": "https://dev.meta.ai/docs/muse-code",
+  "argv": [
+    "exec",
+    "--json",
+    "--model",
+    "{modelId}",
+    "--base-url",
+    "{modelUrl}",
+    "--workspace",
+    ".",
+    "--trust-workspace",
+    "--disable-approval",
+    "--approval-judge",
+    "off",
+    "--disable-reminders",
+    "--disable-request-user-input",
+    "--no-foreign-personal-context",
+    "{brief}"
+  ],
+  "resume": [
+    "exec",
+    "--json",
+    "--model",
+    "{modelId}",
+    "--base-url",
+    "{modelUrl}",
+    "--workspace",
+    ".",
+    "--trust-workspace",
+    "--disable-approval",
+    "--approval-judge",
+    "off",
+    "--disable-reminders",
+    "--disable-request-user-input",
+    "--no-foreign-personal-context",
+    "--session-id",
+    "{session}",
+    "--allow-workspace-switch",
+    "{brief}"
+  ],
+  "env": {
+    "META_API_KEY": "{modelToken}"
+  },
+  "whenBoxed": {
+    "--disable-approval": "--yolo"
+  },
+  "needs": "key",
+  "speaks": "responses",
+  "endpoint": "https://api.meta.ai",
+  "skills": "/root/.agents/skills",
+  "keeps": "/root/.local/share/muse",
+  "stream": "jsonl",
+  "totals": "perCall",
+  "when": {
+    "text": {
+      "payload_type": "run.output.delta"
+    },
+    "usage": {
+      "payload_type": "run.usage"
+    },
+    "tool": {
+      "payload_type": "tool.result"
+    }
+  },
+  "text": "payload.text",
+  "message": "payload.run_stream.id",
+  "sessionId": "stream.id",
+  "toolName": "payload.correlation_facts.tool_name",
+  "toolStatus": "payload.correlation_facts.outcome",
+  "inputTokens": "payload.models.0.input_tokens",
+  "outputTokens": "payload.models.0.output_tokens"
+}

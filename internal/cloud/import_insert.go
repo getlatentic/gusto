@@ -50,7 +50,8 @@ func (s *Store) insertLegacy(ctx context.Context, tx dbkit.Tx, old legacy) (map[
 		rows [][]any
 	}{
 		{"organisations", insertOrg, mapRows(old.orgs, s.orgArgs)},
-		{"people", insertPerson, mapRows(old.people, s.personArgs)},
+		{"people", insertAccount, mapRows(old.people, s.accountArgs)},
+		{"memberships", insertMembership, mapRows(old.people, s.membershipArgs)},
 		{"invitations", dbkit.Upsert{Table: "invitations", Columns: invitationFields, Conflict: []string{"org", "email"}}, mapRows(old.invitations, s.legacyInvitationArgs)},
 		{"leads", insertLead, mapRows(old.leads, s.leadArgs)},
 		{"links", insertLink, mapRows(old.links, func(l legacyLink) []any { return s.linkArgs(l.hash, l.link) })},
@@ -61,6 +62,9 @@ func (s *Store) insertLegacy(ctx context.Context, tx dbkit.Tx, old legacy) (map[
 			return nil, err
 		}
 		imported[step.kind] = n
+	}
+	if err := fillFirstWorkspaces(ctx, tx); err != nil {
+		return nil, err
 	}
 	var err error
 	if imported["runtime"], err = s.insertRuntimes(ctx, tx, old); err != nil {
@@ -91,7 +95,7 @@ func (s *Store) insertRuntimes(ctx context.Context, tx dbkit.Tx, old legacy) (in
 	for slug, rt := range old.runtimes {
 		ok, err := inserted(tx.ExecContext(ctx, `INSERT INTO runtime (slug, state, cell, port, proxy_port, error, restarts, updated)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
-			slug, string(rt.State), rt.Cell, rt.Port, rt.ProxyPort, rt.Error, rt.Restarts, s.stamp(rt.Updated)))
+			slug, string(rt.State), rt.Node, rt.Port, rt.ProxyPort, rt.Error, rt.Restarts, s.stamp(rt.Updated)))
 		if err != nil {
 			return added, err
 		}

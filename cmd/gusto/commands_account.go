@@ -4,9 +4,8 @@ import (
 	"flag"
 
 	"github.com/getlatentic/gusto/cmd/internal/cmdline"
+	"github.com/getlatentic/gusto/internal/helper/cli"
 )
-
-var envHelperServer = cmdline.Param{Name: "GUSTO_SERVER", Text: "your organization's server, when -server is not given"}
 
 func accountCommands() []*cmdline.Command {
 	return []*cmdline.Command{
@@ -15,7 +14,7 @@ func accountCommands() []*cmdline.Command {
 			Usage:       []string{"[-server <address>] [-label <name>] [-browser=false]"},
 			Description: "Opens your organization's approval page in the browser, and keeps the token it gives in this computer's keychain.",
 			Flags:       loginFlags,
-			Env:         []cmdline.Param{envHelperServer},
+			Env:         cmdline.ParamsOf(cli.AccountSettings),
 			Examples:    []string{"gusto login -server https://acme.gusto.example.com"},
 			SeeAlso:     []string{"whoami", "logout"},
 			Run:         login,
@@ -24,7 +23,7 @@ func accountCommands() []*cmdline.Command {
 			Name: "logout", Group: groupAccount, Summary: "End this computer's sign-in and forget it",
 			Usage:   []string{"[-server <address>]"},
 			Flags:   serverFlag,
-			Env:     []cmdline.Param{envHelperServer},
+			Env:     cmdline.ParamsOf(cli.AccountSettings),
 			SeeAlso: []string{"login"},
 			Run:     logout,
 		},
@@ -32,7 +31,7 @@ func accountCommands() []*cmdline.Command {
 			Name: "whoami", Group: groupAccount, Summary: "Who this computer is signed in as",
 			Usage:   []string{"[-server <address>]"},
 			Flags:   serverFlag,
-			Env:     []cmdline.Param{envHelperServer},
+			Env:     cmdline.ParamsOf(cli.AccountSettings),
 			SeeAlso: []string{"login"},
 			Run:     whoami,
 		},
@@ -49,7 +48,7 @@ func recordCommands() []*cmdline.Command {
 				"private key stays in AWS KMS and only the public key is written.",
 			Args:     []cmdline.Param{{Name: "<name>", Text: "what the signer is called"}},
 			Flags:    flagsOf(declareKeygen),
-			Env:      []cmdline.Param{envSigning, envKeyring},
+			Env:      cmdline.ParamsOf(new(signingSettings).declare),
 			Examples: []string{"gusto keygen ci -dir keys"},
 			SeeAlso:  []string{"keys", "verify"},
 			Run:      makeKey,
@@ -60,7 +59,7 @@ func recordCommands() []*cmdline.Command {
 			Description: "Says which key stands behind every signed record in the tasks directory, and which records no key in the keyring " +
 				"can vouch for. Run it before a public key is removed from a keyring, and after one is restored.",
 			Flags: flagsOf(declareKeys),
-			Env:   []cmdline.Param{envKeyring, {Name: "GUSTO_JOBS", Text: "the directory of tasks, when -tasks is not given (default jobs)"}},
+			Env:   append([]cmdline.Param{{Name: "GUSTO_TASKS", Text: "the directory of tasks, when -tasks is not given (default jobs)"}}, envKeyring...),
 			Exit: []cmdline.Param{
 				{Name: "0", Text: "every record is attributed"},
 				{Name: "1", Text: "a record cannot be attributed"},
@@ -79,7 +78,7 @@ func recordCommands() []*cmdline.Command {
 					"earlier is still in the record, which shows whether lines were cut off the end.",
 				Args:     []cmdline.Param{{Name: "<file>", Text: "the exported record"}},
 				Flags:    flagsOf(declareChangesVerify),
-				Env:      []cmdline.Param{envKeyring},
+				Env:      envKeyring,
 				Examples: []string{"gusto changes verify changes.jsonl -head 9b1c..."},
 				Exit: []cmdline.Param{
 					{Name: "0", Text: "the chain holds"},
@@ -97,7 +96,7 @@ func recordCommands() []*cmdline.Command {
 			Flags: flagsOf(declareRetention),
 			Env: []cmdline.Param{
 				{Name: "GUSTO_RETENTION", Text: "the retention directory, with policy.json and the holds, when -dir is not given"},
-				{Name: "GUSTO_JOBS", Text: "the directory of tasks, when -tasks is not given (default jobs)"},
+				{Name: "GUSTO_TASKS", Text: "the directory of tasks, when -tasks is not given (default jobs)"},
 			},
 			SeeAlso: []string{"data", "spend"},
 			Run:     retentionCommand,
@@ -131,7 +130,7 @@ func recordCommands() []*cmdline.Command {
 				},
 			},
 			Env: []cmdline.Param{
-				{Name: "GUSTO_JOBS", Text: "tasks (default jobs)"},
+				{Name: "GUSTO_TASKS", Text: "tasks (default jobs)"},
 				{Name: "GUSTO_SESSIONS", Text: "agents' conversations (default sessions)"},
 				{Name: "GUSTO_MIGRATE_IRREVERSIBLE", Text: "1 allows a step that cannot be undone"},
 			},
@@ -142,7 +141,7 @@ func recordCommands() []*cmdline.Command {
 			Description: "Rebuilds the ledger from the tasks' own proxy records, through the same counting the server's caps use, so it " +
 				"needs no server.",
 			Flags:    flagsOf(declareSpend),
-			Env:      []cmdline.Param{{Name: "GUSTO_JOBS", Text: "the directory of tasks, when -tasks is not given (default jobs)"}},
+			Env:      []cmdline.Param{{Name: "GUSTO_TASKS", Text: "the directory of tasks, when -tasks is not given (default jobs)"}},
 			Examples: []string{"gusto spend -month 2026-10 -json"},
 			SeeAlso:  []string{"retention"},
 			Run:      spendReport,
@@ -179,6 +178,25 @@ func otherCommands() []*cmdline.Command {
 				"command, which keeps the restriction. With --check it applies a policy to a process that does nothing, and says the " +
 				"kernel's version of it. Gusto runs this itself.",
 			Run: sandboxRun,
+		},
+		{
+			Name: "boxed", Hidden: true, Summary: "Start an agent in a sandbox with its run's own way to its model",
+			Usage: []string{"--model <proxy> [--policy <json>] -- <command> [<args>...]"},
+			Description: "What a sandbox runs in place of an agent: it starts the run's forwarder, which trades the run's secret for a " +
+				"token bound to a key of its own, points the agent at it, holds itself to the Landlock policy when one is given, and " +
+				"becomes the agent. Gusto runs this itself.",
+			Env: cmdline.ParamsOf(new(boxedSettings).declare), Run: boxed,
+		},
+		{
+			Name: "boxed-forward", Hidden: true, Summary: "The forwarder gusto boxed starts",
+			Usage:       []string{"<proxy>"},
+			Description: "Passes the agent's calls to the proxy with the run's token and a proof made for each. Gusto runs this itself.",
+			Run:         boxedForward,
+		},
+		{
+			Name: "boxed-sign", Hidden: true, Summary: "The signer the forwarder starts",
+			Description: "Holds the run's key, where no other process can read it, and makes the forwarder's proofs. Gusto runs this itself.",
+			Run:         boxedSign,
 		},
 	}
 }

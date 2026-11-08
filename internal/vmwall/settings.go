@@ -3,6 +3,8 @@ package vmwall
 import (
 	"encoding/json"
 	"os"
+
+	"github.com/getlatentic/gusto/internal/atomicfile"
 )
 
 // Settings is what gusto needs to use what was installed: it is written last, so a half-finished install is not used.
@@ -27,24 +29,10 @@ func Installed(l Layout) (Settings, bool) {
 	return settings, true
 }
 
-// Adopt has gusto use an install: GUSTO_OPENSHELL, GUSTO_OPENSHELL_GATEWAY and GUSTO_OPENSHELL_IMAGE, each only where the person or an
-// operator has not set it. It is the installed settings that decide nothing a person said.
-func Adopt(l Layout, getenv func(string) string, setenv func(name, value string)) {
-	settings, ok := Installed(l)
-	if !ok {
-		return
-	}
-	for name, value := range map[string]string{"GUSTO_OPENSHELL": settings.Binary, "GUSTO_OPENSHELL_GATEWAY": settings.Gateway, "GUSTO_OPENSHELL_IMAGE": settings.Image} {
-		if getenv(name) == "" {
-			setenv(name, value)
-		}
-	}
-}
-
 func (s Settings) save(path string) error {
 	text, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(text, '\n'), 0o600)
+	return atomicfile.WriteFile(path, append(text, '\n'), 0o600)
 }

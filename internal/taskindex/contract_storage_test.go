@@ -44,6 +44,24 @@ var storageCases = []contractCase{
 			t.Fatalf("counts = %v", counts)
 		}
 	}},
+	{"restore writes a row that is behind the one held and upsert does not", func(t *testing.T, s taskindex.Store) {
+		ended := with(task("a", 1), func(r *taskindex.Row) { r.State, r.Ended = "passed", 99 })
+		running := with(task("a", 1), func(r *taskindex.Row) { r.State = "running" })
+		put(t, s, ended)
+		put(t, s, running)
+		if got, _ := s.Get(ctx, "a"); got != ended {
+			t.Fatalf("upsert set the row back: %+v", got)
+		}
+		if err := s.Restore(ctx, []taskindex.Row{running}); err != nil {
+			t.Fatal(err)
+		}
+		if got, _ := s.Get(ctx, "a"); got != running {
+			t.Fatalf("restore left %+v", got)
+		}
+		if held, _ := s.Indexed(ctx); held["a"].Progress != running.Progress() {
+			t.Fatalf("indexed says %+v", held["a"])
+		}
+	}},
 	{"upsert many keeps the last row of a task named twice", func(t *testing.T, s taskindex.Store) {
 		older := task("a", 1)
 		put(t, s, older, task("b", 2), with(older, func(r *taskindex.Row) { r.State = "running" }))

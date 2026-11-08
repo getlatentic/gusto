@@ -1,0 +1,305 @@
+package cloud
+
+import (
+	"context"
+	"encoding/json"
+	"io/fs"
+	"net/http"
+	"net/url"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"testing"
+	"testing/fstest"
+	"time"
+
+	"github.com/getlatentic/gusto/internal/dbkit"
+	"github.com/getlatentic/gusto/internal/roster"
+)
+
+func rosterEmails(t *testing.T, s *Store, slug string) []string {
+	t.Helper()
+	list, err := roster.Read(s.RosterFile(slug))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var emails []string
+	for _, member := range list.Members {
+		emails = append(emails, member.Email+":"+member.Role)
+	}
+	return emails
+}
+
+func TestAPersonInvitedFromAnotherOrganizationIsInBothWithARoleInEach(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s := open(t, Settings{})
+		ada, acme := verifiedOrg(t, s, "ada@acme.com", "Acme")
+		_, globex := verifiedOrg(t, s, "eve@globex.com", "Globex")
+		joined(t, s, acme, ada, "Eve@Globex.com")
+		all, err := s.Memberships(t.Context(), "eve@globex.com")
+		if err != nil || len(all) != 2 {
+			t.Fatalf("%+v %v", all, err)
+		}
+		roles := map[string]Role{}
+		for _, each := range all {
+			roles[each.Org] = each.Role
+			if each.Trial() {
+				t.Errorf("one sign-in is verified in every organization: %+v", each)
+			}
+		}
+		if roles[globex.Slug] != Admin || roles[acme.Slug] != Runner {
+			t.Errorf("%v", roles)
+		}
+		if got := strings.Join(rosterEmails(t, s, acme.Slug), " "); got != "ada@acme.com:admin eve@globex.com:runner" {
+			t.Errorf("acme's server sees its own members: %s", got)
+		}
+		s.PublishRoster(t.Context(), globex.Slug)
+		if got := strings.Join(rosterEmails(t, s, globex.Slug), " "); got != "eve@globex.com:admin" {
+			t.Errorf("globex's server sees only its own: %s", got)
+		}
+		orgs, err := s.OrgsOf(t.Context(), "eve@globex.com")
+		if err != nil || len(orgs) != 2 || orgs[0].Name != "Acme" || orgs[1].Name != "Globex" {
+			t.Errorf("%+v %v", orgs, err)
+		}
+	})
+}
+
+func TestRemovingAPersonFromOneOrganizationLeavesTheirOthersAndTheirSignIn(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s := open(t, Settings{})
+		ada, acme := verifiedOrg(t, s, "ada@acme.com", "Acme")
+		_, globex := verifiedOrg(t, s, "eve@globex.com", "Globex")
+		joined(t, s, acme, ada, "eve@globex.com")
+		joined(t, s, acme, ada, "bob@acme.com")
+		if err := s.Remove(t.Context(), acme.Slug, ada, "eve@globex.com"); err != nil {
+			t.Fatal(err)
+		}
+		all, _ := s.Memberships(t.Context(), "eve@globex.com")
+		if len(all) != 1 || all[0].Org != globex.Slug || all[0].Role != Admin {
+			t.Errorf("%+v", all)
+		}
+		if found, _ := s.HasAccount(t.Context(), "eve@globex.com"); !found {
+			t.Error("the sign-in went with one organization of two")
+		}
+		if err := s.Remove(t.Context(), acme.Slug, ada, "bob@acme.com"); err != nil {
+			t.Fatal(err)
+		}
+		if found, _ := s.HasAccount(t.Context(), "bob@acme.com"); found {
+			t.Error("a person in no organization still has a sign-in")
+		}
+		if got := strings.Join(rosterEmails(t, s, acme.Slug), " "); got != "ada@acme.com:admin" {
+			t.Errorf("%s", got)
+		}
+	})
+}
+
+func TestARoleIsChangedInOneOrganizationOnly(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s := open(t, Settings{})
+		ada, acme := verifiedOrg(t, s, "ada@acme.com", "Acme")
+		_, globex := verifiedOrg(t, s, "eve@globex.com", "Globex")
+		joined(t, s, acme, ada, "eve@globex.com")
+		if _, err := s.SetRole(t.Context(), acme.Slug, ada, "eve@globex.com", Admin); err != nil {
+			t.Fatal(err)
+		}
+		inGlobex, _, _ := s.Person(t.Context(), "eve@globex.com", globex.Slug)
+		inAcme, _, _ := s.Person(t.Context(), "eve@globex.com", acme.Slug)
+		if inAcme.Role != Admin || inGlobex.Role != Admin {
+			t.Fatalf("%+v %+v", inAcme, inGlobex)
+		}
+		if _, err := s.SetRole(t.Context(), acme.Slug, ada, "eve@globex.com", Runner); err != nil {
+			t.Fatal(err)
+		}
+		if again, _, _ := s.Person(t.Context(), "eve@globex.com", globex.Slug); again.Role != Admin {
+			t.Errorf("a role in one organization changed another's: %+v", again)
+		}
+		// An admin of one organization is nobody in another.
+		eve, _, _ := s.Person(t.Context(), "eve@globex.com", globex.Slug)
+		if _, err := s.SetRole(t.Context(), acme.Slug, eve, "ada@acme.com", Runner); err != ErrNotAdmin {
+			t.Errorf("%v", err)
+		}
+	})
+}
+
+func TestEndingADemoKeepsItsPeoplesOtherOrganizations(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s, _ := clocked(t, demoSet)
+		_, globex := verifiedOrg(t, s, "eve@globex.com", "Globex")
+		ada, demo, err := s.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")
+		if err != nil {
+			t.Fatal(err)
+		}
+		joined(t, s, demo, ada, "eve@globex.com")
+		if err := s.EndDemo(t.Context(), demo.Slug, "its time was up"); err != nil {
+			t.Fatal(err)
+		}
+		if found, _ := s.HasAccount(t.Context(), "ada@acme.com"); found {
+			t.Error("the person who was only in the demo is still there")
+		}
+		all, _ := s.Memberships(t.Context(), "eve@globex.com")
+		if len(all) != 1 || all[0].Org != globex.Slug {
+			t.Errorf("%+v", all)
+		}
+	})
+}
+
+// firstMigration is the cloud schema as it was before memberships.
+func firstMigration(t *testing.T) dbkit.Migrations {
+	t.Helper()
+	only := fstest.MapFS{}
+	for _, dialect := range []string{"sqlite", "postgres"} {
+		name := filepath.ToSlash(filepath.Join("migrations", dialect, "0001_cloud.sql"))
+		text, err := fs.ReadFile(migrationFiles, name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		only[name] = &fstest.MapFile{Data: text}
+	}
+	return dbkit.Migrations{Scope: migrations.Scope, Table: migrations.Table, FS: only, Dir: migrations.Dir}
+}
+
+func TestEachPersonOfAnEarlierSchemaBecomesOneMembership(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		ctx := context.Background()
+		db := freshDatabase(t)
+		if err := dbkit.Migrate(ctx, db, firstMigration(t)); err != nil {
+			t.Fatal(err)
+		}
+		at := time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)
+		for _, statement := range []struct {
+			sql  string
+			args []any
+		}{
+			{`INSERT INTO orgs (slug, name, admin, created) VALUES (?, ?, ?, ?)`, []any{"acme-com", "Acme", "ada@acme.com", db.TimeArg(at)}},
+			{`INSERT INTO people (email, org, role, created, verified, invited_by, last_sign_in) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+				[]any{"ada@acme.com", "acme-com", "admin", db.TimeArg(at), db.TimeArg(at), "", db.TimeArg(at.Add(time.Hour))}},
+			{`INSERT INTO people (email, org, role, created, verified, invited_by, last_sign_in) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+				[]any{"bob@acme.com", "acme-com", "runner", db.TimeArg(at.Add(time.Minute)), nil, "ada@acme.com", nil}},
+		} {
+			if _, err := db.ExecContext(ctx, statement.sql, statement.args...); err != nil {
+				t.Fatal(err)
+			}
+		}
+		s, err := openOn(db, filepath.Join(t.TempDir(), "cloud"), Settings{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		ada, found, err := s.Person(ctx, "ada@acme.com", "acme-com")
+		if err != nil || !found || ada.Role != Admin || ada.Trial() || !ada.LastSignIn.Equal(at.Add(time.Hour)) {
+			t.Errorf("%+v %v %v", ada, found, err)
+		}
+		bob, _, _ := s.Person(ctx, "bob@acme.com", "acme-com")
+		if bob.Role != Runner || bob.By != "ada@acme.com" || !bob.Trial() || !bob.Created.Equal(at.Add(time.Minute)) {
+			t.Errorf("%+v", bob)
+		}
+		if n, _ := count(ctx, db, `SELECT count(*) FROM memberships`); n != 2 {
+			t.Errorf("%d memberships", n)
+		}
+	})
+}
+
+// signInByLink signs a fresh browser in the way a returning person does, with the link mailed to them.
+func (f *front) signInByLink(email string) *browser {
+	f.t.Helper()
+	b := f.browser()
+	b.post("/signin", url.Values{"email": {email}})
+	if status, _, _ := b.post("/signin/link", url.Values{"t": {tokenOf(f.linkTo(email, "/signin/link?t="))}}); status != http.StatusSeeOther {
+		f.t.Fatalf("signing in as %s: %d", email, status)
+	}
+	return b
+}
+
+func TestAPersonInSeveralOrganizationsChoosesOneAndOpensOnlyTheirOwn(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		f := withServers(t)
+		ada := f.verifiedAdmin("ada@acme.com", "Acme")
+		f.verifiedAdmin("eve@globex.com", "Globex")
+		f.verifiedAdmin("ned@initech.com", "Initech")
+		f.invitedAndJoined(ada, "eve@globex.com")
+
+		eve := f.signInByLink("eve@globex.com")
+		for _, path := range []string{"/", "/org"} {
+			if status, _, header := eve.get2(path); status != http.StatusSeeOther || header.Get("Location") != "/orgs" {
+				t.Fatalf("%s: a person in two organizations is asked which: %d %v", path, status, header)
+			}
+		}
+		_, page := eve.get("/orgs")
+		for _, want := range []string{`href="/open?org=acme-com"`, `href="/open?org=globex-com"`, `href="/org?org=acme-com"`, `href="/org?org=globex-com"`} {
+			if !strings.Contains(page, want) || strings.Contains(page, "initech") {
+				t.Fatalf("the choice is their own organizations, to go into or to manage, and lacks %s:\n%s", want, page)
+			}
+		}
+		if _, page := eve.get("/org?org=globex-com"); !strings.Contains(page, ">Globex</h1>") || !strings.Contains(page, `href="/orgs"`) {
+			t.Fatalf("choosing Globex shows Globex, with a way back to the choice:\n%s", page)
+		}
+		if _, page := eve.get("/org"); !strings.Contains(page, ">Globex</h1>") {
+			t.Errorf("the choice is remembered:\n%s", page)
+		}
+		if status, _, header := eve.get2("/"); status != http.StatusSeeOther || header.Get("Location") != "/open" {
+			t.Errorf("once chosen, gusto cloud takes them into it: %d %v", status, header)
+		}
+		if _, page := eve.get("/org?org=initech-com"); !strings.Contains(page, ">Globex</h1>") {
+			t.Errorf("an organization they are not in is not chosen:\n%s", page)
+		}
+		entered := func(org string) (string, string) {
+			status, _, header := eve.get2("/open?org=" + org)
+			location, _ := url.Parse(header.Get("Location"))
+			if status != http.StatusSeeOther || location == nil {
+				t.Fatalf("%d %v", status, header)
+			}
+			_, _, answer := eve.at(location.Host, "GET", location.RequestURI(), nil)
+			return location.Host, strings.Join(answer.Values("Set-Cookie"), ";")
+		}
+		if host, cookies := entered("acme-com"); host != "acme-com.cloud.test" || !strings.Contains(cookies, "gusto=eve@globex.com|runner") {
+			t.Errorf("in Acme they are a runner: %s %s", host, cookies)
+		}
+		if host, cookies := entered("globex-com"); host != "globex-com.cloud.test" || !strings.Contains(cookies, "gusto=eve@globex.com|admin") {
+			t.Errorf("in Globex they are its admin: %s %s", host, cookies)
+		}
+		if host, _ := entered("initech-com"); host != "globex-com.cloud.test" {
+			t.Errorf("another organization's name opens the one they are in, not it: %s", host)
+		}
+		if _, page := ada.get("/org"); strings.Contains(page, `href="/orgs"`) {
+			t.Errorf("a person in one organization is offered no switch:\n%s", page)
+		}
+	})
+}
+
+// The switcher on an organization's pages asks gusto cloud for the person's organizations. Only an
+// organization's own address is told it may read the answer with the person's cookie.
+func TestTheSwitcherListsAPersonsOrganizationsToTheirOrganizationsPagesOnly(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		f := withServers(t)
+		ada := f.verifiedAdmin("ada@acme.com", "Acme")
+		f.verifiedAdmin("eve@globex.com", "Globex")
+		f.verifiedAdmin("ned@initech.com", "Initech")
+		f.invitedAndJoined(ada, "eve@globex.com")
+		eve := f.signInByLink("eve@globex.com")
+
+		status, body, header := eve.do("GET", "/orgs.json", nil, map[string]string{"Origin": "http://globex-com.cloud.test"})
+		var answer struct{ Orgs []switchable }
+		if err := json.Unmarshal([]byte(body), &answer); status != http.StatusOK || err != nil {
+			t.Fatalf("%d %v %s", status, err, body)
+		}
+		want := []switchable{
+			{Name: "Acme", Slug: "acme-com", Open: "http://cloud.test/open?org=acme-com",
+				Workspaces: []switchSpace{{ID: "main", Name: "Acme", Open: "http://cloud.test/open?org=acme-com&workspace=main"}}},
+			{Name: "Globex", Slug: "globex-com", Open: "http://cloud.test/open?org=globex-com",
+				Workspaces: []switchSpace{{ID: "main", Name: "Globex", Open: "http://cloud.test/open?org=globex-com&workspace=main"}}},
+		}
+		if !reflect.DeepEqual(answer.Orgs, want) {
+			t.Errorf("their own organizations, each opened through gusto cloud: %+v", answer.Orgs)
+		}
+		if header.Get("Access-Control-Allow-Origin") != "http://globex-com.cloud.test" || header.Get("Access-Control-Allow-Credentials") != "true" {
+			t.Errorf("an organization's page may read it: %v", header)
+		}
+		for _, origin := range []string{"http://globex-com--0123456789.cloud.test", "https://globex-com.cloud.test", "http://cloud.test.evil.example", "http://evil.example"} {
+			if _, _, header := eve.do("GET", "/orgs.json", nil, map[string]string{"Origin": origin}); header.Get("Access-Control-Allow-Origin") != "" {
+				t.Errorf("%s may not read it: %v", origin, header)
+			}
+		}
+		if status, _, _ := f.browser().do("GET", "/orgs.json", nil, map[string]string{"Origin": "http://globex-com.cloud.test"}); status != http.StatusUnauthorized {
+			t.Errorf("somebody signed out is told nothing: %d", status)
+		}
+	})
+}

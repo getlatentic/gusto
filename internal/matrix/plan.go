@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Plan is what a person asks the benchmark to measure: a fixed set of tasks, and
@@ -21,7 +21,7 @@ type Plan struct {
 	Environment string `json:"environment,omitempty"`
 	// Tasks are task directories as `gusto new` leaves them, relative to the
 	// plan's own file.
-	Jobs []string `json:"jobs"`
+	Tasks []string `json:"jobs"`
 	// Simplest is the task a pair has to finish to be offered at all. It is the
 	// first task when the plan leaves it out.
 	Simplest string `json:"simplest,omitempty"`
@@ -68,9 +68,9 @@ func ReadPlan(path string) (Plan, error) {
 	if err != nil {
 		return Plan{}, err
 	}
-	for i, named := range plan.Jobs {
+	for i, named := range plan.Tasks {
 		if !filepath.IsAbs(named) {
-			plan.Jobs[i] = filepath.Join(beside, named)
+			plan.Tasks[i] = filepath.Join(beside, named)
 		}
 	}
 	return plan, plan.check()
@@ -79,10 +79,10 @@ func ReadPlan(path string) (Plan, error) {
 // check refuses a plan whose runs would share a directory or have nothing to
 // measure, before anything is cloned or anybody's money is spent.
 func (p Plan) check() error {
-	if len(p.Jobs) == 0 || len(p.Pairs) == 0 {
+	if len(p.Tasks) == 0 || len(p.Pairs) == 0 {
 		return errors.New("a plan needs at least one task and one agent and model pair")
 	}
-	if err := distinct(p.Jobs, JobName); err != nil {
+	if err := distinct(p.Tasks, TaskName); err != nil {
 		return err
 	}
 	if err := distinct(p.Pairs, Pair.Dir); err != nil {
@@ -93,38 +93,38 @@ func (p Plan) check() error {
 			return fmt.Errorf("%q is not an agent name", pair.Harness)
 		}
 	}
-	if p.Simplest != "" && !contains(p.Jobs, p.Simplest) {
+	if p.Simplest != "" && !contains(p.Tasks, p.Simplest) {
 		return fmt.Errorf("the simplest task, %s, is not one of the plan's tasks", p.Simplest)
 	}
 	return nil
 }
 
-// SimplestJob is the name of the task a pair has to finish to be offered.
-func (p Plan) SimplestJob() string {
+// SimplestTask is the name of the task a pair has to finish to be offered.
+func (p Plan) SimplestTask() string {
 	if p.Simplest != "" {
 		return p.Simplest
 	}
-	return JobName(p.Jobs[0])
+	return TaskName(p.Tasks[0])
 }
 
-// JobName is what a task is called in the benchmark: its directory's own name.
-func JobName(path string) string {
+// TaskName is what a task is called in the benchmark: its directory's own name.
+func TaskName(path string) string {
 	return filepath.Base(filepath.Clean(path))
 }
 
-// submissions reads each job, refusing a turn in a conversation, which has no
+// submissions reads each task, refusing a turn in a conversation, which has no
 // checkout of its own to measure on.
-func (p Plan) submissions() ([]job.Dir, error) {
-	dirs := make([]job.Dir, 0, len(p.Jobs))
-	for _, path := range p.Jobs {
-		spec, err := job.Read(job.Dir(path))
+func (p Plan) submissions() ([]task.Dir, error) {
+	dirs := make([]task.Dir, 0, len(p.Tasks))
+	for _, path := range p.Tasks {
+		spec, err := task.Read(task.Dir(path))
 		if err != nil {
 			return nil, err
 		}
 		if spec.Session != "" {
 			return nil, fmt.Errorf("%s is a turn in a conversation, which has no checkout of its own to measure on", path)
 		}
-		dirs = append(dirs, job.Dir(path))
+		dirs = append(dirs, task.Dir(path))
 	}
 	return dirs, nil
 }
@@ -143,7 +143,7 @@ func distinct[T any](items []T, name func(T) string) error {
 
 func contains(paths []string, name string) bool {
 	for _, path := range paths {
-		if JobName(path) == name {
+		if TaskName(path) == name {
 			return true
 		}
 	}

@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"slices"
 	"time"
 )
 
@@ -14,11 +15,13 @@ const (
 
 // railGroup is one project in the side list: an agent's folder, with its latest conversations under it.
 type railGroup struct {
-	ID    string
-	Name  string
-	Runs  string
-	Chats []railChat
-	Open  bool
+	ID   string
+	Name string
+	// Detail is the day and time the project was started, when another project has its name, so the two can be told apart.
+	Detail string
+	Runs   string
+	Chats  []railChat
+	Open   bool
 }
 
 // railChat is one conversation in the side list.
@@ -26,11 +29,27 @@ type railChat struct {
 	Name  string
 	Where string
 	When  int64
+	// Room says the conversation is a room, and Unread what its person has not read there.
+	Room   bool
+	Unread unread
+	// ID is the room's, and Harness the agent type of a person's own room with one agent, which shows as that agent.
+	ID      string
+	Harness string
 }
 
 // railList is the side list: the projects used lately, the older ones folded away, and where the page is, so its conversation shows as
 // the one open.
 type railList struct {
+	// Direct is the person's own rooms with one agent each, and Rooms the rooms they share.
+	Direct []railChat
+	Rooms  []railChat
+	// Archived is the rooms an admin put away, which stay one click from being brought back.
+	Archived []railChat
+	// Latest is every conversation newest first, and Unread and ForYou how many rooms hold something unread, and something that
+	// mentions the person, for the side list's tabs.
+	Latest []railChat
+	Unread int
+	ForYou int
 	Recent []railGroup
 	Older  []railGroup
 	Here   string
@@ -40,21 +59,34 @@ type railList struct {
 // The chat page and every conversation show the same list, so moving between them does not change what is beside you.
 func (s *Server) railFor(r *http.Request, here string) railList {
 	list := railList{Here: here}
+	for _, room := range s.roomsFor(r) {
+		if room.Harness != "" {
+			list.Direct = append(list.Direct, room)
+		} else {
+			list.Rooms = append(list.Rooms, room)
+		}
+	}
+	list.Archived = s.archivedRoomsFor(r)
 	used := s.lastUsed(r)
-	names := projectNames(used)
+	started := startedWhereNamedAlike(used)
 	var groups []railGroup
 	for _, each := range used {
 		chats := s.railChats(each.ID)
 		if len(chats) == 0 {
 			continue
 		}
-		groups = append(groups, railGroup{ID: each.ID, Name: names[each.ID], Runs: each.Runs(), Chats: chats})
+		groups = append(groups, railGroup{ID: each.ID, Name: each.Name, Detail: started[each.ID], Runs: each.Runs(), Chats: chats})
 	}
 	for i := range groups {
 		groups[i].Open = i == 0 || holds(groups[i], here)
 	}
 	list.Recent = groups[:min(len(groups), recentProjects)]
 	list.Older = groups[min(len(groups), recentProjects):]
+	list.Latest = latest(list)
+	for _, room := range slices.Concat(list.Direct, list.Rooms) {
+		list.Unread += min(room.Unread.Count, 1)
+		list.ForYou += min(room.Unread.ForYou, 1)
+	}
 	return list
 }
 
@@ -68,18 +100,29 @@ func holds(group railGroup, here string) bool {
 	return false
 }
 
-// projectNames is what each project is called where there are several: a name that two projects share is followed by the day each was
-// started, so they can be told apart.
-func projectNames(used []yours) map[string]string {
+// startedWhereNamedAlike is when each project was started, for the projects that share a name with another and so need telling apart.
+func startedWhereNamedAlike(used []yours) map[string]string {
 	count := map[string]int{}
 	for _, each := range used {
 		count[each.Name]++
 	}
+	started := map[string]string{}
+	for _, each := range used {
+		if count[each.Name] > 1 {
+			started[each.ID] = time.Unix(each.Started, 0).Format("2 Jan 15:04")
+		}
+	}
+	return started
+}
+
+// projectNames is what each project is called in one line: a name that two projects share is followed by when each was started.
+func projectNames(used []yours) map[string]string {
+	started := startedWhereNamedAlike(used)
 	names := make(map[string]string, len(used))
 	for _, each := range used {
 		names[each.ID] = each.Name
-		if count[each.Name] > 1 {
-			names[each.ID] += " · " + time.Unix(each.Started, 0).Format("2 Jan 15:04")
+		if when := started[each.ID]; when != "" {
+			names[each.ID] += " · " + when
 		}
 	}
 	return names

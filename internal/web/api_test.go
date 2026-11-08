@@ -13,7 +13,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/quota"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // onlyBuiltIn is a site whose harnesses are the ones every gusto has, so what the
@@ -44,8 +44,8 @@ func (s *site) send(t *testing.T, bearer string, sent Submission) (int, Answer) 
 	return recorder.Code, answer
 }
 
-// nothing checks that a refusal left no job and no directory, because a refused
-// job that is still on disk comes back as a job at the next restart.
+// nothing checks that a refusal left no task and no directory, because a refused
+// task that is still on disk comes back as a task at the next restart.
 func (s *site) nothing(t *testing.T) {
 	t.Helper()
 	if held := s.index.List(); len(held) != 0 {
@@ -65,22 +65,22 @@ var fixture = harness.Adapter{
 	Needs: harness.NeedsNothing, Stream: harness.Plain,
 }
 
-func aJob() job.Spec {
-	return job.Spec{
+func aSpec() task.Spec {
+	return task.Spec{
 		Brief:   "Make the adder add",
 		Repo:    "https://github.com/acme/repo",
-		Gate:    []string{"sh", "-c", "test 2 = 2"},
+		Check:   []string{"sh", "-c", "test 2 = 2"},
 		Harness: "opencode",
 	}
 }
 
-func TestAJobSentWithoutTheSharedPasswordIsRefusedAndNothingIsCreated(t *testing.T) {
+func TestATaskSentWithoutTheSharedPasswordIsRefusedAndNothingIsCreated(t *testing.T) {
 	site := onlyBuiltIn(t)
 	for given, says := range map[string]string{
 		"":                 "the shared password goes in an Authorization: Bearer header",
 		"not the password": "that is not the shared password",
 	} {
-		code, answer := site.send(t, given, Submission{Spec: aJob()})
+		code, answer := site.send(t, given, Submission{Spec: aSpec()})
 		if code != http.StatusUnauthorized {
 			t.Errorf("a password of %q gave %d, and the reason %q", given, code, answer.Refused)
 		}
@@ -95,7 +95,7 @@ func TestAJobSentWithoutTheSharedPasswordIsRefusedAndNothingIsCreated(t *testing
 		}
 	}
 	// The pages' cookie is not a credential here, so nothing a browser sends by
-	// itself can post a job on a signed-in person's behalf.
+	// itself can post a task on a signed-in person's behalf.
 	site.signIn(t)
 	if withCookie := site.ask(t, "POST", "/api/jobs", nil); withCookie.Code != http.StatusUnauthorized {
 		t.Errorf("the sign-in cookie alone gave %d", withCookie.Code)
@@ -103,9 +103,9 @@ func TestAJobSentWithoutTheSharedPasswordIsRefusedAndNothingIsCreated(t *testing
 	site.nothing(t)
 }
 
-func TestAJobSentOverHTTPIsTheSameDirectoryTheCommandLineMakes(t *testing.T) {
+func TestATaskSentOverHTTPIsTheSameDirectoryTheCommandLineMakes(t *testing.T) {
 	site := onlyBuiltIn(t)
-	code, answer := site.send(t, password, Submission{Spec: aJob()})
+	code, answer := site.send(t, password, Submission{Spec: aSpec()})
 	if code != http.StatusCreated || answer.ID == "" {
 		t.Fatalf("code %d, answer %+v", code, answer)
 	}
@@ -113,19 +113,19 @@ func TestAJobSentOverHTTPIsTheSameDirectoryTheCommandLineMakes(t *testing.T) {
 	if !found {
 		t.Fatalf("no job called %q", answer.ID)
 	}
-	spec, err := job.Read(record.Dir(site.index.Root()))
+	spec, err := task.Read(record.Dir(site.index.Root()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if spec.Brief != "Make the adder add" || spec.Repo != "https://github.com/acme/repo" || spec.Harness != "opencode" {
 		t.Fatalf("the spec on disk is %+v", spec)
 	}
-	if len(spec.Gate) != 3 || spec.Gate[2] != "test 2 = 2" {
-		t.Fatalf("the gate on disk is %#v", spec.Gate)
+	if len(spec.Check) != 3 || spec.Check[2] != "test 2 = 2" {
+		t.Fatalf("the check on disk is %#v", spec.Check)
 	}
-	// What a person left out is filled in on the way to disk, the same as a job
-	// made here: a sent job is not a second kind of job.
-	if spec.Ref != "HEAD" || spec.Sensitivity != job.Internal || spec.Budget.Turns != 40 || spec.Budget.Seconds != 900 {
+	// What a person left out is filled in on the way to disk, the same as a task
+	// made here: a sent task is not a second kind of task.
+	if spec.Ref != "HEAD" || spec.Sensitivity != task.Internal || spec.Budget.Turns != 40 || spec.Budget.Seconds != 900 {
 		t.Fatalf("a sent job is missing the defaults: %+v", spec)
 	}
 	select {
@@ -135,19 +135,19 @@ func TestAJobSentOverHTTPIsTheSameDirectoryTheCommandLineMakes(t *testing.T) {
 	}
 }
 
-func TestAJobMissingAPartIsRefusedAndSaysWhich(t *testing.T) {
+func TestATaskMissingAPartIsRefusedAndSaysWhich(t *testing.T) {
 	site := onlyBuiltIn(t)
 	for _, refusal := range []struct {
 		name string
-		spec job.Spec
+		spec task.Spec
 		says string
 	}{
-		{"no repository", job.Spec{Brief: "do it", Gate: []string{"true"}, Harness: "opencode"}, "this task needs a repository"},
-		{"no brief", job.Spec{Repo: "/repo", Gate: []string{"true"}, Harness: "opencode"}, "this task needs a brief"},
-		{"no gate", job.Spec{Repo: "/repo", Brief: "do it", Harness: "opencode"}, "this task needs a check"},
-		{"a gate of blanks", job.Spec{Repo: "/repo", Brief: "do it", Gate: []string{" "}, Harness: "opencode"}, "this task needs a check"},
-		{"no repository and no gate", job.Spec{Brief: "do it", Harness: "opencode"}, "this task needs a repository and a check"},
-		{"nothing at all", job.Spec{Harness: "opencode"}, "this task needs a repository, a brief and a check"},
+		{"no repository", task.Spec{Brief: "do it", Check: []string{"true"}, Harness: "opencode"}, "this task needs a repository"},
+		{"no brief", task.Spec{Repo: "/repo", Check: []string{"true"}, Harness: "opencode"}, "this task needs a brief"},
+		{"no check", task.Spec{Repo: "/repo", Brief: "do it", Harness: "opencode"}, "this task needs a check"},
+		{"a check of blanks", task.Spec{Repo: "/repo", Brief: "do it", Check: []string{" "}, Harness: "opencode"}, "this task needs a check"},
+		{"no repository and no check", task.Spec{Brief: "do it", Harness: "opencode"}, "this task needs a repository and a check"},
+		{"nothing at all", task.Spec{Harness: "opencode"}, "this task needs a repository, a brief and a check"},
 	} {
 		t.Run(refusal.name, func(t *testing.T) {
 			code, answer := site.send(t, password, Submission{Spec: refusal.spec})
@@ -162,9 +162,9 @@ func TestAJobMissingAPartIsRefusedAndSaysWhich(t *testing.T) {
 	}
 }
 
-func TestAHarnessThisServerHasNotHeardOfIsRefusedUnlessTheJobCarriesIt(t *testing.T) {
+func TestAHarnessThisServerHasNotHeardOfIsRefusedUnlessTheTaskCarriesIt(t *testing.T) {
 	site := onlyBuiltIn(t)
-	spec := aJob()
+	spec := aSpec()
 	spec.Harness = "fixture"
 
 	code, answer := site.send(t, password, Submission{Spec: spec})
@@ -184,7 +184,7 @@ func TestAHarnessThisServerHasNotHeardOfIsRefusedUnlessTheJobCarriesIt(t *testin
 	if !found {
 		t.Fatalf("no job called %q", answer.ID)
 	}
-	// The runner looks for a carried adapter in the job directory, so that is
+	// The runner looks for a carried adapter in the task directory, so that is
 	// where this one has to have landed.
 	carried, err := harness.Load(record.Dir(site.index.Root()), "fixture")
 	if err != nil {
@@ -195,11 +195,11 @@ func TestAHarnessThisServerHasNotHeardOfIsRefusedUnlessTheJobCarriesIt(t *testin
 	}
 }
 
-func TestARestrictedJobAgainstAModelOutsideTheBuildingIsRefused(t *testing.T) {
+func TestARestrictedTaskAgainstAModelOutsideTheBuildingIsRefused(t *testing.T) {
 	site := onlyBuiltIn(t)
-	spec := aJob()
+	spec := aSpec()
 	spec.Harness = "fixture"
-	spec.Sensitivity = job.Restricted
+	spec.Sensitivity = task.Restricted
 	away := fixture
 	away.Needs = harness.NeedsKey
 	away.Endpoint = "https://models.example.com/v1"
@@ -216,7 +216,7 @@ func TestARestrictedJobAgainstAModelOutsideTheBuildingIsRefused(t *testing.T) {
 
 func TestAHarnessNamedAsAPathIsRefusedBeforeAnythingIsWritten(t *testing.T) {
 	site := onlyBuiltIn(t)
-	spec := aJob()
+	spec := aSpec()
 	spec.Harness = "../../outside"
 
 	code, answer := site.send(t, password, Submission{Spec: spec, Adapter: &fixture})
@@ -232,18 +232,18 @@ func TestAHarnessNamedAsAPathIsRefusedBeforeAnythingIsWritten(t *testing.T) {
 // An organization over its limit is told so, and can tell that from a fault:
 // the answer is "too many" with the reason and how to lift it, and nothing is
 // left on disk.
-func TestAJobPastTheOrganizationsQuotaIsAnswered429WithTheReason(t *testing.T) {
+func TestATaskPastTheOrganizationsQuotaIsAnswered429WithTheReason(t *testing.T) {
 	site := onlyBuiltIn(t)
 	path := filepath.Join(t.TempDir(), "quota.json")
-	if err := quota.Write(path, quota.Quota{Jobs: 1, Concurrent: 1, Note: "Confirm the admin's email address to raise this limit."}); err != nil {
+	if err := quota.Write(path, quota.Quota{Tasks: 1, Concurrent: 1, Note: "Confirm the admin's email address to raise this limit."}); err != nil {
 		t.Fatal(err)
 	}
 	site.index.UseQuota(quota.Open(path))
 
-	if code, answer := site.send(t, password, Submission{Spec: aJob()}); code != http.StatusCreated {
+	if code, answer := site.send(t, password, Submission{Spec: aSpec()}); code != http.StatusCreated {
 		t.Fatalf("the first job is within the quota: %d %+v", code, answer)
 	}
-	code, answer := site.send(t, password, Submission{Spec: aJob()})
+	code, answer := site.send(t, password, Submission{Spec: aSpec()})
 	if code != http.StatusTooManyRequests {
 		t.Fatalf("the second job is over it: %d %+v", code, answer)
 	}

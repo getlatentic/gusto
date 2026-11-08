@@ -1,0 +1,9 @@
+# The network of a host made from the image of a cell, which has no cloud-init to write one for its own interface.
+network:
+  version: 2
+  ethernets:
+    cell:
+      match:
+        name: "en*"
+      dhcp4: true
+      dhcp6: false

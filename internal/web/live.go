@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // liveItem is one thing in a running turn, in the order it happened: words the agent said, or a step it took.
@@ -25,6 +25,8 @@ type liveTurn struct {
 	Steps int        `json:"steps"`
 	// Cut is whether the start of a very long turn is left out.
 	Cut bool `json:"cut,omitempty"`
+	// Holding is what a turn that has not started waits for.
+	Holding string `json:"holding,omitempty"`
 }
 
 // liveRead is the most of the transcript a page is given; a turn is not the place to read a megabyte.
@@ -32,7 +34,7 @@ const liveRead = 128 * 1024
 
 // turnLive answers what the thread's running turn has done so far.
 func (s *Server) turnLive(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
+	held, found := s.sharedOr404(w, r)
 	if !found {
 		return
 	}
@@ -46,12 +48,14 @@ func (s *Server) turnLive(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	answerJSON(w, http.StatusOK, timelineOf(record.Dir(s.index.Root())))
+	live := timelineOf(record.Dir(s.index.Root()))
+	live.Holding = s.waiting(record.ID)
+	answerJSON(w, http.StatusOK, live)
 }
 
 // timelineOf reads what a turn said and ran into one list in the order it happened. A step says how much had been said when it ran;
 // a run from before that was kept has no such place, and is given as its steps and then its words.
-func timelineOf(dir job.Dir) liveTurn {
+func timelineOf(dir task.Dir) liveTurn {
 	said, cut := transcriptOf(dir)
 	ran := ranBy(dir)
 	live := liveTurn{Items: []liveItem{}, Steps: len(ran), Cut: cut.dropped > 0}
@@ -93,7 +97,7 @@ type dropped struct{ dropped int }
 
 // transcriptOf is the transcript as far as a page is given it. When it is longer than that its start is left out, at a place where a
 // word begins, so that no word is shown cut in two.
-func transcriptOf(dir job.Dir) (string, dropped) {
+func transcriptOf(dir task.Dir) (string, dropped) {
 	if !dir.PlainOut("transcript.log") {
 		return "", dropped{}
 	}

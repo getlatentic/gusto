@@ -11,9 +11,19 @@
 import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync, rmSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const root = resolve(new URL("../..", import.meta.url).pathname);
+// The person's own PATH, as their login shell sets it, so the agents installed on this computer are found as gusto on it finds
+// them: an app started from the Dock, and so a preview it starts, has a bare one.
+const shellPath = (() => {
+  try {
+    const said = execFileSync(process.env.SHELL || "/bin/zsh", ["-ilc", 'printf "__path__%s__path__" "$PATH"'], { encoding: "utf8", timeout: 5000 });
+    return said.split("__path__")[1] || process.env.PATH;
+  } catch { return process.env.PATH; }
+})();
 const args = process.argv.slice(2).filter((a) => a !== "--serve");
 const serving = process.argv.includes("--serve");
 const out = resolve(args[0] ?? "shots-out");
@@ -63,10 +73,12 @@ writeFileSync(join(work, "members.json"), JSON.stringify({
 execFileSync(bin, ["keygen", "shots", "-dir", join(work, "keys")], { stdio: "ignore" });
 start("python3", [join(root, "deploy/stubmodel/stub.py")]);
 const server = start(bin, ["serve"], {
-  GUSTO_PASSWORD: password, GUSTO_ADDR: `127.0.0.1:${port}`, GUSTO_JOBS: join(work, "jobs"), GUSTO_SESSIONS: join(work, "sessions"),
+  PATH: shellPath, GUSTO_PASSWORD: password, GUSTO_ADDR: `127.0.0.1:${port}`, GUSTO_TASKS: join(work, "jobs"), GUSTO_SESSIONS: join(work, "sessions"),
   GUSTO_SANDBOX: "here", GUSTO_CREDENTIALS: join(work, "creds"), GUSTO_MODELS: "stub/stub-model", GUSTO_HARNESSES: join(work, "agents"),
   GUSTO_SIGNING_KEY: join(work, "keys", "shots.key"), GUSTO_KEYRING: join(work, "keys"), GUSTO_NOTIFY_WEBHOOK: "", HOME: work,
   GUSTO_RETENTION: join(work, "retention"), GUSTO_API_TOKENS: join(work, "tokens.json"), GUSTO_MEMBERS: join(work, "members.json"),
+  GUSTO_SETUPS: join(work, "setups"), GUSTO_COMPARISONS: join(work, "comparisons"), GUSTO_CHANGES: join(work, "changes", "changes.jsonl"),
+  GUSTO_INTEGRATIONS: join(work, "integrations"), GUSTO_PRESETS: join(work, "presets"), GUSTO_CREW: join(work, "crew"),
 });
 for (let i = 0; ; i++) {
   try { if ((await fetch(`${base}/healthz`)).ok) break; } catch {}
@@ -97,6 +109,14 @@ const turns = [await said(thread, "What should a 40-person company decide first 
   await said(thread, "Draft a spending policy with a monthly limit per person and save it as policy.md.")];
 const second = (await call("POST", "/instances", { harness: "opencode", model: "stub/stub-model" })).headers.get("location");
 await said(second, "Summarize what changed this week.");
+// An agent of the workspace, and a room with that agent in it, and something said there.
+const scout = (await call("POST", "/members/agents", { name: "Scout", specialty: "Research and first drafts", harness: "opencode", model: "stub/stub-model" })).headers.get("location");
+const roomThread = ((await call("POST", "/rooms", { name: "Launch plan" })).headers.get("location") ?? "").split("?")[0];
+const room = roomThread.split("/threads/")[0];
+const roomId = room.split("/").pop();
+await call("POST", `/rooms/${roomId}/members/add`, { agent: scout.split("/").pop() });
+await call("POST", `/rooms/${roomId}/members/add`, { who: "grace@example.com" });
+await said(roomThread, "@Scout list what has to be ready before we launch.");
 const task = (await call("POST", `${instance}/tasks`, { brief: "Write the policy and check it exists.", gate: "true", team: "finance", usd: "1.00" })).headers.get("location");
 await call("POST", `${instance}/routines`, { title: "Morning summary", prompt: "Summarize what changed since yesterday.", daily: "08:00" });
 await call("POST", `${instance}/routines`, { title: "Spend check", prompt: "How much did the team spend this week?", every: "6" });
@@ -115,18 +135,20 @@ if (serving) {
 // 3. the routes
 const jobId = turns[1];
 const routes = [
-  ["login", "/login", false], ["home", "/"], ["chat", "/chat"], ["new", "/new"], ["engines", "/engines"], ["jobs", "/jobs"],
+  ["login", "/login", false], ["home", "/"], ["chat", "/chat"], ["presets", "/presets"], ["engines", "/engines"], ["jobs", "/jobs"],
   ["spend", "/spend"], ["usage", "/usage"], ["files", "/files"], ["setups", "/setups"], ["start-agent", "/instances/new?harness=opencode"],
   ["instance", instance], ["thread", thread], ["record", `/jobs/${jobId}`], ["task", task ?? `/jobs/${jobId}`],
   ["file", `${instance}/file?path=policy.md`], ["folder", `${instance}/files`],
-  ["admin", "/admin"], ["admin-spending", "/admin/spending"], ["admin-usage", "/admin/usage"], ["admin-activity", "/admin/activity"],
-  ["admin-verification", "/admin/verification"], ["admin-people", "/admin/people"], ["admin-models", "/admin/models"], ["admin-retention", "/admin/retention"], ["admin-tokens", "/admin/tokens"],
-  ["admin-skill-sets", "/admin/skill-sets"],
+  ["members", "/members"], ["member-agent", scout], ["room-new", "/rooms/new"], ["room", roomThread], ["room-members", `${roomThread}?members=1`],
+  ["admin", "/admin"], ["admin-spending", "/admin/spending"], ["admin-usage", "/admin/usage"], ["admin-records", "/admin/records"],
+  ["admin-records-checks", "/admin/records?tab=checks"], ["admin-people", "/admin/people"], ["admin-models", "/admin/models"], ["admin-records-keeping", "/admin/records?tab=keeping"], ["admin-tokens", "/admin/tokens"],
+  ["admin-apps", "/admin/apps"], ["admin-skills", "/admin/apps?tab=skills"],
 ].filter(([name]) => !only || name.includes(only));
 
 // 4. the photographs
 rmSync(out, { recursive: true, force: true });
-const { chromium } = await import("playwright");
+const playwright = await import(pathToFileURL(createRequire(join(process.cwd(), "x.js")).resolve("playwright")).href);
+const { chromium } = playwright.default ?? playwright;
 const browser = await chromium.launch();
 const report = [];
 for (const theme of ["light", "dark"]) {

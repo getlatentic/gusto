@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// aTask runs a task on a freshly started instance and says which job it made.
+// aTask runs a task on a freshly started instance and says which task it made.
 func aTask(t *testing.T, site *site, form url.Values) string {
 	t.Helper()
 	where := startedInstance(t, site)
@@ -24,20 +24,20 @@ func aTask(t *testing.T, site *site, form url.Values) string {
 }
 
 // taskSpec is the job.json a task left behind.
-func taskSpec(t *testing.T, site *site, id string) job.Spec {
+func taskSpec(t *testing.T, site *site, id string) task.Spec {
 	t.Helper()
 	record, found := site.index.Get(id)
 	if !found {
 		t.Fatalf("no job called %q", id)
 	}
-	spec, err := job.Read(record.Dir(site.index.Root()))
+	spec, err := task.Read(record.Dir(site.index.Root()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	return spec
 }
 
-// The task form is the one way a page runs a gated task, so it carries
+// The task form is the one way a page runs a task with a check, so it carries
 // everything the form it replaced did: the spend is counted against the team
 // and stopped at the cap, and the rules read the sensitivity.
 func TestATaskCarriesItsSensitivityItsTeamAndItsCap(t *testing.T) {
@@ -48,7 +48,7 @@ func TestATaskCarriesItsSensitivityItsTeamAndItsCap(t *testing.T) {
 		"sensitivity": {"restricted"}, "team": {" platform "}, "usd": {"$2.50"},
 	})
 	spec := taskSpec(t, site, id)
-	if spec.Sensitivity != job.Restricted {
+	if spec.Sensitivity != task.Restricted {
 		t.Errorf("sensitivity %q", spec.Sensitivity)
 	}
 	if spec.Team != "platform" || spec.Budget.USD == nil || *spec.Budget.USD != 2.5 {
@@ -56,29 +56,29 @@ func TestATaskCarriesItsSensitivityItsTeamAndItsCap(t *testing.T) {
 	}
 }
 
-// Nothing picked and nothing typed is what a job naming none is read as: an
-// internal job with no cap, which is not a cap of nothing.
+// Nothing picked and nothing typed is what a task naming none is read as: an
+// internal task with no cap, which is not a cap of nothing.
 func TestATaskThatSaysNothingIsInternalAndUncapped(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	spec := taskSpec(t, site, aTask(t, site, url.Values{"brief": {"do it"}, "gate": {"true"}}))
-	if spec.Sensitivity != job.Internal || spec.Budget.USD != nil || spec.Team != "" {
+	if spec.Sensitivity != task.Internal || spec.Budget.USD != nil || spec.Team != "" {
 		t.Errorf("sensitivity %q, team %q, cap %v", spec.Sensitivity, spec.Team, spec.Budget.USD)
 	}
 }
 
-// A quoted gate is one argument, the same as the command line reads it.
-func TestAQuotedGateSurvivesTheTaskForm(t *testing.T) {
+// A quoted check is one argument, the same as the command line reads it.
+func TestAQuotedCheckSurvivesTheTaskForm(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	spec := taskSpec(t, site, aTask(t, site, url.Values{"brief": {"do it"}, "gate": {`sh -c "test 2 = 2"`}}))
-	if len(spec.Gate) != 3 || spec.Gate[2] != "test 2 = 2" {
-		t.Fatalf("a quoted gate must survive the form: %#v", spec.Gate)
+	if len(spec.Check) != 3 || spec.Check[2] != "test 2 = 2" {
+		t.Fatalf("a quoted check must survive the form: %#v", spec.Check)
 	}
 }
 
 // A cap nothing could spend under, or a label the rules do not know, is
-// refused rather than written into a job that would then fail to run. An
+// refused rather than written into a task that would then fail to run. An
 // unknown label read as "not restricted" would switch the one rule off.
 func TestATaskTheRunnerWouldRefuseIsRefusedHere(t *testing.T) {
 	site := open(t)

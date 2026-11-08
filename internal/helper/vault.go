@@ -64,7 +64,7 @@ func (keychain) Delete(server string) error {
 }
 
 // fileVault keeps a token in a file only its owner reads. It is for a machine with no keychain, such as a server with no
-// desktop session, and for a person who asks for it with GUSTO_VAULT=file.
+// desktop session, and for a person who asks for it.
 type fileVault struct{ dir string }
 
 func (f fileVault) path(server string) string {
@@ -94,26 +94,24 @@ func (f fileVault) Delete(server string) error {
 	return nil
 }
 
-// fallback keeps tokens in the keychain, and in a file when the keychain cannot be reached, saying so once.
+// fallback keeps tokens in the keychain, and in a file when the keychain cannot be reached, saying so once. The file holds a
+// token only while it is the newest: a token kept in the keychain takes the file's away, so a keychain that comes back with an
+// older token never wins over the sign-in that fell back to the file.
 type fallback struct {
 	keys, files Vault
 	warn        io.Writer
 }
 
 func (f fallback) Get(server string) (string, error) {
-	token, err := f.keys.Get(server)
-	if err == nil {
+	if token, err := f.files.Get(server); err == nil {
 		return token, nil
 	}
-	if token, fileErr := f.files.Get(server); fileErr == nil {
-		return token, nil
-	}
-	return "", err
+	return f.keys.Get(server)
 }
 
 func (f fallback) Set(server, token string) error {
 	if err := f.keys.Set(server, token); err == nil {
-		return nil
+		return f.files.Delete(server)
 	} else if f.warn != nil {
 		fmt.Fprintf(f.warn, "the operating system's keychain cannot be reached (%v), so the token is kept in a file only you can read\n", err)
 	}
@@ -136,14 +134,14 @@ func (f fallback) Delete(server string) error {
 }
 
 // OpenVault is where this computer keeps tokens: the keychain, with a file beside the helper's settings when there is no
-// keychain. GUSTO_VAULT=file asks for the file alone. Warnings go to warn.
-func OpenVault(warn io.Writer) (Vault, error) {
+// keychain. fileOnly asks for the file alone. Warnings go to warn.
+func OpenVault(warn io.Writer, fileOnly bool) (Vault, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		return nil, err
 	}
 	files := fileVault{dir: filepath.Join(dir, "gusto")}
-	if os.Getenv("GUSTO_VAULT") == "file" {
+	if fileOnly {
 		return files, nil
 	}
 	return fallback{keys: keychain{}, files: files, warn: warn}, nil

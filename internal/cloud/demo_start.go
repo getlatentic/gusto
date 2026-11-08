@@ -14,12 +14,12 @@ import (
 const slugAttempts = 5
 
 // StartDemo makes a person and the demo organization they administer. A refusal leaves nothing behind.
-func (s *Store) StartDemo(name, email, company string) (Person, Org, error) {
+func (s *Store) StartDemo(ctx context.Context, name, email, company string) (Person, Org, error) {
 	name = strings.TrimSpace(name)
 	switch {
 	case !s.set.Demo.Enabled():
 		return Person{}, Org{}, errors.New("this host offers no demo")
-	case s.DemosPaused():
+	case s.DemosPaused(ctx):
 		return Person{}, Org{}, ErrDemoPaused
 	case name == "" || len(name) > 80:
 		return Person{}, Org{}, ErrDemoNeedsName
@@ -37,7 +37,7 @@ func (s *Store) StartDemo(name, email, company string) (Person, Org, error) {
 	if err != nil {
 		return Person{}, Org{}, err
 	}
-	ctx := context.Background()
+
 	var person Person
 	var org Org
 	err = s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
@@ -51,12 +51,12 @@ func (s *Store) StartDemo(name, email, company string) (Person, Org, error) {
 }
 
 // startDemoIn checks the day's counts and makes the demo in one step under the lock all demos take, so
-// that two front doors cannot both take the last place.
+// that two gusto cloud servers cannot both take the last place.
 func (s *Store) startDemoIn(ctx context.Context, tx dbkit.Tx, name, address, title string) (Person, Org, error) {
 	if err := s.lock(ctx, tx, "demos"); err != nil {
 		return Person{}, Org{}, err
 	}
-	if _, found, err := fetchPerson(ctx, tx, address); err != nil || found {
+	if found, err := hasAccount(ctx, tx, address); err != nil || found {
 		if err == nil {
 			err = ErrEmailTaken
 		}
@@ -87,7 +87,7 @@ func (s *Store) startDemoIn(ctx context.Context, tx dbkit.Tx, name, address, tit
 
 // demoAllowed is a refusal when the address, the company, the day or the host has had as many demos as it may.
 func (s *Store) demoAllowed(ctx context.Context, q dbkit.Querier, address string) error {
-	limits := s.DemoLimits()
+	limits := s.DemoLimits(ctx)
 	if err := s.withinHabit(ctx, q, address, limits); err != nil {
 		return err
 	}

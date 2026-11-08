@@ -7,15 +7,17 @@ import (
 	"github.com/getlatentic/gusto/internal/dbkit"
 )
 
-// Accept makes a person of an invitation's link. They are verified, because they read
-// the mail the link was in, and they are a runner. The room is checked again, since
+// Accept puts the person an invitation's link was mailed to in its organization, and
+// makes their account when they have none; a person already in another organization
+// keeps it and is in both. They are verified, because they read the mail the link
+// was in, and they are a runner. The room is checked again, since
 // the organization may have filled while the invitation was out. A link that is
 // followed is spent whether or not it gets a person in.
-func (s *Store) Accept(secret string) (Person, Org, error) {
+func (s *Store) Accept(ctx context.Context, secret string) (Person, Org, error) {
 	if secret == "" || len(secret) > longestSecret {
 		return Person{}, Org{}, ErrLink
 	}
-	ctx := context.Background()
+
 	var joined acceptance
 	err := s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
 		joined, err = s.acceptIn(ctx, tx, digest(secret))
@@ -27,7 +29,7 @@ func (s *Store) Accept(secret string) (Person, Org, error) {
 	if joined.refusal != nil {
 		return Person{}, Org{}, joined.refusal
 	}
-	s.publishRoster(joined.org.Slug)
+	s.publishRoster(ctx, joined.org.Slug)
 	return joined.person, joined.org, nil
 }
 
@@ -72,7 +74,7 @@ func (s *Store) join(ctx context.Context, tx dbkit.Tx, org Org, invited link) (a
 	if err != nil {
 		return acceptance{}, err
 	}
-	members, err := count(ctx, tx, `SELECT count(*) FROM people WHERE org = ?`, org.Slug)
+	members, err := count(ctx, tx, `SELECT count(*) FROM memberships WHERE org = ?`, org.Slug)
 	if err != nil {
 		return acceptance{}, err
 	}
@@ -81,12 +83,19 @@ func (s *Store) join(ctx context.Context, tx dbkit.Tx, org Org, invited link) (a
 	}
 	now := s.now().UTC().Truncate(time.Second)
 	person := Person{Email: invited.Email, Org: org.Slug, Role: invited.Role, Created: now, Verified: now, By: invited.By}
-	made, err := inserted(tx.ExecContext(ctx, insertPerson.SQL(1), s.personArgs(person)...))
+	made, err := s.addMember(ctx, tx, person)
 	if err != nil {
 		return acceptance{}, err
 	}
 	if !made {
 		return acceptance{refusal: ErrEmailTaken}, nil
+	}
+	space, err := joinWorkspace(ctx, tx, org.Slug, invited.Workspace)
+	if err != nil {
+		return acceptance{}, err
+	}
+	if err := s.putInWorkspace(ctx, tx, org.Slug, space, person.Email); err != nil {
+		return acceptance{}, err
 	}
 	return acceptance{person: person, org: org}, nil
 }

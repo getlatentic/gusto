@@ -29,7 +29,7 @@ func (r *Registry) Effective() Effective {
 	}
 	out := Effective{
 		Version: document.Version, Credentials: held,
-		Models:   slices.Clone(r.platform.Models),
+		Models:   reachable(r.platform.Models, held),
 		Prices:   maps.Clone(r.platform.Prices),
 		Problems: map[string]string{},
 	}
@@ -47,7 +47,8 @@ func (r *Registry) Effective() Effective {
 			continue
 		}
 		out.Credentials[provider.Name] = proxy.Credential{
-			Name: provider.Name, Address: provider.Address, Key: key, Auth: provider.Auth, Wires: provider.Wires, Public: !rules.PrivateAddresses,
+			Name: provider.Name, Address: provider.Address, Key: key, Auth: provider.Auth, Wires: provider.Wires,
+			Endpoints: provider.Endpoints, Public: !rules.PrivateAddresses,
 		}
 	}
 	for _, model := range document.Models {
@@ -57,6 +58,22 @@ func (r *Registry) Effective() Effective {
 		out.Models = append(out.Models, model.Full())
 		if model.Price != nil {
 			out.Prices[model.Full()] = *model.Price
+		}
+	}
+	return out
+}
+
+// reachable is the operator's models whose credential is held, so a model named in the settings whose credential was taken
+// away is not offered. A deployment that holds no credentials reaches its models without the proxy, and keeps them all.
+func reachable(models []string, held proxy.Credentials) []string {
+	if len(held) == 0 {
+		return slices.Clone(models)
+	}
+	var out []string
+	for _, full := range models {
+		credential, _ := proxy.Named(full)
+		if _, found := held.Get(credential); found {
+			out = append(out, full)
 		}
 	}
 	return out

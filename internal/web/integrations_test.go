@@ -18,7 +18,7 @@ import (
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/integration"
 	"github.com/getlatentic/gusto/internal/setup"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 const (
@@ -88,12 +88,12 @@ func TestAnAdministratorImportsAnIntegrationAndItIsOffUntilTurnedOn(t *testing.T
 			t.Errorf("the page does not say %q", want)
 		}
 	}
-	if list := admin.ask(t, "GET", "/admin/integrations", nil).Body.String(); !strings.Contains(list, "reports") {
+	if list := admin.ask(t, "GET", "/admin/apps?tab=skills", nil).Body.String(); !strings.Contains(list, "reports") {
 		t.Error("the list does not show it")
 	}
 }
 
-func TestAJobWithASetupThatNamesAnIntegrationGetsItOnlyOnceItIsOn(t *testing.T) {
+func TestATaskWithASetupThatNamesAnIntegrationGetsItOnlyOnceItIsOn(t *testing.T) {
 	here, admin := withIntegrations(t)
 	made := upload(t, admin, zipped(t, pluginFiles("1.0.0", "Summarize a report.")))
 	version := strings.SplitN(made.Header().Get("Location"), "version=", 2)[1]
@@ -112,7 +112,7 @@ func TestAJobWithASetupThatNamesAnIntegrationGetsItOnlyOnceItIsOn(t *testing.T) 
 	if strings.Contains(said.Header().Get("Location"), "#") && !strings.Contains(said.Header().Get("Location"), "refused=") {
 		id := strings.TrimPrefix(said.Header().Get("Location"), where+"#")
 		admin.wait(t, id)
-		if spec, err := job.Read(job.Dir(filepath.Join(here.index.Root(), id))); err == nil && spec.Setup != nil && len(spec.Setup.Skills) > 0 {
+		if spec, err := task.Read(task.Dir(filepath.Join(here.index.Root(), id))); err == nil && spec.Setup != nil && len(spec.Setup.Skills) > 0 {
 			t.Fatalf("a job got the skills of an integration that is off: %+v", spec.Setup)
 		}
 	}
@@ -125,8 +125,8 @@ func TestAJobWithASetupThatNamesAnIntegrationGetsItOnlyOnceItIsOn(t *testing.T) 
 	said = admin.ask(t, "POST", where+"/say", url.Values{"said": {"go"}})
 	id := strings.TrimPrefix(said.Header().Get("Location"), where+"#")
 	admin.wait(t, id)
-	dir := job.Dir(filepath.Join(here.index.Root(), id))
-	spec, err := job.Read(dir)
+	dir := task.Dir(filepath.Join(here.index.Root(), id))
+	spec, err := task.Read(dir)
 	if err != nil || spec.Setup == nil || strings.Join(spec.Setup.Skills, ",") != "summarize" || strings.Join(spec.Setup.Gateway, ",") != "reports-api" || len(spec.Setup.Servers) != 0 {
 		t.Fatalf("job.json names %+v (%v)", spec.Setup, err)
 	}
@@ -269,7 +269,7 @@ func TestAnAdministratorAllowsTheProgramsOfOneVersionAndItIsRecorded(t *testing.
 	}
 }
 
-func TestAnAdministratorChoosesWhoAnIntegrationIsOnForAndAJobForSomebodyElseDoesNotStart(t *testing.T) {
+func TestAnAdministratorChoosesWhoAnIntegrationIsOnForAndATaskForSomebodyElseDoesNotStart(t *testing.T) {
 	here, admin := withIntegrations(t)
 	made := upload(t, admin, zipped(t, pluginFiles("1.0.0", "Summarize a report.")))
 	version := strings.SplitN(made.Header().Get("Location"), "version=", 2)[1]

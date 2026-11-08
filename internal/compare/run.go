@@ -3,7 +3,7 @@ package compare
 import (
 	"sync"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/replay"
 )
 
@@ -11,7 +11,7 @@ import (
 // checks.
 type Side struct {
 	Run
-	Manifest evidence.Manifest
+	Manifest record.Manifest
 	// Wrong lists what changed in the run's record since it ran.
 	Wrong []string
 	// Err is a run that could not happen or left no verdict.
@@ -32,7 +32,7 @@ func Start(where string, run replay.Run) ([]Side, error) {
 		runs.Add(1)
 		go func() {
 			defer runs.Done()
-			failed[i] = run(side.Job(where))
+			failed[i] = run(side.Task(where))
 		}()
 	}
 	runs.Wait()
@@ -45,7 +45,7 @@ func Start(where string, run replay.Run) ([]Side, error) {
 	return sides, nil
 }
 
-// Sides reads every run of the comparison from its own evidence.
+// Sides reads every run of the comparison from its own record.
 func Sides(where string, record Record) []Side {
 	sides := make([]Side, 0, len(record.Runs))
 	for _, run := range record.Runs {
@@ -56,12 +56,12 @@ func Sides(where string, record Record) []Side {
 
 func sideOf(where string, run Run) Side {
 	side := Side{Run: run}
-	dir := run.Job(where)
-	side.Manifest, side.Err = evidence.Read(dir)
+	dir := run.Task(where)
+	side.Manifest, side.Err = record.Read(dir)
 	if side.Err != nil {
 		return side
 	}
-	side.Wrong, side.Err = evidence.Check(dir)
+	side.Wrong, side.Err = record.Check(dir)
 	return side
 }
 
@@ -70,7 +70,7 @@ func sideOf(where string, run Run) Side {
 // a failure of the comparison.
 func ExitCode(sides []Side) int {
 	for _, side := range sides {
-		if side.Err != nil || side.Manifest.Gate == nil || len(side.Wrong) > 0 {
+		if side.Err != nil || side.Manifest.Check == nil || len(side.Wrong) > 0 {
 			return 2
 		}
 	}

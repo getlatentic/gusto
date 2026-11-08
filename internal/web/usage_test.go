@@ -63,6 +63,18 @@ func TestAnAdminSeesEveryonesSessionsAddedUp(t *testing.T) {
 	}
 }
 
+// A conversation's row adds up every turn in it, and says how many, so its cost reads as a total and not as one reply's.
+func TestAConversationsRowSaysHowManyTurnsItAddsUp(t *testing.T) {
+	here, _ := withUsage(t, aCall("turn-1", 0, "room", alice, 0), aCall("turn-2", 0, "room", alice, 1), aCall("only", 0, "chat", bob, 2))
+	page := here.ask(t, "GET", "/usage", nil).Body.String()
+	if !strings.Contains(page, ">Conversation<") || !strings.Contains(page, ">Conversations</a>") {
+		t.Errorf("the rows are not named conversations:\n%s", page)
+	}
+	if !strings.Contains(page, "· 2 turns") || strings.Contains(page, "· 1 turns") {
+		t.Errorf("a conversation does not say how many turns its cost adds up:\n%s", page)
+	}
+}
+
 func TestACallWithNoPriceIsShownAsNoPriceAndNeverAsFree(t *testing.T) {
 	unpriced := aCall("task-c", 0, "free-looking", alice, 3)
 	unpriced.USD = nil
@@ -82,8 +94,8 @@ func TestACallWithNoPriceIsShownAsNoPriceAndNeverAsFree(t *testing.T) {
 		t.Errorf("an unpriced call was shown as a cost:\n%s", calls)
 	}
 	partly := here.ask(t, "GET", "/usage", nil).Body.String()
-	if !strings.Contains(partly, "spent, and 1 call is not priced") {
-		t.Errorf("a total that leaves calls out should say so")
+	if !strings.Contains(partly, "1 call has no price on file, so it is not in these totals.") || strings.Contains(partly, "spent;") {
+		t.Errorf("a total that leaves calls out should say so in one line under the table, not in the headline")
 	}
 }
 
@@ -203,7 +215,7 @@ func TestTheSessionsAreSortedAcrossPagesByTheColumnChosen(t *testing.T) {
 	if !strings.Contains(body, `aria-sort="descending" class="text-right"><a class="text-inherit no-underline hover:text-ink" href="/usage?q=s-&amp;sort=cost"`) || strings.Contains(body, "this page") {
 		t.Errorf("the sorted column is not marked, or the filter is lost from its link:\n%s", body)
 	}
-	if !strings.Contains(body, `href="/usage?q=s-&amp;sort=tokens">Tokens</a>`) {
+	if !strings.Contains(body, `href="/usage?q=s-&amp;sort=last">Last request</a>`) {
 		t.Error("the other headings should set the sort and keep the filter")
 	}
 	api := jsonList(t, here.call("GET", "/api/usage/sessions?sort=calls&limit=2", here.secrets["finance"]), "sessions")

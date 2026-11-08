@@ -13,7 +13,7 @@ const RecordFile = "gateway.jsonl"
 // Entry is one line of the record: a call, a refusal, or a listing of tools.
 type Entry struct {
 	At     int64  `json:"at"`
-	Job    string `json:"job"`
+	Task   string `json:"job"`
 	Person string `json:"person,omitempty"`
 	Kind   string `json:"kind"`
 	Server string `json:"server,omitempty"`

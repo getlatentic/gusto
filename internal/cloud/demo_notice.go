@@ -1,17 +1,18 @@
 package cloud
 
 import (
+	"context"
 	"strings"
 	"time"
 )
 
 // noticeOfDemo mails the address that follows demos up, when there is one, that a visitor has started one. What the visitor typed
 // is in the subject too, so it is put on one line: a line break in a subject would add a header of the visitor's choosing.
-func (s *Server) noticeOfDemo(slug string) {
+func (s *Server) noticeOfDemo(ctx context.Context, slug string) {
 	if s.Notify == "" {
 		return
 	}
-	lead, found := s.Store.LeadOf(slug)
+	lead, found := s.Store.LeadOf(ctx, slug)
 	if !found {
 		return
 	}

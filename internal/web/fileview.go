@@ -65,6 +65,9 @@ type viewedFile struct {
 	Modified        int64
 	Raw, Download   string
 	Text            string
+	// Editable is a text file shown whole, which a person may change here: Source is all of it, and Hash what it was then.
+	Editable     bool
+	Source, Hash string
 	// Language is what a code file is highlighted as, and Lines how many it has.
 	Language string
 	Lines    int
@@ -80,12 +83,12 @@ const tableRows = 300
 // picture, a PDF in the page, a web page running in a sealed frame, a document, slide deck or sheet as the words it says, a table as a
 // table. The path is resolved inside the folder and refused if it leaves it, a link included, so nothing else on the machine can be asked for.
 func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
+	held, found := s.sharedOr404(w, r)
 	if !found {
 		return
 	}
 	asked := filepath.Clean("/" + r.URL.Query().Get("path"))
-	resolved, ok := resolveInFolder(s.instances.Workspace(held.ID), asked)
+	resolved, ok := resolveInFolder(s.instances.AgentFolder(held.ID), asked)
 	if !ok {
 		http.NotFound(w, r)
 		return
@@ -110,6 +113,7 @@ func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
 		file.Kind = kindText
 	}
 	s.fill(&file, resolved, info.Size())
+	editable(&file, resolved, info.Size(), held.Archived != 0)
 	if r.URL.Query().Get("panel") != "" {
 		s.render(w, "file-panel", map[string]any{"File": file, "Instance": held, "Rail": nil, "Page": "/instances/" + held.ID + "/file" + query})
 		return
@@ -172,12 +176,12 @@ func (s *Server) fileCrumbs(id, agent, path string) []crumb {
 // keep. What the agent wrote is not trusted: a page it made runs in a frame that gives it nothing of this site and no way to send anything
 // out, and anything the browser does not know how to show is handed over to be saved.
 func (s *Server) folderRaw(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
+	held, found := s.sharedOr404(w, r)
 	if !found {
 		return
 	}
 	asked := filepath.Clean("/" + r.URL.Query().Get("path"))
-	resolved, ok := resolveInFolder(s.instances.Workspace(held.ID), asked)
+	resolved, ok := resolveInFolder(s.instances.AgentFolder(held.ID), asked)
 	if !ok {
 		http.NotFound(w, r)
 		return
@@ -237,11 +241,12 @@ func rawType(name string, kind fileKind) string {
 }
 
 // rawPolicy is what the browser is told a file may do. A page runs its own scripts and styles and may fetch nothing, and a picture may be
-// nothing but a picture.
+// nothing but a picture. A page's forms are allowed because a browser fires no submit event in a sandbox without them, and most
+// pages an agent writes are driven by their forms; form-action 'none' still keeps a form from sending anything anywhere.
 func rawPolicy(kind fileKind) string {
 	switch kind {
 	case kindHTML:
-		return "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:; frame-ancestors 'self'"
+		return "sandbox allow-scripts allow-forms allow-modals; form-action 'none'; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:; frame-ancestors 'self'"
 	case kindImage:
 		return "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'"
 	}

@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-func jobWithCalls(t *testing.T, root, id string, spec job.Spec, calls ...Call) job.Dir {
+func taskWithCalls(t *testing.T, root, id string, spec task.Spec, calls ...Call) task.Dir {
 	t.Helper()
-	dir := job.Dir(filepath.Join(root, id))
+	dir := task.Dir(filepath.Join(root, id))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -37,16 +37,16 @@ func jobWithCalls(t *testing.T, root, id string, spec job.Spec, calls ...Call) j
 // spent its cap before the restart.
 func TestARestartedServerRemembersWhatATeamSpent(t *testing.T) {
 	root := t.TempDir()
-	spec := job.Spec{Brief: "b", Repo: "r", Gate: []string{"true"}, Harness: "h", Team: "platform"}
-	jobWithCalls(t, root, "earlier", spec, answered(0.7, september))
-	jobWithCalls(t, root, "later", spec, answered(0.4, september))
+	spec := task.Spec{Brief: "b", Repo: "r", Check: []string{"true"}, Harness: "h", Team: "platform"}
+	taskWithCalls(t, root, "earlier", spec, answered(0.7, september))
+	taskWithCalls(t, root, "later", spec, answered(0.4, september))
 
 	ledger, err := Rebuild(root, fixturePolicy())
 	if err != nil {
 		t.Fatal(err)
 	}
 	ledger.now = func() time.Time { return september }
-	if refusal := ledger.Allow("later", "", "fixture-model"); refusal == nil || refusal.Cap != "team" {
+	if refusal := ledger.Allow("later", "", "fixture-model", false); refusal == nil || refusal.Cap != "team" {
 		t.Fatalf("refusal %+v", refusal)
 	}
 }
@@ -64,11 +64,11 @@ func TestAHalfWrittenLineIsPassedOver(t *testing.T) {
 // directory must not be read as this run's.
 func TestTheCapThatStoppedARunIsTheFirstRefusalSinceItStarted(t *testing.T) {
 	root := t.TempDir()
-	spec := job.Spec{Brief: "b", Repo: "r", Gate: []string{"true"}, Harness: "h"}
+	spec := task.Spec{Brief: "b", Repo: "r", Check: []string{"true"}, Harness: "h"}
 	old := RefusedCall("/v1/chat/completions", "m", september.Unix()-60, &Refusal{Cap: "team", Reason: "then"})
 	first := RefusedCall("/v1/chat/completions", "m", september.Unix()+5, &Refusal{Cap: "job", Reason: "now"})
 	again := RefusedCall("/v1/chat/completions", "m", september.Unix()+6, &Refusal{Cap: "team", Reason: "later"})
-	dir := jobWithCalls(t, root, "a-job", spec, old, answered(1, september), first, again)
+	dir := taskWithCalls(t, root, "a-job", spec, old, answered(1, september), first, again)
 
 	stop, err := Stopped(dir.OutFile("proxy.jsonl"), september.Unix())
 	if err != nil || stop == nil || stop.Reason != "now" {
@@ -83,11 +83,11 @@ func TestTheCapThatStoppedARunIsTheFirstRefusalSinceItStarted(t *testing.T) {
 // wrote them, not to January 1970.
 func TestALineWithNoTimeIsDatedByItsFile(t *testing.T) {
 	root := t.TempDir()
-	dir := job.Dir(filepath.Join(root, "old"))
+	dir := task.Dir(filepath.Join(root, "old"))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	if err := (job.Spec{Brief: "b", Harness: "opencode"}).Write(dir); err != nil {
+	if err := (task.Spec{Brief: "b", Harness: "opencode"}).Write(dir); err != nil {
 		t.Fatal(err)
 	}
 	record := dir.OutFile("proxy.jsonl")
@@ -110,7 +110,7 @@ func TestALineWithNoTimeIsDatedByItsFile(t *testing.T) {
 func TestACallCountedBeforeItsModelHadAPriceIsPricedOnRebuild(t *testing.T) {
 	root := t.TempDir()
 	in, out := int64(1_000_000), int64(0)
-	jobWithCalls(t, root, "early", job.Spec{Brief: "b"}, Call{Path: "/v1/chat/completions", Status: 200,
+	taskWithCalls(t, root, "early", task.Spec{Brief: "b"}, Call{Path: "/v1/chat/completions", Status: 200,
 		AtUnix: time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC).Unix(), Model: "deepseek-flash", Credential: "deepseek",
 		InputTokens: &in, OutputTokens: &out})
 	ledger, err := Rebuild(root, Policy{Prices: map[string]Price{"deepseek-flash": deepseekFlash()}})
@@ -122,13 +122,13 @@ func TestACallCountedBeforeItsModelHadAPriceIsPricedOnRebuild(t *testing.T) {
 	}
 }
 
-// A person's own spend is the jobs they may see and nothing else, so a report
+// A person's own spend is the tasks they may see and nothing else, so a report
 // read back for them cannot carry somebody else's cost.
-func TestOnlyTheJobsAskedForAreReadBack(t *testing.T) {
+func TestOnlyTheTasksAskedForAreReadBack(t *testing.T) {
 	root := t.TempDir()
-	spec := job.Spec{Brief: "b", Repo: "r", Gate: []string{"true"}, Harness: "h", Team: "platform"}
-	jobWithCalls(t, root, "mine", spec, answered(0.7, september))
-	jobWithCalls(t, root, "theirs", spec, answered(0.4, september))
+	spec := task.Spec{Brief: "b", Repo: "r", Check: []string{"true"}, Harness: "h", Team: "platform"}
+	taskWithCalls(t, root, "mine", spec, answered(0.7, september))
+	taskWithCalls(t, root, "theirs", spec, answered(0.4, september))
 
 	ledger, err := RebuildWhere(root, fixturePolicy(), func(id string) bool { return id == "mine" })
 	if err != nil {
@@ -138,7 +138,7 @@ func TestOnlyTheJobsAskedForAreReadBack(t *testing.T) {
 	if report.Total.USD != 0.7 {
 		t.Errorf("the total is %v, want only the one job's 0.7", report.Total.USD)
 	}
-	if len(report.Jobs) != 1 || report.Jobs[0].Name != "mine" {
-		t.Errorf("jobs %+v, want only mine", report.Jobs)
+	if len(report.Tasks) != 1 || report.Tasks[0].Name != "mine" {
+		t.Errorf("jobs %+v, want only mine", report.Tasks)
 	}
 }

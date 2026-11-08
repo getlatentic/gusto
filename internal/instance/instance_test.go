@@ -171,7 +171,7 @@ func TestAThreadNeedsAnInstance(t *testing.T) {
 	}
 }
 
-// A turn says what it changed by diffing the workspace, so a workspace that is
+// A turn says what it changed by diffing the folder, so a folder that is
 // not a repository fails on the first thing anybody says to it. An instance
 // started without a repository is the ordinary case, not an edge.
 func TestAnInstanceStartedWithNoRepositoryStillHasSomethingToDiff(t *testing.T) {
@@ -180,21 +180,21 @@ func TestAnInstanceStartedWithNoRepositoryStillHasSomethingToDiff(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	workspace := store.Workspace(held.ID)
-	if _, err := os.Stat(filepath.Join(workspace, ".git")); err != nil {
+	folder := store.AgentFolder(held.ID)
+	if _, err := os.Stat(filepath.Join(folder, ".git")); err != nil {
 		t.Fatalf("the workspace is not a repository: %v", err)
 	}
 	// And the diff a turn takes works there, which is the thing that failed.
-	if err := os.WriteFile(filepath.Join(workspace, "new.txt"), []byte("hello\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(folder, "new.txt"), []byte("hello\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	add := exec.Command("git", "add", "-N", ".")
-	add.Dir = workspace
+	add.Dir = folder
 	if output, err := add.CombinedOutput(); err != nil {
 		t.Fatalf("git add -N: %v: %s", err, output)
 	}
 	diff := exec.Command("git", "diff")
-	diff.Dir = workspace
+	diff.Dir = folder
 	patch, err := diff.Output()
 	if err != nil {
 		t.Fatalf("git diff: %v", err)
@@ -204,10 +204,10 @@ func TestAnInstanceStartedWithNoRepositoryStillHasSomethingToDiff(t *testing.T) 
 	}
 }
 
-// An instance whose workspace was made before a workspace was a repository is
+// An instance whose folder was made before a folder was a repository is
 // mended on the way in, so the next thing said to it is not the thing that
 // discovers the problem.
-func TestAWorkspaceThatIsNotARepositoryIsMendedOnTheWayIn(t *testing.T) {
+func TestAFolderThatIsNotARepositoryIsMendedOnTheWayIn(t *testing.T) {
 	root := t.TempDir()
 	store, err := Open(root)
 	if err != nil {
@@ -217,13 +217,13 @@ func TestAWorkspaceThatIsNotARepositoryIsMendedOnTheWayIn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.RemoveAll(filepath.Join(store.Workspace(held.ID), ".git")); err != nil {
+	if err := os.RemoveAll(filepath.Join(store.AgentFolder(held.ID), ".git")); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := Open(root); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(store.Workspace(held.ID), ".git")); err != nil {
+	if _, err := os.Stat(filepath.Join(store.AgentFolder(held.ID), ".git")); err != nil {
 		t.Errorf("the workspace was not mended: %v", err)
 	}
 }
@@ -237,7 +237,7 @@ func TestARemovedInstanceIsGoneButItsFilesAreKept(t *testing.T) {
 	if _, err := store.Start("one", Instance{Harness: "opencode"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(store.Workspace("one"), "work.txt"), []byte("mine"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(store.AgentFolder("one"), "work.txt"), []byte("mine"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := store.Remove("one"); err != nil {
@@ -292,7 +292,7 @@ func TestSeededFilesAreCommittedAsTheStart(t *testing.T) {
 	if err := store.Seed("one", map[string]string{"../escape": "x"}); err == nil {
 		t.Error("a file outside the folder was written")
 	}
-	status, _ := exec.Command("git", "-C", store.Workspace("one"), "status", "--porcelain").Output()
+	status, _ := exec.Command("git", "-C", store.AgentFolder("one"), "status", "--porcelain").Output()
 	if len(strings.TrimSpace(string(status))) != 0 {
 		t.Errorf("the seeded files are not committed: %q", status)
 	}

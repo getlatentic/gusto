@@ -69,7 +69,7 @@ func (s *Server) holdsPersonToken(secret string) bool {
 	return err == nil && token.Person != "" && token.May(apitoken.Work)
 }
 
-var usageFields = []string{"q", "person", "team", "project", "agent_type", "agent", "provider", "model", "from", "to"}
+var usageFields = []string{"q", "person", "team", "project", "agent_type", "agent", "provider", "model", "from", "to", "state"}
 
 // readUsageQuery reads the filter from the query, and forces its person to the one the request may read.
 func (s *Server) readUsageQuery(r *http.Request) (usageQuery, bool, error) {
@@ -87,17 +87,14 @@ func (s *Server) readUsageQuery(r *http.Request) (usageQuery, bool, error) {
 	if person != "" {
 		made.Values.Set("person", person)
 	}
-	f := usage.Filter{Search: made.Values.Get("q"), Person: made.Values.Get("person"), Team: made.Values.Get("team"),
-		Project: made.Values.Get("project"), Engine: made.Values.Get("agent_type"), Agent: made.Values.Get("agent"),
-		Provider: made.Values.Get("provider"), Model: made.Values.Get("model")}
+	// The index files a call under the agent type's name, and a link from another page may name the type by its id.
+	if harness := made.Values.Get("agent_type"); harness != "" {
+		made.Values.Set("agent_type", s.engineName(harness))
+	}
 	var err error
-	if f.From, err = usageTime(made.Values.Get("from"), false); err != nil {
-		return made, true, fmt.Errorf("from: %w", err)
+	if made.Filter, err = s.usageFilter(made.Values); err != nil {
+		return made, true, err
 	}
-	if f.To, err = usageTime(made.Values.Get("to"), true); err != nil {
-		return made, true, fmt.Errorf("to: %w", err)
-	}
-	made.Filter = f
 	if made.Page.Limit, err = usageLimit(asked.Get("limit")); err != nil {
 		return made, true, err
 	}
@@ -107,6 +104,31 @@ func (s *Server) readUsageQuery(r *http.Request) (usageQuery, bool, error) {
 	}
 	return made, true, nil
 }
+
+// usageFilter is the filter the values of a query say. state=failed keeps the conversations whose latest turn failed.
+func (s *Server) usageFilter(values url.Values) (usage.Filter, error) {
+	f := usage.Filter{Search: values.Get("q"), Person: values.Get("person"), Team: values.Get("team"),
+		Project: values.Get("project"), Engine: values.Get("agent_type"), Agent: values.Get("agent"),
+		Provider: values.Get("provider"), Model: values.Get("model")}
+	var err error
+	if f.From, err = usageTime(values.Get("from"), false); err != nil {
+		return f, fmt.Errorf("from: %w", err)
+	}
+	if f.To, err = usageTime(values.Get("to"), true); err != nil {
+		return f, fmt.Errorf("to: %w", err)
+	}
+	switch state := values.Get("state"); state {
+	case "":
+	case stateFailed:
+		f.OnlySessions, f.Sessions = true, failedSessions(s.failedConversations(f.Person))
+	default:
+		return f, fmt.Errorf("state may only be %s, not %q", stateFailed, state)
+	}
+	return f, nil
+}
+
+// stateFailed is the state that keeps the failed conversations.
+const stateFailed = "failed"
 
 // usageTime reads an RFC 3339 time, or a date, which is the start of that day in UTC and, for the end of a range, the
 // start of the next, so that a range ending on a date includes the date.

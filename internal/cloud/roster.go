@@ -11,14 +11,14 @@ import (
 )
 
 // RosterFile is the list of people the organization's server reads, and InboxDir is
-// where the front door leaves it what its admins did, for its change record.
+// where gusto cloud leaves it what its admins did, for its change record.
 func (s *Store) RosterFile(slug string) string { return filepath.Join(s.DataDir(slug), "members.json") }
 func (s *Store) InboxDir(slug string) string   { return filepath.Join(s.DataDir(slug), "inbox") }
 
 // PublishRoster writes the organization's people where its server reads them. The people are read and the
-// file is written under a lock, so two front doors that publish together leave the list of the later read.
-func (s *Store) PublishRoster(slug string) error {
-	ctx := context.Background()
+// file is written under a lock, so two gusto cloud servers that publish together leave the list of the later read.
+func (s *Store) PublishRoster(ctx context.Context, slug string) error {
+
 	return s.db.InTx(ctx, func(tx dbkit.Tx) error {
 		if err := s.lock(ctx, tx, "roster:"+slug); err != nil {
 			return err
@@ -30,8 +30,8 @@ func (s *Store) PublishRoster(slug string) error {
 // publishRoster is PublishRoster for a change that has already been made. The
 // change stands whether or not the list is written, so a failure is said loudly and
 // does not undo it: the next change writes the list again, and so does a restart.
-func (s *Store) publishRoster(slug string) {
-	if err := s.PublishRoster(slug); err != nil {
+func (s *Store) publishRoster(ctx context.Context, slug string) {
+	if err := s.PublishRoster(ctx, slug); err != nil {
 		slog.Error("an organization's list of people was not written", "org", slug, "error", err)
 	}
 }
@@ -45,10 +45,21 @@ func (s *Store) writeRoster(ctx context.Context, q dbkit.Querier, slug string) e
 	if err != nil {
 		return err
 	}
-	list := roster.Roster{Written: s.now().UTC().Truncate(time.Second), Members: []roster.Member{}, Invited: []roster.Invited{}}
+	org, _, err := fetchOrg(ctx, q, slug)
+	if err != nil {
+		return err
+	}
+	spaces, err := workspacesOf(ctx, q, slug)
+	if err != nil {
+		return err
+	}
+	list := roster.Roster{Written: s.now().UTC().Truncate(time.Second), Members: []roster.Member{}, Invited: []roster.Invited{}, Workspaces: []roster.Workspace{}}
+	for _, space := range spaces {
+		list.Workspaces = append(list.Workspaces, roster.Workspace{ID: space.ID, Name: space.Name, Members: space.Members})
+	}
 	for _, person := range members {
 		list.Members = append(list.Members, roster.Member{
-			Email: person.Email, Role: string(person.Role), Joined: person.Created, LastSignIn: person.LastSignIn,
+			Email: person.Email, Name: givenName(org, person), Role: string(person.Role), Joined: person.Created, LastSignIn: person.LastSignIn,
 		})
 	}
 	for _, invitation := range invited {
@@ -59,18 +70,25 @@ func (s *Store) writeRoster(ctx context.Context, q dbkit.Querier, slug string) e
 	return roster.Write(s.RosterFile(slug), list)
 }
 
-// RecordSignIn notes that a person was signed in to their organization's server, and
-// tells the server.
-func (s *Store) RecordSignIn(email string) error {
-	ctx := context.Background()
-	person, found, err := fetchPerson(ctx, s.db, email)
-	if err != nil || !found {
-		return err
-	}
+// RecordSignIn notes that a person was signed in to one of their organizations' servers, and
+// tells that server.
+func (s *Store) RecordSignIn(ctx context.Context, email, org string) error {
 	at := s.now().UTC().Truncate(time.Second)
-	if _, err := s.db.ExecContext(ctx, `UPDATE people SET last_sign_in = ? WHERE email = ?`, s.stamp(at), person.Email); err != nil {
+	done, err := s.db.ExecContext(ctx, `UPDATE memberships SET last_sign_in = ? WHERE email = ? AND org = ?`, s.stamp(at), email, org)
+	if err != nil {
 		return err
 	}
-	s.publishRoster(person.Org)
+	if changed, err := done.RowsAffected(); err != nil || changed == 0 {
+		return err
+	}
+	s.publishRoster(ctx, org)
 	return nil
+}
+
+// givenName is the name a person gave gusto cloud: a demo's visitor types theirs on the form. Nobody else is asked yet.
+func givenName(org Org, person Person) string {
+	if org.Demo != nil && person.Email == org.Admin {
+		return org.Demo.Name
+	}
+	return ""
 }

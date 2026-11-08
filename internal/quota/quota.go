@@ -1,5 +1,5 @@
 // Package quota is what an organization's server may run, kept in a file its
-// front door writes and the server reads as it goes. A hosted organization's
+// gusto cloud writes and the server reads as it goes. A hosted organization's
 // limit changes when its admin confirms an address, and the server that is
 // running must see that without a restart.
 package quota
@@ -16,19 +16,23 @@ import (
 
 // Quota is what may be run. Zero is none.
 type Quota struct {
-	// Jobs is how many tasks may be started: in all, or in a calendar month when
+	// Tasks is how many tasks may be started: in all, or in a calendar month when
 	// Monthly is set.
-	Jobs    int  `json:"jobs"`
+	Tasks   int  `json:"jobs"`
 	Monthly bool `json:"monthly,omitempty"`
 	// Concurrent is how many tasks may run at once.
 	Concurrent int `json:"concurrent"`
 	// Invites says whether colleagues may be invited, Members how many people
-	// there may be in all, and Computers how many workspaces.
+	// there may be in all, and Computers how many computers.
 	Invites   bool `json:"invites"`
 	Members   int  `json:"members"`
 	Computers int  `json:"computers"`
 	// Note is a sentence added to a refusal: how the limit is lifted.
 	Note string `json:"note,omitempty"`
+	// CreditUSD is what the organization may spend, over its whole life, on the models its server provides with the operator's
+	// keys. Unlike the counts above, zero is no such limit: a server whose operator gives no credit holds nothing to one. Calls on
+	// a key the organization added are never held to it.
+	CreditUSD float64 `json:"creditUsd,omitempty"`
 }
 
 // ErrExceeded is what a refusal is: it wraps to this, so a caller can answer
@@ -38,7 +42,7 @@ var ErrExceeded = errors.New("this organization has reached its limit")
 // Refuse is nil while started tasks are fewer than the quota allows, and a
 // sentence a person can act on when they are not.
 func (q Quota) Refuse(started int) error {
-	if started < q.Jobs {
+	if started < q.Tasks {
 		return nil
 	}
 	within := "in all"
@@ -46,10 +50,10 @@ func (q Quota) Refuse(started int) error {
 		within = "a month"
 	}
 	tasks := "tasks"
-	if q.Jobs == 1 {
+	if q.Tasks == 1 {
 		tasks = "task"
 	}
-	message := fmt.Sprintf("This organization may start %d %s %s and has started %d.", q.Jobs, tasks, within, started)
+	message := fmt.Sprintf("This organization may start %d %s %s and has started %d.", q.Tasks, tasks, within, started)
 	if q.Note != "" {
 		message += " " + q.Note
 	}
@@ -125,23 +129,23 @@ func read(path string) (Quota, error) {
 	if err := json.Unmarshal(text, &q); err != nil {
 		return Quota{}, fmt.Errorf("the limits in %s are not valid: %w", path, err)
 	}
-	if q.Jobs < 0 || q.Concurrent < 0 {
+	if q.Tasks < 0 || q.Concurrent < 0 {
 		return Quota{}, fmt.Errorf("the limits in %s are negative", path)
 	}
 	return q, nil
 }
 
-// RefuseComputers is nil while the workspaces there are number fewer than the quota
+// RefuseComputers is nil while the computers there are number fewer than the quota
 // allows, and a sentence a person can act on when they do not.
 func (q Quota) RefuseComputers(have int) error {
 	if have < q.Computers {
 		return nil
 	}
-	workspaces := "workspaces"
+	computers := "computers"
 	if q.Computers == 1 {
-		workspaces = "workspace"
+		computers = "computer"
 	}
-	message := fmt.Sprintf("This organization may have %d %s and has %d.", q.Computers, workspaces, have)
+	message := fmt.Sprintf("This organization may have %d %s and has %d.", q.Computers, computers, have)
 	if q.Note != "" {
 		message += " " + q.Note
 	}

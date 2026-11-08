@@ -4,9 +4,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // approvalUnseen is why an export cannot name an approver: the platform's part
@@ -21,22 +21,22 @@ const harnessDefault = "the harness's default"
 // but the keyring that names their signer. Export writes what this returns, and
 // Verify calls it again and compares, so the summary can never say something
 // its files and that keyring do not.
-func Summarize(dir job.Dir, id string, redactions []Redaction, policy Policy, keyring signing.Keyring) (Record, error) {
-	manifest, err := evidence.Read(dir)
+func Summarize(dir task.Dir, id string, redactions []Redaction, policy Policy, keyring signing.Keyring) (Summary, error) {
+	manifest, err := record.Read(dir)
 	if err != nil {
-		return Record{}, err
+		return Summary{}, err
 	}
 	why := reasons(redactions)
 	spec := document(dir.Spec(), why(SpecFile))
 	state := document(filepath.Join(dir.Path(), StateFile), why(StateFile))
 	carried, err := carriedIn(dir, manifest)
 	if err != nil {
-		return Record{}, err
+		return Summary{}, err
 	}
 	proxy := proxyOf(lines(dir.OutFile("proxy.jsonl"), why("out/proxy.jsonl")))
-	return Record{
+	return Summary{
 		Version:    Version,
-		Job:        id,
+		Task:       id,
 		Asked:      askedOf(state),
 		Ran:        ranOf(spec, manifest),
 		Outcome:    outcomeOf(state, manifest),
@@ -46,7 +46,7 @@ func Summarize(dir job.Dir, id string, redactions []Redaction, policy Policy, ke
 		Outbound:   outboundOf(proxy),
 		Approval:   Approval{By: absent[string](NotRecorded), Why: approvalUnseen},
 		Requests:   lines(filepath.Join(dir.Path(), RequestsFile), why(RequestsFile)),
-		Evidence:   Evidence{Manifest: ManifestFile, Signer: evidence.SignedBy(dir, keyring), Files: len(manifest.Files)},
+		Record:     Record{Manifest: ManifestFile, Signer: record.SignedBy(dir, keyring), Files: len(manifest.Files)},
 		Carried:    carried,
 		Redactions: nonNil(redactions),
 		Policy:     policy.written(),
@@ -108,7 +108,7 @@ func askedOf(state Fact[any]) Asked {
 	}
 }
 
-func ranOf(spec Fact[any], manifest evidence.Manifest) Ran {
+func ranOf(spec Fact[any], manifest record.Manifest) Ran {
 	session := absent[string](None)
 	if manifest.Session != "" {
 		session = known(manifest.Session)
@@ -122,14 +122,14 @@ func ranOf(spec Fact[any], manifest evidence.Manifest) Ran {
 	}
 }
 
-func outcomeOf(state Fact[any], manifest evidence.Manifest) Outcome {
-	gate := absent[Verdict](None)
-	if manifest.Gate != nil {
-		gate = known(Verdict(*manifest.Gate))
+func outcomeOf(state Fact[any], manifest record.Manifest) Outcome {
+	check := absent[Verdict](None)
+	if manifest.Check != nil {
+		check = known(Verdict(*manifest.Check))
 	}
 	return Outcome{
 		State:      field(state, "state"),
-		Gate:       gate,
+		Check:      check,
 		StartedAt:  field(state, "startedAt"),
 		EndedAt:    field(state, "endedAt"),
 		FinishedAt: manifest.AtUnix,
@@ -138,7 +138,7 @@ func outcomeOf(state Fact[any], manifest evidence.Manifest) Outcome {
 
 // changedOf reads the patch. Its hash is the one the manifest holds, which is
 // the run's own, even when the policy rewrote the copy the export carries.
-func changedOf(dir job.Dir, manifest evidence.Manifest, why string) Changed {
+func changedOf(dir task.Dir, manifest record.Manifest, why string) Changed {
 	sum, named := hashIn(manifest, "diff.patch")
 	patch, err := os.ReadFile(dir.OutFile("diff.patch"))
 	if !named || err != nil {
@@ -166,7 +166,7 @@ func fromProxy[T any](proxy Fact[proxied], count func(proxied) Fact[T]) Fact[T] 
 	return count(proxy.value)
 }
 
-func modelOf(spec Fact[any], manifest evidence.Manifest, proxy Fact[proxied]) Model {
+func modelOf(spec Fact[any], manifest record.Manifest, proxy Fact[proxied]) Model {
 	asked := field(spec, "model")
 	if asked.absent == NotRecorded {
 		asked = known[any](harnessDefault)
@@ -181,7 +181,7 @@ func modelOf(spec Fact[any], manifest evidence.Manifest, proxy Fact[proxied]) Mo
 
 // spendOf keeps the agent's claim and the proxy's measure side by side, so
 // neither stands in for the other.
-func spendOf(manifest evidence.Manifest, proxy Fact[proxied]) Spend {
+func spendOf(manifest record.Manifest, proxy Fact[proxied]) Spend {
 	spend := Spend{
 		Tokens:       absent[int64](NotRecorded),
 		CostUSD:      absent[float64](NotRecorded),
@@ -207,7 +207,7 @@ func outboundOf(proxy Fact[proxied]) Outbound {
 	}
 }
 
-func hashIn(manifest evidence.Manifest, name string) (string, bool) {
+func hashIn(manifest record.Manifest, name string) (string, bool) {
 	for _, entry := range manifest.Files {
 		if entry.Name == name {
 			return entry.SHA256, true

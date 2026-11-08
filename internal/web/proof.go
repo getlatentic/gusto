@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/record"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // proof is what the page says about a record after checking it the way
@@ -28,19 +28,19 @@ type proof struct {
 // Holds is a record whose files match and whose signature, if any, checks.
 func (p proof) Holds() bool { return len(p.Wrong) == 0 }
 
-func (s *Server) proofOf(id string, dir job.Dir, manifest *evidence.Manifest) *proof {
+func (s *Server) proofOf(id string, dir task.Dir, manifest *record.Manifest) *proof {
 	if manifest == nil {
 		return nil
 	}
 	shown := &proof{Files: len(manifest.Files), Bundle: "/jobs/" + id + "/bundle"}
-	wrong, err := evidence.Check(dir)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		wrong = append(wrong, err.Error())
 	}
 	shown.Wrong = wrong
-	attested, err := evidence.Attest(dir, s.keyring)
+	attested, err := record.Attest(dir, s.keyring)
 	if err != nil && shown.Holds() {
-		shown.Unchecked = evidence.SignedBy(dir, s.keyring)
+		shown.Unchecked = record.SignedBy(dir, s.keyring)
 	}
 	unpack := "tar -xzf " + shellWord(id+".tar.gz") + " && "
 	if !attested.Signed {

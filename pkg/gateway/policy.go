@@ -10,7 +10,7 @@ import (
 
 // Caller is who a task's calls are made for.
 type Caller struct {
-	Job    string
+	Task   string
 	Person string
 	Team   string
 }

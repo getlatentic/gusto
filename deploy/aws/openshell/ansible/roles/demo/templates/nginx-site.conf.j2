@@ -21,6 +21,13 @@ server {
     add_header Strict-Transport-Security "max-age=31536000" always;
     client_max_body_size 50m;
 
+    # Media are files, served here with ranges so a video seeks, and never by the front door.
+    location /media/ {
+        alias {{ demo_media }}/;
+        add_header Strict-Transport-Security "max-age=31536000" always;
+        add_header Cache-Control "public, max-age=3600";
+    }
+
     location / {
         proxy_pass http://127.0.0.1:8050;
         proxy_http_version 1.1;
@@ -30,7 +37,8 @@ server {
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
-        # Pages that stream a running job are held open.
+        # Pages that stream a running job are held open, and a room's page holds a WebSocket at /live, which the upgrade headers above
+        # pass and which the server pings every 30 seconds.
         proxy_buffering off;
         proxy_read_timeout 3600s;
     }

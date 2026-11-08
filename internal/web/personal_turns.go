@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // engineJSON is an agent a person may start and the models they may start it with.
@@ -76,36 +76,36 @@ func stepsJSON(steps []step) []stepJSON {
 
 // turnJSON is one turn as a program reads it: how it stands, what the agent did, what it said, and which files it changed.
 type turnJSON struct {
-	Job     jobs.Record `json:"job"`
-	Steps   []stepJSON  `json:"steps"`
-	Reply   string      `json:"reply"`
-	Changed []string    `json:"changed"`
-	Stopped string      `json:"stopped,omitempty"`
+	Task    tasks.Record `json:"job"`
+	Steps   []stepJSON   `json:"steps"`
+	Reply   string       `json:"reply"`
+	Changed []string     `json:"changed"`
+	Stopped string       `json:"stopped,omitempty"`
 }
 
-// ownJob is the job the path names, when the person asking may read it.
-func (s *Server) ownJob(r *http.Request) (jobs.Record, bool) {
+// ownTask is the task the path names, when the person asking may read it.
+func (s *Server) ownTask(r *http.Request) (tasks.Record, bool) {
 	record, found := s.index.Get(r.PathValue("id"))
-	if !found || !s.mayUse(r, record.Asked) {
-		return jobs.Record{}, false
+	if !found || !s.mayUseRecord(r, record) {
+		return tasks.Record{}, false
 	}
 	return record, true
 }
 
-func (s *Server) turnOf(record jobs.Record) turnJSON {
+func (s *Server) turnOf(record tasks.Record) turnJSON {
 	dir := record.Dir(s.index.Root())
-	shown := turnJSON{Job: record, Steps: stepsJSON(stepsOf(dir)), Reply: said(dir), Changed: changed(dir)}
+	shown := turnJSON{Task: record, Steps: stepsJSON(stepsOf(dir)), Reply: said(dir), Changed: changed(dir)}
 	if shown.Changed == nil {
 		shown.Changed = []string{}
 	}
-	if record.State == jobs.Failed || record.State == jobs.Interrupted {
+	if record.State == tasks.Failed || record.State == tasks.Interrupted {
 		shown.Stopped = stopped(dir)
 	}
 	return shown
 }
 
-func (s *Server) jobJSON(w http.ResponseWriter, r *http.Request) {
-	record, found := s.ownJob(r)
+func (s *Server) taskJSON(w http.ResponseWriter, r *http.Request) {
+	record, found := s.ownTask(r)
 	if !found {
 		http.NotFound(w, r)
 		return
@@ -117,7 +117,7 @@ func (s *Server) jobJSON(w http.ResponseWriter, r *http.Request) {
 // that changes, and `ended` with the whole turn when it is over. A turn that is already over is told at once, so following
 // one is always safe.
 func (s *Server) followJSON(w http.ResponseWriter, r *http.Request) {
-	record, found := s.ownJob(r)
+	record, found := s.ownTask(r)
 	if !found {
 		http.NotFound(w, r)
 		return

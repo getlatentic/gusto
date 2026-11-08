@@ -10,7 +10,6 @@ Set `GUSTO_API_TOKENS` to the file the tokens are kept in. The server makes the 
 | --- | --- |
 | Compose | `GUSTO_API_TOKENS=/var/lib/gusto/tokens/tokens.json` in `.env` |
 | Chart | `auth.apiTokens: true` |
-| Playbook | `api_tokens: true` |
 
 With tokens on, the API refuses the shared password. Without them it takes the shared password. The pages keep their own sign-in either way. The server alone writes the file, readable by its user only.
 
@@ -32,13 +31,13 @@ A person's computer gets a token that acts as that person, by the device flow. I
 
 1. The computer calls `POST /api/device` with `{"label":"Laptop"}` and receives a `device_code`, a `user_code` and an address.
 2. The person signs in, opens `/device`, types the user code and approves it.
-3. The computer polls `POST /api/device/token` with its `device_code` every few seconds. It receives `authorization_pending` until the person approves, then the token once. A code lasts ten minutes.
+3. The computer polls `POST /api/device/token` with its `device_code` every few seconds. It receives `authorization_pending` until the person approves, then the token once. A code lasts ten minutes. When the token cannot be made, the poll answers `server_error` and the code still waits, so the computer asks again. Behind gusto cloud, a person who left after approving gets `access_denied`. Codes typed at `/device` that are not waiting count as wrong attempts, ten in ten minutes from one source.
 
 `gusto-helper login` (or `gusto login`) does these steps, then keeps the token in the keychain (macOS Keychain, Windows Credential Manager, Secret Service). With no keychain it uses a file in your settings folder, readable by you alone, and says so. `GUSTO_VAULT=file` asks for the file alone.
 
 Run `gusto-helper login -server https://gusto.example.com`. `whoami` says who the token acts as (`GET /api/me`), and `logout` ends the token on the server; both take the same `-server`.
 
-The token has one scope, `work`. It cannot send a task or read spending, the change record or metrics. A request with a person's token is never an admin's, even with an admin's cookie. The person sees and ends their own tokens at `/device`, and an admin sees all at `/admin/tokens`. A server with no token file has no device flow, and its pages answer 404.
+The token has one scope, `work`. It cannot send a task or read spending, the change record or metrics. A request with a person's token is never an admin's, even with an admin's cookie. The person sees and ends their own tokens at `/device`, and an admin sees all at `/admin/tokens`. A computer's token that goes 90 days unused stops working. Behind gusto cloud, it stops when its person leaves the organization. Sign out everywhere, at `/device`, ends the person's sessions in every browser and in the app, and every one of their computers' tokens. A server with no token file has no device flow, and its pages answer 404.
 
 With the token a program reads the person's own work as JSON. Another person's id answers as not found. [internal/web/protocol.go](../internal/web/protocol.go) lists every route.
 
@@ -65,4 +64,4 @@ With the token a program reads the person's own work as JSON. Another person's i
 - `token.created` and `token.revoked` record who acted and what the token may do, never the secret. `signin.refused` records a call with an unknown, revoked or under-scoped token, and where it came from.
 - A wrong token and a revoked one get the same answer. A valid token without the scope gets 403.
 
-Revoke a token from its row. It stops on its next request and stays in the list with who ended it and when. A name can be used again after its token is revoked.
+Revoke a token from its row. It stops on its next request and stays in the list with who ended it and when. When the token file changes and cannot be read, no token is believed until it can be, and the server does not write over it. A name can be used again after its token is revoked.

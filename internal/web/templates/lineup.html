@@ -20,7 +20,8 @@
     {{range .Sides}}
     <tr class="group/row">
       <td class="{{template "ui-td"}} font-semibold"><span class="flex items-center gap-3">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}<span>{{.Engine}}<span class="block text-xs font-normal text-subtle">{{.Model}}</span></span></span></td>
-      <td class="{{template "ui-td"}}"><span class="flex flex-wrap items-center gap-2">{{if not .Record.State.Done}}<span class="text-muted">Working…</span>
+      <td class="{{template "ui-td"}}"><span class="flex flex-wrap items-center gap-2">{{if .Holding}}<span class="text-muted">{{.Holding}}</span>
+        {{else if not .Record.State.Done}}<span class="text-muted">Working…</span>
         {{else if and .Checked .Passed}}<span class="inline-flex items-center gap-1 font-medium text-ok">{{template "icon-seal"}} Tests pass</span>
         {{else if .Checked}}<span class="font-medium text-bad">Tests fail</span>
         {{else}}<span class="font-medium text-bad">Stopped before the tests</span>{{end}}

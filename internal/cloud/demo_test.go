@@ -2,7 +2,9 @@ package cloud
 
 import (
 	"errors"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -22,7 +24,7 @@ func clocked(t *testing.T, set Settings) (*Store, *time.Time) {
 func TestAVisitorStartsADemoOrganizationOnTheDemoQuotaAndIsKeptAsALead(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, _ := clocked(t, demoSet)
-		person, org, err := s.StartDemo("Ada Lovelace", "Ada@Acme.com", "Acme Research")
+		person, org, err := s.StartDemo(t.Context(), "Ada Lovelace", "Ada@Acme.com", "Acme Research")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -32,17 +34,17 @@ func TestAVisitorStartsADemoOrganizationOnTheDemoQuotaAndIsKeptAsALead(t *testin
 		if !strings.HasPrefix(org.Slug, "demo-acme-research-") || ValidSlug(org.Slug) != nil {
 			t.Errorf("an address for a demo: %q", org.Slug)
 		}
-		if got, _ := s.Quota(org.Slug); got.Computers != 1 || got.Members != 1 || got.Jobs == 0 {
+		if got, _ := s.Quota(org.Slug); got.Computers != 2 || got.Members != 2 || !got.Invites || got.Tasks == 0 {
 			t.Errorf("a demo runs what a demo may: %+v", got)
 		}
-		lead, found := s.LeadOf(org.Slug)
+		lead, found := s.LeadOf(t.Context(), org.Slug)
 		if !found || lead.Email != "ada@acme.com" || lead.Company != "Acme Research" || lead.Name != "Ada Lovelace" || !lead.Ended.IsZero() {
 			t.Errorf("%+v", lead)
 		}
-		if _, _, err := s.StartDemo("Ada Again", "ada@acme.com", "Acme"); !errors.Is(err, ErrEmailTaken) {
+		if _, _, err := s.StartDemo(t.Context(), "Ada Again", "ada@acme.com", "Acme"); !errors.Is(err, ErrEmailTaken) {
 			t.Errorf("one demo for an address at a time: %v", err)
 		}
-		_, other, err := s.StartDemo("Bob", "bob@acme.com", "Acme Research")
+		_, other, err := s.StartDemo(t.Context(), "Bob", "bob@acme.com", "Acme Research")
 		if err != nil || other.Slug == org.Slug {
 			t.Errorf("two people from one company have a demo each: %q %q %v", other.Slug, org.Slug, err)
 		}
@@ -60,14 +62,14 @@ func TestAVisitorWhoLeavesOutWhoTheyAreOrHaveAnUnusableAddressStartsNothing(t *t
 			"a free provider": {"Ada", "ada@gmail.com", "Acme"},
 			"a long name":     {strings.Repeat("a", 81), "ada@acme.com", "Acme"},
 		} {
-			if _, _, err := s.StartDemo(in[0], in[1], in[2]); err == nil {
+			if _, _, err := s.StartDemo(t.Context(), in[0], in[1], in[2]); err == nil {
 				t.Errorf("%s started a demo", name)
 			}
 		}
-		if orgs, _ := s.Orgs(); len(orgs) != 0 {
+		if orgs, _ := s.Orgs(t.Context()); len(orgs) != 0 {
 			t.Errorf("a refusal left an organization: %+v", orgs)
 		}
-		if _, _, err := open(t, Settings{}).StartDemo("Ada", "ada@acme.com", "Acme"); err == nil {
+		if _, _, err := open(t, Settings{}).StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme"); err == nil {
 			t.Error("a host that offers no demo made one")
 		}
 	})
@@ -76,30 +78,30 @@ func TestAVisitorWhoLeavesOutWhoTheyAreOrHaveAnUnusableAddressStartsNothing(t *t
 func TestADemosTimeStartsWhenItsServerIsReadyAndNotWhenItWasAskedFor(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, now := clocked(t, demoSet)
-		_, org, _ := s.StartDemo("Ada", "ada@acme.com", "Acme")
+		_, org, _ := s.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")
 		*now = now.Add(5 * time.Minute)
-		if _, left, found := s.DemoLeft(org.Slug); !found || left != 30*time.Minute {
+		if _, left, found := s.DemoLeft(t.Context(), org.Slug); !found || left != 30*time.Minute {
 			t.Errorf("a demo that is not ready has all its time: %s %v", left, found)
 		}
-		demo, err := s.DemoReady(org.Slug)
+		demo, err := s.DemoReady(t.Context(), org.Slug)
 		if err != nil || !demo.Expires.Equal(now.Add(30*time.Minute)) {
 			t.Fatalf("%+v %v", demo, err)
 		}
 		*now = now.Add(10 * time.Minute)
-		if again, _ := s.DemoReady(org.Slug); !again.Expires.Equal(demo.Expires) {
+		if again, _ := s.DemoReady(t.Context(), org.Slug); !again.Expires.Equal(demo.Expires) {
 			t.Errorf("being ready again does not start the time again: %v", again.Expires)
 		}
-		if _, left, _ := s.DemoLeft(org.Slug); left != 20*time.Minute {
+		if _, left, _ := s.DemoLeft(t.Context(), org.Slug); left != 20*time.Minute {
 			t.Errorf("%s", left)
 		}
 		*now = now.Add(time.Hour)
-		if _, left, _ := s.DemoLeft(org.Slug); left != 0 {
+		if _, left, _ := s.DemoLeft(t.Context(), org.Slug); left != 0 {
 			t.Errorf("a demo has no negative time: %s", left)
 		}
-		if lead, _ := s.LeadOf(org.Slug); lead.Ready.IsZero() {
+		if lead, _ := s.LeadOf(t.Context(), org.Slug); lead.Ready.IsZero() {
 			t.Error("the lead says when the demo was ready")
 		}
-		if _, err := s.DemoReady("acme-com"); err == nil {
+		if _, err := s.DemoReady(t.Context(), "acme-com"); err == nil {
 			t.Error("an organization that is not a demo was started")
 		}
 	})
@@ -108,27 +110,27 @@ func TestADemosTimeStartsWhenItsServerIsReadyAndNotWhenItWasAskedFor(t *testing.
 func TestADemoIsExtendedOnceAndOnlyWhileItHasTime(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, now := clocked(t, demoSet)
-		_, org, _ := s.StartDemo("Ada", "ada@acme.com", "Acme")
-		if _, err := s.ExtendDemo(org.Slug); !errors.Is(err, ErrNoExtension) {
+		_, org, _ := s.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")
+		if _, err := s.ExtendDemo(t.Context(), org.Slug); !errors.Is(err, ErrNoExtension) {
 			t.Errorf("a demo that is not ready is not extended: %v", err)
 		}
-		ready, _ := s.DemoReady(org.Slug)
+		ready, _ := s.DemoReady(t.Context(), org.Slug)
 		*now = now.Add(25 * time.Minute)
-		extended, err := s.ExtendDemo(org.Slug)
+		extended, err := s.ExtendDemo(t.Context(), org.Slug)
 		if err != nil || !extended.Expires.Equal(ready.Expires.Add(10*time.Minute)) || !extended.Extended {
 			t.Fatalf("%+v %v", extended, err)
 		}
-		if _, err := s.ExtendDemo(org.Slug); !errors.Is(err, ErrNoExtension) {
+		if _, err := s.ExtendDemo(t.Context(), org.Slug); !errors.Is(err, ErrNoExtension) {
 			t.Errorf("one extension: %v", err)
 		}
-		if lead, _ := s.LeadOf(org.Slug); !lead.Extended {
+		if lead, _ := s.LeadOf(t.Context(), org.Slug); !lead.Extended {
 			t.Error("the lead says it was extended")
 		}
 		late, lateNow := clocked(t, demoSet)
-		_, other, _ := late.StartDemo("Bob", "bob@acme.com", "Acme")
-		late.DemoReady(other.Slug)
+		_, other, _ := late.StartDemo(t.Context(), "Bob", "bob@acme.com", "Acme")
+		late.DemoReady(t.Context(), other.Slug)
 		*lateNow = lateNow.Add(time.Hour)
-		if _, err := late.ExtendDemo(other.Slug); !errors.Is(err, ErrNoExtension) {
+		if _, err := late.ExtendDemo(t.Context(), other.Slug); !errors.Is(err, ErrNoExtension) {
 			t.Errorf("a demo that has ended is not brought back: %v", err)
 		}
 	})
@@ -137,20 +139,20 @@ func TestADemoIsExtendedOnceAndOnlyWhileItHasTime(t *testing.T) {
 func TestADemoIsDueWhenItsTimeIsUpOrItWasNeverReadyAndNoOtherOrganizationIs(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, now := clocked(t, demoSet)
-		_, running, _ := s.StartDemo("Ada", "ada@acme.com", "Acme")
-		_, waiting, _ := s.StartDemo("Bob", "bob@globex.com", "Globex")
-		_, real, _ := s.SignUp(Signup{Email: "cy@initech.com", OrgName: "Initech"})
-		s.DemoReady(running.Slug)
-		if due, _ := s.DemosDue(); len(due) != 0 {
+		_, running, _ := s.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")
+		_, waiting, _ := s.StartDemo(t.Context(), "Bob", "bob@globex.com", "Globex")
+		_, real, _ := s.SignUp(t.Context(), Signup{Email: "cy@initech.com", OrgName: "Initech"})
+		s.DemoReady(t.Context(), running.Slug)
+		if due, _ := s.DemosDue(t.Context()); len(due) != 0 {
 			t.Fatalf("nothing is due yet: %v", due)
 		}
 		*now = now.Add(11 * time.Minute)
-		due, _ := s.DemosDue()
+		due, _ := s.DemosDue(t.Context())
 		if len(due) != 1 || due[waiting.Slug] != "it was never ready" {
 			t.Errorf("a demo that waited too long for a server: %v", due)
 		}
 		*now = now.Add(time.Hour)
-		due, _ = s.DemosDue()
+		due, _ = s.DemosDue(t.Context())
 		if due[running.Slug] != "its time was up" || len(due) != 2 {
 			t.Errorf("%v", due)
 		}
@@ -163,26 +165,26 @@ func TestADemoIsDueWhenItsTimeIsUpOrItWasNeverReadyAndNoOtherOrganizationIs(t *t
 func TestEndingADemoDeletesItsOrganizationAndPeopleKeepsTheLeadAndFreesTheAddress(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, now := clocked(t, demoSet)
-		person, org, _ := s.StartDemo("Ada", "ada@acme.com", "Acme")
-		s.DemoReady(org.Slug)
+		person, org, _ := s.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")
+		s.DemoReady(t.Context(), org.Slug)
 		*now = now.Add(31 * time.Minute)
-		if err := s.EndDemo(org.Slug, "its time was up"); err != nil {
+		if err := s.EndDemo(t.Context(), org.Slug, "its time was up"); err != nil {
 			t.Fatal(err)
 		}
-		if _, found, _ := s.Org(org.Slug); found {
+		if _, found, _ := s.Org(t.Context(), org.Slug); found {
 			t.Error("the organization is still there")
 		}
 		if _, err := os.Stat(s.OrgDir(org.Slug)); err == nil {
 			t.Error("its directory is still there")
 		}
-		if _, found, _ := s.Person(person.Email); found {
+		if _, found, _ := s.only(t.Context(), person.Email); found {
 			t.Error("the person is still there")
 		}
-		lead, found := s.LeadOf(org.Slug)
+		lead, found := s.LeadOf(t.Context(), org.Slug)
 		if !found || lead.Reason != "its time was up" || !lead.Ended.Equal(*now) || lead.Email != "ada@acme.com" {
 			t.Errorf("%+v", lead)
 		}
-		if _, _, err := s.StartDemo("Ada", "ada@acme.com", "Acme"); err != nil {
+		if _, _, err := s.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme"); err != nil {
 			t.Errorf("the address can start another: %v", err)
 		}
 	})
@@ -191,17 +193,17 @@ func TestEndingADemoDeletesItsOrganizationAndPeopleKeepsTheLeadAndFreesTheAddres
 func TestEndingAnOrganizationThatIsNotADemoIsRefusedAndDeletesNothing(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, _ := clocked(t, demoSet)
-		person, org, _ := s.SignUp(Signup{Email: "cy@initech.com", OrgName: "Initech"})
-		if err := s.EndDemo(org.Slug, "a mistake"); err == nil {
+		person, org, _ := s.SignUp(t.Context(), Signup{Email: "cy@initech.com", OrgName: "Initech"})
+		if err := s.EndDemo(t.Context(), org.Slug, "a mistake"); err == nil {
 			t.Fatal("a real organization was ended as a demo")
 		}
-		if _, found, _ := s.Org(org.Slug); !found {
+		if _, found, _ := s.Org(t.Context(), org.Slug); !found {
 			t.Error("the organization was deleted")
 		}
-		if _, found, _ := s.Person(person.Email); !found {
+		if _, found, _ := s.only(t.Context(), person.Email); !found {
 			t.Error("the person was deleted")
 		}
-		if err := s.EndDemo("nobody", "x"); err == nil {
+		if err := s.EndDemo(t.Context(), "nobody", "x"); err == nil {
 			t.Error("an organization that is not there was ended")
 		}
 	})
@@ -214,7 +216,7 @@ func TestOnlyAsManyDemosRunAtOnceAsTheHostAllows(t *testing.T) {
 		s, _ := clocked(t, set)
 		var first Org
 		for i, email := range []string{"a@one.com", "b@two.com"} {
-			_, org, err := s.StartDemo("Person", email, "Company")
+			_, org, err := s.StartDemo(t.Context(), "Person", email, "Company")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -222,11 +224,11 @@ func TestOnlyAsManyDemosRunAtOnceAsTheHostAllows(t *testing.T) {
 				first = org
 			}
 		}
-		if _, _, err := s.StartDemo("Person", "c@three.com", "Company"); !errors.Is(err, ErrDemoFull) {
+		if _, _, err := s.StartDemo(t.Context(), "Person", "c@three.com", "Company"); !errors.Is(err, ErrDemoFull) {
 			t.Errorf("%v", err)
 		}
-		s.EndDemo(first.Slug, "its time was up")
-		if _, _, err := s.StartDemo("Person", "c@three.com", "Company"); err != nil {
+		s.EndDemo(t.Context(), first.Slug, "its time was up")
+		if _, _, err := s.StartDemo(t.Context(), "Person", "c@three.com", "Company"); err != nil {
 			t.Errorf("a demo that ended makes room: %v", err)
 		}
 	})
@@ -237,27 +239,27 @@ func TestDemosCanBePausedAndAreLimitedInADay(t *testing.T) {
 		set := demoSet
 		set.Demo.PerDay = 2
 		s, now := clocked(t, set)
-		if _, _, err := s.StartDemo("A", "a@one.com", "One"); err != nil {
+		if _, _, err := s.StartDemo(t.Context(), "A", "a@one.com", "One"); err != nil {
 			t.Fatal(err)
 		}
-		if err := s.SetDemosPaused(true); err != nil {
+		if err := s.SetDemosPaused(t.Context(), true); err != nil {
 			t.Fatal(err)
 		}
-		if _, _, err := s.StartDemo("B", "b@two.com", "Two"); !errors.Is(err, ErrDemoPaused) {
+		if _, _, err := s.StartDemo(t.Context(), "B", "b@two.com", "Two"); !errors.Is(err, ErrDemoPaused) {
 			t.Errorf("a paused host started one: %v", err)
 		}
-		s.SetDemosPaused(false)
-		if _, _, err := s.StartDemo("B", "b@two.com", "Two"); err != nil {
+		s.SetDemosPaused(t.Context(), false)
+		if _, _, err := s.StartDemo(t.Context(), "B", "b@two.com", "Two"); err != nil {
 			t.Fatal(err)
 		}
-		if _, _, err := s.StartDemo("C", "c@three.com", "Three"); !errors.Is(err, ErrDemoDaily) {
+		if _, _, err := s.StartDemo(t.Context(), "C", "c@three.com", "Three"); !errors.Is(err, ErrDemoDaily) {
 			t.Errorf("the day's limit: %v", err)
 		}
 		*now = now.Add(24 * time.Hour)
-		if _, _, err := s.StartDemo("C", "c@three.com", "Three"); err != nil {
+		if _, _, err := s.StartDemo(t.Context(), "C", "c@three.com", "Three"); err != nil {
 			t.Errorf("a new day has room: %v", err)
 		}
-		if s.DemosPaused() {
+		if s.DemosPaused(t.Context()) {
 			t.Error("paused after it was resumed")
 		}
 	})
@@ -269,9 +271,9 @@ func TestOneAddressAndOneCompanyGetOnlySoManyDemosInADayAndTheCountSurvivesTheDe
 		set.Demo.PerPerson, set.Demo.PerCompany = 2, 3
 		s, now := clocked(t, set)
 		start := func(name, email string) error {
-			_, org, err := s.StartDemo(name, email, "Acme")
+			_, org, err := s.StartDemo(t.Context(), name, email, "Acme")
 			if err == nil {
-				err = s.EndDemo(org.Slug, "its time was up")
+				err = s.EndDemo(t.Context(), org.Slug, "its time was up")
 			}
 			return err
 		}
@@ -280,16 +282,16 @@ func TestOneAddressAndOneCompanyGetOnlySoManyDemosInADayAndTheCountSurvivesTheDe
 				t.Fatal(err)
 			}
 		}
-		if _, _, err := s.StartDemo("Ada", "Ada@Acme.com", "Acme"); !errors.Is(err, ErrDemoRepeat) {
+		if _, _, err := s.StartDemo(t.Context(), "Ada", "Ada@Acme.com", "Acme"); !errors.Is(err, ErrDemoRepeat) {
 			t.Fatalf("a third demo for one address, in another case, after the others were deleted: %v", err)
 		}
-		if _, _, err := s.StartDemo("Ada", "ada+again@acme.com", "Acme"); !errors.Is(err, ErrDemoRepeat) {
+		if _, _, err := s.StartDemo(t.Context(), "Ada", "ada+again@acme.com", "Acme"); !errors.Is(err, ErrDemoRepeat) {
 			t.Fatalf("a tag on the name made a new address: %v", err)
 		}
 		if err := start("Bo", "bo@acme.com"); err != nil {
 			t.Fatalf("a colleague has demos of their own: %v", err)
 		}
-		if _, _, err := s.StartDemo("Cy", "cy@acme.com", "Acme"); !errors.Is(err, ErrDemoRepeat) {
+		if _, _, err := s.StartDemo(t.Context(), "Cy", "cy@acme.com", "Acme"); !errors.Is(err, ErrDemoRepeat) {
 			t.Errorf("a fourth demo for one company: %v", err)
 		}
 		if err := start("Di", "di@other.com"); err != nil {
@@ -306,11 +308,47 @@ func TestADemoLimitOfZeroIsNoLimit(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, _ := clocked(t, demoSet)
 		for i := range 5 {
-			_, org, err := s.StartDemo("Ada", "ada@acme.com", "Acme")
+			_, org, err := s.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")
 			if err != nil {
 				t.Fatalf("demo %d: %v", i, err)
 			}
-			s.EndDemo(org.Slug, "its time was up")
+			s.EndDemo(t.Context(), org.Slug, "its time was up")
+		}
+	})
+}
+
+// A demo whose directory holds files this process may not remove still ends: the directory goes to the trash, which a task that
+// runs as root empties, and the demo no longer counts against the demos that may run at once.
+func TestADemoWithFilesGustoCloudCannotRemoveStillEnds(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s, now := clocked(t, demoSet)
+		_, org, _ := s.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")
+		locked := filepath.Join(s.DataDir(org.Slug), "jobs", "a-turn", "workspace")
+		if err := os.MkdirAll(locked, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(locked, "made-by-root"), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(locked, 0o555); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			filepath.WalkDir(s.TrashDir(), func(path string, _ fs.DirEntry, _ error) error { return os.Chmod(path, 0o755) })
+		})
+		*now = now.Add(time.Minute)
+		if err := s.EndDemo(t.Context(), org.Slug, "its time was up"); err != nil {
+			t.Fatal(err)
+		}
+		if _, found, _ := s.Org(t.Context(), org.Slug); found {
+			t.Error("the demo is still there")
+		}
+		if _, err := os.Stat(s.OrgDir(org.Slug)); !os.IsNotExist(err) {
+			t.Errorf("its directory is still in place: %v", err)
+		}
+		trash, _ := os.ReadDir(s.TrashDir())
+		if len(trash) != 1 || !strings.HasPrefix(trash[0].Name(), org.Slug+"-") {
+			t.Errorf("%v", trash)
 		}
 	})
 }

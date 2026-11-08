@@ -39,7 +39,7 @@ A git address must be https with no user name or password. Its host must not res
 
 ## Using them
 
-The Integrations page (`/admin/integrations`) is for administrators. It imports from a git address or an upload, lists each integration's versions and sources, shows what a version holds and leaves out, and turns a version on, turns the integration off, or restores the earlier version. Choosing another version shows what would change. Each import and change is in the change record.
+The Skills tab of Apps & skills (`/admin/apps?tab=skills`) is for administrators. It imports from a git address or an upload, lists each integration's versions and sources, shows what a version holds and leaves out, and turns a version on, turns the integration off, or restores the earlier version. Choosing another version shows what would change. Each import and change is in the change record.
 
 `GUSTO_INTEGRATIONS` is the directory, a stamped data directory ([UPGRADE.md](UPGRADE.md)). `GUSTO_INTEGRATIONS_PRIVATE=1` lets a git address be on a private network. The server needs `git`, which its image has.
 

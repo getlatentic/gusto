@@ -50,12 +50,20 @@ const (
 	MemberInvited    = "member.invited"
 	MemberRole       = "member.role"
 	MemberRemoved    = "member.removed"
+	WorkspaceMade    = "workspace.made"
+	WorkspaceRenamed = "workspace.renamed"
+	WorkspaceAdded   = "workspace.member.added"
+	WorkspaceLeft    = "workspace.member.removed"
 	BudgetSet        = "budget.set"
+	MemberBudgetSet  = "budget.member.set"
 	ChatDefaultSet   = "chat.default"
+	RunTokensSet     = "runs.tokens"
 	SandboxConfirmed = "sandbox.confirmed"
 	ProviderAdded    = "provider.added"
 	ProviderRetired  = "provider.retired"
 	KeyReplaced      = "provider.key"
+	AddressAdded     = "provider.address.added"
+	AddressRemoved   = "provider.address.removed"
 	ModelAdded       = "model.added"
 	ModelRetired     = "model.retired"
 	PriceSet         = "model.price"
@@ -76,14 +84,30 @@ const (
 	IntegrationRestored = "integration.restored"
 	IntegrationPrograms = "integration.programs"
 	IntegrationScoped   = "integration.scoped"
+
+	ConnectorEnabled      = "connector.enabled"
+	ConnectorDisabled     = "connector.disabled"
+	ConnectorConnected    = "connector.connected"
+	ConnectorDisconnected = "connector.disconnected"
+	// ConnectorsLetInRoom is a room's agents let use a member's apps, which the record still holds from when rooms decided it.
+	ConnectorsLetInRoom = "connector.room"
+	ConnectorsLetAgent  = "connector.agent"
+	ConnectorForAgents  = "connector.default"
+
+	RoomGuidelines = "room.guidelines"
+	RoomArchived   = "room.archived"
+	RoomMuted      = "room.muted"
+	PersonBio      = "person.bio"
+	// HomeReset is a person removing the home their agents keep between tasks, with what it held.
+	HomeReset = "home.reset"
 )
 
-// FromFrontDoor says whether a kind of event is one that an organization's front
+// FromCloud says whether a kind of event is one that an organization's front
 // door reports. Only these are taken from its inbox: what else is in the record was
 // written by this server about itself.
-func FromFrontDoor(kind string) bool {
+func FromCloud(kind string) bool {
 	switch kind {
-	case MemberInvited, MemberRole, MemberRemoved:
+	case MemberInvited, MemberRole, MemberRemoved, WorkspaceMade, WorkspaceRenamed, WorkspaceAdded, WorkspaceLeft:
 		return true
 	}
 	return false
@@ -216,6 +240,10 @@ type Log struct {
 	// taken is the inbox files whose events are in the log.
 	taken map[string]bool
 	now   func() time.Time
+	// size is how many bytes of the file are whole lines, which a failed write is cut back to.
+	size int64
+	// broken is why the log takes no more events: a failed write could not be cut back.
+	broken error
 }
 
 // Open reads the log at path, refusing one that does not hold together, and
@@ -227,6 +255,9 @@ func Open(path string, signer signing.Signer, keyring signing.Keyring) (*Log, er
 		return nil, err
 	}
 	l := &Log{path: path, signer: signer, roles: map[string]string{}, start: map[string]string{}, taken: map[string]bool{}, now: time.Now}
+	if err := repairTail(path); err != nil {
+		return nil, err
+	}
 	if err := l.load(path, keyring); err != nil {
 		return nil, err
 	}
@@ -234,7 +265,12 @@ func Open(path string, signer signing.Signer, keyring signing.Keyring) (*Log, er
 	if err != nil {
 		return nil, err
 	}
-	l.file = file
+	info, err := file.Stat()
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+	l.file, l.size = file, info.Size()
 	return l, nil
 }
 
@@ -317,15 +353,34 @@ func (l *Log) Append(e Event) (Event, error) {
 	if err != nil {
 		return Event{}, err
 	}
-	if _, err := l.file.Write(append(text, '\n')); err != nil {
-		return Event{}, err
+	if l.broken != nil {
+		return Event{}, l.broken
+	}
+	line := append(text, '\n')
+	if _, err := l.file.Write(line); err != nil {
+		return Event{}, l.rollback(err)
 	}
 	if err := l.file.Sync(); err != nil {
-		return Event{}, err
+		return Event{}, l.rollback(err)
 	}
+	l.size += int64(len(line))
 	l.seq, l.head = e.Seq, e.Hash
 	l.learn(e)
 	return e, nil
+}
+
+// rollback cuts the file back to its whole lines after a write or a sync failed, so the next event is not written after part
+// of this one, or with its number again. A log that cannot be cut back takes no more events: Open repairs it when the server
+// starts again. spec/AppendLog.tla is the model.
+func (l *Log) rollback(failed error) error {
+	err := l.file.Truncate(l.size)
+	if err == nil {
+		err = l.file.Sync()
+	}
+	if err != nil {
+		l.broken = fmt.Errorf("the change log could not be cut back after a failed write, and takes no more events until the server starts again: %w", err)
+	}
+	return failed
 }
 
 // LastRole is the role somebody last signed in with, and whether they ever had.

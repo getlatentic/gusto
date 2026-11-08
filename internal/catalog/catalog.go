@@ -11,6 +11,7 @@ import (
 	"sort"
 
 	"github.com/getlatentic/gusto/pkg/harness"
+	"github.com/getlatentic/gusto/pkg/wire"
 )
 
 // Entry is one agent, as a person choosing has to see it.
@@ -36,6 +37,8 @@ type Entry struct {
 	Measured []Measured
 	// Version is the agent's build, package@version, where the image recorded one.
 	Version string
+	// Shape is the API the agent calls a model in, which decides the credentials that can serve it.
+	Shape wire.Shape
 }
 
 // What an agent needs, said plainly rather than as a keyword.
@@ -104,6 +107,7 @@ func entryOf(name string, adapter harness.Adapter, carried Carried) Entry {
 		MCP:      adapter.TakesMCP(),
 		Declared: carried.Declares(name),
 		Version:  carried.Versions[name],
+		Shape:    adapter.Shape(),
 	}
 	entry.Ready, entry.Why = carried.Runs(name, adapter.Installed())
 	if carried.Machine && !entry.Ready {
@@ -120,7 +124,10 @@ func entryOf(name string, adapter harness.Adapter, carried Carried) Entry {
 
 // notInstalled is how a person installs an agent that is not on their computer.
 func notInstalled(adapter harness.Adapter) string {
-	if adapter.Package == "" {
+	switch {
+	case adapter.Download != "" && adapter.Install() == "":
+		return adapter.Installed() + " is not installed on this computer: install it from " + adapter.Download
+	case adapter.Package == "":
 		return adapter.Installed() + " is not installed on this computer"
 	}
 	return "npm install -g " + adapter.Install()

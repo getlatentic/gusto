@@ -1,0 +1,12 @@
+[Unit]
+Description=The host's own disk, for what the gateway keeps of each sandbox
+After=local-fs.target
+Before=openshell-gateway.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/gusto-scratch
+
+[Install]
+RequiredBy=openshell-gateway.service

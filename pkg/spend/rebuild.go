@@ -8,9 +8,10 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Rebuild reads every task under root back into a ledger, so a server that
@@ -22,7 +23,7 @@ func Rebuild(root string, policy Policy) (*Ledger, error) {
 
 // RebuildWhere reads back only the tasks keep names, which is how a person's own
 // spend is told apart from everybody's. A nil keep reads them all.
-func RebuildWhere(root string, policy Policy, keep func(job string) bool) (*Ledger, error) {
+func RebuildWhere(root string, policy Policy, keep func(task string) bool) (*Ledger, error) {
 	ledger := NewLedger(policy)
 	listing, err := os.ReadDir(root)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -35,8 +36,8 @@ func RebuildWhere(root string, policy Policy, keep func(job string) bool) (*Ledg
 		if !entry.IsDir() || (keep != nil && !keep(entry.Name())) {
 			continue
 		}
-		dir := job.Dir(filepath.Join(root, entry.Name()))
-		spec, err := job.Read(dir)
+		dir := task.Dir(filepath.Join(root, entry.Name()))
+		spec, err := task.Read(dir)
 		if err != nil {
 			continue
 		}
@@ -89,9 +90,16 @@ func dated(path string) ([]Call, error) {
 // TermsOf is what a task's spec allows it to spend, and where it is reported.
 // A task's project is the repository it worked in: the one thing every task
 // already names that a platform lead would group spend by.
-func TermsOf(spec job.Spec) Terms {
-	return Terms{Team: spec.Team, Project: spec.Repo, Harness: spec.Harness, CapUSD: spec.Budget.USD}
+func TermsOf(spec task.Spec) Terms {
+	terms := Terms{Team: spec.Team, Project: spec.Repo, Harness: spec.Harness, CapUSD: spec.Budget.USD, Person: strings.ToLower(spec.Person)}
+	if spec.Session != "" && spec.Agent != "" {
+		terms.Allowance, terms.AllowanceUSD = AllowanceOf(spec.Session, spec.Agent), spec.Budget.MonthUSD
+	}
+	return terms
 }
+
+// AllowanceOf is the name a room's agent's spending in the room is counted under.
+func AllowanceOf(room, agent string) string { return room + "/" + agent }
 
 // ReadCalls is every call a task's proxy record holds. A missing file is a task
 // that never reached the proxy. A line that is not a call is passed over and

@@ -39,15 +39,19 @@ type usageView struct {
 	Figures  usageFigures
 	Rows     []usageRow
 	Columns  []usageColumn
-	// ShowWho is whether more than one person is in the table, so a column naming them says something.
-	ShowWho      bool
-	Filtered     bool
+	States   []usageState
+	// ShowWho is whether the table is everyone's or holds more than one asker, so a column naming them says something.
+	ShowWho  bool
+	Filtered bool
+	// Clear is the page with no filter, on the same view.
+	Clear        string
 	Newest, Next string
 	Export       string
 }
 
 type usageFigures struct {
 	Spent, SpentCaption, In, Out, Cache string
+	Unpriced                            string
 	Calls, Refused                      int64
 }
 
@@ -60,10 +64,13 @@ type usageColumn struct {
 type usageRow struct {
 	ID, Title, Href, Record, Last, LastFull string
 	Person, Agent, Engine, Harness          string
-	Providers, Models                       string
-	Cost, Unpriced, In, Out, Cache          string
-	Calls, Refused                          int64
-	MoreTasks                               int
+	// Asked is who asked for the conversation's latest turn, and Owner whose agent it is, which is who pays for its calls.
+	Asked, Owner                   string
+	Providers, Models              string
+	Cost, Unpriced, In, Out, Cache string
+	Calls, Refused                 int64
+	// Turns is how many tasks the conversation's calls came from, so a row that adds up several reads as a total.
+	Turns int
 }
 
 func (s *Server) usagePage(base string, console bool) http.HandlerFunc {
@@ -72,6 +79,10 @@ func (s *Server) usagePage(base string, console bool) http.HandlerFunc {
 
 func (s *Server) showUsage(w http.ResponseWriter, r *http.Request, base string, console bool) {
 	page := map[string]any{"Title": productName + " — usage", "Base": base, "Tabs": tabsFor(console, "tasks")}
+	// A person sees their own month against their budget before they reach it.
+	if mine := s.memberBudgetOf(s.askerName(r)); !console && mine.Set {
+		page["Mine"] = mine
+	}
 	if s.usage.store == nil {
 		s.drawUsage(w, "usage.html", console, page)
 		return
@@ -111,23 +122,11 @@ func (s *Server) viewUsage(r *http.Request, query usageQuery, base string) (usag
 	}
 	facets = chosenIn(facets, query.Values)
 	view := usageView{Query: query, Values: query.Values, Everyone: person == "", Facets: facets, Building: s.usage.building(),
-		Figures: figuresOf(totals), Rows: rowsOf(sessions, base), Columns: columnsOf(query, base),
-		Export: query.link("/api/usage.csv", map[string]string{"sort": "", "dir": "", "limit": "", "after": ""})}
-	people := map[string]bool{}
-	for i := range view.Rows {
-		view.Rows[i].Harness = s.harnessOf(view.Rows[i].Engine)
-		if task, found := s.index.Get(strings.TrimPrefix(view.Rows[i].Record, "/jobs/")); found {
-			view.Rows[i].Title = task.Brief
-		}
-		people[view.Rows[i].Person] = true
-	}
-	if view.ShowWho = len(people) > 1; !view.ShowWho {
-		view.Columns = slices.DeleteFunc(view.Columns, func(column usageColumn) bool { return column.Label == "Who" })
-	}
-	for _, name := range usageFields {
-		if name != "person" || person == "" {
-			view.Filtered = view.Filtered || query.Values.Get(name) != ""
-		}
+		Figures: figuresOf(totals, query.Values), Rows: rowsOf(sessions, base), Columns: columnsOf(query, base),
+		Export: query.link("/api/usage.csv", map[string]string{"sort": "", "dir": "", "limit": "", "after": ""}),
+		States: s.usageStates(query, base), Filtered: filteredBeyond(query.Values, person), Clear: clearedOf(query.Values, base)}
+	if view.ShowWho = s.describeRows(view.Rows) > 1 || view.Everyone; !view.ShowWho {
+		view.Columns = slices.DeleteFunc(view.Columns, func(column usageColumn) bool { return column.Label == askedBy })
 	}
 	if query.Page.After != "" {
 		view.Newest = query.link(base, map[string]string{"after": ""})
@@ -138,9 +137,9 @@ func (s *Server) viewUsage(r *http.Request, query usageQuery, base string) (usag
 	return view, nil
 }
 
-func figuresOf(t usage.Totals) usageFigures {
-	spent, caption := usageSpent(t)
-	return usageFigures{Spent: spent, SpentCaption: caption, Calls: t.Calls, Refused: t.Refused, In: compact(t.InputTokens),
+func figuresOf(t usage.Totals, values url.Values) usageFigures {
+	spent, caption := usageSpent(t, usagePeriod(values))
+	return usageFigures{Spent: spent, SpentCaption: caption, Unpriced: unpricedNote(t), Calls: t.Calls, Refused: t.Refused, In: compact(t.InputTokens),
 		Out: compact(t.OutputTokens), Cache: cacheRate(t.CachedTokens, t.InputTokens)}
 }
 
@@ -155,8 +154,8 @@ func columnsOf(query usageQuery, base string) []usageColumn {
 		}
 		return column
 	}
-	return []usageColumn{sortable("Last request", "last"), {Label: "Task"}, {Label: "Who"}, {Label: "Agent"},
-		sortable("Cost", "cost"), {Label: "Model"}, sortable("Tokens", "tokens")}
+	return []usageColumn{sortable("Last request", "last"), {Label: "Conversation"}, {Label: askedBy}, {Label: "Agent · owner"},
+		sortable("Cost", "cost"), {Label: "Model"}}
 }
 
 func rowsOf(sessions []usage.Session, base string) []usageRow {
@@ -168,7 +167,7 @@ func rowsOf(sessions []usage.Session, base string) []usageRow {
 			In: compact(each.InputTokens), Out: compact(each.OutputTokens), Cache: cacheRate(each.CachedTokens, each.InputTokens)}
 		row.Cost, row.Unpriced = costOf(each.Totals)
 		if n := len(each.Tasks); n > 0 {
-			row.Record, row.MoreTasks = "/jobs/"+url.PathEscape(each.Tasks[n-1]), n-1
+			row.Record, row.Turns = "/jobs/"+url.PathEscape(each.Tasks[n-1]), n
 		}
 		rows = append(rows, row)
 	}
@@ -184,7 +183,7 @@ func costOf(t usage.Totals) (cost, unpriced string) {
 	case t.Unmeasured == t.Calls:
 		return "no price", ""
 	}
-	return headlineUSD(t.USD), fmt.Sprintf("+ %d with no price", t.Unmeasured)
+	return headlineUSD(t.USD), fmt.Sprintf("+ %d %s with no price", t.Unmeasured, plural(int(t.Unmeasured), "call"))
 }
 
 // usageFacets are the values the selects offer: those of the person's own calls, in the dates asked for.

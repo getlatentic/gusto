@@ -8,26 +8,26 @@ import (
 	"sort"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
-// Jobs is what a sweep reads tasks from and removes them through. The server
+// Tasks is what a sweep reads tasks from and removes them through. The server
 // gives its index, so what it holds in memory follows what is on disk; a
 // dry run over Scan never removes anything.
-type Jobs interface {
-	List() []jobs.Record
+type Tasks interface {
+	List() []tasks.Record
 	Remove(id string) error
 }
 
-// Kind is what a sweep removed of a job.
+// Kind is what a sweep removed of a task.
 const (
-	Workspace = "workspace"
-	Record    = "record"
+	WorkingFolder = "workspace"
+	Record        = "record"
 )
 
 // Action is one removal, made or, in a dry run, planned.
 type Action struct {
-	Job   string `json:"job"`
+	Task  string `json:"job"`
 	Brief string `json:"brief"`
 	Kind  string `json:"kind"`
 	State string `json:"state"`
@@ -59,14 +59,13 @@ func (r Report) Removed(kind string) int {
 	return n
 }
 
-// Sweep removes what the policy says is due. It touches only tasks that ended
-// and that no agent owns: a task on an agent belongs to that agent's
-// conversation, and goes when the agent does. A task with a hold is skipped, and
-// so is one asked for by somebody with a hold.
-func Sweep(all Jobs, root string, policy Policy, holds Held, now time.Time, dry bool) Report {
+// Sweep removes what the policy says is due. It touches only tasks that ended, and not a turn of a room that live says is still
+// kept: that turn belongs to the room's conversation. A turn of a room that was removed is swept like any task. A task with a
+// hold is skipped, and so is one asked for by somebody with a hold; holds says so at the moment of each removal.
+func Sweep(all Tasks, root string, policy Policy, holds Guard, live func(room string) bool, now time.Time, dry bool) Report {
 	report := Report{At: now.Unix(), Dry: dry}
 	for _, record := range all.List() {
-		if !record.State.Done() || record.Instance != "" {
+		if !record.State.Done() || (record.Instance != "" && (live == nil || live(record.Instance))) {
 			continue
 		}
 		days := daysSince(record, now)
@@ -74,25 +73,32 @@ func Sweep(all Jobs, root string, policy Policy, holds Held, now time.Time, dry 
 		if kind == "" {
 			continue
 		}
-		if _, held := holds.Covers(record); held {
-			report.Held = append(report.Held, record.ID)
-			continue
-		}
-		action := Action{Job: record.ID, Brief: record.Brief, Kind: kind, State: string(record.State), Days: days}
+		action := Action{Task: record.ID, Brief: record.Brief, Kind: kind, State: string(record.State), Days: days}
 		target := filepath.Join(root, record.ID)
-		if kind == Workspace {
+		if kind == WorkingFolder {
 			target = filepath.Join(target, "workspace")
 		}
 		action.Bytes = size(target)
-		if kind == Workspace && action.Bytes == 0 {
+		if kind == WorkingFolder && action.Bytes == 0 {
 			continue
 		}
-		if !dry {
-			if err := remove(all, record, kind, target); err != nil {
-				action.Failed = err.Error()
-			} else {
-				report.Freed += action.Bytes
+		var failed error
+		held, err := holds.UnlessHeld(record, func() error {
+			if !dry {
+				failed = remove(all, record, kind, target)
 			}
+			return nil
+		})
+		switch {
+		case err != nil:
+			action.Failed = "the holds could not be read: " + err.Error()
+		case held:
+			report.Held = append(report.Held, record.ID)
+			continue
+		case failed != nil:
+			action.Failed = failed.Error()
+		case !dry:
+			report.Freed += action.Bytes
 		}
 		report.Actions = append(report.Actions, action)
 	}
@@ -100,30 +106,30 @@ func Sweep(all Jobs, root string, policy Policy, holds Held, now time.Time, dry 
 	return report
 }
 
-// due is what the policy says a job has outlived, the record first because it
-// takes the workspace with it.
-func due(policy Policy, record jobs.Record, days int) string {
+// due is what the policy says a task has outlived, the record first because it
+// takes the working folder with it.
+func due(policy Policy, record tasks.Record, days int) string {
 	state := string(record.State)
 	if limit := policy.RecordDays[state]; limit > 0 && days >= limit {
 		return Record
 	}
-	if limit := policy.WorkspaceDays[state]; limit > 0 && days >= limit {
-		return Workspace
+	if limit := policy.WorkingFolderDays[state]; limit > 0 && days >= limit {
+		return WorkingFolder
 	}
 	return ""
 }
 
 // remove takes a task's files and nothing from the usage index: its rows hold metadata and no content, and a rebuild
 // only adds what the files that remain hold.
-func remove(all Jobs, record jobs.Record, kind, target string) error {
+func remove(all Tasks, record tasks.Record, kind, target string) error {
 	if kind == Record {
 		return all.Remove(record.ID)
 	}
 	return os.RemoveAll(target)
 }
 
-// daysSince is whole days since the job ended, or was queued when it has no end.
-func daysSince(record jobs.Record, now time.Time) int {
+// daysSince is whole days since the task ended, or was queued when it has no end.
+func daysSince(record tasks.Record, now time.Time) int {
 	at := record.Ended
 	if at == 0 {
 		at = record.Queued
@@ -150,8 +156,8 @@ func size(path string) int64 {
 // command line while a server runs.
 type Scanned struct{ Root string }
 
-func (s Scanned) List() []jobs.Record {
-	all, _ := jobs.Scan(s.Root)
+func (s Scanned) List() []tasks.Record {
+	all, _ := tasks.Scan(s.Root)
 	return all
 }
 

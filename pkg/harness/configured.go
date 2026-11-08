@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Configured is an agent as a task runs it: the adapter, and the digest of the
@@ -30,7 +30,7 @@ type Configured struct {
 // runs on a runner that has never heard of it — in a container, on a fleet, on
 // somebody else's machine. That is the same reason everything else about a run
 // lives in the directory.
-func Open(dir job.Dir, name string) (Configured, error) {
+func Open(dir task.Dir, name string) (Configured, error) {
 	tree, home, err := find(dir, name)
 	if err != nil {
 		return Configured{}, err
@@ -38,7 +38,7 @@ func Open(dir job.Dir, name string) (Configured, error) {
 	return configure(dir, tree, home)
 }
 
-func find(dir job.Dir, name string) (Tree, string, error) {
+func find(dir task.Dir, name string) (Tree, string, error) {
 	for _, root := range roots(dir) {
 		tree, home, found, err := lookIn(root, name)
 		if err != nil || found {
@@ -53,14 +53,14 @@ func find(dir job.Dir, name string) (Tree, string, error) {
 }
 
 // Load the adapter a task names, from the configured agent Open finds.
-func Load(dir job.Dir, name string) (Adapter, error) {
+func Load(dir task.Dir, name string) (Adapter, error) {
 	configured, err := Open(dir, name)
 	return configured.Adapter, err
 }
 
 // Carrying reads the configured agent the task itself carries. Found is false
 // when it carries none, which is so for an agent built into every gusto.
-func Carrying(dir job.Dir, name string) (Configured, bool, error) {
+func Carrying(dir task.Dir, name string) (Configured, bool, error) {
 	tree, home, found, err := lookIn(Carried(dir), name)
 	if err != nil || !found {
 		return Configured{}, found, err
@@ -70,11 +70,11 @@ func Carrying(dir job.Dir, name string) (Configured, bool, error) {
 }
 
 // Carried is where the agents a task carries sit inside its directory.
-func Carried(dir job.Dir) string {
+func Carried(dir task.Dir) string {
 	return filepath.Join(dir.Path(), "harnesses")
 }
 
-func roots(dir job.Dir) []string {
+func roots(dir task.Dir) []string {
 	var roots []string
 	if dir != "" {
 		roots = append(roots, Carried(dir))
@@ -115,10 +115,10 @@ func folderTree(folder string) (Tree, string, bool, error) {
 }
 
 // configure takes the adapter and the digest from one reading. The digest
-// covers the setup the job carries as well, because skills and MCP servers
+// covers the setup the task carries as well, because skills and MCP servers
 // shape the harness as much as its own files do: the same adapter given two
 // setups is two configured harnesses.
-func configure(dir job.Dir, tree Tree, home string) (Configured, error) {
+func configure(dir task.Dir, tree Tree, home string) (Configured, error) {
 	text, found := tree.adapter()
 	if !found {
 		return Configured{}, fmt.Errorf("the agent at %s has no %s", home, AdapterFile)
@@ -149,7 +149,7 @@ func isFile(path string) bool {
 // next has all of it: a bare adapter as name.json, a directory as name/. The
 // one in GUSTO_HARNESSES is kept, because it is the one a runner here would
 // use; a built-in one is already everywhere, so it is not copied.
-func Keep(dir job.Dir, name string) error {
+func Keep(dir task.Dir, name string) error {
 	mine := os.Getenv("GUSTO_HARNESSES")
 	if mine != "" {
 		tree, _, found, err := lookIn(mine, name)
@@ -163,10 +163,10 @@ func Keep(dir job.Dir, name string) error {
 	return fmt.Errorf("no agent called %s in %s: %w", name, mine, fs.ErrNotExist)
 }
 
-// carry replaces whatever the job held for the harness. A copy left in the
+// carry replaces whatever the task held for the harness. A copy left in the
 // other form would sit beside this one, and Open refuses a harness offered
 // twice.
-func carry(dir job.Dir, name string, tree Tree, err error) error {
+func carry(dir task.Dir, name string, tree Tree, err error) error {
 	if err != nil {
 		return err
 	}

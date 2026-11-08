@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 
@@ -43,4 +44,13 @@ func open(t testing.TB, set Settings) *Store {
 		t.Fatal(err)
 	}
 	return s
+}
+
+// only is the membership of an address that is in one organization, which is what most tests make.
+func (s *Store) only(ctx context.Context, email string) (Person, bool, error) {
+	all, err := s.Memberships(ctx, email)
+	if err != nil || len(all) != 1 {
+		return Person{}, false, err
+	}
+	return all[0], true, nil
 }

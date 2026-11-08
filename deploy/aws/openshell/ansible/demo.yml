@@ -5,6 +5,8 @@
 - name: The public cloud on a demo host
   hosts: spike
   become: true
+  # The role reads no facts, and gathering them costs a host that is starting a second or two of a cold disk.
+  gather_facts: false
   vars_files:
     - roles/openshell/defaults/main.yml
   roles:

@@ -2,7 +2,7 @@
 
 {{template "ui-flash" .}}
 
-<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/new">Start an agent</a><span>/</span><span>{{.Harness.Title}}</span></nav>
+<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/presets">Start an agent</a><span>/</span><span>{{.Harness.Title}}</span></nav>
 <header class="mb-6 flex items-center gap-4">
   {{template "mark" (dict "Harness" .Harness.Name "Field" "" "Name" .Harness.Title "Size" "lg")}}
   <div class="min-w-0 flex-1">

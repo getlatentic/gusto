@@ -229,11 +229,18 @@ func (e *Engine) taken(p *picture) func(string) bool {
 }
 
 // Once looks at both sides, decides, and does it. What could not be done is in the report and is looked at again the next
-// time: a failed step is never recorded as done, so it is planned the same way again.
+// time: a failed step is never recorded as done, so it is planned the same way again. It holds the record while it runs, and
+// waits for another engine of the same pair of folders, as the helper's and a sync beside it are, to finish first.
 func (e *Engine) Once(ctx context.Context) (*Report, error) {
 	if err := refuseRoot(e.Root); err != nil {
 		return nil, err
 	}
+	state, held, err := e.State.hold(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer held.Release()
+	e.State = state
 	p, err := e.look(ctx)
 	if err != nil {
 		return nil, err

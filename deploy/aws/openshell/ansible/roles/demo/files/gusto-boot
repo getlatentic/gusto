@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs as root when a demo host starts, before nginx, gusto cloud and gusto host. What it does depends on ROLE:
+# Runs as root when a demo host starts, before nginx, gusto cloud and gusto node. What it does depends on ROLE:
 #
 #   all           a host that is the front door and runs the organizations' servers too
 #   orchestrator  the front door alone: the tokens, the certificate, the lease and the name
@@ -28,7 +28,7 @@ role=${ROLE:-all}
 export AWS_REGION AWS_DEFAULT_REGION=$AWS_REGION PATH=$PATH:/usr/local/bin:/snap/bin
 
 own() { [ -z "$owner" ] || chown -R "$owner:$owner" "$@"; }
-param() { aws ssm get-parameter --with-decryption --name "$1" --query Parameter.Value --output text; }
+param() { gusto param "$1"; }
 metadata() {
   local token
   token=$(curl -fsS -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')
@@ -101,9 +101,36 @@ runner_image() {
   fi
 }
 
+# A host whose organizations run their agents in containers has the runner image in Docker, tagged with its key, and no other runner
+# image: a kept host would otherwise keep every image it was ever given.
+container_image() {
+  local archive=$lib/runner.docker.tar.gz stale
+  if ! docker image inspect "gusto-runner:$IMAGE_KEY" >/dev/null 2>&1; then
+    aws s3 cp "s3://$BUCKET/image/$IMAGE_KEY.docker.tar.gz" "$archive.part" >/dev/null
+    docker load -q -i "$archive.part" >/dev/null
+    rm -f "$archive.part"
+    docker tag gusto-runner:latest "gusto-runner:$IMAGE_KEY"
+  fi
+  stale=$(docker images gusto-runner --format '{{.Tag}}' | grep -vx "$IMAGE_KEY" || true)
+  for tag in $stale; do docker rmi "gusto-runner:$tag" >/dev/null; done
+}
+
+# The images organizations' agents run in: a container's, and the root file system an OpenShell sandbox is made from, for each
+# kind of sandbox the host has (SANDBOXES).
+image() {
+  local sandbox
+  for sandbox in ${SANDBOXES:-${SANDBOX:-openshell}}; do
+    case "$sandbox" in
+    container) container_image ;;
+    openshell) runner_image ;;
+    *) echo "gusto-boot: a sandbox is container or openshell, not $sandbox" >&2; exit 2 ;;
+    esac
+  done
+}
+
 credentials() {
   rm -rf "$run/creds"
-  BEDROCK_PARAMETER=$MODEL_PARAMETER DEEPSEEK_PARAMETER=$DEEPSEEK_PARAMETER bash "${CREDENTIALS:-/usr/local/lib/gusto/credentials.sh}" "$run/creds"
+  READ_PARAMETER="gusto param" BEDROCK_PARAMETER=$MODEL_PARAMETER DEEPSEEK_PARAMETER=$DEEPSEEK_PARAMETER META_PARAMETER=${META_PARAMETER:-} bash "${CREDENTIALS:-/usr/local/lib/gusto/credentials.sh}" "$run/creds"
   chmod 0700 "$run/creds"
   own "$run/creds"
 }
@@ -132,7 +159,7 @@ cell_secret() {
 cell_identity() {
   local id
   id=$(metadata instance-id)
-  printf 'GUSTO_CELL_NAME=cell-%s\nGUSTO_CELL_PRIVATE=%s\n' "${id#i-}" "$(metadata local-ipv4)" > "$run/cell.env"
+  printf 'GUSTO_NODE_NAME=cell-%s\nGUSTO_NODE_PRIVATE=%s\n' "${id#i-}" "$(metadata local-ipv4)" > "$run/cell.env"
 }
 
 point_the_name_here() {
@@ -146,11 +173,11 @@ install -d -m 0755 "$run" "$lib"
 install -d -m 0700 "$run/secrets"
 case "$role" in
 all)
-  tokens; turnstile; lead_hook; certificate; runner_image; credentials; lease; point_the_name_here ;;
+  tokens; turnstile; lead_hook; certificate; image; credentials; lease; point_the_name_here ;;
 orchestrator)
   tokens; turnstile; lead_hook; cell_secret; certificate; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
 cell)
-  cell_secret; runner_image; credentials; cell_identity
+  cell_secret; image; credentials; cell_identity
   echo "gusto-boot: this host is a host of gusto cloud" ;;
 *)
   echo "gusto-boot: ROLE is all, orchestrator or cell, not $role" >&2; exit 2 ;;

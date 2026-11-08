@@ -36,7 +36,7 @@ if [ -z "${ONLY_CONFIGURE:-}" ]; then
   address="$(terraform output -raw address)"
   if ! aws s3api head-object --bucket "$bucket" --key "image/$image_key.tar.gz" >/dev/null 2>&1; then
     ./image.sh runner-all-rootfs "$harnesses"
-    ssh "${ssh_options[@]}" "ubuntu@$address" "AWS_REGION=$AWS_REGION /snap/bin/aws s3 cp ~/e2e/runner-all-rootfs.tar.gz s3://$bucket/image/$image_key.tar.gz --only-show-errors"
+    ssh "${ssh_options[@]}" "ubuntu@$address" "AWS_REGION=$AWS_REGION PATH=/snap/bin:/usr/local/bin:\$PATH aws s3 cp ~/e2e/runner-all-rootfs.tar.gz s3://$bucket/image/$image_key.tar.gz --only-show-errors"
   fi
 fi
 
@@ -44,7 +44,7 @@ mail="cloudflare://$DEMO_ACCOUNT_ID?from=$(python3 -c 'import sys,urllib.parse; 
 ansible-playbook -i "$state/inventory.ini" ansible/demo.yml \
   -e demo_name="$DEMO_NAME" -e demo_zone="$DEMO_ZONE" -e demo_bucket="$bucket" -e demo_image_key="$image_key" \
   -e demo_mail="$mail" -e demo_cert_email="$DEMO_CERT_EMAIL" -e demo_free_mail="${DEMO_FREE_MAIL:-allow}" \
-  -e demo_region="$AWS_REGION" -e demo_models="${DEMO_MODELS:-gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b,anthropic/deepseek-flash,deepseek/deepseek-flash}" \
+  -e demo_region="$AWS_REGION" -e demo_models="${DEMO_MODELS:-gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b,deepseek/deepseek-flash,meta/muse-spark-1.3}" \
   -e demo_computer_memory="${DEMO_COMPUTER_MEMORY:-3Gi}" \
   -e demo_lease_minutes="${DEMO_LEASE_MINUTES:-30}" -e demo_max_hours="${DEMO_MAX_HOURS:-4}"
 echo "configured at $started UTC: https://$DEMO_NAME. The host removes itself ${DEMO_LEASE_MINUTES:-30} minutes after it started unless it is extended at https://$DEMO_NAME/lease, and never runs past ${DEMO_MAX_HOURS:-4} hours. ./demo-down.sh removes it now."

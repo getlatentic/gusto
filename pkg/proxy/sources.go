@@ -9,9 +9,9 @@ import (
 // minted, held in memory, dropped when the task ends. A host that signs its tokens somewhere
 // else gives the proxy its own with UseTokens.
 type TokenSource interface {
-	// Job says what the token stands for, or that it stands for nothing. The same answer for a
+	// Task says what the token stands for, or that it stands for nothing. The same answer for a
 	// token that never existed and one that has ended, so a probe learns nothing.
-	Job(token string) (Ticket, bool)
+	Task(token string) (Ticket, bool)
 }
 
 // CredentialSource says which credential a ticket may spend, at the moment of a call. Credentials

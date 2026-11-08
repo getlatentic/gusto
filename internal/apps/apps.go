@@ -1,16 +1,19 @@
 // Package apps is the web apps that agents built and people shared, one file each. An app
-// belongs to an agent's workspace, and its record says where it is and whether it answers.
+// belongs to an agent's folder, and its record says where it is and whether it answers.
 package apps
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -25,20 +28,41 @@ const (
 	Starting State = "starting"
 	// Live is an app that answered, and is shared.
 	Live State = "live"
-	// Stopped is an app somebody stopped, or that stopped answering because its workspace stopped.
+	// Stopped is an app somebody stopped, or that stopped answering because its computer stopped.
 	Stopped State = "stopped"
 	// Failed is an app that did not answer, and the note says what its command wrote.
 	Failed State = "failed"
+	// Removing is an app somebody removed while it was starting. Its start stops what it started and removes it, or, after a
+	// restart, the server does when it starts: spec/AppPreview.tla is the model.
+	Removing State = "removing"
 )
 
-// App is a web app shared from an agent's workspace.
+// moves is where an app in each state may go. Failed, Stopped and Removing are ends: a start that failed or an app that stopped is
+// started again as a new app, and one being removed is only forgotten.
+var moves = map[State][]State{
+	Starting: {Live, Failed, Removing},
+	Live:     {Stopped, Removing},
+}
+
+func (from State) mayBecome(to State) bool { return from == to || slices.Contains(moves[from], to) }
+
+// ErrBadMove is a change that takes an app to a state it may not go to from the one it is in.
+var ErrBadMove = errors.New("an app may not change to that state from the one it is in")
+
+// ErrTooMany is an app refused because its agent already has as many starting or live as it may.
+var ErrTooMany = errors.New("the agent already shares as many apps as it may")
+
+// App is a web app shared from an agent's folder.
 type App struct {
 	ID       string `json:"id"`
 	Instance string `json:"instance"`
-	// Owner is the person whose agent and workspace it is.
-	Owner   string `json:"owner"`
-	Command string `json:"command"`
-	Port    int    `json:"port"`
+	// Owner is the person whose agent and folder it is, and Workspace the workspace of their computer it runs on, empty for the first.
+	Owner     string `json:"owner"`
+	Workspace string `json:"workspace,omitempty"`
+	Command   string `json:"command"`
+	Port      int    `json:"port"`
+	// Folder, for a page, is the folder of the agent's own that this server serves as it is, with no command run for it.
+	Folder  string `json:"folder,omitempty"`
 	Sandbox string `json:"sandbox,omitempty"`
 	// Host is the name the gateway knows the app by, and Target where the gateway is
 	// reached from this machine. Together they are how a request gets to it.
@@ -78,16 +102,72 @@ func Valid(id string) bool {
 	return err == nil
 }
 
-// New makes an app that is starting.
-func (s *Store) New(instance, owner, command string, port int) (App, error) {
+// Sharer is whose agent an app is shared from: its instance, the person whose agent it is, and the workspace it is in.
+type Sharer struct{ Instance, Owner, Workspace string }
+
+func (who Sharer) app() App {
+	return App{Instance: who.Instance, Owner: strings.ToLower(who.Owner), Workspace: workspace.Stored(who.Workspace)}
+}
+
+// New makes an app that is starting, when its agent has fewer than most starting or live.
+func (s *Store) New(who Sharer, command string, port, most int) (App, error) {
+	app := who.app()
+	app.Command, app.Port, app.State = command, port, Starting
+	return s.add(app, most)
+}
+
+// NewPage makes a page: a folder of the agent's served as it is, live at once, when its agent has fewer than most starting
+// or live. A folder that is already a live page of the agent is that page again, however many ask at once.
+func (s *Store) NewPage(who Sharer, folder string, most int) (App, error) {
+	app := who.app()
+	app.Folder, app.State = folder, Live
+	return s.add(app, most)
+}
+
+// add counts the agent's apps and writes the new one under one lock, so two added at once cannot both pass the count.
+func (s *Store) add(app App, most int) (App, error) {
 	raw := make([]byte, 5)
 	if _, err := rand.Read(raw); err != nil {
 		return App{}, err
 	}
-	app := App{ID: hex.EncodeToString(raw), Instance: instance, Owner: strings.ToLower(owner), Command: command, Port: port, State: Starting, Started: s.now().Unix()}
+	app.ID, app.Started = hex.EncodeToString(raw), s.now().Unix()
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	all, err := s.all()
+	if err != nil {
+		return App{}, err
+	}
+	if page, found := livePage(all, app); found {
+		return page, nil
+	}
+	if running(all, app.Instance) >= most {
+		return App{}, ErrTooMany
+	}
 	return app, s.write(app)
+}
+
+// livePage is the live page of the same agent that serves the same folder as app, when app is a page and there is one.
+func livePage(all []App, app App) (App, bool) {
+	if app.Folder == "" {
+		return App{}, false
+	}
+	for _, each := range all {
+		if each.Instance == app.Instance && each.Folder == app.Folder && each.State == Live {
+			return each, true
+		}
+	}
+	return App{}, false
+}
+
+// running is how many of an agent's apps are starting or live.
+func running(all []App, instance string) int {
+	count := 0
+	for _, each := range all {
+		if each.Instance == instance && (each.State == Starting || each.State == Live) {
+			count++
+		}
+	}
+	return count
 }
 
 func (s *Store) write(app App) error {
@@ -135,8 +215,9 @@ func (s *Store) Get(id string) (App, error) {
 	return s.read(id)
 }
 
-// Change applies a change to an app and keeps the result, under the store's lock so that two
-// changes to one app do not lose one another.
+// Change applies a change to an app and keeps the result, under the store's lock so that two changes to one app do not lose
+// one another. A change to a state the app may not go to from where it is, such as a removed app made live by a start that
+// finished late, is not kept: the app as it is comes back with ErrBadMove.
 func (s *Store) Change(id string, change func(*App)) (App, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -144,14 +225,22 @@ func (s *Store) Change(id string, change func(*App)) (App, error) {
 	if err != nil {
 		return App{}, err
 	}
-	change(&app)
-	return app, s.write(app)
+	changed := app
+	change(&changed)
+	if !app.State.mayBecome(changed.State) {
+		return app, ErrBadMove
+	}
+	return changed, s.write(changed)
 }
 
 // All is every app, newest first.
 func (s *Store) All() ([]App, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.all()
+}
+
+func (s *Store) all() ([]App, error) {
 	entries, err := os.ReadDir(s.dir)
 	if err != nil {
 		return nil, err
@@ -199,14 +288,13 @@ func (s *Store) Delete(id string) error {
 	return nil
 }
 
-// PreviewHeader is the header the preview server of gusto puts on everything it answers, so that what answers on a
-// preview's port can be told from something else an agent started there.
-const PreviewHeader = "X-Gusto-Preview"
-
-// PreviewPrefix begins the command of every preview. A command a person typed does not begin so.
-const PreviewPrefix = "node -e 'const[h,f,p]="
-
-// IsPreview says an app is a preview of gusto's own, which must answer with PreviewHeader.
-func (a App) IsPreview() bool {
-	return len(a.Command) >= len(PreviewPrefix) && a.Command[:len(PreviewPrefix)] == PreviewPrefix
+// Runner runs the web apps that agents built, where the agents are. Start runs the app's
+// command in the agent's computer and returns the app with where it can be asked, once it
+// answers, or says why it did not. A deployment whose agents do not run in computers has none,
+// and offers no sharing.
+type Runner interface {
+	Start(ctx context.Context, app App) (App, error)
+	Stop(ctx context.Context, app App) error
+	// Answers says whether a live app answers a request.
+	Answers(ctx context.Context, app App) error
 }

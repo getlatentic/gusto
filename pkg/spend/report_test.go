@@ -29,7 +29,7 @@ func lineOf(t *testing.T, lines []Line, name string) Line {
 	return Line{}
 }
 
-func TestTheReportIsByTeamProjectAndJob(t *testing.T) {
+func TestTheReportIsByTeamProjectAndTask(t *testing.T) {
 	report := reportedLedger().Report("2026-09")
 	if team := lineOf(t, report.Teams, "platform"); team.USD != 1.25 || team.Calls != 2 {
 		t.Fatalf("platform %+v", team)
@@ -37,11 +37,11 @@ func TestTheReportIsByTeamProjectAndJob(t *testing.T) {
 	if project := lineOf(t, report.Projects, "github.com/o/api"); project.USD != 0.75 || project.Unmeasured != 1 {
 		t.Fatalf("api %+v", project)
 	}
-	if job := lineOf(t, report.Jobs, "fix-b"); job.USD != 0.5 {
-		t.Fatalf("fix-b %+v", job)
+	if task := lineOf(t, report.Tasks, "fix-b"); task.USD != 0.5 {
+		t.Fatalf("fix-b %+v", task)
 	}
-	if report.Jobs[0].Name != "fix-a" {
-		t.Fatalf("the largest spend should come first: %+v", report.Jobs)
+	if report.Tasks[0].Name != "fix-a" {
+		t.Fatalf("the largest spend should come first: %+v", report.Tasks)
 	}
 	if report.Total.USD != 1.25 || report.Total.Calls != 3 || report.Total.Unmeasured != 1 {
 		t.Fatalf("total %+v", report.Total)
@@ -52,7 +52,7 @@ func TestTheReportIsByTeamProjectAndJob(t *testing.T) {
 func TestTheReportAndTheCapReadTheSameNumber(t *testing.T) {
 	ledger := reportedLedger()
 	ledger.Count("fix-a", answered(0.5, september))
-	refusal := ledger.Allow("fix-a", "", "fixture-model")
+	refusal := ledger.Allow("fix-a", "", "fixture-model", false)
 	team := lineOf(t, ledger.Report("2026-09").Teams, "platform")
 	if refusal == nil || refusal.SpentUSD != team.USD {
 		t.Fatalf("the cap saw %+v and the report %+v", refusal, team)
@@ -62,7 +62,7 @@ func TestTheReportAndTheCapReadTheSameNumber(t *testing.T) {
 func TestAMonthIsReportedOnItsOwn(t *testing.T) {
 	ledger := reportedLedger()
 	august := ledger.Report("2026-08")
-	if len(august.Jobs) != 1 || august.Total.USD != 0.1 {
+	if len(august.Tasks) != 1 || august.Total.USD != 0.1 {
 		t.Fatalf("august %+v", august)
 	}
 	if months := ledger.Months(); strings.Join(months, " ") != "2026-09 2026-08" {

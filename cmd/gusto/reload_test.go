@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/internal/web"
 )
 
@@ -41,7 +41,7 @@ type reloading struct {
 	way       *WayOut
 	live      *liveSettings
 	pages     *fakePages
-	index     *jobs.Index
+	index     *tasks.Index
 	creds     string
 	liveFile  string
 	spend     string
@@ -78,12 +78,12 @@ func newReloading(t *testing.T) *reloading {
 	t.Setenv("GUSTO_MODELS", "platform/first")
 	t.Setenv("GUSTO_LIMIT_PERSON", "1")
 	os.WriteFile(r.spend, []byte(`{"teams":{"payments":{"usdPerMonth":10}}}`), 0o644)
-	jobsRoot := filepath.Join(dir, "jobs")
+	tasksRoot := filepath.Join(dir, "jobs")
 	var err error
-	if r.index, err = jobs.Open(jobsRoot); err != nil {
+	if r.index, err = tasks.Open(tasksRoot); err != nil {
 		t.Fatal(err)
 	}
-	if r.way, err = openWayOut(jobsRoot); err != nil {
+	if r.way, err = openWayOut(tasksRoot, fromEnv(t).way, fromEnv(t).core.local); err != nil {
 		t.Fatal(err)
 	}
 	if r.live, err = startLive(t.Context(), r.way, r.index, r.pages, false); err != nil {
@@ -105,7 +105,7 @@ func (r *reloading) setKey(address, key string) {
 	}
 }
 
-// call is one model call by the running job, and the key the provider saw.
+// call is one model call by the running task, and the key the provider saw.
 func (r *reloading) call() string {
 	r.t.Helper()
 	request, _ := http.NewRequest("POST", r.front.URL+"/model/v1/chat/completions", strings.NewReader(`{"model":"first","messages":[{"role":"user","content":"hi"}]}`))
@@ -125,7 +125,7 @@ func (r *reloading) call() string {
 	return r.keys[len(r.keys)-1]
 }
 
-func TestAJobThatIsRunningKeepsCallingItsModelWhenTheCredentialAndTheLimitsChange(t *testing.T) {
+func TestATaskThatIsRunningKeepsCallingItsModelWhenTheCredentialAndTheLimitsChange(t *testing.T) {
 	r := newReloading(t)
 	if got := r.call(); got != "Bearer key-one" {
 		t.Fatalf("the provider saw %q", got)
@@ -215,7 +215,7 @@ func TestTheWatcherTakesAChangeWithoutAnyoneAskingForIt(t *testing.T) {
 	}
 }
 
-func TestRedactionTurnedOnInTheFileReachesTheNextCallOfARunningJob(t *testing.T) {
+func TestRedactionTurnedOnInTheFileReachesTheNextCallOfARunningTask(t *testing.T) {
 	r := newReloading(t)
 	send := func() string {
 		request, _ := http.NewRequest("POST", r.front.URL+"/model/v1/chat/completions", strings.NewReader(`{"model":"first","messages":[{"role":"user","content":"mail ada@example.com and AKIAIOSFODNN7EXAMPLE"}]}`))
@@ -256,11 +256,11 @@ func TestAServerWithNoProxyCannotPromiseToMaskWhatItSends(t *testing.T) {
 	t.Setenv("GUSTO_REDACTION", file)
 	t.Setenv("GUSTO_CREDENTIALS", "")
 	t.Setenv("GUSTO_MODEL_UPSTREAM", "")
-	index, err := jobs.Open(filepath.Join(dir, "jobs"))
+	index, err := tasks.Open(filepath.Join(dir, "jobs"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	way, err := openWayOut(filepath.Join(dir, "jobs"))
+	way, err := openWayOut(filepath.Join(dir, "jobs"), fromEnv(t).way, fromEnv(t).core.local)
 	if err != nil {
 		t.Fatal(err)
 	}

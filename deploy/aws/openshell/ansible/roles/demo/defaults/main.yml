@@ -10,21 +10,35 @@ demo_cert_email: ""
 demo_free_mail: allow
 demo_image_key: ""
 # Every model is offered to every engine, and the person chooses: gusto does not decide which pairs may be tried. A new chat starts on
-# demo_chat_default, a pair measured to finish (docs/MATRIX.md), as engine=model. Claude Code reaches DeepSeek Flash through the
-# anthropic credential.
-demo_models: gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b,anthropic/deepseek-flash,deepseek/deepseek-flash
+# demo_chat_default, a pair measured to finish (docs/MATRIX.md), as engine=model. Claude Code reaches DeepSeek Flash at the
+# deepseek credential's Anthropic address.
+demo_models: gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b,deepseek/deepseek-flash,meta/muse-spark-1.3
 demo_chat_default: claude=gemma/google.gemma-4-26b-a4b
+# How far one model call may run. The cap stops a model that writes on to the end of its context, and is still room for an
+# agent to write a whole page in one call; the silence ends a stream that stops sending without ending (planning#749).
+demo_max_output_tokens: 16384
+demo_model_silence_seconds: 60
+# What an organization's agents run in: container, a Docker container for each task on the cell's kernel, with a home kept for
+# each person; or openshell, a microVM for each person. A sign-up's run in public_sandbox and a demo's in demo_sandbox, and a
+# cell has every kind of the two.
+public_sandbox: container
+demo_sandbox: openshell
+demo_sandboxes: "{{ [public_sandbox, demo_sandbox] | unique }}"
 demo_computer_memory: 3Gi
 demo_computer_cpu: "2"
 demo_dns_token_parameter: /gusto/poc/cloudflare-dns-token
 demo_mail_token_parameter: /gusto/poc/cloudflare-mail-token
 demo_model_parameter: /gusto/poc/model-key
 demo_deepseek_parameter: /gusto/poc/deepseek-key
+# Meta's Model API key, for the meta credential. A host where it is not stored offers no Muse model.
+demo_meta_parameter: /gusto/poc/meta-key
 # How long a host has when it starts, and each extension adds, and the most a host may ever be up.
 demo_lease_minutes: 30
 demo_max_hours: 4
 demo_user: ubuntu
 demo_state: /var/lib/gusto-cloud
+# The files the front door serves at /media/, such as the landing page's video, kept in the bucket under media/ by put-media.sh.
+demo_media: /var/www/gusto-media
 demo_lib: /var/lib/gusto
 # all is one host that is the front door and runs the organizations' servers. orchestrator is the front door
 # alone, and a cell is a host that runs servers for it; the orchestrator and every cell of one demo share
@@ -44,8 +58,15 @@ demo_bundle_dir: /opt/gusto-bundle
 # The start-up script a cell is made from, where the front door can read it: the bundle is root's.
 demo_cell_userdata: /usr/local/lib/gusto/user-data.sh
 demo_cell_template: gusto-poc-demo-host-cell-live
+# The parameter that template reads its image from, so a kept cell of an older image is replaced rather than started again.
+demo_cell_image_parameter: /gusto/poc/cell-ami
 demo_cell_max: 3
 demo_cell_idle_minutes: 10
+# The most cells a day started for visitors who began the demo form, before they sent it.
+demo_cell_prewarms: 20
+# How many cells are stopped when idle, and started again when one is needed, rather than removed: a stopped cell costs its root
+# disk, about 3.20 dollars a month, and starts in about 11 seconds where a new one takes about 17.
+demo_cell_keep: 1
 demo_cell_max_hours: 12
 demo_project: gusto-live
 demo_visitor_minutes: 0
@@ -54,12 +75,26 @@ demo_turnstile_site: ""
 demo_turnstile_parameter: /gusto/poc/turnstile-secret
 demo_lead_hook_url_parameter: /gusto/poc/lead-hook-url
 demo_lead_hook_secret_parameter: /gusto/poc/lead-hook-secret
+# The OAuth clients registered with the connector apps that need one, as {"github": {"id", "secret"}}: put-connector-client.sh.
+demo_connector_clients_parameter: /gusto/poc/connector-clients
 demo_visitor_max: 5
 demo_book_url: ""
+# The addresses and domains, comma-separated, whose people alone may start a demo, which then is a sales call and not open to
+# visitors, who sign up instead. Empty is anyone.
+demo_staff: ""
 # An https address of a video file, or of a page that may be embedded, which the landing page shows.
 demo_video_url: ""
 # Mailed when a visitor starts a demo. Nothing is sent when it is empty.
 demo_notify: ""
+
+# Where the files of a host are written: the host's own root, or a directory a cell's kit is made from.
+demo_root: ""
+# The SHA-256 of the kit a front door makes for its cells, and the key of the image it is made for. A cell from that image
+# configures itself from the kit; without one it runs the playbook.
+demo_cell_kit: ""
+demo_cell_kit_file: /usr/local/lib/gusto/cell-kit.tgz
+demo_bake_key: ""
+demo_cell_lease_minutes: 30
 
 # Whether this host is made to have an image taken of it, and so is not started as a cell.
 demo_bake: false

@@ -102,7 +102,7 @@ func (s *Server) makeToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	who := s.keeper.who(r)
-	token, secret, err := s.tokens.Create(r.FormValue("name"), r.Form["scope"], who)
+	token, secret, err := s.tokens.CreateIn(r.FormValue("name"), r.Form["scope"], who, s.workspaceOf(r))
 	if err != nil {
 		s.showTokens(w, r, map[string]any{"Refused": err.Error()})
 		return

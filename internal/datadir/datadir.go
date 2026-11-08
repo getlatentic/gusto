@@ -26,7 +26,7 @@ const StampFile = ".gusto-format"
 type Store string
 
 const (
-	Jobs        Store = "jobs"
+	Tasks       Store = "jobs"
 	Sessions    Store = "sessions"
 	Setups      Store = "setups"
 	Comparisons Store = "comparisons"
@@ -37,14 +37,16 @@ const (
 	Integrations Store = "integrations"
 	// Presets is what each person saved to start a chat the same way again. A release before it never reads the directory.
 	Presets Store = "presets"
+	// Crew is the workspace's agents, which rooms add. A release before it never reads the directory.
+	Crew Store = "crew"
 )
 
 // Stores is every kind, in the order they are listed.
-var Stores = []Store{Jobs, Sessions, Setups, Comparisons, Changes, Tokens, Retention, Integrations, Presets}
+var Stores = []Store{Tasks, Sessions, Setups, Comparisons, Changes, Tokens, Retention, Integrations, Presets, Crew}
 
 // Current is the format each store has in this release.
 var Current = map[Store]int{
-	Jobs: 1, Sessions: 1, Setups: 1, Comparisons: 1, Changes: 1, Tokens: 1, Retention: 1, Integrations: 1, Presets: 1,
+	Tasks: 1, Sessions: 1, Setups: 1, Comparisons: 1, Changes: 1, Tokens: 1, Retention: 1, Integrations: 1, Presets: 1, Crew: 1,
 }
 
 // Stamp is what a directory says about itself.
@@ -66,7 +68,7 @@ func Read(dir string) (Stamp, bool, error) {
 	}
 	var stamp Stamp
 	if err := json.Unmarshal(text, &stamp); err != nil || stamp.Format < 1 {
-		return Stamp{}, false, fmt.Errorf("%s does not say a format: %v", filepath.Join(dir, StampFile), err)
+		return Stamp{}, false, fmt.Errorf("%s does not say a format: %w", filepath.Join(dir, StampFile), err)
 	}
 	return stamp, true, nil
 }
@@ -79,16 +81,45 @@ func write(dir string, format int, release string) error {
 	if err != nil {
 		return err
 	}
-	scratch := filepath.Join(dir, StampFile+".tmp")
-	if err := os.WriteFile(scratch, append(text, '\n'), 0o640); err != nil {
+	// The scratch file is this write's own, so two releases stamping at once do not take each other's. Its name begins with the
+	// stamp's, so a leftover one is not data.
+	scratch, err := os.CreateTemp(dir, StampFile+".tmp-*")
+	if err != nil {
 		return err
 	}
-	return os.Rename(scratch, filepath.Join(dir, StampFile))
+	defer os.Remove(scratch.Name())
+	if _, err := scratch.Write(append(text, '\n')); err != nil {
+		scratch.Close()
+		return err
+	}
+	if err := scratch.Chmod(0o640); err != nil {
+		scratch.Close()
+		return err
+	}
+	if err := scratch.Close(); err != nil {
+		return err
+	}
+	return os.Rename(scratch.Name(), filepath.Join(dir, StampFile))
 }
 
 // legacy is the format of a directory that has data and no stamp: everything
 // written before stamps existed.
 const legacy = 1
+
+// formatOf is the format a directory is in: its stamp's, format 1 for one with data and no stamp, and the current format for
+// one with neither, which this release is about to fill.
+func formatOf(store Store, dir string) (format int, stamp Stamp, stamped, unstamped bool, err error) {
+	stamp, stamped, err = Read(dir)
+	switch {
+	case err != nil:
+		return 0, Stamp{}, false, false, err
+	case stamped:
+		return stamp.Format, stamp, true, false, nil
+	case present(dir):
+		return legacy, Stamp{}, false, true, nil
+	}
+	return Current[store], Stamp{}, false, false, nil
+}
 
 // present says whether a directory holds anything besides its stamp.
 func present(dir string) bool {
@@ -166,18 +197,11 @@ type Result struct {
 func Ensure(store Store, dir string, opts Options) (Result, error) {
 	known := Current[store]
 	result := Result{Store: store, Dir: dir, To: known}
-	stamp, stamped, err := Read(dir)
+	from, stamp, stamped, unstamped, err := formatOf(store, dir)
 	if err != nil {
 		return result, err
 	}
-	switch {
-	case stamped:
-		result.From = stamp.Format
-	case present(dir):
-		result.From, result.WasUnstamped = legacy, true
-	default:
-		result.From = known
-	}
+	result.From, result.WasUnstamped = from, unstamped
 	if result.From > known {
 		return result, NewerError{Store: string(store), Dir: dir, Found: result.From, Known: known, WrittenBy: stamp.Release, ThisRelease: opts.Release}
 	}
@@ -221,16 +245,9 @@ func Refusal(store Store, dir string, opts Options) error {
 
 // Plan says what Ensure would do to a directory, and changes nothing.
 func Plan(store Store, dir string) (from, to int, pending []Step, err error) {
-	stamp, stamped, err := Read(dir)
+	from, _, _, _, err = formatOf(store, dir)
 	if err != nil {
 		return 0, 0, nil, err
-	}
-	from = Current[store]
-	switch {
-	case stamped:
-		from = stamp.Format
-	case present(dir):
-		from = legacy
 	}
 	return from, Current[store], stepsFor(store, from, Current[store]), nil
 }
@@ -248,13 +265,9 @@ func irreversible(steps []Step) []Step {
 // undoing is the steps that take a directory back to format to, and refuses
 // when one of them cannot be undone.
 func undoing(store Store, dir string, to int) (steps []Step, from int, err error) {
-	stamp, stamped, err := Read(dir)
+	from, _, _, _, err = formatOf(store, dir)
 	if err != nil {
 		return nil, 0, err
-	}
-	from = Current[store]
-	if stamped {
-		from = stamp.Format
 	}
 	if to > from || to < 1 {
 		return nil, from, fmt.Errorf("%s is at format %d and cannot be rolled back to %d", dir, from, to)

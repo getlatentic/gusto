@@ -1,14 +1,23 @@
 {{define "signin"}}{{template "head" .}}
   {{template "brand"}}
+  {{if .Sent}}
+  <h1 class="text-xl font-semibold">Check your email</h1>
+  <p>If <strong class="font-semibold">{{.Email}}</strong> has a gusto account, we sent it a 6-digit code. Enter it here, or open the link in the same email.</p>
+  {{if .Error}}<p class="text-sm text-bad" role="alert">{{.Error}}</p>{{end}}
+  <form class="grid gap-3" method="post" action="/signin/code">
+    <input type="hidden" name="email" value="{{.Email}}">
+    <label class="grid gap-1 text-sm text-muted">Sign-in code <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-center font-mono text-xl tracking-[0.3em] text-ink" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 \-]{6,8}" maxlength="8" autofocus required></label>
+    <button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Sign in</button>
+  </form>
+  <p class="text-sm text-muted">The code and the link work once, for 20 minutes. Not in your inbox? Check spam, or ask again in a few minutes.</p>
+  <p class="text-center text-sm text-muted"><a class="underline" href="/signin">Use a different email</a></p>
+  {{else}}
   <h1 class="text-xl font-semibold">Sign in</h1>
   {{if .Error}}<p class="text-sm text-bad" role="alert">{{.Error}}</p>{{end}}
-  {{if .Sent}}
-  <p>If that address has an account, a link is on its way. It works once, for 20 minutes.</p>
-  {{else}}
   <form class="grid gap-3" method="post" action="/signin">
     <label class="grid gap-1 text-sm text-muted">Email <input class="w-full rounded-sm border border-line-strong bg-surface p-3 text-ink" type="email" name="email" value="{{.Email}}" autocomplete="email" autofocus required></label>
-    <button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Email me a link</button>
+    <button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Email me a sign-in code</button>
   </form>
+  <p class="text-center text-sm text-muted">New to gusto? <a class="underline" href="/signup">Get started</a></p>
   {{end}}
-  <p class="text-center text-sm text-muted"><a class="underline" href="/">Create an organization</a></p>
-{{template "foot"}}{{end}}
+{{template "foot" .}}{{end}}

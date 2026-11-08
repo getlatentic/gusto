@@ -12,7 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/roster"
 )
 
-// acme is an organization with a verified admin, ada, and a front door that starts its
+// acme is an organization with a verified admin, ada, and a gusto cloud server that starts its
 // server, which is the fake.
 func acme(t *testing.T) (*front, *browser) {
 	t.Helper()
@@ -118,7 +118,7 @@ func TestAnAdminChangesRolesAndAnOrganizationKeepsAnAdmin(t *testing.T) {
 		return status
 	}
 	roleOf := func(email string) Role {
-		person, _, _ := f.store.Person(email)
+		person, _, _ := f.store.only(t.Context(), email)
 		return person.Role
 	}
 
@@ -228,4 +228,24 @@ func TestAnAdminIsOfferedTheOtherRoleAndTheLastAdminIsNotOfferedRunner(t *testin
 	if _, page := ada.get("/org"); !strings.Contains(page, `name="role" value="runner"`) {
 		t.Errorf("with two admins either may step down:\n%s", page)
 	}
+}
+
+// A demo's visitor is written to the roster with the name they typed on the form, so their organization calls them by it.
+func TestADemoVisitorIsInTheRosterByTheNameTheyGave(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		f := demoFront(t)
+		startDemoAs(t, f, "Priya Nair", "priya@acme.com", "Acme Research")
+		orgs, err := f.store.Orgs(t.Context())
+		if err != nil || len(orgs) != 1 {
+			t.Fatalf("%d organizations: %v", len(orgs), err)
+		}
+		slug := orgs[0].Slug
+		if err := f.store.PublishRoster(t.Context(), slug); err != nil {
+			t.Fatal(err)
+		}
+		list, err := roster.Read(f.store.RosterFile(slug))
+		if err != nil || len(list.Members) != 1 || list.Members[0].Name != "Priya Nair" {
+			t.Errorf("the roster says %+v, %v", list.Members, err)
+		}
+	})
 }

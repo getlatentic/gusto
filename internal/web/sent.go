@@ -10,11 +10,11 @@ import (
 	"github.com/getlatentic/gusto/internal/apitoken"
 )
 
-// sentOverHTTP is who asked for a job that arrived at POST /api/jobs with the
-// shared password. The server knows how such a job arrived and not who sent it.
+// sentOverHTTP is who asked for a task that arrived at POST /api/jobs with the
+// shared password. The server knows how such a task arrived and not who sent it.
 const sentOverHTTP = "sent over HTTP"
 
-// tokenAsker is the start of who asked for a job a token sent.
+// tokenAsker is the start of who asked for a task a token sent.
 const tokenAsker = "token:"
 
 type callerKey struct{}
@@ -40,7 +40,7 @@ func callerOf(r *http.Request) string {
 // everything else uses. A server with none takes the shared password.
 func (s *Server) sent(scope string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if s.wrong.blocked(clientOf(r), time.Now()) {
+		if s.wrong.blocked(s.clientOf(r), time.Now()) {
 			s.noteRefused(r, "", s.presented(), "too many wrong attempts from this source")
 			tooMany(w)
 			return
@@ -68,13 +68,25 @@ func (s *Server) sent(scope string, next http.HandlerFunc) http.HandlerFunc {
 			s.turnBackForbidden(w, r, who, scope)
 			return
 		}
-		ctx := context.WithValue(r.Context(), callerKey{}, who)
 		if token.Person != "" {
-			ctx = context.WithValue(ctx, personKey{}, token.Person)
-			ctx = context.WithValue(ctx, tokenIDKey{}, token.ID)
+			if _, in, checked := s.memberNow(token.Person); checked && !in {
+				s.turnBack(w, r, "a token for a person no longer in the organization", "that is not a live API token")
+				return
+			}
 		}
-		next(w, r.WithContext(ctx))
+		next(w, r.WithContext(carrying(r.Context(), token, who)))
 	}
+}
+
+// carrying is a request's context with what its token says: who it came from, and the person it acts as or, for an
+// organization's token, the workspace it works in.
+func carrying(ctx context.Context, token apitoken.Token, who string) context.Context {
+	ctx = context.WithValue(ctx, callerKey{}, who)
+	if token.Person == "" {
+		return withTokenSpace(ctx, token.Workspace)
+	}
+	ctx = context.WithValue(ctx, personKey{}, token.Person)
+	return context.WithValue(ctx, tokenIDKey{}, token.ID)
 }
 
 // credential is what a program presents to this server, in a sentence.
@@ -87,8 +99,13 @@ func (s *Server) credential() string {
 
 // refusalOf is why a token was turned away, as a short phrase.
 func refusalOf(err error) string {
-	if errors.Is(err, apitoken.ErrRevoked) {
+	switch {
+	case errors.Is(err, apitoken.ErrRevoked):
 		return "a revoked token"
+	case errors.Is(err, apitoken.ErrIdle):
+		return "a computer's token unused for too long"
+	case errors.Is(err, apitoken.ErrUnread):
+		return "the tokens could not be read"
 	}
 	return "an unknown token"
 }
@@ -99,7 +116,7 @@ func refusalOf(err error) string {
 // one get one answer, so a guess cannot learn that a token once existed; the
 // record says which it was.
 func (s *Server) turnBack(w http.ResponseWriter, r *http.Request, why, said string) {
-	s.wrong.failed(clientOf(r), time.Now())
+	s.wrong.failed(s.clientOf(r), time.Now())
 	s.noteRefused(r, "", s.presented(), why)
 	w.Header().Set("WWW-Authenticate", `Bearer realm="gusto"`)
 	reply(w, http.StatusUnauthorized, Answer{Refused: said})

@@ -17,8 +17,9 @@ import (
 var tableName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,62}$`)
 
 // Migrations is the schema a component brings: SQL files in FS named <Dir>/sqlite/0001_name.sql and
-// <Dir>/postgres/0001_name.sql, one set for each dialect, applied in version order. Table is the version
-// table the component keeps, and Scope names the component for locks and messages.
+// <Dir>/postgres/0001_name.sql, one set for each dialect, numbered from 1 with none missing and applied in
+// version order. Table is the version table the component keeps, and Scope names the component for locks and
+// messages.
 type Migrations struct {
 	Scope string
 	Table string
@@ -77,13 +78,19 @@ func (m Migrations) read(dir, name string) (migration, error) {
 	return migration{version: v, name: name, sql: string(body)}, nil
 }
 
+// checkSequence holds a set to 1, 2, 3 and on, with none missing, so that a migration added below one already applied is
+// a gap or a duplicate here and not a version a database passes over.
 func checkSequence(scope string, ms []migration) error {
 	if len(ms) == 0 {
 		return fmt.Errorf("%s: no migrations", scope)
 	}
-	for i := 1; i < len(ms); i++ {
-		if ms[i].version == ms[i-1].version {
-			return fmt.Errorf("%s: two migrations have version %d", scope, ms[i].version)
+	for i, mig := range ms {
+		if i > 0 && mig.version == ms[i-1].version {
+			return fmt.Errorf("%s: two migrations have version %d", scope, mig.version)
+		}
+		if mig.version != i+1 {
+			return fmt.Errorf("%s: migration %s is numbered %d where %d is next: migrations are numbered from 1 with none missing",
+				scope, mig.name, mig.version, i+1)
 		}
 	}
 	return nil
@@ -97,7 +104,7 @@ func Migrate(ctx context.Context, db *DB, m Migrations) error {
 	if err != nil {
 		return err
 	}
-	if err := db.InTx(ctx, func(tx Tx) error { return checkNotNewer(ctx, db, tx, m, ms) }); err != nil {
+	if err := db.InTx(ctx, func(tx Tx) error { return checkApplied(ctx, db, tx, m, ms) }); err != nil {
 		return err
 	}
 	for _, mig := range ms {
@@ -108,14 +115,31 @@ func Migrate(ctx context.Context, db *DB, m Migrations) error {
 	return nil
 }
 
-func checkNotNewer(ctx context.Context, db *DB, tx Tx, m Migrations, ms []migration) error {
-	current, err := currentVersion(ctx, tx, db.dialect, m.Table)
+// checkApplied refuses a database that is newer than the migrations, that passed over one of them, or that had a different
+// migration under one's number.
+func checkApplied(ctx context.Context, db *DB, tx Tx, m Migrations, ms []migration) error {
+	applied, err := appliedVersions(ctx, tx, db.dialect, m.Table)
 	if err != nil {
 		return fmt.Errorf("%s: read schema version: %w", m.Scope, err)
+	}
+	current := 0
+	for version := range applied {
+		current = max(current, version)
 	}
 	if latest := ms[len(ms)-1].version; current > latest {
 		return fmt.Errorf("%s: the database is at schema version %d and this gusto knows up to %d; upgrade gusto before using it",
 			m.Scope, current, latest)
+	}
+	for _, mig := range ms {
+		name, had := applied[mig.version]
+		switch {
+		case had && name != mig.name:
+			return fmt.Errorf("%s: the database had %s as migration %d, and this gusto's is %s; nothing has been changed",
+				m.Scope, name, mig.version, mig.name)
+		case !had && mig.version < current:
+			return fmt.Errorf("%s: the database is at schema version %d and never had migration %s, which is numbered below it; "+
+				"nothing has been changed", m.Scope, current, mig.name)
+		}
 	}
 	return nil
 }
@@ -128,17 +152,17 @@ func applyOne(ctx context.Context, db *DB, tx Tx, m Migrations, mig migration) e
 		version BIGINT PRIMARY KEY, name TEXT NOT NULL, applied_at BIGINT NOT NULL)`); err != nil {
 		return fmt.Errorf("%s: migrate: %w", m.Scope, err)
 	}
-	current, err := currentVersion(ctx, tx, db.dialect, m.Table)
-	if err != nil {
+	var had bool
+	if err := tx.QueryRowContext(ctx, `SELECT count(*) > 0 FROM `+m.Table+` WHERE version = ?`, mig.version).Scan(&had); err != nil {
 		return fmt.Errorf("%s: read schema version: %w", m.Scope, err)
 	}
-	if mig.version <= current {
+	if had {
 		return nil
 	}
 	if _, err := tx.ExecContext(ctx, mig.sql); err != nil {
 		return fmt.Errorf("%s: migration %s: %w", m.Scope, mig.name, err)
 	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO `+m.Table+` (version, name, applied_at) VALUES (?, ?, ?)`,
+	_, err := tx.ExecContext(ctx, `INSERT INTO `+m.Table+` (version, name, applied_at) VALUES (?, ?, ?)`,
 		mig.version, mig.name, time.Now().Unix())
 	if err != nil {
 		return fmt.Errorf("%s: migration %s: %w", m.Scope, mig.name, err)
@@ -156,6 +180,29 @@ func currentVersion(ctx context.Context, q Querier, d Dialect, table string) (in
 	var v int
 	err = q.QueryRowContext(ctx, `SELECT COALESCE(MAX(version), 0) FROM `+table).Scan(&v)
 	return v, err
+}
+
+// appliedVersions is every migration the database has had, by version, and none for one whose version table does not exist yet.
+func appliedVersions(ctx context.Context, q Querier, d Dialect, table string) (map[int]string, error) {
+	applied := map[int]string{}
+	exists, err := tableExists(ctx, q, d, table)
+	if err != nil || !exists {
+		return applied, err
+	}
+	rows, err := q.QueryContext(ctx, `SELECT version, name FROM `+table)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var version int
+		var name string
+		if err := rows.Scan(&version, &name); err != nil {
+			return nil, err
+		}
+		applied[version] = name
+	}
+	return applied, rows.Err()
 }
 
 func tableExists(ctx context.Context, q Querier, d Dialect, table string) (bool, error) {

@@ -40,7 +40,22 @@ func (s *store) conditions(f Filter) ([]string, []any) {
 	if f.Search != "" {
 		conds, args = s.appendSearch(conds, args, f.Search)
 	}
+	if f.OnlySessions {
+		conds, args = appendSessions(conds, args, f.Sessions)
+	}
 	return conds, args
+}
+
+func appendSessions(conds []string, args []any, sessions []string) ([]string, []any) {
+	if len(sessions) == 0 {
+		return append(conds, "1 = 0"), args
+	}
+	marks := make([]string, len(sessions))
+	for i, session := range sessions {
+		marks[i] = "?"
+		args = append(args, session)
+	}
+	return append(conds, "session IN ("+strings.Join(marks, ",")+")"), args
 }
 
 func (s *store) appendSearch(conds []string, args []any, search string) ([]string, []any) {

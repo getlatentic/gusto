@@ -30,8 +30,10 @@ type Provider struct {
 	Key     string     `json:"key"`
 	// Wires is the shapes of API the provider answers in, as a credential's are: a call in another shape is translated into
 	// Chat Completions when it answers that. Naming none is a provider that answers what its authentication says.
-	Wires   []string `json:"wires,omitempty"`
-	Retired bool     `json:"retired,omitempty"`
+	Wires []string `json:"wires,omitempty"`
+	// Endpoints are the provider's other addresses, under the same key, each with its own way of being spoken to.
+	Endpoints []proxy.Endpoint `json:"endpoints,omitempty"`
+	Retired   bool             `json:"retired,omitempty"`
 	// Pending says an administrator has added the provider and not yet turned it on. Nothing is sent to a provider that is
 	// pending. It is the flag that is kept, and not "enabled", so that a registry written before there was one has every provider on.
 	Pending bool `json:"pending,omitempty"`
@@ -99,6 +101,9 @@ type Registry struct {
 	run      func(name string, args ...string) ([]byte, error)
 	resolve  Resolver
 
+	// edit is held by one change at a time, across the keys it keeps or forgets, so a provider's kept key is the one its
+	// latest change gave it. Readers take mu alone and never wait on a file.
+	edit     sync.Mutex
 	mu       sync.Mutex
 	document Document
 	history  []Revision
@@ -153,32 +158,46 @@ func clone(d Document) Document {
 // change makes one change, keeps the result, and tells the listener. A change that is refused leaves the registry
 // as it was.
 func (r *Registry) change(make func(*Document) error) error {
-	r.mu.Lock()
-	next := clone(r.document)
+	r.edit.Lock()
+	err := r.write(make)
+	r.edit.Unlock()
+	if err == nil {
+		r.tell()
+	}
+	return err
+}
+
+// write makes one change and keeps it. The caller holds edit, so nothing else changes the document meanwhile.
+func (r *Registry) write(make func(*Document) error) error {
+	was := r.Document()
+	next := clone(was)
 	if err := make(&next); err != nil {
-		r.mu.Unlock()
 		return err
 	}
 	next.Version++
 	if err := os.MkdirAll(filepath.Dir(r.path), 0o700); err != nil {
-		r.mu.Unlock()
 		return err
 	}
-	if err := r.remember(r.document); err != nil {
-		r.mu.Unlock()
+	if err := r.remember(was); err != nil {
 		return err
 	}
 	if err := atomicfile.Write(r.path, next, 0o600); err != nil {
-		r.mu.Unlock()
 		return err
 	}
+	r.mu.Lock()
 	r.document = next
+	r.mu.Unlock()
+	return nil
+}
+
+// tell gives the listener what the registry is now.
+func (r *Registry) tell() {
+	r.mu.Lock()
 	listener := r.listener
 	r.mu.Unlock()
 	if listener != nil {
 		listener(r.Effective())
 	}
-	return nil
 }
 
 // Rules are what an admin may do now: the operator's, with the two that are about trust replaced by the admin's

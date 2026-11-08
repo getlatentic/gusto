@@ -28,9 +28,9 @@ mkdir -p "$E/keys" && "$E/gusto" keygen e2e -dir "$E/keys" >/dev/null 2>&1
 cd "$E"
 GUSTO_PASSWORD=e2e GUSTO_ADDR=127.0.0.1:8040 GUSTO_SANDBOX=openshell GUSTO_OPENSHELL_IMAGE="$E/runner-rootfs.tar.gz" GUSTO_OPENSHELL_GATEWAY=spike \
   GUSTO_MODEL_UPSTREAM="$GUSTO_MODEL_UPSTREAM" GUSTO_MODEL_KEY="$GUSTO_MODEL_KEY" GUSTO_MODEL_NAME="$GUSTO_MODEL_NAME" GUSTO_MODELS="$GUSTO_MODEL_NAME/$GUSTO_MODEL_ID" \
-  GUSTO_LOCAL_REPOS="$E/rsample" GUSTO_JOB_CONCURRENCY=1 GUSTO_SIGNING_KEY="$E/keys/e2e.key" GUSTO_KEYRING="$E/keys" GUSTO_SIGNER=e2e \
+  GUSTO_LOCAL_REPOS="$E/rsample" GUSTO_TASK_CONCURRENCY=1 GUSTO_SIGNING_KEY="$E/keys/e2e.key" GUSTO_KEYRING="$E/keys" GUSTO_SIGNER=e2e \
   GUSTO_OPENSHELL_MEMORY=3Gi GUSTO_OPENSHELL_CPU=2 \
-  GUSTO_JOBS="$E/rdata/jobs" GUSTO_SESSIONS="$E/rdata/sessions" GUSTO_SETUPS="$E/rdata/setups" GUSTO_COMPARISONS="$E/rdata/comparisons" GUSTO_CHANGES="$E/rdata/changes/changes.jsonl" \
+  GUSTO_TASKS="$E/rdata/jobs" GUSTO_SESSIONS="$E/rdata/sessions" GUSTO_SETUPS="$E/rdata/setups" GUSTO_COMPARISONS="$E/rdata/comparisons" GUSTO_CHANGES="$E/rdata/changes/changes.jsonl" \
   setsid nohup "$E/gusto" serve > "$E/rserve.log" 2>&1 </dev/null &
 for _ in $(seq 1 120); do curl -fsS http://127.0.0.1:8040/healthz >/dev/null 2>&1 && break; sleep 1; done
 echo "== engines the image offers"; grep -E "opencode|not offered" "$E/rserve.log" | head -4 | cut -c1-200

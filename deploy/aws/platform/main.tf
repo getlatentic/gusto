@@ -144,7 +144,7 @@ locals {
     cell         = { type = var.cell_instance_type, nested = true, project = "gusto-poc" }
     # The cells the live front door starts. They are tagged for it alone, so the workflows that remove a demo's
     # hosts never reach them, and it never reaches theirs.
-    cell-live = { type = var.cell_instance_type, nested = true, project = "gusto-live" }
+    cell-live = { type = var.cell_live_instance_type, nested = true, project = "gusto-live" }
   }
 }
 
@@ -268,13 +268,29 @@ resource "aws_iam_role_policy" "live" {
       },
       { Sid = "Tag", Effect = "Allow", Action = "ec2:CreateTags", Resource = "*", Condition = { StringEquals = { "ec2:CreateAction" = "RunInstances" } } },
       { Sid = "GiveACellItsRole", Effect = "Allow", Action = "iam:PassRole", Resource = aws_iam_role.host.arn, Condition = { StringEquals = { "iam:PassedToService" = "ec2.amazonaws.com" } } },
-      { Sid = "Look", Effect = "Allow", Action = ["ec2:DescribeInstances", "ec2:DescribeInstanceStatus"], Resource = "*" },
+      { Sid = "Look", Effect = "Allow", Action = ["ec2:DescribeInstances", "ec2:DescribeInstanceStatus", "ec2:DescribeVolumes"], Resource = "*" },
       {
         Sid       = "StopOnlyWhatItStarted"
         Effect    = "Allow"
         Action    = "ec2:TerminateInstances"
         Resource  = "${local.ec2_arn}:instance/*"
         Condition = { StringEquals = { "ec2:ResourceTag/project" = local.live_tag, "ec2:ResourceTag/scaler" = "on" } }
+      },
+      {
+        # A kept cell is stopped when idle, and given today's start-up script before it is started again.
+        Sid       = "KeepOnlyWhatItStarted"
+        Effect    = "Allow"
+        Action    = ["ec2:StartInstances", "ec2:StopInstances", "ec2:ModifyInstanceAttribute"]
+        Resource  = "${local.ec2_arn}:instance/*"
+        Condition = { StringEquals = { "ec2:ResourceTag/project" = local.live_tag, "ec2:ResourceTag/scaler" = "on" } }
+      },
+      {
+        # A kept cell's root disk is taken down to the baseline throughput when it is first stopped.
+        Sid       = "LowerOnlyTheDisksOfItsCells"
+        Effect    = "Allow"
+        Action    = "ec2:ModifyVolume"
+        Resource  = "${local.ec2_arn}:volume/*"
+        Condition = { StringEquals = { "ec2:ResourceTag/project" = local.live_tag } }
       },
     ]
   })
@@ -405,6 +421,62 @@ resource "aws_iam_role" "ci" {
         }
       }
     }]
+  })
+}
+
+# Making a cell's image when what it is made from changes, as bake-cell-image.sh does: a host from the live cell template, an image of
+# it once it is stopped, the parameter the template reads pointed at the image, and the image before last removed. Each action is
+# held to what is tagged for the project, and the parameter to the one the cell template reads.
+resource "aws_iam_role_policy" "ci_bake" {
+  name = "${local.ci}-makes-the-cell-image"
+  role = aws_iam_role.ci.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "StartABakeHostFromTheLiveCellTemplate"
+        Effect = "Allow"
+        Action = "ec2:RunInstances"
+        Resource = [
+          "arn:aws:ec2:${var.region}:${local.account}:launch-template/${local.cell_live.id}",
+          "arn:aws:ec2:${var.region}:${local.account}:snapshot/*",
+          "arn:aws:ec2:${var.region}::snapshot/*",
+        ]
+      },
+      {
+        Sid       = "StopAndImageOnlyTaggedHosts"
+        Effect    = "Allow"
+        Action    = ["ec2:StopInstances", "ec2:CreateImage"]
+        Resource  = "arn:aws:ec2:${var.region}:${local.account}:instance/*"
+        Condition = { StringEquals = { "ec2:ResourceTag/project" = "gusto-poc" } }
+      },
+      {
+        Sid      = "TheImageAndItsSnapshot"
+        Effect   = "Allow"
+        Action   = "ec2:CreateImage"
+        Resource = ["arn:aws:ec2:${var.region}::image/*", "arn:aws:ec2:${var.region}::snapshot/*"]
+      },
+      { Sid = "TagTheImage", Effect = "Allow", Action = "ec2:CreateTags", Resource = "*", Condition = { StringEquals = { "ec2:CreateAction" = "CreateImage" } } },
+      {
+        Sid       = "RemoveOnlyTaggedImages"
+        Effect    = "Allow"
+        Action    = ["ec2:DeregisterImage", "ec2:DeleteSnapshot"]
+        Resource  = ["arn:aws:ec2:${var.region}::image/*", "arn:aws:ec2:${var.region}::snapshot/*"]
+        Condition = { StringEquals = { "ec2:ResourceTag/project" = "gusto-poc" } }
+      },
+      { Sid = "LookAtImagesAndTheFileSystem", Effect = "Allow", Action = ["ec2:DescribeImages", "elasticfilesystem:DescribeFileSystems"], Resource = "*" },
+      {
+        Sid    = "ReadTheUbuntuImageAndTheCellImage"
+        Effect = "Allow"
+        # A launch template that names its image by parameter is read with GetParameters when a host is launched from it.
+        Action = ["ssm:GetParameter", "ssm:GetParameters"]
+        Resource = [
+          "arn:aws:ssm:${var.region}::parameter/aws/service/canonical/ubuntu/*",
+          local.ssm_path,
+        ]
+      },
+      { Sid = "PointTheCellTemplateAtTheImage", Effect = "Allow", Action = "ssm:PutParameter", Resource = "arn:aws:ssm:${var.region}:${local.account}:parameter/gusto/poc/cell-ami" },
+    ]
   })
 }
 

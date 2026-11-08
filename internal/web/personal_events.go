@@ -6,28 +6,28 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
-// eventEvery is how often the stream looks at a person's jobs, and keepAlive how long it may be quiet before it sends a
+// eventEvery is how often the stream looks at a person's tasks, and keepAlive how long it may be quiet before it sends a
 // comment, which keeps a connection a proxy would drop for being idle.
 var (
 	eventEvery = time.Second
 	keepAlive  = 20 * time.Second
 )
 
-// turnEvents name what happened to one of the person's jobs, in the order jobs go through.
-var turnEvents = map[jobs.State]string{
-	jobs.Queued:      "turn.queued",
-	jobs.Running:     "turn.started",
-	jobs.Passed:      "turn.finished",
-	jobs.Failed:      "turn.failed",
-	jobs.Interrupted: "turn.interrupted",
+// turnEvents name what happened to one of the person's tasks, in the order tasks go through.
+var turnEvents = map[tasks.State]string{
+	tasks.Queued:      "turn.queued",
+	tasks.Running:     "turn.started",
+	tasks.Passed:      "turn.finished",
+	tasks.Failed:      "turn.failed",
+	tasks.Interrupted: "turn.interrupted",
 }
 
-// turnEvent is what a tray or a notification needs to name a job: which it is, where it was said, and how it stands.
+// turnEvent is what a tray or a notification needs to name a task: which it is, where it was said, and how it stands.
 type turnEvent struct {
-	Job      string `json:"job"`
+	Task     string `json:"job"`
 	Instance string `json:"instance,omitempty"`
 	Thread   string `json:"thread,omitempty"`
 	Brief    string `json:"brief"`
@@ -35,10 +35,10 @@ type turnEvent struct {
 	At       int64  `json:"at"`
 }
 
-// eventsJSON streams what happens to a person's own jobs as server-sent events, so that a tray can say when an agent
+// eventsJSON streams what happens to a person's own tasks as server-sent events, so that a tray can say when an agent
 // finishes without anybody polling the pages.
 //
-// A connection first hears the state of every job that has not ended, and of every job that ended after ?since=<unix
+// A connection first hears the state of every task that has not ended, and of every task that ended after ?since=<unix
 // seconds> when a client names one, which is how it catches up after it was away. It then hears each change. An event
 // `ready` marks the end of that first part.
 func (s *Server) eventsJSON(w http.ResponseWriter, r *http.Request) {
@@ -53,12 +53,12 @@ func (s *Server) eventsJSON(w http.ResponseWriter, r *http.Request) {
 	stream := &feed{to: w, control: http.NewResponseController(w)}
 	stream.flush()
 
-	told := map[string]jobs.State{}
+	told := map[string]tasks.State{}
 	ticker := time.NewTicker(eventEvery)
 	defer ticker.Stop()
 	quiet := time.Now()
 	for first := true; ; first = false {
-		records := s.ownJobs(r, s.index.List())
+		records := s.ownTasks(r, s.index.List())
 		for i := len(records) - 1; i >= 0; i-- {
 			record := records[i]
 			if state, known := told[record.ID]; known && state == record.State {
@@ -90,7 +90,7 @@ func (s *Server) eventsJSON(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (f *feed) event(record jobs.Record) {
+func (f *feed) event(record tasks.Record) {
 	at := record.Ended
 	switch {
 	case at == 0 && record.Started != 0:
@@ -98,7 +98,7 @@ func (f *feed) event(record jobs.Record) {
 	case at == 0:
 		at = record.Queued
 	}
-	body, err := json.Marshal(turnEvent{Job: record.ID, Instance: record.Instance, Thread: record.Thread, Brief: record.Brief,
+	body, err := json.Marshal(turnEvent{Task: record.ID, Instance: record.Instance, Thread: record.Thread, Brief: record.Brief,
 		State: string(record.State), At: at})
 	if err != nil {
 		return

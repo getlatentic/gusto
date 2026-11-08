@@ -13,6 +13,8 @@ import (
 type question struct {
 	body  []byte
 	model string
+	// streamed is a call whose answer comes as a stream, which starts at once however long the model then takes.
+	streamed bool
 }
 
 // askLimit is the largest request the proxy reads. A long conversation sent
@@ -37,7 +39,9 @@ func readQuestion(r *http.Request) (question, error) {
 	}
 	var model string
 	_ = json.Unmarshal(fields["model"], &model)
-	return question{body: countable(fields, body), model: model}, nil
+	var streamed bool
+	_ = json.Unmarshal(fields["stream"], &streamed)
+	return question{body: countable(fields, body), model: model, streamed: streamed}, nil
 }
 
 // countable asks a streamed answer to carry its usage. An OpenAI-compatible

@@ -1,0 +1,154 @@
+// Package roomwork lets the agents of one room work at the same time in the room's one folder.
+//
+// Each turn works on a copy of the folder, and what the turn changed is merged into the folder when the turn passes. A file
+// two turns changed is not overwritten: the folder keeps the version that arrived first, the other is saved beside it under a
+// name that says whose it is, and the merge says so. A turn that fails or is stopped merges nothing.
+package roomwork
+
+import (
+	"context"
+	"os"
+	"sync"
+	"time"
+)
+
+// Room is the folder agents share, and where the merge keeps its staging files. Meta is on the same file system as Folder, so
+// a staged file is renamed into place and a reader never sees half a file.
+type Room struct {
+	Folder string
+	Meta   string
+}
+
+// Hub hands out working copies of room folders and merges them back. It is safe for any number of turns at once.
+type Hub struct {
+	limits Limits
+	mu     sync.Mutex
+	rooms  map[string]*roomState
+}
+
+// roomState is what the hub knows of a room while a turn is working in it.
+type roomState struct {
+	// guard holds one token while a merge changes the folder. A merge checks files and then replaces them, and two merges
+	// doing that to one file at once would lose one of them, so this is a lock around file system work, held for the files the
+	// turn changed and no more. It is a channel so that a stopped turn does not wait for it.
+	guard chan struct{}
+	// meta is the room's Meta, where a change that is not a turn's keeps what it replaces.
+	meta string
+	// The rest is guarded by Hub.mu.
+	live map[*Turn]struct{}
+	// holds is the people's changes holding or waiting for the guard. The state is kept while there is one, so a turn that
+	// joins meanwhile meets the same guard: spec/RoomGuard.tla is the model.
+	holds   int
+	seq     uint64
+	healed  bool
+	history history
+}
+
+// guardWait is the longest a merge waits for another merge into the same room. A merge is the changed files of one turn, so
+// waiting longer means something is wrong.
+const guardWait = 2 * time.Minute
+
+// NewHub is a hub whose working copies are held to limits.
+func NewHub(limits Limits) *Hub {
+	return &Hub{limits: limits, rooms: map[string]*roomState{}}
+}
+
+// join adds a turn to its room's state, making the state if the room has none.
+func (h *Hub) join(in Room, turn *Turn) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	state := h.rooms[in.Folder]
+	if state == nil {
+		state = newRoomState(in.Meta)
+		h.rooms[in.Folder] = state
+	}
+	if state.meta == "" {
+		state.meta = in.Meta
+	}
+	turn.begin = state.seq
+	state.live[turn] = struct{}{}
+}
+
+func newRoomState(meta string) *roomState {
+	return &roomState{guard: make(chan struct{}, 1), meta: meta, live: map[*Turn]struct{}{}, history: newHistory()}
+}
+
+// leave takes a turn out of its room, and lets go of what the room kept for turns that began before every one still working.
+func (h *Hub) leave(in Room, turn *Turn) {
+	h.mu.Lock()
+	state := h.rooms[in.Folder]
+	if state == nil {
+		h.mu.Unlock()
+		return
+	}
+	delete(state.live, turn)
+	oldest := state.seq
+	for each := range state.live {
+		oldest = min(oldest, each.begin)
+	}
+	idle := len(state.live) == 0 && state.holds == 0
+	if idle {
+		delete(h.rooms, in.Folder)
+	}
+	spent := state.history.trim(oldest)
+	h.mu.Unlock()
+	for _, file := range spent {
+		_ = os.Remove(file)
+	}
+	if idle {
+		_ = os.RemoveAll(priorDir(in))
+	}
+}
+
+// hold takes the room's merge guard, or gives up when the context ends or the wait does. The room has a working turn.
+func (h *Hub) hold(ctx context.Context, in Room) (release func(), err error) {
+	h.mu.Lock()
+	state := h.rooms[in.Folder]
+	h.mu.Unlock()
+	if state == nil {
+		return nil, ErrClosed
+	}
+	return guard(ctx, state)
+}
+
+func guard(ctx context.Context, state *roomState) (release func(), err error) {
+	ctx, stop := context.WithTimeout(ctx, guardWait)
+	defer stop()
+	select {
+	case state.guard <- struct{}{}:
+		return func() { <-state.guard }, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+// heal undoes a merge that a crash cut off, the first time a room becomes busy. A turn that finds the room healed does not wait
+// for the guard.
+func (h *Hub) heal(ctx context.Context, in Room) error {
+	if h.healed(in) {
+		return nil
+	}
+	release, err := h.hold(ctx, in)
+	if err != nil {
+		return err
+	}
+	defer release()
+	if h.healed(in) {
+		return nil
+	}
+	if err := recoverMerge(in); err != nil {
+		return err
+	}
+	// No turn is working from before this, so no version a merge kept is needed.
+	_ = os.RemoveAll(priorDir(in))
+	h.mu.Lock()
+	h.rooms[in.Folder].healed = true
+	h.mu.Unlock()
+	return nil
+}
+
+func (h *Hub) healed(in Room) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.rooms[in.Folder].healed
+}

@@ -18,7 +18,7 @@ func a11yPages(t *testing.T) map[string]*html.Node {
 	conversation := startedThread(t, site)
 	instance := conversation[:strings.Index(conversation, "/threads/")]
 	pages := map[string]*html.Node{}
-	for _, path := range []string{"/", "/chat", "/jobs", "/files", "/spend", "/new", "/admin", conversation, instance} {
+	for _, path := range []string{"/chat", "/jobs", "/files", "/spend", "/presets", "/admin", conversation, instance} {
 		answer := site.ask(t, "GET", path, nil)
 		if answer.Code != http.StatusOK {
 			t.Fatalf("%s answered %d", path, answer.Code)
@@ -126,7 +126,7 @@ func TestEveryPageHasItsLandmarks(t *testing.T) {
 // A toggle says what it opens and whether it is open.
 func TestTogglesSayWhetherTheyAreOpen(t *testing.T) {
 	doc := a11yPages(t)["/chat"]
-	for _, toggle := range []string{"data-panel-toggle", "data-look", "data-side-toggle"} {
+	for _, toggle := range []string{"data-look", "data-side-toggle"} {
 		found := false
 		each(doc, func(n *html.Node) {
 			if hasAttr(n, toggle) {
@@ -204,7 +204,7 @@ func TestACutNameIsWholeInItsTitle(t *testing.T) {
 func TestARefusedChatSaysWhyAtTheBox(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	doc, err := html.Parse(site.ask(t, "GET", "/chat?refused="+url.QueryEscape("That folder is not yours."), nil).Body)
+	doc, err := html.Parse(site.ask(t, "GET", site.server.withMessage("/chat", "refused", "That folder is not yours."), nil).Body)
 	if err != nil {
 		t.Fatal(err)
 	}

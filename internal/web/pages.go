@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"html/template"
 	"net/http"
 	"net/url"
@@ -13,13 +14,14 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/changelog"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 var helpers = template.FuncMap{
-	"modelName": modelName,
+	"modelName":  modelName,
+	"mentionsIn": mentionsIn,
 	// dict passes more than one value to a template defined in another, which
 	// html/template has no literal for.
 	"dict": func(pairs ...any) map[string]any {
@@ -51,7 +53,7 @@ var helpers = template.FuncMap{
 	"brain":   modelName,
 	"hue":     fieldClass,
 	"initial": initial,
-	// split is a list text, such as "send jobs, read spending", as its items.
+	// split is a list text, such as "send tasks, read spending", as its items.
 	"split": func(text, by string) []string { return strings.Split(text, by) },
 	// modelOnly is a model without the credential that serves it, which is
 	// what somebody choosing between models reads.
@@ -66,20 +68,20 @@ var helpers = template.FuncMap{
 	"span":   func(seconds int64) string { return (time.Duration(seconds) * time.Second).String() },
 	"hourOf": func(unix int64) string { return time.Unix(unix, 0).Format("15:04") },
 	// outcome is how a run ended, in the words of a log: a turn replied, a
-	// task passed or failed its gate, and one still going says so.
+	// task passed or failed its check, and one still going says so.
 	"outcome": func(shown run) string {
 		switch {
-		case shown.State == jobs.Queued:
+		case shown.State == tasks.Queued:
 			return "waiting"
-		case shown.State == jobs.Running:
+		case shown.State == tasks.Running:
 			return "working"
-		case shown.State == jobs.Interrupted:
+		case shown.State == tasks.Interrupted:
 			return "interrupted"
-		case shown.Thread != "" && shown.State == jobs.Passed:
+		case shown.Thread != "" && shown.State == tasks.Passed:
 			return "replied"
 		case shown.Thread != "":
 			return "failed"
-		case shown.State == jobs.Passed:
+		case shown.State == tasks.Passed:
 			return "check passed"
 		}
 		return "check failed"
@@ -102,6 +104,7 @@ var helpers = template.FuncMap{
 	"usd": headlineUSD,
 	// ago is how long ago something happened, as a list read at a glance says
 	// it, with the date itself once it is more than a day old.
+	"clock": clock,
 	"ago": func(unix int64) string {
 		if unix == 0 {
 			return ""
@@ -149,7 +152,8 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 	wrong := r.URL.Query().Get("wrong") != ""
 	s.render(w, "login.html", map[string]any{
 		"Wrong":    wrong,
-		"Refused":  r.URL.Query().Get("refused"),
+		"Local":    s.local != nil,
+		"Refused":  s.refusal(r),
 		"Identity": s.identity.Configured(),
 		"Provider": s.identity.Configured(),
 		"Desktop":  r.URL.Query().Has("desktop"),
@@ -161,7 +165,7 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
-	from := clientOf(r)
+	from := s.clientOf(r)
 	if s.wrong.blocked(from, time.Now()) {
 		s.noteRefused(r, "", "the shared password", "too many wrong attempts from this source")
 		tooMany(w)
@@ -181,26 +185,40 @@ func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) signOut(w http.ResponseWriter, r *http.Request) {
 	s.note(r, changelog.SignedOut, nil)
+	who := s.keeper.who(r)
 	s.keeper.end(r)
 	s.keeper.clear(w, r)
 	if s.front != nil {
-		http.Redirect(w, r, s.front.URL+"/org", http.StatusSeeOther)
+		http.Redirect(w, r, s.front.exit(who), http.StatusSeeOther)
 		return
 	}
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
-// place writes a job's directory and takes it into the index. It is the same
-// sequence whichever page asked for the job, and the caller wakes the queue
-// once it has recorded whatever else the job belongs to.
-func (s *Server) place(spec job.Spec, record jobs.Record) error {
-	dir := job.Dir(filepath.Join(s.index.Root(), record.ID))
+// place writes a task's directory and takes it into the index. It is the same
+// sequence whichever page asked for the task, and the caller wakes the queue
+// once it has recorded whatever else the task belongs to. A turn is in the
+// workspace of its instance.
+func (s *Server) place(spec task.Spec, record tasks.Record) error {
+	if held, found := s.instances.Get(record.Instance); found {
+		record.Workspace = workspace.Stored(held.Workspace)
+	}
+	spec.Workspace = record.Workspace
+	dir := task.Dir(filepath.Join(s.index.Root(), record.ID))
 	if err := dir.Make(); err != nil {
 		return err
 	}
-	if err := s.equip(&spec, dir, record.Asked); err != nil {
+	if spec.Person == "" {
+		spec.Person = record.Asked
+	}
+	// A room's agent works with its owner's tools, which the room's admin accepted with it.
+	if err := s.equip(&spec, dir, record.Payer()); err != nil {
 		return err
 	}
+	if err := s.giveConnectors(&spec, dir, record); err != nil {
+		return err
+	}
+	spec.Brief += s.roomAppsLine(record, spec)
 	if err := spec.Write(dir); err != nil {
 		return err
 	}
@@ -213,14 +231,10 @@ func (s *Server) place(spec job.Spec, record jobs.Record) error {
 // turnAway sends somebody back to the page they came from, carrying the reason
 // they did not get what they asked for.
 func (s *Server) turnAway(w http.ResponseWriter, r *http.Request, back, why string) {
-	join := "?"
-	if strings.Contains(back, "?") {
-		join = "&"
-	}
-	http.Redirect(w, r, back+join+"refused="+template.URLQueryEscaper(why), http.StatusSeeOther)
+	http.Redirect(w, r, s.withMessage(back, "refused", why), http.StatusSeeOther)
 }
 
-// file hands back one evidence file. The name is checked against the listing
+// file hands back one record file. The name is checked against the listing
 // rather than cleaned, so nothing outside out/ can be asked for.
 func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 	record, dir, found := s.find(r)
@@ -234,7 +248,7 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// A person's browser is given the file in a page, with the way back to the record, and a program or a download the bytes as they are.
-	if r.URL.Query().Get("raw") == "" && strings.Contains(r.Header.Get("Accept"), "text/html") && s.evidencePage(w, r, record, dir, name) {
+	if r.URL.Query().Get("raw") == "" && strings.Contains(r.Header.Get("Accept"), "text/html") && s.recordPage(w, r, record, dir, name) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -242,9 +256,9 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, dir.OutFile(name))
 }
 
-// evidencePage draws one of a run's files as a page of the app, so that the window of the desktop app, which has no address bar, has a way
+// recordPage draws one of a run's files as a page of the app, so that the window of the desktop app, which has no address bar, has a way
 // back to the record. It says whether it did: a file that is not text is not drawn, and is given as it is.
-func (s *Server) evidencePage(w http.ResponseWriter, r *http.Request, record jobs.Record, dir job.Dir, name string) bool {
+func (s *Server) recordPage(w http.ResponseWriter, r *http.Request, record tasks.Record, dir task.Dir, name string) bool {
 	path := dir.OutFile(name)
 	info, err := os.Stat(path)
 	if err != nil || info.IsDir() {
@@ -264,16 +278,16 @@ func (s *Server) evidencePage(w http.ResponseWriter, r *http.Request, record job
 		return true
 	}
 	s.render(w, "file.html", map[string]any{
-		"Title": productName + " — " + name, "Nav": "jobs", "File": file, "Evidence": record.ID,
+		"Title": productName + " — " + name, "Nav": "jobs", "File": file, "TaskID": record.ID,
 		"Back": "/jobs/" + record.ID, "BackWord": "Back to the record",
 	})
 	return true
 }
 
-func (s *Server) find(r *http.Request) (jobs.Record, job.Dir, bool) {
+func (s *Server) find(r *http.Request) (tasks.Record, task.Dir, bool) {
 	record, found := s.index.Get(r.PathValue("id"))
-	if !found || !s.mayUse(r, record.Asked) {
-		return jobs.Record{}, "", false
+	if !found || !s.mayUseRecord(r, record) {
+		return tasks.Record{}, "", false
 	}
 	return record, record.Dir(s.index.Root()), true
 }

@@ -5,19 +5,21 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // holding is work that runs until it is told to stop, and then writes what a run that was stopped leaves.
 func holding(t *testing.T) (started chan string) {
 	t.Helper()
 	started = make(chan string, 8)
-	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
 		os.MkdirAll(dir.Out(), 0o755)
 		os.WriteFile(dir.OutFile("transcript.log"), []byte("working on it"), 0o644)
 		started <- dir.Path()
@@ -42,7 +44,7 @@ func TestAPersonStopsTheirRunningTurnByTheAPIAndItEndsInterruptedByThem(t *testi
 		t.Fatalf("stopping gave %d %s", stopped.Code, stopped.Body)
 	}
 	record := turnDone(t, here, id)
-	if record.State != jobs.Interrupted || record.StoppedBy != alice {
+	if record.State != tasks.Interrupted || record.StoppedBy != alice {
 		t.Fatalf("the stopped turn is %+v", record)
 	}
 	if note, err := os.ReadFile(record.Dir(here.index.Root()).Path() + "/stop.json"); err != nil || !strings.Contains(string(note), alice) {
@@ -73,7 +75,7 @@ func TestAQueuedTurnThatIsStoppedNeverRunsAndSomebodyElsesCannotBeStopped(t *tes
 		t.Fatalf("stopping a queued turn gave %d %s", got.Code, got.Body)
 	}
 	record, _ := here.index.Get(id)
-	if record.State != jobs.Interrupted || record.StoppedBy != alice {
+	if record.State != tasks.Interrupted || record.StoppedBy != alice {
 		t.Errorf("the queued turn is %+v", record)
 	}
 	here.postAs(ada, "/api/jobs/"+first["job"].(string)+"/stop", "")
@@ -83,6 +85,36 @@ func TestAQueuedTurnThatIsStoppedNeverRunsAndSomebodyElsesCannotBeStopped(t *tes
 		t.Errorf("the turn that was stopped while queued ran: %s", path)
 	default:
 	}
+}
+
+// A stop of a turn whose work is already kept is refused, and leaves no note of a stop that did not happen.
+func TestAStopTheTurnRefusesLeavesNoStopNote(t *testing.T) {
+	running, release := make(chan string, 1), make(chan struct{})
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
+		os.MkdirAll(dir.Out(), 0o755)
+		running <- dir.Path()
+		<-release
+		return 0, nil
+	}
+	t.Cleanup(func() { testWork = nil })
+	here := withTokens(t)
+	ada := here.as(t, alice)
+	_, thread := started2(t, here, alice)
+	ada.ask(t, "POST", thread+"/say", url.Values{"said": {"work that gets kept"}})
+	<-running
+	id := regexpFirst(t, ada.ask(t, "GET", thread, nil).Body.String(), `/jobs/([0-9a-z-]+)/stop`)
+	if err := here.index.Commit(id); err != nil {
+		t.Fatal(err)
+	}
+	if got := ada.ask(t, "POST", "/jobs/"+id+"/stop", url.Values{"back": {thread}}); got.Code != http.StatusSeeOther {
+		t.Fatalf("the refused stop answered %d", got.Code)
+	}
+	record, _ := here.index.Get(id)
+	if _, err := os.Stat(runner.StopFile(record.Dir(here.index.Root()))); !os.IsNotExist(err) {
+		t.Errorf("a stop note was left for a stop that was refused: %v", err)
+	}
+	close(release)
+	turnDone(t, here, id)
 }
 
 func TestThePageStopsATurnAndShowsWhoStoppedIt(t *testing.T) {
@@ -117,4 +149,130 @@ func TestThePageStopsATurnAndShowsWhoStoppedIt(t *testing.T) {
 func started2(t *testing.T, here *tokened, who string) (instance, thread string) {
 	t.Helper()
 	return started(t, here.as(t, who))
+}
+
+// A turn whose model the free credit refused says so, and what to do: add the organization's own key, which an admin is linked to.
+func TestATurnTheCreditStoppedSaysHowToCarryOn(t *testing.T) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
+		os.MkdirAll(dir.Out(), 0o755)
+		line := `{"path":"/v1/chat/completions","status":402,"atUnix":` + strconv.FormatInt(time.Now().Unix(), 10) +
+			`,"model":"m","inputTokens":0,"outputTokens":0,"usd":0,"refused":{"cap":"credit","limitUsd":5,"spentUsd":5.01,"reason":"the free credit is used"}}`
+		os.WriteFile(dir.OutFile("proxy.jsonl"), []byte(line+"\n"), 0o644)
+		return 1, nil
+	}
+	t.Cleanup(func() { testWork = nil })
+	here := withTokens(t)
+	ada := here.as(t, alice)
+	_, thread := started2(t, here, alice)
+	_, said := here.say("/api"+thread+"/say", signInADevice(t, here, alice), "one more", "go")
+	turnDone(t, here, said["job"].(string))
+	page := ada.ask(t, "GET", thread, nil).Body.String()
+	if !strings.Contains(page, "The free credit for the models gusto provides is used: $5.01 of $5.00.") ||
+		!(strings.Contains(page, `href="/admin/models">Add your organization&#39;s own model key</a>`) || strings.Contains(page, "Ask an admin of your organization")) {
+		t.Errorf("the turn does not say the credit stopped it and what to do:\n%s", page)
+	}
+}
+
+// A model the credit cannot count is refused for that, not because the credit is used, and the turn says the real reason.
+func TestATurnRefusedForAnUnpricedModelSaysWhyAndNotThatTheCreditIsUsed(t *testing.T) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
+		os.MkdirAll(dir.Out(), 0o755)
+		line := `{"path":"/v1/chat/completions","status":402,"atUnix":` + strconv.FormatInt(time.Now().Unix(), 10) +
+			`,"model":"m","inputTokens":0,"outputTokens":0,"usd":0,"refused":{"cap":"credit","limitUsd":5,"spentUsd":0,"reason":"m has no price in the spend policy, so the credit cap cannot count it"}}`
+		os.WriteFile(dir.OutFile("proxy.jsonl"), []byte(line+"\n"), 0o644)
+		os.WriteFile(dir.OutFile("stderr.log"), []byte("gusto: session/prompt: Internal error: turn failed (-32603)\n"), 0o644)
+		return 1, nil
+	}
+	t.Cleanup(func() { testWork = nil })
+	here := withTokens(t)
+	ada := here.as(t, alice)
+	_, thread := started2(t, here, alice)
+	_, said := here.say("/api"+thread+"/say", signInADevice(t, here, alice), "one more", "go")
+	turnDone(t, here, said["job"].(string))
+	page := ada.ask(t, "GET", thread, nil).Body.String()
+	if strings.Contains(page, "free credit for the models gusto provides is used") || !strings.Contains(page, "The model was not asked: m has no price in the spend policy") {
+		t.Errorf("the turn does not give the real reason its model was refused")
+	}
+	if strings.Contains(page, "It stopped before it finished") || strings.Contains(page, "-32603") {
+		t.Errorf("a turn a spending limit stopped also shows the agent's own error:\n%s", page)
+	}
+}
+
+// A turn whose agent was refused other sites says how many requests were blocked, and opens to the sites, each once.
+func TestATurnListsTheSitesItsAgentWasRefused(t *testing.T) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
+		os.MkdirAll(dir.Out(), 0o755)
+		at := strconv.FormatInt(time.Now().Unix(), 10)
+		refused := func(host string) string {
+			return `{"path":"/","host":"` + host + `","status":403,"denied":"not on the allowlist","atUnix":` + at + `,"tookMs":0,"inputTokens":null,"outputTokens":null}`
+		}
+		lines := refused("pypi.org:443") + "\n" + refused("pypi.org:443") + "\n" + refused("evil.example:443") + "\n"
+		os.WriteFile(dir.OutFile("proxy.jsonl"), []byte(lines), 0o644)
+		return 0, nil
+	}
+	t.Cleanup(func() { testWork = nil })
+	here := withTokens(t)
+	ada := here.as(t, alice)
+	_, thread := started2(t, here, alice)
+	_, said := here.say("/api"+thread+"/say", signInADevice(t, here, alice), "fetch something", "go")
+	turnDone(t, here, said["job"].(string))
+	page := ada.ask(t, "GET", thread, nil).Body.String()
+	if !strings.Contains(page, "<span>3 requests blocked</span>") || !strings.Contains(page, ">pypi.org</code> <span>× 2</span>") ||
+		!strings.Contains(page, ">evil.example</code></li>") {
+		t.Errorf("the turn does not list the sites its agent was refused:\n%s", page)
+	}
+}
+
+// A turn a person's budget stopped says so plainly, by their name and the month, and does not repeat the error the agent
+// printed, since the model was never asked.
+func TestATurnStoppedByAPersonsBudgetSaysSoPlainly(t *testing.T) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
+		os.MkdirAll(dir.Out(), 0o755)
+		line := `{"path":"/v1/chat/completions","status":402,"atUnix":` + strconv.FormatInt(time.Now().Unix(), 10) +
+			`,"model":"m","inputTokens":0,"outputTokens":0,"usd":0,"refused":{"cap":"person","limitUsd":0.01,"spentUsd":0.09,"reason":"over budget"}}`
+		os.WriteFile(dir.OutFile("proxy.jsonl"), []byte(line+"\n"), 0o644)
+		os.WriteFile(dir.OutFile("transcript.log"), []byte("API Error: 402 gusto stopped this task: over budget\n"), 0o644)
+		return 1, nil
+	}
+	t.Cleanup(func() { testWork = nil })
+	here := withTokens(t)
+	ada := here.as(t, alice)
+	_, thread := started2(t, here, alice)
+	_, said := here.say("/api"+thread+"/say", signInADevice(t, here, alice), "one more", "go")
+	turnDone(t, here, said["job"].(string))
+	page := ada.ask(t, "GET", thread, nil).Body.String()
+	month := time.Now().UTC().Format("January")
+	if want := "Stopped before asking the model: " + nameFromAddress(alice) + "&#39;s budget for " + month + " is used up, $0.09 of $0.01."; !strings.Contains(page, want) {
+		t.Errorf("the turn does not say plainly whose budget stopped it; want %q", want)
+	}
+	if strings.Contains(page, "API Error") || strings.Contains(page, "The model was not asked") {
+		t.Error("the turn repeats the agent's error or the proxy's own words")
+	}
+}
+
+// A turn a person's budget stopped part way keeps what the agent said before it, without the agent repeating the refusal.
+func TestATurnStoppedPartWayKeepsTheReplyWithoutTheRefusalRepeated(t *testing.T) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
+		os.MkdirAll(dir.Out(), 0o755)
+		at := strconv.FormatInt(time.Now().Unix(), 10)
+		lines := `{"path":"/v1/chat/completions","status":200,"atUnix":` + at + `,"model":"m","inputTokens":100,"outputTokens":50,"usd":0.02}` + "\n" +
+			`{"path":"/v1/chat/completions","status":402,"atUnix":` + at +
+			`,"model":"m","inputTokens":0,"outputTokens":0,"usd":0,"refused":{"cap":"person","limitUsd":0.02,"spentUsd":0.02,"reason":"over budget"}}` + "\n"
+		os.WriteFile(dir.OutFile("proxy.jsonl"), []byte(lines), 0o644)
+		os.WriteFile(dir.OutFile("transcript.log"), []byte("Drafting the reminder email now.\nAPI Error: 402 gusto stopped this task: over budget\n"), 0o644)
+		return 1, nil
+	}
+	t.Cleanup(func() { testWork = nil })
+	here := withTokens(t)
+	ada := here.as(t, alice)
+	_, thread := started2(t, here, alice)
+	_, said := here.say("/api"+thread+"/say", signInADevice(t, here, alice), "one more", "go")
+	turnDone(t, here, said["job"].(string))
+	page := ada.ask(t, "GET", thread, nil).Body.String()
+	if !strings.Contains(page, "Drafting the reminder email now.") {
+		t.Error("the turn drops what the agent said before the budget stopped it")
+	}
+	if strings.Contains(page, "API Error") || !strings.Contains(page, "is used up, $0.02 of $0.02.") {
+		t.Errorf("the turn repeats the agent's error, or does not say the budget stopped it:\n%s", page)
+	}
 }

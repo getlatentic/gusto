@@ -26,8 +26,8 @@ func Markdown(w io.Writer, table Table) error {
 	fmt.Fprintln(w, "| agent and model | task | finished | wall clock | billed tokens | cost | record |")
 	fmt.Fprintln(w, "| --- | --- | --- | --- | --- | --- | --- |")
 	for _, row := range table.Rows {
-		if _, err := fmt.Fprintf(w, "| %s | %s | %s | %s | %s | %s | %s |\n", pairOf(row), jobOf(row, table),
-			finished(row), wallClock(row), tokens(row), cost(row), strings.ReplaceAll(row.Evidence, "|", `\|`)); err != nil {
+		if _, err := fmt.Fprintf(w, "| %s | %s | %s | %s | %s | %s | %s |\n", pairOf(row), taskOf(row, table),
+			finished(row), wallClock(row), tokens(row), cost(row), strings.ReplaceAll(row.Record, "|", `\|`)); err != nil {
 			return err
 		}
 	}
@@ -69,11 +69,11 @@ func pairOf(row Row) string {
 	return "`" + row.Harness + "`, `" + row.Model + "`"
 }
 
-func jobOf(row Row, table Table) string {
-	if row.Job == table.Simplest {
-		return row.Job + " (simplest)"
+func taskOf(row Row, table Table) string {
+	if row.Task == table.Simplest {
+		return row.Task + " (simplest)"
 	}
-	return row.Job
+	return row.Task
 }
 
 func finished(row Row) string {

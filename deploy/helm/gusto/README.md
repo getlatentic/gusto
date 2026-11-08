@@ -70,7 +70,7 @@ It runs one task through the API on a fixture agent that calls no model, and end
 
 ## Sign in
 
-Run `kubectl -n gusto port-forward svc/gusto 8040:80` and open <http://127.0.0.1:8040>. To serve a name, turn on `ingress` with TLS. The ingress must not buffer a task's output or time it out early. With ingress-nginx:
+Run `kubectl -n gusto port-forward svc/gusto 8040:80` and open <http://127.0.0.1:8040>. To serve a name, turn on `ingress` with TLS. The ingress must not buffer a task's output or time it out early, and must pass a WebSocket: a room's page keeps one open at `/live` and the server pings it every 30 seconds. ingress-nginx passes the upgrade by itself; the timeouts keep it from cutting a quiet connection at 60 seconds. With ingress-nginx:
 
 ```yaml
 ingress:
@@ -78,7 +78,7 @@ ingress:
   className: nginx
   host: gusto.example.com
   tls: [{ hosts: [gusto.example.com], secretName: gusto-tls }]
-  annotations: { nginx.ingress.kubernetes.io/proxy-buffering: "off", nginx.ingress.kubernetes.io/proxy-read-timeout: "3600" }
+  annotations: { nginx.ingress.kubernetes.io/proxy-buffering: "off", nginx.ingress.kubernetes.io/proxy-read-timeout: "3600", nginx.ingress.kubernetes.io/proxy-send-timeout: "3600" }
 ```
 
 ## Give it a model

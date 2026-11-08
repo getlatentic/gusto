@@ -8,7 +8,7 @@ import (
 )
 
 // measuredView is what a matrix saw each engine do with each model on the
-// simplest job it ran: the grid a person reads to choose an engine. A model
+// simplest task it ran: the grid a person reads to choose an engine. A model
 // reached through two credentials is one column, since it is one model.
 type measuredView struct {
 	Models   []string
@@ -34,7 +34,7 @@ type measuredCell struct {
 func (s *Server) enginesPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "engines.html", map[string]any{
 		"Title":    productName + " — how each agent did",
-		"Nav":      "new",
+		"Nav":      "presets",
 		"Measured": measuredOf(s.engines()),
 	})
 }

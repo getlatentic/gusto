@@ -24,6 +24,17 @@ A bearer-token credential answers Chat Completions and Responses. An Anthropic-h
 - `wires` lists the shapes the provider answers: `chat`, `messages`, `responses`. A call in another shape is translated when `chat` is one of them.
 - `maxOutput` is the most the provider lets a model write in one answer. A translated call that asks for more is held to it.
 
+A provider that answers different shapes at different addresses, under one key, is one credential with `endpoints`. DeepSeek answers Chat Completions and Responses at its root and Messages under `/anthropic`:
+
+```json
+{"address": "https://api.deepseek.com", "auth": "bearer", "key": "...",
+ "endpoints": [{"address": "https://api.deepseek.com/anthropic", "auth": "anthropic"}]}
+```
+
+- A call goes to the first address that answers its shape. When none does, it is translated at the first address that answers `chat`.
+- Each endpoint takes `address`, `auth` and `wires`, as the credential does. The key is the credential's.
+- The model is then one name, such as `deepseek/deepseek-flash`, for every engine. On the Models page an admin adds an address as OpenAI-compatible, Anthropic-compatible or custom.
+
 Translation leaves out what Chat Completions cannot carry: Anthropic's thinking blocks, cache hints, context management and effort; Codex's reasoning, encrypted history, tool namespace and tools OpenAI runs itself, such as web search; and a picture in a tool's result, which says an image was left out.
 
 A Codex free-text tool, such as a patch, becomes a function with one text argument. A mid-conversation instruction becomes a user message. A tool call the agent did not answer is answered with "(no result)". A translated call's record has `"translated": "messages"` or `"responses"`.
@@ -44,6 +55,39 @@ A task's agent is given one MCP server, the gateway. The gateway calls the real 
 A setup's integrations put their servers behind the gateway. Their definitions go to the task's `setup/gateway.json`, and `job.json` names them under `setup.gateway`. A task on a deployment with no proxy is refused by name.
 
 Settings: `GUSTO_TOOL_POLICY` is the policy file. `GUSTO_GATEWAY_MODE` is `discover` (default) or `all`. `GUSTO_GATEWAY_PRIVATE=1` lets servers be on a private network.
+
+### Connectors
+
+A connector is an app's MCP server that asks for OAuth. Each person signs in to it with their own account, in a workspace, and their agents in that workspace call it as them (`internal/connector`). A sign-in made in one workspace is not used in another. A sign-in is signed in, not signed in, or needs signing in again: the app stopped renewing it, or its access token ran out with no refresh token to renew it. A sign-in that needs signing in again is not connected and is given to no agent. Connections, an agent's Apps tab and the admin's Apps page say "sign in again" for it (the admin sees how many people), and a room's agent is told it cannot use that app and why. A person can only connect an app an admin has turned on, but may always disconnect their own sign-in: when an admin turns an app off, Connections still lists it for the people signed in to it, marked "turned off", with only Disconnect, and agents are no longer given it. When a renewed refresh token cannot be written, the server holds it in memory until it can be, since the app has retired the old one.
+
+1. An admin turns the app on at `/admin/apps`. Every app is off until then.
+2. The person opens Connections, `/connections`, and presses Connect. The app's own sign-in page opens.
+3. The app sends them back to `/connections/callback`. gusto trades the code for tokens and keeps them sealed in `GUSTO_CONNECTORS`.
+4. The person's next task has the app behind its gateway. `job.json` names it under `setup.connectors` and `setup.gateway`.
+5. At each call the gateway asks for the person's token, renewed when it is about to run out, and sends it to the app. The agent and the sandbox never hold it.
+
+| What | How |
+| --- | --- |
+| Finding how to sign in | The MCP server's 401 names its resource metadata (RFC 9728), which names the authorization server (RFC 8414 or OpenID Connect). Only https is read, or http on this computer |
+| How gusto is known to the app | The operator's client when one is in `GUSTO_CONNECTOR_CLIENTS`. Otherwise the client document at `/connectors/client.json`, when the app reads one and the server is on https. Otherwise a client the app registers (RFC 7591), kept for next time. An operator's secret is sent as basic authentication when the app names it, and in the form otherwise |
+| The sign-in | PKCE with S256, a `state` bound to the person, and the `resource` parameter. A sign-in not finished in 10 minutes is forgotten |
+| Whose token | The person who asked for the task, read from the task's state. A room's agent works for everyone in the room, so a room turn is given only its asker's sign-ins, and only the ones the asker lets that agent use: on the agent's Apps tab each app is Allow, Don't allow, or Inherit, which follows the asker's default for their agents on Connections (off until they turn it on). The reply says whose apps it used. A task another person pays for is given none |
+| Which agents | An agent that takes the gateway in its arguments or on its session. Pi reads its servers from a file, which a sandbox does not carry, so it is given none |
+| The vault | AES-GCM, with a key made the first time and kept beside the tokens, readable by the server's user alone |
+
+The catalog, asked on 2026-10-31: Linear, Notion, Figma, Canva and Stripe need no setup. Trello, asked on 2026-11-01, needs none either, and is asked for its boards, its members and offline access, not its inbox or planner. GitHub, Asana and HubSpot need a client the operator registers with them, with `<GUSTO_PUBLIC_URL>/connections/callback` as its redirect. GitHub is asked for `repo`, `read:org` and `read:user`, not the ten scopes its server lists. `GUSTO_MEASURE=1 go test -run Catalog ./internal/connector` asks each one again.
+
+To add GitHub to gusto cloud:
+
+1. Make an OAuth app under the organization's GitHub settings, Developer settings, OAuth Apps.
+2. Set the callback URL to `https://<GUSTO_CLOUD_DOMAIN>/connections/callback` and turn on wildcard matching for it, so that every organization's `<slug>.<domain>` matches.
+3. Make a client secret.
+4. Run `deploy/aws/openshell/put-connector-client.sh github <client id>` and type the secret at the prompt.
+5. Deploy. Each organization's server reads the clients when it starts, and its admin can then turn GitHub on.
+
+A GitHub organization that restricts OAuth apps asks its owner to approve the app the first time a member connects.
+
+Settings: `GUSTO_CONNECTORS` is the folder of sealed sign-ins, and turns connectors on. `GUSTO_PUBLIC_URL` is the address an app sends a person back to. `GUSTO_CONNECTOR_CLIENTS` is a JSON file of operator clients, `{"github": {"id": "…", "secret": "…"}}`, or `ssm:<name>` for a SecureString parameter holding the same. A parameter that cannot be read leaves those apps off and is logged; the server still starts. `GUSTO_CONNECTOR_APPS` is a JSON file of more apps, `[{"id": "wiki", "name": "Wiki", "what": "…", "url": "https://…"}]`. gusto cloud sets the first two for each organization.
 
 Measured on 2026-10-08 with 60 tools of about 200 tokens each: Claude Code and Codex load a tool's definition when needed, so 60 tools added about 710 and about 15 input tokens. OpenCode puts every definition in the request. The 60 tools cost it about 9,000 tokens, and the three gateway tools about 5,000, with counts that vary by thousands between calls. `GUSTO_MEASURE=1 go test -tags realclients -run Measure -v ./pkg/gateway` repeats it.
 

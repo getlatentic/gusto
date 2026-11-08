@@ -1,4 +1,0 @@
----
-collections:
-  - name: ansible.mysql # the database and user this app claims
-  - name: community.crypto # the deploy key, when the collection is available

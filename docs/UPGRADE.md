@@ -8,12 +8,13 @@ Each store has a format number in `.gusto-format` in its directory. A directory 
 
 | Store | Directory | Holds |
 | --- | --- | --- |
-| tasks | `GUSTO_JOBS` | each task's directory, with its signed record |
+| tasks | `GUSTO_TASKS` | each task's directory, with its signed record |
 | sessions | `GUSTO_SESSIONS` | agents, their threads and transcripts |
 | setups | `GUSTO_SETUPS` | skill sets |
 | comparisons | `GUSTO_COMPARISONS` | comparisons started from the pages |
 | integrations | `GUSTO_INTEGRATIONS` | plugins an administrator imported, a folder for each version |
 | presets | `GUSTO_PRESETS` | what each person saved to start a chat again, a file each |
+| crew | `GUSTO_CREW` | the workspace's agents, which rooms add, a file each |
 | changes | the directory of `GUSTO_CHANGES` | the change record |
 | tokens | the directory of `GUSTO_API_TOKENS` | API tokens |
 | retention | `GUSTO_RETENTION` | the policy, the holds and the last sweep |
@@ -34,9 +35,9 @@ gusto data status    # each store's format and the release that wrote it
 gusto version
 ```
 
-`gusto data check` exits 1 when the server would refuse. The playbook runs it with the new binary before promoting it, so a refusal fails the deploy while the running version keeps serving.
+`gusto data check` exits 1 when the server would refuse. Run it with the new binary before you replace the old one, so a refusal stops the upgrade while the running version keeps serving.
 
-To allow a migration that cannot be undone, copy the directories first. Set `GUSTO_MIGRATE_IRREVERSIBLE=1` (the playbook's `migrate_irreversible`) for that one start, then turn it off. After it runs, an older release cannot read that data, and going back means restoring the copy.
+To allow a migration that cannot be undone, copy the directories first. Set `GUSTO_MIGRATE_IRREVERSIBLE=1` for that one start, then turn it off. After it runs, an older release cannot read that data, and going back means restoring the copy.
 
 ## Roll back
 

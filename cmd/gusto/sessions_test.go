@@ -1,35 +1,38 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/computer"
-	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/landlock"
 	"github.com/getlatentic/gusto/internal/quota"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/record"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // turnBy is a turn in a conversation on an instance, asked for by a person, run by the work.
-func turnBy(t *testing.T, work jobs.Work, index *jobs.Index, instances *instance.Store, held instance.Instance, threadID, who, brief string) job.Dir {
+func turnBy(t *testing.T, work tasks.Work, index *tasks.Index, instances *instance.Store, held instance.Instance, threadID, who, brief string) task.Dir {
 	t.Helper()
 	id, err := index.Reserve(brief, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
 	remembered := instances.Latest(held.ID).Remembered
-	record := jobs.Record{ID: id, State: jobs.Running, Brief: brief, Harness: "fixture", Asked: who, Instance: held.ID, Thread: threadID, Queued: jobs.Now()}
+	record := tasks.Record{ID: id, State: tasks.Running, Brief: brief, Harness: "fixture", Asked: who, Instance: held.ID, Thread: threadID, Queued: tasks.Now()}
 	dir := record.Dir(index.Root())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: brief, Harness: "fixture", Session: held.ID, Thread: threadID, Remembered: remembered}
+	spec := task.Spec{Brief: brief, Harness: "fixture", Session: held.ID, Thread: threadID, Remembered: remembered}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +46,7 @@ func turnBy(t *testing.T, work jobs.Work, index *jobs.Index, instances *instance
 }
 
 // An agent that answers as jsonl, says what it calls the conversation, and adds a line to the
-// notes it finds in the workspace.
+// notes it finds in the working folder.
 func conversational(t *testing.T) {
 	t.Helper()
 	harnesses := t.TempDir()
@@ -54,27 +57,27 @@ func conversational(t *testing.T) {
 }
 
 func TestATurnWorksOnTheInstancesFilesInThePersonsComputerAndTheNextStartsFromWhatItLeft(t *testing.T) {
-	work, index, registry, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+	work, index, registry, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
 	conversational(t)
 	held, err := instances.Start("20260929-1200-notes", instance.Instance{Title: "Notes", Harness: "fixture", Who: "ada@acme.com"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	thread := instances.Latest(held.ID)
-	os.WriteFile(filepath.Join(instances.Workspace(held.ID), "notes.txt"), []byte("first\n"), 0o644)
+	os.WriteFile(filepath.Join(instances.AgentFolder(held.ID), "notes.txt"), []byte("first\n"), 0o644)
 
 	one := turnBy(t, work, index, instances, held, thread.ID, "ada@acme.com", "the first turn")
-	notes, _ := os.ReadFile(filepath.Join(instances.Workspace(held.ID), "notes.txt"))
+	notes, _ := os.ReadFile(filepath.Join(instances.AgentFolder(held.ID), "notes.txt"))
 	if string(notes) != "first\nmore\n" {
 		t.Fatalf("the turn worked on the instance's file and the change came back: %q", notes)
 	}
-	if where, _ := os.ReadFile(filepath.Join(instances.Workspace(held.ID), "where.txt")); !strings.HasPrefix(string(where), "/jobs/") {
+	if where, _ := os.ReadFile(filepath.Join(instances.AgentFolder(held.ID), "where.txt")); !strings.HasPrefix(string(where), "/jobs/") {
 		t.Errorf("the turn ran in the person's computer: %q", where)
 	}
-	if got, err := registry.Of("ada@acme.com"); err != nil || got.State != computer.Running {
+	if got, err := registry.Of("ada@acme.com", ""); err != nil || got.State != computer.Running {
 		t.Errorf("%+v %v", got, err)
 	}
-	if manifest, err := evidence.Read(one); err != nil || manifest.Session != "s-42" {
+	if manifest, err := record.Read(one); err != nil || manifest.Session != "s-42" {
 		t.Fatalf("the record names the conversation: %+v %v", manifest, err)
 	}
 	if latest := instances.Latest(held.ID); latest.Remembered != "s-42" {
@@ -82,24 +85,220 @@ func TestATurnWorksOnTheInstancesFilesInThePersonsComputerAndTheNextStartsFromWh
 	}
 
 	turnBy(t, work, index, instances, held, thread.ID, "ada@acme.com", "the second turn")
-	notes, _ = os.ReadFile(filepath.Join(instances.Workspace(held.ID), "notes.txt"))
+	notes, _ = os.ReadFile(filepath.Join(instances.AgentFolder(held.ID), "notes.txt"))
 	if string(notes) != "first\nmore\nmore\n" {
 		t.Errorf("the second turn started from what the first left: %q", notes)
+	}
+}
+
+// Two agents of a room asked by one person run at the same time in that person's one computer, each in a folder of its own, so
+// neither empties or overwrites the other's working copy there.
+func TestTwoAgentsOfARoomAskedByOnePersonWorkInFoldersOfTheirOwnInTheirComputer(t *testing.T) {
+	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
+	conversational(t)
+	held, err := instances.StartRoom("Launch", "ada@acme.com", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"Scout", "Draft"} {
+		if _, err := instances.AddAgent(held.ID, instance.Agent{Name: name, Harness: "fixture"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	held, _ = instances.Get(held.ID)
+	thread := instances.Latest(held.ID)
+	wheres := map[string]string{}
+	for _, agent := range held.Agents {
+		roomTurnBy(t, work, index, held, thread.ID, agent.ID, "ada@acme.com")
+		where, _ := os.ReadFile(filepath.Join(instances.AgentFolder(held.ID), "where.txt"))
+		wheres[agent.ID] = strings.TrimSpace(string(where))
+	}
+	if wheres["a1"] == wheres["a2"] || !strings.HasSuffix(wheres["a1"], "-a1/workspace") || !strings.HasSuffix(wheres["a2"], "-a2/workspace") {
+		t.Fatalf("the agents worked in %v", wheres)
+	}
+}
+
+// A room's turn runs behind a Landlock policy that lets it write its own folder, home and temporary folder and nothing else of
+// the person's computer, with that home as HOME. The policy itself is the landlock package's to enforce, and is tested there.
+func TestARoomsTurnInAPersonsComputerIsHeldToItsOwnFolders(t *testing.T) {
+	work, index, _, _, root, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
+	conversational(t)
+	held, _ := instances.StartRoom("Launch", "ada@acme.com", "")
+	instances.AddAgent(held.ID, instance.Agent{Name: "Scout", Harness: "fixture"})
+	held, _ = instances.Get(held.ID)
+	roomTurnBy(t, work, index, held, instances.Latest(held.ID).ID, "a1", "ada@acme.com")
+
+	records, _ := filepath.Glob(filepath.Join(root, "confined-*"))
+	if len(records) == 0 {
+		t.Fatal("the room's turn was not run behind the confiner")
+	}
+	said, _ := os.ReadFile(records[0])
+	lines := strings.SplitN(strings.TrimSpace(string(said)), "\n", 2)
+	policy, err := landlock.Load(lines[0])
+	if err != nil {
+		t.Fatalf("the confiner was given %q: %v", lines[0], err)
+	}
+	own := "/sandbox/rooms/" + held.ID + "-a1"
+	if !slices.Contains(policy.Write, own+"/home") || policy.Temp != own+"/tmp" || len(policy.Write) != 2 ||
+		!strings.HasPrefix(policy.Write[0], "/sandbox/jobs/instance-") || strings.HasSuffix(policy.Write[0], "/sandbox") {
+		t.Errorf("the policy is %+v", policy)
+	}
+	if len(lines) < 2 || lines[1] != own+"/home" {
+		t.Errorf("the agent's home is %q", said)
+	}
+
+	plain, _ := instances.Start("20260929-1200-notes", instance.Instance{Title: "Notes", Harness: "fixture", Who: "ada@acme.com"})
+	for _, record := range records {
+		os.Remove(record)
+	}
+	turnBy(t, work, index, instances, plain, instances.Latest(plain.ID).ID, "ada@acme.com", "a turn of a person's own")
+	if more, _ := filepath.Glob(filepath.Join(root, "confined-*")); len(more) != 0 {
+		t.Error("a person's own conversation was confined like a room's")
+	}
+}
+
+// roomTurnBy is a turn of a room's agent asked for by a person, run by the work.
+func roomTurnBy(t *testing.T, work tasks.Work, index *tasks.Index, held instance.Instance, threadID, agent, who string) task.Dir {
+	t.Helper()
+	id, err := index.Reserve("go "+agent, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := tasks.Record{ID: id, State: tasks.Running, Brief: "go", Harness: "fixture", Asked: who, Instance: held.ID, Thread: threadID, Agent: agent, Queued: tasks.Now()}
+	dir := record.Dir(index.Root())
+	if err := dir.Make(); err != nil {
+		t.Fatal(err)
+	}
+	if err := (task.Spec{Brief: "go", Harness: "fixture", Session: held.ID, Thread: threadID, Agent: agent}).Write(dir); err != nil {
+		t.Fatal(err)
+	}
+	if err := index.Add(record); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := work(dir); err != nil {
+		t.Logf("%s: %v", agent, err)
+	}
+	return dir
+}
+
+// An agent in a person's computer is told its forwarder's address and no secret, and its call reaches past the proxy: the model
+// behind it is not there in a test, and the proxy says so rather than refusing the call.
+func TestAnAgentInAComputerReachesItsModelOnlyThroughItsForwarder(t *testing.T) {
+	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
+	harnesses := t.TempDir()
+	os.WriteFile(filepath.Join(harnesses, "fixture.json"), []byte(`{"name":"fixture","program":"sh","argv":["-c",
+	  "printf '%s %s' \"$GUSTO_MODEL_URL\" \"$GUSTO_MODEL_TOKEN\" > given.txt; curl -s -X POST \"$GUSTO_MODEL_URL/chat/completions\" -d '{}' > answer.txt; echo done"],
+	  "needs":"nothing","stream":"plain"}`), 0o644)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
+	held, _ := instances.Start("20260929-1200-notes", instance.Instance{Title: "Notes", Harness: "fixture", Who: "ada@acme.com"})
+	dir := turnBy(t, work, index, instances, held, instances.Latest(held.ID).ID, "ada@acme.com", "call the model")
+
+	given, _ := os.ReadFile(filepath.Join(instances.AgentFolder(held.ID), "given.txt"))
+	parts := strings.Fields(string(given))
+	if len(parts) != 2 || !strings.HasPrefix(parts[0], "http://127.0.0.1:") || !strings.HasSuffix(parts[0], "/model/v1") ||
+		strings.Contains(parts[0], os.Getenv("GUSTO_PROXY_ADDR")) || parts[1] != "dpop" {
+		t.Fatalf("the agent was given %q", given)
+	}
+	answer, _ := os.ReadFile(filepath.Join(instances.AgentFolder(held.ID), "answer.txt"))
+	if !strings.Contains(string(answer), "the model did not answer") {
+		t.Errorf("the agent's call came back %q", answer)
+	}
+	// The agent said "done" and exited 0, and the proxy saw its only call to the model go unanswered: the record says so, and
+	// the turn failed (getlatentic/planning#676).
+	manifest, err := record.Read(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.HarnessExit != 0 || manifest.ModelUnanswered == nil || manifest.ModelUnanswered.Calls != 1 {
+		t.Errorf("the record says the agent exited %d and the model was unanswered: %+v", manifest.HarnessExit, manifest.ModelUnanswered)
+	}
+}
+
+// A room's agent runs on its owner's computer, whoever asked: ada's agent, asked by bob, runs in ada's computer, and bob gets none.
+func TestARoomsTurnRunsInTheComputerOfTheAgentsOwner(t *testing.T) {
+	work, index, registry, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
+	conversational(t)
+	held, _ := instances.StartRoom("Launch", "ada@acme.com", "")
+	instances.AddAgent(held.ID, instance.Agent{Name: "Scout", Harness: "fixture"})
+	instances.SetMember(held.ID, "bob@acme.com", instance.RoleMember)
+	held, _ = instances.Get(held.ID)
+	id, err := index.Reserve("go", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry := tasks.Record{ID: id, State: tasks.Running, Brief: "go", Harness: "fixture", Asked: "bob@acme.com", PaidBy: "ada@acme.com",
+		Instance: held.ID, Thread: instances.Latest(held.ID).ID, Agent: "a1", Queued: tasks.Now()}
+	dir := entry.Dir(index.Root())
+	dir.Make()
+	(task.Spec{Brief: "go", Harness: "fixture", Session: held.ID, Thread: entry.Thread, Agent: "a1"}).Write(dir)
+	index.Add(entry)
+	if _, err := work(dir); err != nil {
+		t.Logf("%v", err)
+	}
+	if _, err := registry.Of("ada@acme.com", ""); err != nil {
+		t.Errorf("the owner's computer was not used: %v", err)
+	}
+	if got, err := registry.Of("bob@acme.com", ""); err == nil {
+		t.Errorf("the person who asked was given a computer: %+v", got)
+	}
+	ada, _ := registry.Of("ada@acme.com", "")
+	var run record.Run
+	var decision record.Decision
+	readJSON(t, dir.OutFile(record.RunFile), &run)
+	readJSON(t, dir.OutFile(record.DecisionFile), &decision)
+	if run.Asked != "bob@acme.com" || run.PaidBy != "ada@acme.com" || run.Agent != "a1" || run.AgentName != "Scout" ||
+		run.Room != held.ID || run.Sandbox != ada.Sandbox || run.Sandbox == "" || run.ModelToken != record.TokenBound {
+		t.Errorf("the record says the run was %+v", run)
+	}
+	if !decision.Kept || decision.Refused != "" {
+		t.Errorf("the record says %+v was done with what it changed", decision)
+	}
+	manifest, err := record.Read(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.ContainsFunc(manifest.Files, func(e record.Entry) bool { return e.Name == record.DecisionFile }) {
+		t.Error("the signed manifest does not cover the decision")
+	}
+}
+
+// When the organization's admins chose plain tokens, an agent in a person's computer reaches the proxy itself with a plain token
+// for its run, and starts without a forwarder.
+func TestRunsInAComputerGetPlainTokensWhenTheAdminsChoseThem(t *testing.T) {
+	plain := func(way *WayOut) { way.UseRunTokens(func() bool { return true }) }
+	work, index, _, _, _, instances := organizationWithWayOut(t, quota.Quota{Computers: 4, Tasks: 100}, plain)
+	harnesses := t.TempDir()
+	os.WriteFile(filepath.Join(harnesses, "fixture.json"), []byte(`{"name":"fixture","program":"sh","argv":["-c",
+	  "printf '%s %s' \"$GUSTO_MODEL_URL\" \"$GUSTO_MODEL_TOKEN\" > given.txt; echo done"],
+	  "needs":"nothing","stream":"plain"}`), 0o644)
+	t.Setenv("GUSTO_HARNESSES", harnesses)
+	held, _ := instances.Start("20260929-1200-notes", instance.Instance{Title: "Notes", Harness: "fixture", Who: "ada@acme.com"})
+	dir := turnBy(t, work, index, instances, held, instances.Latest(held.ID).ID, "ada@acme.com", "say what you were given")
+
+	given, _ := os.ReadFile(filepath.Join(instances.AgentFolder(held.ID), "given.txt"))
+	parts := strings.Fields(string(given))
+	if len(parts) != 2 || !strings.Contains(parts[0], os.Getenv("GUSTO_PROXY_ADDR")) || parts[1] == "dpop" || parts[1] == "" {
+		t.Fatalf("the agent was given %q", given)
+	}
+	var run record.Run
+	readJSON(t, dir.OutFile(record.RunFile), &run)
+	if run.ModelToken != record.TokenPlain {
+		t.Errorf("the record says the run's token was %q", run.ModelToken)
 	}
 }
 
 // A turn that changed files and failed before its record was written leaves the instance's
 // files as they were.
 func TestATurnThatFailsLeavesTheInstancesFilesAsTheyWere(t *testing.T) {
-	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Jobs: 100})
+	work, index, _, _, _, instances := organizationWithInstances(t, quota.Quota{Computers: 4, Tasks: 100})
 	conversational(t)
 	held, _ := instances.Start("20260929-1200-notes", instance.Instance{Title: "Notes", Harness: "fixture", Who: "ada@acme.com"})
 	thread := instances.Latest(held.ID)
-	os.WriteFile(filepath.Join(instances.Workspace(held.ID), "notes.txt"), []byte("precious\n"), 0o644)
+	os.WriteFile(filepath.Join(instances.AgentFolder(held.ID), "notes.txt"), []byte("precious\n"), 0o644)
 
 	failGuard(t)
 	turnBy(t, work, index, instances, held, thread.ID, "ada@acme.com", "a turn that fails")
-	notes, _ := os.ReadFile(filepath.Join(instances.Workspace(held.ID), "notes.txt"))
+	notes, _ := os.ReadFile(filepath.Join(instances.AgentFolder(held.ID), "notes.txt"))
 	if string(notes) != "precious\n" {
 		t.Errorf("a failed turn changed the instance: %q", notes)
 	}
@@ -110,7 +309,7 @@ func TestATurnThatFailsLeavesTheInstancesFilesAsTheyWere(t *testing.T) {
 
 // failGuard makes the gateway answer for the log once, when a turn starts, and refuse after it,
 // which a turn finds out
-// after its workspace is out of the sandbox and before its record is written.
+// after its working folder is out of the sandbox and before its record is written.
 func failGuard(t *testing.T) {
 	t.Helper()
 	path, err := exec.LookPath("openshell")
@@ -125,62 +324,13 @@ func failGuard(t *testing.T) {
 	os.WriteFile(path, []byte(broken), 0o755)
 }
 
-func TestATreeIsCopiedWithItsLinksAsLinksAndNeverFollowedOutOfIt(t *testing.T) {
-	outside := filepath.Join(t.TempDir(), "secret.txt")
-	os.WriteFile(outside, []byte("not the agent's\n"), 0o600)
-	from := filepath.Join(t.TempDir(), "workspace")
-	os.MkdirAll(filepath.Join(from, "sub", "deep"), 0o755)
-	os.WriteFile(filepath.Join(from, "a.txt"), []byte("a\n"), 0o644)
-	os.WriteFile(filepath.Join(from, "sub", "deep", "run.sh"), []byte("#!/bin/sh\n"), 0o755)
-	os.Symlink(outside, filepath.Join(from, "link-to-secret"))
-	os.Symlink("a.txt", filepath.Join(from, "link-to-a"))
-	to := filepath.Join(t.TempDir(), "copy")
-	os.MkdirAll(to, 0o755)
-	os.WriteFile(filepath.Join(to, "stale.txt"), []byte("old\n"), 0o644)
-
-	if err := replaceTree(from, to); err != nil {
+func readJSON(t *testing.T, path string, into any) {
+	t.Helper()
+	text, err := os.ReadFile(path)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(to, "stale.txt")); err == nil {
-		t.Error("what was there is replaced and not merged")
-	}
-	if info, err := os.Lstat(filepath.Join(to, "link-to-secret")); err != nil || info.Mode()&os.ModeSymlink == 0 {
-		t.Errorf("a link is a link, and its target is not copied in: %v %v", info, err)
-	}
-	if target, _ := os.Readlink(filepath.Join(to, "link-to-a")); target != "a.txt" {
-		t.Errorf("%q", target)
-	}
-	if info, err := os.Stat(filepath.Join(to, "sub", "deep", "run.sh")); err != nil || info.Mode().Perm() != 0o755 {
-		t.Errorf("a file keeps its mode: %v %v", info, err)
-	}
-	if got, _ := os.ReadFile(filepath.Join(to, "a.txt")); string(got) != "a\n" {
-		t.Errorf("%q", got)
-	}
-	for _, leftover := range []string{to + ".next", to + ".old"} {
-		if _, err := os.Stat(leftover); err == nil {
-			t.Errorf("%s was left behind", leftover)
-		}
-	}
-}
-
-func TestACopyThatFailsLeavesWhatWasThere(t *testing.T) {
-	if os.Geteuid() == 0 {
-		t.Skip("root reads what a mode of 0 forbids")
-	}
-	from := filepath.Join(t.TempDir(), "workspace")
-	os.MkdirAll(from, 0o755)
-	os.WriteFile(filepath.Join(from, "fine.txt"), []byte("fine\n"), 0o644)
-	os.WriteFile(filepath.Join(from, "unreadable.txt"), []byte("no\n"), 0o000)
-	to := filepath.Join(t.TempDir(), "copy")
-	os.MkdirAll(to, 0o755)
-	os.WriteFile(filepath.Join(to, "kept.txt"), []byte("kept\n"), 0o644)
-	if err := replaceTree(from, to); err == nil {
-		t.Fatal("a file that cannot be read fails the copy")
-	}
-	if got, _ := os.ReadFile(filepath.Join(to, "kept.txt")); string(got) != "kept\n" {
-		t.Errorf("what was there is left: %q", got)
-	}
-	if _, err := os.Stat(to + ".next"); err == nil {
-		t.Error("a half-made copy was left behind")
+	if err := json.Unmarshal(text, into); err != nil {
+		t.Fatal(err)
 	}
 }

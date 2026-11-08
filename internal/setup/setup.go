@@ -19,8 +19,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/pkg/gateway"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Setup is one configuration, as kept.
@@ -76,7 +77,17 @@ func (s *Store) skillsDir(name string) string { return filepath.Join(s.dir(name)
 
 // Save writes a setup's name and servers, keeping whatever skills it has.
 func (s *Store) Save(wanted Setup, offered Servers) error {
-	if !job.Named(wanted.Name) {
+	if err := checkShape(wanted, offered); err != nil {
+		return err
+	}
+	s.guard.Lock()
+	defer s.guard.Unlock()
+	return s.saveCheckedLocked(wanted)
+}
+
+// checkShape is whether a setup's name can name one and each server it names is offered.
+func checkShape(wanted Setup, offered Servers) error {
+	if !task.Named(wanted.Name) {
 		return fmt.Errorf("%q cannot name a setup: use lower case, digits and hyphens", wanted.Name)
 	}
 	for _, server := range wanted.Servers {
@@ -84,8 +95,10 @@ func (s *Store) Save(wanted Setup, offered Servers) error {
 			return fmt.Errorf("this deployment offers no MCP server called %s", server)
 		}
 	}
-	s.guard.Lock()
-	defer s.guard.Unlock()
+	return nil
+}
+
+func (s *Store) saveCheckedLocked(wanted Setup) error {
 	if err := s.checkIntegrations(wanted.Integrations); err != nil {
 		return err
 	}
@@ -103,12 +116,12 @@ func (s *Store) saveLocked(wanted Setup) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(s.dir(wanted.Name), "setup.json"), text, 0o644)
+	return atomicfile.WriteFile(filepath.Join(s.dir(wanted.Name), "setup.json"), text, 0o644)
 }
 
 // Get reads one setup and its skills.
 func (s *Store) Get(name string) (Setup, bool) {
-	if !job.Named(name) {
+	if !task.Named(name) {
 		return Setup{}, false
 	}
 	text, err := os.ReadFile(filepath.Join(s.dir(name), "setup.json"))
@@ -141,7 +154,7 @@ func (s *Store) List() []Setup {
 // SKILL.md is written in the Agent Skills format every agent here reads: a
 // name and a description an agent chooses by, then the instructions.
 func (s *Store) Write(setup string, skill Skill) error {
-	if !job.Named(skill.Name) {
+	if !task.Named(skill.Name) {
 		return fmt.Errorf("%q cannot name a skill: use lower case, digits and hyphens", skill.Name)
 	}
 	description := strings.Join(strings.Fields(skill.Description), " ")
@@ -171,12 +184,12 @@ func (s *Store) put(setup, skill, text string) error {
 	if err := os.MkdirAll(filepath.Dir(s.skillFile(setup, skill)), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(s.skillFile(setup, skill), []byte(text), 0o644)
+	return atomicfile.WriteFile(s.skillFile(setup, skill), []byte(text), 0o644)
 }
 
 // Drop takes a skill out of a setup.
 func (s *Store) Drop(setup, skill string) error {
-	if !job.Named(setup) || !job.Named(skill) {
+	if !task.Named(setup) || !task.Named(skill) {
 		return fmt.Errorf("no skill called %s in %s", skill, setup)
 	}
 	s.guard.Lock()
@@ -192,7 +205,7 @@ func (s *Store) skills(setup string) []Skill {
 	var held []Skill
 	for _, entry := range entries {
 		text, err := os.ReadFile(filepath.Join(s.skillsDir(setup), entry.Name(), "SKILL.md"))
-		if err != nil || !job.Named(entry.Name()) {
+		if err != nil || !task.Named(entry.Name()) {
 			continue
 		}
 		skill := parse(string(text))
@@ -204,14 +217,14 @@ func (s *Store) skills(setup string) []Skill {
 
 // Carry copies what a task needs of a setup into the task's own directory: the
 // skills, and the definitions of the servers it names. It returns the names
-// for job.json, which is evidence and so holds no definition.
-func (s *Store) Carry(name string, offered Servers, dir job.Dir) (*job.Setup, error) {
+// for job.json, which is part of the record and so holds no definition.
+func (s *Store) Carry(name string, offered Servers, dir task.Dir) (*task.Setup, error) {
 	return s.CarryFor(name, offered, dir, "")
 }
 
 // CarryFor is Carry for the person who asked. An integration that is on for some people only is not carried for anybody else, and the
 // task does not start, since a task that quietly lacked what its setup names would run as a bare agent under the setup's name.
-func (s *Store) CarryFor(name string, offered Servers, dir job.Dir, asker string) (*job.Setup, error) {
+func (s *Store) CarryFor(name string, offered Servers, dir task.Dir, asker string) (*task.Setup, error) {
 	held, found := s.Get(name)
 	if !found {
 		return nil, fmt.Errorf("no setup called %s", name)
@@ -219,7 +232,7 @@ func (s *Store) CarryFor(name string, offered Servers, dir job.Dir, asker string
 	if held.Off {
 		return nil, fmt.Errorf("the setup %s is off: an administrator turns it on", name)
 	}
-	carried := &job.Setup{Name: held.Name, Servers: held.Servers}
+	carried := &task.Setup{Name: held.Name, Servers: held.Servers}
 	if err := os.MkdirAll(dir.SetupDir(), 0o700); err != nil {
 		return nil, err
 	}
@@ -231,7 +244,7 @@ func (s *Store) CarryFor(name string, offered Servers, dir job.Dir, asker string
 			return nil, err
 		}
 	}
-	servers := make([]job.Server, 0, len(held.Servers))
+	servers := make([]task.Server, 0, len(held.Servers))
 	for _, server := range held.Servers {
 		definition, found := offered[server]
 		if !found {
@@ -253,6 +266,22 @@ func (s *Store) CarryFor(name string, offered Servers, dir job.Dir, asker string
 // the sandbox cannot: it is the owner's alone.
 const GatewayFile = "gateway.json"
 
+// AddToGateway puts more servers behind a task's gateway, beside any its setup gave it.
+func AddToGateway(dir task.Dir, servers []gateway.Server) error {
+	path := filepath.Join(dir.SetupDir(), GatewayFile)
+	var held []gateway.Server
+	text, err := os.ReadFile(path)
+	if err == nil {
+		err = json.Unmarshal(text, &held)
+	} else if errors.Is(err, os.ErrNotExist) {
+		err = os.MkdirAll(dir.SetupDir(), 0o700)
+	}
+	if err != nil {
+		return err
+	}
+	return writeSecret(path, append(held, servers...))
+}
+
 // writeSecret writes definitions, which may hold a credential, for their owner alone. Nothing to write is no file.
 func writeSecret[T any](path string, definitions []T) error {
 	if len(definitions) == 0 {
@@ -262,7 +291,7 @@ func writeSecret[T any](path string, definitions []T) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, text, 0o600)
+	return atomicfile.WriteFile(path, text, 0o600)
 }
 
 // Fits says why an agent cannot take a setup, or nothing when it can.

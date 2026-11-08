@@ -11,8 +11,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/repoaccess"
 	"github.com/getlatentic/gusto/internal/ship"
-	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 type openFlags struct {
@@ -42,12 +41,12 @@ func openPullRequest(args []string) int {
 	if where == "" || set.NArg() > 0 {
 		return usageError("pr open", "needs one task directory, then its flags")
 	}
-	keyring, err := signing.ConfiguredKeyring()
+	keyring, err := configuredKeyring()
 	if err != nil {
 		return fail(err)
 	}
 	options := ship.Options{Remote: f.remote, GitHub: f.github, Base: f.base, Keyring: keyring}
-	plan, err := ship.Prepare(job.Dir(where), options)
+	plan, err := ship.Prepare(task.Dir(where), options)
 	if err != nil {
 		return refusedOr(err)
 	}

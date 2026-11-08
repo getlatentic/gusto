@@ -9,9 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A harness is a program, so a program that makes the change is enough to run
@@ -24,7 +25,7 @@ const adapter = `{
   "stream": "plain"
 }`
 
-// repo is a checkout whose gate fails until answer.txt says yes.
+// repo is a checkout whose check fails until answer.txt says yes.
 func repo(t *testing.T) string {
 	t.Helper()
 	at := t.TempDir()
@@ -47,39 +48,44 @@ func repo(t *testing.T) string {
 	return at
 }
 
-func ran(t *testing.T) (job.Dir, job.Spec) {
+func ran(t *testing.T) (task.Dir, task.Spec) {
+	t.Helper()
+	return ranAs(t, signing.Identity{Name: "a-test"})
+}
+
+// ranAs is the fixture task, run here with its record signed as signs.
+func ranAs(t *testing.T, signs signing.Identity) (task.Dir, task.Spec) {
 	t.Helper()
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), adapter)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	t.Setenv("GUSTO_SIGNER", "a-test")
 
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    repo(t),
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: "fixture",
 	}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
-	exit, err := runner.Inside(dir)
+	exit, err := runner.InsideContext(context.Background(), dir, runner.Place{Signing: signs})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if exit != 0 {
-		t.Fatalf("the gate should pass once the answer is yes, exit %d: %s", exit, runner.Tail(dir.OutFile("gate.log"), 5))
+		t.Fatalf("the check should pass once the answer is yes, exit %d: %s", exit, runner.Tail(dir.OutFile("gate.log"), 5))
 	}
 	return dir, spec
 }
 
-func TestAJobLeavesEvidenceItsOwnManifestAgreesWith(t *testing.T) {
+func TestATaskLeavesRecordItsOwnManifestAgreesWith(t *testing.T) {
 	dir, _ := ran(t)
-	wrong, err := evidence.Check(dir)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,9 +94,9 @@ func TestAJobLeavesEvidenceItsOwnManifestAgreesWith(t *testing.T) {
 	}
 }
 
-func TestTheEvidenceNamesWhatTheHarnessDidAndWhoStandsBehindIt(t *testing.T) {
+func TestTheRecordNamesWhatTheHarnessDidAndWhoStandsBehindIt(t *testing.T) {
 	dir, _ := ran(t)
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,10 +115,10 @@ func TestTheEvidenceNamesWhatTheHarnessDidAndWhoStandsBehindIt(t *testing.T) {
 	}
 }
 
-func TestChangingTheEvidenceIsDetectable(t *testing.T) {
+func TestChangingTheRecordIsDetectable(t *testing.T) {
 	dir, _ := ran(t)
 	write(t, dir.OutFile("transcript.log"), "something else happened")
-	wrong, err := evidence.Check(dir)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +130,7 @@ func TestChangingTheEvidenceIsDetectable(t *testing.T) {
 func TestAFileAddedAfterTheRunIsReported(t *testing.T) {
 	dir, _ := ran(t)
 	write(t, dir.OutFile("extra.log"), "smuggled in")
-	wrong, err := evidence.Check(dir)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +139,7 @@ func TestAFileAddedAfterTheRunIsReported(t *testing.T) {
 	}
 }
 
-func TestTheGateIsTheVerdictNotTheHarness(t *testing.T) {
+func TestTheCheckIsTheVerdictNotTheHarness(t *testing.T) {
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "liar.json"), `{
   "name": "liar",
@@ -143,14 +149,14 @@ func TestTheGateIsTheVerdictNotTheHarness(t *testing.T) {
   "stream": "plain"
 }`)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    repo(t),
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: "liar",
 	}
 	if err := spec.Write(dir); err != nil {
@@ -175,16 +181,16 @@ func TestABudgetStopsAHarnessThatWillNotFinish(t *testing.T) {
   "stream": "plain"
 }`)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:   "never finish",
 		Repo:    repo(t),
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: "slow",
-		Budget:  job.Budget{Turns: 1, Seconds: 1},
+		Budget:  task.Budget{Turns: 1, Seconds: 1},
 	}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
@@ -192,7 +198,7 @@ func TestABudgetStopsAHarnessThatWillNotFinish(t *testing.T) {
 	if _, err := runner.Inside(dir); err != nil {
 		t.Fatal(err)
 	}
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,12 +208,13 @@ func TestABudgetStopsAHarnessThatWillNotFinish(t *testing.T) {
 }
 
 // waitForFile waits until the harness has done what it does first, so that a stop comes while it is working and not while it
-// is being set up, which takes longer on a busy machine.
+// is being set up, which takes longer on a busy machine. The file is there before what is written to it, so it is waited for
+// until it holds something.
 func waitForFile(t *testing.T, path string) {
 	t.Helper()
 	deadline := time.Now().Add(30 * time.Second)
 	for {
-		if _, err := os.Stat(path); err == nil {
+		if info, err := os.Stat(path); err == nil && info.Size() > 0 {
 			return
 		}
 		if time.Now().After(deadline) {
@@ -225,21 +232,21 @@ func write(t *testing.T, path, text string) {
 	}
 }
 
-func TestAJobThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testing.T) {
+func TestATaskThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testing.T) {
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "slow.json"), `{
   "name": "slow",
   "program": "sh",
-  "argv": ["-c", "echo started-work > made.txt; sleep 30"],
+  "argv": ["-c", "echo $$ > shell.pid; sleep 30 & echo $! > sleeper.pid; echo started-work > made.txt; wait"],
   "needs": "nothing",
   "stream": "plain"
 }`)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: "a long job", Repo: repo(t), Harness: "slow", Budget: job.Budget{Turns: 1, Seconds: 120}}
+	spec := task.Spec{Brief: "a long job", Repo: repo(t), Harness: "slow", Budget: task.Budget{Turns: 1, Seconds: 120}}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -248,59 +255,61 @@ func TestAJobThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testin
 	}
 	ctx, stop := context.WithCancel(context.Background())
 	done := make(chan error, 1)
-	started := time.Now()
-	go func() { _, err := runner.InsideContext(ctx, dir); done <- err }()
-	waitForFile(t, filepath.Join(dir.Workspace(), "made.txt"))
+	go func() { _, err := runner.InsideContext(ctx, dir, runner.Place{}); done <- err }()
+	waitForFile(t, filepath.Join(dir.WorkingFolder(), "made.txt"))
 	stop()
+	// What a stop promises is that the harness and what it started are killed, not left to run out their sleep. That is
+	// measured on the processes, so that a busy machine, which slows the work the run does after the kill, cannot fail it.
+	for _, name := range []string{"shell.pid", "sleeper.pid"} {
+		waitForExit(t, filepath.Join(dir.WorkingFolder(), name), 5*time.Second)
+	}
+	// The run then ends its record, which reads and writes the working folder. The bound is for a machine that has stalled.
 	select {
 	case err := <-done:
 		if err != nil {
 			t.Fatal(err)
 		}
-	case <-time.After(15 * time.Second):
-		t.Fatal("a stopped job did not stop")
+	case <-time.After(2 * time.Minute):
+		t.Fatal("a stopped job did not end its record")
 	}
-	if time.Since(started) > 10*time.Second {
-		t.Errorf("stopping took %v, which is waiting for the harness's sleep", time.Since(started))
-	}
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if manifest.StoppedBy != "ada@acme.example" || manifest.StoppedAtBudget {
 		t.Errorf("the manifest says %+v", manifest)
 	}
-	if made, err := os.ReadFile(filepath.Join(dir.Workspace(), "made.txt")); err != nil || !strings.Contains(string(made), "started-work") {
+	if made, err := os.ReadFile(filepath.Join(dir.WorkingFolder(), "made.txt")); err != nil || !strings.Contains(string(made), "started-work") {
 		t.Errorf("what the job had done was not kept: %q %v", made, err)
 	}
 }
 
-func TestAStopWithNoNoteIsASignalAndAJobThatWasNotStoppedSaysNothing(t *testing.T) {
+func TestAStopWithNoNoteIsASignalAndATaskThatWasNotStoppedSaysNothing(t *testing.T) {
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "slow.json"), `{"name":"slow","program":"sh","argv":["-c","echo up > up.txt; sleep 30"],"needs":"nothing","stream":"plain"}`)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	dir.Make()
-	spec := job.Spec{Brief: "x", Repo: repo(t), Harness: "slow", Budget: job.Budget{Turns: 1, Seconds: 120}}
+	spec := task.Spec{Brief: "x", Repo: repo(t), Harness: "slow", Budget: task.Budget{Turns: 1, Seconds: 120}}
 	spec.Write(dir)
 	ctx, stop := context.WithCancel(context.Background())
-	go func() { waitForFile(t, filepath.Join(dir.Workspace(), "up.txt")); stop() }()
-	if _, err := runner.InsideContext(ctx, dir); err != nil {
+	go func() { waitForFile(t, filepath.Join(dir.WorkingFolder(), "up.txt")); stop() }()
+	if _, err := runner.InsideContext(ctx, dir, runner.Place{}); err != nil {
 		t.Fatal(err)
 	}
-	if manifest, _ := evidence.Read(dir); manifest.StoppedBy != "a signal" {
+	if manifest, _ := record.Read(dir); manifest.StoppedBy != "a signal" {
 		t.Errorf("a stop with no note said %q", manifest.StoppedBy)
 	}
 
-	finished := job.Dir(t.TempDir())
+	finished := task.Dir(t.TempDir())
 	finished.Make()
-	quick := job.Spec{Brief: "x", Repo: repo(t), Harness: "fixture", Gate: []string{"true"}, Budget: job.Budget{Turns: 1, Seconds: 60}}
+	quick := task.Spec{Brief: "x", Repo: repo(t), Harness: "fixture", Check: []string{"true"}, Budget: task.Budget{Turns: 1, Seconds: 60}}
 	quick.Write(finished)
 	write(t, filepath.Join(harnesses, "fixture.json"), `{"name":"fixture","program":"sh","argv":["-c","true"],"needs":"nothing","stream":"plain"}`)
 	if _, err := runner.Inside(finished); err != nil {
 		t.Fatal(err)
 	}
-	if manifest, _ := evidence.Read(finished); manifest.StoppedBy != "" {
+	if manifest, _ := record.Read(finished); manifest.StoppedBy != "" {
 		t.Errorf("a job that was not stopped says it was by %q", manifest.StoppedBy)
 	}
 }

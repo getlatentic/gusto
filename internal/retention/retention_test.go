@@ -7,24 +7,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 var noon = time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC)
 
 func daysAgo(n int) int64 { return noon.AddDate(0, 0, -n).Unix() }
 
-// finished leaves a job that ended days ago, with a workspace of workspaceBytes
+// finished leaves a task that ended days ago, with a working folder of workingFolderBytes
 // and an out/ of a fixed size, so what a sweep frees can be counted.
-func finished(t *testing.T, index *jobs.Index, id string, state jobs.State, days int, workspaceBytes int) jobs.Record {
+func finished(t *testing.T, index *tasks.Index, id string, state tasks.State, days int, workingFolderBytes int) tasks.Record {
 	t.Helper()
-	record := jobs.Record{ID: id, State: state, Brief: "brief " + id, Harness: "fixture", Asked: "amy@acme.test",
+	record := tasks.Record{ID: id, State: state, Brief: "brief " + id, Harness: "fixture", Asked: "amy@acme.test",
 		Queued: daysAgo(days), Started: daysAgo(days), Ended: daysAgo(days)}
 	dir := filepath.Join(index.Root(), id)
-	for path, size := range map[string]int{"workspace/code.go": workspaceBytes, "out/manifest.json": 100, "job.json": 10} {
+	for path, size := range map[string]int{"workspace/code.go": workingFolderBytes, "out/manifest.json": 100, "job.json": 10} {
 		full := filepath.Join(dir, path)
 		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
 			t.Fatal(err)
@@ -39,31 +39,31 @@ func finished(t *testing.T, index *jobs.Index, id string, state jobs.State, days
 	return record
 }
 
-func opened(t *testing.T) *jobs.Index {
+func opened(t *testing.T) *tasks.Index {
 	t.Helper()
-	index, err := jobs.Open(t.TempDir())
+	index, err := tasks.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
 	return index
 }
 
-func exists(t *testing.T, index *jobs.Index, id, path string) bool {
+func exists(t *testing.T, index *tasks.Index, id, path string) bool {
 	t.Helper()
 	_, err := os.Stat(filepath.Join(index.Root(), id, path))
 	return err == nil
 }
 
 var policy = Policy{
-	WorkspaceDays: map[string]int{"passed": 7, "failed": 30},
-	RecordDays:    map[string]int{"passed": 90, "failed": 365},
+	WorkingFolderDays: map[string]int{"passed": 7, "failed": 30},
+	RecordDays:        map[string]int{"passed": 90, "failed": 365},
 }
 
-func TestAWorkspaceGoesFirstAndTheRecordStaysSigned(t *testing.T) {
+func TestAWorkingFolderGoesFirstAndTheRecordStaysSigned(t *testing.T) {
 	index := opened(t)
-	finished(t, index, "young", jobs.Passed, 3, 5000)
-	finished(t, index, "old", jobs.Passed, 10, 5000)
-	report := Sweep(index, index.Root(), policy, Held{}, noon, false)
+	finished(t, index, "young", tasks.Passed, 3, 5000)
+	finished(t, index, "old", tasks.Passed, 10, 5000)
+	report := Sweep(index, index.Root(), policy, Held{}, nil, noon, false)
 
 	if exists(t, index, "old", "workspace") || !exists(t, index, "old", "out/manifest.json") || !exists(t, index, "old", "job.json") {
 		t.Error("an old job did not lose its workspace and keep its record")
@@ -71,13 +71,13 @@ func TestAWorkspaceGoesFirstAndTheRecordStaysSigned(t *testing.T) {
 	if !exists(t, index, "young", "workspace/code.go") {
 		t.Error("a young job lost its workspace")
 	}
-	if report.Freed != 5000 || report.Removed(Workspace) != 1 || report.Removed(Record) != 0 {
+	if report.Freed != 5000 || report.Removed(WorkingFolder) != 1 || report.Removed(Record) != 0 {
 		t.Errorf("report %+v", report)
 	}
 	if _, found := index.Get("old"); !found {
 		t.Error("a job whose workspace went is no longer in the index")
 	}
-	again := Sweep(index, index.Root(), policy, Held{}, noon, false)
+	again := Sweep(index, index.Root(), policy, Held{}, nil, noon, false)
 	if len(again.Actions) != 0 {
 		t.Errorf("a second sweep did the same again: %+v", again)
 	}
@@ -85,9 +85,9 @@ func TestAWorkspaceGoesFirstAndTheRecordStaysSigned(t *testing.T) {
 
 func TestARecordGoesWhenItsOwnRetentionEnds(t *testing.T) {
 	index := opened(t)
-	finished(t, index, "kept", jobs.Passed, 89, 1000)
-	finished(t, index, "gone", jobs.Passed, 91, 1000)
-	report := Sweep(index, index.Root(), policy, Held{}, noon, false)
+	finished(t, index, "kept", tasks.Passed, 89, 1000)
+	finished(t, index, "gone", tasks.Passed, 91, 1000)
+	report := Sweep(index, index.Root(), policy, Held{}, nil, noon, false)
 	if exists(t, index, "gone", "") || exists(t, index, "gone", "out/manifest.json") {
 		t.Error("a record past its retention was kept")
 	}
@@ -104,10 +104,10 @@ func TestARecordGoesWhenItsOwnRetentionEnds(t *testing.T) {
 
 func TestRetentionIsSetPerState(t *testing.T) {
 	index := opened(t)
-	finished(t, index, "passed-20", jobs.Passed, 20, 100)
-	finished(t, index, "failed-20", jobs.Failed, 20, 100)
-	finished(t, index, "interrupted-400", jobs.Interrupted, 400, 100)
-	Sweep(index, index.Root(), policy, Held{}, noon, false)
+	finished(t, index, "passed-20", tasks.Passed, 20, 100)
+	finished(t, index, "failed-20", tasks.Failed, 20, 100)
+	finished(t, index, "interrupted-400", tasks.Interrupted, 400, 100)
+	Sweep(index, index.Root(), policy, Held{}, nil, noon, false)
 	if exists(t, index, "passed-20", "workspace") || !exists(t, index, "failed-20", "workspace") {
 		t.Error("the workspace rules did not follow the state")
 	}
@@ -116,14 +116,14 @@ func TestRetentionIsSetPerState(t *testing.T) {
 	}
 }
 
-func TestAHeldJobAndAHeldPersonAreKeptWhole(t *testing.T) {
+func TestAHeldTaskAndAHeldPersonAreKeptWhole(t *testing.T) {
 	index := opened(t)
-	finished(t, index, "held-job", jobs.Passed, 200, 100)
-	finished(t, index, "held-person", jobs.Passed, 200, 100)
-	free := finished(t, index, "free", jobs.Passed, 200, 100)
+	finished(t, index, "held-job", tasks.Passed, 200, 100)
+	finished(t, index, "held-person", tasks.Passed, 200, 100)
+	free := finished(t, index, "free", tasks.Passed, 200, 100)
 
 	holds := OpenHolds(t.TempDir())
-	if err := holds.HoldJob("held-job", "the admin", "legal"); err != nil {
+	if err := holds.HoldTask("held-job", "the admin", "legal"); err != nil {
 		t.Fatal(err)
 	}
 	// Amy asked for all three, so holding her holds all three.
@@ -134,7 +134,7 @@ func TestAHeldJobAndAHeldPersonAreKeptWhole(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	report := Sweep(index, index.Root(), policy, held, noon, false)
+	report := Sweep(index, index.Root(), policy, held, nil, noon, false)
 	for _, id := range []string{"held-job", "held-person", free.ID} {
 		if !exists(t, index, id, "workspace") {
 			t.Errorf("%s lost its workspace though its asker is held", id)
@@ -147,7 +147,7 @@ func TestAHeldJobAndAHeldPersonAreKeptWhole(t *testing.T) {
 		t.Fatal(err)
 	}
 	held, _ = holds.Read()
-	Sweep(index, index.Root(), policy, held, noon, false)
+	Sweep(index, index.Root(), policy, held, nil, noon, false)
 	if !exists(t, index, "held-job", "workspace") {
 		t.Error("a job held by itself was swept when its person was released")
 	}
@@ -158,7 +158,7 @@ func TestAHeldJobAndAHeldPersonAreKeptWhole(t *testing.T) {
 
 func TestOnlyFinishedWorkNoAgentOwnsIsSwept(t *testing.T) {
 	index := opened(t)
-	owned := jobs.Record{ID: "on-an-agent", State: jobs.Passed, Instance: "agent-1", Ended: daysAgo(400), Queued: daysAgo(400), Asked: "amy@acme.test"}
+	owned := tasks.Record{ID: "on-an-agent", State: tasks.Passed, Instance: "agent-1", Ended: daysAgo(400), Queued: daysAgo(400), Asked: "amy@acme.test"}
 	if err := os.MkdirAll(filepath.Join(index.Root(), owned.ID, "workspace"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +168,7 @@ func TestOnlyFinishedWorkNoAgentOwnsIsSwept(t *testing.T) {
 	if err := index.Add(owned); err != nil {
 		t.Fatal(err)
 	}
-	running := jobs.Record{ID: "still-running", State: jobs.Running, Queued: daysAgo(400), Started: daysAgo(400)}
+	running := tasks.Record{ID: "still-running", State: tasks.Running, Queued: daysAgo(400), Started: daysAgo(400)}
 	if err := os.MkdirAll(filepath.Join(index.Root(), running.ID, "workspace"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestOnlyFinishedWorkNoAgentOwnsIsSwept(t *testing.T) {
 	if err := index.Add(running); err != nil {
 		t.Fatal(err)
 	}
-	Sweep(index, index.Root(), policy, Held{}, noon, false)
+	Sweep(index, index.Root(), policy, Held{}, nil, noon, false)
 	if !exists(t, index, "on-an-agent", "workspace/f") || !exists(t, index, "still-running", "workspace/f") {
 		t.Error("a sweep touched a running job or a job that belongs to an agent")
 	}
@@ -186,9 +186,9 @@ func TestOnlyFinishedWorkNoAgentOwnsIsSwept(t *testing.T) {
 
 func TestADryRunSaysWhatItWouldDoAndDoesNothing(t *testing.T) {
 	index := opened(t)
-	finished(t, index, "old", jobs.Passed, 10, 5000)
-	finished(t, index, "ancient", jobs.Passed, 100, 5000)
-	report := Sweep(Scanned{Root: index.Root()}, index.Root(), policy, Held{}, noon, true)
+	finished(t, index, "old", tasks.Passed, 10, 5000)
+	finished(t, index, "ancient", tasks.Passed, 100, 5000)
+	report := Sweep(Scanned{Root: index.Root()}, index.Root(), policy, Held{}, nil, noon, true)
 	if !report.Dry || len(report.Actions) != 2 || report.Freed != 0 {
 		t.Fatalf("report %+v", report)
 	}
@@ -202,9 +202,9 @@ func TestADryRunSaysWhatItWouldDoAndDoesNothing(t *testing.T) {
 
 func TestAPolicyThatCannotBeMeantIsRefused(t *testing.T) {
 	for name, p := range map[string]Policy{
-		"a state jobs do not end in":    {WorkspaceDays: map[string]int{"running": 1}},
+		"a state jobs do not end in":    {WorkingFolderDays: map[string]int{"running": 1}},
 		"negative days":                 {RecordDays: map[string]int{"passed": -1}},
-		"a record before its workspace": {WorkspaceDays: map[string]int{"passed": 30}, RecordDays: map[string]int{"passed": 7}},
+		"a record before its workspace": {WorkingFolderDays: map[string]int{"passed": 30}, RecordDays: map[string]int{"passed": 7}},
 	} {
 		if p.Check() == nil {
 			t.Errorf("%s was accepted", name)
@@ -235,12 +235,12 @@ func TestAPolicyFileIsReadStrictly(t *testing.T) {
 	}
 }
 
-func TestUsageSaysWhatIsUsedAndTheOldestJobKept(t *testing.T) {
+func TestUsageSaysWhatIsUsedAndTheOldestTaskKept(t *testing.T) {
 	index := opened(t)
-	finished(t, index, "recent", jobs.Passed, 2, 1000)
-	finished(t, index, "oldest", jobs.Failed, 50, 3000)
+	finished(t, index, "recent", tasks.Passed, 2, 1000)
+	finished(t, index, "oldest", tasks.Failed, 50, 3000)
 	used := Measure(index.Root(), index.List())
-	if used.Jobs != 2 || used.Workspaces != 4000 || used.Bytes < 4000+2*110 {
+	if used.Tasks != 2 || used.WorkingFolders != 4000 || used.Bytes < 4000+2*110 {
 		t.Errorf("usage %+v", used)
 	}
 	if used.Oldest == nil || used.Oldest.ID != "oldest" {
@@ -249,23 +249,23 @@ func TestUsageSaysWhatIsUsedAndTheOldestJobKept(t *testing.T) {
 }
 
 // The record a sweep keeps is the record that was signed: verify still says it
-// holds, and who signed it, once the workspace is gone.
-func TestASweptJobStillVerifiesAndNamesItsSigner(t *testing.T) {
+// holds, and who signed it, once the working folder is gone.
+func TestASweptTaskStillVerifiesAndNamesItsSigner(t *testing.T) {
 	index := opened(t)
-	finished(t, index, "signed", jobs.Passed, 40, 4000)
-	dir := job.Dir(filepath.Join(index.Root(), "signed"))
+	finished(t, index, "signed", tasks.Passed, 40, 4000)
+	dir := task.Dir(filepath.Join(index.Root(), "signed"))
 	if err := os.WriteFile(dir.OutFile("diff.patch"), []byte("a patch"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: "b", Repo: "r", Gate: []string{"true"}, Harness: "fixture"}
+	spec := task.Spec{Brief: "b", Repo: "r", Check: []string{"true"}, Harness: "fixture"}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
-	jobHash, files, err := evidence.Of(dir)
+	taskHash, files, err := record.Of(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Job: jobHash, Files: files, Gate: &evidence.Verdict{Passed: true}, Harness: "fixture", AtUnix: daysAgo(40)}); err != nil {
+	if err := record.Write(dir, record.Manifest{Task: taskHash, Files: files, Check: &record.Verdict{Passed: true}, Harness: "fixture", AtUnix: daysAgo(40)}); err != nil {
 		t.Fatal(err)
 	}
 	ring := t.TempDir()
@@ -273,7 +273,7 @@ func TestASweptJobStillVerifiesAndNamesItsSigner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Seal(dir, key); err != nil {
+	if err := record.Seal(dir, key); err != nil {
 		t.Fatal(err)
 	}
 	keyring, err := signing.OpenKeyring(ring)
@@ -281,14 +281,14 @@ func TestASweptJobStillVerifiesAndNamesItsSigner(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	report := Sweep(index, index.Root(), policy, Held{}, noon, false)
-	if report.Removed(Workspace) != 1 || exists(t, index, "signed", "workspace") {
+	report := Sweep(index, index.Root(), policy, Held{}, nil, noon, false)
+	if report.Removed(WorkingFolder) != 1 || exists(t, index, "signed", "workspace") {
 		t.Fatalf("the workspace stayed: %+v", report)
 	}
-	if wrong, err := evidence.Check(dir); err != nil || len(wrong) > 0 {
+	if wrong, err := record.Check(dir); err != nil || len(wrong) > 0 {
 		t.Fatalf("a swept job no longer checks: %v %v", wrong, err)
 	}
-	if attested, err := evidence.Attest(dir, keyring); err != nil || attested.Signer != "acme" {
+	if attested, err := record.Attest(dir, keyring); err != nil || attested.Signer != "acme" {
 		t.Fatalf("the signer is not named: %+v %v", attested, err)
 	}
 }

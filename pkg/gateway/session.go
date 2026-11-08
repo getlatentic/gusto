@@ -58,6 +58,8 @@ type Config struct {
 	// addresses. A host that checks addresses itself, or trusts its own authority, gives its own. It must not follow
 	// redirects, since a server is called with credentials.
 	Client *http.Client
+	// Tokens gives the token of a person's own sign-in for a server that is an app they connected.
+	Tokens Tokens
 	// Tell, when set, is told of each line the record would hold, as well as the record.
 	Tell func(Entry)
 	// HideAddresses keeps from the agent why a server could not be reached or called, since the reason names where the server is and
@@ -94,7 +96,7 @@ func New(config Config) *Session {
 	if policy == nil {
 		policy = func() Policy { return config.Policy }
 	}
-	catalog := newCatalog(config.Servers, config.Private, config.Launch, policy, config.Caller, config.Record, config.Client)
+	catalog := newCatalog(config.Servers, config.Private, config.Launch, policy, config.Caller, config.Record, config.Client, config.Tokens)
 	catalog.withheld = config.Withheld
 	return &Session{config: config, now: time.Now, catalog: catalog, sent: map[string]int64{}}
 }
@@ -204,7 +206,7 @@ func (s *Session) instructions() string {
 	return "Tools are found as they are needed. Use tool_search to find one, tool_schema to read how to call it, and tool_call to call it."
 }
 
-// list is the tools the job is shown, and writes down how many there are and what showing them all would cost.
+// list is the tools the task is shown, and writes down how many there are and what showing them all would cost.
 func (s *Session) list(r *http.Request) []Tool {
 	s.catalog.load(r.Context())
 	shown := s.shownTools()
@@ -239,7 +241,7 @@ func (s *Session) shownTools() []Tool {
 }
 
 func (s *Session) note(entry Entry) {
-	entry.Job, entry.Person = s.config.Caller.Job, s.config.Caller.Person
+	entry.Task, entry.Person = s.config.Caller.Task, s.config.Caller.Person
 	if s.config.Tell != nil {
 		s.config.Tell(entry)
 	}
@@ -294,10 +296,8 @@ func (s *Session) search(arguments json.RawMessage) Result {
 	if out.Len() == 0 {
 		out.WriteString("no tool matches")
 	}
-	for _, name := range s.catalog.order {
-		if why, down := s.catalog.broken[name]; down {
-			fmt.Fprintf(&out, "(the server %s could not be reached: %s)\n", name, s.explain(why))
-		}
+	for _, down := range s.catalog.down() {
+		fmt.Fprintf(&out, "(the server %s could not be reached: %s)\n", down[0], s.explain(down[1]))
 	}
 	withheld := make([]string, 0, len(s.catalog.withheld))
 	for name := range s.catalog.withheld {

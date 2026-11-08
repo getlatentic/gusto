@@ -1,334 +1,442 @@
 package cloud
 
 import (
+	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
-
-	"github.com/getlatentic/gusto/internal/quota"
 )
 
-// billed is a front door that sells by PayPal against a fake, with one organization whose admin is signed in.
-type billed struct {
-	t     *testing.T
-	front *front
-	fake  *fakePayPal
-	admin *browser
-	org   string
-	hook  string
+const testWebhookSecret = "whsec_test"
+
+// fakeStripe answers the calls the seat billing makes, and keeps what it was sent. A subscription is asked for answers
+// with subscription.
+type fakeStripe struct {
+	mu           sync.Mutex
+	calls        []string
+	forms        []url.Values
+	failing      bool
+	subscription string
+	listener     *httptest.Server
 }
 
-func newBilled(t *testing.T) *billed {
-	t.Helper()
-	fake := newFakePayPal(t)
-	f := newFront(t, Settings{AllowFreeMail: true}, func(c *Config) { c.Billing = &Billing{Store: c.Store, PayPal: fake.client()} })
-	admin := f.browser()
-	if code, _, _ := admin.post("/signup", signup("ada@acme.com", "Acme")); code != 303 {
-		t.Fatalf("sign-up answered %d", code)
+func newFakeStripe(t *testing.T) *fakeStripe {
+	f := &fakeStripe{}
+	f.listener = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, _, _ := r.BasicAuth()
+		r.ParseForm()
+		f.mu.Lock()
+		f.calls, f.forms = append(f.calls, r.URL.Path), append(f.forms, r.PostForm)
+		failing, subscription := f.failing, f.subscription
+		f.mu.Unlock()
+		switch {
+		case user != "sk_test":
+			http.Error(w, `{"error":{"message":"Invalid API Key provided"}}`, http.StatusUnauthorized)
+		case failing:
+			http.Error(w, `{"error":{"message":"try again"}}`, http.StatusInternalServerError)
+		case r.URL.Path == "/v1/checkout/sessions":
+			w.Write([]byte(`{"id":"cs_1","url":"https://checkout.stripe.com/c/pay/cs_1"}`))
+		case r.URL.Path == "/v1/billing_portal/sessions":
+			w.Write([]byte(`{"id":"bps_1","url":"https://billing.stripe.com/p/session/bps_1"}`))
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/v1/subscriptions/") && subscription != "":
+			w.Write([]byte(subscription))
+		case strings.HasPrefix(r.URL.Path, "/v1/subscription_items/"):
+			w.Write([]byte(`{"id":"si_1"}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(f.listener.Close)
+	return f
+}
+
+func (f *fakeStripe) stripe() *Stripe {
+	return &Stripe{Key: "sk_test", Price: "price_seat", WebhookSecret: testWebhookSecret, SeatUSD: 25, API: f.listener.URL}
+}
+
+func (f *fakeStripe) last() (string, url.Values) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if len(f.calls) == 0 {
+		return "", nil
 	}
-	person, _, _ := f.store.Person("ada@acme.com")
-	if _, err := f.store.Verify(person.Email); err != nil {
+	return f.calls[len(f.calls)-1], f.forms[len(f.forms)-1]
+}
+
+func (f *fakeStripe) fail(failing bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.failing = failing
+}
+
+func (f *fakeStripe) count() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.calls)
+}
+
+func signStripe(body []byte, secret string, at time.Time) string {
+	stamp := strconv.FormatInt(at.Unix(), 10)
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(stamp + "." + string(body)))
+	return "t=" + stamp + ",v1=" + hex.EncodeToString(mac.Sum(nil)) + ",v0=0000"
+}
+
+// subscriptionEvent is a Stripe event about an organization's subscription.
+func subscriptionEvent(kind, org, sub, status string, seats int, at time.Time) []byte {
+	event := map[string]any{"id": "evt_" + strconv.FormatInt(at.UnixNano(), 36), "type": kind, "created": at.Unix(),
+		"data": map[string]any{"object": map[string]any{"id": sub, "object": "subscription", "customer": "cus_1", "status": status,
+			"metadata": map[string]string{"org": org}, "items": map[string]any{"data": []map[string]any{{"id": "si_1", "quantity": seats}}}}}}
+	body, _ := json.Marshal(event)
+	return body
+}
+
+func TestOnlyAFreshV1SignatureWithTheSecretIsBelieved(t *testing.T) {
+	now := time.Now()
+	body := []byte(`{"id":"evt_1"}`)
+	if !verifyStripe(signStripe(body, "s", now), body, "s", now) {
+		t.Error("a good signature was refused")
+	}
+	for name, header := range map[string]string{
+		"another secret": signStripe(body, "other", now),
+		"too old":        signStripe(body, "s", now.Add(-6*time.Minute)),
+		"only v0":        "t=" + strconv.FormatInt(now.Unix(), 10) + ",v0=" + strings.Split(signStripe(body, "s", now), "v1=")[1],
+		"no time":        "v1=" + strings.Split(signStripe(body, "s", now), "v1=")[1],
+		"empty":          "",
+	} {
+		if verifyStripe(header, body, "s", now) {
+			t.Errorf("%s was believed", name)
+		}
+	}
+	if verifyStripe(signStripe(body, "s", now), []byte(`{"id":"evt_2"}`), "s", now) {
+		t.Error("a changed body was believed")
+	}
+}
+
+func recorded(t *testing.T, s *Store, body []byte) (bool, error) {
+	t.Helper()
+	var event stripeEvent
+	if err := json.Unmarshal(body, &event); err != nil {
 		t.Fatal(err)
 	}
-	return &billed{t: t, front: f, fake: fake, admin: admin, org: person.Org, hook: f.http.URL + billingWebhookPath}
+	billing, about, err := billingOfEvent(event)
+	if err != nil || !about {
+		t.Fatalf("%v %v", about, err)
+	}
+	return s.RecordSubscription(t.Context(), billing)
 }
 
-// subscribe makes the admin press Subscribe, and returns where PayPal sends them and the subscription's id.
-func (b *billed) subscribe() (location, id string) {
-	b.t.Helper()
-	code, _, header := b.admin.post("/org/billing/subscribe", nil)
-	if code != 303 || !strings.HasPrefix(header.Get("Location"), "https://www.sandbox.paypal.com/") {
-		b.t.Fatalf("subscribing answered %d to %q", code, header.Get("Location"))
-	}
-	record, found, err := b.front.store.BillingOf(b.org)
-	if err != nil || !found {
-		b.t.Fatalf("no billing record: %v", err)
-	}
-	return header.Get("Location"), record.SubscriptionID
+func TestASubscriptionSetsThePaidQuotaForEachSeatAndAnEndedOneStopsNewTasks(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s := open(t, Settings{})
+		_, org := verifiedOrg(t, s, "ada@acme.com", "Acme")
+		at := time.Date(2026, 10, 29, 9, 0, 0, 0, time.UTC)
+		if kept, err := recorded(t, s, subscriptionEvent("customer.subscription.created", org.Slug, "sub_1", "active", 3, at)); !kept || err != nil {
+			t.Fatalf("%v %v", kept, err)
+		}
+		q, _ := s.Quota(org.Slug)
+		if q.Tasks != 600 || q.Members != 50 || !q.Invites || q.Concurrent != 4 {
+			t.Errorf("three paid seats: %+v", q)
+		}
+		// An event Stripe made earlier, arriving late, changes nothing.
+		if kept, _ := recorded(t, s, subscriptionEvent("customer.subscription.updated", org.Slug, "sub_1", "incomplete", 1, at.Add(-time.Minute))); kept {
+			t.Error("an older event was kept")
+		}
+		if b, _, _ := s.Billing(t.Context(), org.Slug); b.Seats != 3 || b.Status != "active" || b.Customer != "cus_1" || b.Item != "si_1" {
+			t.Errorf("%+v", b)
+		}
+		recorded(t, s, subscriptionEvent("customer.subscription.updated", org.Slug, "sub_1", "past_due", 3, at.Add(time.Hour)))
+		if q, _ := s.Quota(org.Slug); q.Tasks != 600 {
+			t.Errorf("while Stripe tries the card again the organization keeps working: %+v", q)
+		}
+		recorded(t, s, subscriptionEvent("customer.subscription.deleted", org.Slug, "sub_1", "canceled", 3, at.Add(2*time.Hour)))
+		q, _ = s.Quota(org.Slug)
+		if q.Tasks != 0 || q.Concurrent != 0 || q.Invites || q.Members != 50 || q.Computers != 50 || q.Note != lapsedNote {
+			t.Errorf("an ended subscription starts nothing and removes nobody: %+v", q)
+		}
+		if err := q.Refuse(0); err == nil || !strings.Contains(err.Error(), "renew") {
+			t.Errorf("%v", err)
+		}
+		// A new subscription after the old one ended is kept.
+		if kept, err := recorded(t, s, subscriptionEvent("customer.subscription.created", org.Slug, "sub_2", "active", 1, at.Add(3*time.Hour))); !kept || err != nil {
+			t.Errorf("%v %v", kept, err)
+		}
+	})
 }
 
-// activate is the payer approving at PayPal and PayPal's webhook saying so.
-func (b *billed) activate(id, event string) {
-	b.t.Helper()
-	b.fake.activate(id)
-	b.deliver(event, "BILLING.SUBSCRIPTION.ACTIVATED", id, 204)
+func TestASecondSubscriptionForAnOrganizationThatPaysIsRefusedAndNoticed(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s := open(t, Settings{})
+		_, org := verifiedOrg(t, s, "ada@acme.com", "Acme")
+		at := time.Now().UTC().Truncate(time.Second)
+		recorded(t, s, subscriptionEvent("customer.subscription.created", org.Slug, "sub_1", "active", 1, at))
+		if _, err := recorded(t, s, subscriptionEvent("customer.subscription.created", org.Slug, "sub_2", "active", 1, at.Add(time.Second))); !errors.Is(err, errSecondSubscription) {
+			t.Errorf("%v", err)
+		}
+		if b, _, _ := s.Billing(t.Context(), org.Slug); b.Subscription != "sub_1" {
+			t.Errorf("the first subscription stands: %+v", b)
+		}
+		if kept, _ := recorded(t, s, subscriptionEvent("customer.subscription.created", "nobody-com", "sub_3", "active", 1, at)); kept {
+			t.Error("an event for an organization that is not there was kept")
+		}
+	})
 }
 
-func (b *billed) deliver(event, kind, subscription string, want int) {
-	b.t.Helper()
-	resource := map[string]any{"id": subscription}
-	if strings.HasPrefix(kind, "PAYMENT.SALE.") {
-		resource = map[string]any{"id": "SALE-1", "billing_agreement_id": subscription}
-	}
-	if got := b.fake.deliver(b.hook, event, kind, resource); got != want {
-		b.t.Fatalf("delivering %s answered %d, want %d", kind, got, want)
-	}
+func TestConfirmingAnAddressDoesNotTakeAPaidOrganizationOffItsPlan(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		s := open(t, Settings{})
+		_, org, _ := s.SignUp(t.Context(), Signup{Email: "ada@acme.com", OrgName: "Acme"})
+		recorded(t, s, subscriptionEvent("customer.subscription.created", org.Slug, "sub_1", "active", 2, time.Now()))
+		if err := s.Verify(t.Context(), "ada@acme.com"); err != nil {
+			t.Fatal(err)
+		}
+		if q, _ := s.Quota(org.Slug); q.Tasks != 400 {
+			t.Errorf("%+v", q)
+		}
+	})
 }
 
-func (b *billed) record() BillingRecord {
-	b.t.Helper()
-	record, _, err := b.front.store.BillingOf(b.org)
+func (f *front) postEvent(body []byte, signature string) (int, string) {
+	f.t.Helper()
+	req, _ := http.NewRequest(http.MethodPost, f.http.URL+"/stripe/webhook", strings.NewReader(string(body)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Stripe-Signature", signature)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		b.t.Fatal(err)
+		f.t.Fatal(err)
 	}
-	return record
+	defer resp.Body.Close()
+	text, _ := io.ReadAll(resp.Body)
+	return resp.StatusCode, string(text)
 }
 
-func (b *billed) quota() quota.Quota {
-	b.t.Helper()
-	q, err := b.front.store.Quota(b.org)
-	if err != nil {
-		b.t.Fatal(err)
-	}
-	return q
-}
-
-func TestSubscribingWaitsForThePayerAndChangesNothingUntilPayPalSaysItIsActive(t *testing.T) {
+func TestStripesEventsArriveSignedAndChangeTheOrganizationsPlan(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
-		b := newBilled(t)
-		before := b.quota()
-		location, id := b.subscribe()
-		if !strings.Contains(location, id) || b.record().State != BillingPending || b.record().Seats != 1 {
-			t.Fatalf("%q %+v", location, b.record())
+		stripe := newFakeStripe(t)
+		f := newFront(t, Settings{}, func(c *Config) { c.Stripe = stripe.stripe() })
+		admin := f.verifiedAdmin("ada@acme.com", "Acme")
+		body := subscriptionEvent("customer.subscription.created", "acme-com", "sub_1", "active", 1, time.Now())
+		if status, _ := f.postEvent(body, signStripe(body, "wrong", time.Now())); status != http.StatusBadRequest {
+			t.Errorf("an unsigned event was taken: %d", status)
 		}
-		if b.quota() != before {
-			t.Errorf("a subscription nobody has approved changed the quota: %+v", b.quota())
+		if _, page := admin.get("/org"); !strings.Contains(page, "Free trial") || !strings.Contains(page, "Subscribe: 1 seat at $25 a month each") {
+			t.Fatalf("before paying:\n%s", page)
 		}
-		if _, again := b.subscribe(); again != id || b.fake.count("POST /v1/billing/subscriptions") != 1 {
-			t.Errorf("pressing Subscribe twice made a second subscription")
+		if status, text := f.postEvent(body, signStripe(body, testWebhookSecret, time.Now())); status != http.StatusOK {
+			t.Fatalf("%d %s", status, text)
 		}
-		b.activate(id, "WH-1")
-		got := b.quota()
-		if b.record().State != BillingActive || got.Members != 1 || got.Computers != 1 || !got.Invites || got.Jobs != DefaultPlanQuota().Jobs {
-			t.Errorf("%+v %+v", b.record(), got)
+		_, page := admin.get("/org")
+		if !strings.Contains(page, "Paid: 1 seat at $25 a month each") || strings.Contains(page, "/org/billing/subscribe") || !strings.Contains(page, "/org/billing/manage") {
+			t.Errorf("after paying:\n%s", page)
+		}
+		// An event bigger than a form, as Stripe's are, is taken.
+		big := subscriptionEvent("customer.subscription.updated", "acme-com", "sub_1", "active", 1, time.Now())
+		big = []byte(strings.Replace(string(big), `"object":"subscription"`, `"object":"subscription","description":"`+strings.Repeat("x", 40<<10)+`"`, 1))
+		if status, text := f.postEvent(big, signStripe(big, testWebhookSecret, time.Now())); status != http.StatusOK {
+			t.Errorf("a large event: %d %s", status, text)
+		}
+		other := []byte(`{"id":"evt_x","type":"invoice.paid","created":1,"data":{"object":{}}}`)
+		if status, _ := f.postEvent(other, signStripe(other, testWebhookSecret, time.Now())); status != http.StatusOK {
+			t.Errorf("an event about something else is answered and ignored: %d", status)
 		}
 	})
 }
 
-func TestThePlanIsMadeOnceAndIsTheSeatPriceAMonth(t *testing.T) {
+func TestAnAdminSubscribesForASeatForEachMemberAndARunnerCannot(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
-		b := newBilled(t)
-		b.subscribe()
-		if id, _, _ := b.front.store.setting(settingPayPalPlan); id != "P-PLAN" {
-			t.Errorf("the plan was not kept: %q", id)
+		stripe := newFakeStripe(t)
+		f := newFront(t, Settings{}, func(c *Config) { c.Stripe = stripe.stripe() })
+		admin := f.verifiedAdmin("ada@acme.com", "Acme")
+		bob := f.invitedAndJoined(admin, "bob@acme.com")
+		status, _, header := admin.post("/org/billing/subscribe", nil)
+		if status != http.StatusSeeOther || header.Get("Location") != "https://checkout.stripe.com/c/pay/cs_1" {
+			t.Fatalf("%d %v", status, header)
 		}
-		if b.fake.count("POST /v1/billing/plans") != 1 || b.fake.count("POST /v1/catalogs/products") != 1 {
-			t.Errorf("the plan was made more than once")
+		if !strings.Contains(header.Get("Content-Security-Policy"), "form-action 'self' http://*.cloud.test https://checkout.stripe.com") {
+			t.Errorf("the browser may follow the form to Stripe: %s", header.Get("Content-Security-Policy"))
 		}
-	})
-}
-
-func TestADeliveryThatPayPalDidNotSignIsRefusedAndAppliesNothing(t *testing.T) {
-	onEachDatabase(t, func(t *testing.T) {
-		b := newBilled(t)
-		_, id := b.subscribe()
-		b.fake.activate(id)
-		body := []byte(`{"id":"WH-FORGED","event_type":"BILLING.SUBSCRIPTION.ACTIVATED","resource":{"id":"` + id + `"}}`)
-		if code := post(t, b.hook, "forged", "WH-FORGED", body); code != 401 {
-			t.Errorf("a forged delivery answered %d", code)
+		path, form := stripe.last()
+		if path != "/v1/checkout/sessions" || form.Get("mode") != "subscription" || form.Get("line_items[0][price]") != "price_seat" ||
+			form.Get("line_items[0][quantity]") != "2" || form.Get("client_reference_id") != "acme-com" ||
+			form.Get("subscription_data[metadata][org]") != "acme-com" || form.Get("customer_email") != "ada@acme.com" ||
+			form.Get("success_url") != "http://cloud.test/org?org=acme-com&billing=started" {
+			t.Errorf("%s %v", path, form)
 		}
-		if code := post(t, b.hook, "", "", body); code != 400 {
-			t.Errorf("a delivery without PayPal's headers answered %d", code)
+		calls := stripe.count()
+		if status, _, _ := bob.post("/org/billing/subscribe", nil); status != http.StatusForbidden || stripe.count() != calls {
+			t.Errorf("a runner subscribed: %d", status)
 		}
-		if b.record().State != BillingPending {
-			t.Errorf("a forged delivery changed the state: %+v", b.record())
-		}
-	})
-}
-
-func TestAnEventPayPalSendsTwiceIsAppliedOnce(t *testing.T) {
-	onEachDatabase(t, func(t *testing.T) {
-		b := newBilled(t)
-		_, id := b.subscribe()
-		b.activate(id, "WH-1")
-		reads := b.fake.count("GET /v1/billing/subscriptions/" + id)
-		b.deliver("WH-1", "BILLING.SUBSCRIPTION.ACTIVATED", id, 204)
-		if b.fake.count("GET /v1/billing/subscriptions/"+id) != reads || b.record().State != BillingActive {
-			t.Errorf("the second delivery was applied again")
-		}
-	})
-}
-
-func TestAnEventForASubscriptionGustoNeverMadeChangesNothing(t *testing.T) {
-	onEachDatabase(t, func(t *testing.T) {
-		b := newBilled(t)
-		b.fake.subs["I-OTHER"] = &fakeSub{id: "I-OTHER", status: "ACTIVE", quantity: 9, custom: b.org}
-		b.deliver("WH-9", "BILLING.SUBSCRIPTION.ACTIVATED", "I-OTHER", 204)
-		if _, found, _ := b.front.store.BillingOf(b.org); found {
-			t.Errorf("a stranger's subscription became the organization's")
-		}
-	})
-}
-
-func TestAFailedPaymentIsPastDueAndKeepsWorkingUntilPayPalSuspendsIt(t *testing.T) {
-	onEachDatabase(t, func(t *testing.T) {
-		b := newBilled(t)
-		_, id := b.subscribe()
-		b.activate(id, "WH-1")
-		paid := b.quota()
-		b.fake.failPayment(id)
-		b.deliver("WH-2", "BILLING.SUBSCRIPTION.PAYMENT.FAILED", id, 204)
-		if b.record().State != BillingPastDue || b.quota() != paid {
-			t.Errorf("past due must keep working: %+v %+v", b.record(), b.quota())
-		}
-		b.fake.recover(id)
-		b.deliver("WH-3", "PAYMENT.SALE.COMPLETED", id, 204)
-		if b.record().State != BillingActive {
-			t.Errorf("a payment that went through left it %s", b.record().State)
-		}
-		b.fake.failPayment(id)
-		b.fake.suspend(id)
-		b.deliver("WH-4", "BILLING.SUBSCRIPTION.SUSPENDED", id, 204)
-		got := b.quota()
-		if b.record().State != BillingSuspended || got.Jobs != 0 || got.Invites || got.Refuse(0) == nil || !errors.Is(got.Refuse(0), quota.ErrExceeded) {
-			t.Errorf("suspended must stop new tasks: %+v %+v", b.record(), got)
-		}
-	})
-}
-
-func TestSuspendingNeverDeletesAnythingAndSubscribingAgainRestoresIt(t *testing.T) {
-	onEachDatabase(t, func(t *testing.T) {
-		b := newBilled(t)
-		_, id := b.subscribe()
-		b.activate(id, "WH-1")
-		b.fake.suspend(id)
-		b.deliver("WH-2", "BILLING.SUBSCRIPTION.SUSPENDED", id, 204)
-		if people, _ := b.front.store.Members(b.org); len(people) != 1 {
-			t.Errorf("suspending removed people: %v", people)
-		}
-		if _, found, _ := b.front.store.Org(b.org); !found {
-			t.Errorf("suspending removed the organization")
-		}
-		_, next := b.subscribe()
-		if next == id {
-			t.Fatalf("a suspended organization must be able to start a new subscription")
-		}
-		b.activate(next, "WH-3")
-		if b.record().State != BillingActive || b.quota().Jobs == 0 {
-			t.Errorf("%+v %+v", b.record(), b.quota())
-		}
-	})
-}
-
-func TestCancellingEndsTheSubscriptionAndSuspends(t *testing.T) {
-	onEachDatabase(t, func(t *testing.T) {
-		b := newBilled(t)
-		_, id := b.subscribe()
-		b.activate(id, "WH-1")
-		if code, _, _ := b.admin.post("/org/billing/cancel", nil); code != 303 {
-			t.Fatalf("cancelling answered %d", code)
-		}
-		if b.record().State != BillingSuspended || b.fake.subs[id].status != "CANCELLED" {
-			t.Errorf("%+v %s", b.record(), b.fake.subs[id].status)
-		}
-	})
-}
-
-func TestAnOlderAnswerFromPayPalNeverOverwritesANewerOne(t *testing.T) {
-	onEachDatabase(t, func(t *testing.T) {
-		b := newBilled(t)
-		_, id := b.subscribe()
-		b.activate(id, "WH-1")
-		newer := b.record().SourceTime
-		stale := Subscription{ID: id, Status: "ACTIVE", Quantity: "7", UpdateTime: newer.Add(-time.Hour)}
-		_, record, err := b.front.store.applySubscription(t.Context(), b.org, stale, BillingActive)
-		if err != nil || record.Seats != 1 {
-			t.Errorf("a stale answer was applied: %v %+v", err, record)
-		}
-	})
-}
-
-func TestOnlyAnAdminMayStartCancelOrApproveAndARunnerSeesTheState(t *testing.T) {
-	onEachDatabase(t, func(t *testing.T) {
-		b := newBilled(t)
-		s := b.front.store
-		_, id := b.subscribe()
-		b.activate(id, "WH-1")
-		ada, _, _ := s.Person("ada@acme.com")
-		s.setQuota(b.org, quota.Quota{Jobs: 10, Invites: true, Members: 5, Computers: 5})
-		secret, _ := s.Invite(b.org, ada, "bob@acme.com")
-		runner := b.front.browser()
-		if code, _, _ := runner.post("/invite", url.Values{"t": {secret}}); code != 303 {
-			t.Fatalf("accepting answered %d", code)
-		}
-		for _, path := range []string{"/org/billing/subscribe", "/org/billing/cancel", "/org/billing/proposals/approve", "/org/billing/proposals/decline", "/org/billing/agent-token"} {
-			if code, _, _ := runner.post(path, url.Values{"id": {"x"}}); code != 403 {
-				t.Errorf("%s as a runner answered %d", path, code)
-			}
-		}
-		if _, page := runner.get("/org"); !strings.Contains(page, "Paid, 1 seats") || strings.Contains(page, "Cancel the subscription") {
-			t.Errorf("a runner sees the state and no buttons:\n%s", page)
-		}
-	})
-}
-
-func TestTheOrganizationPageShowsBillingAndProposalsToAnAdmin(t *testing.T) {
-	onEachDatabase(t, func(t *testing.T) {
-		b := newBilled(t)
-		if _, page := b.admin.get("/org"); !strings.Contains(page, "Subscribe with PayPal") || !strings.Contains(page, "$25.00 a seat a month") {
+		if _, page := admin.get("/org?billing=started"); !strings.Contains(page, "once Stripe confirms the payment") {
 			t.Errorf("%s", page)
 		}
-		_, id := b.subscribe()
-		b.activate(id, "WH-1")
-		b.front.store.Propose(b.org, 3, "two colleagues are joining", "agent")
-		if _, page := b.admin.get("/org"); !strings.Contains(page, "An agent proposes 3 seats") || !strings.Contains(page, "Approve and go to PayPal") {
+		stripe.fail(true)
+		if status, page, _ := admin.post("/org/billing/subscribe", nil); status != http.StatusBadGateway || !strings.Contains(page, "Payments are not answering") {
+			t.Errorf("%d", status)
+		}
+	})
+}
+
+func TestAPayingAdminManagesTheirCardAtStripe(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		stripe := newFakeStripe(t)
+		f := newFront(t, Settings{}, func(c *Config) { c.Stripe = stripe.stripe() })
+		admin := f.verifiedAdmin("ada@acme.com", "Acme")
+		if status, _, _ := admin.post("/org/billing/manage", nil); status != http.StatusNotFound {
+			t.Errorf("an organization with no customer has no portal: %d", status)
+		}
+		recorded(t, f.store, subscriptionEvent("customer.subscription.created", "acme-com", "sub_1", "active", 1, time.Now()))
+		status, _, header := admin.post("/org/billing/manage", nil)
+		if status != http.StatusSeeOther || header.Get("Location") != "https://billing.stripe.com/p/session/bps_1" {
+			t.Fatalf("%d %v", status, header)
+		}
+		if path, form := stripe.last(); path != "/v1/billing_portal/sessions" || form.Get("customer") != "cus_1" || form.Get("return_url") != "http://cloud.test/org?org=acme-com" {
+			t.Errorf("%s %v", path, form)
+		}
+	})
+}
+
+func TestTheSeatsBilledFollowTheMembersAndAFailedChangeIsTriedAgain(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		stripe := newFakeStripe(t)
+		s := open(t, Settings{})
+		ada, org := verifiedOrg(t, s, "ada@acme.com", "Acme")
+		recorded(t, s, subscriptionEvent("customer.subscription.created", org.Slug, "sub_1", "active", 1, time.Now()))
+		seats := NewSeatSync(s, stripe.stripe())
+		ctx := context.Background()
+		if n := seats.Once(ctx); n != 0 || stripe.count() != 0 {
+			t.Errorf("seats that match are left alone: %d", n)
+		}
+		joined(t, s, org, ada, "bob@acme.com")
+		joined(t, s, org, ada, "cy@acme.com")
+		stripe.fail(true)
+		if n := seats.Once(ctx); n != 0 {
+			t.Errorf("a failed change was counted: %d", n)
+		}
+		if b, _, _ := s.Billing(ctx, org.Slug); b.Seats != 1 {
+			t.Errorf("a change Stripe refused was recorded: %+v", b)
+		}
+		stripe.fail(false)
+		if n := seats.Once(ctx); n != 1 {
+			t.Fatalf("%d", n)
+		}
+		path, form := stripe.last()
+		if path != "/v1/subscription_items/si_1" || form.Get("quantity") != "3" || form.Get("proration_behavior") != "create_prorations" {
+			t.Errorf("%s %v", path, form)
+		}
+		if q, _ := s.Quota(org.Slug); q.Tasks != 600 {
+			t.Errorf("the quota follows the seats: %+v", q)
+		}
+		s.Remove(ctx, org.Slug, ada, "cy@acme.com")
+		seats.Once(ctx)
+		if _, form := stripe.last(); form.Get("quantity") != "2" {
+			t.Errorf("%v", form)
+		}
+		// An organization whose subscription ended cannot invite, and is not billed for anybody.
+		recorded(t, s, subscriptionEvent("customer.subscription.deleted", org.Slug, "sub_1", "canceled", 2, time.Now().Add(time.Hour)))
+		if _, err := s.Invite(ctx, org.Slug, ada, "dee@acme.com"); !errors.Is(err, ErrLapsed) {
+			t.Errorf("%v", err)
+		}
+		s.Remove(ctx, org.Slug, ada, "bob@acme.com")
+		calls := stripe.count()
+		if n := seats.Once(ctx); n != 0 || stripe.count() != calls {
+			t.Errorf("an ended subscription was changed: %d", n)
+		}
+	})
+}
+
+func TestADemoIsNeverOfferedAPlan(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		stripe := newFakeStripe(t)
+		f := newFront(t, demoSet, func(c *Config) { c.Stripe = stripe.stripe() })
+		person, org, err := f.store.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if p := f.server.planOf(t.Context(), org, person); p != nil {
+			t.Errorf("%+v", p)
+		}
+		if err := f.store.EndDemo(t.Context(), org.Slug, "done"); err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
+func TestBillingIsOffUntilItIsSetUp(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		f := newFront(t, Settings{}, nil)
+		admin := f.verifiedAdmin("ada@acme.com", "Acme")
+		if _, page := admin.get("/org"); strings.Contains(page, "Plan") || strings.Contains(page, "Subscribe") {
 			t.Errorf("%s", page)
 		}
-	})
-}
-
-func TestComingBackFromPayPalReadsTheSubscriptionAtOnce(t *testing.T) {
-	onEachDatabase(t, func(t *testing.T) {
-		b := newBilled(t)
-		_, id := b.subscribe()
-		b.fake.activate(id)
-		if code, _ := b.admin.get("/org/billing/return?subscription_id=I-SOMEONE-ELSES"); code != 303 {
-			t.Fatalf("returning answered %d", code)
+		body := subscriptionEvent("customer.subscription.created", "acme-com", "sub_1", "active", 1, time.Now())
+		if status, _ := f.postEvent(body, signStripe(body, testWebhookSecret, time.Now())); status != http.StatusNotFound {
+			t.Errorf("%d", status)
 		}
-		if b.record().State != BillingActive {
-			t.Errorf("the return did not read the organization's own subscription: %+v", b.record())
+		if status, _, _ := admin.post("/org/billing/subscribe", nil); status != http.StatusNotFound {
+			t.Errorf("%d", status)
 		}
 	})
 }
 
-func TestWithoutPayPalThereAreNoBillingPagesOrEndpoints(t *testing.T) {
+func TestSeatWords(t *testing.T) {
+	for seats, want := range map[int]string{1: "1 seat at $25 a month each", 4: "4 seats at $25 a month each"} {
+		if got := seatWords(seats, 25); got != want {
+			t.Errorf("%d: %s", seats, got)
+		}
+	}
+}
+
+// Every organization has the starting credit on the models gusto provides, a demo a smaller one, and a gusto cloud server that starts
+// writes every quota again so organizations made before a change in the limits have it too.
+func TestEveryOrganizationHasACreditAndAStartWritesEveryQuotaAgain(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
-		f := newFront(t, Settings{AllowFreeMail: true}, nil)
-		admin := f.browser()
-		admin.post("/signup", signup("ada@acme.com", "Acme"))
-		if code, _, _ := admin.post("/org/billing/subscribe", nil); code != 404 && code != 405 {
-			t.Errorf("subscribe answered %d", code)
+		s, _ := clocked(t, demoSet)
+		_, org, _ := s.SignUp(t.Context(), Signup{Email: "ada@acme.com", OrgName: "Acme"})
+		_, demo, _ := s.StartDemo(t.Context(), "Bo", "bo@globex.com", "Globex")
+		if q, _ := s.Quota(org.Slug); q.CreditUSD != StartingCredit {
+			t.Errorf("%+v", q)
 		}
-		if code := post(t, f.http.URL+billingWebhookPath, "x", "x", []byte(`{}`)); code != 404 && code != 405 {
-			t.Errorf("the webhook answered %d", code)
+		if q, _ := s.Quota(demo.Slug); q.CreditUSD != 0.5 {
+			t.Errorf("%+v", q)
 		}
-		if _, page := admin.get("/org"); strings.Contains(page, "Billing") {
-			t.Errorf("the page offers billing")
+		old := DefaultLimits().Trial
+		old.CreditUSD = 0
+		if err := s.setQuota(org.Slug, old); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.ApplyQuotas(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+		if q, _ := s.Quota(org.Slug); q.CreditUSD != StartingCredit {
+			t.Errorf("a quota written before the credit was not written again: %+v", q)
 		}
 	})
 }
 
-func TestAPendingSubscriptionThatPayPalHasEndedIsReplacedAndOneThatIsPayingIsNot(t *testing.T) {
+func TestTheOrganizationPageSaysWhatIsLeftOfTheCredit(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
-		b := newBilled(t)
-		earned := b.quota()
-		_, first := b.subscribe()
-		b.fake.set(first, func(s *fakeSub) { s.status = "EXPIRED" })
-		_, second := b.subscribe()
-		if b.quota() != earned {
-			t.Errorf("a subscription nobody paid for changed the quota: %+v", b.quota())
+		f := newFront(t, Settings{}, nil)
+		admin := f.verifiedAdmin("ada@acme.com", "Acme")
+		if _, page := admin.get("/org"); !strings.Contains(page, ">$5.00</span>") || !strings.Contains(page, "left of $5.00 on gusto's models") ||
+			!strings.Contains(page, "add your own key in Admin, Models") {
+			t.Errorf("a new organization's credit:\n%s", page)
 		}
-		if second == first || b.record().State != BillingPending || b.record().SubscriptionID != second {
-			t.Fatalf("an expired subscription was not replaced: %+v", b.record())
-		}
-		b.fake.activate(second)
-		if code, page, _ := b.admin.post("/org/billing/subscribe", nil); code != 409 || !strings.Contains(page, "already has a subscription") {
-			t.Errorf("subscribing while paying answered %d", code)
-		}
-		if b.record().State != BillingActive {
-			t.Errorf("the paying subscription was not read in: %+v", b.record())
+		os.WriteFile(filepath.Join(f.store.DataDir("acme-com"), "credit-used.json"), []byte(`{"usd":1.8}`), 0o600)
+		if _, page := admin.get("/org"); !strings.Contains(page, ">$3.20</span>") {
+			t.Errorf("after the server used some:\n%s", page)
 		}
 	})
 }

@@ -1,32 +1,34 @@
 package sandbox
 
 import (
+	"context"
 	"os/exec"
 	"slices"
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// A directory the container cannot read the job from has to be named as the
+// A directory the container cannot read the task from has to be named as the
 // problem. Docker hands over an empty directory rather than refusing a mount of
 // a path it does not share, so the run would otherwise fail somewhere later.
-func TestAJobTheContainerCannotReadIsRefusedByName(t *testing.T) {
+func TestATaskTheContainerCannotReadIsRefusedByName(t *testing.T) {
 	// A present binary with a dead daemon is the common shape in CI and in a
 	// cloud sandbox, and it is not a failure of this code. Ask the runtime
 	// whether it answers, rather than whether it is installed.
-	if err := exec.Command(Runtime(), "info").Run(); err != nil {
-		t.Skipf("%s is not answering on this machine: %v", Runtime(), err)
+	c := plain()
+	if err := exec.Command(c.Runtime, "info").Run(); err != nil {
+		t.Skipf("%s is not answering on this machine: %v", c.Runtime, err)
 	}
 	// And the image this runs, which a checkout does not come with. Without it
 	// the runtime refuses before it ever reads the directory, so the test would
 	// fail for a reason that is not the one it is about.
-	if err := exec.Command(Runtime(), "image", "inspect", Image()).Run(); err != nil {
-		t.Skipf("%s is not built on this machine: %s build -t %s .", Image(), Runtime(), Image())
+	if err := exec.Command(c.Runtime, "image", "inspect", c.Image).Run(); err != nil {
+		t.Skipf("%s is not built on this machine: %s build -t %s .", c.Image, c.Runtime, c.Image)
 	}
-	empty := job.Dir(t.TempDir())
-	_, err := Run(empty, "http://localhost:11434/v1", "")
+	empty := task.Dir(t.TempDir())
+	_, err := c.Run(context.Background(), empty, "http://localhost:11434/v1", "", Owner{})
 	if err == nil {
 		t.Fatal("a directory with no job.json must not run")
 	}
@@ -35,36 +37,26 @@ func TestAJobTheContainerCannotReadIsRefusedByName(t *testing.T) {
 	}
 }
 
-func TestTheContainerCommandIsYours(t *testing.T) {
-	if Runtime() != "docker" {
-		t.Fatalf("docker is the default, got %q", Runtime())
-	}
-	t.Setenv("GUSTO_CONTAINER", "podman")
-	if Runtime() != "podman" {
-		t.Fatalf("GUSTO_CONTAINER should choose the runtime, got %q", Runtime())
-	}
-}
-
-func TestWhatAJobMayTakeIsYoursToSet(t *testing.T) {
-	if got := share("GUSTO_JOB_MEMORY", "3g"); got != "3g" {
-		t.Fatalf("default memory = %q", got)
-	}
-	t.Setenv("GUSTO_JOB_MEMORY", "900m")
-	if got := share("GUSTO_JOB_MEMORY", "3g"); got != "900m" {
+func TestWhatATaskMayTakeIsYoursToSet(t *testing.T) {
+	t.Parallel()
+	small := plain()
+	small.CPUs, small.Memory = "0.5", "900m"
+	if got := strings.Join(small.Limits(), " "); got != "--cpus=0.5 --memory=900m --pids-limit=512" {
 		t.Fatalf("a small machine should be able to say so, got %q", got)
 	}
 }
 
-// Whether the runtime enforces them is measured by the deploy's smoke job, which
+// Whether the runtime enforces them is measured by the deploy's smoke task, which
 // runs a real container. What can be held here is that every container, sealed
 // or not, is asked for the same restrictions and no more capabilities than the
 // runner needs.
 func TestEveryContainerDropsEveryCapabilityButWhatTheRunnerNeeds(t *testing.T) {
-	sealed, err := sealedArgv("/jobs/a", "/jobs/.proxy.sock", "t", nil)
+	t.Parallel()
+	sealed, err := plain().sealedArgv("/jobs/a", "/jobs/.proxy.sock", "t", Owner{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	open, err := argv("/jobs/a", nil, nil)
+	open, err := plain().argv("/jobs/a", nil, Owner{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

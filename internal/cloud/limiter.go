@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"context"
 	"sync"
 	"time"
 )
@@ -8,7 +9,7 @@ import (
 // Limiter counts events in a window that slides, by key, and refuses one past
 // the most allowed. One made by NewLimiter is kept in memory, where a restart
 // forgets it, which lets a person try again and no more. One made by a Store
-// counts in the database, so that every front door on it counts together.
+// counts in the database, so that every gusto cloud server on it counts together.
 type Limiter struct {
 	mu    sync.Mutex
 	most  int
@@ -26,9 +27,9 @@ func NewLimiter(most int, per time.Duration) *Limiter {
 
 // Allow counts an event for key and says whether it may go ahead. A refused
 // event is not counted, so trying again does not lengthen the wait.
-func (l *Limiter) Allow(key string) bool {
+func (l *Limiter) Allow(ctx context.Context, key string) bool {
 	if l.store != nil {
-		return l.store.allow(l.scope+":"+key, l.most, l.per)
+		return l.store.allow(ctx, l.scope+":"+key, l.most, l.per)
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()

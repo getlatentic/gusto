@@ -13,11 +13,12 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/integration"
+	"github.com/getlatentic/gusto/internal/isolation"
 	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/internal/setup"
-	"github.com/getlatentic/gusto/pkg/job"
 	"github.com/getlatentic/gusto/pkg/proxy"
 	"github.com/getlatentic/gusto/pkg/spend"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // toolServer is an MCP server that has one tool, and keeps what it was called with and by what credential.
@@ -58,17 +59,17 @@ func toolServer(t *testing.T) (address string, calls *[]string) {
 	return server.URL, &seen
 }
 
-// proxied is a proxy that serves the gateways of the jobs under a folder, with one job that has a server behind the gateway.
+// proxied is a proxy that serves the gateways of the tasks under a folder, with one task that has a server behind the gateway.
 func proxied(t *testing.T, upstream string) (front *httptest.Server, token, root string) {
 	t.Helper()
 	t.Setenv("GUSTO_GATEWAY_PRIVATE", "1")
 	root = t.TempDir()
-	dir := job.Dir(filepath.Join(root, "20261008-1200-a-turn"))
+	dir := task.Dir(filepath.Join(root, "20261008-1200-a-turn"))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: "x", Repo: "r", Harness: "fixture", Team: "payments", Sensitivity: job.Internal,
-		Budget: job.Budget{Turns: 1, Seconds: 60}, Setup: &job.Setup{Name: "team", Gateway: []string{"crm"}}}
+	spec := task.Spec{Brief: "x", Repo: "r", Harness: "fixture", Team: "payments", Sensitivity: task.Internal,
+		Budget: task.Budget{Turns: 1, Seconds: 60}, Setup: &task.Setup{Name: "team", Gateway: []string{"crm"}}}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
@@ -80,14 +81,14 @@ func proxied(t *testing.T, upstream string) (front *httptest.Server, token, root
 	})
 	os.WriteFile(filepath.Join(dir.SetupDir(), setup.GatewayFile), definitions, 0o600)
 
-	gates, err := openGateways(root)
+	gateways, err := openGateways(root, fromEnv(t).way)
 	if err != nil {
 		t.Fatal(err)
 	}
 	tokens := proxy.NewTokens()
 	where := func(id string) (string, bool) { return filepath.Join(root, id, "out", "proxy.jsonl"), true }
 	p := proxy.New(tokens, proxy.Credentials{}, where, spend.NewLedger(spend.Policy{}), proxy.ParseAllowlist(""))
-	p.UseGateways(gates.For)
+	p.UseGateways(gateways.For)
 	front = httptest.NewServer(p.Handler())
 	t.Cleanup(front.Close)
 	token, err = tokens.Mint("20261008-1200-a-turn", "")
@@ -118,7 +119,7 @@ func rpc(t *testing.T, address, token, method string, params any) map[string]any
 	return reply
 }
 
-func TestAJobReachesItsToolServersThroughTheProxyAndNothingElse(t *testing.T) {
+func TestATaskReachesItsToolServersThroughTheProxyAndNothingElse(t *testing.T) {
 	upstream, calls := toolServer(t)
 	front, token, root := proxied(t, upstream)
 	endpoint := front.URL + "/model/mcp"
@@ -150,29 +151,29 @@ func TestAJobReachesItsToolServersThroughTheProxyAndNothingElse(t *testing.T) {
 	}
 }
 
-func TestAJobWithNothingBehindTheGatewayHasNoGateway(t *testing.T) {
+func TestATaskWithNothingBehindTheGatewayHasNoGateway(t *testing.T) {
 	upstream, _ := toolServer(t)
 	front, _, root := proxied(t, upstream)
-	plain := job.Dir(filepath.Join(root, "20261008-1300-plain"))
+	plain := task.Dir(filepath.Join(root, "20261008-1300-plain"))
 	plain.Make()
-	job.Spec{Brief: "x", Repo: "r", Harness: "fixture", Sensitivity: job.Internal, Budget: job.Budget{Turns: 1, Seconds: 60}}.Write(plain)
-	gates, _ := openGateways(root)
-	if _, has := gates.For("20261008-1300-plain"); has {
+	task.Spec{Brief: "x", Repo: "r", Harness: "fixture", Sensitivity: task.Internal, Budget: task.Budget{Turns: 1, Seconds: 60}}.Write(plain)
+	gateways, _ := openGateways(root, fromEnv(t).way)
+	if _, has := gateways.For("20261008-1300-plain"); has {
 		t.Error("a job with no servers behind the gateway has one")
 	}
-	if _, has := gates.For("../x"); has {
+	if _, has := gateways.For("../x"); has {
 		t.Error("a job id that climbs was taken")
 	}
 	_ = front
 }
 
-// A program an integration brought runs in a box, behind the proxy, and a job calls it through the gateway: the whole way, in a real
+// A program an integration brought runs in a box, behind the proxy, and a task calls it through the gateway: the whole way, in a real
 // container. It needs a container runtime and node's image, and a folder the runtime can mount.
-func TestAProgramAnIntegrationBroughtRunsInABoxAndAJobCallsItThroughTheProxy(t *testing.T) {
-	if _, err := exec.LookPath(sandbox.Runtime()); err != nil || exec.Command(sandbox.Runtime(), "image", "inspect", "node:24-slim").Run() != nil {
+func TestAProgramAnIntegrationBroughtRunsInABoxAndATaskCallsItThroughTheProxy(t *testing.T) {
+	boxes := sandbox.Containers{Runtime: isolation.RuntimeName("", exec.LookPath), ToolImage: "node:24-slim", ToolCPUs: "0.5", ToolMemory: "512m"}
+	if _, err := exec.LookPath(boxes.Runtime); err != nil || exec.Command(boxes.Runtime, "image", "inspect", boxes.ToolImage).Run() != nil {
 		t.Skip("no container runtime, or no node image")
 	}
-	t.Setenv("GUSTO_TOOLS_IMAGE", "node:24-slim")
 	home, err := os.UserHomeDir()
 	if err != nil {
 		t.Skip("no home directory")
@@ -210,8 +211,8 @@ rl.on("line", (line) => {
 	setups.UseIntegrations(store)
 	setups.Save(setup.Setup{Name: "team", Integrations: []string{"crm"}}, setup.Servers{})
 
-	carry := func() (job.Dir, *job.Setup) {
-		dir := job.Dir(filepath.Join(root, "jobs", "20261008-1200-a-turn"))
+	carry := func() (task.Dir, *task.Setup) {
+		dir := task.Dir(filepath.Join(root, "jobs", "20261008-1200-a-turn"))
 		os.RemoveAll(dir.Path())
 		if err := dir.Make(); err != nil {
 			t.Fatal(err)
@@ -220,7 +221,7 @@ rl.on("line", (line) => {
 		if err != nil {
 			t.Fatal(err)
 		}
-		spec := job.Spec{Brief: "x", Repo: "r", Harness: "fixture", Sensitivity: job.Internal, Budget: job.Budget{Turns: 1, Seconds: 60}, Setup: carried}
+		spec := task.Spec{Brief: "x", Repo: "r", Harness: "fixture", Sensitivity: task.Internal, Budget: task.Budget{Turns: 1, Seconds: 60}, Setup: carried}
 		spec.Write(dir)
 		os.WriteFile(filepath.Join(dir.Path(), "state.json"), []byte(`{"asked":"ada@acme.example"}`), 0o644)
 		return dir, carried
@@ -234,17 +235,18 @@ rl.on("line", (line) => {
 		t.Fatalf("gateway = %v", carried.Gateway)
 	}
 
-	gates, err := openGateways(filepath.Join(root, "jobs"))
+	gateways, err := openGateways(filepath.Join(root, "jobs"), fromEnv(t).way)
+	gateways.containers = boxes
 	if err != nil {
 		t.Fatal(err)
 	}
 	tokens := proxy.NewTokens()
 	p := proxy.New(tokens, proxy.Credentials{}, func(id string) (string, bool) { return filepath.Join(root, "jobs", id, "out", "proxy.jsonl"), true }, spend.NewLedger(spend.Policy{}), proxy.ParseAllowlist(""))
-	p.UseGateways(gates.For)
+	p.UseGateways(gateways.For)
 	front := httptest.NewServer(p.Handler())
 	defer front.Close()
 	token, _ := tokens.Mint("20261008-1200-a-turn", "")
-	defer gates.Forget("20261008-1200-a-turn")
+	defer gateways.Forget("20261008-1200-a-turn")
 
 	endpoint := front.URL + "/model/mcp"
 	found := rpc(t, endpoint, token, "tools/call", map[string]any{"name": "tool_search", "arguments": map[string]any{"query": "customer"}})
@@ -259,8 +261,8 @@ rl.on("line", (line) => {
 	if !strings.Contains(string(record), `"tool":"find"`) || !strings.Contains(string(record), `"outcome":"ok"`) {
 		t.Errorf("the record = %s", record)
 	}
-	gates.Forget("20261008-1200-a-turn")
-	out, _ := exec.Command(sandbox.Runtime(), "ps", "-q", "--filter", "name="+sandbox.ToolName("20261008-1200-a-turn", "crm-db")).Output()
+	gateways.Forget("20261008-1200-a-turn")
+	out, _ := exec.Command(boxes.Runtime, "ps", "-q", "--filter", "name="+sandbox.ToolName("20261008-1200-a-turn", "crm-db")).Output()
 	if strings.TrimSpace(string(out)) != "" {
 		t.Errorf("the program's box is still running after the job: %s", out)
 	}

@@ -9,12 +9,12 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/rules"
 	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/box"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Box is a place an agent runs that this process only drives, such as a
@@ -31,28 +31,59 @@ const (
 
 // Outside does the whole run for an agent that runs in a box, and returns the
 // exit code the check earned, as Inside does for one in this process. The
-// workspace must already hold the repository.
-func Outside(dir job.Dir, box Box) (int, error) {
-	return OutsideContext(context.Background(), dir, box)
+// working folder must already hold the repository.
+//
+// The record is signed by who signs, and the run stops early when ctx ends, as Inside does.
+func Outside(parent context.Context, dir task.Dir, box Box, signs signing.Identity) (int, error) {
+	spec, err := task.Read(dir)
+	if err != nil {
+		return 0, err
+	}
+	run, err := prepareOutside(dir, spec, box)
+	if err != nil {
+		return 0, err
+	}
+	defer os.RemoveAll(objectsOf(dir))
+	end := ending{dir: dir, since: record.Now(), harness: run.adapter.Name, digest: run.digest, endpoint: run.endpoint, signing: signs}
+	recorder, err := Open(dir, run.adapter)
+	if err != nil {
+		return 0, err
+	}
+	ctx, cancel := context.WithTimeout(parent, time.Duration(spec.Budget.Seconds)*time.Second)
+	defer cancel()
+	// Closed however Start ends: a box that was half made is still there.
+	defer box.Close()
+	end.exit, err = run.agentTurn(ctx, recorder)
+	if end.tokens, end.cost, err = finished(recorder, err); err != nil {
+		return 0, err
+	}
+	if end.verdict, err = run.check(ctx); err != nil {
+		return 0, err
+	}
+	end.version, end.session = versionIn(ctx, box, run.adapter.Name), recorder.Remembered
+	return end.close(ctx)
 }
 
-// OutsideContext is Outside that stops early when its context ends, as Inside does.
-func OutsideContext(parent context.Context, dir job.Dir, box Box) (int, error) {
-	key, keyed, err := signing.Configured()
-	if err != nil {
-		return 0, err
-	}
-	spec, err := job.Read(dir)
-	if err != nil {
-		return 0, err
-	}
-	// What a box cannot yet carry is refused by name before anything starts.
+// outside is a run of an agent in a box this process drives, as prepareOutside readied it.
+type outside struct {
+	dir      task.Dir
+	spec     task.Spec
+	box      Box
+	adapter  harness.Adapter
+	digest   string
+	endpoint string
+	before   string
+}
+
+// prepareOutside readies a run in a box: what the box cannot carry and a model the run may not reach are refused by name before
+// anything starts, and the working folder, which already holds the repository, is snapshotted.
+func prepareOutside(dir task.Dir, spec task.Spec, box Box) (*outside, error) {
 	if spec.Setup != nil && len(spec.Setup.Servers) > 0 {
-		return 0, Refuse(dir, errors.New("a sandbox on a gateway does not yet carry tool servers"))
+		return nil, Refuse(dir, errors.New("a sandbox on a gateway does not yet carry tool servers"))
 	}
 	configured, err := harness.Open(dir, spec.Harness)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	adapter := configured.Adapter
 	endpoint := adapter.EndpointOf()
@@ -60,116 +91,66 @@ func OutsideContext(parent context.Context, dir job.Dir, box Box) (int, error) {
 		endpoint = box.HostModelURL()
 	}
 	if err := admitOutside(spec, adapter, endpoint); err != nil {
-		return 0, Refuse(dir, err)
+		return nil, Refuse(dir, err)
 	}
 	if err := dir.Make(); err != nil {
-		return 0, err
+		return nil, err
 	}
 	before, err := Snapshot(dir)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	defer os.RemoveAll(objectsOf(dir))
+	return &outside{dir: dir, spec: spec, box: box, adapter: adapter, digest: configured.Digest, endpoint: endpoint, before: before}, nil
+}
 
-	started := evidence.Now()
-	record, err := Open(dir, adapter)
-	if err != nil {
+// agentTurn starts the box with the working folder, checks it carries the agent, equips it, and talks to the agent until it ends or
+// ctx does. A box that does not carry the agent is a refusal, in the record.
+func (r *outside) agentTurn(ctx context.Context, record *Recorder) (int, error) {
+	if err := r.box.Start(ctx, r.dir.WorkingFolder()); err != nil {
 		return 0, err
 	}
-	budget := time.Duration(spec.Budget.Seconds) * time.Second
-	ctx, cancel := context.WithTimeout(parent, budget)
-	defer cancel()
+	if err := carriedIn(ctx, r.box, r.spec.Harness, r.adapter); err != nil {
+		return 0, Refuse(r.dir, err)
+	}
+	if err := r.box.Equip(ctx, r.dir, r.spec, r.adapter); err != nil {
+		return 0, err
+	}
+	return talk(ctx, r.box, r.adapter, r.spec, record)
+}
 
-	// Closed however Start ends: a box that was half made is still there.
-	defer box.Close()
-	if err := box.Start(ctx, dir.Workspace()); err != nil {
-		record.Close()
-		return 0, err
+// check brings the working folder out of the box, diffs it, asks the check in the box, and keeps what the box's guard saw.
+func (r *outside) check(ctx context.Context) (*record.Verdict, error) {
+	if err := r.box.Fetch(r.dir.WorkingFolder()); err != nil {
+		return nil, err
 	}
-	if err := carriedIn(ctx, box, spec.Harness, adapter); err != nil {
-		record.Close()
-		return 0, Refuse(dir, err)
+	if err := Diff(r.dir, r.before); err != nil {
+		return nil, err
 	}
-	if err := box.Equip(ctx, dir, spec, adapter); err != nil {
-		record.Close()
-		return 0, err
-	}
-	exit, err := talk(ctx, box, adapter, spec, record)
-	tokens, cost := record.Spent()
-	if closeErr := record.Close(); closeErr != nil && err == nil {
-		err = closeErr
-	}
-	if err != nil {
-		return 0, err
-	}
-
-	if err := box.Fetch(dir.Workspace()); err != nil {
-		return 0, err
-	}
-	if err := Diff(dir, before); err != nil {
-		return 0, err
-	}
-	var verdict *evidence.Verdict
-	if len(spec.Gate) > 0 {
-		given, err := gateIn(ctx, spec, dir, box)
+	var verdict *record.Verdict
+	if len(r.spec.Check) > 0 {
+		given, err := checkIn(ctx, r.spec, r.dir, r.box)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 		verdict = &given
 	}
-	if err := keepGuard(dir, box); err != nil {
-		return 0, err
-	}
-	capped, err := stoppedByCap(dir, started)
-	if err != nil {
-		return 0, err
-	}
-	spent, files, err := evidence.Of(dir)
-	if err != nil {
-		return 0, err
-	}
-	if err := evidence.Write(dir, evidence.Manifest{
-		Job:             spent,
-		Files:           files,
-		Gate:            verdict,
-		Harness:         adapter.Name,
-		HarnessDigest:   configured.Digest,
-		HarnessVersion:  versionIn(ctx, box, adapter.Name),
-		Session:         record.Remembered,
-		HarnessExit:     exit,
-		StoppedAtBudget: ctx.Err() == context.DeadlineExceeded,
-		StoppedBy:       stoppedBy(ctx, dir),
-		StoppedByCap:    capped,
-		ModelEndpoint:   endpoint,
-		Tokens:          tokens,
-		CostUSD:         cost,
-		Signer:          signer(key, keyed),
-		AtUnix:          evidence.Now(),
-	}); err != nil {
-		return 0, err
-	}
-	if keyed {
-		if err := evidence.Seal(dir, key); err != nil {
-			return 0, err
-		}
-	}
-	return earned(verdict, exit), nil
+	return verdict, keepGuard(r.dir, r.box)
 }
 
-// gateIn asks the gate in the box, where the repository's own code runs, and
+// checkIn asks the check in the box, where the repository's own code runs, and
 // keeps the answer and the whole output.
-func gateIn(ctx context.Context, spec job.Spec, dir job.Dir, box Box) (evidence.Verdict, error) {
-	command := box.Wrap(ctx, exec.CommandContext(ctx, spec.Gate[0], spec.Gate[1:]...))
+func checkIn(ctx context.Context, spec task.Spec, dir task.Dir, box Box) (record.Verdict, error) {
+	command := box.Wrap(ctx, exec.CommandContext(ctx, spec.Check[0], spec.Check[1:]...))
 	command.Dir = ""
 	verdict, output, err := askWith(spec, command)
 	if err != nil {
-		return evidence.Verdict{}, err
+		return record.Verdict{}, err
 	}
-	return verdict, keepGate(dir, verdict, output)
+	return verdict, keepCheck(dir, verdict, output)
 }
 
 // keepGuard writes what the box's guard recorded into the record.
-func keepGuard(dir job.Dir, box Box) error {
+func keepGuard(dir task.Dir, box Box) error {
 	events, policy, err := box.Guard()
 	if err != nil {
 		return err
@@ -183,7 +164,7 @@ func keepGuard(dir job.Dir, box Box) error {
 // admitOutside is admit for a harness that runs in a box: the program is the
 // box's to have, so it is asked of the box once it is up, and the model is
 // reached from this process by the address it has for the proxy.
-func admitOutside(spec job.Spec, adapter harness.Adapter, endpoint string) error {
+func admitOutside(spec task.Spec, adapter harness.Adapter, endpoint string) error {
 	if err := fits(spec, adapter); err != nil {
 		return err
 	}
@@ -220,7 +201,7 @@ func versionIn(ctx context.Context, box Box, name string) string {
 
 // talk runs the harness in the box and records what it does: an ACP agent is
 // held a conversation with, and any other harness's output is read as it comes.
-func talk(ctx context.Context, box Box, adapter harness.Adapter, spec job.Spec, record *Record) (int, error) {
+func talk(ctx context.Context, box Box, adapter harness.Adapter, spec task.Spec, record *Recorder) (int, error) {
 	command, servers, err := boxCommand(ctx, adapter, spec, box.Workdir(), box.Env())
 	if err != nil {
 		return 0, err
@@ -235,15 +216,15 @@ func talk(ctx context.Context, box Box, adapter harness.Adapter, spec job.Spec, 
 	return converse(ctx, live, box.Workdir(), spec, servers, adapter.Authenticate, record)
 }
 
-// boxCommand is the command that starts the harness in a box, with the servers it is to be given. A job's servers behind the gateway
+// boxCommand is the command that starts the harness in a box, with the servers it is to be given. A task's servers behind the gateway
 // are reached at the proxy by the address the box has for it, the same way the harness reaches its model. A harness that reads its
 // servers from a file in its own folder is not given them: the box does not put a file there.
-func boxCommand(ctx context.Context, adapter harness.Adapter, spec job.Spec, workspace string, env harness.Env) (*exec.Cmd, []job.Server, error) {
+func boxCommand(ctx context.Context, adapter harness.Adapter, spec task.Spec, workingFolder string, env harness.Env) (*exec.Cmd, []task.Server, error) {
 	servers, err := gatewayServers(spec, env.ModelURL, env.ModelToken)
 	if err != nil {
 		return nil, nil, err
 	}
-	command := adapter.CommandIn(ctx, spec, workspace, env)
+	command := adapter.CommandIn(ctx, spec, workingFolder, env)
 	if len(servers) == 0 || adapter.Stream == harness.ACP {
 		return command, servers, nil
 	}

@@ -18,7 +18,7 @@ const (
 	scaleLeads  = 20_000
 )
 
-// TestTheStoreAtScale seeds a large database and prints how long the operations a front door does most take. It runs
+// TestTheStoreAtScale seeds a large database and prints how long the operations a gusto cloud server does most take. It runs
 // only when GUSTO_CLOUD_SCALE=1 is set, and prints with -v.
 func TestTheStoreAtScale(t *testing.T) {
 	if os.Getenv("GUSTO_CLOUD_SCALE") != "1" {
@@ -29,19 +29,19 @@ func TestTheStoreAtScale(t *testing.T) {
 		s := open(t, set)
 		seed(t, s)
 		measure(t, "sign-in lookup (Person by address)", 2000, func(i int) error {
-			_, found, err := s.Person(fmt.Sprintf("u%d@c%d.com", (i*37)%scalePeople, ((i*37)%scalePeople)%scaleOrgs))
+			_, found, err := s.only(t.Context(), fmt.Sprintf("u%d@c%d.com", (i*37)%scalePeople, ((i*37)%scalePeople)%scaleOrgs))
 			if err == nil && !found {
 				err = fmt.Errorf("not found")
 			}
 			return err
 		})
 		measure(t, "sign-up (person, organization, directory)", 300, func(i int) error {
-			_, _, err := s.SignUp(Signup{Email: fmt.Sprintf("new%d@fresh%d.com", i, i), OrgName: fmt.Sprintf("Fresh %d", i)})
+			_, _, err := s.SignUp(t.Context(), Signup{Email: fmt.Sprintf("new%d@fresh%d.com", i, i), OrgName: fmt.Sprintf("Fresh %d", i)})
 			return err
 		})
 		measureInvitations(t, s)
 		measure(t, "list every lead (20,000)", 5, func(int) error {
-			leads, err := s.Leads()
+			leads, err := s.Leads(t.Context())
 			if err == nil && len(leads) != scaleLeads {
 				err = fmt.Errorf("%d leads", len(leads))
 			}
@@ -51,7 +51,7 @@ func TestTheStoreAtScale(t *testing.T) {
 			return s.demoAllowed(context.Background(), s.db, fmt.Sprintf("visitor%d@lead%d.com", i, i))
 		})
 		measure(t, "start a demo (all of its checks and writes)", 45, func(i int) error {
-			_, _, err := s.StartDemo("Visitor", fmt.Sprintf("v%d@visit%d.com", i, i), "Visitors")
+			_, _, err := s.StartDemo(t.Context(), "Visitor", fmt.Sprintf("v%d@visit%d.com", i, i), "Visitors")
 			return err
 		})
 	})
@@ -61,19 +61,20 @@ func measureInvitations(t *testing.T, s *Store) {
 	const n = 200
 	secrets := make([]string, n)
 	for i := range n {
-		admin, org, err := s.SignUp(Signup{Email: fmt.Sprintf("boss%d@inv%d.com", i, i), OrgName: fmt.Sprintf("Inviting %d", i)})
+		admin, org, err := s.SignUp(t.Context(), Signup{Email: fmt.Sprintf("boss%d@inv%d.com", i, i), OrgName: fmt.Sprintf("Inviting %d", i)})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if admin, err = s.Verify(admin.Email); err != nil {
+		if err = s.Verify(t.Context(), admin.Email); err != nil {
 			t.Fatal(err)
 		}
-		if secrets[i], err = s.Invite(org.Slug, admin, fmt.Sprintf("guest%d@inv%d.com", i, i)); err != nil {
+		admin, _, _ = s.Person(t.Context(), admin.Email, org.Slug)
+		if secrets[i], err = s.Invite(t.Context(), org.Slug, admin, fmt.Sprintf("guest%d@inv%d.com", i, i)); err != nil {
 			t.Fatal(err)
 		}
 	}
 	measure(t, "accept an invitation", n, func(i int) error {
-		_, _, err := s.Accept(secrets[i])
+		_, _, err := s.Accept(t.Context(), secrets[i])
 		return err
 	})
 }
@@ -111,12 +112,16 @@ func seed(t *testing.T, s *Store) {
 		if _, err := insertRows(ctx, tx, insertOrg, orgs); err != nil {
 			return err
 		}
-		people := make([][]any, scalePeople)
+		people, memberships := make([][]any, scalePeople), make([][]any, scalePeople)
 		for i := range people {
 			org := i % scaleOrgs
-			people[i] = s.personArgs(Person{Email: fmt.Sprintf("u%d@c%d.com", i, org), Org: fmt.Sprintf("org-%d", org), Role: Runner, Created: now.Add(time.Duration(i) * time.Second), Verified: now})
+			person := Person{Email: fmt.Sprintf("u%d@c%d.com", i, org), Org: fmt.Sprintf("org-%d", org), Role: Runner, Created: now.Add(time.Duration(i) * time.Second), Verified: now}
+			people[i], memberships[i] = s.accountArgs(person), s.membershipArgs(person)
 		}
-		if _, err := insertRows(ctx, tx, insertPerson, people); err != nil {
+		if _, err := insertRows(ctx, tx, insertAccount, people); err != nil {
+			return err
+		}
+		if _, err := insertRows(ctx, tx, insertMembership, memberships); err != nil {
 			return err
 		}
 		leads := make([][]any, scaleLeads)

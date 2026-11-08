@@ -22,7 +22,7 @@ A reader ignores a field it does not know. It refuses a version newer than it kn
 
 ## The signature
 
-`out/manifest.sig` is a detached Ed25519 signature over the exact bytes of `out/manifest.json`. Any Ed25519 tool can check it (code: `internal/signing`, `internal/evidence`). With openssl:
+`out/manifest.sig` is a detached Ed25519 signature over the exact bytes of `out/manifest.json`. Any Ed25519 tool can check it (code: `internal/signing`, `internal/record`). With openssl:
 
 ```sh
 openssl pkeyutl -verify -pubin -inkey <name>.pub -rawin -in manifest.json -sigfile <the decoded signature>
@@ -35,15 +35,41 @@ openssl pkeyutl -verify -pubin -inkey <name>.pub -rawin -in manifest.json -sigfi
 | `publicKey` | The raw 32-byte public key, base64 |
 | `signature` | The 64-byte signature, base64 |
 
-- The carried public key lets `evidence.Check` tell that a manifest changed after signing, with no keyring. `verify`, `export`, `rerun` and `pr verify` all refuse a changed one.
+- The carried public key lets `record.Check` tell that a manifest changed after signing, with no keyring. `verify`, `export`, `rerun` and `pr verify` all refuse a changed one.
 - The signature does not say who signed, because any key vouches for itself. The verifier's keyring does: a directory of `<name>.pub` files named by `GUSTO_KEYRING`, looked up by `key` and checked against the keyring's copy.
-- The manifest's `signer` field is the runner's own word. `gusto show`, the task page, the `gusto pr open` pull request and `audit.json` name the signer through `evidence.SignedBy`, which gives the keyring's name or one of: `unsigned`, `signed, not checked: no keyring`, `signed, not checked: key <id> is not in the keyring`, `signed, and the signature does not hold`.
+- The manifest's `signer` field is the runner's own word. `gusto show`, the task page, the `gusto pr open` pull request and `audit.json` name the signer through `record.SignedBy`, which gives the keyring's name or one of: `unsigned`, `signed, not checked: no keyring`, `signed, not checked: key <id> is not in the keyring`, `signed, and the signature does not hold`.
 - A record without `manifest.sig` is unsigned. `gusto verify` says so and passes it, unless `-signed` is given. A signature from a key the keyring does not hold is refused by the key's id.
 - The signature adds a file and changes no manifest field, so the manifest stays at version 1. `files` leaves out `manifest.sig` because the signature is made after the manifest is written. An older reader hashes `out/` and reports `manifest.sig is not in the manifest`. Remove the signature and it verifies the record as unsigned.
 
-## The configured agent digest
+## Who a run was for, and what became of it
 
-`harnessDigest` in `out/manifest.json` names the configured agent that ran (see [TERMS.md](TERMS.md#configured-agent)). It is `sha256:` and 64 lowercase hex digits, computed from the agent's files alone. A clone and a tarball give the same string. The code is `pkg/harness/digest.go`.
+Two files in `out/` name a run's parties and decisions. The manifest hashes them, so the signature covers them (getlatentic/planning#731).
+
+`out/run.json` is written before a sandbox run starts:
+
+| Field | Holds |
+| --- | --- |
+| `asked` | The person the run acts for, the run token's `sub` |
+| `paidBy` | The person whose computer ran it and whose spending it counts against: a room agent's owner |
+| `agent`, `agentName` | The room's agent, by its id in the room and its name |
+| `room` | The room it worked in |
+| `sandbox` | The sandbox it ran in, as the gateway names it |
+| `allowanceUsd` | What the agent may spend in the room in a month, when its owner set it |
+| `modelToken` | How the run was given its token for the model: `bound` to a key in the sandbox, or `plain`, as the organization's admins chose (see [OPENSHELL.md](OPENSHELL.md#a-runs-credential)) |
+
+`out/decision.json` is written once a room's turn is finished:
+
+| Field | Holds |
+| --- | --- |
+| `kept` | Whether what it changed reached the room's folder |
+| `refused` | Why it did not: the agent was taken out, or the person who asked left the room |
+| `changed`, `joined`, `conflicts` | How many files it changed, and the files it shared with another change |
+
+The decision comes after the run's manifest is signed. `record.Decide` makes the decision, the manifest that hashes it with the rest of `out/`, and that manifest's signature with the configured key. It keeps all three in `seal.pending` beside `out/` before it puts them in place. A crash part way leaves `seal.pending`, which the check reports and which the server puts in place when it starts again. A key that cannot sign changes nothing. A record that does not check is not decided, since a new manifest would vouch for what changed, and neither is a signed record when no key is configured. The record checks clean afterwards. A manifest signed before the decision is replaced, not kept beside it.
+
+## The agent digest
+
+`harnessDigest` in `out/manifest.json` names the agent that ran (see [TERMS.md](TERMS.md#agent)). It is `sha256:` and 64 lowercase hex digits, computed from the agent's files alone. A clone and a tarball give the same string. The code is `pkg/harness/digest.go`.
 
 1. Take every regular file under the agent's directory, by its path relative to that directory, with `/` between the parts.
    - A bare adapter, `name.json`, is one file at the path `adapter.json`.
@@ -69,11 +95,11 @@ find . \( -name .git -o -name .hg -o -name .svn \) -prune -o -type f -printf '%P
 
 This prints the hex without the prefix and does not refuse links, so run `find . -type l` first. `pkg/harness/digest_test.go` holds a fixture's digest, and these shell steps give the same one. `setup_test.go` holds that an agent and its setup digest as one directory.
 
-- The runner reads the configured agent once, before the agent starts. It takes the adapter and the digest from that one reading, from the task's `harnesses/` and `setup/`. An agent built into gusto is not carried. Its digest is of the adapter built into the runner.
-- An agent that writes to its own directory in the task changes the copy the task carries. `evidence.Check` digests the copy again and reports `harnesses/<name> changed`, and `gusto verify` fails the record. A task that carries no agent, and an export, have nothing to check.
-- Two runs with the same `harnessDigest` ran the same configured agent. `evidence.Comparable` says which it is: the same configuration, the same name configured differently, different agents, or a run with no digest.
+- The runner reads the agent once, before the agent starts. It takes the adapter and the digest from that one reading, from the task's `harnesses/` and `setup/`. A harness built into gusto is not carried. Its digest is of the adapter built into the runner.
+- An agent that writes to its own directory in the task changes the copy the task carries. `record.Check` digests the copy again and reports `harnesses/<name> changed`, and `gusto verify` fails the record. A task that carries no agent, and an export, have nothing to check.
+- Two runs with the same `harnessDigest` ran the same agent. `record.Comparable` says which it is: the same configuration, the same name configured differently, different harnesses, or a run with no digest.
 - `harnessDigest` is a new optional field, so the manifest stays at version 1. A manifest written before it reports `no digest recorded`, and is comparable by name only.
-- `harnessVersion` is the agent's build: the npm package and version the runner image installed, as `package@version`, read from the image's `/etc/gusto/harnesses`, which `deploy/runner/install.mjs` writes after verifying each tarball against `pkg/harness/pins.json`. Two runs with the same digest and different builds are not comparable. It is absent on a computer where the agent was installed by hand.
+- `harnessVersion` is the harness's build: the npm package and version the runner image installed, as `package@version`, read from the image's `/etc/gusto/harnesses`, which `deploy/runner/install.mjs` writes after verifying each tarball against `pkg/harness/pins.json`. Two runs with the same digest and different builds are not comparable. It is absent on a computer where the harness was installed by hand.
 
 ## The audit export
 
@@ -81,7 +107,7 @@ This prints the hex without the prefix and does not refuse links, so run `find .
 
 Version 2 changed `evidence.signer`. Version 1 copied the manifest's `signer`, the runner's unchecked claim. Version 2 is who the exporter's keyring says signed `out/manifest.json`, or one of the words above. A reader of this build still reads a version 1 export, deriving the summary with the signer from the manifest. An older reader refuses a version 2 export by name. [`schema/audit/v1.json`](../schema/audit/v1.json) stays beside v2. `gusto export -verify` names the signer again with its own `GUSTO_KEYRING`. When the answer differs from the export's, it reports both, naming `evidence.signer`.
 
-An export is a task directory without its workspace: `job.json` and `out/` as the run left them, plus `state.json`, the request lines when there are any, and `audit.json`. `internal/audit` calls `evidence.Check`, so any check that gains a rule, such as a manifest signature, holds for exports too.
+An export is a task directory without its working folder: `job.json` and `out/` as the run left them, plus `state.json`, the request lines when there are any, and `audit.json`. `internal/audit` calls `record.Check`, so any check that gains a rule, such as a manifest signature, holds for exports too.
 
 | Question | Field | From |
 | --- | --- | --- |
@@ -111,7 +137,7 @@ A value the export does not have is one of four words, never a missing field and
 
 A policy drops files and replaces values, so a redacted file no longer matches its hash in the manifest. `redactions` lists every file the policy touched, with the rules and the hash the manifest holds for the original. Verification checks three things:
 
-1. `evidence.Check` on the export. A dropped file may be reported missing and a rewritten one changed. Every other complaint fails the export, naming its file. A redaction whose original hash is not the manifest's fails too.
+1. `record.Check` on the export. A dropped file may be reported missing and a rewritten one changed. Every other complaint fails the export, naming its file. A redaction whose original hash is not the manifest's fails too.
 2. Every file against `carried`, the hash the export recorded for it. This covers `state.json`, the request lines and each redacted copy.
 3. `audit.json` against a summary derived again from the files, one section at a time.
 

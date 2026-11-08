@@ -6,8 +6,11 @@ package landlock
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
+	"strings"
+	"syscall"
 )
 
 // Policy is what one task may do.
@@ -17,8 +20,20 @@ type Policy struct {
 	// Write are the folders the task may read, write and run programs from.
 	Write []string `json:"write"`
 	// ProxyPort is the one TCP port the task may connect to, which is gusto's proxy. Zero leaves the network open, as
-	// GUSTO_JOB_NETWORK=open does.
+	// GUSTO_TASK_NETWORK=open does.
 	ProxyPort int `json:"proxyPort"`
+	// Temp is the task's own temporary folder. When it is set, the system's shared ones are not writable, since other tasks
+	// on the same computer leave what is theirs there.
+	Temp string `json:"temp,omitempty"`
+}
+
+// scratch is the folders the task may write besides its own: the task's temporary folder and the devices, or the system's
+// shared temporary folders when it has none.
+func (p Policy) scratch() []string {
+	if p.Temp != "" {
+		return []string{p.Temp, "/dev"}
+	}
+	return Scratch
 }
 
 // System are the folders every program needs to read to run, and nothing of a person's own. A person's home is not among them.
@@ -36,14 +51,24 @@ func (p Policy) Save(path string) error {
 	return os.WriteFile(path, text, 0o600)
 }
 
-// Load reads a policy Save wrote.
-func Load(path string) (Policy, error) {
+// Load reads a policy Save wrote, or one given whole as JSON, which a command started in a computer the task shares is given
+// so that no file the task could change holds its own rules.
+func Load(pathOrJSON string) (Policy, error) {
 	var p Policy
-	text, err := os.ReadFile(path)
-	if err != nil {
-		return p, err
+	text := []byte(pathOrJSON)
+	if !strings.HasPrefix(pathOrJSON, "{") {
+		var err error
+		if text, err = os.ReadFile(pathOrJSON); err != nil {
+			return p, err
+		}
 	}
 	return p, json.Unmarshal(text, &p)
+}
+
+// JSON is the policy as Load reads it given whole.
+func (p Policy) JSON() (string, error) {
+	text, err := json.Marshal(p)
+	return string(text), err
 }
 
 // Wrap is the change to a command that runs it behind the policy in file, by the gusto program at self: `self sandbox-run FILE -- command`.
@@ -52,4 +77,21 @@ func Wrap(self, file string) func(*exec.Cmd) {
 		command.Args = append([]string{self, "sandbox-run", file, "--"}, command.Args...)
 		command.Path = self
 	}
+}
+
+// Become holds this process to the policy in file and becomes command, which keeps the restriction. It is what Wrap's
+// `sandbox-run` does, and it returns only when it could not.
+func Become(file string, command []string) error {
+	policy, err := Load(file)
+	if err != nil {
+		return err
+	}
+	program, err := exec.LookPath(command[0])
+	if err != nil {
+		return err
+	}
+	if err := Apply(policy); err != nil {
+		return fmt.Errorf("the sandbox did not start, and the task is not run unprotected: %w", err)
+	}
+	return syscall.Exec(program, command, os.Environ())
 }

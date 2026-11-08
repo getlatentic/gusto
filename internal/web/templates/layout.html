@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
 <title>{{.Title}}</title>
 <link rel="icon" type="image/svg+xml" href="{{asset "/static/mark.svg"}}">
 <link rel="icon" type="image/png" sizes="32x32" href="{{asset "/static/favicon-32.png"}}">
@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="{{asset "/static/app.css"}}">
 {{if .Refresh}}<meta http-equiv="refresh" content="3">{{end}}
 <script src="{{asset "/static/htmx.min.js"}}" defer></script>
+<script src="{{asset "/static/keyboard.js"}}" defer></script>
 {{with leaseExtend}}<script src="{{asset "/static/lease.js"}}" defer data-extend="{{.}}"></script><script src="{{asset "/static/guide.js"}}" defer></script>{{end}}
   <script nonce="{{.Nonce}}">
     // The theme and the accent are the person's, kept on this device and set before the page is drawn so that it does not flash.
@@ -42,24 +43,14 @@
       if (+wide) { drawn.setProperty("--panel-w", +wide + "rem"); }
       if (+files) { drawn.setProperty("--files-w", +files + "rem"); }
     } catch (e) {}
-    // The panel of conversations can be put away, leaving the icons, and it stays as the person left it.
-    try { if (localStorage.getItem("gusto-panel") === "closed") { document.documentElement.classList.add("panel-closed"); } } catch (e) {}
-    var panelShown = function () {
-      var shown = String(!document.documentElement.classList.contains("panel-closed"));
-      document.querySelectorAll("[data-panel-toggle]").forEach(function (toggle) { toggle.setAttribute("aria-expanded", shown); });
-    };
-    document.addEventListener("DOMContentLoaded", panelShown);
-    document.addEventListener("click", function (event) {
-      if (!event.target.closest("[data-panel-toggle]")) { return; }
-      var closed = document.documentElement.classList.toggle("panel-closed");
-      try { localStorage.setItem("gusto-panel", closed ? "closed" : "open"); } catch (e) {}
-      panelShown();
-    });
     // What a handler on an element would do, kept here so the page's policy can
     // refuse every inline handler: a select that sends its form when it changes,
-    // and a form that asks first.
+    // asking first when it is changed to its data-confirm-when, and a form that asks first.
     document.addEventListener("change", function (event) {
-      if (event.target.matches("[data-autosubmit]") && event.target.form) { event.target.form.submit(); }
+      var field = event.target;
+      if (!field.matches("[data-autosubmit]") || !field.form) { return; }
+      if (field.dataset.confirmWhen === field.value && !confirm(field.dataset.confirm)) { field.form.reset(); return; }
+      field.form.submit();
     });
     // The side list slides over on a narrow window, and anything that takes you away closes it again, giving the keyboard back to the button.
     var sideOpen = function (open) {
@@ -80,7 +71,12 @@
     });
     document.addEventListener("submit", function (event) {
       var ask = event.target.getAttribute && event.target.getAttribute("data-confirm");
-      if (ask && !confirm(ask)) { event.preventDefault(); }
+      if (ask && !confirm(ask)) { event.preventDefault(); return; }
+      // A button that starts something slow says so, and is not pressed twice.
+      var busy = event.submitter;
+      if (busy && busy.dataset.busy) {
+        setTimeout(function () { busy.disabled = true; busy.textContent = busy.dataset.busy; }, 0);
+      }
     });
   </script>
 </head>
@@ -98,9 +94,10 @@
      back to the pages everybody uses, and no other link between the two. */}}
 {{define "console-bar"}}<div class="shell grid h-full min-h-0 grid-cols-[15.5rem_minmax(0,1fr)] @max-[56rem]:grid-cols-[minmax(0,1fr)] @max-[56rem]:grid-rows-[auto_minmax(0,1fr)]">
 <nav class="flex min-h-0 min-w-0 flex-col gap-1 overflow-y-auto border-r border-line-strong bg-wash px-3 py-4 @max-[56rem]:flex-row @max-[56rem]:flex-wrap @max-[56rem]:border-r-0 @max-[56rem]:border-b" aria-label="Admin">
-  <div class="flex min-h-12 items-center gap-3 px-3 @max-[56rem]:order-[-2] @max-[56rem]:flex-1"><span class="grid size-8 flex-none place-items-center rounded-sm bg-ink text-canvas [&_svg.i]:size-[1.125rem]">{{template "icon-shield"}}</span><span class="grid leading-tight"><strong class="font-display text-sm font-semibold">Admin</strong>{{with .Org}}<span class="text-xs text-subtle">{{.}}</span>{{end}}</span></div>
+  <div class="flex min-h-12 items-center gap-3 px-3 @max-[56rem]:order-[-2] @max-[56rem]:flex-1"><span class="grid size-8 flex-none place-items-center rounded-sm bg-ink text-canvas [&_svg.i]:size-[1.125rem]">{{template "icon-sliders"}}</span><span class="grid leading-tight"><strong class="font-display text-sm font-semibold">Admin</strong>{{with .OrgName}}<span class="text-xs text-subtle">{{.}}</span>{{end}}</span></div>
   <div class="flex min-w-0 flex-col gap-1 @max-[56rem]:basis-full @max-[56rem]:flex-row @max-[56rem]:overflow-x-auto @max-[56rem]:[scrollbar-width:none]">{{range .Sections}}<a class="flex h-[2.375rem] w-full cursor-pointer items-center gap-3 rounded-sm border border-transparent px-3 text-left text-[0.8125rem] font-medium whitespace-nowrap text-muted no-underline hover:bg-hover hover:text-ink aria-[current]:border-line-strong aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink @max-[56rem]:w-auto @max-[56rem]:shrink-0 [&_svg.i]:size-4" href="{{.Href}}"{{if eq .Key $.Nav}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}</div>
   <span class="flex-1 @max-[56rem]:hidden"></span>
+  {{with .OrgPage}}<a class="flex h-[2.375rem] w-full cursor-pointer items-center gap-3 rounded-sm border border-transparent px-3 text-left text-[0.8125rem] font-medium whitespace-nowrap text-muted no-underline hover:bg-hover hover:text-ink @max-[56rem]:w-auto [&_svg.i]:size-4 !font-normal @max-[56rem]:order-[-1]" href="{{.}}">{{template "icon-settings"}} Organization and billing</a>{{end}}
   <a class="flex h-[2.375rem] w-full cursor-pointer items-center gap-3 rounded-sm border border-transparent px-3 text-left text-[0.8125rem] font-medium text-muted no-underline hover:bg-hover hover:text-ink aria-[current]:border-line-strong aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink @max-[56rem]:w-auto [&_svg.i]:size-4 !font-normal @max-[56rem]:order-[-1]" href="/">{{template "icon-back"}} Back to gusto</a>
   <form class="@max-[56rem]:order-[-1]" method="post" action="/logout"><button class="flex h-[2.375rem] w-full cursor-pointer items-center gap-3 rounded-sm border border-transparent px-3 text-left text-[0.8125rem] font-medium text-muted no-underline hover:bg-hover hover:text-ink aria-[current]:border-line-strong aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink @max-[56rem]:w-auto [&_svg.i]:size-4 !font-normal" type="submit">{{template "icon-out"}} Sign out</button></form>
 </nav>
@@ -116,6 +113,9 @@
 </div>
 <script src="{{asset "/static/resize.js"}}"></script>
 <script src="{{asset "/static/appearance.js"}}"></script>
+<script src="{{asset "/static/orgs.js"}}"></script>
+<script src="{{asset "/static/reminder.js"}}"></script>
+<script src="{{asset "/static/sidetabs.js"}}"></script>
 {{end}}</body></html>{{end}}
 
 {{/* origin is the instance a run belonged to: a link when there is one to go
@@ -123,58 +123,22 @@
      The whole reason is one hover away. */}}
 {{define "origin"}}{{if .Link}}<a href="{{.Link}}" title="{{.Why}}">{{.Named}}</a>{{else}}<span class="text-muted" title="{{.Why}}">{{.Named}}</span>{{end}}{{end}}
 
-{{define "icon-harness"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 8h-3"/><path d="m15 2-1 2h3a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2h3"/><path d="M16 22a4 4 0 00-8 0"/><path d="m9 2 3 6"/><circle cx="12" cy="15" r="3"/></svg>{{end}}
 {{define "icon-log"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg>{{end}}
 {{define "icon-menu"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg>{{end}}
 {{define "icon-add"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>{{end}}
 {{/* mark is an agent's sign in its field's color: the field's drawing,
      or its initial when it was started blank. */}}
-{{define "mark"}}{{$m := .}}{{$size := "size-6"}}{{if eq $m.Size "lg"}}{{$size = "size-10"}}{{else if eq $m.Size "sm"}}{{$size = "size-5"}}{{else if eq $m.Size "xs"}}{{$size = "size-3.5"}}{{end}}{{with logo .Harness}}{{with logoDark $m.Harness}}<img class="mark flex-none object-contain {{$size}} dark:hidden" src="{{logo $m.Harness}}" alt="" aria-hidden="true"><img class="mark hidden flex-none object-contain {{$size}} dark:block" src="{{.}}" alt="" aria-hidden="true">{{else}}<img class="mark flex-none object-contain {{$size}}{{if or (eq $m.Harness "codex") (eq $m.Harness "hermes")}} dark:invert{{end}}" src="{{.}}" alt="" aria-hidden="true">{{end}}{{else}}<span class="mark grid flex-none place-items-center bg-wash text-muted ring-1 ring-line ring-inset [&_svg]:size-[55%] [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[1.7] [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]{{if eq .Size "lg"}} size-16 rounded-lg{{else if eq .Size "sm"}} size-8 rounded-sm{{else if eq .Size "xs"}} size-5 rounded-xs{{else}} size-10 rounded-xl{{end}}" aria-hidden="true">{{if .Field}}{{template "field-drawing" .Field}}{{else}}<span class="font-display text-sm leading-none font-semibold">{{initial .Name}}</span>{{end}}</span>{{end}}{{end}}
+{{define "mark"}}{{$m := .}}{{$size := "size-6"}}{{if eq $m.Size "lg"}}{{$size = "size-10"}}{{else if eq $m.Size "sm"}}{{$size = "size-5"}}{{else if eq $m.Size "xs"}}{{$size = "size-3.5"}}{{end}}{{with logo .Harness}}{{with logoDark $m.Harness}}<img class="mark flex-none object-contain {{$size}} dark:hidden" src="{{logo $m.Harness}}" alt="" aria-hidden="true"><img class="mark hidden flex-none object-contain {{$size}} dark:block" src="{{.}}" alt="" aria-hidden="true">{{else}}<img class="mark flex-none object-contain {{$size}}{{if eq $m.Harness "codex"}} dark:invert{{else if eq $m.Harness "hermes"}} mix-blend-multiply dark:invert dark:mix-blend-screen{{end}}" src="{{.}}" alt="" aria-hidden="true">{{end}}{{else}}<span class="mark grid flex-none place-items-center bg-wash text-muted ring-1 ring-line ring-inset [&_svg]:size-[55%] [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[1.7] [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]{{if eq .Size "lg"}} size-16 rounded-lg{{else if eq .Size "sm"}} size-8 rounded-sm{{else if eq .Size "xs"}} size-5 rounded-xs{{else}} size-10 rounded-xl{{end}}" aria-hidden="true">{{if .Field}}{{template "field-drawing" .Field}}{{else}}<span class="font-display text-sm leading-none font-semibold">{{initial .Name}}</span>{{end}}</span>{{end}}{{end}}
 {{define "field-drawing"}}<svg viewBox="0 0 24 24">{{if eq . "Health"}}<path d="M3 12h4l2-5 4 10 2-5h6"/>{{else if eq . "Education"}}<path d="M3 7l9-4 9 4-9 4-9-4zM7 9v5c0 1.5 2.2 3 5 3s5-1.5 5-3V9"/>{{else if eq . "HR"}}<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-3 2.7-5 6-5s6 2 6 5M16 11a2.5 2.5 0 1 0 0-5M18 15c2 .5 3 2.2 3 4"/>{{else if eq . "Defense"}}<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/>{{else if eq . "Engineering"}}<path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/>{{else}}<path d="M12 3v18M3 12h18"/>{{end}}</svg>{{end}}
-{{define "icon-info"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8h.01M11 12h1v5h1"/><circle cx="12" cy="12" r="9"/></svg>{{end}}
+{{define "icon-info"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>{{end}}
 {{define "icon-disk"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>{{end}}
 {{define "icon-lock"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>{{end}}
-{{/* industry is a template's mark: a line drawing for its field. */}}
-{{/* choices is a card a template, and one to start a blank agent. */}}
-{{/* kinds is the ready-made kinds of work, below the agents, for one who knows the work and not the agent. */}}
-{{define "kinds"}}
-<div class="mt-10 mb-3">
-  <h2 class="text-base font-semibold">Or start from a kind of work</h2>
-  <p class="text-sm text-muted">Each comes ready to use, with an agent and skills chosen for it.</p>
-</div>
-{{template "choices" .}}
-{{end}}
-{{define "choices"}}
-<div class="mb-8 max-w-3xl overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line">
-  {{range .}}
-  <a class="group flex items-center gap-4 border-t border-line px-5 py-4 text-inherit no-underline first:border-t-0 hover:bg-wash" href="/templates/{{.Name}}">
-    <span class="grid min-w-0 flex-1 gap-0.5"><strong class="text-sm font-semibold">{{.Title}}</strong><span class="text-[0.8125rem] text-muted">{{.Summary}}</span></span>
-    <span class="flex-none text-xs text-subtle">{{.Industry}}</span>
-    {{template "icon-go"}}
-  </a>
-  {{end}}
-  <a class="group flex items-center gap-4 border-t border-line px-5 py-4 text-inherit no-underline first:border-t-0 hover:bg-wash" href="/new/blank">
-    <span class="grid min-w-0 flex-1 gap-0.5"><strong class="text-sm font-semibold">Blank agent</strong><span class="text-[0.8125rem] text-muted">Choose the agent, a skill set and a repository yourself.</span></span>
-    {{template "icon-go"}}
-  </a>
-</div>
-{{end}}
-{{/* engine-choices is a row for each agent a person may start with, for one who knows which they want. */}}
-{{define "engine-choices"}}{{if .}}
-<h2 class="mt-10 mb-3 text-base font-semibold">Or pick an agent</h2>
-<div class="mb-8 max-w-3xl overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line">
-  {{range .}}
-  <a class="group flex items-center gap-4 border-t border-line px-5 py-4 text-inherit no-underline first:border-t-0 hover:bg-wash" href="/instances/new?harness={{.Name}}">
-    {{template "mark" (dict "Harness" .Name "Name" .Title "Size" "sm")}}
-    <span class="grid min-w-0 flex-1 gap-0.5"><strong class="text-sm font-semibold">{{.Title}}</strong><span class="text-[0.8125rem] text-muted">{{.What}}</span></span>
-    {{template "icon-go"}}
-  </a>
-  {{end}}
-</div>{{end}}{{end}}
 {{define "icon-go"}}<svg class="i size-4 flex-none text-subtle" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>{{end}}
 {{/* steps is what an agent did in a turn, one plain line each. */}}
 {{define "steps"}}<ol class="mt-2 ml-2 grid list-none gap-2 border-l border-line-strong pl-4">{{range .}}<li><span class="mr-2 font-semibold text-ink">{{.What}}</span>{{with .Detail}} <span class="font-mono text-xs [overflow-wrap:anywhere] text-muted">{{.}}</span>{{end}}</li>{{end}}</ol>{{end}}
 {{define "icon-shield"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>{{end}}
+{{define "icon-sliders"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg>{{end}}
+{{define "icon-settings"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>{{end}}
 {{define "icon-seal"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m16 9-5.5 5.5L8 12"/></svg>{{end}}
 {{define "icon-file"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>{{end}}
 {{define "icon-send"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>{{end}}
@@ -185,14 +149,27 @@
 {{define "icon-chevron"}}<svg class="i chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>{{end}}
 {{define "icon-check"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>{{end}}
 {{define "icon-compose"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>{{end}}
-{{define "icon-sidebar"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>{{end}}
+{{define "icon-bot"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>{{end}}
+{{define "icon-user"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>{{end}}
+{{define "icon-users"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>{{end}}
 {{define "icon-chat"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></svg>{{end}}
 {{define "icon-activity"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>{{end}}
 {{define "icon-palette"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/></svg>{{end}}
 {{define "icon-search"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>{{end}}
 {{define "icon-back"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>{{end}}
 {{define "icon-trash"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>{{end}}
+{{define "icon-file-image"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><circle cx="10" cy="12" r="2"/><path d="m20 17-1.296-1.296a2.41 2.41 0 0 0-3.408 0L9 22"/></svg>{{end}}
+{{define "icon-file-code"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 12.5 8 15l2 2.5"/><path d="m14 12.5 2 2.5-2 2.5"/></svg>{{end}}
+{{define "icon-file-blank"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/></svg>{{end}}
 {{define "icon-folder"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>{{end}}
 {{define "icon-x"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>{{end}}
-{{define "icon-stop"}}<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><rect x="4.5" y="4.5" width="7" height="7" rx="1.5" fill="currentColor" stroke="none"/></svg>{{end}}
+{{define "icon-stop"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>{{end}}
+{{define "icon-more"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>{{end}}
+{{define "icon-bell"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>{{end}}
+{{define "icon-bell-off"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5"/><path d="M17 17H3s3-2 3-9a4.67 4.67 0 0 1 .3-1.7"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="m2 2 20 20"/></svg>{{end}}
+{{define "icon-archive"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>{{end}}
+{{define "icon-link"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>{{end}}
+{{define "icon-upload"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>{{end}}
 {{define "icon-download"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>{{end}}
+
+

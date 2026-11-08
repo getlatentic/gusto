@@ -20,7 +20,7 @@ func TestTheRecordStartsNothingAndSaysWhereToStart(t *testing.T) {
 			t.Errorf("the record still carries %s", gone)
 		}
 	}
-	if !strings.Contains(body, `href="/new"`) {
+	if !strings.Contains(body, `href="/presets"`) {
 		t.Error("the record does not say where a harness is started")
 	}
 	if posted := site.ask(t, "POST", "/jobs", url.Values{"brief": {"x"}, "gate": {"true"}}); posted.Code != http.StatusMethodNotAllowed {
@@ -46,12 +46,12 @@ func TestARunLinksToTheInstanceItRanOn(t *testing.T) {
 	}
 }
 
-// A job sent from somewhere else ran on no instance, and the record says how
+// A task sent from somewhere else ran on no instance, and the record says how
 // it arrived rather than drawing an empty link.
-func TestAJobSentOverHTTPSaysSoInsteadOfAnInstance(t *testing.T) {
+func TestATaskSentOverHTTPSaysSoInsteadOfAnInstance(t *testing.T) {
 	site := onlyBuiltIn(t)
 	site.signIn(t)
-	code, answer := site.send(t, password, Submission{Spec: aJob()})
+	code, answer := site.send(t, password, Submission{Spec: aSpec()})
 	if code != http.StatusCreated {
 		t.Fatalf("code %d: %s", code, answer.Refused)
 	}
@@ -68,9 +68,9 @@ func TestAJobSentOverHTTPSaysSoInsteadOfAnInstance(t *testing.T) {
 }
 
 // Nothing that ran before runs recorded their instance becomes unreadable. The
-// directory below is what the old job form left: a state with no instance, a
+// directory below is what the old task form left: a state with no instance, a
 // spec, and a manifest carrying a cost.
-func TestAJobFromBeforeInstancesStillListsAndOpens(t *testing.T) {
+func TestATaskFromBeforeInstancesStillListsAndOpens(t *testing.T) {
 	root := t.TempDir()
 	const id = "fix-the-adder-20260901-1200"
 	leaveOld(t, filepath.Join(root, id), map[string]string{
@@ -120,7 +120,7 @@ func TestARunOnAnInstanceNoLongerHeldNamesItWithoutALink(t *testing.T) {
 	}
 }
 
-// leaveOld writes files into a job directory exactly as given, so the test
+// leaveOld writes files into a task directory exactly as given, so the test
 // reads bytes an older server wrote rather than what this one would write.
 func leaveOld(t *testing.T, dir string, files map[string]string) {
 	t.Helper()

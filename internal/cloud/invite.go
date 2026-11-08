@@ -2,8 +2,9 @@ package cloud
 
 import (
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
+	"net/url"
 
 	"github.com/getlatentic/gusto/internal/changelog"
 )
@@ -11,65 +12,122 @@ import (
 // invite sends an invitation to join the organization, from an admin. It is mailed
 // once, and asking again for the same address replaces the earlier link.
 func (s *Server) invite(w http.ResponseWriter, r *http.Request, person Person) {
-	if !s.invites.Allow(person.Org) {
-		s.drawOrg(w, http.StatusTooManyRequests, person, "That is a lot of invitations for one hour. Try again later.")
+	if !s.sentFromOwnOrg(w, r, person) {
+		return
+	}
+	if !s.invites.Allow(r.Context(), person.Org) {
+		s.drawOrg(r.Context(), w, http.StatusTooManyRequests, person, "That is a lot of invitations for one hour. Try again later.")
 		return
 	}
 	address := r.PostFormValue("email")
-	secret, err := s.Store.Invite(person.Org, person, address)
+	secret, err := s.Store.InviteTo(r.Context(), person.Org, person, address, r.PostFormValue("workspace"))
 	if err != nil {
-		s.drawOrg(w, refusedStatus(err), person, sentence(err))
+		s.drawOrg(r.Context(), w, refusedStatus(err), person, sentence(err))
 		return
 	}
 	email, _ := NormalEmail(address)
 	s.record(r, person, changelog.MemberInvited, map[string]string{"email": email, "role": string(Runner)})
-	if !s.mails.Allow(email) {
-		s.drawOrg(w, http.StatusTooManyRequests, person, "That address has been mailed too often. Try again later.")
+	if !s.mails.Allow(r.Context(), email) {
+		s.drawOrg(r.Context(), w, http.StatusTooManyRequests, person, "That address has been mailed too often. Try again later.")
 		return
 	}
-	org, _, _ := s.Store.Org(person.Org)
+	org, _, _ := s.Store.Org(r.Context(), person.Org)
 	s.send(email, person.Email+" invited you to "+org.Name+" on gusto",
 		person.Email+" invited you to join "+org.Name+" on gusto:\n\n"+s.link("/invite", secret)+
 			"\n\nThe link works once and expires in seven days. If you were not expecting it, ignore this mail.\n")
-	http.Redirect(w, r, "/org?sent=1", http.StatusSeeOther)
+	http.Redirect(w, r, s.sentTo(r.PostFormValue("back"), person), http.StatusSeeOther)
+}
+
+// sentTo is where a person goes once their invitation is sent: back to the page of the organization they sent it from, with
+// sent=1 for it to say so, and to gusto cloud's own page for it when the form named no such page.
+func (s *Server) sentTo(back string, person Person) string {
+	to := s.backTo(back, person)
+	if to == "/org" {
+		return "/org?sent=1"
+	}
+	page, err := url.Parse(to)
+	if err != nil {
+		return "/org?sent=1"
+	}
+	query := page.Query()
+	query.Set("sent", "1")
+	page.RawQuery = query.Encode()
+	return page.String()
+}
+
+// sentFromOwnOrg refuses, and says so, a form that another organization's page sent.
+func (s *Server) sentFromOwnOrg(w http.ResponseWriter, r *http.Request, person Person) bool {
+	if origin := r.Header.Get("Origin"); !sameSite(r) && s.orgOf(origin) != person.Org {
+		http.Error(w, "that form was sent from another organization", http.StatusForbidden)
+		return false
+	}
+	return true
 }
 
 func (s *Server) cancelInvitation(w http.ResponseWriter, r *http.Request, person Person) {
-	if err := s.Store.Cancel(person.Org, person, r.PostFormValue("email")); err != nil {
-		s.drawOrg(w, refusedStatus(err), person, sentence(err))
+	if err := s.Store.Cancel(r.Context(), person.Org, person, r.PostFormValue("email")); err != nil {
+		s.drawOrg(r.Context(), w, refusedStatus(err), person, sentence(err))
 		return
 	}
 	http.Redirect(w, r, "/org", http.StatusSeeOther)
 }
 
-// removePerson takes a person out of the organization. Their sign-in at the front door
+// removePerson takes a person out of the organization. Their sign-in at gusto cloud
 // stops at once, since what it says is looked up on each request, and the organization's
 // own server stops trusting them within the hour it last did.
 func (s *Server) removePerson(w http.ResponseWriter, r *http.Request, person Person) {
 	email, _ := NormalEmail(r.PostFormValue("email"))
-	target, _, _ := s.Store.Person(email)
-	if err := s.Store.Remove(person.Org, person, email); err != nil {
-		s.drawOrg(w, refusedStatus(err), person, sentence(err))
+	target, _, _ := s.Store.Person(r.Context(), email, person.Org)
+	if err := s.Store.Remove(r.Context(), person.Org, person, email); err != nil {
+		s.drawOrg(r.Context(), w, refusedStatus(err), person, sentence(err))
 		return
 	}
 	s.record(r, person, changelog.MemberRemoved, map[string]string{"email": email, "role": string(target.Role)})
+	s.Seats.Wake()
 	http.Redirect(w, r, "/org", http.StatusSeeOther)
 }
 
 // changeRole makes a person of the organization an admin or a runner. A role that is
 // the one they have changes nothing and is not recorded.
 func (s *Server) changeRole(w http.ResponseWriter, r *http.Request, person Person) {
+	if !s.sentFromOwnOrg(w, r, person) {
+		return
+	}
 	email, _ := NormalEmail(r.PostFormValue("email"))
 	role := Role(r.PostFormValue("role"))
-	was, err := s.Store.SetRole(person.Org, person, email, role)
+	was, err := s.Store.SetRole(r.Context(), person.Org, person, email, role)
 	if err != nil {
-		s.drawOrg(w, refusedStatus(err), person, sentence(err))
+		s.drawOrg(r.Context(), w, refusedStatus(err), person, sentence(err))
 		return
 	}
 	if was != role {
 		s.record(r, person, changelog.MemberRole, map[string]string{"email": email, "was": string(was), "now": string(role)})
 	}
-	http.Redirect(w, r, "/org", http.StatusSeeOther)
+	http.Redirect(w, r, s.backTo(r.PostFormValue("back"), person), http.StatusSeeOther)
+}
+
+// backTo is where a change sent from an organization's own pages goes back to: the page it names, when that is an https
+// address of the organization the change was made in, and the organization's page here otherwise, so that a form can
+// send nobody anywhere else.
+func (s *Server) backTo(back string, person Person) string {
+	page, err := url.Parse(back)
+	if err != nil || page.Scheme != "https" || page.User != nil || page.Opaque != "" {
+		return "/org"
+	}
+	if s.orgOf(page.Scheme+"://"+page.Host) != person.Org {
+		return "/org"
+	}
+	return page.String()
+}
+
+// orgOf is the organization an origin is the address of, or nothing for an origin that is none of theirs.
+func (s *Server) orgOf(origin string) string {
+	if !s.isOrgOrigin(origin) {
+		return ""
+	}
+	parsed, _ := url.Parse(origin)
+	slug, _ := s.orgSlug(parsed.Host)
+	return slug
 }
 
 // invitationPage asks a person to press a button to join, and says what they are
@@ -77,41 +135,49 @@ func (s *Server) changeRole(w http.ResponseWriter, r *http.Request, person Perso
 // link does not.
 func (s *Server) invitationPage(w http.ResponseWriter, r *http.Request) {
 	secret := r.URL.Query().Get("t")
-	made, found := s.Store.peekInvitation(secret)
+	made, found := s.Store.peekInvitation(r.Context(), secret)
 	if !found {
 		s.render(w, http.StatusGone, "signin", view{Title: "Sign in", Error: ErrLink.Error() + "."})
 		return
 	}
-	org, _, _ := s.Store.Org(made.Org)
+	org, _, _ := s.Store.Org(r.Context(), made.Org)
 	s.render(w, http.StatusOK, "confirm", view{Title: "Join " + org.Name, Token: secret, Action: "/invite", Button: "Join", Inviter: made.By})
 }
 
 func (s *Server) acceptInvitation(w http.ResponseWriter, r *http.Request) {
-	person, _, err := s.Store.Accept(r.PostFormValue("t"))
+	secret := r.PostFormValue("t")
+	person, _, err := s.Store.Accept(r.Context(), secret)
 	switch {
 	case err == nil:
 		s.Sessions.Issue(w, person.Email)
-		http.Redirect(w, r, "/org", http.StatusSeeOther)
+		s.Sessions.Choose(w, person.Org)
+		s.Sessions.Joined(w, secret)
+		s.Seats.Wake()
+		http.Redirect(w, r, "/open", http.StatusSeeOther)
+	// Join pressed again while the first press was on its way spends nothing more: the person is in, so they go in.
+	case errors.Is(err, ErrLink) && s.Sessions.JoinedWith(r, secret):
+		http.Redirect(w, r, "/open", http.StatusSeeOther)
 	case errors.Is(err, ErrLink), errors.Is(err, ErrFull), errors.Is(err, ErrEmailTaken):
 		text := sentence(err)
 		if errors.Is(err, ErrEmailTaken) {
-			text = "That address already has an account, so sign in instead."
+			text = "That address is in this organization already, so sign in instead."
 		}
 		s.render(w, http.StatusGone, "signin", view{Title: "Sign in", Error: text})
 	default:
-		log.Printf("cloud: an invitation was not accepted: %v", err)
+		slog.Error("an invitation was not accepted", "error", err)
 		s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
 	}
 }
 
 // sentence is what a person is told of a refusal we made, and nothing of one we did not.
 func sentence(err error) string {
-	for _, known := range []error{ErrBadEmail, ErrDisposable, ErrNoInvites, ErrFull, ErrCannotInvite, ErrNotAdmin, ErrLastAdmin, ErrNoMember, ErrBadRole, ErrLink} {
+	for _, known := range []error{ErrBadEmail, ErrDisposable, ErrNoInvites, ErrLapsed, ErrFull, ErrCannotInvite, ErrNotAdmin, ErrLastAdmin, ErrNoMember, ErrBadRole, ErrLink,
+		ErrNoWorkspace, ErrManyWorkspaces, ErrWorkspaceName, ErrLastWorkspace, ErrInWorkspace, ErrNotInWorkspace} {
 		if errors.Is(err, known) {
 			return refusalSentence(known)
 		}
 	}
-	log.Printf("cloud: an admin's request failed: %v", err)
+	slog.Error("an admin's request failed", "error", err)
 	return "Something went wrong on our side. Try again."
 }
 
@@ -119,9 +185,11 @@ func refusedStatus(err error) int {
 	switch {
 	case errors.Is(err, ErrNotAdmin):
 		return http.StatusForbidden
-	case errors.Is(err, ErrFull), errors.Is(err, ErrNoInvites), errors.Is(err, ErrCannotInvite), errors.Is(err, ErrLastAdmin):
+	case errors.Is(err, ErrFull), errors.Is(err, ErrNoInvites), errors.Is(err, ErrLapsed), errors.Is(err, ErrCannotInvite), errors.Is(err, ErrLastAdmin),
+		errors.Is(err, ErrManyWorkspaces), errors.Is(err, ErrLastWorkspace), errors.Is(err, ErrInWorkspace):
 		return http.StatusConflict
-	case errors.Is(err, ErrBadEmail), errors.Is(err, ErrDisposable), errors.Is(err, ErrNoMember), errors.Is(err, ErrBadRole):
+	case errors.Is(err, ErrBadEmail), errors.Is(err, ErrDisposable), errors.Is(err, ErrNoMember), errors.Is(err, ErrBadRole),
+		errors.Is(err, ErrNoWorkspace), errors.Is(err, ErrWorkspaceName), errors.Is(err, ErrNotInWorkspace):
 		return http.StatusUnprocessableEntity
 	}
 	return http.StatusInternalServerError

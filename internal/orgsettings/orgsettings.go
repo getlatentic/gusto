@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"slices"
+	"strings"
 	"sync"
 
 	"github.com/getlatentic/gusto/internal/atomicfile"
@@ -19,9 +21,19 @@ type Settings struct {
 	// MonthlyBudgetUSD is what the organization means to spend in a calendar month, UTC.
 	// Zero is no budget.
 	MonthlyBudgetUSD float64 `json:"monthlyBudgetUsd,omitempty"`
+	// MemberBudgetUSD is what each person may spend in a calendar month, all their tasks together, unless MemberBudgets names
+	// them. Zero is no limit. Unlike the organization's budget, a member's is enforced: past it, their agents' calls are refused.
+	MemberBudgetUSD float64 `json:"memberBudgetUsd,omitempty"`
+	// MemberBudgets is a person's own budget, which stands in place of every member's; $0 allows nothing.
+	MemberBudgets map[string]float64 `json:"memberBudgets,omitempty"`
 	// DefaultHarness and DefaultModel are what a new chat runs on until a person chooses their own. Empty is the first that can run.
 	DefaultHarness string `json:"defaultHarness,omitempty"`
 	DefaultModel   string `json:"defaultModel,omitempty"`
+	// PlainRunTokens gives an agent in a sandbox a token for its run in place of one bound to a key only its sandbox holds.
+	// Unset is bound.
+	PlainRunTokens bool `json:"plainRunTokens,omitempty"`
+	// Connectors is the apps, by connector id, that people may sign in to with their own accounts and give their agents.
+	Connectors []string `json:"connectors,omitempty"`
 }
 
 // File is the organization's settings kept in a file.
@@ -55,8 +67,13 @@ func (f *File) read() (Settings, error) {
 	if err := json.Unmarshal(text, &settings); err != nil {
 		return Settings{}, fmt.Errorf("the settings in %s are not valid: %w", f.path, err)
 	}
-	if settings.MonthlyBudgetUSD < 0 {
+	if settings.MonthlyBudgetUSD < 0 || settings.MemberBudgetUSD < 0 {
 		return Settings{}, fmt.Errorf("the settings in %s name a budget below nothing", f.path)
+	}
+	for who, usd := range settings.MemberBudgets {
+		if usd < 0 {
+			return Settings{}, fmt.Errorf("the settings in %s give %s a budget below nothing", f.path, who)
+		}
 	}
 	return settings, nil
 }
@@ -73,3 +90,15 @@ func (f *File) Change(change func(*Settings)) error {
 	change(&settings)
 	return atomicfile.Write(f.path, settings, 0o600)
 }
+
+// MemberBudget is what one person may spend in a month: their own budget when an admin set one, where $0 allows nothing, else
+// every member's, and false when neither is set.
+func (s Settings) MemberBudget(person string) (float64, bool) {
+	if usd, found := s.MemberBudgets[strings.ToLower(person)]; found {
+		return usd, true
+	}
+	return s.MemberBudgetUSD, s.MemberBudgetUSD > 0
+}
+
+// ConnectorOn says whether people may sign in to a connector and give it to their agents.
+func (s Settings) ConnectorOn(id string) bool { return slices.Contains(s.Connectors, id) }

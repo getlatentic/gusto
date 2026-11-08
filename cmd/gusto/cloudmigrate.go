@@ -16,9 +16,10 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud"
 )
 
-var envCloudDatabase = []cmdline.Param{
-	{Name: "GUSTO_DATABASE_URL", Text: "where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address (a search_path parameter names the schema, which is made when missing)"},
-	{Name: "GUSTO_CLOUD_ROOT", Text: "the directory gusto cloud keeps organizations' files in, and cloud.db when there is no database address (default cloud)"},
+// envCloudDatabase is the settings that say where gusto cloud's accounts are.
+func envCloudDatabase() []cmdline.Param {
+	var records cloudRecords
+	return cmdline.ParamsOf(records.declare)
 }
 
 func cloudMigrateCommand() *cmdline.Command {
@@ -26,7 +27,7 @@ func cloudMigrateCommand() *cmdline.Command {
 		Name: "migrate", Summary: "Show the accounts database, or load the old account files into it",
 		Usage: []string{"[-import]"},
 		Description: "Says where gusto cloud keeps its accounts, the schema version the database is at and the newest this release " +
-			"reads, and how many organizations, people, invitations, links, demo leads and runtime records it holds. It also says " +
+			"reads, and how many organizations, people, memberships, invitations, links, demo leads and runtime records it holds. It also says " +
 			"how many records the files of an earlier release (people/, orgs/, tokens/ and demos/ under the root) hold that an " +
 			"import would load, and when the import ran. Asking changes nothing: it makes no file and no schema. " +
 			"With -import it brings the schema up to date and loads those files into the database now, if the database has not had " +
@@ -35,7 +36,7 @@ func cloudMigrateCommand() *cmdline.Command {
 			"this, then start the new one. The files are never changed or removed. The import is one transaction, and two runs " +
 			"at once import once. A database that has been imported is not imported again, so a link that was used does not come back.",
 		Flags:    flagsOf(declareCloudMigrate),
-		Env:      envCloudDatabase,
+		Env:      envCloudDatabase(),
 		Examples: []string{"gusto cloud migrate", "gusto cloud migrate -import", "GUSTO_DATABASE_URL=postgres://db/gusto gusto cloud migrate -import"},
 		Exit: []cmdline.Param{
 			{Name: "0", Text: "the report was printed, or the import ran or had run"},
@@ -68,7 +69,11 @@ func cloudMigrate(args []string) int {
 	defer stop()
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
-	root, settings := setting("GUSTO_CLOUD_ROOT", "cloud"), cloud.Settings{DatabaseURL: cloudDatabaseURL()}
+	var records cloudRecords
+	if err := loadSettings(records.declare); err != nil {
+		return refused(err)
+	}
+	root, settings := records.root, records.accounts()
 	if f.run {
 		if code := runCloudImport(ctx, os.Stdout, root, settings); code != 0 {
 			return code

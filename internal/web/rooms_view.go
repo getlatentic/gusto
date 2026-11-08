@@ -1,0 +1,240 @@
+package web
+
+import (
+	"cmp"
+	"github.com/getlatentic/gusto/internal/workspace"
+	"net/http"
+	"slices"
+	"strings"
+	"time"
+	"unicode"
+	"unicode/utf8"
+
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/tasks"
+)
+
+// roomTurn is what a room's conversation shows of a turn on top of what any conversation does: who said it, which agent
+// answered, and which agent handed it on.
+type roomTurn struct {
+	Who    string
+	By     string
+	Engine string
+	// Role is what the agent does, or its harness when nobody said.
+	Role string
+	// Owner is who made the agent that answered, so each viewer's page can say whose it is.
+	Owner string
+	From  string
+	// Holding is what a turn that has not started waits for, empty once it has.
+	Holding string
+	// Notice is a note the room made of itself, such as that two agents changed one file, and File the file it is about.
+	Notice bool
+	File   string
+	// Note is something said that no agent was asked to answer, and Echo a turn whose message the turn before it already shows.
+	Note bool
+	Echo bool
+	// SaidJoins and ReplyJoins say the message or reply follows one from the same sender, so it goes under that sender's name.
+	SaidJoins  bool
+	ReplyJoins bool
+	// Divider is the time a room shows above a turn said a while after the one before it.
+	Divider string
+}
+
+// roomTimeline names who spoke in each of a room's turns and puts what was said to nobody in among them, in the order it was
+// said.
+func (s *Server) roomTimeline(held instance.Instance, thread instance.Thread, turns []turn) []turn {
+	for i := range turns {
+		turns[i].roomTurn = s.roomTurnOf(held, turns[i].Record)
+	}
+	// Notes go in last first, so each lands after the turns it followed without moving the places of the ones before it.
+	for _, note := range slices.Backward(thread.Notes) {
+		shown := turn{Record: tasks.Record{ID: note.ID, Queued: note.At}, Said: note.Text, roomTurn: roomTurn{Who: note.Who, Note: true, Notice: note.Notice, File: note.Path}}
+		turns = slices.Insert(turns, min(note.After, len(turns)), shown)
+	}
+	groupBySender(turns)
+	divideByTime(turns, time.Now())
+	return turns
+}
+
+func (s *Server) roomTurnOf(held instance.Instance, record tasks.Record) roomTurn {
+	shown := roomTurn{Who: record.Asked, By: record.Agent, Engine: s.engineName(record.Harness), Echo: record.Answers != ""}
+	shown.Role = shown.Engine
+	shown.Holding = s.holdingOf(held, record)
+	if agent, found := held.AgentByID(record.Agent); found {
+		shown.By = agent.Name
+		shown.Role = firstOf(agent.Job, shown.Engine)
+		shown.Owner = s.ownerOf(agent)
+	}
+	if record.HandedBy != "" {
+		shown.From = record.HandedBy
+		if agent, found := held.AgentByID(record.HandedBy); found {
+			shown.From = agent.Name
+		}
+	}
+	return shown
+}
+
+// roomWaiting is the first of a room's turns that has not finished, since several agents can be working at once.
+func roomWaiting(turns []turn) string {
+	for _, each := range turns {
+		if !each.Note && !each.State.Done() {
+			return each.ID
+		}
+	}
+	return ""
+}
+
+// composerHint is what a room's message box suggests, naming its agents so people know whom they can mention. Only a person's own
+// room with one agent is a conversation with that agent; anywhere else a message goes to the room.
+func composerHint(held instance.Instance) string {
+	switch {
+	case len(held.Agents) == 0:
+		return "Message the room"
+	case held.Direct && len(held.Agents) == 1:
+		return "Message " + held.Agents[0].Name
+	}
+	names := make([]string, 0, len(held.Agents))
+	for _, agent := range held.Agents {
+		names = append(names, "@"+agent.Name)
+	}
+	return "Message the room, mention " + strings.Join(names, " or ")
+}
+
+// roomsFor is each room the person asking is in that is not archived, the one spoken in last first, as the side list shows them.
+func (s *Server) roomsFor(r *http.Request) []railChat { return s.roomRows(r, false) }
+
+// archivedRoomsFor is each archived room the person asking is in, the one spoken in last first.
+func (s *Server) archivedRoomsFor(r *http.Request) []railChat { return s.roomRows(r, true) }
+
+func (s *Server) roomRows(r *http.Request, archived bool) []railChat {
+	who := s.askerName(r)
+	var rooms []railChat
+	here := s.workspaceOf(r)
+	for _, held := range s.instances.RoomsOf(who) {
+		if !workspace.Same(held.Workspace, here) || (held.Archived != 0) != archived {
+			continue
+		}
+		thread := s.instances.Latest(held.ID)
+		room := railChat{Name: held.Title, Where: threadPath(thread), When: s.lately(held).Active, Room: true, ID: held.ID}
+		if !archived && !held.MutedBy(who) {
+			room.Unread = s.unreadIn(thread, who)
+		}
+		if held.Direct && len(held.Agents) == 1 {
+			live := s.liveRoom(held).Agents[0]
+			room.Name, room.Harness = live.Name, live.Harness
+		}
+		rooms = append(rooms, room)
+	}
+	slices.SortStableFunc(rooms, func(a, b railChat) int { return cmp.Compare(b.When, a.When) })
+	return rooms
+}
+
+// groupBySender marks each message and reply sent straight after another by the same person or agent.
+func groupBySender(turns []turn) {
+	last := ""
+	for i := range turns {
+		each := &turns[i].roomTurn
+		if each.Notice {
+			last = "notice:"
+			continue
+		}
+		if each.From == "" && !each.Echo {
+			each.SaidJoins = last == "person:"+each.Who
+			last = "person:" + each.Who
+		}
+		if !each.Note {
+			each.ReplyJoins = last == "agent:"+each.By
+			last = "agent:" + each.By
+		}
+	}
+}
+
+// quiet is how long a room goes without anything said before it shows the time again, as a chat does after a pause.
+const quiet = 20 * 60
+
+// divideByTime puts the time above the first turn and above each turn said after a pause, and starts the grouping by sender again
+// there, since a name under a time reads as a new start.
+func divideByTime(turns []turn, now time.Time) {
+	var last int64
+	for i := range turns {
+		at := turns[i].Queued
+		if i == 0 || at-last > quiet {
+			turns[i].Divider = dividerAt(time.Unix(at, 0), now)
+			turns[i].SaidJoins = false
+			if turns[i].Note || turns[i].From != "" || turns[i].Echo {
+				turns[i].ReplyJoins = false
+			}
+		}
+		last = at
+	}
+}
+
+func dividerAt(at, now time.Time) string {
+	if y, d := at.YearDay(), now.YearDay(); at.Year() == now.Year() && y == d {
+		return at.Format("15:04")
+	}
+	return at.Format("Mon 2 Jan, 15:04")
+}
+
+// clock is the time of day something was said.
+func clock(unix int64) string { return time.Unix(unix, 0).Format("15:04") }
+
+// nameFromAddress is what a person's address says they are called: ada.lovelace+work@acme.com is Ada Lovelace. A tag after a +
+// is a mailbox's, not the person's, and dots, dashes and underscores part words. The shared sign-in is Owner.
+func nameFromAddress(who string) string {
+	if who == sharedSignIn {
+		return "Owner"
+	}
+	local, _, _ := strings.Cut(who, "@")
+	local, _, _ = strings.Cut(local, "+")
+	words := strings.FieldsFunc(local, func(r rune) bool { return r == '.' || r == '-' || r == '_' })
+	if len(words) == 0 {
+		return local
+	}
+	for i, word := range words {
+		first, size := utf8.DecodeRuneInString(word)
+		words[i] = string(unicode.ToUpper(first)) + word[size:]
+	}
+	return strings.Join(words, " ")
+}
+
+// initials stand for a person where a room has no picture of them. The shared sign-in is nobody in particular, so it has none.
+func (s *Server) initials(who string) string {
+	if who == sharedSignIn {
+		return ""
+	}
+	return initialsOf(s.personName(who))
+}
+
+// initialsOf is the first letters of a name's first two words.
+func initialsOf(name string) string {
+	words := strings.FieldsFunc(name, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) })
+	letters := ""
+	for _, word := range words[:min(len(words), 2)] {
+		first, _ := utf8.DecodeRuneInString(word)
+		letters += string(unicode.ToUpper(first))
+	}
+	return letters
+}
+
+// mentionable is someone a room's message box offers after an @: its agents, which answer, and its people.
+type mentionable struct {
+	Name  string `json:"name"`
+	Role  string `json:"role,omitempty"`
+	Owner string `json:"owner,omitempty"`
+	Agent bool   `json:"agent,omitempty"`
+	Icon  string `json:"icon,omitempty"`
+	Short string `json:"short,omitempty"`
+}
+
+func (s *Server) mentionables(held instance.Instance, you string) []mentionable {
+	offered := make([]mentionable, 0, len(held.Agents)+len(held.Members))
+	for _, agent := range held.Working() {
+		role, owner := firstOf(agent.Job, s.engineName(agent.Harness)), s.ownerLabel(s.ownerOf(agent), you)
+		offered = append(offered, mentionable{Name: agent.Name, Role: role, Owner: owner, Agent: true, Icon: logo(agent.Harness)})
+	}
+	for _, member := range held.Members {
+		offered = append(offered, mentionable{Name: s.personName(member.Who), Short: s.initials(member.Who)})
+	}
+	return offered
+}

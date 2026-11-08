@@ -39,7 +39,8 @@ if [ "$existing" != None ] && [ -z "${FORCE:-}" ]; then
   exit 0
 fi
 
-bucket="$(./demo-store.sh)"
+# CI names the bucket; making it and closing it to the public is for whoever sets the cloud up, which CI is not.
+bucket="${BUCKET:-$(./demo-store.sh)}"
 [[ "$bucket" =~ ^gusto-poc-demo-[0-9]{12}$ ]] || { echo "demo-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
 efs="$(aws efs describe-file-systems --query 'FileSystems[0].FileSystemId' --output text)"
 base="$(aws ssm get-parameter --name /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id --query Parameter.Value --output text)"
@@ -58,7 +59,7 @@ trap cleanup EXIT
 started="$(date +%s)"
 host="$(aws ec2 run-instances --launch-template LaunchTemplateName=gusto-poc-demo-host-cell-live,Version='$Latest' --image-id "$base" \
   --user-data "file://$userdata" \
-  --tag-specifications "ResourceType=instance,Tags=[{Key=project,Value=gusto-poc},{Key=name,Value=cell-bake}]" \
+  --tag-specifications "ResourceType=instance,Tags=[{Key=project,Value=gusto-poc},{Key=name,Value=cell-bake}]" "ResourceType=volume,Tags=[{Key=project,Value=gusto-poc},{Key=name,Value=cell-bake}]" \
   --query 'Instances[0].InstanceId' --output text)"
 echo "the host to make the image from is $host"
 
@@ -83,7 +84,12 @@ run 'test -e /etc/gusto/bake-done' >/dev/null || { echo "the host was not made i
 # What is the host's own is taken out, so that a host made from the image is a new one: it fetches its own secrets and takes its own name.
 # The file system is taken out of fstab too: a host that has it there before it has its network orders it before the network, and
 # systemd breaks the cycle by deleting the network jobs, which cost a host a minute and a half. The playbook mounts it again.
-run "systemctl stop openshell-gateway gusto-boot 2>/dev/null; umount /var/lib/gusto-cloud /mnt/efs 2>/dev/null; grep -vE 'mnt/efs|var/lib/gusto-cloud' /etc/fstab > /tmp/fstab.new; cat /tmp/fstab.new > /etc/fstab; printf '%s\\n' '$key' > /etc/gusto/baked; rm -f /etc/gusto/bake-done /var/log/gusto-bootstrap.log; cloud-init clean --logs; truncate -s 0 /etc/machine-id; sync; echo cleaned" | grep -q cleaned
+# The start-up script is turned off: run with the settings of the host the image was made from, it held back the playbook, which
+# runs it with the new host's own. cloud-init is turned off too, since its Python cost a new host seconds of a disk still being
+# fetched: gusto-launch runs the host's script in its place, and the network is one for any interface, not the one cloud-init
+# wrote for this host's. sshd is taken out with its host keys: cloud-init made new keys on a host's first boot, and without it every
+# host of the image would share them. A cell is reached through Systems Manager and its security group has no SSH open.
+run "systemctl stop openshell-gateway gusto-boot 2>/dev/null; systemctl disable gusto-boot 2>/dev/null; systemctl disable --now ssh.socket ssh.service 2>/dev/null; rm -f /etc/ssh/ssh_host_*; install -m 0600 /usr/local/lib/gusto/netplan-cell.yaml /etc/netplan/10-cell.yaml && rm -f /etc/netplan/50-cloud-init.yaml && touch /etc/cloud/cloud-init.disabled; umount /var/lib/gusto-cloud /mnt/efs 2>/dev/null; grep -vE 'mnt/efs|var/lib/gusto-cloud' /etc/fstab > /tmp/fstab.new; cat /tmp/fstab.new > /etc/fstab; printf '%s\\n' '$key' > /etc/gusto/baked; rm -f /etc/gusto/bake-done /var/log/gusto-bootstrap.log; cloud-init clean --logs; truncate -s 0 /etc/machine-id; sync; ! ls /etc/ssh/ssh_host_* >/dev/null 2>&1 && echo cleaned" | grep -q cleaned
 aws ec2 stop-instances --instance-ids "$host" >/dev/null
 aws ec2 wait instance-stopped --instance-ids "$host"
 name="gusto-cell-$key-$(date -u +%Y%m%d%H%M)"

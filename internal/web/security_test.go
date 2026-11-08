@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/record"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
@@ -68,7 +68,7 @@ func TestEveryInlineScriptCarriesTheResponsesNonceAndNoElementHasAHandler(t *tes
 		t.Fatalf("starting an agent did not open a conversation: %q", where)
 	}
 	instance := where[:strings.Index(where, "/threads/")]
-	pages := []string{"/", "/jobs", "/spend", "/compare", "/new", "/setups", "/engines", instance, where}
+	pages := []string{"/chat", "/jobs", "/spend", "/compare", "/presets", "/setups", "/engines", instance, where}
 	seen := map[string]bool{}
 	for _, path := range pages {
 		got := site.ask(t, "GET", path, nil)
@@ -220,13 +220,13 @@ func TestALinkInARecordIsNeverShownOrServed(t *testing.T) {
 	here := open(t)
 	secret := filepath.Join(t.TempDir(), "secret.txt")
 	os.WriteFile(secret, []byte("the operator's private key"), 0o600)
-	spentJob(t, here.index.Root(), "linked", "", priced)
-	dir := job.Dir(filepath.Join(here.index.Root(), "linked"))
-	jobHash, files, err := evidence.Of(dir)
+	spentTask(t, here.index.Root(), "linked", "", priced)
+	dir := task.Dir(filepath.Join(here.index.Root(), "linked"))
+	taskHash, files, err := record.Of(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Job: jobHash, Files: files}); err != nil {
+	if err := record.Write(dir, record.Manifest{Task: taskHash, Files: files}); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Symlink(secret, dir.OutFile("loot.txt")); err != nil {
@@ -235,7 +235,7 @@ func TestALinkInARecordIsNeverShownOrServed(t *testing.T) {
 	if err := os.Symlink(secret, dir.OutFile("transcript.log")); err != nil {
 		t.Fatal(err)
 	}
-	if err := here.index.Add(jobs.Record{ID: "linked", State: jobs.Passed, Brief: "linked", Harness: "fixture", Asked: "amy@acme.test"}); err != nil {
+	if err := here.index.Add(tasks.Record{ID: "linked", State: tasks.Passed, Brief: "linked", Harness: "fixture", Asked: "amy@acme.test"}); err != nil {
 		t.Fatal(err)
 	}
 	here.signIn(t)
@@ -248,7 +248,7 @@ func TestALinkInARecordIsNeverShownOrServed(t *testing.T) {
 	if page := here.ask(t, "GET", "/jobs/linked", nil).Body.String(); strings.Contains(page, "private key") {
 		t.Error("the job page shows what a link points at")
 	}
-	if wrong, _ := evidence.Check(dir); !strings.Contains(strings.Join(wrong, "; "), "loot.txt is not a plain file") {
+	if wrong, _ := record.Check(dir); !strings.Contains(strings.Join(wrong, "; "), "loot.txt is not a plain file") {
 		t.Errorf("verify does not name the link: %v", wrong)
 	}
 }

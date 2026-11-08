@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // RecordFile is the comparison's own file. It sits in the comparison's
@@ -22,7 +22,7 @@ type Record struct {
 	Version int `json:"version"`
 	// Submission is the task the runs were made from, as an absolute path.
 	Submission string `json:"submission"`
-	// Commit is where every run's workspace starts, and PinnedBy the reference
+	// Commit is where every run's working folder starts, and PinnedBy the reference
 	// it was resolved from.
 	Commit   string `json:"commit"`
 	PinnedBy string `json:"pinnedBy"`
@@ -40,9 +40,9 @@ type Run struct {
 	Dir     string `json:"dir"`
 }
 
-// Job is the run's directory under the comparison at where.
-func (r Run) Job(where string) job.Dir {
-	return job.Dir(filepath.Join(where, r.Dir))
+// Task is the run's directory under the comparison at where.
+func (r Run) Task(where string) task.Dir {
+	return task.Dir(filepath.Join(where, r.Dir))
 }
 
 func writeRecord(where string, record Record) error {
@@ -64,7 +64,7 @@ func Read(where string) (Record, error) {
 	if err := json.Unmarshal(text, &record); err != nil {
 		return Record{}, err
 	}
-	if err := job.Readable(RecordFile, record.Version, RecordVersion); err != nil {
+	if err := task.Readable(RecordFile, record.Version, RecordVersion); err != nil {
 		return Record{}, err
 	}
 	return record, nil

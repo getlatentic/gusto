@@ -1,6 +1,7 @@
 package audit_test
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -8,13 +9,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // The lines a proxy writes, one of each kind: two model calls that left the
-// box, a call a job cap refused, a host the job was let through to, and a host
+// box, a call a task cap refused, a host the task was let through to, and a host
 // it was denied. The last three are not model calls, and their null costs
 // must not make the model's cost unknown.
 var (
@@ -48,39 +50,44 @@ func adapter(t *testing.T, proxy []string) string {
 
 const brief = "make the answer yes for the Acme account"
 
-// ran runs the fixture job, with a line of each kind in its proxy record.
-func ran(t *testing.T) job.Dir {
+// ran runs the fixture task, with a line of each kind in its proxy record.
+func ran(t *testing.T) task.Dir {
 	t.Helper()
 	return ranWith(t, firstCall, secondCall, refusedCall, reachedHost, deniedHost)
 }
 
-// ranWith runs the fixture job to its gate and gives it the state.json a
+// ranWith runs the fixture task to its check and gives it the state.json a
 // server would have written, so the export has every source it reads.
-func ranWith(t *testing.T, proxy ...string) job.Dir {
+func ranWith(t *testing.T, proxy ...string) task.Dir {
+	t.Helper()
+	return ranAs(t, signing.Identity{Name: "a-test"}, proxy...)
+}
+
+// ranAs is ranWith with the record signed as signs.
+func ranAs(t *testing.T, signs signing.Identity, proxy ...string) task.Dir {
 	t.Helper()
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), adapter(t, proxy))
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	t.Setenv("GUSTO_SIGNER", "a-test")
 
-	dir := job.Dir(filepath.Join(t.TempDir(), "20260926-0900-answer"))
+	dir := task.Dir(filepath.Join(t.TempDir(), "20260926-0900-answer"))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:   brief,
 		Repo:    repo(t),
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: "fixture",
 	}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
-	if exit, err := runner.Inside(dir); err != nil || exit != 0 {
+	if exit, err := runner.InsideContext(context.Background(), dir, runner.Place{Signing: signs}); err != nil || exit != 0 {
 		t.Fatalf("the fixture should pass, exit %d: %v", exit, err)
 	}
-	state, err := json.MarshalIndent(jobs.Record{
-		ID: filepath.Base(dir.Path()), State: jobs.Passed, Brief: brief, Repo: spec.Repo,
+	state, err := json.MarshalIndent(tasks.Record{
+		ID: filepath.Base(dir.Path()), State: tasks.Passed, Brief: brief, Repo: spec.Repo,
 		Harness: "fixture", Asked: "the shared sign-in", Queued: 100, Started: 101, Ended: 120,
 	}, "", "  ")
 	if err != nil {
@@ -90,7 +97,7 @@ func ranWith(t *testing.T, proxy ...string) job.Dir {
 	return dir
 }
 
-// repo is a checkout whose gate fails until answer.txt says yes.
+// repo is a checkout whose check fails until answer.txt says yes.
 func repo(t *testing.T) string {
 	t.Helper()
 	at := t.TempDir()

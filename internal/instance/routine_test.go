@@ -51,17 +51,20 @@ func TestAPausedRoutineIsNeverDue(t *testing.T) {
 }
 
 func TestAScheduleIsATimeOfDayOrAnHourCountAndNotBoth(t *testing.T) {
-	for schedule, ok := range map[Routine]bool{
-		{Daily: "08:00"}:           true,
-		{Every: 6}:                 true,
-		{}:                         false,
-		{Daily: "8am"}:             false,
-		{Daily: "25:00"}:           false,
-		{Daily: "08:00", Every: 6}: false,
-		{Every: -1}:                false,
+	for _, c := range []struct {
+		schedule Routine
+		ok       bool
+	}{
+		{Routine{Daily: "08:00"}, true},
+		{Routine{Every: 6}, true},
+		{Routine{}, false},
+		{Routine{Daily: "8am"}, false},
+		{Routine{Daily: "25:00"}, false},
+		{Routine{Daily: "08:00", Every: 6}, false},
+		{Routine{Every: -1}, false},
 	} {
-		if err := schedule.Schedule(); (err == nil) != ok {
-			t.Errorf("%+v: %v", schedule, err)
+		if err := c.schedule.Schedule(); (err == nil) != c.ok {
+			t.Errorf("%+v: %v", c.schedule, err)
 		}
 	}
 }
@@ -79,7 +82,7 @@ func TestARoutineKeepsItsThreadAndSurvivesAReload(t *testing.T) {
 	if added.ID != "r1" || added.Thread == "" || added.Thread == store.Threads(held.ID)[0].ID {
 		t.Fatalf("a routine is given an id and a conversation of its own: %+v", added)
 	}
-	if err := store.RoutineRan(held.ID, added.ID, Ran{At: 1, Job: "job-1"}); err != nil {
+	if err := store.RoutineRan(held.ID, added.ID, Ran{At: 1, Task: "job-1"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := store.PauseRoutine(held.ID, added.ID, true); err != nil {
@@ -89,8 +92,11 @@ func TestARoutineKeepsItsThreadAndSurvivesAReload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	read := again.Routines(held.ID)
-	if len(read) != 1 || !read[0].Paused || read[0].Last == nil || read[0].Last.Job != "job-1" || read[0].Who != "tosin" {
+	read, err := again.Routines(held.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(read) != 1 || !read[0].Paused || read[0].Last == nil || read[0].Last.Task != "job-1" || read[0].Who != "tosin" {
 		t.Fatalf("read back as %+v", read)
 	}
 	second, _ := again.AddRoutine(held.ID, Routine{Title: "Evening", Prompt: "x", Every: 12})

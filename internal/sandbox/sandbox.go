@@ -10,28 +10,26 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// Runtime is the container command. Podman takes the same arguments and runs no
-// daemon at all, which matters on a small machine and to a customer who will not
-// install one.
-func Runtime() string {
-	if runtime := os.Getenv("GUSTO_CONTAINER"); runtime != "" {
-		return runtime
-	}
-	return "docker"
-}
-
-// Image carrying the runner and the agent it will run. A customer builds
-// their own and names it here.
-func Image() string {
-	if image := os.Getenv("GUSTO_IMAGE"); image != "" {
-		return image
-	}
-	return "gusto:dev"
+// Containers is how this machine starts the containers tasks and programs run in.
+type Containers struct {
+	// Runtime is the container command. Podman takes the same arguments and runs no daemon at all, which matters on a small
+	// machine and to a customer who will not install one.
+	Runtime string
+	// Image carries the runner and the agents it runs; a customer builds their own and names it here. ImageSource is where it
+	// is fetched from when this machine does not have it, or nothing.
+	Image, ImageSource string
+	// CPUs and Memory are what one task may take of the machine.
+	CPUs, Memory string
+	// ToolImage is the image programs run in, or nothing for Image. ToolNetwork "open" gives them the runtime's network.
+	// ToolCPUs and ToolMemory are what one program may take.
+	ToolImage, ToolNetwork, ToolCPUs, ToolMemory string
+	// Signing is who stands behind the records of the tasks run here.
+	Signing signing.Identity
 }
 
 // Run the task in a container and hand back its exit code. The task directory is
@@ -41,7 +39,16 @@ func Image() string {
 type Mount struct {
 	From string
 	To   string
+	// Kept is a person's own home, kept between their tasks: the runner gives the agent only what it put there for this task,
+	// and leaves the rest as the agent left it, rather than walking every file in it twice a task.
+	Kept bool
 }
+
+// Home is the agent's home in a task's container, and KeptHomeEnv tells the runner that what is there is a person's own.
+const (
+	Home        = "/root"
+	KeptHomeEnv = "GUSTO_HOME_KEPT"
+)
 
 // Run takes the address the container should ask for a model at. It is given
 // rather than read from the environment because it is per task: the proxy mints
@@ -50,17 +57,14 @@ type Mount struct {
 // The container keeps the runtime's default network, so this is the local case:
 // a model on the host and no credential to keep out. A task with a proxy runs
 // Sealed instead.
-func Run(dir job.Dir, model, token string, mounts ...Mount) (int, error) {
-	return RunContext(context.Background(), dir, model, token, mounts...)
-}
-
-// RunContext is Run that stops the container when its context ends.
-func RunContext(ctx context.Context, dir job.Dir, model, token string, mounts ...Mount) (int, error) {
+//
+// The container is stopped when ctx ends.
+func (c Containers) Run(ctx context.Context, dir task.Dir, model, token string, owner Owner, mounts ...Mount) (int, error) {
 	absolute, err := filepath.Abs(dir.Path())
 	if err != nil {
 		return 0, err
 	}
-	alias, err := ready(absolute)
+	alias, err := c.ready(absolute)
 	if err != nil {
 		return 0, err
 	}
@@ -73,18 +77,18 @@ func RunContext(ctx context.Context, dir job.Dir, model, token string, mounts ..
 	if alias {
 		network = append(network, "--add-host=host.docker.internal:host-gateway")
 	}
-	args, err := argv(absolute, network, mounts)
+	args, err := c.argv(absolute, network, owner, mounts)
 	if err != nil {
 		return 0, err
 	}
-	return start(ctx, dir, args)
+	return c.start(ctx, dir, args)
 }
 
 // start runs the container, then signs the manifest it left. The manifest is
 // written inside the box, where the agent runs, so the key never goes in: the
-// host signs once the box is gone, with the key GUSTO_SIGNING_KEY names here.
-func start(ctx context.Context, dir job.Dir, args []string) (int, error) {
-	command := exec.CommandContext(ctx, Runtime(), args...)
+// host signs once the box is gone.
+func (c Containers) start(ctx context.Context, dir task.Dir, args []string) (int, error) {
+	command := exec.CommandContext(ctx, c.Runtime, args...)
 	// A stop is an interrupt to the runtime's client, which hands it on to the container's first process, `gusto inside`. That
 	// ends the agent and writes down what it did. Killing the client would leave the container running and spending.
 	command.Cancel = func() error { return command.Process.Signal(os.Interrupt) }
@@ -94,14 +98,14 @@ func start(ctx context.Context, dir job.Dir, args []string) (int, error) {
 	err := command.Run()
 	if ctx.Err() != nil {
 		// The client may have been killed after its grace, and the container with it not at all: it is removed by name.
-		_ = exec.Command(Runtime(), "rm", "-f", containerName(dir)).Run()
-		_ = evidence.SealAsConfigured(dir)
+		_ = exec.Command(c.Runtime, "rm", "-f", containerName(dir)).Run()
+		_ = record.SealIfKeyed(dir, c.Signing.Key)
 		return -1, ctx.Err()
 	}
 	if err != nil && !isExit(err) {
 		return 0, err
 	}
-	if err := evidence.SealAsConfigured(dir); err != nil {
+	if err := record.SealIfKeyed(dir, c.Signing.Key); err != nil {
 		return 0, err
 	}
 	return command.ProcessState.ExitCode(), nil
@@ -112,21 +116,19 @@ const stopGrace = 60 * time.Second
 
 // containerName is the name a task's container has, so that it can be removed by it whatever became of the client that
 // started it. A task's id is already a name a container may have.
-func containerName(dir job.Dir) string {
+func containerName(dir task.Dir) string {
 	return "gusto-" + filepath.Base(filepath.Clean(dir.Path()))
 }
 
-// argv is the container's command line: the task directory, what reaches the
+// argv is the container's command line: the task directory, whose it is, what reaches the
 // network, the mounts, and what one task may take of the machine.
-func argv(absolute string, network []string, mounts []Mount) ([]string, error) {
-	signer, err := signerName()
-	if err != nil {
-		return nil, err
-	}
+// The box is told the name the host will sign as, so a record the host signs never calls itself unsigned.
+func (c Containers) argv(absolute string, network []string, owner Owner, mounts []Mount) ([]string, error) {
 	args := []string{"run", "--rm", "--name", "gusto-" + filepath.Base(absolute),
 		"-v", absolute + ":/job",
-		"-e", "GUSTO_SIGNER=" + signer,
+		"-e", signing.NameEnv + "=" + c.Signing.Says(),
 	}
+	args = append(args, owner.labels(filepath.Base(absolute))...)
 	args = append(args, network...)
 	for _, mount := range mounts {
 		absolute, err := filepath.Abs(mount.From)
@@ -134,23 +136,14 @@ func argv(absolute string, network []string, mounts []Mount) ([]string, error) {
 			return nil, err
 		}
 		args = append(args, "-v", absolute+":"+mount.To)
+		if mount.Kept {
+			args = append(args, "-e", KeptHomeEnv+"=1")
+		}
 	}
-	args = append(args, Limits()...)
+	args = append(args, c.Limits()...)
 	args = append(args, Hardening()...)
-	args = append(args, Image(), "inside", "/job")
+	args = append(args, c.Image, "inside", "/job")
 	return args, nil
-}
-
-// signerName is the name the box writes into the manifest: GUSTO_SIGNER, or the
-// id of the key the host will sign with, so a record the host signs never
-// calls itself unsigned. Reading the key here also stops a run whose key is
-// unreadable before the agent does any work.
-func signerName() (string, error) {
-	key, keyed, err := signing.Configured()
-	if name := os.Getenv("GUSTO_SIGNER"); name != "" || err != nil || !keyed {
-		return name, err
-	}
-	return key.ID(), nil
 }
 
 // inContainer rewrites a model address the host reaches on loopback into one a
@@ -171,9 +164,12 @@ func inContainer(url string) string {
 // host.docker.internal to the host, so adding the alias there replaces a working
 // address with the virtual machine's own bridge gateway, which reaches the
 // virtual machine instead of the host.
-func ready(absolute string) (bool, error) {
-	check := exec.Command(Runtime(), "run", "--rm", "-v", absolute+":/job",
-		"--entrypoint", "sh", Image(), "-c",
+func (c Containers) ready(absolute string) (bool, error) {
+	if err := c.EnsureImage(context.Background()); err != nil {
+		return false, err
+	}
+	check := exec.Command(c.Runtime, "run", "--rm", "-v", absolute+":/job",
+		"--entrypoint", "sh", c.Image, "-c",
 		"test -f /job/job.json || exit 3; getent hosts host.docker.internal >/dev/null || exit 4")
 	err := check.Run()
 	switch code := check.ProcessState.ExitCode(); {
@@ -184,19 +180,18 @@ func ready(absolute string) (bool, error) {
 	case code == 3:
 		return false, fmt.Errorf("the container cannot read %s/job.json: check that the path is shared with the container runtime", absolute)
 	default:
-		return false, fmt.Errorf("could not start a container from %s: %w", Image(), err)
+		return false, fmt.Errorf("could not start a container from %s: %w", c.Image, err)
 	}
 }
 
-// Limits are the flags that bound what one task takes of the machine. They are
-// exported so a check before a task can start a container under the same limits
-// the task will run under, because a runtime can refuse a limit outright.
-func Limits() []string {
-	return []string{
-		"--cpus=" + share("GUSTO_JOB_CPUS", "1"),
-		"--memory=" + share("GUSTO_JOB_MEMORY", "3g"),
-		"--pids-limit=512",
-	}
+// Limits are the flags that bound what one task takes of the machine. A runner
+// often sits beside something else the owner cares about, and a limit larger
+// than the machine is not a limit: the task takes what it likes and the kernel
+// kills whatever it reaches first. They are exported so a check before a task
+// can start a container under the same limits the task will run under, because
+// a runtime can refuse a limit outright.
+func (c Containers) Limits() []string {
+	return []string{"--cpus=" + c.CPUs, "--memory=" + c.Memory, "--pids-limit=512"}
 }
 
 // Hardening is what a task's container is denied. The runner is root in the box
@@ -216,15 +211,4 @@ func Hardening() []string {
 func isExit(err error) bool {
 	_, ok := err.(*exec.ExitError)
 	return ok
-}
-
-// share is what one task may take of the machine. A runner often sits beside
-// something else the owner cares about, and a limit larger than the machine is
-// not a limit: the task takes what it likes and the kernel kills whatever it
-// reaches first.
-func share(name, fallback string) string {
-	if value := os.Getenv(name); value != "" {
-		return value
-	}
-	return fallback
 }

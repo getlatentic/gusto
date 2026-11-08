@@ -18,7 +18,7 @@ func TestTheOldFilesAreLoadedIntoTheDatabaseAndLeftAsTheyWere(t *testing.T) {
 		before := digests(t, root)
 		s, record := importedAt(t, freshDatabase(t), root, fixtureNow.Add(10*time.Minute))
 
-		want := map[string]int{"organisations": 5, "people": 6, "invitations": 1, "leads": 4, "links": 3, "runtime": 1, "settings": 3}
+		want := map[string]int{"organisations": 5, "people": 6, "memberships": 6, "invitations": 1, "leads": 4, "links": 3, "runtime": 1, "settings": 3}
 		if !maps.Equal(record.Imported, want) {
 			t.Errorf("imported %v, want %v", record.Imported, want)
 		}
@@ -30,41 +30,44 @@ func TestTheOldFilesAreLoadedIntoTheDatabaseAndLeftAsTheyWere(t *testing.T) {
 			t.Error("the import changed, added or removed a file")
 		}
 
-		ada, found, _ := s.Person("ada@acme.com")
+		ada, found, _ := s.only(t.Context(), "ada@acme.com")
 		if !found || ada.Role != Admin || ada.Verified.IsZero() || ada.LastSignIn.IsZero() || ada.Org != "acme-com" {
 			t.Errorf("%+v", ada)
 		}
-		if bob, _, _ := s.Person("bob@acme.com"); bob.Role != Runner || bob.By != "ada@acme.com" {
+		if bob, _, _ := s.only(t.Context(), "bob@acme.com"); bob.Role != Runner || bob.By != "ada@acme.com" {
 			t.Errorf("%+v", bob)
 		}
-		if eve, _, _ := s.Person("eve@globex.com"); !eve.Trial() {
+		if eve, _, _ := s.only(t.Context(), "eve@globex.com"); !eve.Trial() {
 			t.Errorf("an address not yet confirmed is still not: %+v", eve)
 		}
-		acme, _, _ := s.Org("acme-com")
+		acme, _, _ := s.Org(t.Context(), "acme-com")
 		if acme.Name != "Acme Research" || acme.Domain != "acme.com" || acme.Admin != "ada@acme.com" || acme.Demo != nil {
 			t.Errorf("%+v", acme)
 		}
-		if members, _ := s.Members("acme-com"); len(members) != 2 || members[0].Email != "ada@acme.com" {
+		if members, _ := s.Members(t.Context(), "acme-com"); len(members) != 2 || members[0].Email != "ada@acme.com" {
 			t.Errorf("%+v", members)
 		}
-		if rt, _ := s.Runtime("acme-com"); rt.State != Ready || rt.Cell != "cell-a" || rt.Port != 9100 || rt.ProxyPort != 9101 || rt.Restarts != 2 {
+		if rt, _ := s.Runtime(t.Context(), "acme-com"); rt.State != Ready || rt.Node != "cell-a" || rt.Port != 9100 || rt.ProxyPort != 9101 || rt.Restarts != 2 {
 			t.Errorf("%+v", rt)
 		}
-		if q, err := s.Quota("acme-com"); err != nil || q != DefaultLimits().Verified {
+		// The quota is the old file's, which was written before an organization had a credit.
+		old := DefaultLimits().Verified
+		old.CreditUSD = 0
+		if q, err := s.Quota("acme-com"); err != nil || q != old {
 			t.Errorf("an organization's own directory is found where it was: %+v %v", q, err)
 		}
 		if _, err := os.Stat(s.DataDir("globex-com")); err != nil {
 			t.Error(err)
 		}
-		if open, _ := s.Invitations("acme-com"); len(open) != 1 || open[0].Email != "cy@acme.com" {
+		if open, _ := s.Invitations(t.Context(), "acme-com"); len(open) != 1 || open[0].Email != "cy@acme.com" {
 			t.Errorf("only the invitation that has not run out is open: %+v", open)
 		}
-		if !s.DemosPaused() || !s.DemoLimitsSet() || s.DemoLimits() != (DemoLimits{PerDay: 25, PerPerson: 1, PerCompany: 4, MaxOrgs: 3}) {
-			t.Errorf("the owner's choices: paused %v, %+v", s.DemosPaused(), s.DemoLimits())
+		if !s.DemosPaused(t.Context()) || !s.DemoLimitsSet(t.Context()) || s.DemoLimits(t.Context()) != (DemoLimits{PerDay: 25, PerPerson: 1, PerCompany: 4, MaxOrgs: 3}) {
+			t.Errorf("the operator's choices: paused %v, %+v", s.DemosPaused(t.Context()), s.DemoLimits(t.Context()))
 		}
 		key, _ := os.ReadFile(filepath.Join(root, "secret"))
-		if got, err := s.sessionKey(); err != nil || string(got) != string(key) {
-			t.Errorf("a restart of the front door signs nobody out: %v", err)
+		if got, err := s.sessionKey(t.Context()); err != nil || string(got) != string(key) {
+			t.Errorf("a restart of gusto cloud signs nobody out: %v", err)
 		}
 	})
 }
@@ -73,23 +76,23 @@ func TestTheLinksThatWereOutAreStillGoodOnceAndTheOnesThatRanOutAreNot(t *testin
 	onEachDatabase(t, func(t *testing.T) {
 		root, secrets := oldLayout(t)
 		s, _ := importedAt(t, freshDatabase(t), root, fixtureNow.Add(10*time.Minute))
-		if email, err := s.UseLink(secrets["signinLive"], SignIn); err != nil || email != "ada@acme.com" {
+		if email, err := s.UseLink(t.Context(), secrets["signinLive"], SignIn); err != nil || email != "ada@acme.com" {
 			t.Errorf("%q %v", email, err)
 		}
-		if _, err := s.UseLink(secrets["signinLive"], SignIn); !errors.Is(err, ErrLink) {
+		if _, err := s.UseLink(t.Context(), secrets["signinLive"], SignIn); !errors.Is(err, ErrLink) {
 			t.Errorf("a link works once: %v", err)
 		}
-		if _, err := s.UseLink(secrets["signinExpired"], SignIn); !errors.Is(err, ErrLink) {
+		if _, err := s.UseLink(t.Context(), secrets["signinExpired"], SignIn); !errors.Is(err, ErrLink) {
 			t.Errorf("a link that had run out: %v", err)
 		}
-		if email, err := s.UseLink(secrets["verifyEve"], Verify); err != nil || email != "eve@globex.com" {
+		if email, err := s.UseLink(t.Context(), secrets["verifyEve"], Verify); err != nil || email != "eve@globex.com" {
 			t.Errorf("%q %v", email, err)
 		}
-		person, org, err := s.Accept(secrets["inviteCy"])
+		person, org, err := s.Accept(t.Context(), secrets["inviteCy"])
 		if err != nil || person.Email != "cy@acme.com" || person.Role != Runner || person.Verified.IsZero() || org.Slug != "acme-com" {
 			t.Errorf("%+v %+v %v", person, org, err)
 		}
-		if _, _, err := s.Accept(secrets["inviteExpired"]); !errors.Is(err, ErrLink) {
+		if _, _, err := s.Accept(t.Context(), secrets["inviteExpired"]); !errors.Is(err, ErrLink) {
 			t.Errorf("an invitation that had run out: %v", err)
 		}
 	})
@@ -100,37 +103,37 @@ func TestADemosLeadSurvivesTheImportAndTheDemosGoOnWhereTheyWere(t *testing.T) {
 		root, secrets := oldLayout(t)
 		s, _ := importedAt(t, freshDatabase(t), root, fixtureNow)
 		for slug, who := range map[string]string{secrets["demoReady"]: "Fay Fox", secrets["demoWaiting"]: "Gus Gray", secrets["demoTimeUp"]: "Ivy Ito", secrets["demoEnded"]: "Hal Hill"} {
-			if lead, found := s.LeadOf(slug); !found || lead.Name != who {
+			if lead, found := s.LeadOf(t.Context(), slug); !found || lead.Name != who {
 				t.Errorf("%s: %+v %v", slug, lead, found)
 			}
 		}
-		ended, _ := s.LeadOf(secrets["demoEnded"])
+		ended, _ := s.LeadOf(t.Context(), secrets["demoEnded"])
 		if ended.Reason != "its time was up" || ended.Ended.IsZero() {
 			t.Errorf("a demo that ended keeps why: %+v", ended)
 		}
-		if _, found, _ := s.Org(secrets["demoEnded"]); found {
+		if _, found, _ := s.Org(t.Context(), secrets["demoEnded"]); found {
 			t.Error("a demo that ended has no organization")
 		}
-		leads, _ := s.Leads()
+		leads, _ := s.Leads(t.Context())
 		if len(leads) != 4 || leads[0].Slug != secrets["demoWaiting"] {
 			t.Errorf("newest first: %+v", leads)
 		}
-		fay, left, found := s.DemoLeft(secrets["demoReady"])
+		fay, left, found := s.DemoLeft(t.Context(), secrets["demoReady"])
 		if !found || !fay.Extended || fay.Ready.IsZero() || left != 20*time.Minute {
 			t.Errorf("%+v %v %v", fay, left, found)
 		}
-		due, _ := s.DemosDue()
+		due, _ := s.DemosDue(t.Context())
 		if len(due) != 1 || due[secrets["demoTimeUp"]] != "its time was up" {
 			t.Errorf("a demo whose time was up when the files were read is ended by the next sweep: %v", due)
 		}
 		s.now = func() time.Time { return fixtureNow.Add(11 * time.Minute) }
-		if due, _ := s.DemosDue(); due[secrets["demoWaiting"]] != "it was never ready" {
+		if due, _ := s.DemosDue(t.Context()); due[secrets["demoWaiting"]] != "it was never ready" {
 			t.Errorf("%v", due)
 		}
-		if err := s.EndDemo(secrets["demoTimeUp"], "its time was up"); err != nil {
+		if err := s.EndDemo(t.Context(), secrets["demoTimeUp"], "its time was up"); err != nil {
 			t.Fatal(err)
 		}
-		if lead, _ := s.LeadOf(secrets["demoTimeUp"]); lead.Reason != "its time was up" {
+		if lead, _ := s.LeadOf(t.Context(), secrets["demoTimeUp"]); lead.Reason != "its time was up" {
 			t.Errorf("%+v", lead)
 		}
 	})
@@ -140,11 +143,11 @@ func TestADemoLimitCountsTheLeadsTheOldFilesHeld(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		root, _ := oldLayout(t)
 		s, _ := importedAt(t, freshDatabase(t), root, fixtureNow)
-		if err := s.SetDemoLimits(DemoLimits{PerDay: 40, PerPerson: 1, PerCompany: 6, MaxOrgs: 5}); err != nil {
+		if err := s.SetDemoLimits(t.Context(), DemoLimits{PerDay: 40, PerPerson: 1, PerCompany: 6, MaxOrgs: 5}); err != nil {
 			t.Fatal(err)
 		}
-		s.SetDemosPaused(false)
-		if _, _, err := s.StartDemo("Gus Again", "gus+other@hooli.com", "Hooli"); !errors.Is(err, ErrDemoRepeat) {
+		s.SetDemosPaused(t.Context(), false)
+		if _, _, err := s.StartDemo(t.Context(), "Gus Again", "gus+other@hooli.com", "Hooli"); !errors.Is(err, ErrDemoRepeat) {
 			t.Errorf("an address that started a demo before the move has had it: %v", err)
 		}
 	})
@@ -179,10 +182,10 @@ func TestAHalfWrittenFileIsLeftOutAndTheRestAreLoaded(t *testing.T) {
 				t.Errorf("%q: %v", reason, record.Skipped)
 			}
 		}
-		if _, found, _ := s.Person("half@acme.com"); found {
+		if _, found, _ := s.only(t.Context(), "half@acme.com"); found {
 			t.Error("half a record was loaded")
 		}
-		if _, found, _ := s.Person("lost@nowhere.com"); found {
+		if _, found, _ := s.only(t.Context(), "lost@nowhere.com"); found {
 			t.Error("a person of no organization was loaded")
 		}
 	})
@@ -201,20 +204,20 @@ func TestTheImportRunsOnceAndRunningItAgainChangesNothing(t *testing.T) {
 		if err != nil || added.Total() != 0 {
 			t.Errorf("the files read a second time add nothing: %v %v", added.Imported, err)
 		}
-		if _, err := s.UseLink(secrets["signinLive"], SignIn); err != nil {
+		if _, err := s.UseLink(ctx, secrets["signinLive"], SignIn); err != nil {
 			t.Fatal(err)
 		}
 		again, ran, err := s.importOnce(ctx)
 		if err != nil || ran || !maps.Equal(again.Imported, first.Imported) {
 			t.Errorf("a second import is the record of the first: ran %v %v %v", ran, again, err)
 		}
-		if _, err := s.UseLink(secrets["signinLive"], SignIn); !errors.Is(err, ErrLink) {
+		if _, err := s.UseLink(ctx, secrets["signinLive"], SignIn); !errors.Is(err, ErrLink) {
 			t.Error("a link that was used came back")
 		}
 	})
 }
 
-func TestTwoFrontDoorsStartedTogetherImportOnce(t *testing.T) {
+func TestTwoGustoCloudServersStartedTogetherImportOnce(t *testing.T) {
 	eachShared(t, func(t *testing.T, set Settings) {
 		root, _ := oldLayout(t)
 		const doors = 4
@@ -232,7 +235,7 @@ func TestTwoFrontDoorsStartedTogetherImportOnce(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		orgs, _ := stores[0].Orgs()
+		orgs, _ := stores[0].Orgs(t.Context())
 		people, _ := count(context.Background(), stores[1].db, `SELECT count(*) FROM people`)
 		records, _ := count(context.Background(), stores[2].db, `SELECT count(*) FROM imports`)
 		if len(orgs) != 5 || people != 6 || records != 1 {
@@ -262,7 +265,7 @@ func TestAttachNeverMigratesOrImports(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer look.Close()
-	if orgs, _ := look.Orgs(); len(orgs) != 5 {
+	if orgs, _ := look.Orgs(t.Context()); len(orgs) != 5 {
 		t.Errorf("%d organizations", len(orgs))
 	}
 }

@@ -2,9 +2,13 @@ package instance
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -12,7 +16,7 @@ import (
 )
 
 // Thread is one conversation with an instance. An instance has as many as
-// somebody wants, and they share its workspace, which is why only one turn of
+// somebody wants, and they share its folder, which is why only one turn of
 // one thread runs at a time.
 type Thread struct {
 	ID       string `json:"id"`
@@ -22,10 +26,16 @@ type Thread struct {
 	// the first turn and handed back to resume it. It belongs to the thread
 	// rather than the instance because an agent keeps one per conversation.
 	Remembered string `json:"remembered,omitempty"`
-	// Dir is the folder of the workspace this conversation works in, from the workspace's root. It is empty for the root.
+	// Dir is the folder this conversation works in, from the root of the instance's folder. It is empty for the root.
 	Dir     string   `json:"dir,omitempty"`
 	Turns   []string `json:"turns"`
 	Started int64    `json:"startedAt"`
+	// Sessions is each room agent's own name for this conversation: in a room every agent keeps a conversation of its own.
+	Sessions map[string]string `json:"sessions,omitempty"`
+	// Notes are what people said in a room that woke no agent.
+	Notes []Note `json:"notes,omitempty"`
+	// Seen is when each person last looked at this conversation, so a room can say what they have not read.
+	Seen map[string]int64 `json:"seen,omitempty"`
 }
 
 // NewThread opens a conversation on an instance. Threads are numbered in the
@@ -33,7 +43,7 @@ type Thread struct {
 // a title changes.
 func (s *Store) NewThread(id, title string) (Thread, error) { return s.NewThreadIn(id, title, "") }
 
-// NewThreadIn opens a conversation that works in a folder of the instance's workspace.
+// NewThreadIn opens a conversation that works in a folder of the instance's folder.
 func (s *Store) NewThreadIn(id, title, dir string) (Thread, error) {
 	s.guard.Lock()
 	defer s.guard.Unlock()
@@ -53,15 +63,14 @@ func (s *Store) openIn(id, title, dir string) (Thread, error) {
 	if s.threads[id] == nil {
 		s.threads[id] = map[string]Thread{}
 	}
-	thread := Thread{
-		ID:       strconv.Itoa(s.next(id)),
-		Instance: id,
-		Title:    title,
-		Dir:      dir,
-		Started:  time.Now().Unix(),
-	}
+	thread := s.numbered(id, title, dir)
 	s.threads[id][thread.ID] = thread
 	return thread, s.writeThread(thread)
+}
+
+// numbered is a new conversation with the next number of an instance, not yet held or written.
+func (s *Store) numbered(id, title, dir string) Thread {
+	return Thread{ID: strconv.Itoa(s.next(id)), Instance: id, Title: title, Dir: dir, Started: time.Now().Unix()}
 }
 
 // mend opens the first conversation on an instance that has none, which is how
@@ -80,12 +89,19 @@ func (s *Store) mend(id string) {
 	s.open(id, "")
 }
 
-// next is one past the highest number in use, so a deleted thread's number is
-// not handed to a second conversation.
+// next is one past the highest number in use, in memory or in the instance's threads folder. A file that cannot be read still
+// has its number, because tasks name their conversation by it and a second conversation given it would be taken for the first.
 func (s *Store) next(id string) int {
 	highest := 0
 	for name := range s.threads[id] {
 		if number, err := strconv.Atoi(name); err == nil && number > highest {
+			highest = number
+		}
+	}
+	listing, _ := os.ReadDir(s.threadsDir(id))
+	for _, entry := range listing {
+		number, _, _ := strings.Cut(entry.Name(), ".")
+		if number, err := strconv.Atoi(number); err == nil && number > highest {
 			highest = number
 		}
 	}
@@ -136,23 +152,50 @@ func (s *Store) Latest(id string) Thread {
 	return threads[len(threads)-1]
 }
 
-// Said records a turn on a thread, and the agent's own name for the
-// conversation the first time it says one.
-func (s *Store) Said(id, thread, job, remembered string) error {
-	s.guard.Lock()
-	defer s.guard.Unlock()
+// amend changes a copy of a thread, writes the copy, and only then holds it, so the thread in memory is never ahead of its file
+// and a write that fails changes nothing. edit says whether it changed the thread. The caller holds the guard.
+func (s *Store) amend(id, thread string, edit func(*Thread) bool) (Thread, error) {
 	held, found := s.threads[id][thread]
 	if !found {
-		return fmt.Errorf("no thread %s on %s", thread, id)
+		return Thread{}, fmt.Errorf("no thread %s on %s", thread, id)
 	}
-	if job != "" {
-		held.Turns = append(held.Turns, job)
+	next := held.clone()
+	if !edit(&next) {
+		return held, nil
 	}
-	if remembered != "" {
-		held.Remembered = remembered
+	if err := s.writeThread(next); err != nil {
+		return held, err
 	}
-	s.threads[id][held.ID] = held
-	return s.writeThread(held)
+	s.threads[id][next.ID] = next
+	return next, nil
+}
+
+func (t Thread) clone() Thread {
+	t.Turns = slices.Clone(t.Turns)
+	t.Notes = slices.Clone(t.Notes)
+	t.Sessions = maps.Clone(t.Sessions)
+	t.Seen = maps.Clone(t.Seen)
+	return t
+}
+
+// Said records a turn on a thread, and the agent's own name for the conversation the first time it says one. The turn is an
+// event of the room only when the thread was written.
+func (s *Store) Said(id, thread, task, remembered string) error {
+	s.guard.Lock()
+	defer s.guard.Unlock()
+	_, err := s.amend(id, thread, func(held *Thread) bool {
+		if task != "" {
+			held.Turns = append(held.Turns, task)
+		}
+		if remembered != "" {
+			held.Remembered = remembered
+		}
+		return task != "" || remembered != ""
+	})
+	if err == nil && task != "" {
+		s.record(id, thread, KindTurn, task)
+	}
+	return err
 }
 
 // Name gives a thread a title when it has none. Somebody who named a thread
@@ -161,16 +204,14 @@ func (s *Store) Said(id, thread, job, remembered string) error {
 func (s *Store) Name(id, thread, title string) error {
 	s.guard.Lock()
 	defer s.guard.Unlock()
-	held, found := s.threads[id][thread]
-	if !found {
-		return fmt.Errorf("no thread %s on %s", thread, id)
-	}
-	if held.Title != "" || title == "" {
-		return nil
-	}
-	held.Title = title
-	s.threads[id][held.ID] = held
-	return s.writeThread(held)
+	_, err := s.amend(id, thread, func(held *Thread) bool {
+		if held.Title != "" || title == "" {
+			return false
+		}
+		held.Title = title
+		return true
+	})
+	return err
 }
 
 // TitleOf is the start of what was said, short enough for a list: the first
@@ -196,7 +237,23 @@ func (s *Store) writeThread(thread Thread) error {
 	return writeJSON(filepath.Join(s.threadsDir(thread.Instance), thread.ID+".json"), thread)
 }
 
-func readThreads(dir string) (map[string]Thread, error) {
+// forgetThread lets go of a thread that was opened for something that could not be kept.
+func (s *Store) forgetThread(thread Thread) error {
+	delete(s.threads[thread.Instance], thread.ID)
+	err := os.Remove(filepath.Join(s.threadsDir(thread.Instance), thread.ID+".json"))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
+}
+
+// damaged is what a conversation is called when its file could not be read.
+const damaged = "damaged conversation"
+
+// readThreads reads an instance's conversations. A file that cannot be parsed, as a crash or a disk fault leaves one, is
+// moved aside whole, and the conversation takes its number again with nothing said in it, so tasks that name the number still
+// find a conversation and the old text is still there to read. Nothing is dropped without being logged.
+func readThreads(dir, instance string) (map[string]Thread, error) {
 	threads := map[string]Thread{}
 	listing, err := os.ReadDir(dir)
 	if os.IsNotExist(err) {
@@ -209,14 +266,39 @@ func readThreads(dir string) (map[string]Thread, error) {
 		if filepath.Ext(entry.Name()) != ".json" {
 			continue
 		}
-		text, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+		path := filepath.Join(dir, entry.Name())
+		text, err := os.ReadFile(path)
 		if err != nil {
+			slog.Warn("a conversation's file could not be read, so it is left out", "file", path, "error", err)
 			continue
 		}
 		var thread Thread
 		if json.Unmarshal(text, &thread) == nil && thread.ID != "" {
 			threads[thread.ID] = thread
+			continue
+		}
+		if mended, ok := setAsideThread(path, instance); ok {
+			threads[mended.ID] = mended
 		}
 	}
 	return threads, nil
+}
+
+// setAsideThread keeps a damaged conversation file beside its place and writes an empty conversation of the same number there.
+func setAsideThread(path, instance string) (Thread, bool) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return Thread{}, false
+	}
+	kept := fmt.Sprintf("%s.damaged-%d", path, time.Now().Unix())
+	if err := os.Rename(path, kept); err != nil {
+		slog.Warn("a damaged conversation file could not be set aside, so it is left out", "file", path, "error", err)
+		return Thread{}, false
+	}
+	thread := Thread{ID: strings.TrimSuffix(filepath.Base(path), ".json"), Instance: instance, Title: damaged, Started: info.ModTime().Unix()}
+	if err := writeJSON(path, thread); err != nil {
+		slog.Warn("an empty conversation could not be written for a damaged one", "file", path, "error", err)
+	}
+	slog.Warn("a conversation's file was damaged: it is kept beside it and the conversation starts again empty", "file", path, "kept", kept)
+	return thread, true
 }

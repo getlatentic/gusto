@@ -1,0 +1,400 @@
+package instance
+
+import (
+	"errors"
+	"fmt"
+	"github.com/getlatentic/gusto/internal/workspace"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"time"
+)
+
+// Roles a person holds in a room. An admin changes who and what is in it; a member talks in it.
+const (
+	RoleAdmin  = "admin"
+	RoleMember = "member"
+)
+
+// Member is a person in a room, by the address they sign in with.
+type Member struct {
+	Who  string `json:"who"`
+	Role string `json:"role"`
+	// Muted says the person has silenced the room for themselves: it adds nothing to what they have unread.
+	Muted bool `json:"muted,omitempty"`
+}
+
+// Agent is an agent in a room: a harness and a model, known by a name people mention it by, and what it does there.
+type Agent struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Harness string `json:"harness"`
+	Model   string `json:"model,omitempty"`
+	Job     string `json:"job,omitempty"`
+	// Member is the workspace agent this is, whose name, agent type, model, skills and persona the room uses as they are now.
+	Member string `json:"member,omitempty"`
+	// Setup and Persona are the skills it is given and how it works, which come from the workspace agent.
+	Setup   string `json:"-"`
+	Persona string `json:"-"`
+	// Pending is an agent a member proposed that no admin of the room has accepted. It is not mentioned and runs nothing.
+	Pending bool `json:"pending,omitempty"`
+	// ProposedBy is who put the agent in the room.
+	ProposedBy string `json:"proposedBy,omitempty"`
+	// AllowanceUSD is the most the agent may spend in this room in a calendar month, set by its owner; none is no limit.
+	AllowanceUSD *float64 `json:"allowanceUsd,omitempty"`
+}
+
+// Note is something a person said in a room that no agent was asked to answer, or something the room said of itself.
+type Note struct {
+	ID   string `json:"id"`
+	Who  string `json:"who"`
+	Text string `json:"text"`
+	At   int64  `json:"at"`
+	// Notice marks what the room said of itself: nobody in it said it.
+	Notice bool `json:"notice,omitempty"`
+	// Path is the file of the room's folder a notice is about, when it is about one.
+	Path string `json:"path,omitempty"`
+	// After is how many turns the thread held when it was said, which places it among them.
+	After int `json:"after"`
+	// Key is the sender's own name for saying it, so that saying it twice keeps one note.
+	Key string `json:"key,omitempty"`
+}
+
+// agentName is what an agent may be called: a letter first, then letters, digits, spaces and a few marks, as people write names.
+var agentName = regexp.MustCompile(`^[\p{L}][\p{L}\p{N} '’._-]{0,31}$`)
+
+// StartRoom makes a room in a workspace, whose first member, its admin, is the person who made it.
+func (s *Store) StartRoom(name, who, space string) (Instance, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return Instance{}, fmt.Errorf("a room needs a name")
+	}
+	who = strings.ToLower(strings.TrimSpace(who))
+	return s.Start(slug(name), Instance{Title: name, Who: who, Workspace: workspace.Stored(space), Room: true, Members: []Member{{Who: who, Role: RoleAdmin}}})
+}
+
+// RoleOf is the role a person holds in a room, or nothing when they are not in it.
+func (held Instance) RoleOf(who string) string {
+	who = strings.ToLower(strings.TrimSpace(who))
+	if who == "" {
+		return ""
+	}
+	for _, member := range held.Members {
+		if strings.EqualFold(member.Who, who) {
+			return member.Role
+		}
+	}
+	return ""
+}
+
+// AgentCalled is the room's agent of that name, whatever its case.
+func (held Instance) AgentCalled(name string) (Agent, bool) {
+	for _, agent := range held.Agents {
+		if strings.EqualFold(agent.Name, name) {
+			return agent, true
+		}
+	}
+	return Agent{}, false
+}
+
+// Working is the room's agents an admin of it accepted, which are the ones that are mentioned and run.
+func (held Instance) Working() []Agent {
+	var working []Agent
+	for _, agent := range held.Agents {
+		if !agent.Pending {
+			working = append(working, agent)
+		}
+	}
+	return working
+}
+
+// AgentByID is the room's agent with that id.
+func (held Instance) AgentByID(id string) (Agent, bool) {
+	for _, agent := range held.Agents {
+		if agent.ID == id {
+			return agent, true
+		}
+	}
+	return Agent{}, false
+}
+
+// SetMember puts a person in a room with a role, or changes the role they have. A room keeps at least one admin.
+func (s *Store) SetMember(id, who, role string) error {
+	who = strings.ToLower(strings.TrimSpace(who))
+	if who == "" || !strings.Contains(who, "@") {
+		return fmt.Errorf("a member is a sign-in address")
+	}
+	if role != RoleAdmin && role != RoleMember {
+		return fmt.Errorf("a member is an admin or a member")
+	}
+	return s.changeRoom(id, func(held *Instance) error {
+		for i, member := range held.Members {
+			if strings.EqualFold(member.Who, who) {
+				held.Members[i].Role = role
+				return keepsAdmin(*held)
+			}
+		}
+		held.Members = append(held.Members, Member{Who: who, Role: role})
+		return nil
+	})
+}
+
+// AddAgent puts an agent in a room under a name nobody else there has.
+func (s *Store) AddAgent(id string, agent Agent) (Agent, error) {
+	if err := checkAgent(&agent); err != nil {
+		return Agent{}, err
+	}
+	err := s.changeRoom(id, func(held *Instance) error {
+		added, err := s.placeAgent(held, agent)
+		agent = added
+		return err
+	})
+	return agent, err
+}
+
+func checkAgent(agent *Agent) error {
+	agent.Name = strings.TrimSpace(agent.Name)
+	if !agentName.MatchString(agent.Name) {
+		return fmt.Errorf("%q cannot name an agent: start with a letter, and use up to 32 letters, digits and spaces", agent.Name)
+	}
+	if agent.Harness == "" {
+		return fmt.Errorf("an agent needs a harness")
+	}
+	return nil
+}
+
+// placeAgent adds a checked agent to a room being changed, under the store's guard.
+func (s *Store) placeAgent(held *Instance, agent Agent) (Agent, error) {
+	if _, taken := held.AgentCalled(agent.Name); taken {
+		return Agent{}, fmt.Errorf("this room already has an agent called %s", agent.Name)
+	}
+	for _, other := range held.Agents {
+		if agent.Member != "" && other.Member == agent.Member {
+			return Agent{}, fmt.Errorf("%s is already in this room", agent.Name)
+		}
+	}
+	agent.ID = s.freeAgentID(*held)
+	held.Agents = append(held.Agents, agent)
+	return agent, nil
+}
+
+// freeAgentID is an id no agent of the room has had that left anything behind: not one in it now, not one whose conversation a
+// thread remembers, and not one whose memory is on disk. An id names an agent's conversation and its memory, so a new agent
+// given a removed agent's id would pick up both. It is called under the store's guard.
+func (s *Store) freeAgentID(held Instance) string {
+	for n := len(held.Agents) + 1; ; n++ {
+		if id := fmt.Sprintf("a%d", n); !s.agentIDUsed(held, id) {
+			return id
+		}
+	}
+}
+
+func (s *Store) agentIDUsed(held Instance, id string) bool {
+	if _, in := held.AgentByID(id); in {
+		return true
+	}
+	for _, thread := range s.threads[held.ID] {
+		if _, remembered := thread.Sessions[id]; remembered {
+			return true
+		}
+	}
+	_, err := os.Stat(filepath.Join(s.Dir(held.ID), "agents", id))
+	return err == nil
+}
+
+// AcceptAgent lets an agent a member proposed work in the room.
+func (s *Store) AcceptAgent(id, agent string) error {
+	return s.changeRoom(id, func(held *Instance) error {
+		for i := range held.Agents {
+			if held.Agents[i].ID == agent {
+				if !held.Agents[i].Pending {
+					return fmt.Errorf("%s is working in this room already", held.Agents[i].Name)
+				}
+				held.Agents[i].Pending = false
+				return nil
+			}
+		}
+		return fmt.Errorf("no agent %s in this room", agent)
+	})
+}
+
+// SetAllowance changes what an agent may spend in a room in a calendar month; nil is no limit.
+func (s *Store) SetAllowance(id, agent string, usd *float64) error {
+	return s.changeRoom(id, func(held *Instance) error {
+		for i := range held.Agents {
+			if held.Agents[i].ID == agent {
+				held.Agents[i].AllowanceUSD = usd
+				return nil
+			}
+		}
+		return fmt.Errorf("no agent %s in this room", agent)
+	})
+}
+
+// RemoveAgent takes an agent out of a room. What it did stays in the conversation.
+func (s *Store) RemoveAgent(id, agent string) error {
+	return s.changeRoom(id, func(held *Instance) error {
+		kept := held.Agents[:0:0]
+		for _, each := range held.Agents {
+			if each.ID != agent {
+				kept = append(kept, each)
+			}
+		}
+		if len(kept) == len(held.Agents) {
+			return fmt.Errorf("no agent %s in this room", agent)
+		}
+		held.Agents = kept
+		return nil
+	})
+}
+
+// Note keeps something a person said in a room that no agent answers.
+func (s *Store) Note(id, thread, who, text string) (Note, error) {
+	return s.NoteKeyed(id, thread, who, text, "")
+}
+
+// NoteKeyed is Note for a request that has a key. The key is the sender's own name for the request, and a person who sends the
+// same key again gets the note that was kept, not a second one.
+func (s *Store) NoteKeyed(id, thread, who, text, key string) (Note, error) {
+	return s.addNote(id, thread, Note{Who: strings.ToLower(who), Text: text, Key: key})
+}
+
+// Notice keeps something the room says to itself, such as that two agents changed the same file.
+func (s *Store) Notice(id, thread, text string) (Note, error) {
+	return s.addNote(id, thread, Note{Text: text, Notice: true})
+}
+
+// FileNotice keeps something the room says to itself about one of its files, such as that a person changed it.
+func (s *Store) FileNotice(id, thread, text, path string) (Note, error) {
+	return s.addNote(id, thread, Note{Text: text, Notice: true, Path: path})
+}
+
+// addNote keeps a note in a thread and records it in the room's event log. A note with a key that the same person already used
+// is not kept again.
+func (s *Store) addNote(id, thread string, note Note) (Note, error) {
+	s.guard.Lock()
+	defer s.guard.Unlock()
+	kept, added := note, false
+	_, err := s.amend(id, thread, func(held *Thread) bool {
+		if note.Key != "" {
+			for _, earlier := range held.Notes {
+				if earlier.Key == note.Key && earlier.Who == note.Who {
+					kept = earlier
+					return false
+				}
+			}
+		}
+		note.ID, note.At, note.After = fmt.Sprintf("n%d", len(held.Notes)+1), time.Now().Unix(), len(held.Turns)
+		held.Notes = append(held.Notes, note)
+		kept, added = note, true
+		return true
+	})
+	if err != nil {
+		return Note{}, err
+	}
+	if added {
+		s.record(id, thread, KindNote, note.ID)
+	}
+	return kept, nil
+}
+
+// Learned keeps what an agent calls a conversation, so its next turn resumes it. A room's agents each keep their own.
+func (s *Store) Learned(id, thread, agent, remembered string) error {
+	if agent == "" {
+		return s.Said(id, thread, "", remembered)
+	}
+	s.guard.Lock()
+	defer s.guard.Unlock()
+	_, err := s.amend(id, thread, func(held *Thread) bool {
+		if remembered == "" {
+			return false
+		}
+		if held.Sessions == nil {
+			held.Sessions = map[string]string{}
+		}
+		held.Sessions[agent] = remembered
+		return true
+	})
+	return err
+}
+
+// Saw keeps that a person looked at a conversation at a time. It writes only when that is later than they last looked.
+func (s *Store) Saw(id, thread, who string, at int64) error {
+	who = strings.ToLower(strings.TrimSpace(who))
+	s.guard.Lock()
+	defer s.guard.Unlock()
+	_, err := s.amend(id, thread, func(held *Thread) bool {
+		if who == "" || held.Seen[who] >= at {
+			return false
+		}
+		if held.Seen == nil {
+			held.Seen = map[string]int64{}
+		}
+		held.Seen[who] = at
+		return true
+	})
+	return err
+}
+
+// Direct marks a room as one person's own with one agent, or as a room again.
+func (s *Store) Direct(id string, direct bool) error {
+	return s.changeRoom(id, func(held *Instance) error {
+		held.Direct = direct
+		return nil
+	})
+}
+
+// changeRoom changes a room under the store's guard and writes it.
+func (s *Store) changeRoom(id string, change func(*Instance) error) error {
+	s.guard.Lock()
+	defer s.guard.Unlock()
+	held, found := s.held[id]
+	if !found || !held.Room {
+		return fmt.Errorf("no room called %s", id)
+	}
+	held.Members = append([]Member(nil), held.Members...)
+	held.Agents = append([]Agent(nil), held.Agents...)
+	if err := change(&held); err != nil {
+		if errors.Is(err, errUnchanged) {
+			return nil
+		}
+		return err
+	}
+	if err := s.write(held); err != nil {
+		return err
+	}
+	s.put(held)
+	s.record(id, "", KindPeople, "")
+	return nil
+}
+
+func keepsAdmin(held Instance) error {
+	for _, member := range held.Members {
+		if member.Role == RoleAdmin {
+			return nil
+		}
+	}
+	return fmt.Errorf("a room keeps at least one admin")
+}
+
+// slug is a room name as an id: lower case, its words joined by -.
+func slug(name string) string {
+	var out strings.Builder
+	dash := false
+	for _, r := range strings.ToLower(name) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			out.WriteRune(r)
+			dash = false
+		case !dash && out.Len() > 0:
+			out.WriteByte('-')
+			dash = true
+		}
+	}
+	id := strings.Trim(out.String(), "-")
+	if id == "" {
+		id = "room"
+	}
+	return "room-" + id
+}

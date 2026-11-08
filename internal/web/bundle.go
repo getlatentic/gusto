@@ -12,55 +12,55 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/record"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// bundle hands the whole job back as one archive, so a person can check the run
+// bundle hands the whole task back as one archive, so a person can check the run
 // on a machine this server has no part in.
 func (s *Server) bundle(w http.ResponseWriter, r *http.Request) {
-	record, dir, found := s.find(r)
+	entry, dir, found := s.find(r)
 	if !found {
 		http.NotFound(w, r)
 		return
 	}
-	// A job with no manifest has nothing to check, and the refusal has to happen
+	// A task with no manifest has nothing to check, and the refusal has to happen
 	// here: once the first byte of an archive is out the status is spent.
-	if _, err := evidence.Read(dir); err != nil {
+	if _, err := record.Read(dir); err != nil {
 		http.Error(w, "this task has left no manifest, so there is nothing to verify", http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/gzip")
-	w.Header().Set("Content-Disposition", `attachment; filename="`+record.ID+`.tar.gz"`)
+	w.Header().Set("Content-Disposition", `attachment; filename="`+entry.ID+`.tar.gz"`)
 	// A failure part way through has nowhere to go but the stream itself. The
 	// gzip trailer is never written, so a short bundle refuses to unpack instead
 	// of passing for a whole one. Whoever runs the server still needs to know it
 	// happened, because the person downloading only sees a broken archive.
-	if err := writeBundle(w, dir, record.ID); err != nil {
-		slog.Error("a bundle stopped part way through", "job", record.ID, "error", err)
+	if err := writeBundle(w, dir, entry.ID); err != nil {
+		slog.Error("a bundle stopped part way through", "task", entry.ID, "error", err)
 	}
 }
 
-// writeBundle writes the job as a gzipped tar under one directory named by the
-// job, so unpacking cannot scatter files over whatever directory a person is in.
+// writeBundle writes the task as a gzipped tar under one directory named by the
+// task, so unpacking cannot scatter files over whatever directory a person is in.
 //
 // What goes in is what `gusto verify` reads: job.json, whose hash the manifest
-// names and whose gate verify re-runs; out/, which it re-hashes; and workspace/,
-// which is where the gate runs. Measured on a job whose gate is a script in its
+// names and whose check verify re-runs; out/, which it re-hashes; and workspace/,
+// which is where the check runs. Measured on a task whose check is a script in its
 // own checkout: out/ alone stops verify at "no such file or directory" on
 // job.json, out/ with job.json re-hashes the seven files and then reports "the
-// gate now exits -1, and the manifest says 0" because the gate has no directory
-// to run in, and the three together give "7 files match, and the gate still
+// check now exits -1, and the manifest says 0" because the check has no directory
+// to run in, and the three together give "7 files match, and the check still
 // exits 0". Carrying job.json gives nothing away that the manifest does not
 // already commit to the hash of. state.json stays behind: it is this server's
 // cache of what is on disk, and nothing verify does reads it.
 //
 // tar rather than zip, for the mode bits. The same bundle with gate.sh no longer
-// executable reports "the gate now exits -1", so a gate that is a script in the
+// executable reports "the check now exits -1", so a check that is a script in the
 // checkout is only re-runnable while the bit survives, and tar carries it
 // wherever the archive is unpacked. tar is also written in one pass, so the
 // archive streams without the size being known before the first byte.
-func writeBundle(to io.Writer, dir job.Dir, root string) error {
+func writeBundle(to io.Writer, dir task.Dir, root string) error {
 	deflate := gzip.NewWriter(to)
 	archive := tar.NewWriter(deflate)
 	if err := addFile(archive, dir.Spec(), path.Join(root, "job.json")); err != nil {
@@ -77,7 +77,7 @@ func writeBundle(to io.Writer, dir job.Dir, root string) error {
 	return deflate.Close()
 }
 
-// addTree walks one part of the job. A missing path is not an error: a runner
+// addTree walks one part of the task. A missing path is not an error: a runner
 // that was destroyed takes workspace/ with it and leaves out/ behind, and what
 // survives is still worth handing over.
 func addTree(archive *tar.Writer, from, to string) error {
@@ -109,7 +109,7 @@ func addFile(archive *tar.Writer, from, name string) error {
 }
 
 // add writes one entry. A symlink in a checkout is carried as a link rather than
-// followed, so nothing outside the job is ever read into the archive.
+// followed, so nothing outside the task is ever read into the archive.
 func add(archive *tar.Writer, from, name string, info fs.FileInfo) error {
 	link := ""
 	switch {
@@ -120,7 +120,7 @@ func add(archive *tar.Writer, from, name string, info fs.FileInfo) error {
 		}
 		link = target
 	case !info.Mode().IsRegular() && !info.IsDir():
-		return nil // a socket or a device is not evidence
+		return nil // a socket or a device is not part of the record
 	}
 	header, err := tar.FileInfoHeader(info, link)
 	if err != nil {

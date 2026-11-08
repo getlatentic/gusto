@@ -12,7 +12,7 @@ import (
 	"path"
 	"sort"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 //go:embed templates/*.json
@@ -26,7 +26,7 @@ type Template struct {
 	Summary  string `json:"summary"`
 	// Harnesses is the order to offer them in, the one that suits it first.
 	Harnesses   []string          `json:"harnesses"`
-	Sensitivity job.Sensitivity   `json:"sensitivity"`
+	Sensitivity task.Sensitivity  `json:"sensitivity"`
 	Servers     []string          `json:"servers,omitempty"`
 	Skills      []Skill           `json:"skills"`
 	Starters    []string          `json:"starters"`
@@ -70,7 +70,7 @@ func All() []Template {
 
 // Get is one template by name.
 func Get(name string) (Template, bool) {
-	if !job.Named(name) {
+	if !task.Named(name) {
 		return Template{}, false
 	}
 	held, err := read(name + ".json")
@@ -90,4 +90,4 @@ func read(file string) (Template, error) {
 }
 
 // Restricted is a template whose work may not leave the building.
-func (t Template) Restricted() bool { return t.Sensitivity == job.Restricted }
+func (t Template) Restricted() bool { return t.Sensitivity == task.Restricted }

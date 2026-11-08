@@ -11,7 +11,7 @@ import (
 )
 
 // pinsFile is pins.json: every npm package the runner image installs, at one version, with the registry's sha512 integrity
-// of that tarball. pin.sh writes it. The image's build refuses a package whose bytes differ, so the agent a job runs is the
+// of that tarball. pin.sh writes it. The image's build refuses a package whose bytes differ, so the agent a task runs is the
 // one these pins name and not whatever the registry served that day.
 //
 //go:embed pins.json
@@ -24,28 +24,54 @@ type Pin struct {
 	Tarball   string `json:"tarball"`
 }
 
-var pins = sync.OnceValue(func() map[string]Pin {
-	var file struct {
-		Packages map[string]Pin `json:"packages"`
-	}
+// BinaryPin is a program its maker publishes as one file for each architecture rather than on npm: its version, and for
+// each architecture, by Node's name for it, where the file is and its sha256.
+type BinaryPin struct {
+	Version   string              `json:"version"`
+	Artifacts map[string]Artifact `json:"artifacts"`
+}
+
+// Artifact is one architecture's file of a BinaryPin.
+type Artifact struct {
+	URL    string `json:"url"`
+	SHA256 string `json:"sha256"`
+}
+
+type pinFile struct {
+	Packages map[string]Pin       `json:"packages"`
+	Binaries map[string]BinaryPin `json:"binaries"`
+}
+
+var pinned = sync.OnceValue(func() pinFile {
+	var file pinFile
 	if err := json.Unmarshal(pinsFile, &file); err != nil {
 		panic("pins.json: " + err.Error())
 	}
-	return file.Packages
+	return file
 })
 
-// Pinned is the version the image installs of a package, when the package is pinned.
+// Pinned is the version the image installs of an npm package, when the package is pinned.
 func Pinned(pkg string) (Pin, bool) {
-	pin, found := pins()[pkg]
+	pin, found := pinned().Packages[pkg]
 	return pin, found
 }
 
-// Pins is every pinned package, by name.
-func Pins() map[string]Pin { return pins() }
+// Pins is every pinned npm package, by name.
+func Pins() map[string]Pin { return pinned().Packages }
+
+// PinnedBinary is the version and files the image installs of a program that is not on npm, when it is pinned.
+func PinnedBinary(name string) (BinaryPin, bool) {
+	pin, found := pinned().Binaries[name]
+	return pin, found
+}
 
 // Install is the package a person installs to run this agent as the image does: the package at its pinned version, or
-// the bare package for one that is not pinned.
+// the bare package for one that is not pinned. It is empty for a program that is not on npm, which a person installs
+// from the adapter's Download page.
 func (a Adapter) Install() string {
+	if _, binary := PinnedBinary(a.Package); binary {
+		return ""
+	}
 	if pin, found := Pinned(a.Package); found {
 		return a.Package + "@" + pin.Version
 	}

@@ -14,7 +14,8 @@ import (
 	"time"
 )
 
-// Sessions are signed cookies that hold an address and a time, and nothing else.
+// Sessions are signed cookies that hold an address and a time, and nothing else, and beside them
+// the organization a person chose when they are in several.
 // What a person may do is read from the store on each request, so removing them
 // takes effect at once. The key is kept in the database, so a restart signs nobody out.
 type Sessions struct {
@@ -28,36 +29,36 @@ type Sessions struct {
 const SessionLife = 30 * 24 * time.Hour
 
 // OpenSessions reads the signing key the database holds, and makes it when there is none, so that
-// every front door on one database signs and checks the same cookies and a restart signs nobody out.
+// every gusto cloud server on one database signs and checks the same cookies and a restart signs nobody out.
 // secure is whether the cookie is for a site served over https.
-func (s *Store) OpenSessions(secure bool) (*Sessions, error) {
-	key, err := s.sessionKey()
+func (s *Store) OpenSessions(ctx context.Context, secure bool) (*Sessions, error) {
+	key, err := s.sessionKey(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return &Sessions{key: key, secure: secure, life: SessionLife, now: time.Now}, nil
 }
 
-func (s *Store) sessionKey() ([]byte, error) {
-	if key, err := s.storedKey(); err != nil || key != nil {
+func (s *Store) sessionKey(ctx context.Context) ([]byte, error) {
+	if key, err := s.storedKey(ctx); err != nil || key != nil {
 		return key, err
 	}
 	fresh := make([]byte, 32)
 	if _, err := rand.Read(fresh); err != nil {
 		return nil, err
 	}
-	if _, err := s.db.ExecContext(context.Background(), keepSetting.SQL(1), settingSessionKey, hex.EncodeToString(fresh)); err != nil {
+	if _, err := s.db.ExecContext(ctx, keepSetting.SQL(1), settingSessionKey, hex.EncodeToString(fresh)); err != nil {
 		return nil, err
 	}
-	key, err := s.storedKey()
+	key, err := s.storedKey(ctx)
 	if err == nil && key == nil {
 		err = errors.New("gusto cloud's signing key was not kept")
 	}
 	return key, err
 }
 
-func (s *Store) storedKey() ([]byte, error) {
-	text, found, err := s.setting(settingSessionKey)
+func (s *Store) storedKey(ctx context.Context) ([]byte, error) {
+	text, found, err := s.setting(ctx, settingSessionKey)
 	if err != nil || !found {
 		return nil, err
 	}
@@ -113,7 +114,70 @@ func (s *Sessions) Who(r *http.Request) (string, bool) {
 	return email, true
 }
 
-// Clear signs a person out.
+// Clear signs a person out, and forgets which of their organizations they were in.
 func (s *Sessions) Clear(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{Name: s.name(), Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: s.secure, SameSite: http.SameSiteLaxMode})
+	for _, name := range []string{s.name(), s.orgName()} {
+		http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: s.secure, SameSite: http.SameSiteLaxMode})
+	}
+}
+
+// orgName is the cookie that names which of their organizations a person is in. It is not signed: it is
+// only a choice, and the store says on every request whether the person is in the organization it names.
+func (s *Sessions) orgName() string {
+	if s.secure {
+		return "__Host-gusto_org"
+	}
+	return "gusto_org"
+}
+
+// Choose remembers the organization a person is in, until they choose another.
+func (s *Sessions) Choose(w http.ResponseWriter, org string) {
+	http.SetCookie(w, &http.Cookie{Name: s.orgName(), Value: org, Path: "/",
+		Expires: s.now().Add(s.life), HttpOnly: true, Secure: s.secure, SameSite: http.SameSiteLaxMode})
+}
+
+// Chosen is the organization a request says its person is in, which may be none.
+func (s *Sessions) Chosen(r *http.Request) string {
+	cookie, err := r.Cookie(s.orgName())
+	if err != nil {
+		return ""
+	}
+	return cookie.Value
+}
+
+// joinedName is the cookie that says which invitation this browser just used, so that pressing Join again goes in.
+func (s *Sessions) joinedName() string {
+	if s.secure {
+		return "__Host-gusto_joined"
+	}
+	return "gusto_joined"
+}
+
+// Joined remembers, for a few minutes, that this browser used an invitation. Only a hash of its link is kept.
+func (s *Sessions) Joined(w http.ResponseWriter, secret string) {
+	http.SetCookie(w, &http.Cookie{Name: s.joinedName(), Value: linkHash(secret), Path: "/", MaxAge: int(joinedFor / time.Second),
+		HttpOnly: true, Secure: s.secure, SameSite: http.SameSiteLaxMode})
+}
+
+// JoinedWith says whether this browser is the one that just used the invitation.
+func (s *Sessions) JoinedWith(r *http.Request, secret string) bool {
+	cookie, err := r.Cookie(s.joinedName())
+	return err == nil && secret != "" && hmac.Equal([]byte(cookie.Value), []byte(linkHash(secret)))
+}
+
+// joinedFor is how long a browser that used an invitation is let in again by its link.
+const joinedFor = 10 * time.Minute
+
+func linkHash(secret string) string {
+	sum := sha256.Sum256([]byte("joined:" + secret))
+	return hex.EncodeToString(sum[:])
+}
+
+// ownCookie says whether a cookie is gusto cloud's, over https or not, which no organization's server is sent.
+func ownCookie(name string) bool {
+	switch name {
+	case "gusto_cloud", "__Host-gusto_cloud", "gusto_org", "__Host-gusto_org", "gusto_joined", "__Host-gusto_joined":
+		return true
+	}
+	return false
 }

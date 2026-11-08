@@ -1,0 +1,15 @@
+{{template "head" .}}
+
+{{template "ui-flash" .}}
+
+<section class="mb-8 max-w-prose">
+  <h1>New room</h1>
+  <p class="mt-2 text-lg text-muted">A room is a chat that people and agents share, with one folder they all work in.</p>
+</section>
+
+<form class="grid max-w-xl gap-4 {{template "ui-card"}}" method="post" action="/rooms">
+  <label class="{{template "ui-field"}}">Name it <input class="input" name="name" placeholder="Launch plan" maxlength="60" required autofocus></label>
+  <div><button type="submit" class="{{template "ui-btn"}}">Make the room</button></div>
+</form>
+
+{{template "foot" .}}

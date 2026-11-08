@@ -29,6 +29,7 @@ var keyProviders = map[string]keyProvider{
 	"ANTHROPIC_API_KEY":  {"https://api.anthropic.com", proxy.Anthropic},
 	"OPENAI_API_KEY":     {"https://api.openai.com", proxy.Bearer},
 	"DEEPSEEK_API_KEY":   {"https://api.deepseek.com", proxy.Bearer},
+	"META_API_KEY":       {"https://api.meta.ai", proxy.Bearer},
 	"OPENROUTER_API_KEY": {"https://openrouter.ai/api", proxy.Bearer},
 }
 

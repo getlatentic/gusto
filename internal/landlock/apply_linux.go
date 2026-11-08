@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"slices"
 	"syscall"
 	"unsafe"
 
@@ -64,10 +65,10 @@ func Apply(p Policy) error {
 		return fmt.Errorf("this kernel's Landlock is version %d, and limiting the network needs 4 (Linux 6.7)", abi)
 	}
 	fs := handledFS(abi)
-	attr := unix.LandlockRulesetAttr{Access_fs: fs}
+	attr := unix.LandlockRulesetAttr{Handled_access_fs: fs}
 	size := uintptr(8)
 	if p.ProxyPort > 0 {
-		attr.Access_net = unix.LANDLOCK_ACCESS_NET_CONNECT_TCP
+		attr.Handled_access_net = unix.LANDLOCK_ACCESS_NET_CONNECT_TCP
 		size = 16
 	}
 	ruleset, _, errno := unix.Syscall(unix.SYS_LANDLOCK_CREATE_RULESET, uintptr(unsafe.Pointer(&attr)), size, 0)
@@ -75,7 +76,7 @@ func Apply(p Policy) error {
 		return fmt.Errorf("landlock_create_ruleset: %w", errno)
 	}
 	defer unix.Close(int(ruleset))
-	for access, folders := range map[uint64][]string{readOnly & fs: append(append([]string{}, System...), p.Read...), fs: append(append([]string{}, Scratch...), p.Write...)} {
+	for access, folders := range map[uint64][]string{readOnly & fs: append(append([]string{}, System...), p.Read...), fs: append(slices.Clone(p.scratch()), p.Write...)} {
 		for _, folder := range folders {
 			if err := allow(int(ruleset), folder, access&fs); err != nil {
 				return err

@@ -46,7 +46,7 @@ func aFolder(t *testing.T) (here *tokened, instance, secret, root string) {
 	here = withTokens(t)
 	where, _ := started(t, here.as(t, alice))
 	instance = strings.TrimPrefix(where, "/instances/")
-	return here, instance, signInADevice(t, here, alice), here.server.instances.Workspace(instance)
+	return here, instance, signInADevice(t, here, alice), here.server.instances.AgentFolder(instance)
 }
 
 func TestAFileIsWrittenWholeWithItsHashAndFoldersAreMadeForIt(t *testing.T) {

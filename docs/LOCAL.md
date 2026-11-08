@@ -32,6 +32,7 @@ gusto listens on `127.0.0.1` only (port 7140 when free, its proxy on 7141) and r
 | --- | --- |
 | Data folder | macOS `~/Library/Application Support/gusto/data`; Linux `$XDG_DATA_HOME/gusto` or `~/.local/share/gusto`; Windows `%LOCALAPPDATA%\gusto\data`. `GUSTO_LOCAL_HOME` names another |
 | `local.json` (ports, secret, PATH) | the data folder, readable by you alone |
+| `agents/` (the agents gusto installed) | the data folder |
 | Model keys | the keychain (macOS Keychain, Windows Credential Manager, Secret Service). Without one, or with `GUSTO_KEYCHAIN=off`: `registry/keys` in the data folder |
 | The service | macOS `~/Library/LaunchAgents/com.latentic.gusto.plist`; Linux `~/.config/systemd/user/gusto.service`; Windows the task `Latentic gusto` |
 | The log | `gusto.log` in the data folder (macOS, Windows); the journal (Linux) |
@@ -53,13 +54,13 @@ Docker on macOS and Windows is not used as a sandbox: its virtual machine cannot
 
 Get the virtual machine sandbox on an Apple Silicon Mac or Linux with `/dev/kvm` with `gusto local sandbox install` (`--yes` agrees without asking, `--image FILE` names a root file system archive). It checks the computer, downloads OpenShell (about 72 MB on a Mac) and the Linux image the agents run in (about 1.1 GB), checks the checksums, and keeps a gateway named `gusto` running. It needs no password and no Homebrew. `gusto local sandbox uninstall` removes it all.
 
-The process sandbox blocks downloads (`npm install`, `git clone`, `curl`) and a check's own server on the loopback. `GUSTO_JOB_NETWORK=open` opens the network and keeps the rest. On Linux it does not limit UDP, unix sockets, or reading your other processes' environment through `/proc`. A kernel before 6.7 has no network rules, so gusto does not offer it there unless `GUSTO_JOB_NETWORK=open`.
+The process sandbox blocks downloads (`npm install`, `git clone`, `curl`) and a check's own server on the loopback. `GUSTO_TASK_NETWORK=open` opens the network and keeps the rest. On Linux it does not limit UDP, unix sockets, or reading your other processes' environment through `/proc`. A kernel before 6.7 has no network rules, so gusto does not offer it there unless `GUSTO_TASK_NETWORK=open`.
 
 ## Models and keys
 
-gusto finds agents on the PATH. The chat page lists missing ones with the install command, such as `npm install -g @agentclientprotocol/claude-agent-acp@0.94.0`. Until there is a model, the chat page asks for a provider (Anthropic, OpenAI, DeepSeek, OpenRouter, Ollama, or another address), the API shape, the key and the models. **List my models** asks the provider. Every agent is offered every model. Add providers on the console's Models page.
+gusto finds agents in its own `agents` folder first, then on the PATH. **Install**, beside an agent the chat page or **New agent** lists as missing, puts it in that folder at the version `pkg/harness/pins.json` pins, and refuses a tarball whose sha512 is not the pinned one. It needs Node.js and npm; `GUSTO_AGENTS` moves the folder. An agent that signs in with a person's own subscription is not installed this way. Until there is a model, the chat page asks for a provider (Anthropic, OpenAI, DeepSeek, OpenRouter, Ollama, or another address), the API shape, the key and the models. **List my models** asks the provider. Every agent is offered every model. Add providers on the console's Models page.
 
-A key your shell already has is offered, not taken. `gusto local use` adds it. It knows `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY` and `OPENROUTER_API_KEY`:
+A key your shell already has is offered, not taken. `gusto local use` adds it. It knows `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, `META_API_KEY` and `OPENROUTER_API_KEY`:
 
 ```bash
 gusto local use ANTHROPIC_API_KEY                     # pick a model from the provider's list

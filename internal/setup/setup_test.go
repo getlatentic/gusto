@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 func memory() Servers {
@@ -51,10 +51,10 @@ func TestASetupNamesOnlyServersTheDeploymentOffers(t *testing.T) {
 	}
 }
 
-// A job carries its skills and its servers' definitions beside it, and names
+// A task carries its skills and its servers' definitions beside it, and names
 // them in job.json. The definitions stay out of job.json, which anyone with
 // the run can read, and the file holding them is its owner's alone.
-func TestAJobCarriesTheSetupWithoutPuttingDefinitionsInItsEvidence(t *testing.T) {
+func TestATaskCarriesTheSetupWithoutPuttingDefinitionsInItsRecord(t *testing.T) {
 	store, _ := Open(t.TempDir())
 	if err := store.Save(Setup{Name: "reviewer", Servers: []string{"memory"}}, memory()); err != nil {
 		t.Fatal(err)
@@ -62,7 +62,7 @@ func TestAJobCarriesTheSetupWithoutPuttingDefinitionsInItsEvidence(t *testing.T)
 	if err := store.Write("reviewer", Skill{Name: "review", Description: "d", Body: "b"}); err != nil {
 		t.Fatal(err)
 	}
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	carried, err := store.Carry("reviewer", memory(), dir)
 	if err != nil {
 		t.Fatal(err)

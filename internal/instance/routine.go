@@ -28,12 +28,14 @@ type Routine struct {
 	Added  int64  `json:"addedAt"`
 	// Last is the latest slot: the turn it started, or why it started none.
 	Last *Ran `json:"last,omitempty"`
+	// Owed is earlier runs whose news is not settled, oldest first: a later slot took their place as Last.
+	Owed []Ran `json:"owed,omitempty"`
 }
 
 // Ran is one slot of a routine.
 type Ran struct {
 	At      int64  `json:"at"`
-	Job     string `json:"job,omitempty"`
+	Task    string `json:"job,omitempty"`
 	Skipped string `json:"skipped,omitempty"`
 	// Told is the channels that have taken the news of how the run ended, Tries how many times it was offered and not all
 	// taken it, and Notified that it is settled: taken by every channel, or given up on, with why in NotifyError.
@@ -41,6 +43,20 @@ type Ran struct {
 	Tries       int      `json:"tries,omitempty"`
 	Notified    bool     `json:"notified,omitempty"`
 	NotifyError string   `json:"notifyError,omitempty"`
+}
+
+// maxOwed is how many earlier runs' news a routine keeps; past it the oldest is let go.
+const maxOwed = 16
+
+func (r *Ran) untold() bool { return r != nil && r.Task != "" && !r.Notified }
+
+// Untold is the runs whose news is not settled, oldest first.
+func (r Routine) Untold() []Ran {
+	untold := append([]Ran(nil), r.Owed...)
+	if r.Last.untold() {
+		untold = append(untold, *r.Last)
+	}
+	return untold
 }
 
 // Schedule checks the routine's schedule: a time of day as HH:MM, or a number of hours, and not both.
@@ -96,15 +112,15 @@ func (r Routine) Due(now time.Time) bool {
 
 func (s *Store) routinesFile(id string) string { return filepath.Join(s.Dir(id), "routines.json") }
 
-// Routines is an instance's routines, in the order they were added.
-func (s *Store) Routines(id string) []Routine {
+// Routines is an instance's routines, in the order they were added, or why routines.json cannot be read.
+func (s *Store) Routines(id string) ([]Routine, error) {
 	s.guard.Lock()
 	defer s.guard.Unlock()
-	routines, _ := s.readRoutines(id)
-	return routines
+	return s.readRoutines(id)
 }
 
-// AddRoutine opens a thread for the routine, named after it, and keeps the routine. The caller has checked the schedule.
+// AddRoutine opens a thread for the routine, named after it, and keeps the routine. A routine that cannot be kept closes
+// the thread again.
 func (s *Store) AddRoutine(id string, routine Routine) (Routine, error) {
 	s.guard.Lock()
 	defer s.guard.Unlock()
@@ -120,13 +136,16 @@ func (s *Store) AddRoutine(id string, routine Routine) (Routine, error) {
 	}
 	thread, err := s.open(id, routine.Title)
 	if err != nil {
-		return Routine{}, err
+		return Routine{}, errors.Join(err, s.forgetThread(thread))
 	}
 	routine.ID = "r" + strconv.Itoa(nextRoutine(routines))
 	routine.Thread = thread.ID
 	routine.Added = time.Now().Unix()
-	routine.Last = nil
-	return routine, s.writeRoutines(id, append(routines, routine))
+	routine.Last, routine.Owed = nil, nil
+	if err := s.writeRoutines(id, append(routines, routine)); err != nil {
+		return Routine{}, errors.Join(err, s.forgetThread(thread))
+	}
+	return routine, nil
 }
 
 // PauseRoutine pauses or resumes a routine.
@@ -134,17 +153,34 @@ func (s *Store) PauseRoutine(id, routine string, paused bool) error {
 	return s.changeRoutine(id, routine, func(r *Routine) { r.Paused = paused })
 }
 
-// RoutineRan records a routine's latest slot.
+// RoutineRan records a routine's latest slot. The run it takes the place of is owed while its news is not settled.
 func (s *Store) RoutineRan(id, routine string, ran Ran) error {
-	return s.changeRoutine(id, routine, func(r *Routine) { r.Last = &ran })
+	return s.changeRoutine(id, routine, func(r *Routine) {
+		if r.Last.untold() {
+			r.Owed = append(r.Owed, *r.Last)
+			r.Owed = r.Owed[max(0, len(r.Owed)-maxOwed):]
+		}
+		r.Last = &ran
+	})
 }
 
-// NoteRun changes the latest slot of a routine, which is how the news of how it ended is kept.
-func (s *Store) NoteRun(id, routine string, change func(*Ran)) error {
+// NoteRun changes the run of a routine that started task, the latest or an owed one, which is how the news of how it ended
+// is kept. An owed run whose news is settled is let go.
+func (s *Store) NoteRun(id, routine, task string, change func(*Ran)) error {
 	return s.changeRoutine(id, routine, func(r *Routine) {
-		if r.Last != nil {
+		if r.Last != nil && r.Last.Task == task {
 			change(r.Last)
 		}
+		owed := r.Owed[:0]
+		for _, ran := range r.Owed {
+			if ran.Task == task {
+				change(&ran)
+			}
+			if !ran.Notified {
+				owed = append(owed, ran)
+			}
+		}
+		r.Owed = owed
 	})
 }
 

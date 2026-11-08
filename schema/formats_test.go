@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 	"github.com/getlatentic/gusto/schema"
 )
 
@@ -22,8 +22,8 @@ func TestEachSchemaIsVersionedAndAgreesWithTheCode(t *testing.T) {
 		id      string
 		version int
 	}{
-		{schema.Job(), "/schema/job/v1.json", job.Version},
-		{schema.Manifest(), "/schema/manifest/v1.json", evidence.Version},
+		{schema.Task(), "/schema/job/v1.json", task.Version},
+		{schema.Manifest(), "/schema/manifest/v1.json", record.Version},
 		{schema.Signature(), "/schema/signature/v1.json", signing.Version},
 	} {
 		var read struct {
@@ -43,9 +43,9 @@ func TestEachSchemaIsVersionedAndAgreesWithTheCode(t *testing.T) {
 	}
 }
 
-// The job `gusto new` writes is the one people start from, so the test builds
+// The task `gusto new` writes is the one people start from, so the test builds
 // the command and validates its output rather than a spec made in the test.
-func TestAJobFromGustoNewMatchesTheSchema(t *testing.T) {
+func TestATaskFromGustoNewMatchesTheSchema(t *testing.T) {
 	binary := filepath.Join(t.TempDir(), "gusto")
 	build := exec.Command("go", "build", "-o", binary, "../cmd/gusto")
 	if output, err := build.CombinedOutput(); err != nil {
@@ -57,11 +57,11 @@ func TestAJobFromGustoNewMatchesTheSchema(t *testing.T) {
 	if output, err := create.CombinedOutput(); err != nil {
 		t.Fatalf("gusto new: %v: %s", err, output)
 	}
-	written, err := os.ReadFile(job.Dir(dir).Spec())
+	written, err := os.ReadFile(task.Dir(dir).Spec())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := schema.Validate(schema.Job(), written); err != nil {
+	if err := schema.Validate(schema.Task(), written); err != nil {
 		t.Fatalf("gusto new wrote a job the schema refuses:\n%v\n%s", err, written)
 	}
 	if !strings.Contains(string(written), `"version": 1`) {
@@ -69,29 +69,29 @@ func TestAJobFromGustoNewMatchesTheSchema(t *testing.T) {
 	}
 }
 
-// A hand-written job with only what a reader needs is valid; the rest has
+// A hand-written task with only what a reader needs is valid; the rest has
 // defaults.
-func TestTheSmallestJobMatchesTheSchema(t *testing.T) {
+func TestTheSmallestTaskMatchesTheSchema(t *testing.T) {
 	smallest := `{"brief": "b", "repo": "r", "gate": ["true"], "harness": "h"}`
-	if err := schema.Validate(schema.Job(), []byte(smallest)); err != nil {
+	if err := schema.Validate(schema.Task(), []byte(smallest)); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestAJobWithATeamAndACapMatchesTheSchema(t *testing.T) {
+func TestATaskWithATeamAndACapMatchesTheSchema(t *testing.T) {
 	document := `{"brief": "b", "repo": "r", "gate": ["true"], "harness": "h", "team": "platform", "budget": {"usd": 2.5}}`
-	if err := schema.Validate(schema.Job(), []byte(document)); err != nil {
+	if err := schema.Validate(schema.Task(), []byte(document)); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestTheJobSchemaRefusesWhatTheReaderRefuses(t *testing.T) {
+func TestTheTaskSchemaRefusesWhatTheReaderRefuses(t *testing.T) {
 	for _, document := range []string{
 		`{"brief": "b", "repo": "r", "gate": ["true"], "harness": "h", "sensitivity": "secret"}`,
 		`{"brief": "b", "repo": "r", "gate": ["true"], "harness": "h", "version": 2}`,
 		`{"repo": "r", "gate": ["true"], "harness": "h"}`,
 	} {
-		if err := schema.Validate(schema.Job(), []byte(document)); err == nil {
+		if err := schema.Validate(schema.Task(), []byte(document)); err == nil {
 			t.Errorf("want refused: %s", document)
 		}
 	}
@@ -111,20 +111,33 @@ func TestAManifestIsValidWithAndWithoutTheHarnessDigest(t *testing.T) {
 	}
 }
 
-// A turn in a conversation is a job too, and the one written most often. Its
-// job.json names the instance, the thread and the setup, and names no gate.
+// A run whose model never answered says so in the manifest the runner writes, and the schema describes it.
+func TestAManifestSaysWhenTheModelNeverAnswered(t *testing.T) {
+	manifest := record.Manifest{Version: record.Version, Task: "j", Files: []record.Entry{}, Harness: "pi", Signer: "unsigned", AtUnix: 1,
+		ModelUnanswered: &record.Unanswered{Calls: 2, Reason: "connection refused"}}
+	document, err := json.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := schema.Validate(schema.Manifest(), document); err != nil {
+		t.Errorf("%v\n%s", err, document)
+	}
+}
+
+// A turn in a conversation is a task too, and the one written most often. Its
+// job.json names the instance, the thread and the setup, and names no check.
 func TestATurnInAConversationMatchesTheSchema(t *testing.T) {
-	turn := job.Spec{
-		Version: job.Version, Brief: "and then?", Harness: "dsh", Model: "deepseek/deepseek-flash",
+	turn := task.Spec{
+		Version: task.Version, Brief: "and then?", Harness: "dsh", Model: "deepseek/deepseek-flash",
 		Session: "20260927-0830-dsh", Thread: "1", Remembered: "9c5efae6",
-		Sensitivity: job.Internal, Budget: job.Budget{Turns: 40, Seconds: 900},
-		Setup: &job.Setup{Name: "reviewer", Skills: []string{"review"}, Servers: []string{"memory"}},
+		Sensitivity: task.Internal, Budget: task.Budget{Turns: 40, Seconds: 900},
+		Setup: &task.Setup{Name: "reviewer", Skills: []string{"review"}, Servers: []string{"memory"}},
 	}
 	document, err := json.Marshal(turn)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := schema.Validate(schema.Job(), document); err != nil {
+	if err := schema.Validate(schema.Task(), document); err != nil {
 		t.Fatalf("%v\n%s", err, document)
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/audit"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 const secret = "sk-test-0123456789abcdef"
@@ -24,7 +24,7 @@ func strict() audit.Policy {
 
 // Redaction changes files, so it has to change them in a way the check
 // expects. This also holds the wording Verify excuses to the wording
-// evidence.Check writes: if either drifts, a redacted export stops verifying.
+// record.Check writes: if either drifts, a redacted export stops verifying.
 func TestARedactedExportStillVerifiesWhatRemains(t *testing.T) {
 	export := exported(t, ran(t), audit.Options{Policy: strict()})
 	report := verified(t, export)
@@ -139,8 +139,8 @@ func TestNoPolicyKeepsEverything(t *testing.T) {
 	}
 }
 
-// Only the request lines whose path names the job are carried, byte for byte.
-func TestTheRequestLogIsCutToTheJob(t *testing.T) {
+// Only the request lines whose path names the task are carried, byte for byte.
+func TestTheRequestLogIsCutToTheTask(t *testing.T) {
 	from := ran(t)
 	id := filepath.Base(from.Path())
 	log := filepath.Join(t.TempDir(), "requests.log")
@@ -167,7 +167,7 @@ func TestTheRequestLogIsCutToTheJob(t *testing.T) {
 	matchesTheSchema(t, export)
 }
 
-func TestAnExportOfAJobWithoutState(t *testing.T) {
+func TestAnExportOfATaskWithoutState(t *testing.T) {
 	from := ran(t)
 	if err := os.Remove(filepath.Join(from.Path(), "state.json")); err != nil {
 		t.Fatal(err)
@@ -179,5 +179,5 @@ func TestAnExportOfAJobWithoutState(t *testing.T) {
 	if got := at(summary(t, export), "outcome", "state"); got != audit.NotRecorded {
 		t.Fatalf("a job made on the command line has no server state: %#v", got)
 	}
-	matchesTheSchema(t, job.Dir(export))
+	matchesTheSchema(t, task.Dir(export))
 }

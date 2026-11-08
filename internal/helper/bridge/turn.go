@@ -66,12 +66,12 @@ func (a *Agent) prompt(ctx context.Context, w *wire, got request) {
 		_ = w.fail(got.ID, codeInvalid, "this session is already working on something: wait, or cancel it")
 		return
 	}
-	s.active, s.canceled, s.job = true, false, ""
+	s.active, s.canceled, s.task = true, false, ""
 	n, first := s.turns, !s.noted
 	s.turns++
 	s.noted = true
 	s.mu.Unlock()
-	defer func() { s.mu.Lock(); s.active, s.job = false, ""; s.mu.Unlock() }()
+	defer func() { s.mu.Lock(); s.active, s.task = false, ""; s.mu.Unlock() }()
 
 	if first {
 		a.say(w, s.id, fmt.Sprintf("I work in %s's folder in the cloud, not in the folder open in your editor, so the files I change are there until the folders are kept in step.\n\n", firstOf(s.instance.Title, s.instance.Harness)))
@@ -83,14 +83,14 @@ func (a *Agent) prompt(ctx context.Context, w *wire, got request) {
 		return
 	}
 	s.mu.Lock()
-	s.job = sent.Job
+	s.task = sent.Task
 	wasCancelled := s.canceled
 	s.mu.Unlock()
 	if wasCancelled {
-		_ = a.Cloud.StopJob(ctx, sent.Job)
+		_ = a.Cloud.StopTask(ctx, sent.Task)
 	}
 
-	ended, err := a.follow(ctx, w, s, sent.Job)
+	ended, err := a.follow(ctx, w, s, sent.Task)
 	if err != nil {
 		code, message := failure(err)
 		_ = w.fail(got.ID, code, message)
@@ -121,12 +121,12 @@ func (a *Agent) send(ctx context.Context, s *session, said, key string) (helper.
 
 // follow tells the editor what the turn does, and gives how it ended. A connection to the server that drops is made again:
 // what was told is not told twice.
-func (a *Agent) follow(ctx context.Context, w *wire, s *session, job string) (helper.Ended, error) {
+func (a *Agent) follow(ctx context.Context, w *wire, s *session, task string) (helper.Ended, error) {
 	stepsTold, replied := 0, ""
 	var last error
 	for try := 0; try < 5; try++ {
 		seen := 0
-		ended, err := a.Cloud.FollowJob(ctx, job, helper.Follower{
+		ended, err := a.Cloud.FollowTask(ctx, task, helper.Follower{
 			Step: func(step helper.Step) {
 				seen++
 				if seen <= stepsTold {
@@ -135,7 +135,7 @@ func (a *Agent) follow(ctx context.Context, w *wire, s *session, job string) (he
 				stepsTold = seen
 				title := strings.TrimSpace(step.What + " " + step.Detail)
 				a.update(w, s.id, map[string]any{
-					"sessionUpdate": "tool_call", "toolCallId": fmt.Sprintf("%s-%d", job, seen),
+					"sessionUpdate": "tool_call", "toolCallId": fmt.Sprintf("%s-%d", task, seen),
 					"title": title, "kind": kindOf(step.What), "status": "completed",
 				})
 			},
@@ -179,9 +179,9 @@ func (a *Agent) stopReason(w *wire, s *session, ended helper.Ended) string {
 	s.mu.Lock()
 	asked := s.canceled
 	s.mu.Unlock()
-	switch ended.Job.State {
+	switch ended.Task.State {
 	case "interrupted":
-		if asked || ended.Job.StoppedBy != "" {
+		if asked || ended.Task.StoppedBy != "" {
 			return "cancelled"
 		}
 		a.say(w, s.id, "\n\nThe turn was interrupted before it finished.")
@@ -207,11 +207,11 @@ func (a *Agent) cancel(ctx context.Context, got request) {
 	}
 	s.mu.Lock()
 	s.canceled = true
-	job := s.job
+	task := s.task
 	s.mu.Unlock()
 	// A turn that has not been sent yet is stopped as it is sent. One that is sent is stopped now.
-	if job != "" {
-		if err := a.Cloud.StopJob(ctx, job); err != nil {
+	if task != "" {
+		if err := a.Cloud.StopTask(ctx, task); err != nil {
 			a.logf("the turn could not be stopped: %v", err)
 		}
 	}

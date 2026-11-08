@@ -99,6 +99,22 @@
       "description": "Who told the run to stop before it ended on its own: the person who stopped it, or a signal when nobody is named. Absent when the run was not stopped.",
       "type": "string"
     },
+    "modelUnanswered": {
+      "description": "Present when the run asked its model and the proxy, in out/proxy.jsonl, saw no call to a model answered. Calls a spending cap refused are not counted. A turn with no gate that has this failed, whatever the harness's exit.",
+      "type": "object",
+      "required": ["calls", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "calls": {
+          "description": "How many calls to a model the run made: one or more.",
+          "type": "integer"
+        },
+        "reason": {
+          "description": "What went wrong with the last of them, as the proxy saw it.",
+          "type": "string"
+        }
+      }
+    },
     "stoppedByCap": {
       "description": "The spending cap that stopped the run, read from out/proxy.jsonl: the proxy refused the harness's next call to a model once it was spent. Absent when no cap refused anything.",
       "type": "object",

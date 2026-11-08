@@ -39,12 +39,12 @@ func TestAnUnknownSubcommandSuggestsTheNearest(t *testing.T) {
 }
 
 func TestTheOldCommandsAreGone(t *testing.T) {
-	for _, old := range []string{"harnesses", "replay", "matrix", "ship", "check", "survey", "owner", "cell"} {
+	for _, old := range []string{"harnesses", "replay", "matrix", "ship", "check", "survey", "owner", "cell", "host"} {
 		if _, errs, code := clitest.Capture(t, func() int { return run([]string{old}) }); code != 2 || !strings.Contains(errs, "unknown command") {
 			t.Errorf("gusto %s: exit code %d, stderr %q", old, code, errs)
 		}
 	}
-	for _, args := range [][]string{{"cloud", "computers"}, {"local", "wall"}} {
+	for _, args := range [][]string{{"local", "wall"}, {"cloud", "workspaces"}} {
 		if _, _, code := clitest.Capture(t, func() int { return run(args) }); code != 2 {
 			t.Errorf("gusto %v: exit code %d, want 2", args, code)
 		}

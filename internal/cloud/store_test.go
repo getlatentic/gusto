@@ -15,7 +15,7 @@ import (
 func TestASignUpMakesAPersonAnOrganizationAndItsDirectoryOnTheTrial(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
-		person, org, err := s.SignUp(Signup{Email: "Ada@Acme.com", OrgName: "Acme Research"})
+		person, org, err := s.SignUp(t.Context(), Signup{Email: "Ada@Acme.com", OrgName: "Acme Research"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -25,7 +25,7 @@ func TestASignUpMakesAPersonAnOrganizationAndItsDirectoryOnTheTrial(t *testing.T
 		if org.Slug != "acme-com" || org.Name != "Acme Research" || org.Admin != "ada@acme.com" || org.Domain != "acme.com" {
 			t.Errorf("%+v", org)
 		}
-		got, found, err := s.Person("ADA@acme.com")
+		got, found, err := s.only(t.Context(), "ADA@acme.com")
 		if err != nil || !found || got.Org != org.Slug {
 			t.Errorf("the person should be found by any spelling: %+v %v %v", got, found, err)
 		}
@@ -44,19 +44,21 @@ func TestASignUpMakesAPersonAnOrganizationAndItsDirectoryOnTheTrial(t *testing.T
 func TestVerifyingLiftsTheQuotaOfTheOrganizationTheirAdminMade(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
-		_, org, _ := s.SignUp(Signup{Email: "ada@acme.com", OrgName: "Acme"})
-		person, err := s.Verify("ada@acme.com")
+		_, org, _ := s.SignUp(t.Context(), Signup{Email: "ada@acme.com", OrgName: "Acme"})
+		err := s.Verify(t.Context(), "ada@acme.com")
+		person, _, _ := s.Person(t.Context(), "ada@acme.com", org.Slug)
 		if err != nil || person.Trial() {
 			t.Fatalf("%+v %v", person, err)
 		}
 		if quota, _ := s.Quota(org.Slug); quota != DefaultLimits().Verified {
 			t.Errorf("a verified organization has the larger quota: %+v", quota)
 		}
-		again, err := s.Verify("ada@acme.com")
+		err = s.Verify(t.Context(), "ada@acme.com")
+		again, _, _ := s.Person(t.Context(), "ada@acme.com", org.Slug)
 		if err != nil || !again.Verified.Equal(person.Verified) {
 			t.Errorf("verifying twice changes nothing: %+v %v", again, err)
 		}
-		if _, err := s.Verify("nobody@acme.com"); err == nil {
+		if err := s.Verify(t.Context(), "nobody@acme.com"); err == nil {
 			t.Error("an address with no account cannot be verified")
 		}
 	})
@@ -65,7 +67,7 @@ func TestVerifyingLiftsTheQuotaOfTheOrganizationTheirAdminMade(t *testing.T) {
 func TestASignUpThatIsRefusedLeavesNothingBehind(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
-		if _, _, err := s.SignUp(Signup{Email: "ada@acme.com", OrgName: "Acme"}); err != nil {
+		if _, _, err := s.SignUp(t.Context(), Signup{Email: "ada@acme.com", OrgName: "Acme"}); err != nil {
 			t.Fatal(err)
 		}
 		for name, in := range map[string]struct {
@@ -78,23 +80,23 @@ func TestASignUpThatIsRefusedLeavesNothingBehind(t *testing.T) {
 			"free mail":               {Signup{Email: "bob@gmail.com", OrgName: "Bob Ltd"}, ErrFreeMail},
 			"a name of one letter":    {Signup{Email: "bob@example.org", OrgName: "B"}, ErrBadOrgName},
 		} {
-			if _, _, err := s.SignUp(in.in); !errors.Is(err, in.want) {
+			if _, _, err := s.SignUp(t.Context(), in.in); !errors.Is(err, in.want) {
 				t.Errorf("%s: %v, want %v", name, err, in.want)
 			}
 		}
 		// A free mail address has only its name to make an address from.
 		free := open(t, Settings{AllowFreeMail: true})
-		if _, _, err := free.SignUp(Signup{Email: "bob@gmail.com", OrgName: "!!"}); !errors.Is(err, ErrBadSlug) {
+		if _, _, err := free.SignUp(t.Context(), Signup{Email: "bob@gmail.com", OrgName: "!!"}); !errors.Is(err, ErrBadSlug) {
 			t.Errorf("a name with no letters gives no address: %v", err)
 		}
 		// A slug taken by a refused sign-up is not held by it.
-		if _, _, err := s.SignUp(Signup{Email: "ada@acme.com", OrgName: "Elsewhere", Slug: "elsewhere"}); !errors.Is(err, ErrEmailTaken) {
+		if _, _, err := s.SignUp(t.Context(), Signup{Email: "ada@acme.com", OrgName: "Elsewhere", Slug: "elsewhere"}); !errors.Is(err, ErrEmailTaken) {
 			t.Fatal(err)
 		}
 		if _, err := os.Stat(s.OrgDir("elsewhere")); err == nil {
 			t.Error("a refused sign-up left its organization's directory")
 		}
-		if _, _, err := s.SignUp(Signup{Email: "eve@example.net", OrgName: "Elsewhere", Slug: "elsewhere"}); err != nil {
+		if _, _, err := s.SignUp(t.Context(), Signup{Email: "eve@example.net", OrgName: "Elsewhere", Slug: "elsewhere"}); err != nil {
 			t.Errorf("the slug should be free again: %v", err)
 		}
 	})
@@ -111,7 +113,7 @@ func TestTwoSignUpsForOneNameHaveOneWinner(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				_, _, err := s.SignUp(Signup{Email: fmt.Sprintf("p%d@company%d.com", i, i), OrgName: "Contested", Slug: "contested"})
+				_, _, err := s.SignUp(t.Context(), Signup{Email: fmt.Sprintf("p%d@company%d.com", i, i), OrgName: "Contested", Slug: "contested"})
 				results <- err
 			}()
 		}
@@ -142,10 +144,10 @@ func TestADirectoryWithNoRecordDoesNotHoldItsAddress(t *testing.T) {
 		if err := os.MkdirAll(filepath.Join(half, "data"), 0o700); err != nil {
 			t.Fatal(err)
 		}
-		if _, found, _ := s.Org("half-made"); found {
+		if _, found, _ := s.Org(t.Context(), "half-made"); found {
 			t.Error("a directory is not an organization")
 		}
-		if _, _, err := s.SignUp(Signup{Email: "ada@acme.com", OrgName: "Half Made", Slug: "half-made"}); err != nil {
+		if _, _, err := s.SignUp(t.Context(), Signup{Email: "ada@acme.com", OrgName: "Half Made", Slug: "half-made"}); err != nil {
 			t.Errorf("a sign-up that stopped part way does not hold its address: %v", err)
 		}
 		if _, err := s.Quota("half-made"); err != nil {
@@ -160,32 +162,32 @@ func TestALinkWorksOnceForItsPurposeAndBeforeItRunsOut(t *testing.T) {
 		now := time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC)
 		s.now = func() time.Time { return now }
 
-		secret, err := s.MakeLink("ada@acme.com", Verify, time.Hour)
+		secret, err := s.MakeLink(t.Context(), "ada@acme.com", Verify, time.Hour)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := s.UseLink(secret, SignIn); !errors.Is(err, ErrLink) {
+		if _, err := s.UseLink(t.Context(), secret, SignIn); !errors.Is(err, ErrLink) {
 			t.Errorf("a link to verify an address does not sign anybody in: %v", err)
 		}
-		if _, err := s.UseLink(secret, Verify); !errors.Is(err, ErrLink) {
+		if _, err := s.UseLink(t.Context(), secret, Verify); !errors.Is(err, ErrLink) {
 			t.Errorf("a link tried for the wrong purpose is spent by it: %v", err)
 		}
 
-		secret, _ = s.MakeLink("ada@acme.com", Verify, time.Hour)
-		if email, err := s.UseLink(secret, Verify); err != nil || email != "ada@acme.com" {
+		secret, _ = s.MakeLink(t.Context(), "ada@acme.com", Verify, time.Hour)
+		if email, err := s.UseLink(t.Context(), secret, Verify); err != nil || email != "ada@acme.com" {
 			t.Fatalf("%q %v", email, err)
 		}
-		if _, err := s.UseLink(secret, Verify); !errors.Is(err, ErrLink) {
+		if _, err := s.UseLink(t.Context(), secret, Verify); !errors.Is(err, ErrLink) {
 			t.Errorf("a link works once: %v", err)
 		}
 
-		secret, _ = s.MakeLink("ada@acme.com", SignIn, time.Minute)
+		secret, _ = s.MakeLink(t.Context(), "ada@acme.com", SignIn, time.Minute)
 		now = now.Add(2 * time.Minute)
-		if _, err := s.UseLink(secret, SignIn); !errors.Is(err, ErrLink) {
+		if _, err := s.UseLink(t.Context(), secret, SignIn); !errors.Is(err, ErrLink) {
 			t.Errorf("a link that ran out does not work: %v", err)
 		}
 		for _, bad := range []string{"", "nonsense", string(make([]byte, 200))} {
-			if _, err := s.UseLink(bad, Verify); !errors.Is(err, ErrLink) {
+			if _, err := s.UseLink(t.Context(), bad, Verify); !errors.Is(err, ErrLink) {
 				t.Errorf("%q: %v", bad, err)
 			}
 		}
@@ -195,7 +197,7 @@ func TestALinkWorksOnceForItsPurposeAndBeforeItRunsOut(t *testing.T) {
 func TestTwoRequestsWithOneLinkHaveOneWinner(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
-		secret, _ := s.MakeLink("ada@acme.com", SignIn, time.Hour)
+		secret, _ := s.MakeLink(t.Context(), "ada@acme.com", SignIn, time.Hour)
 		var wg sync.WaitGroup
 		var mu sync.Mutex
 		in := 0
@@ -203,7 +205,7 @@ func TestTwoRequestsWithOneLinkHaveOneWinner(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				if _, err := s.UseLink(secret, SignIn); err == nil {
+				if _, err := s.UseLink(t.Context(), secret, SignIn); err == nil {
 					mu.Lock()
 					in++
 					mu.Unlock()
@@ -222,8 +224,8 @@ func TestOnlyTheHashOfALinkIsKeptAndRunOutLinksAreSwept(t *testing.T) {
 		s := open(t, Settings{})
 		now := time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC)
 		s.now = func() time.Time { return now }
-		kept, _ := s.MakeLink("a@acme.com", Verify, time.Hour)
-		s.MakeLink("b@acme.com", Verify, time.Minute)
+		kept, _ := s.MakeLink(t.Context(), "a@acme.com", Verify, time.Hour)
+		s.MakeLink(t.Context(), "b@acme.com", Verify, time.Minute)
 		hashes, err := collect(context.Background(), s.db, func(r rowScanner) (string, error) {
 			var hash string
 			err := r.Scan(&hash)
@@ -236,10 +238,10 @@ func TestOnlyTheHashOfALinkIsKeptAndRunOutLinksAreSwept(t *testing.T) {
 			t.Errorf("only the hash of the secret is kept: %v", hashes)
 		}
 		now = now.Add(10 * time.Minute)
-		if removed, err := s.Sweep(); err != nil || removed != 1 {
+		if removed, err := s.Sweep(t.Context()); err != nil || removed != 1 {
 			t.Fatalf("removed %d, %v", removed, err)
 		}
-		if _, err := s.UseLink(kept, Verify); err != nil {
+		if _, err := s.UseLink(t.Context(), kept, Verify); err != nil {
 			t.Errorf("a link that has not run out survives the sweep: %v", err)
 		}
 	})
@@ -248,7 +250,7 @@ func TestOnlyTheHashOfALinkIsKeptAndRunOutLinksAreSwept(t *testing.T) {
 func TestAnOrganizationIsNamedFromTheCompanysDomainWhenTheAdminGivesNoName(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
-		person, org, err := s.SignUp(Signup{Email: "ada@acme-research.com"})
+		person, org, err := s.SignUp(t.Context(), Signup{Email: "ada@acme-research.com"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -256,7 +258,7 @@ func TestAnOrganizationIsNamedFromTheCompanysDomainWhenTheAdminGivesNoName(t *te
 			t.Errorf("%+v %+v", person, org)
 		}
 		// A name given is kept, and the address still follows from it.
-		_, other, err := s.SignUp(Signup{Email: "bob@globex.com", OrgName: "Globex Secret Works"})
+		_, other, err := s.SignUp(t.Context(), Signup{Email: "bob@globex.com", OrgName: "Globex Secret Works"})
 		if err != nil || other.Slug != "globex-com" || other.Name != "Globex Secret Works" || other.Domain != "globex.com" {
 			t.Errorf("%+v %v", other, err)
 		}
@@ -266,18 +268,18 @@ func TestAnOrganizationIsNamedFromTheCompanysDomainWhenTheAdminGivesNoName(t *te
 func TestAFreeMailAddressHasNoCompanyToNameItAndClaimsNoDomain(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{AllowFreeMail: true})
-		if _, _, err := s.SignUp(Signup{Email: "ada@gmail.com"}); !errors.Is(err, ErrNeedName) {
+		if _, _, err := s.SignUp(t.Context(), Signup{Email: "ada@gmail.com"}); !errors.Is(err, ErrNeedName) {
 			t.Fatalf("a name is asked for: %v", err)
 		}
-		_, org, err := s.SignUp(Signup{Email: "ada@gmail.com", OrgName: "Ada's Lab"})
+		_, org, err := s.SignUp(t.Context(), Signup{Email: "ada@gmail.com", OrgName: "Ada's Lab"})
 		if err != nil || org.Domain != "" {
 			t.Fatalf("%+v %v", org, err)
 		}
-		if _, err := s.Verify("ada@gmail.com"); err != nil {
+		if err := s.Verify(t.Context(), "ada@gmail.com"); err != nil {
 			t.Fatal(err)
 		}
 		// Nor is a second person at the same provider held off by the first.
-		if _, _, err := s.SignUp(Signup{Email: "bob@gmail.com", OrgName: "Bob's Lab"}); err != nil {
+		if _, _, err := s.SignUp(t.Context(), Signup{Email: "bob@gmail.com", OrgName: "Bob's Lab"}); err != nil {
 			t.Errorf("%v", err)
 		}
 	})
@@ -299,7 +301,7 @@ func TestAnAddressFromADomainIsTheWholeDomainAndIsAlwaysUsable(t *testing.T) {
 			"cy@acme-research.io":       "acme-research-io",
 			"di@team.acme-research.net": "acme-research-net",
 		} {
-			_, org, err := s.SignUp(Signup{Email: email})
+			_, org, err := s.SignUp(t.Context(), Signup{Email: email})
 			if err != nil || org.Slug != want || org.Name == "" {
 				t.Errorf("%s: %+v %v, want %q", email, org, err, want)
 			}
@@ -328,25 +330,25 @@ func TestAnAddressFromAVeryLongDomainStaysWithinWhatAHostNameTakesAndDifferentFr
 func TestACompanyCanHaveSeveralOrganizationsAndEachAfterTheFirstIsNamedByItsCreator(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{PerDomain: 10})
-		_, first, err := s.SignUp(Signup{Email: "ada@acme.com"})
+		_, first, err := s.SignUp(t.Context(), Signup{Email: "ada@acme.com"})
 		if err != nil || first.Slug != "acme-com" || first.Name != "Acme" || first.Domain != "acme.com" {
 			t.Fatalf("%+v %v", first, err)
 		}
-		if _, _, err := s.SignUp(Signup{Email: "bob@acme.com"}); !errors.Is(err, ErrSameCompany) {
+		if _, _, err := s.SignUp(t.Context(), Signup{Email: "bob@acme.com"}); !errors.Is(err, ErrSameCompany) {
 			t.Fatalf("a second with no name is asked for one: %v", err)
 		}
-		_, bank, err := s.SignUp(Signup{Email: "bob@acme.com", OrgName: "Acme Bank"})
+		_, bank, err := s.SignUp(t.Context(), Signup{Email: "bob@acme.com", OrgName: "Acme Bank"})
 		if err != nil || bank.Slug != "acme-bank" || bank.Name != "Acme Bank" || bank.Domain != "acme.com" {
 			t.Fatalf("%+v %v", bank, err)
 		}
-		_, insurance, err := s.SignUp(Signup{Email: "cy@mail.acme.com", OrgName: "Acme Insurance"})
+		_, insurance, err := s.SignUp(t.Context(), Signup{Email: "cy@mail.acme.com", OrgName: "Acme Insurance"})
 		if err != nil || insurance.Slug != "acme-insurance" || insurance.Domain != "acme.com" {
 			t.Fatalf("an address at a subdomain is the same company: %+v %v", insurance, err)
 		}
-		if _, _, err := s.SignUp(Signup{Email: "di@acme.com", OrgName: "Acme Bank"}); !errors.Is(err, ErrSlugTaken) {
+		if _, _, err := s.SignUp(t.Context(), Signup{Email: "di@acme.com", OrgName: "Acme Bank"}); !errors.Is(err, ErrSlugTaken) {
 			t.Errorf("a name that gives a taken address is refused as taken: %v", err)
 		}
-		if _, org, err := s.SignUp(Signup{Email: "ed@acme.com", OrgName: "Acme Labs", Slug: "labs"}); err != nil || org.Slug != "labs" {
+		if _, org, err := s.SignUp(t.Context(), Signup{Email: "ed@acme.com", OrgName: "Acme Labs", Slug: "labs"}); err != nil || org.Slug != "labs" {
 			t.Errorf("an address chosen on purpose is used: %+v %v", org, err)
 		}
 	})
@@ -358,26 +360,26 @@ func TestACompanyCanHaveSeveralOrganizationsAndEachAfterTheFirstIsNamedByItsCrea
 func TestOnlyOrganizationsNobodyHasConfirmedAreLimitedForOneCompany(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{PerDomain: 2})
-		s.SignUp(Signup{Email: "a@acme.com"})
-		s.SignUp(Signup{Email: "b@acme.com", OrgName: "Beta"})
-		if _, _, err := s.SignUp(Signup{Email: "c@acme.com", OrgName: "Gamma"}); !errors.Is(err, ErrDomainFull) {
+		s.SignUp(t.Context(), Signup{Email: "a@acme.com"})
+		s.SignUp(t.Context(), Signup{Email: "b@acme.com", OrgName: "Beta"})
+		if _, _, err := s.SignUp(t.Context(), Signup{Email: "c@acme.com", OrgName: "Gamma"}); !errors.Is(err, ErrDomainFull) {
 			t.Fatalf("a third that nobody has confirmed: %v", err)
 		}
-		if _, err := s.Verify("a@acme.com"); err != nil {
+		if err := s.Verify(t.Context(), "a@acme.com"); err != nil {
 			t.Fatal(err)
 		}
-		if _, _, err := s.SignUp(Signup{Email: "c@acme.com", OrgName: "Gamma"}); err != nil {
+		if _, _, err := s.SignUp(t.Context(), Signup{Email: "c@acme.com", OrgName: "Gamma"}); err != nil {
 			t.Fatalf("one confirmed leaves room: %v", err)
 		}
-		s.Verify("b@acme.com")
-		s.Verify("c@acme.com")
+		s.Verify(t.Context(), "b@acme.com")
+		s.Verify(t.Context(), "c@acme.com")
 		for _, who := range []string{"d", "e", "f", "g"} {
-			if _, _, err := s.SignUp(Signup{Email: who + "@acme.com", OrgName: "Org " + who}); err != nil {
+			if _, _, err := s.SignUp(t.Context(), Signup{Email: who + "@acme.com", OrgName: "Org " + who}); err != nil {
 				t.Fatalf("a company with all of its organizations confirmed is not held to a number: %v", err)
 			}
-			s.Verify(who + "@acme.com")
+			s.Verify(t.Context(), who+"@acme.com")
 		}
-		if _, _, err := s.SignUp(Signup{Email: "z@acme.co", OrgName: "Elsewhere"}); err != nil {
+		if _, _, err := s.SignUp(t.Context(), Signup{Email: "z@acme.co", OrgName: "Elsewhere"}); err != nil {
 			t.Errorf("another company is not held to it: %v", err)
 		}
 	})
@@ -394,7 +396,7 @@ func TestTwoSignUpsForOneCompanysFirstOrganizationAtOnceHaveOneWinner(t *testing
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				_, _, err := s.SignUp(Signup{Email: fmt.Sprintf("p%d@acme.com", i)})
+				_, _, err := s.SignUp(t.Context(), Signup{Email: fmt.Sprintf("p%d@acme.com", i)})
 				results <- err
 			}()
 		}

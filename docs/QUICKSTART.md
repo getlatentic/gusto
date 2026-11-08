@@ -27,16 +27,15 @@ The first page asks for one. Pick your provider, paste the key, press **List my 
 Or from a terminal, if your shell already has the key:
 
 ```bash
-gusto local use DEEPSEEK_API_KEY       # also ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY
+gusto local use DEEPSEEK_API_KEY       # also ANTHROPIC_API_KEY, META_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY
 ```
 
 ## 3. Install an agent
 
-gusto runs agents it finds on your PATH. The page lists the ones it is missing, with the command for each:
+Press **Install** beside an agent gusto does not find, on the chat page or in **Members**, **New agent**. gusto installs it into its own
+folder, at the version the runner image carries, and refuses a download whose checksum is not the pinned one. This needs Node.js and npm.
 
-```bash
-npm install -g opencode-ai            # or @agentclientprotocol/claude-agent-acp, @agentclientprotocol/codex-acp
-```
+An agent you installed yourself on your PATH works too.
 
 ## 4. Ask it something
 

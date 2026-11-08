@@ -8,4 +8,4 @@
     <button class="cursor-pointer rounded-sm bg-solid p-3 text-center font-semibold text-on-solid hover:bg-solid-hover" type="submit">Keep it for {{minutes .Step}} more</button>
   </form>{{else}}<p class="text-sm text-muted">It cannot be kept any longer than this.</p>{{end}}
   <p class="text-sm text-muted">Anything running is stopped when it goes, and the organizations and sign-ins on it go with it.</p>
-{{template "foot"}}{{end}}
+{{template "foot" .}}{{end}}

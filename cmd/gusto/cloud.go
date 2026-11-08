@@ -2,32 +2,38 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/accesslog"
 	"github.com/getlatentic/gusto/internal/cloud"
+	"github.com/getlatentic/gusto/internal/node"
 )
 
-// cloudDatabaseURL is where the accounts are: empty is SQLite in cloud.db under the root.
-func cloudDatabaseURL() string { return strings.TrimSpace(os.Getenv("GUSTO_DATABASE_URL")) }
-
-// cloudWorkspaces lists every workspace on this host.
-func cloudWorkspaces() int {
-	store, err := cloud.Attach(setting("GUSTO_CLOUD_ROOT", "cloud"), cloud.Settings{DatabaseURL: cloudDatabaseURL()})
+// cloudComputers lists every computer on this node.
+func cloudComputers() int {
+	var records cloudRecords
+	if err := loadSettings(records.declare); err != nil {
+		return refused(err)
+	}
+	store, err := cloud.Attach(records.root, records.accounts())
 	if err != nil {
 		return fail(err)
 	}
 	defer store.Close()
-	if err := listComputers(os.Stdout, store); err != nil {
+	if err := listComputers(context.Background(), os.Stdout, store); err != nil {
 		return fail(err)
 	}
 	return 0
@@ -37,12 +43,94 @@ func cloudWorkspaces() int {
 // and the servers it starts for each organization and sends their people to. It runs
 // no tasks itself.
 func cloudCommand() int {
-	front, controller, err := openCloud()
+	cfg, err := loadCloud(os.Getenv)
+	if err != nil {
+		return refused(err)
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	front, controller, err := openCloud(ctx, cfg)
 	if err != nil {
 		return fail(err)
 	}
 	defer front.Store.Close()
-	address := setting("GUSTO_CLOUD_ADDR", "127.0.0.1:8050")
+	scaler, err := nodeScaler(cfg.scaler, controller)
+	if err != nil {
+		return fail(err)
+	}
+	door := &cloudService{front: front, controller: controller, scaler: scaler}
+	door.startBackground(ctx, cfg.nodes.dir)
+	controlled := door.leadInTurn(ctx, time.Duration(cfg.front.leaderSeconds)*time.Second)
+	if err := serveCloud(ctx, cfg.front.addr, front); err != nil {
+		return fail(err)
+	}
+	front.Wait()
+	<-controlled
+	return 0
+}
+
+// cloudService is a running gusto cloud: its pages, the controller of the organizations' servers when it starts them, and
+// the scaler of hosts when it starts those.
+type cloudService struct {
+	front      *cloud.Server
+	controller *cloud.Controller
+	scaler     *node.Scaler
+}
+
+// startBackground starts what every gusto cloud server does, leader or not.
+func (d *cloudService) startBackground(ctx context.Context, nodesDir string) {
+	if d.scaler != nil {
+		d.controller.OnWaiting = d.scaler.Wake
+		d.front.Prewarm = d.scaler.Prewarm
+	}
+	if nodesDir != "" && d.controller != nil {
+		go beatForNodes(ctx, nodesDir)
+	}
+	go d.front.RunLeads(ctx, 30*time.Second)
+	if d.front.Seats != nil {
+		go d.front.Seats.Run(ctx, time.Minute)
+	}
+}
+
+// leadInTurn makes this gusto cloud server one of those on the database that take turns to lead. The channel closes once it no
+// longer leads and has stopped the servers it controlled.
+func (d *cloudService) leadInTurn(ctx context.Context, ttl time.Duration) <-chan struct{} {
+	if d.controller != nil {
+		d.controller.Follow()
+	}
+	leadership := &cloud.Leadership{Store: d.front.Store, Holder: holderName(), TTL: ttl, Every: ttl / 3}
+	controlled := make(chan struct{})
+	go func() {
+		defer close(controlled)
+		leadership.Run(ctx, d.lead)
+		if d.controller != nil {
+			d.controller.StopAll()
+		}
+	}()
+	return controlled
+}
+
+// lead runs what one gusto cloud server on the database does while its lease holds: the controller, the demo and quota sweeps and
+// the scaler. The others serve pages and route from the database.
+func (d *cloudService) lead(ctx context.Context, epoch int64) {
+	if d.controller != nil {
+		d.controller.Lead(epoch)
+		defer d.controller.Follow()
+	}
+	var wg sync.WaitGroup
+	wg.Go(func() { d.front.RunDemos(ctx, 15*time.Second) })
+	wg.Go(func() { d.front.Store.RunQuotas(ctx, 30*time.Second) })
+	if d.scaler != nil {
+		wg.Go(func() { d.scaler.Run(ctx, 10*time.Second) })
+	}
+	if d.controller != nil {
+		wg.Go(func() { d.controller.Run(ctx, 5*time.Second) })
+	}
+	wg.Wait()
+}
+
+// serveCloud serves gusto cloud's pages on address until ctx ends.
+func serveCloud(ctx context.Context, address string, front *cloud.Server) error {
 	// There is no write timeout: an organization's task stream stays open for as long as
 	// the task runs, and gusto cloud carries it.
 	server := &http.Server{
@@ -51,27 +139,6 @@ func cloudCommand() int {
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       2 * time.Minute,
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-	if dir := os.Getenv("GUSTO_CLOUD_CELLS_DIR"); dir != "" && controller != nil {
-		go beatForCells(ctx, dir)
-	}
-	go front.RunDemos(ctx, 15*time.Second)
-	go front.RunLeads(ctx, 30*time.Second)
-	scaler, err := cellScaler(controller)
-	if err != nil {
-		return fail(err)
-	}
-	if scaler != nil {
-		go scaler.Run(ctx, 10*time.Second)
-	}
-	controlled := make(chan struct{})
-	go func() {
-		defer close(controlled)
-		if controller != nil {
-			controller.Run(ctx, 5*time.Second)
-		}
-	}()
 	go func() {
 		<-ctx.Done()
 		shutdown, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -80,107 +147,151 @@ func cloudCommand() int {
 	}()
 	fmt.Printf("gusto cloud is listening on %s, with its accounts in %s\n", address, front.Store.Database())
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fail(err)
+		return err
 	}
-	front.Wait()
-	<-controlled
-	return 0
+	return nil
 }
 
-// openCloud reads gusto cloud's settings and opens what it keeps. Links
-// that expired are swept when it starts and every hour after. A database that has no accounts yet
-// takes in the files an earlier release kept under the root.
-func openCloud() (*cloud.Server, *cloud.Controller, error) {
-	address := setting("GUSTO_CLOUD_ADDR", "127.0.0.1:8050")
-	public, err := url.Parse(setting("GUSTO_CLOUD_URL", "http://"+address))
-	if err != nil || (public.Scheme != "http" && public.Scheme != "https") || public.Host == "" {
-		return nil, nil, errors.New("GUSTO_CLOUD_URL is the address links in mail begin with, as https://cloud.example.com")
-	}
-	root := setting("GUSTO_CLOUD_ROOT", "cloud")
-	limits := cloud.DefaultLimits()
-	limits.Trial.Jobs = number("GUSTO_CLOUD_TRIAL_JOBS", limits.Trial.Jobs)
-	limits.Trial.Concurrent = number("GUSTO_CLOUD_TRIAL_CONCURRENT", limits.Trial.Concurrent)
-	limits.Verified.Jobs = number("GUSTO_CLOUD_JOBS", limits.Verified.Jobs)
-	limits.Verified.Concurrent = number("GUSTO_CLOUD_CONCURRENT", limits.Verified.Concurrent)
-	limits.Verified.Members = number("GUSTO_CLOUD_MEMBERS", limits.Verified.Members)
-	limits.Verified.Computers = number("GUSTO_CLOUD_COMPUTERS", limits.Verified.Computers)
-	store, err := cloud.Open(root, cloud.Settings{
-		AllowFreeMail:  os.Getenv("GUSTO_CLOUD_FREE_MAIL") == "allow",
-		RefusedDomains: lowered(values("GUSTO_CLOUD_REFUSED_DOMAINS")),
-		PerDomain:      number("GUSTO_CLOUD_PER_DOMAIN", 3),
-		Limits:         limits,
-		Demo:           demoSettings(),
-		DatabaseURL:    cloudDatabaseURL(),
-	})
+// holderName tells this gusto cloud server apart from every other on the database: its host, its process and a random part, since
+// a process number is used again after a restart.
+func holderName() string {
+	host, _ := os.Hostname()
+	random := make([]byte, 4)
+	_, _ = rand.Read(random)
+	return fmt.Sprintf("%s/%d/%s", host, os.Getpid(), hex.EncodeToString(random))
+}
+
+// openCloud opens what gusto cloud keeps. Links that expired are swept when it starts and every hour after. A database that
+// has no accounts yet takes in the files an earlier release kept under the root.
+func openCloud(ctx context.Context, cfg cloudSettings) (*cloud.Server, *cloud.Controller, error) {
+	public, err := cfg.front.public()
 	if err != nil {
 		return nil, nil, err
 	}
-	sessions, err := store.OpenSessions(public.Scheme == "https")
+	stripe, err := cfg.billing.stripe()
+	if err != nil {
+		return nil, nil, err
+	}
+	store, err := openAccounts(ctx, cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	payPal, err := cfg.paypal.billing(store)
 	if err != nil {
 		store.Close()
 		return nil, nil, err
 	}
-	mail, err := cloud.MailFrom(os.Getenv("GUSTO_CLOUD_MAIL"), filepath.Join(root, "outbox"), os.Getenv("GUSTO_CLOUD_MAIL_TOKEN"))
+	front, controller, err := frontOf(ctx, store, public, stripe, payPal, cfg)
+	if err != nil {
+		store.Close()
+		return nil, nil, err
+	}
+	go sweepLinks(ctx, store)
+	return front, controller, nil
+}
+
+// openAccounts opens the accounts and writes every organization's quota as its plan says.
+func openAccounts(ctx context.Context, cfg cloudSettings) (*cloud.Store, error) {
+	accounts := cfg.records.accounts()
+	accounts.AllowFreeMail = cfg.signup.freeMail == "allow"
+	accounts.RefusedDomains = lowered(cfg.signup.refusedDomains)
+	accounts.PerDomain = cfg.signup.perDomain
+	accounts.Limits = cfg.signup.limits()
+	accounts.Demo = cfg.demo.forCloud()
+	store, err := cloud.Open(cfg.records.root, accounts)
+	if err != nil {
+		return nil, err
+	}
+	if err := store.ApplyQuotas(ctx); err != nil {
+		store.Close()
+		return nil, err
+	}
+	return store, nil
+}
+
+// frontOf is gusto cloud's pages on the accounts in store, and the controller of the organizations' servers when it
+// starts them.
+func frontOf(ctx context.Context, store *cloud.Store, public *url.URL, stripe *cloud.Stripe, payPal *cloud.PayPalBilling, cfg cloudSettings) (*cloud.Server, *cloud.Controller, error) {
+	sessions, err := store.OpenSessions(ctx, public.Scheme == "https")
 	if err != nil {
 		return nil, nil, err
 	}
-	var controller *cloud.Controller
-	if os.Getenv("GUSTO_CLOUD_SERVERS") != "off" {
-		if controller, err = organizationServers(store, public, limits); err != nil {
-			return nil, nil, err
-		}
-	}
-	var lease *cloud.Lease
-	if path := os.Getenv("GUSTO_CLOUD_LEASE_FILE"); path != "" {
-		lease = cloud.OpenLease(path, time.Duration(number("GUSTO_CLOUD_LEASE_STEP_MINUTES", 30))*time.Minute)
-	}
-	billing, err := billingFromEnvironment(store)
+	mail, err := cloud.MailFrom(cfg.front.mail, filepath.Join(cfg.records.root, "outbox"), cfg.front.mailToken)
 	if err != nil {
 		return nil, nil, err
 	}
+	controller, err := controllerOf(store, public, cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	f := cfg.front
 	front, err := cloud.New(cloud.Config{
-		Billing: billing, Lease: lease, Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
-		Domain:     setting("GUSTO_CLOUD_DOMAIN", "localhost"),
-		TrustProxy: os.Getenv("GUSTO_CLOUD_TRUST_PROXY") == "1",
-		Notify:     os.Getenv("GUSTO_CLOUD_DEMO_NOTIFY"),
-		Leads:      &cloud.LeadHook{URL: os.Getenv("GUSTO_CLOUD_LEAD_HOOK_URL"), Secret: os.Getenv("GUSTO_CLOUD_LEAD_HOOK_SECRET"), Dir: filepath.Join(root, "leadhook")},
-		Turnstile:  cloud.Turnstile{Site: os.Getenv("GUSTO_CLOUD_TURNSTILE_SITE"), Secret: os.Getenv("GUSTO_CLOUD_TURNSTILE_SECRET")},
-		PerAddress: number("GUSTO_CLOUD_PER_ADDRESS", 0), PerMailbox: number("GUSTO_CLOUD_PER_MAILBOX", 0), InAll: number("GUSTO_CLOUD_IN_ALL", 0),
+		Lease: f.lease(), Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
+		Domain: f.domain, TrustProxy: f.trustProxy, Notify: cfg.demo.notify,
+		Leads:      &cloud.LeadHook{URL: f.leadHookURL, Secret: f.leadHookSecret, Dir: filepath.Join(cfg.records.root, "leadhook")},
+		Turnstile:  cloud.Turnstile{Site: f.turnstileSite, Secret: f.turnstileSecret},
+		PerAddress: f.perAddress, PerMailbox: f.perMailbox, InAll: f.inAll,
+		Stripe: stripe, PayPal: payPal,
 	})
 	if err != nil {
 		return nil, nil, err
 	}
-	go sweepLinks(store)
+	if stripe != nil {
+		front.Seats = cloud.NewSeatSync(store, stripe)
+	}
 	return front, controller, nil
 }
 
-// organizationServers is what starts each organization's gusto serve on this machine.
-// GUSTO_CLOUD_ORG_ENV names a file of KEY=VALUE lines that every organization's
-// server is started with, which is where the operator's model credentials, models and
-// sandbox settings go. Nothing else of gusto cloud's environment goes to them.
-func organizationServers(store *cloud.Store, public *url.URL, limits cloud.Limits) (*cloud.Controller, error) {
+// controllerOf is what starts the organizations' servers, and nil when gusto cloud keeps the accounts only.
+func controllerOf(store *cloud.Store, public *url.URL, cfg cloudSettings) (*cloud.Controller, error) {
+	if cfg.servers.run == "off" {
+		return nil, nil
+	}
+	controller, err := organizationServers(store, public, cfg)
+	if err != nil {
+		return nil, err
+	}
+	controller.OrgURL = func(slug string) string { return cloud.OrgAddress(public, cfg.front.domain, slug) }
+	return controller, nil
+}
+
+// organizationServers is what starts each organization's gusto serve on this machine, or on the hosts when there are some.
+// Every organization's server is started with the lines of GUSTO_CLOUD_ORG_ENV, and a demo organization's with those of
+// GUSTO_CLOUD_DEMO_ENV on top. Nothing else of gusto cloud's environment goes to them.
+func organizationServers(store *cloud.Store, public *url.URL, cfg cloudSettings) (*cloud.Controller, error) {
 	exe, err := os.Executable()
 	if err != nil {
 		return nil, err
 	}
-	env, err := operatorEnv(os.Getenv("GUSTO_CLOUD_ORG_ENV"))
+	env, err := operatorEnv(cfg.servers.orgEnv)
 	if err != nil {
 		return nil, err
 	}
-	local := &cloud.LocalCell{}
+	demoEnv, err := envLines(cfg.servers.demoEnv)
+	if err != nil {
+		return nil, err
+	}
+	indexDir := cfg.servers.indexDir
+	if indexDir == "" {
+		indexDir = filepath.Join(store.Root(), "index")
+	}
+	local := &cloud.LocalNode{}
 	controller := &cloud.Controller{
-		Store: store, Cell: local, Command: []string{exe, "serve"}, Env: env,
-		FrontDoor: public.Scheme + "://" + public.Host, PortFrom: number("GUSTO_CLOUD_PORT_FROM", 9100),
-		Wait: time.Duration(number("GUSTO_CLOUD_START_WAIT_SECONDS", 120)) * time.Second, Concurrent: limits.Verified.Concurrent,
-		IndexDir: setting("GUSTO_CLOUD_INDEX_DIR", filepath.Join(store.Root(), "index")),
+		Store: store, Node: local, Command: []string{exe, "serve"}, Env: env, DemoEnv: demoEnv,
+		CloudURL: public.Scheme + "://" + public.Host, PortFrom: cfg.servers.portFrom,
+		Wait: time.Duration(cfg.servers.startWaitSeconds) * time.Second, Concurrent: cfg.signup.concurrent, IndexDir: indexDir,
 	}
-	pool, err := cellPool(local)
+	pool, err := nodePool(cfg.nodes, local)
+	if err != nil || pool == nil {
+		return controller, err
+	}
+	controller.Nodes = pool
+	// A host apart runs the servers from the shared files, as this release, and not the program it was made with.
+	shared, err := cloud.ShareRelease(exe, filepath.Join(store.Root(), "releases"))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("this release could not be put where the hosts run it from: %w", err)
 	}
-	if pool != nil {
-		controller.Cells = pool
-	}
+	controller.Command = []string{shared, "serve"}
 	return controller, nil
 }
 
@@ -188,14 +299,20 @@ func organizationServers(store *cloud.Store, public *url.URL, limits cloud.Limit
 // KEY=VALUE, and blank lines and lines that begin with # are skipped. PATH is
 // this process's unless the file sets it, so a server finds git and openshell.
 func operatorEnv(path string) ([]string, error) {
-	env := []string{"PATH=" + os.Getenv("PATH")}
+	lines, err := envLines(path)
+	return append([]string{"PATH=" + os.Getenv("PATH")}, lines...), err
+}
+
+// envLines are the KEY=VALUE lines of a file of settings, without its blank lines and comments, and none when no file is named.
+func envLines(path string) ([]string, error) {
 	if path == "" {
-		return env, nil
+		return nil, nil
 	}
 	text, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
+	var env []string
 	for number, line := range strings.Split(string(text), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
@@ -209,12 +326,19 @@ func operatorEnv(path string) ([]string, error) {
 	return env, nil
 }
 
-func sweepLinks(store *cloud.Store) {
+// sweepLinks removes expired links now and every hour, until ctx ends.
+func sweepLinks(ctx context.Context, store *cloud.Store) {
+	tick := time.NewTicker(time.Hour)
+	defer tick.Stop()
 	for {
-		if _, err := store.Sweep(); err != nil {
-			fmt.Fprintf(os.Stderr, "gusto cloud could not sweep expired links: %v\n", err)
+		if _, err := store.Sweep(ctx); err != nil && ctx.Err() == nil {
+			slog.Error("expired links could not be swept", "error", err)
 		}
-		time.Sleep(time.Hour)
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick.C:
+		}
 	}
 }
 
@@ -224,25 +348,4 @@ func lowered(members []string) []string {
 		out[i] = strings.ToLower(member)
 	}
 	return out
-}
-
-// demoSettings make gusto cloud offer a demo when GUSTO_CLOUD_DEMO_MINUTES is set: the minutes a demo lasts
-// from when it is ready, GUSTO_CLOUD_DEMO_EXTEND_MINUTES for its one extension (10), GUSTO_CLOUD_DEMO_MAX for the
-// most at once (5), GUSTO_CLOUD_DEMO_PER_DAY for the most in a day (40), GUSTO_CLOUD_DEMO_PER_PERSON and GUSTO_CLOUD_DEMO_PER_COMPANY for the most one address (2) and one company (6) may start in twenty-four hours, GUSTO_CLOUD_DEMO_NOTIFY for an address that is mailed when a visitor starts a demo, GUSTO_CLOUD_DEMO_VIDEO for the video the landing page shows (an https address of a file or of a page to embed), and GUSTO_CLOUD_BOOK_URL for where a call is booked.
-func demoSettings() cloud.DemoSettings {
-	length := number("GUSTO_CLOUD_DEMO_MINUTES", 0)
-	if length == 0 {
-		return cloud.DemoSettings{}
-	}
-	return cloud.DemoSettings{
-		Length:     time.Duration(length) * time.Minute,
-		Extend:     time.Duration(number("GUSTO_CLOUD_DEMO_EXTEND_MINUTES", 10)) * time.Minute,
-		Patience:   time.Duration(number("GUSTO_CLOUD_DEMO_PATIENCE_MINUTES", 15)) * time.Minute,
-		MaxOrgs:    number("GUSTO_CLOUD_DEMO_MAX", 5),
-		PerDay:     number("GUSTO_CLOUD_DEMO_PER_DAY", 40),
-		PerPerson:  number("GUSTO_CLOUD_DEMO_PER_PERSON", 2),
-		PerCompany: number("GUSTO_CLOUD_DEMO_PER_COMPANY", 6),
-		BookURL:    os.Getenv("GUSTO_CLOUD_BOOK_URL"),
-		VideoURL:   os.Getenv("GUSTO_CLOUD_DEMO_VIDEO"),
-	}
 }

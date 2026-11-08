@@ -4,10 +4,10 @@ The server removes finished work on a schedule you set, so that a busy team does
 
 | What | Holds | Removed |
 | --- | --- | --- |
-| the workspace | the checkout and everything the agent changed. It is most of the disk. `gusto pr open` and `gusto rerun` need it | first |
+| the working folder | the checkout and everything the agent changed. It is most of the disk. `gusto pr open` and `gusto rerun` need it | first |
 | the record | `out/`: the manifest, its signature, the patch, the transcript. It is small. `gusto verify` checks it | later |
 
-Removing a workspace leaves the record whole, and `gusto verify` still passes. A task with no workspace cannot open a pull request or be rerun.
+Removing a working folder leaves the record whole, and `gusto verify` still passes. A task with no working folder cannot open a pull request or be rerun.
 
 ## Set the policy
 
@@ -20,36 +20,35 @@ Days count from when the task ended, by the state it ended in: `passed`, `failed
 }
 ```
 
-The server refuses a policy that sets a record to go before its workspace, names a state a task cannot end in, or has a misspelt field. It does not start on a refused policy.
+The server refuses a policy that sets a record to go before its working folder, names a state a task cannot end in, or has a misspelt field. A working folder with no days is kept for ever, and removing a record removes its working folder, so a state whose record has days needs working folder days no greater. The server does not start on a refused policy.
 
 | Install | Where |
 | --- | --- |
-| Playbook | `retention_policy` in the host's variables |
 | Chart | `retention` in the values |
 | Compose | `policy.json` in `$GUSTO_DATA/retention/` on the volume |
 
-`GUSTO_RETENTION` names the directory. It holds `policy.json`, `holds.json` and `last.json`, the newest sweep's report. With no policy the server removes nothing, and `/admin/retention` still shows the disk and the holds.
+`GUSTO_RETENTION` names the directory. It holds `policy.json`, `holds.json` and `last.json`, the newest sweep's report. With no policy the server removes nothing, and `/admin/records?tab=keeping` still shows the disk and the holds.
 
 ## Sweeps
 
-The server sweeps every 60 minutes. Set `GUSTO_RETENTION_MINUTES` to change the interval. An admin can sweep at once from `/admin/retention`.
+The server sweeps every 60 minutes. Set `GUSTO_RETENTION_MINUTES` to change the interval. An admin can sweep at once from `/admin/records?tab=keeping`.
 
-A sweep touches only tasks that have ended and that no agent owns. A task or message on an agent goes when the agent is removed. A queued or running task is never touched.
+A sweep touches only tasks that have ended. A turn in a room is kept while the room is. Once the room is removed, its turns are swept like any other task. A queued or running task is never touched.
 
 ## Holds
 
 A hold keeps work whole whatever the policy says. On the Retention page of the admin console, an admin holds one task by its id, or everything a person asked for. A hold on a person covers work they ask for later.
 
-A sweep that cannot read the holds removes nothing.
+A sweep reads the holds again before each removal, so a hold placed while a sweep runs keeps what the sweep has not reached. A task the sweep removed first cannot be held, and the console says so. A hold on a task that is gone ends at the next sweep. A sweep that cannot read the holds removes nothing.
 
 ## See what a sweep removes
 
-`/admin/retention` shows the disk the tasks use, how much is workspaces, the oldest finished task kept, the policy in force, what the next sweep would remove, and the last sweep.
+`/admin/records?tab=keeping` shows the disk the tasks use, how much of it is working folders, the oldest finished task kept, the policy in force, what the next sweep would remove, and the last sweep.
 
 This command lists what a sweep would remove now and removes nothing. It is safe to run while the server runs.
 
 ```bash
-gusto retention -dir /opt/gusto/var/retention -tasks /opt/gusto/jobs
+gusto retention -dir /opt/gusto/var/retention -tasks /opt/gusto/var/jobs -sessions /opt/gusto/var/sessions
 ```
 
 ## Change record

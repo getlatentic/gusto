@@ -19,9 +19,9 @@ import (
 )
 
 // bfRecord writes a task's proxy record, one line to each call, and a string as it is.
-func bfRecord(t *testing.T, jobs, task string, lines ...any) string {
+func bfRecord(t *testing.T, tasks, task string, lines ...any) string {
 	t.Helper()
-	dir := filepath.Join(jobs, task, "out")
+	dir := filepath.Join(tasks, task, "out")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -53,9 +53,9 @@ func bfByKey(rows []usage.Row) map[string]usage.Row {
 	return out
 }
 
-func bfRun(t *testing.T, store usage.Store, jobs string) usage.Result {
+func bfRun(t *testing.T, store usage.Store, tasks string) usage.Result {
 	t.Helper()
-	got, err := usage.Backfill(context.Background(), store, jobs, recAda, recNamed, nil)
+	got, err := usage.Backfill(context.Background(), store, tasks, recAda, recNamed, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,10 +63,10 @@ func bfRun(t *testing.T, store usage.Store, jobs string) usage.Result {
 }
 
 func TestBackfillAddsEveryModelCallAndSkipsOtherHosts(t *testing.T) {
-	jobs, store := t.TempDir(), usagetest.New()
-	bfRecord(t, jobs, "a", recCall("m1", 10), spend.Call{Host: "x.com:443", AtUnix: 11}, recCall("m2", 12))
-	bfRecord(t, jobs, "b", recCall("m1", 20))
-	got := bfRun(t, store, jobs)
+	tasks, store := t.TempDir(), usagetest.New()
+	bfRecord(t, tasks, "a", recCall("m1", 10), spend.Call{Host: "x.com:443", AtUnix: 11}, recCall("m2", 12))
+	bfRecord(t, tasks, "b", recCall("m1", 20))
+	got := bfRun(t, store, tasks)
 	if got.Tasks != 2 || got.Rows != 3 || len(store.All()) != 3 {
 		t.Fatalf("%+v, %d rows", got, len(store.All()))
 	}
@@ -81,21 +81,21 @@ func TestBackfillAddsEveryModelCallAndSkipsOtherHosts(t *testing.T) {
 }
 
 func TestBackfillTwiceAddsNothingTheSecondTime(t *testing.T) {
-	jobs, store := t.TempDir(), usagetest.New()
-	bfRecord(t, jobs, "a", recCall("m1", 10), recCall("m1", 11))
-	bfRun(t, store, jobs)
-	if again := bfRun(t, store, jobs); again.Rows != 0 || len(store.All()) != 2 {
+	tasks, store := t.TempDir(), usagetest.New()
+	bfRecord(t, tasks, "a", recCall("m1", 10), recCall("m1", 11))
+	bfRun(t, store, tasks)
+	if again := bfRun(t, store, tasks); again.Rows != 0 || len(store.All()) != 2 {
 		t.Fatalf("%+v, %d rows", again, len(store.All()))
 	}
 }
 
 func TestBackfillReadsOnlyTheLinesPastWhatTheIndexHolds(t *testing.T) {
-	jobs, store := t.TempDir(), &recStore{Fake: usagetest.New()}
-	bfRecord(t, jobs, "a", recCall("m1", 10), recCall("m1", 11), recCall("m1", 12), recCall("m1", 13))
+	tasks, store := t.TempDir(), &recStore{Fake: usagetest.New()}
+	bfRecord(t, tasks, "a", recCall("m1", 10), recCall("m1", 11), recCall("m1", 12), recCall("m1", 13))
 	store.Fake.Add(context.Background(), []usage.Row{{Task: "a", Line: 0}, {Task: "a", Line: 1}})
-	bfRecord(t, jobs, "held", recCall("m1", 10))
+	bfRecord(t, tasks, "held", recCall("m1", 10))
 	store.Fake.Add(context.Background(), []usage.Row{{Task: "held", Line: 0}})
-	got := bfRun(t, store, jobs)
+	got := bfRun(t, store, tasks)
 	if got.Rows != 2 {
 		t.Fatalf("%+v", got)
 	}
@@ -109,9 +109,9 @@ func TestBackfillReadsOnlyTheLinesPastWhatTheIndexHolds(t *testing.T) {
 }
 
 func TestBackfillPassesOverLinesThatAreNotCallsAndSaysHowMany(t *testing.T) {
-	jobs, store := t.TempDir(), usagetest.New()
-	bfRecord(t, jobs, "a", recCall("m1", 10), "{not json\n", "\n", recCall("m1", 12))
-	got := bfRun(t, store, jobs)
+	tasks, store := t.TempDir(), usagetest.New()
+	bfRecord(t, tasks, "a", recCall("m1", 10), "{not json\n", "\n", recCall("m1", 12))
+	got := bfRun(t, store, tasks)
 	if got.Rows != 2 || got.Malformed != 1 {
 		t.Fatalf("%+v", got)
 	}
@@ -121,16 +121,16 @@ func TestBackfillPassesOverLinesThatAreNotCallsAndSaysHowMany(t *testing.T) {
 }
 
 func TestALineStillBeingWrittenIsLeftForTheNextRun(t *testing.T) {
-	jobs, store := t.TempDir(), usagetest.New()
+	tasks, store := t.TempDir(), usagetest.New()
 	whole, _ := json.Marshal(recCall("m1", 11))
-	path := bfRecord(t, jobs, "a", recCall("m1", 10), string(whole[:len(whole)/2]))
-	if got := bfRun(t, store, jobs); got.Rows != 1 || got.Malformed != 0 {
+	path := bfRecord(t, tasks, "a", recCall("m1", 10), string(whole[:len(whole)/2]))
+	if got := bfRun(t, store, tasks); got.Rows != 1 || got.Malformed != 0 {
 		t.Fatalf("%+v", got)
 	}
 	if err := os.WriteFile(path, []byte(string(mustJSON(t, recCall("m1", 10)))+"\n"+string(whole)+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if got := bfRun(t, store, jobs); got.Rows != 1 || len(store.All()) != 2 {
+	if got := bfRun(t, store, tasks); got.Rows != 1 || len(store.All()) != 2 {
 		t.Fatalf("%+v, %d rows", got, len(store.All()))
 	}
 }
@@ -166,31 +166,31 @@ func (i *bfInterrupting) Add(ctx context.Context, rows []usage.Row) error {
 }
 
 func TestAnInterruptedRunResumesAndEndsWithEveryRowOnce(t *testing.T) {
-	jobs := t.TempDir()
+	tasks := t.TempDir()
 	for _, task := range []string{"a", "b", "c", "d"} {
-		bfRecord(t, jobs, task, recCall("m1", 10), recCall("m1", 11), recCall("m1", 12))
+		bfRecord(t, tasks, task, recCall("m1", 10), recCall("m1", 11), recCall("m1", 12))
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	store := &bfInterrupting{Fake: usagetest.New(), after: 2, cancel: cancel}
-	if _, err := usage.Backfill(ctx, store, jobs, recAda, recNamed, nil); !errors.Is(err, context.Canceled) {
+	if _, err := usage.Backfill(ctx, store, tasks, recAda, recNamed, nil); !errors.Is(err, context.Canceled) {
 		t.Fatalf("the interrupted run ended with %v", err)
 	}
 	if n := len(store.All()); n == 0 || n >= 12 {
 		t.Fatalf("%d rows after the interruption", n)
 	}
-	bfRun(t, store.Fake, jobs)
+	bfRun(t, store.Fake, tasks)
 	if n := len(store.All()); n != 12 {
 		t.Fatalf("%d rows after resuming", n)
 	}
 }
 
 func TestProgressCountsTasksAndEndsDone(t *testing.T) {
-	jobs, store := t.TempDir(), usagetest.New()
-	bfRecord(t, jobs, "a", recCall("m1", 10))
-	bfRecord(t, jobs, "b", recCall("m1", 10))
+	tasks, store := t.TempDir(), usagetest.New()
+	bfRecord(t, tasks, "a", recCall("m1", 10))
+	bfRecord(t, tasks, "b", recCall("m1", 10))
 	var seen []usage.Status
 	progress := &usage.Progress{Changed: func(s usage.Status) { seen = append(seen, s) }}
-	if _, err := usage.Backfill(context.Background(), store, jobs, recAda, recNamed, progress); err != nil {
+	if _, err := usage.Backfill(context.Background(), store, tasks, recAda, recNamed, progress); err != nil {
 		t.Fatal(err)
 	}
 	if seen[0] != (usage.Status{Building: true, Total: 2}) {
@@ -206,7 +206,7 @@ func TestProgressCountsTasksAndEndsDone(t *testing.T) {
 }
 
 func TestBackfillAndTheRecorderMakeTheSameRows(t *testing.T) {
-	jobs := t.TempDir()
+	tasks := t.TempDir()
 	calls := []spend.Call{
 		recCall("m1", 10), {Host: "x:443", AtUnix: 11},
 		spend.RefusedCall("/v1/x", "m2", 12, &spend.Refusal{Cap: "job", Reason: "spent"}),
@@ -216,9 +216,9 @@ func TestBackfillAndTheRecorderMakeTheSameRows(t *testing.T) {
 	for i, c := range calls {
 		lines[i] = c
 	}
-	bfRecord(t, jobs, "a", lines...)
+	bfRecord(t, tasks, "a", lines...)
 	built, live := usagetest.New(), usagetest.New()
-	bfRun(t, built, jobs)
+	bfRun(t, built, tasks)
 	r := usage.NewRecorder(live, recAda, recNamed)
 	for i, c := range calls {
 		r.Record("a", i, c)
@@ -230,9 +230,9 @@ func TestBackfillAndTheRecorderMakeTheSameRows(t *testing.T) {
 }
 
 func TestATaskNobodyKnowsIsIndexedUnderUnknown(t *testing.T) {
-	jobs, store := t.TempDir(), usagetest.New()
-	bfRecord(t, jobs, "orphan", recCall("m1", 10))
-	if _, err := usage.Backfill(context.Background(), store, jobs, func(string) (usage.Who, bool) { return usage.Who{}, false }, recNamed, nil); err != nil {
+	tasks, store := t.TempDir(), usagetest.New()
+	bfRecord(t, tasks, "orphan", recCall("m1", 10))
+	if _, err := usage.Backfill(context.Background(), store, tasks, func(string) (usage.Who, bool) { return usage.Who{}, false }, recNamed, nil); err != nil {
 		t.Fatal(err)
 	}
 	if rows := store.All(); len(rows) != 1 || rows[0].Person != "unknown" || rows[0].Session != "orphan" {
@@ -240,14 +240,24 @@ func TestATaskNobodyKnowsIsIndexedUnderUnknown(t *testing.T) {
 	}
 }
 
-func TestRepairReadsATaskFromItsFirstLineToFillAGap(t *testing.T) {
-	jobs, store := t.TempDir(), usagetest.New()
-	bfRecord(t, jobs, "a", recCall("m1", 10), recCall("m1", 11), recCall("m1", 12))
+func TestABackfillFillsAGapTheRecorderLeftThoughLaterLinesAreHeld(t *testing.T) {
+	tasks, store := t.TempDir(), usagetest.New()
+	bfRecord(t, tasks, "a", recCall("m1", 10), recCall("m1", 11), recCall("m1", 12))
 	store.Add(context.Background(), []usage.Row{{Task: "a", Line: 2}})
-	if got := bfRun(t, store, jobs); got.Rows != 0 {
-		t.Fatalf("a backfill looked behind the last line held: %+v", got)
+	bfRun(t, store, tasks)
+	if n := len(store.All()); n != 3 {
+		t.Fatalf("a backfill left the lines before the last one held: %d rows", n)
 	}
-	if _, err := usage.Repair(context.Background(), store, jobs, recAda, recNamed, nil, []string{"a"}); err != nil {
+	if got := bfRun(t, store, tasks); got.Rows != 0 {
+		t.Errorf("a backfill of a task held whole read it again: %+v", got)
+	}
+}
+
+func TestRepairReadsATaskFromItsFirstLine(t *testing.T) {
+	tasks, store := t.TempDir(), usagetest.New()
+	bfRecord(t, tasks, "a", recCall("m1", 10), recCall("m1", 11), recCall("m1", 12))
+	store.Add(context.Background(), []usage.Row{{Task: "a", Line: 0}})
+	if _, err := usage.Repair(context.Background(), store, tasks, recAda, recNamed, nil, []string{"a"}); err != nil {
 		t.Fatal(err)
 	}
 	if n := len(store.All()); n != 3 {
@@ -256,15 +266,15 @@ func TestRepairReadsATaskFromItsFirstLineToFillAGap(t *testing.T) {
 }
 
 func TestKeepFillsTheIndexThenRepairsWhatTheRecorderLost(t *testing.T) {
-	jobs, store := t.TempDir(), usagetest.New()
-	bfRecord(t, jobs, "a", recCall("m1", 10), recCall("m1", 11))
+	tasks, store := t.TempDir(), usagetest.New()
+	bfRecord(t, tasks, "a", recCall("m1", 10), recCall("m1", 11))
 	rec := usage.NewRecorder(store, recAda, recNamed)
 	defer rec.Close()
 	ctx, stop := context.WithCancel(context.Background())
 	done := make(chan struct{})
-	go func() { usage.Keep(ctx, store, jobs, recAda, recNamed, rec, nil); close(done) }()
+	go func() { usage.Keep(ctx, store, tasks, recAda, recNamed, rec, nil); close(done) }()
 	waitForRows(t, store, 2)
-	bfRecord(t, jobs, "a", recCall("m1", 10), recCall("m1", 11), recCall("m1", 12))
+	bfRecord(t, tasks, "a", recCall("m1", 10), recCall("m1", 11), recCall("m1", 12))
 	usage.Lose(rec, "a")
 	waitForRows(t, store, 3)
 	stop()
@@ -287,16 +297,16 @@ func waitForRows(t *testing.T, store *usagetest.Fake, want int) {
 }
 
 func TestADeletedSQLiteIndexIsRebuiltToTheSameRows(t *testing.T) {
-	jobs, data := t.TempDir(), t.TempDir()
-	bfRecord(t, jobs, "a", recCall("m1", 10), spend.Call{Host: "x:443", AtUnix: 11}, recCall("m2", 12))
-	bfRecord(t, jobs, "b", recCall("m1", 20), "garbage\n", recCall("m1", 21))
+	tasks, data := t.TempDir(), t.TempDir()
+	bfRecord(t, tasks, "a", recCall("m1", 10), spend.Call{Host: "x:443", AtUnix: 11}, recCall("m2", 12))
+	bfRecord(t, tasks, "b", recCall("m1", 20), "garbage\n", recCall("m1", 21))
 	read := func() []usage.Row {
 		store, err := usage.Open(context.Background(), "", data)
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer store.Close()
-		if _, err := usage.Backfill(context.Background(), store, jobs, recAda, recNamed, nil); err != nil {
+		if _, err := usage.Backfill(context.Background(), store, tasks, recAda, recNamed, nil); err != nil {
 			t.Fatal(err)
 		}
 		var rows []usage.Row
@@ -322,14 +332,14 @@ func TestADeletedSQLiteIndexIsRebuiltToTheSameRows(t *testing.T) {
 }
 
 func TestARebuildNeitherDeletesNorBringsBackWhatRetentionRemoved(t *testing.T) {
-	jobs, store := t.TempDir(), usagetest.New()
-	bfRecord(t, jobs, "gone", recCall("m1", 10))
-	bfRecord(t, jobs, "kept", recCall("m1", 11))
-	bfRun(t, store, jobs)
-	if err := os.RemoveAll(filepath.Join(jobs, "gone")); err != nil {
+	dir, store := t.TempDir(), usagetest.New()
+	bfRecord(t, dir, "gone", recCall("m1", 10))
+	bfRecord(t, dir, "kept", recCall("m1", 11))
+	bfRun(t, store, dir)
+	if err := os.RemoveAll(filepath.Join(dir, "gone")); err != nil {
 		t.Fatal(err)
 	}
-	bfRun(t, store, jobs)
+	bfRun(t, store, dir)
 	tasks := map[string]bool{}
 	for _, r := range store.All() {
 		tasks[r.Task] = true
@@ -360,11 +370,11 @@ func TestAnIndexIsEmptiedAndRebuiltFromScratchToTheSameRows(t *testing.T) {
 	}
 	for name, open := range stores {
 		t.Run(name, func(t *testing.T) {
-			jobs := t.TempDir()
-			bfRecord(t, jobs, "a", recCall("m1", 10), spend.Call{Host: "x:443", AtUnix: 11}, recCall("m2", 12))
-			bfRecord(t, jobs, "b", recCall("m1", 20), "garbage\n", recCall("m1", 21))
+			tasks := t.TempDir()
+			bfRecord(t, tasks, "a", recCall("m1", 10), spend.Call{Host: "x:443", AtUnix: 11}, recCall("m2", 12))
+			bfRecord(t, tasks, "b", recCall("m1", 20), "garbage\n", recCall("m1", 21))
 			store := open(t)
-			bfRun(t, store, jobs)
+			bfRun(t, store, tasks)
 			first := bfRowsOf(t, store)
 			if len(first) != 4 {
 				t.Fatalf("%d rows", len(first))
@@ -376,7 +386,7 @@ func TestAnIndexIsEmptiedAndRebuiltFromScratchToTheSameRows(t *testing.T) {
 			if held, _ := store.Indexed(context.Background()); len(held) != 0 {
 				t.Fatalf("still holds %v", held)
 			}
-			if got := bfRun(t, store, jobs); got.Rows != 4 {
+			if got := bfRun(t, store, tasks); got.Rows != 4 {
 				t.Fatalf("%+v", got)
 			}
 			if second := bfRowsOf(t, store); !reflect.DeepEqual(first, second) {

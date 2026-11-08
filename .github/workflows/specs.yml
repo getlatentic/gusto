@@ -1,0 +1,78 @@
+# TLC checks the TLA+ specs, and that each spec still finds the bug it was written for, whenever a spec or the code it
+# models changes.
+name: specs
+
+on:
+  pull_request:
+    paths:
+      - "spec/**"
+      - "internal/jobs/**"
+      - "internal/record/**"
+      - "internal/matrix/**"
+      - "internal/helper/**"
+      - "internal/filelock/**"
+      - "internal/vmwall/**"
+      - "internal/registry/**"
+      - "cmd/gusto/roomturn.go"
+      - "internal/connector/**"
+      - "internal/cloud/controller.go"
+      - "internal/node/**"
+      - "internal/cloud/demo_sweep.go"
+      - "internal/cloud/route.go"
+      - "internal/cloud/leader.go"
+      - "internal/cloud/leadership.go"
+      - "internal/cloud/controller_follow.go"
+      - "internal/cloud/demo_*.go"
+      - "internal/cloud/billing*.go"
+      - "internal/cloud/quota_apply.go"
+      - "internal/cloud/stripe*.go"
+      - "pkg/spend/**"
+      - "internal/orgsettings/**"
+      - "cmd/gusto/wayout.go"
+      - "internal/apitoken/**"
+      - "internal/web/auth.go"
+      - "internal/web/sent.go"
+      - "internal/web/device.go"
+      - "internal/web/names.go"
+      - "internal/atomicfile/**"
+      - "internal/changelog/**"
+      - "internal/computer/**"
+      - "internal/roomwork/**"
+      - "internal/apps/**"
+      - "internal/web/sharing.go"
+      - "internal/instance/routine.go"
+      - "internal/instance/thread.go"
+      - "internal/web/routines.go"
+      - "cmd/gusto/apps.go"
+      - "cmd/gusto/computers*.go"
+      - "internal/datadir/**"
+      - "internal/dbkit/**"
+      - "internal/crew/**"
+      - "internal/web/connectors*.go"
+      - "internal/web/members_agents.go"
+      - "internal/instance/membership.go"
+      - "internal/instance/room.go"
+      - "internal/web/rooms_members.go"
+      - "internal/web/rooms_installs.go"
+      - "internal/retention/**"
+      - "internal/web/retention.go"
+      - "pkg/gateway/**"
+      - "pkg/proxy/tokens.go"
+      - "pkg/proxy/runtokens.go"
+      - "internal/runtoken/**"
+      - "internal/roomlive/**"
+      - ".github/workflows/specs.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  tlc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check every spec with TLC
+        run: |
+          java -version
+          spec/check.sh

@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/getlatentic/gusto/internal/replay"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Answer is the whole of `gusto compare`. A comparison's directory alone prints
@@ -35,7 +35,7 @@ func addressed(named []string, parent string, run replay.Run) (string, []Side, e
 		record, err := Read(named[0])
 		return named[0], Sides(named[0], record), err
 	}
-	where, err := Prepare(job.Dir(named[0]), parent, named[1:])
+	where, err := Prepare(task.Dir(named[0]), parent, named[1:])
 	if err != nil {
 		return "", nil, err
 	}

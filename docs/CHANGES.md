@@ -1,6 +1,6 @@
 # The record of what changes on the platform
 
-This record says what the people who run the platform did to it: who signed in, who was refused, who changed a role or a setup, and which settings changed. A task's record says what an agent did. An admin reads this one under Activity in the admin console, at `/admin/activity`.
+This record says what the people who run the platform did to it: who signed in, who was refused, who changed a role or a setup, and which settings changed. A task's record says what an agent did. An admin reads this one under Records in the admin console, at `/admin/records`.
 
 ## What is written
 
@@ -13,14 +13,18 @@ This record says what the people who run the platform did to it: who signed in, 
 | `token.created`, `token.revoked` | An admin makes or revokes an API token, with what it may do. The secret is never written |
 | `member.invited`, `member.role`, `member.removed` | In an organization behind gusto cloud, an admin invites a person, changes their role or removes them. gusto cloud reports these and the server writes them ([CLOUD.md](CLOUD.md)) |
 | `budget.set` | An admin sets, changes or clears the monthly budget, with the figure before and after |
+| `budget.member.set` | An admin sets, changes or clears every member's monthly budget, or one person's own, with whose and the figure before and after |
+| `connector.enabled`, `connector.disabled` | An admin lets people sign in to an app and give it to their agents, or stops them |
+| `connector.connected`, `connector.disconnected` | A person signs in to an app with their own account, or takes the sign-in away from their agents. The tokens are never written |
+| `home.reset` | A person removes the home their agents keep between tasks, with the workspace and how much it held when it was last counted |
 | `sandbox.confirmed` | A person on their own computer confirms, once, that agents run with no sandbox |
 | `chat.default` | An admin sets or clears what a new chat runs on, with the agent and model before and after |
-| `retention.hold`, `retention.release`, `retention.swept` | An admin keeps a task or a person's work from being removed, or lets it go. A sweep removed workspaces or records, with the counts and the records named |
+| `retention.hold`, `retention.release`, `retention.swept` | An admin keeps a task or a person's work from being removed, or lets it go. A sweep removed working folders or records, with the counts and the records named |
 | `server.started`, `settings.changed` | The server starts, with the settings that decide who may do what. One of those settings differs from the last start |
 
-Every line has who, what, when and where the request came from. It never holds a password.
+Every line has who, what, when and where the request came from. It never holds a password. Behind gusto cloud, where the request came from is the address the front door saw, which it forwards in `X-Forwarded-For` and this server believes from a private address only.
 
-The settings are `GUSTO_ALLOWED`, `GUSTO_ADMINS`, `GUSTO_RUNNER_GROUPS`, `GUSTO_ADMIN_GROUPS`, `GUSTO_OIDC_GROUPS_CLAIM`, `GUSTO_OIDC_ISSUER`, `GUSTO_ALLOWED_HOSTS`, `GUSTO_MODELS`, `GUSTO_JOB_NETWORK`, `GUSTO_API_TOKENS`, `GUSTO_LIMIT_PERSON`, `GUSTO_LIMIT_TEAM`, `GUSTO_RETENTION`, and the hashes of the retention policy and the spend policy file. They change outside the pages, so `who` is `the server` and `when` is the next start.
+The settings are `GUSTO_ALLOWED`, `GUSTO_ADMINS`, `GUSTO_RUNNER_GROUPS`, `GUSTO_ADMIN_GROUPS`, `GUSTO_OIDC_GROUPS_CLAIM`, `GUSTO_OIDC_ISSUER`, `GUSTO_ALLOWED_HOSTS`, `GUSTO_MODELS`, `GUSTO_TASK_NETWORK`, `GUSTO_API_TOKENS`, `GUSTO_LIMIT_PERSON`, `GUSTO_LIMIT_TEAM`, `GUSTO_RETENTION`, and the hashes of the retention policy and the spend policy file. They change outside the pages, so `who` is `the server` and `when` is the next start.
 
 A change is applied and then recorded. When the record cannot be written, the server says so in its log and the change stands. A source that causes more than ten refused sign-ins a minute has the rest counted and not written. The count goes on the next line written.
 
@@ -29,9 +33,8 @@ A change is applied and then recorded. When the record cannot be written, the se
 `GUSTO_CHANGES` names the file.
 
 - Compose and the chart: `$GUSTO_DATA/changes/changes.jsonl` on the volume.
-- The playbook: `/opt/gusto/var/changes/changes.jsonl`, append-only where the filesystem allows, so not even the server's user can rewrite or shorten it. The playbook says when it cannot.
 
-An admin downloads the file from `/admin/activity.jsonl`. A script with the shared password, or with an API token that may read the change record, reads `/api/changes`. Both give the file as it is.
+The Activity page (`/admin/records?tab=activity`) lists people's actions and leaves out `server.started`, which every deploy writes, saying how many it left out; `&server=1` shows them. The download holds everything. An admin downloads the file from `/admin/activity.jsonl`. A script with the shared password, or with an API token that may read the change record, reads `/api/changes`. Both give the file as it is.
 
 ## Why an edit shows
 

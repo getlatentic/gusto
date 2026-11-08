@@ -1,0 +1,89 @@
+package cloud
+
+import (
+	"encoding/json"
+	"log/slog"
+	"net/http"
+	"net/url"
+)
+
+// orgsPage is where a person in several organizations chooses which one to be in. Somebody in one goes straight
+// to it, since there is nothing to choose.
+func (s *Server) orgsPage(w http.ResponseWriter, r *http.Request) {
+	all, ok := s.memberships(r)
+	if !ok {
+		http.Redirect(w, r, "/signin", http.StatusSeeOther)
+		return
+	}
+	if len(all) == 1 {
+		http.Redirect(w, r, "/org", http.StatusSeeOther)
+		return
+	}
+	orgs, err := s.Store.OrgsOf(r.Context(), all[0].Email)
+	if err != nil {
+		slog.Error("a person's organizations could not be read", "error", err)
+		s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
+		return
+	}
+	s.render(w, http.StatusOK, "orgs", view{Title: "Choose an organization", Email: all[0].Email, Orgs: orgs, Address: s.Domain})
+}
+
+// switchable is one of a person's organizations as the switcher on an organization's pages lists it.
+type switchable struct {
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+	Open string `json:"open"`
+	// Workspaces is the organization's workspaces the person is in, each with the address that opens it.
+	Workspaces []switchSpace `json:"workspaces"`
+}
+
+type switchSpace struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Open string `json:"open"`
+}
+
+// orgsJSON is the organizations of the person signed in here, for the switcher on their organization's pages. Only
+// an organization's own address may read it with the person's cookie: an app's address, or anywhere else, is not
+// told it may.
+func (s *Server) orgsJSON(w http.ResponseWriter, r *http.Request) {
+	s.allowOrgOrigin(w, r)
+	all, ok := s.memberships(r)
+	if !ok {
+		http.Error(w, "not signed in", http.StatusUnauthorized)
+		return
+	}
+	orgs, err := s.Store.OrgsOf(r.Context(), all[0].Email)
+	if err != nil {
+		slog.Error("a person's organizations could not be read", "error", err)
+		http.Error(w, "the organizations could not be read", http.StatusInternalServerError)
+		return
+	}
+	spaces, err := s.Store.SpacesOf(r.Context(), all[0].Email)
+	if err != nil {
+		slog.Error("a person's workspaces could not be read", "error", err)
+		http.Error(w, "the workspaces could not be read", http.StatusInternalServerError)
+		return
+	}
+	list := make([]switchable, 0, len(orgs))
+	for _, org := range orgs {
+		open := s.URL.JoinPath("/open").String() + "?" + url.Values{"org": {org.Slug}}.Encode()
+		item := switchable{Name: org.Name, Slug: org.Slug, Open: open, Workspaces: []switchSpace{}}
+		for _, space := range spaces[org.Slug] {
+			item.Workspaces = append(item.Workspaces, switchSpace{ID: space.ID, Name: space.Name, Open: open + "&" + url.Values{"workspace": {space.ID}}.Encode()})
+		}
+		list = append(list, item)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"orgs": list})
+}
+
+// isOrgOrigin says an origin is an organization's address on this gusto cloud server, by the scheme gusto cloud is on.
+func (s *Server) isOrgOrigin(origin string) bool {
+	parsed, err := url.Parse(origin)
+	if err != nil || parsed.Scheme != s.URL.Scheme || parsed.Path != "" {
+		return false
+	}
+	_, ok := s.orgSlug(parsed.Host)
+	return ok && parsed.Port() == s.URL.Port()
+}

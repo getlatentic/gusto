@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // The conversation can be asked what its latest turn has done so far, which is what the page shows while it waits.
@@ -34,7 +34,7 @@ func TestAProjectInTheSideListStartsAChatInItsFolder(t *testing.T) {
 	site.signIn(t)
 	id := strings.TrimPrefix(startedInstance(t, site), "/instances/")
 	site.ask(t, "POST", "/instances/"+id+"/threads/1/say", url.Values{"said": {"hello"}})
-	list := site.ask(t, "GET", "/jobs", nil).Body.String()
+	list := site.ask(t, "GET", "/chat", nil).Body.String()
 	if !strings.Contains(list, `href="/chat?at=`+id+`"`) {
 		t.Errorf("the project has no button for a new chat: %s", list)
 	}
@@ -65,7 +65,7 @@ func TestWhileATurnRunsTheBoxOffersStop(t *testing.T) {
 
 // A turn's words and its steps come back in the order they happened, whole, with the words between the steps where they were said.
 func TestALiveTurnGivesWhatWasSaidAndRunInOrder(t *testing.T) {
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func TestALiveTurnGivesWhatWasSaidAndRunInOrder(t *testing.T) {
 
 // A run from before steps said where they happened gives all its steps, and then what was said.
 func TestALiveTurnWithoutPlacesGivesItsStepsThenItsWords(t *testing.T) {
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func TestALiveTurnWithoutPlacesGivesItsStepsThenItsWords(t *testing.T) {
 
 // What is left of a very long transcript starts at a word, never in one.
 func TestALongTranscriptIsCutBetweenWords(t *testing.T) {
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}

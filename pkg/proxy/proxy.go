@@ -2,6 +2,8 @@ package proxy
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -17,24 +19,27 @@ import (
 )
 
 // Where says which file in a task directory the proxy writes its record to.
-type Where func(job string) (string, bool)
+type Where func(task string) (string, bool)
 
 // Proxy adds the credential on the way out, writes down what went and what it
 // cost, and refuses a call once a cap is spent.
 type Proxy struct {
-	tokens   atomic.Pointer[TokenSource]
-	source   atomic.Pointer[CredentialSource]
-	held     atomic.Pointer[Credentials]
-	registry atomic.Int64
-	where    Where
-	ledger   *spend.Ledger
-	allowed  Allowlist
-	client   atomic.Pointer[http.Client]
-	public   *http.Client
-	guard    sync.Mutex
+	tokens atomic.Pointer[TokenSource]
+	// runTokens lets in tasks whose sandbox holds a key of its own; see UseRunTokens.
+	runTokens atomic.Pointer[RunTokens]
+	source    atomic.Pointer[CredentialSource]
+	held      atomic.Pointer[Credentials]
+	registry  atomic.Int64
+	where     Where
+	ledger    *spend.Ledger
+	allowed   Allowlist
+	client    atomic.Pointer[http.Client]
+	public    *http.Client
+	guard     sync.Mutex
 	// lines is how many lines each task's record has, kept under guard.
 	lines    map[string]int
 	recorder atomic.Pointer[Recorder]
+	limits   atomic.Pointer[Limits]
 	counts   counters
 	resolve  Resolver
 	gateways atomic.Pointer[Gateways]
@@ -86,33 +91,46 @@ func (p *Proxy) Handler() http.Handler {
 			p.outbound(w, r)
 			return
 		}
+		if r.URL.Path == exchangePath {
+			p.exchange(w, r)
+			return
+		}
+		if ticket, rest, ok := p.runTicket(r); ok {
+			p.answer(w, r, ticket, rest)
+			return
+		}
 		token, rest := split(r.URL.Path)
 		// An OpenAI-compatible client puts its key in the Authorization header
 		// and its base URL in static configuration. A token in the path would
 		// mean rewriting that configuration per task, so the header is accepted
 		// too: the container presents the token exactly where it would have
 		// presented a credential, and the proxy trades it for the real one.
-		if _, known := p.tokenSource().Job(token); !known {
+		if _, known := p.tokenSource().Task(token); !known {
 			if bearer := bearerOf(r); bearer != "" {
-				if _, known := p.tokenSource().Job(bearer); known {
+				if _, known := p.tokenSource().Task(bearer); known {
 					rest = path.Clean("/" + strings.TrimPrefix(r.URL.Path, "/model"))
 					token = bearer
 				}
 			}
 		}
-		ticket, known := p.tokenSource().Job(token)
+		ticket, known := p.tokenSource().Task(token)
 		if !known {
 			// The same answer for a token that never existed and one that has
 			// ended, so this cannot be used to learn which tasks are running.
 			http.Error(w, "no", http.StatusForbidden)
 			return
 		}
-		if toolsPath(rest) {
-			p.tools(w, r, ticket)
-			return
-		}
-		p.pass(w, r, ticket, rest)
+		p.answer(w, r, ticket, rest)
 	})
+}
+
+// answer is a call a task's token let in: to the tools behind the gateway, or to the model.
+func (p *Proxy) answer(w http.ResponseWriter, r *http.Request, ticket Ticket, rest string) {
+	if toolsPath(rest) {
+		p.tools(w, r, ticket)
+		return
+	}
+	p.pass(w, r, ticket, rest)
 }
 
 // split takes the token off the front of /model/{token}/v1/chat/completions.
@@ -126,7 +144,7 @@ func split(full string) (token, rest string) {
 }
 
 func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest string) {
-	job := ticket.Job
+	task := ticket.Task
 	credential, held := p.credentialFor(r.Context(), ticket)
 	if !held {
 		// The task was given this credential when it started, so losing it here
@@ -134,16 +152,18 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		http.Error(w, "this task's credential is no longer held here", http.StatusBadGateway)
 		return
 	}
+	credential = credential.For(wire.Of(rest))
 	asked, err := readQuestion(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusRequestEntityTooLarge)
 		return
 	}
 	sent := time.Now()
-	if refusal := p.ledger.Allow(job, credential.Name, asked.model); refusal != nil {
+	if refusal := p.ledger.Allow(task, credential.Name, asked.model, credential.Public); refusal != nil {
 		refused := spend.RefusedCall(rest, asked.model, sent.Unix(), refusal)
+		refused.Own = credential.Public
 		report(r.Context(), refused)
-		p.refuse(w, job, refused)
+		p.refuse(w, task, refused)
 		return
 	}
 	// What leaves is masked before it is translated, so that the provider sees the mask whatever shape the agent called in.
@@ -155,12 +175,26 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 		wire.Fail(w, translated.From, http.StatusBadRequest, err.Error())
 		return
 	}
+	limits := p.currentLimits()
+	body = capOutput(body, path, limits.MaxOutput)
 	to, err := url.JoinPath(credential.Address, path)
 	if err != nil {
 		http.Error(w, "that is not an address", http.StatusBadRequest)
 		return
 	}
-	out, err := http.NewRequestWithContext(r.Context(), r.Method, to, bytes.NewReader(body))
+	ctx, end := context.WithCancelCause(r.Context())
+	defer end(nil)
+	var quiet *silence
+	if limits.Silence > 0 {
+		quiet = newSilence(limits.Silence, end)
+		defer quiet.stop()
+	}
+	// A stream begins as soon as the model does, so the wait for it is a silence; an answer that is not streamed comes whole,
+	// after the model has written all of it, which the cap on its output bounds.
+	if asked.streamed {
+		quiet.wait()
+	}
+	out, err := http.NewRequestWithContext(ctx, r.Method, to, bytes.NewReader(body))
 	if err != nil {
 		http.Error(w, "that request could not be made", http.StatusBadGateway)
 		return
@@ -176,16 +210,29 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 	// the answer is readable here. A compression the container chose would pass
 	// through packed, and the call would go uncounted.
 	out.Header.Del("Accept-Encoding")
-	call := spend.Call{Path: rest, AtUnix: sent.Unix(), Model: asked.model, Credential: credential.Name, Registry: p.registry.Load(), Translated: string(translated.From)}
+	call := spend.Call{Path: rest, AtUnix: sent.Unix(), Model: asked.model, Credential: credential.Name, Own: credential.Public,
+		Registry: p.registry.Load(), Translated: string(translated.From)}
 	answer, err := p.clientFor(credential).Do(out)
 	if err != nil {
+		if errors.Is(context.Cause(ctx), errSilent) {
+			call.Error, call.Took = errSilent.Error(), since(sent)
+			report(r.Context(), call)
+			p.note(task, call)
+			http.Error(w, errSilent.Error(), http.StatusGatewayTimeout)
+			return
+		}
 		call.Error, call.Took = err.Error(), since(sent)
 		report(r.Context(), call)
-		p.note(job, call)
+		p.note(task, call)
 		http.Error(w, "the model did not answer", http.StatusBadGateway)
 		return
 	}
 	defer answer.Body.Close()
+	quiet.wait()
+	answer.Body = struct {
+		io.Reader
+		io.Closer
+	}{quiet.reading(answer.Body), answer.Body}
 	meter := spend.NewMeter(answer.Header.Get("Content-Type"))
 	var masking *maskedAnswer
 	var toHarness http.ResponseWriter = w
@@ -209,6 +256,9 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 			call.Error = copyErr.Error()
 		}
 	}
+	if errors.Is(context.Cause(ctx), errSilent) {
+		call.Error = errSilent.Error()
+	}
 	call.Redacted = maskedRequest
 	if masking != nil {
 		if err := masking.Close(); err != nil && call.Error == "" {
@@ -219,7 +269,7 @@ func (p *Proxy) pass(w http.ResponseWriter, r *http.Request, ticket Ticket, rest
 	call.Status, call.Took = answer.StatusCode, since(sent)
 	priced := p.priced(call, meter.Usage())
 	report(r.Context(), priced)
-	p.note(job, priced)
+	p.note(task, priced)
 }
 
 // priced puts the provider's count and its cost on a call. Either stays null

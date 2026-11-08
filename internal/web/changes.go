@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/getlatentic/gusto/internal/accesslog"
 	"log/slog"
 	"net/http"
 	"os"
@@ -73,7 +72,7 @@ func (s *Server) note(r *http.Request, kind string, what map[string]string) {
 		return
 	}
 	who, role, _ := s.keeper.session(r)
-	s.record(changelog.Event{Who: who, Role: string(role), From: clientOf(r), Kind: kind, What: what})
+	s.record(changelog.Event{Who: who, Role: string(role), From: s.clientOf(r), Kind: kind, What: what})
 }
 
 // record writes an event. A change has already happened by the time it is
@@ -90,7 +89,7 @@ func (s *Server) noteSignIn(r *http.Request, who string, role Role, how string) 
 	if s.changes == nil {
 		return
 	}
-	from := clientOf(r)
+	from := s.clientOf(r)
 	if was, known := s.changes.LastRole(who); known && was != string(role) {
 		s.record(changelog.Event{Who: who, Role: string(role), From: from, Kind: changelog.RoleChanged,
 			What: map[string]string{"was": was, "now": string(role)}})
@@ -105,7 +104,7 @@ func (s *Server) noteRefused(r *http.Request, who, how, why string) {
 	if s.changes == nil {
 		return
 	}
-	from := clientOf(r)
+	from := s.clientOf(r)
 	what := map[string]string{"how": how, "why": why}
 	allowed, suppressed := s.turnedAway.allow(from, time.Now())
 	if !allowed {
@@ -165,10 +164,6 @@ func (f *refusals) allow(from string, now time.Time) (bool, int) {
 	return true, carried
 }
 
-// clientOf is where a request came from, as the access log says it (accesslog.Remote): a forwarded address is believed from a proxy
-// on this machine, and from any peer when gusto was told it is only reached through one.
-func clientOf(r *http.Request) string { return accesslog.Remote(r) }
-
 // changesFile is the whole log, as the file holds it, for an admin to export
 // and for a verifier to check.
 func (s *Server) changesFile(w http.ResponseWriter, r *http.Request) {
@@ -198,26 +193,43 @@ type row struct {
 	From  string
 	Times int
 	Since string
+	// Kind is the event's kind, which the page filters on.
+	Kind string
 }
 
-func (s *Server) changesPage(w http.ResponseWriter, r *http.Request) {
-	s.TakeInbox()
-	page := map[string]any{"Title": productName + " — activity", "Shown": shownChanges}
-	if file, err := os.Open(s.changes.Path()); err == nil {
-		report, verr := changelog.Verify(file, s.keyring)
-		file.Close()
-		page["Events"], page["Head"] = report.Events, report.Head
-		page["Signed"], page["Unsigned"] = report.Signed, report.Unsigned
-		if verr != nil {
-			page["Broken"] = verr.Error()
-		}
+// checkLog reads the whole activity log and says whether its chain holds, how much of it is signed, and its head.
+func (s *Server) checkLog() (changelog.Report, string) {
+	file, err := os.Open(s.changes.Path())
+	if err != nil {
+		return changelog.Report{}, ""
 	}
-	page["Rows"] = s.recentChanges()
-	s.drawConsole(w, "admin-activity.html", "activity", page)
+	defer file.Close()
+	report, err := changelog.Verify(file, s.keyring)
+	if err != nil {
+		return report, err.Error()
+	}
+	return report, ""
 }
 
-// recentChanges is the newest events first.
-func (s *Server) recentChanges() []row {
+// recentChanges is the newest events first. People's actions are what the page is for, so a server starting, which every deploy
+// does, is left out unless asked for, and how many were left out is said.
+func (s *Server) recentChanges(withServerStarts bool) (rows []row, leftOut int) {
+	for _, each := range s.changeRows() {
+		if each.Kind == changelog.ServerStarted && !withServerStarts {
+			leftOut++
+			continue
+		}
+		rows = append(rows, each)
+	}
+	rows = foldRepeats(rows)
+	if len(rows) > shownChanges {
+		rows = rows[:shownChanges]
+	}
+	return rows, leftOut
+}
+
+// changeRows is every event in the log as the page says it, newest first.
+func (s *Server) changeRows() []row {
 	file, err := os.Open(s.changes.Path())
 	if err != nil {
 		return nil
@@ -235,14 +247,10 @@ func (s *Server) recentChanges() []row {
 		if when, err := time.Parse(time.RFC3339Nano, e.At); err == nil {
 			at, full = shortWhen(when.UTC(), time.Now().UTC()), when.UTC().Format("2 Jan 2006 15:04:05 UTC")
 		}
-		rows = append(rows, row{At: at, Full: full, Who: whoOf(e), Said: saidOf(e), From: e.From, Times: 1})
+		rows = append(rows, row{At: at, Full: full, Who: whoOf(e), Said: saidOf(e), From: e.From, Times: 1, Kind: e.Kind})
 	}
 	for i, j := 0, len(rows)-1; i < j; i, j = i+1, j-1 {
 		rows[i], rows[j] = rows[j], rows[i]
-	}
-	rows = foldRepeats(rows)
-	if len(rows) > shownChanges {
-		rows = rows[:shownChanges]
 	}
 	return rows
 }
@@ -281,100 +289,6 @@ func whoOf(e changelog.Event) string {
 	return e.Who
 }
 
-// saidOf says an event in words a person reads.
-func saidOf(e changelog.Event) string {
-	w := e.What
-	switch e.Kind {
-	case changelog.SignedIn:
-		return fmt.Sprintf("signed in as %s, with %s", or(e.Role, "no role"), or(w["how"], "an unknown method"))
-	case changelog.Refused:
-		said := "was refused with " + or(w["how"], "an unknown method") + ": " + or(w["why"], "no reason given")
-		if w["suppressed"] != "" {
-			said += " (" + w["suppressed"] + " more from here were not written)"
-		}
-		return said
-	case changelog.SignedOut:
-		return "signed out"
-	case changelog.RoleChanged:
-		return fmt.Sprintf("role changed from %s to %s", or(w["was"], "none"), or(w["now"], "none"))
-	case changelog.SetupSaved:
-		return fmt.Sprintf("%s skill set %s, with tools: %s", w["action"], w["setup"], or(w["servers"], "none"))
-	case changelog.SkillWritten:
-		return fmt.Sprintf("wrote the skill %s in %s", w["skill"], w["setup"])
-	case changelog.SkillRestored:
-		return fmt.Sprintf("put back an earlier version of the skill %s in %s (%s, was %s)", w["skill"], w["setup"], or(w["now"], "none"), or(w["was"], "none"))
-	case changelog.SetupEnabled, changelog.SetupDisabled:
-		return fmt.Sprintf("turned the skill set %s %s", w["setup"], w["now"])
-	case changelog.SkillDropped:
-		return fmt.Sprintf("removed the skill %s from %s", w["skill"], w["setup"])
-	case changelog.TokenCreated:
-		return fmt.Sprintf("made the API token %s, which may %s", w["name"], or(w["scopes"], "do nothing"))
-	case changelog.TokenRevoked:
-		return fmt.Sprintf("revoked the API token %s", w["name"])
-	case changelog.HoldSet:
-		return "kept " + heldThing(w) + " from being removed" + becauseOf(w["why"])
-	case changelog.HoldReleased:
-		return "let " + heldThing(w) + " be removed on schedule again"
-	case changelog.Swept:
-		return fmt.Sprintf("retention removed %s working folders and %s records, freeing %s bytes%s",
-			or(w["workspaces"], "0"), or(w["records"], "0"), or(w["freed"], "0"), recordsOf(w["jobs"]))
-	case changelog.SandboxConfirmed:
-		return "confirmed that agents run with no sandbox between them and their files"
-	case changelog.ChatDefaultSet:
-		return fmt.Sprintf("changed what a new chat runs on from %s to %s", or(w["was"], "the first that can run"), or(w["now"], "the first that can run"))
-	case changelog.BudgetSet:
-		return fmt.Sprintf("changed the monthly budget from %s to %s", or(w["was"], "none"), or(w["now"], "none"))
-	case changelog.ProviderAdded:
-		return fmt.Sprintf("added the model provider %s at %s, with its key %s", w["provider"], w["address"], or(w["key"], "kept"))
-	case changelog.ProviderRetired:
-		return fmt.Sprintf("retired the model provider %s", w["provider"])
-	case changelog.KeyReplaced:
-		return fmt.Sprintf("gave the model provider %s another key", w["provider"])
-	case changelog.ModelAdded:
-		return fmt.Sprintf("added the model %s, priced %s", w["model"], or(w["price"], "none"))
-	case changelog.ProviderEnabled, changelog.ProviderDisabled:
-		return fmt.Sprintf("turned the model provider %s %s", w["provider"], w["now"])
-	case changelog.ModelEnabled, changelog.ModelDisabled:
-		return fmt.Sprintf("turned the model %s %s", w["model"], w["now"])
-	case changelog.RegistryRestored:
-		return fmt.Sprintf("put the models back as they were at version %s, which undid: %s", w["version"], or(w["undid"], "nothing"))
-	case changelog.IntegrationImported:
-		return fmt.Sprintf("imported %s %s (%s)", w["integration"], or(w["label"], w["version"]), or(w["source"], "upload"))
-	case changelog.IntegrationEnabled:
-		return fmt.Sprintf("turned on %s, version %s, in place of %s%s", w["integration"], w["to"], or(w["from"], "none"), becauseOf(w["changes"]))
-	case changelog.IntegrationDisabled:
-		return fmt.Sprintf("turned off %s, which was version %s", w["integration"], or(w["from"], "none"))
-	case changelog.IntegrationRestored:
-		return fmt.Sprintf("put %s back to version %s, from %s", w["integration"], w["to"], or(w["from"], "none"))
-	case changelog.IntegrationPrograms:
-		return fmt.Sprintf("changed which version of %s may run its programs, from %s to %s", w["integration"], or(w["was"], "none"), or(w["allowed"], "none"))
-	case changelog.IntegrationScoped:
-		return fmt.Sprintf("changed who %s is on for, from %s to %s", w["integration"], or(w["was"], "everybody"), or(w["now"], "everybody"))
-	case changelog.ModelRetired:
-		return fmt.Sprintf("retired the model %s", w["model"])
-	case changelog.PriceSet:
-		return fmt.Sprintf("priced the model %s at %s", w["model"], or(w["price"], "none"))
-	case changelog.PolicySet:
-		return fmt.Sprintf("set what model providers may be: private addresses %s, keys from %s", or(w["private"], "no"), or(w["keys"], "a typed key only"))
-	case changelog.AccessSet:
-		if w["models"] == "" {
-			return fmt.Sprintf("let %s use every model again", w["email"])
-		}
-		return fmt.Sprintf("limited %s to the models %s", w["email"], w["models"])
-	case changelog.MemberInvited:
-		return fmt.Sprintf("invited %s to join as a %s", w["email"], or(w["role"], "runner"))
-	case changelog.MemberRole:
-		return fmt.Sprintf("changed the role of %s from %s to %s", w["email"], or(w["was"], "none"), or(w["now"], "none"))
-	case changelog.MemberRemoved:
-		return fmt.Sprintf("removed %s, who was %s", w["email"], or(w["role"], "a member"))
-	case changelog.ServerStarted:
-		return "the server started"
-	case changelog.SettingsChanged:
-		return fmt.Sprintf("the setting %s changed from %q to %q", w["setting"], w["was"], w["now"])
-	}
-	return e.Kind
-}
-
 func or(value, fallback string) string {
 	if value == "" {
 		return fallback
@@ -401,4 +315,20 @@ func recordsOf(ids string) string {
 		return ""
 	}
 	return " (records removed: " + ids + ")"
+}
+
+// agentAppWords is a person's choice for an agent and one app of theirs. An entry from before choices were made app by app names
+// no app, and was on or off for them all.
+func agentAppWords(w map[string]string) string {
+	switch {
+	case w["connector"] == "" && w["now"] == "on":
+		return fmt.Sprintf("let %s use their connected apps, for what they ask it", w["agent"])
+	case w["connector"] == "":
+		return fmt.Sprintf("stopped %s using their connected apps", w["agent"])
+	case w["now"] == "allow":
+		return fmt.Sprintf("let %s use their %s, for what they ask it", w["agent"], w["connector"])
+	case w["now"] == "deny":
+		return fmt.Sprintf("kept %s from their %s", w["agent"], w["connector"])
+	}
+	return fmt.Sprintf("left %s to follow their default for %s", w["agent"], w["connector"])
 }

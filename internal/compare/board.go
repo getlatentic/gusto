@@ -11,7 +11,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/atomicfile"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Board keeps the comparisons started from the pages. Their runs are tasks in
@@ -33,15 +34,16 @@ type Lineup struct {
 	Check    []string `json:"check"`
 	At       int64    `json:"at"`
 	// Who is the person who started it, and the only one besides an admin who
-	// may read it.
-	Who  string  `json:"who,omitempty"`
-	Runs []Entry `json:"runs"`
+	// may read it; Workspace is the workspace it and its runs are in, empty for the first.
+	Who       string  `json:"who,omitempty"`
+	Workspace string  `json:"workspace,omitempty"`
+	Runs      []Entry `json:"runs"`
 }
 
 // Entry is one engine's run in a lineup.
 type Entry struct {
 	Harness string `json:"harness"`
-	Job     string `json:"job"`
+	Task    string `json:"job"`
 }
 
 func OpenBoard(root string) (*Board, error) {
@@ -53,30 +55,59 @@ func OpenBoard(root string) (*Board, error) {
 
 func (b *Board) file(id string) string { return filepath.Join(b.root, id+".json") }
 
-// Reserve takes an id no lineup has, numbering the one proposed when it is
-// taken, and holds it by making its file, which only one caller can do.
-func (b *Board) Reserve(proposed string) (string, error) {
+// Reserve keeps a new lineup under an id no lineup has, the one proposed or that
+// numbered when it is taken, and says which. The lineup is whole in its file
+// from the moment the id is taken, so one whose runs are still being queued is
+// listed with the runs queued so far, and never as a file nothing can read.
+func (b *Board) Reserve(proposed string, lineup Lineup) (string, error) {
 	for n := 1; ; n++ {
-		id := proposed
+		lineup.ID = proposed
 		if n > 1 {
-			id = fmt.Sprintf("%s-%d", proposed, n)
+			lineup.ID = fmt.Sprintf("%s-%d", proposed, n)
 		}
-		if !job.Named(id) {
-			return "", fmt.Errorf("%q cannot name a comparison", id)
-		}
-		file, err := os.OpenFile(b.file(id), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
-		if err == nil {
-			return id, file.Close()
-		}
-		if !errors.Is(err, os.ErrExist) {
-			return "", err
+		taken, err := b.claim(lineup)
+		if err != nil || !taken {
+			return lineup.ID, err
 		}
 	}
 }
 
+// claim writes the lineup beside its file and links it into place, which only
+// one caller can do for a name. It says whether the name was taken already.
+func (b *Board) claim(lineup Lineup) (taken bool, err error) {
+	if !task.Named(lineup.ID) {
+		return false, fmt.Errorf("%q cannot name a comparison", lineup.ID)
+	}
+	text, err := json.MarshalIndent(lineup, "", "  ")
+	if err != nil {
+		return false, err
+	}
+	temp, err := os.CreateTemp(b.root, ".lineup-")
+	if err != nil {
+		return false, err
+	}
+	defer os.Remove(temp.Name())
+	if _, err := temp.Write(append(text, '\n')); err != nil {
+		temp.Close()
+		return false, err
+	}
+	if err := temp.Sync(); err != nil {
+		temp.Close()
+		return false, err
+	}
+	if err := temp.Close(); err != nil {
+		return false, err
+	}
+	err = os.Link(temp.Name(), b.file(lineup.ID))
+	if errors.Is(err, os.ErrExist) {
+		return true, nil
+	}
+	return false, err
+}
+
 // Save keeps a lineup under its id.
 func (b *Board) Save(lineup Lineup) error {
-	if !job.Named(lineup.ID) {
+	if !task.Named(lineup.ID) {
 		return fmt.Errorf("%q cannot name a comparison", lineup.ID)
 	}
 	text, err := json.MarshalIndent(lineup, "", "  ")
@@ -85,11 +116,11 @@ func (b *Board) Save(lineup Lineup) error {
 	}
 	b.guard.Lock()
 	defer b.guard.Unlock()
-	return os.WriteFile(b.file(lineup.ID), append(text, '\n'), 0o644)
+	return atomicfile.WriteFile(b.file(lineup.ID), append(text, '\n'), 0o644)
 }
 
 func (b *Board) Get(id string) (Lineup, bool) {
-	if !job.Named(id) {
+	if !task.Named(id) {
 		return Lineup{}, false
 	}
 	text, err := os.ReadFile(b.file(id))
@@ -120,7 +151,7 @@ func (b *Board) List() []Lineup {
 // a lineup to clone, and the commit they start from. The repository follows
 // the template: files that changed since it was last used are committed.
 func (b *Board) Sample(name string, files map[string]string) (string, string, error) {
-	if !job.Named(name) {
+	if !task.Named(name) {
 		return "", "", fmt.Errorf("%q cannot name a sample", name)
 	}
 	b.guard.Lock()

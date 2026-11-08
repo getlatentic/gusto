@@ -74,7 +74,7 @@ auth:
 model:
   # The model's root address, with no version on the end.
   upstream: ""
-  # What the evidence calls the credential.
+  # What the record calls the credential.
   name: the platform credential
   # A Secret with a GUSTO_MODEL_KEY key, or the key here and the chart makes one.
   existingSecret: ""
@@ -86,7 +86,7 @@ model:
   allowedHosts: ""
 
 # Several credentials instead of one upstream: a Secret whose keys are
-# <name>.json, in the shape deploy/ansible's serve role writes. Set, it is
+# <name>.json, in the shape docs/GATEWAY.md gives for a credential. Set, it is
 # used in place of model.upstream.
 credentials:
   existingSecret: ""
@@ -102,11 +102,11 @@ jobs:
   cpus: "1"
 
 # Any other GUSTO_ setting, as name: value. README.md at the repository root has
-# the table. GUSTO_ADDR, GUSTO_JOBS, GUSTO_SESSIONS, GUSTO_SETUPS, GUSTO_INTEGRATIONS, GUSTO_IMAGE,
+# the table. GUSTO_ADDR, GUSTO_TASKS, GUSTO_SESSIONS, GUSTO_SETUPS, GUSTO_INTEGRATIONS, GUSTO_PRESETS, GUSTO_CREW, GUSTO_IMAGE,
 # GUSTO_CONTAINER and GUSTO_PROXY_SOCKET belong to the chart and are refused here.
 env: {}
 
-# Jobs, their evidence and the conversations' workspaces. One server writes
+# Tasks, their records and the conversations' folders. One server writes
 # them, so the claim is ReadWriteOnce and the pod is replaced, never doubled.
 persistence:
   existingClaim: ""
@@ -122,8 +122,9 @@ service:
   type: ClusterIP
   port: 80
 
-# The pages hold a job's output open for as long as it runs, so whatever
-# ingress controller is used must not buffer it or time it out early. The
+# The pages hold a job's output open for as long as it runs, and a room's page
+# holds a WebSocket open at /live, so whatever ingress controller is used must
+# pass the upgrade, and must not buffer or time either out early. The
 # annotations are the controller's own; README.md has ingress-nginx's.
 ingress:
   enabled: false

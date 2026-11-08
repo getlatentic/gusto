@@ -1,6 +1,8 @@
 package web
 
 import (
+	"cmp"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"path/filepath"
 	"slices"
@@ -8,8 +10,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/repoaccess"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // setUp is the step between picking a harness and having one: what it thinks
@@ -26,12 +28,12 @@ func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
 				"Setups":  s.fitting(entry),
 				"Chosen":  r.URL.Query().Get("setup"),
 				"Then":    r.URL.Query().Get("then"),
-				"Refused": r.URL.Query().Get("refused"),
+				"Refused": s.refusal(r),
 			})
 			return
 		}
 	}
-	s.turnAway(w, r, "/new", "this deployment cannot start "+wanted)
+	s.turnAway(w, r, "/presets", "this deployment cannot start "+wanted)
 }
 
 // startInstance gives a harness a computer to work in.
@@ -73,10 +75,10 @@ func (s *Server) beginInstance(r *http.Request, wanted instance.Instance) (start
 		wanted.Harness = s.firstReady()
 	}
 	if wanted.Harness == "" {
-		return started, "/new", "this deployment cannot start an agent yet"
+		return started, "/presets", "this deployment cannot start an agent yet"
 	}
 	if why := s.runnable(wanted.Harness); why != "" {
-		return started, "/new", why
+		return started, "/presets", why
 	}
 	if why := s.unfit(wanted); why != "" {
 		return started, "/instances/new?harness=" + wanted.Harness, why
@@ -84,21 +86,25 @@ func (s *Server) beginInstance(r *http.Request, wanted instance.Instance) (start
 	if why := s.unusable(r, wanted.Model); why != "" {
 		return started, "/instances/new?harness=" + wanted.Harness, why
 	}
-	// Starting from the catalog names no model, so it gets the first this
-	// deployment offers *that harness* — not the first it offers at all, which
-	// may be one this harness cannot use.
+	// Starting from the catalog names no model, so it gets one this deployment offers that harness and that the harness can
+	// finish on, not merely the first offered.
 	if wanted.Model == "" {
-		wanted.Model = first(s.offeredTo(r))
+		wanted.Model = cmp.Or(s.modelToStartOn(r, wanted.Harness), first(s.offeredTo(r)))
 	}
-	name := wanted.Harness
-	if wanted.Repo != "" {
-		name = filepath.Base(strings.TrimSuffix(wanted.Repo, ".git"))
-	}
-	started, err := s.instances.Start(jobs.Name(name, time.Now()), wanted)
+	wanted.Workspace = workspace.Stored(s.workspaceOf(r))
+	started, err := s.instances.Start(tasks.Name(instanceName(wanted), time.Now()), wanted)
 	if err != nil {
-		return started, "/new", err.Error()
+		return started, "/presets", err.Error()
 	}
 	return started, "", ""
+}
+
+// instanceName is what a new instance's id begins with: its repository's name, or its agent type's when it has none.
+func instanceName(wanted instance.Instance) string {
+	if wanted.Repo != "" {
+		return filepath.Base(strings.TrimSuffix(wanted.Repo, ".git"))
+	}
+	return wanted.Harness
 }
 
 // runnable says why an agent cannot be started here: there is none by that name, or this machine cannot run it now.
@@ -127,26 +133,28 @@ func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
 	for i := len(threads) - 1; i >= 0; i-- {
 		said = append(said, map[string]any{"Thread": threads[i], "Latest": s.latestTurn(threads[i].Thread)})
 	}
+	routines, unread := s.routineRows(held.ID)
 	s.render(w, "instance.html", map[string]any{
-		"Title":     productName + " — " + s.agentOf(held).Name,
-		"Nav":       "harnesses",
-		"Instance":  held,
-		"Agent":     s.agentOf(held),
-		"Threads":   said,
-		"Workspace": s.instances.Workspace(held.ID),
-		"Models":    s.offeredTo(r),
-		"Sharing":   s.apps != nil,
-		"Apps":      s.appsOf(held.ID),
-		"Refresh":   startingApp(s.appsOf(held.ID)),
-		"Tasks":     s.tasks(held.ID),
-		"Routines":  s.routineRows(held.ID),
-		"Refused":   r.URL.Query().Get("refused"),
+		"Title":    productName + " — " + s.agentOf(held).Name,
+		"Nav":      "harnesses",
+		"Instance": held,
+		"Agent":    s.agentOf(held),
+		"Threads":  said,
+		"Models":   s.offeredTo(r),
+		"Sharing":  s.apps != nil,
+		"Runs":     s.runner != nil,
+		"Apps":     s.appsOf(held.ID),
+		"Refresh":  startingApp(s.appsOf(held.ID)),
+		"Tasks":    s.tasks(held.ID),
+		"Routines": routines,
+		"Unread":   unread,
+		"Refused":  s.refusal(r),
 	})
 }
 
 // latestTurn is the last thing said in a thread, which is what a list of
 // threads needs to tell them apart.
-func (s *Server) latestTurn(thread instance.Thread) (record jobs.Record) {
+func (s *Server) latestTurn(thread instance.Thread) (record tasks.Record) {
 	if len(thread.Turns) == 0 {
 		return record
 	}

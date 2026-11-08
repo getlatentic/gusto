@@ -11,24 +11,29 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/runtoken"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Config says where the gateway is and what the sandboxes are made from.
 type Config struct {
 	// Binary is the openshell command.
 	Binary string
+	// Gusto is the gusto in the sandbox that starts an agent with its forwarder and its Landlock policy, the image's when empty.
+	Gusto string
 	// Gateway is the registered gateway to use, or empty for the selected one.
 	Gateway string
 	// Image is what a sandbox is made from: an image reference the gateway can
@@ -45,45 +50,17 @@ type Config struct {
 	// Processes is the most processes an agent's user may have running in a sandbox at once. The VM driver
 	// enforces no limit of its own, so the command that starts an agent sets it.
 	Processes int
+	// Remote says the gateway runs on another machine, so this one needs no hardware virtualization.
+	Remote bool
 }
 
-// defaultProcesses leaves room for an agent, its tools and a test runner's workers, and stops a fork that never ends.
-const defaultProcesses = 512
+// DefaultProcesses leaves room for an agent, its tools and a test runner's workers, and stops a fork that never ends.
+const DefaultProcesses = 512
 
 // unsetProcesses is the limit for a sandbox whose configuration names none.
-var unsetProcesses = defaultProcesses
+var unsetProcesses = DefaultProcesses
 
-// FromEnv reads the settings of a deployment that runs tasks in sandboxes.
-func FromEnv() (Config, error) {
-	cfg := Config{
-		Binary:  or(os.Getenv("GUSTO_OPENSHELL"), "openshell"),
-		Gateway: os.Getenv("GUSTO_OPENSHELL_GATEWAY"),
-		Image:   os.Getenv("GUSTO_OPENSHELL_IMAGE"),
-		Host:    or(os.Getenv("GUSTO_OPENSHELL_HOST"), "host.openshell.internal"),
-		CPU:     or(os.Getenv("GUSTO_OPENSHELL_CPU"), "1"),
-		Memory:  or(os.Getenv("GUSTO_OPENSHELL_MEMORY"), "3Gi"),
-	}
-	processes, err := strconv.Atoi(or(os.Getenv("GUSTO_OPENSHELL_PROCESSES"), strconv.Itoa(defaultProcesses)))
-	if err != nil || processes < 1 {
-		return cfg, fmt.Errorf("GUSTO_OPENSHELL_PROCESSES is %q, and has to be a number of processes above zero", os.Getenv("GUSTO_OPENSHELL_PROCESSES"))
-	}
-	cfg.Processes = processes
-	for _, entry := range strings.Split(os.Getenv("GUSTO_ALLOWED_HOSTS"), ",") {
-		if entry = strings.TrimSpace(entry); entry != "" {
-			cfg.Allowed = append(cfg.Allowed, entry)
-		}
-	}
-	return cfg, nil
-}
-
-func or(value, fallback string) string {
-	if value != "" {
-		return value
-	}
-	return fallback
-}
-
-// Workdir is where the workspace is inside a sandbox. It is under the home a
+// Workdir is where the working folder is inside a sandbox. It is under the home a
 // sandbox user has, /sandbox: the file rules can only be laid on a path that
 // exists when the sandbox starts, so a directory made at the root is refused.
 const Workdir = "/sandbox/workspace"
@@ -97,11 +74,16 @@ type Sandbox struct {
 	hostModel string
 	token     string
 	policy    []byte
-	keeps     []string
+	// home is the agent's home, and temp and confined say that every command of the task is held to its own folders; see Confine.
+	home     string
+	temp     string
+	confined bool
+	// bound is a task that reaches its model through a forwarder of its own; see Bind.
+	bound bool
 	// sshConfig is the file that says how to reach the sandbox with ssh, and
 	// sshHost the name it gives it. Both are made when a conversation needs them.
 	sshConfig, sshHost string
-	// A workspace is a sandbox that outlives a task: it is made once, each task works in a
+	// A computer is a sandbox that outlives a task: it is made once, each task works in a
 	// directory of its own in it, and the task's part of the guard's log is what came
 	// after the lines that were there when it began.
 	persistent bool
@@ -109,19 +91,18 @@ type Sandbox struct {
 	// next turn works in.
 	keepDir bool
 	workdir string
-	job     string
+	task    string
 	logBase int
+	// closed is set once Close has removed what the task made.
+	closed atomic.Bool
 }
 
 // New prepares the sandbox for a task. modelURL is where the sandbox reaches the
 // gusto proxy, on the name the sandbox gives the gateway's machine, and token
 // stands in for the credential the proxy holds.
 func New(cfg Config, id string, adapter harness.Adapter, modelURL, hostModelURL, token string) (*Sandbox, error) {
-	s := &Sandbox{cfg: cfg, name: nameOf(id), model: modelURL, hostModel: hostModelURL, token: token}
-	if adapter.Keeps != "" {
-		s.keeps = append(s.keeps, harness.Rehome(adapter.Keeps, Home))
-	}
-	policy, err := Policy(cfg, modelURL, s.keeps)
+	s := &Sandbox{cfg: cfg, name: nameOf(id), model: modelURL, hostModel: hostModelURL, token: token, home: Home}
+	policy, err := ComputerPolicy(cfg, modelURL, adapter)
 	if err != nil {
 		return nil, err
 	}
@@ -129,15 +110,15 @@ func New(cfg Config, id string, adapter harness.Adapter, modelURL, hostModelURL,
 	return s, nil
 }
 
-// jobName is what a directory in a workspace may be called.
-var jobName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,80}$`)
+// taskName is what a directory on a computer may be called.
+var taskName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,80}$`)
 
-// dirName is a task's id as a directory's name in a workspace. A name of plain letters,
+// dirName is a task's id as a directory's name on a computer. A name of plain letters,
 // digits and hyphens is itself. Any other, with a letter from another alphabet or
 // a slash or dots in it, is made plain and given a digest of the whole, so it cannot
 // reach outside its directory and two that are alike stay two.
 func dirName(id string) string {
-	if jobName.MatchString(id) {
+	if taskName.MatchString(id) {
 		return id
 	}
 	var plain strings.Builder
@@ -160,29 +141,29 @@ func dirName(id string) string {
 	return name + hex.EncodeToString(sum[:])[:8]
 }
 
-// NewComputer prepares a task in a workspace: a sandbox that lasts, called name, that this
+// NewComputer prepares a task on a computer: a sandbox that lasts, called name, that this
 // task works in a directory of. The sandbox is made when it is not there, and is
 // not removed when the task ends.
 //
 // A turn in a conversation is given the instance it is a turn on. The agent ties a
 // conversation to the directory it began in, so every turn of an instance works in the
-// same directory of the workspace, which is kept between turns. Any other task works in one
+// same directory of the computer, which is kept between turns. Any other task works in one
 // of its own, which goes when the task does.
-func NewComputer(cfg Config, name, job, instance string, adapter harness.Adapter, modelURL, hostModelURL, token string) (*Sandbox, error) {
-	s, err := New(cfg, job, adapter, modelURL, hostModelURL, token)
+func NewComputer(cfg Config, name, task, instance string, adapter harness.Adapter, modelURL, hostModelURL, token string) (*Sandbox, error) {
+	s, err := New(cfg, task, adapter, modelURL, hostModelURL, token)
 	if err != nil {
 		return nil, err
 	}
-	s.name, s.persistent, s.job = name, true, dirName(job)
+	s.name, s.persistent, s.task = name, true, dirName(task)
 	if instance != "" {
-		s.job, s.keepDir = dirName("instance-"+instance), true
+		s.task, s.keepDir = dirName("instance-"+instance), true
 	}
-	s.workdir = jobsDir + "/" + s.job + "/workspace"
+	s.workdir = tasksDir + "/" + s.task + "/workspace"
 	return s, nil
 }
 
-// jobsDir is where the tasks of a workspace are, each in a directory of its own.
-const jobsDir = Home + "/jobs"
+// tasksDir is where the tasks of a computer are, each in a directory of its own.
+const tasksDir = Home + "/jobs"
 
 // Home is the home of the user a sandbox runs the agent as.
 const Home = "/sandbox"
@@ -190,12 +171,12 @@ const Home = "/sandbox"
 // Equip puts the task's skills in the folder the agent finds them in, each in a
 // folder of its own name. The skills were written by this server, and the
 // sandbox is only handed them.
-func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter harness.Adapter) error {
+func (s *Sandbox) Equip(ctx context.Context, dir task.Dir, spec task.Spec, adapter harness.Adapter) error {
 	// An agent's own configuration is part of the image, under /opt/gusto/harness
 	// where the sandbox user can read it, and belongs in the home the agent will
 	// look in. An image without it has nothing to copy, and that is not an error.
 	place := s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
-		"sh", "-c", placeConfig("/opt/gusto/harness", Home))
+		"sh", "-c", placeConfig("/opt/gusto/harness", s.home))
 	if _, err := output(place); err != nil {
 		return err
 	}
@@ -203,15 +184,15 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 	// container: codex refuses a home that does not exist.
 	if adapter.Keeps != "" {
 		keep := s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
-			"sh", "-c", `mkdir -p "$1"`, "sh", harness.Rehome(adapter.Keeps, Home))
+			"sh", "-c", `mkdir -p "$1"`, "sh", harness.Rehome(adapter.Keeps, s.home))
 		if _, err := output(keep); err != nil {
 			return err
 		}
 	}
-	// What an earlier task in a workspace put where the agent looks for skills is not
+	// What an earlier task on a computer put where the agent looks for skills is not
 	// this task's.
 	if s.persistent && adapter.Skills != "" {
-		if _, err := output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--", "rm", "-rf", harness.Rehome(adapter.Skills, Home))); err != nil {
+		if _, err := output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--", "rm", "-rf", harness.Rehome(adapter.Skills, s.home))); err != nil {
 			return err
 		}
 	}
@@ -219,21 +200,21 @@ func (s *Sandbox) Equip(ctx context.Context, dir job.Dir, spec job.Spec, adapter
 		return nil
 	}
 	if _, err := output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
-		"sh", "-c", equipGuidance, "sh", harness.Rehome(adapter.Skills, Home), networkGuidance)); err != nil {
+		"sh", "-c", equipGuidance, "sh", harness.Rehome(adapter.Skills, s.home), networkGuidance)); err != nil {
 		return err
 	}
 	if spec.Setup == nil {
 		return nil
 	}
 	for _, name := range spec.Setup.Skills {
-		if !job.Named(name) {
+		if !task.Named(name) {
 			return fmt.Errorf("%q is not a skill's name", name)
 		}
 		from, err := filepath.Abs(filepath.Join(dir.SetupDir(), "skills", name))
 		if err != nil {
 			return err
 		}
-		if _, err := output(s.run(ctx, "sandbox", "upload", s.name, from, harness.Rehome(adapter.Skills, Home))); err != nil {
+		if _, err := output(s.run(ctx, "sandbox", "upload", s.name, from, harness.Rehome(adapter.Skills, s.home))); err != nil {
 			return err
 		}
 	}
@@ -268,13 +249,39 @@ func Name(id string) string { return nameOf(id) }
 // the token that stands in for a credential. Nothing of this process's
 // environment goes in.
 func (s *Sandbox) Env() harness.Env {
+	model := s.model
+	if s.bound {
+		// The agent is told its forwarder's address, which has no port until the forwarder starts; gusto boxed puts it in.
+		model = runtoken.Place + s.modelPath()
+	}
 	return harness.Env{
 		Boxed: true,
 		// The two variables a container is started with, so an agent that reads
 		// them finds them where it does there.
-		Base:     []string{"GUSTO_MODEL_URL=" + s.model, "GUSTO_MODEL_TOKEN=" + s.token},
-		ModelURL: s.model, ModelToken: s.token,
+		Base:     []string{"GUSTO_MODEL_URL=" + model, "GUSTO_MODEL_TOKEN=" + s.token},
+		ModelURL: model, ModelToken: s.token,
 	}
+}
+
+// Bind has the task reach its model through a forwarder of its own in the sandbox, which trades the task's secret for a run
+// token bound to a key it makes there (internal/runtoken). The task is given a secret by WayOut.admitBound for this.
+func (s *Sandbox) Bind() { s.bound = true }
+
+// modelPath is the path of the proxy's model address, /model/v1.
+func (s *Sandbox) modelPath() string {
+	if at, err := url.Parse(s.model); err == nil {
+		return at.Path
+	}
+	return "/model/v1"
+}
+
+// proxyRoot is where the forwarder finds the proxy: the model address with no path.
+func (s *Sandbox) proxyRoot() string {
+	at, err := url.Parse(s.model)
+	if err != nil {
+		return s.model
+	}
+	return at.Scheme + "://" + at.Host
 }
 
 func (s *Sandbox) Workdir() string {
@@ -296,6 +303,8 @@ func (s *Sandbox) run(ctx context.Context, args ...string) *exec.Cmd {
 	}
 	command := exec.CommandContext(ctx, s.cfg.Binary, append(full, args...)...)
 	command.Env = cleanEnv()
+	// A killed command's children can hold its pipes open; this ends the wait for them.
+	command.WaitDelay = killWait
 	return command
 }
 
@@ -318,10 +327,37 @@ func output(command *exec.Cmd) ([]byte, error) {
 	var out, complaint bytes.Buffer
 	command.Stdout, command.Stderr = &out, &complaint
 	if err := command.Run(); err != nil {
-		return out.Bytes(), fmt.Errorf("openshell %s: %w: %s", step(command.Args), err, strings.TrimSpace(complaint.String()))
+		return out.Bytes(), &refusal{step: step(command.Args), err: err, said: strings.TrimSpace(complaint.String())}
 	}
 	return out.Bytes(), nil
 }
+
+// refusal is a command of the openshell CLI that failed, and what it said on stderr. The CLI says why only in words.
+type refusal struct {
+	step string
+	err  error
+	said string
+}
+
+func (r *refusal) Error() string { return fmt.Sprintf("openshell %s: %v: %s", r.step, r.err, r.said) }
+func (r *refusal) Unwrap() error { return r.err }
+
+// refusedSaying is whether err is the openshell CLI failing with any of words in what it said.
+func refusedSaying(err error, words ...string) bool {
+	var r *refusal
+	if !errors.As(err, &r) {
+		return false
+	}
+	for _, w := range words {
+		if strings.Contains(r.said, w) {
+			return true
+		}
+	}
+	return false
+}
+
+// notThere is the CLI refusing because what it was asked about does not exist.
+func notThere(err error) bool { return refusedSaying(err, "not found", "NotFound") }
 
 func step(args []string) string {
 	var words []string
@@ -337,16 +373,16 @@ func step(args []string) string {
 	return strings.Join(words, " ")
 }
 
-// Start makes the sandbox, with its policy, and puts the workspace in it. A workspace
+// Start makes the sandbox, with its policy, and puts the working folder in it. A working folder
 // is made only when it is not there, and is started again when it was stopped.
-func (s *Sandbox) Start(ctx context.Context, workspace string) error {
+func (s *Sandbox) Start(ctx context.Context, workingFolder string) error {
 	if s.persistent {
-		return s.startInComputer(ctx, workspace)
+		return s.startInComputer(ctx, workingFolder)
 	}
-	return s.makeSandbox(ctx, workspace)
+	return s.makeSandbox(ctx, workingFolder)
 }
 
-func (s *Sandbox) makeSandbox(ctx context.Context, workspace string) error {
+func (s *Sandbox) makeSandbox(ctx context.Context, workingFolder string) error {
 	policy, err := os.CreateTemp("", "gusto-sandbox-policy-")
 	if err != nil {
 		return err
@@ -365,16 +401,16 @@ func (s *Sandbox) makeSandbox(ctx context.Context, workspace string) error {
 	if err := s.create(ctx, append(args, "--", "sleep", "infinity")); err != nil {
 		return err
 	}
-	absolute, err := filepath.Abs(workspace)
+	absolute, err := filepath.Abs(workingFolder)
 	if err != nil {
 		return err
 	}
-	// An upload puts a directory under its own name, so the workspace goes to
+	// An upload puts a directory under its own name, so the working folder goes to
 	// the sandbox's home and lands at Workdir.
 	if filepath.Base(absolute) != filepath.Base(Workdir) {
-		return fmt.Errorf("the workspace is %s, and a sandbox names it %s", absolute, filepath.Base(Workdir))
+		return fmt.Errorf("the working folder is %s, and a sandbox names it %s", absolute, filepath.Base(Workdir))
 	}
-	// A new conversation's workspace holds nothing but its git directory, which an upload leaves behind, and an upload that selects
+	// A new conversation's working folder holds nothing but its git directory, which an upload leaves behind, and an upload that selects
 	// nothing is refused: the folder is made in the sandbox instead.
 	if empty, err := holdsNothing(absolute); err != nil {
 		return err
@@ -415,7 +451,7 @@ func (s *Sandbox) create(ctx context.Context, args []string) error {
 	deadline := time.Now().Add(retryFor)
 	for {
 		_, err := output(s.run(ctx, args...))
-		if err == nil || !strings.Contains(err.Error(), slotsBusy) || time.Now().After(deadline) {
+		if err == nil || !refusedSaying(err, slotsBusy) || time.Now().After(deadline) {
 			return err
 		}
 		select {
@@ -444,7 +480,7 @@ func (s *Sandbox) limit() string {
 }
 
 // carried is the command's environment as the lines launcher reads, followed by what the command itself is given.
-func carried(env []string, rest io.Reader) (io.Reader, error) {
+func carried(env []string, home string, rest io.Reader) (io.Reader, error) {
 	var lines strings.Builder
 	for _, entry := range env {
 		name, _, found := strings.Cut(entry, "=")
@@ -454,7 +490,7 @@ func carried(env []string, rest io.Reader) (io.Reader, error) {
 		if strings.ContainsAny(entry, "\n\r") {
 			return nil, fmt.Errorf("the environment variable %s holds a line break, which cannot be carried into the sandbox", name)
 		}
-		lines.WriteString(harness.Rehome(entry, Home) + "\n")
+		lines.WriteString(harness.Rehome(entry, home) + "\n")
 	}
 	lines.WriteString("\n")
 	if rest == nil {
@@ -467,11 +503,17 @@ func carried(env []string, rest io.Reader) (io.Reader, error) {
 // command's own (see launcher), so it is never an argument on the host. --env would put it in the arguments.
 func (s *Sandbox) Wrap(ctx context.Context, command *exec.Cmd) *exec.Cmd {
 	args := []string{"sandbox", "exec", "--name", s.name, "--workdir", s.Workdir(), "--no-login-shell", "--no-tty", "--", "sh", "-c", s.launcher(), "sh"}
+	command, err := s.held(command)
+	if err != nil {
+		failed := s.run(ctx)
+		failed.Err = err
+		return failed
+	}
 	for _, argument := range command.Args {
-		args = append(args, harness.Rehome(argument, Home))
+		args = append(args, harness.Rehome(argument, s.home))
 	}
 	wrapped := s.run(ctx, args...)
-	wrapped.Stdin, wrapped.Err = carried(command.Env, command.Stdin)
+	wrapped.Stdin, wrapped.Err = carried(command.Env, s.home, command.Stdin)
 	return wrapped
 }
 
@@ -480,6 +522,10 @@ func (s *Sandbox) Wrap(ctx context.Context, command *exec.Cmd) *exec.Cmd {
 // to as it works would never hear the first message.
 func (s *Sandbox) Attach(ctx context.Context, command *exec.Cmd) (*exec.Cmd, error) {
 	if err := s.reachable(ctx); err != nil {
+		return nil, err
+	}
+	command, err := s.held(command)
+	if err != nil {
 		return nil, err
 	}
 	// The file is read and removed first, so it is not left when anything after it fails.
@@ -493,7 +539,7 @@ func (s *Sandbox) Attach(ctx context.Context, command *exec.Cmd) (*exec.Cmd, err
 	}
 	words = append(words, "cd "+quoted(s.Workdir())+" || exit 1;", s.limit(), "exec")
 	for _, argument := range command.Args {
-		words = append(words, quoted(harness.Rehome(argument, Home)))
+		words = append(words, quoted(harness.Rehome(argument, s.home)))
 	}
 	attached := exec.CommandContext(ctx, "ssh", "-F", s.sshConfig, "-T", "-o", "BatchMode=yes", s.sshHost, strings.Join(words, " "))
 	attached.Env = cleanEnv()
@@ -512,7 +558,7 @@ func (s *Sandbox) leaveEnv(ctx context.Context, env []string) (string, error) {
 	var lines strings.Builder
 	for _, entry := range env {
 		if strings.Contains(entry, "=") {
-			lines.WriteString("export " + quoted(harness.Rehome(entry, Home)) + "\n")
+			lines.WriteString("export " + quoted(harness.Rehome(entry, s.home)) + "\n")
 		}
 	}
 	write := s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--", "sh", "-c", `umask 077 && cat > "$1"`, "sh", file)
@@ -559,7 +605,7 @@ func quoted(text string) string {
 	return "'" + strings.ReplaceAll(text, "'", `'\''`) + "'"
 }
 
-// Fetch replaces into with the workspace as the sandbox now holds it.
+// Fetch replaces into with the working folder as the sandbox now holds it.
 func (s *Sandbox) Fetch(into string) error {
 	staging, err := os.MkdirTemp(filepath.Dir(into), ".fetch-")
 	if err != nil {
@@ -604,7 +650,7 @@ func (s *Sandbox) Guard() (events, policy []byte, err error) {
 		events = latest
 		time.Sleep(settle)
 	}
-	events = s.jobEvents(events)
+	events = s.taskEvents(events)
 	policy, err = output(s.run(context.Background(), "policy", "get", s.name, "--full"))
 	if err != nil {
 		return events, s.policy, nil
@@ -612,14 +658,33 @@ func (s *Sandbox) Guard() (events, policy []byte, err error) {
 	return events, policy, nil
 }
 
-// Close removes the sandbox, and a task's directory in a workspace and no more of it.
+// Close removes the sandbox, and a task's directory on a computer and no more of it. It is safe to call again, after a start that
+// failed, and with a gateway that does not answer: each gateway call has removeWithin, a sandbox that is not there is removed, and a
+// Close that finished is not repeated.
 func (s *Sandbox) Close() error {
+	if !s.closed.CompareAndSwap(false, true) {
+		return nil
+	}
+	if err := s.close(); err != nil {
+		s.closed.Store(false)
+		return err
+	}
+	return nil
+}
+
+func (s *Sandbox) close() error {
 	if s.sshConfig != "" {
 		os.Remove(s.sshConfig)
 	}
 	if s.persistent {
-		return s.endJob()
+		return s.endTask()
 	}
-	_, err := output(s.run(context.Background(), "sandbox", "delete", s.name))
-	return err
+	return s.within(func(ctx context.Context) error { return Remove(ctx, s.cfg, s.name) })
+}
+
+// within runs a gateway call for no longer than removeWithin.
+func (s *Sandbox) within(call func(context.Context) error) error {
+	ctx, cancel := context.WithTimeout(context.Background(), removeWithin)
+	defer cancel()
+	return call(ctx)
 }

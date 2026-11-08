@@ -10,15 +10,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/roster"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
-// withPeople is a server behind a front door whose list of people is the one given,
+// withPeople is a server behind gusto cloud whose list of people is the one given,
 // with an admin signed in.
 func withPeople(t *testing.T, list roster.Roster) (*site, string) {
 	t.Helper()
-	here := behindAFrontDoor(t)
+	here := behindCloud(t)
 	path := filepath.Join(t.TempDir(), "members.json")
 	if err := roster.Write(path, list); err != nil {
 		t.Fatal(err)
@@ -28,7 +28,7 @@ func withPeople(t *testing.T, list roster.Roster) (*site, string) {
 	return here, path
 }
 
-// spentNow leaves a job that somebody asked for and that cost this much just now.
+// spentNow leaves a task that somebody asked for and that cost this much just now.
 func spentNow(t *testing.T, here *site, id, asked string, usd float64) {
 	t.Helper()
 	spentNowIn(t, here, id, asked, "", usd)
@@ -38,8 +38,8 @@ func spentNow(t *testing.T, here *site, id, asked string, usd float64) {
 func spentNowIn(t *testing.T, here *site, id, asked, team string, usd float64) {
 	t.Helper()
 	line := fmt.Sprintf(`{"path":"/v1/chat/completions","status":200,"atUnix":%d,"model":"m","inputTokens":10,"outputTokens":5,"usd":%v}`, time.Now().Unix(), usd)
-	spentJob(t, here.index.Root(), id, team, line)
-	if err := here.index.Add(jobs.Record{ID: id, State: jobs.Passed, Brief: id, Harness: "fixture", Asked: asked, Queued: time.Now().Unix()}); err != nil {
+	spentTaskFor(t, here.index.Root(), id, team, asked, line)
+	if err := here.index.Add(tasks.Record{ID: id, State: tasks.Passed, Brief: id, Harness: "fixture", Asked: asked, Queued: time.Now().Unix()}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -52,7 +52,7 @@ func unmeasuredNow() string {
 
 func rowOf(t *testing.T, page, email string) string {
 	t.Helper()
-	found := regexp.MustCompile(`(?s)<tr>\s*<td>(?:<span class="[^"]*">.*?<span>)?` + regexp.QuoteMeta(email) + `(?:</span></span>)?</td>(.*?)</tr>`).FindStringSubmatch(page)
+	found := regexp.MustCompile(`(?s)<tr>\s*<td>(?:<span class="[^"]*">.*?<span class="text-xs text-muted">)?` + regexp.QuoteMeta(email) + `(?:</span></span></span>)?</td>(.*?)</tr>`).FindStringSubmatch(page)
 	if found == nil {
 		t.Fatalf("%s is not in the table:\n%s", email, page)
 	}
@@ -95,10 +95,17 @@ func TestThePeoplePageListsMembersWithRoleLastSignInAndWhatTheySpent(t *testing.
 	if strings.Contains(rowOf(t, page, "bob@acme.com"), "$") || strings.Contains(page, "$9") {
 		t.Errorf("what a token spent was put against a person:\n%s", page)
 	}
-	for _, want := range []string{"dee@acme.com", "Invited", `href="https://cloud.test/org"`} {
+	for _, want := range []string{`href="/admin/people?tab=invited">Invited <span class="font-normal text-subtle">1</span>`, `href="https://cloud.test/org?org=acme-com"`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the page lacks %q:\n%s", want, page)
 		}
+	}
+	if strings.Contains(page, "dee@acme.com") {
+		t.Error("the People tab lists who is only invited")
+	}
+	invited := here.ask(t, "GET", "/admin/people?tab=invited", nil).Body.String()
+	if !strings.Contains(invited, "dee@acme.com") || strings.Contains(invited, "bob@acme.com") {
+		t.Errorf("the Invited tab does not list only who is invited:\n%s", invited)
 	}
 }
 
@@ -112,6 +119,8 @@ func TestAPersonsSpendIsFoundWhateverTheCaseTheirAddressWasRecordedIn(t *testing
 
 func TestWhenTheListOfPeopleCannotBeReadThePageSaysSoAndShowsNobody(t *testing.T) {
 	here, path := withPeople(t, roster.Roster{Members: []roster.Member{{Email: "ada@acme.com", Role: "admin"}}})
+	// The list was read once, as every request reads it, so ada stays signed in on what it said.
+	here.ask(t, "GET", "/admin/people", nil)
 	for name, damage := range map[string]func(){
 		"it is not there":  func() { os.Remove(path) },
 		"it is not a list": func() { os.WriteFile(path, []byte("{this is not json"), 0o600) },
@@ -134,7 +143,7 @@ func TestWhenTheListOfPeopleCannotBeReadThePageSaysSoAndShowsNobody(t *testing.T
 	}
 }
 
-func TestThereIsNoPeoplePageWhereNoFrontDoorKeepsThePeople(t *testing.T) {
+func TestThereIsNoPeoplePageWhereNoGustoCloudKeepsThePeople(t *testing.T) {
 	here := open(t)
 	here.signIn(t)
 	if got := here.ask(t, "GET", "/admin/people", nil); got.Code != http.StatusNotFound {
@@ -142,5 +151,44 @@ func TestThereIsNoPeoplePageWhereNoFrontDoorKeepsThePeople(t *testing.T) {
 	}
 	if strings.Contains(here.ask(t, "GET", "/admin", nil).Body.String(), "/admin/people") {
 		t.Error("the console lists people where there are none to list")
+	}
+}
+
+// Behind gusto cloud, which owns roles, a role is a choice sent there, and it comes back to this page.
+func TestARoleIsChangedAtGustoCloudAndComesBackToPeople(t *testing.T) {
+	here, _ := withPeople(t, roster.Roster{Members: []roster.Member{
+		{Email: "ada@acme.com", Role: "admin"}, {Email: "bea@acme.com", Role: "admin"}, {Email: "bob@acme.com", Role: "runner"},
+	}})
+	page := here.ask(t, "GET", "/admin/people", nil).Body.String()
+	for _, email := range []string{"ada@acme.com", "bea@acme.com", "bob@acme.com"} {
+		row := rowOf(t, page, email)
+		for _, want := range []string{`action="https://cloud.test/org/people/role?org=acme-com"`, `name="email" value="` + email + `"`,
+			`name="back" value="http://example.com/admin/people"`, `name="role"`, "data-autosubmit"} {
+			if !strings.Contains(row, want) {
+				t.Errorf("the role of %s lacks %q:\n%s", email, want, row)
+			}
+		}
+	}
+	if row := rowOf(t, page, "bea@acme.com"); !strings.Contains(row, `data-confirm-when="runner"`) || !strings.Contains(row, `<option value="admin" selected>`) {
+		t.Errorf("making an admin a runner does not ask first:\n%s", row)
+	}
+	if row := rowOf(t, page, "bob@acme.com"); strings.Contains(row, "data-confirm") || !strings.Contains(row, `<option value="runner" selected>`) {
+		t.Errorf("making a runner an admin asks, or the runner is not shown as one:\n%s", row)
+	}
+}
+
+func TestTheOnlyAdminAndAServerWithNoGustoCloudShowTheRoleInWords(t *testing.T) {
+	here, _ := withPeople(t, roster.Roster{Members: []roster.Member{{Email: "ada@acme.com", Role: "admin"}, {Email: "bob@acme.com", Role: "runner"}}})
+	page := here.ask(t, "GET", "/admin/people", nil).Body.String()
+	if row := rowOf(t, page, "ada@acme.com"); strings.Contains(row, "<select") || !strings.Contains(row, ">admin</span>") {
+		t.Errorf("the only admin is offered to stop being one:\n%s", row)
+	}
+	if row := rowOf(t, page, "bob@acme.com"); !strings.Contains(row, "<select") {
+		t.Errorf("a runner is not offered to be made an admin:\n%s", row)
+	}
+
+	alone, _, _ := budgeted(t)
+	if page := alone.ask(t, "GET", "/admin/people", nil).Body.String(); strings.Contains(page, "<select") || strings.Contains(page, "/org/people/role") || !strings.Contains(page, ">runner</span>") {
+		t.Errorf("a server with no gusto cloud offers to change a role:\n%s", page)
 	}
 }

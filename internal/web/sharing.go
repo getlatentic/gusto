@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -17,17 +18,8 @@ import (
 	"github.com/getlatentic/gusto/internal/apps"
 )
 
-// AppRunner runs the web apps that agents built, where the agents are. Start runs the app's
-// command in the agent's computer and returns the app with where it can be asked, once it
-// answers, or says why it did not. A deployment whose agents do not run in computers has none,
-// and offers no sharing.
-type AppRunner interface {
-	Start(ctx context.Context, app apps.App) (apps.App, error)
-	Stop(ctx context.Context, app apps.App) error
-}
-
 // UseApps lets people share the web apps their agents built.
-func (s *Server) UseApps(store *apps.Store, runner AppRunner) {
+func (s *Server) UseApps(store *apps.Store, runner apps.Runner) {
 	s.apps, s.runner = store, runner
 }
 
@@ -36,6 +28,9 @@ const (
 	appStart = 90 * time.Second
 	// appsPerAgent is how many apps an agent may have at once.
 	appsPerAgent = 3
+	// appChecks is how many times an app a request could not reach is asked again, a second apart, before it is taken for
+	// stopped.
+	appChecks = 3
 )
 
 // appsOf is an agent's apps, or none where nothing is shared.
@@ -57,8 +52,8 @@ func startingApp(found []apps.App) bool {
 	return false
 }
 
-// publishApp starts the command a person names in their agent's computer, and shares what it
-// serves once it answers. It returns at once, and the page shows the app starting.
+// publishApp shares what an agent built. A folder with a page in it is served by this server at once; a command a
+// person names is started in the agent's computer, and shared once it answers, while the page shows it starting.
 func (s *Server) publishApp(w http.ResponseWriter, r *http.Request) {
 	held, found := s.mine(w, r)
 	if !found {
@@ -69,39 +64,30 @@ func (s *Server) publishApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	back := "/instances/" + held.ID
+	if folder := r.FormValue("preview"); folder != "" {
+		s.publishPage(w, r, held.ID, held.Who, folder, s.backTo(held.ID, r.FormValue("back"), back))
+		return
+	}
+	if s.runner == nil {
+		http.NotFound(w, r)
+		return
+	}
 	command := strings.TrimSpace(r.FormValue("command"))
 	port, err := strconv.Atoi(strings.TrimSpace(r.FormValue("port")))
-	folder := r.FormValue("preview")
-	if folder != "" {
-		// A page an agent built is served from its folder by a server of ours, so nobody has to write one. The person
-		// is sent back to the conversation they asked from.
-		back = s.backTo(held.ID, r.FormValue("back"), back)
-		if command, port = previewCommand(folder), previewPort(s.appsOf(held.ID)); command == "" || port == 0 {
-			s.turnAway(w, r, back, "that is not a folder of this agent's that can be previewed")
-			return
-		}
-		err = nil
-	}
 	switch {
-	// What a person types is one short line; the server of ours for a preview is longer and is not typed.
-	case folder == "" && (command == "" || len(command) > 500 || strings.ContainsAny(command, "\r\n\x00")):
+	// What a person types is one short line.
+	case command == "" || len(command) > 500 || strings.ContainsAny(command, "\r\n\x00"):
 		s.turnAway(w, r, back, "give the one line that starts the app, such as node server.js")
 		return
-	case folder == "" && (err != nil || port < 1024 || port > 65535):
+	case err != nil || port < 1024 || port > 65535:
 		s.turnAway(w, r, back, "the port is a number from 1024 to 65535, the one the app listens on")
 		return
 	}
-	running := 0
-	for _, each := range s.appsOf(held.ID) {
-		if each.State == apps.Starting || each.State == apps.Live {
-			running++
-		}
-	}
-	if running >= appsPerAgent {
-		s.turnAway(w, r, back, "this agent already shares "+strconv.Itoa(appsPerAgent)+" apps; stop one first")
+	app, err := s.apps.New(apps.Sharer{Instance: held.ID, Owner: held.Who, Workspace: held.Workspace}, command, port, appsPerAgent)
+	if errors.Is(err, apps.ErrTooMany) {
+		s.turnAway(w, r, back, tooManyApps)
 		return
 	}
-	app, err := s.apps.New(held.ID, held.Who, command, port)
 	if err != nil {
 		s.turnAway(w, r, back, err.Error())
 		return
@@ -113,6 +99,35 @@ func (s *Server) publishApp(w http.ResponseWriter, r *http.Request) {
 	}()
 	http.Redirect(w, r, back+"#apps", http.StatusSeeOther)
 }
+
+// publishPage shares a folder of the agent's that holds a page, served as it is, and sends the person back to the
+// conversation they asked from. A folder already shared is the same page again.
+func (s *Server) publishPage(w http.ResponseWriter, r *http.Request, instance, owner, folder, back string) {
+	if !previewFolder.MatchString(folder) {
+		s.turnAway(w, r, back, "that is not a folder of this agent's that can be previewed")
+		return
+	}
+	for _, each := range s.appsOf(instance) {
+		if each.Folder == folder && each.State == apps.Live {
+			http.Redirect(w, r, back+"#apps", http.StatusSeeOther)
+			return
+		}
+	}
+	held, _ := s.instances.Get(instance)
+	_, err := s.apps.NewPage(apps.Sharer{Instance: instance, Owner: owner, Workspace: held.Workspace}, folder, appsPerAgent)
+	if errors.Is(err, apps.ErrTooMany) {
+		s.turnAway(w, r, back, tooManyApps)
+		return
+	}
+	if err != nil {
+		s.turnAway(w, r, back, err.Error())
+		return
+	}
+	http.Redirect(w, r, back+"#apps", http.StatusSeeOther)
+}
+
+// tooManyApps is what a person is told who asks an agent for more apps than it may share.
+var tooManyApps = "this agent already shares " + strconv.Itoa(appsPerAgent) + " apps; stop one first"
 
 // backTo is where to send a person after they started an app: the conversation they asked from when it is one of this
 // agent's, and the agent's own page otherwise.
@@ -135,12 +150,30 @@ func (s *Server) startApp(app apps.App) {
 		if len(note) > 1500 {
 			note = note[len(note)-1500:]
 		}
-		s.apps.Change(app.ID, func(a *apps.App) { a.State, a.Note = apps.Failed, note })
+		after, _ := s.apps.Change(app.ID, func(a *apps.App) {
+			if a.State == apps.Starting {
+				a.State, a.Note = apps.Failed, note
+			}
+		})
+		if after.State == apps.Removing {
+			s.apps.Delete(app.ID)
+		}
 		return
 	}
-	s.apps.Change(app.ID, func(a *apps.App) {
-		a.State, a.Sandbox, a.Host, a.Target, a.Note = apps.Live, started.Sandbox, started.Host, started.Target, ""
+	after, err := s.apps.Change(app.ID, func(a *apps.App) {
+		if a.State == apps.Starting {
+			a.State, a.Sandbox, a.Host, a.Target, a.Note = apps.Live, started.Sandbox, started.Host, started.Target, ""
+		}
 	})
+	if err != nil || after.State != apps.Live {
+		// Removed while it started: what was started is stopped, so nothing runs that the page no longer shows.
+		stop, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		s.runner.Stop(stop, started)
+		if err == nil {
+			s.apps.Delete(app.ID)
+		}
+	}
 }
 
 // removeApp stops an app and takes it off the agent's page.
@@ -162,30 +195,110 @@ func (s *Server) removeApp(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/instances/"+held.ID+"#apps", http.StatusSeeOther)
 }
 
-// stopApp stops an app's processes, gives its address back, and forgets it. An app that would not stop is
-// still forgotten: the computer it ran in is what limits it.
+// stopApp stops an app's processes, gives its address back, and forgets it, whatever its state. An app that would not stop is
+// still forgotten: the computer it ran in is what limits it. One still starting is marked removing, and its start, which may
+// not yet have started anything, stops it and forgets it when it ends.
 func (s *Server) stopApp(app apps.App) {
-	if app.State == apps.Live || app.State == apps.Starting {
+	if app.Folder != "" || s.runner == nil {
+		s.apps.Delete(app.ID)
+		return
+	}
+	marked, err := s.apps.Change(app.ID, func(a *apps.App) {
+		if a.State == apps.Starting {
+			a.State = apps.Removing
+		}
+	})
+	if err != nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	s.runner.Stop(ctx, marked)
+	if marked.State != apps.Removing {
+		s.apps.Delete(app.ID)
+	}
+}
+
+// checkApp asks an app a request could not reach whether it answers, a few times a second apart, and only when it never does
+// stops it and says so: one reset connection is not an app that stopped.
+func (s *Server) checkApp(id string) {
+	if _, busy := s.checking.LoadOrStore(id, true); busy {
+		return
+	}
+	s.publishing.Add(1)
+	go func() {
+		defer s.publishing.Done()
+		defer s.checking.Delete(id)
+		for range appChecks {
+			app, err := s.apps.Get(id)
+			if err != nil || app.State != apps.Live {
+				return
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			err = s.runner.Answers(ctx, app)
+			cancel()
+			if err == nil {
+				return
+			}
+			time.Sleep(time.Second)
+		}
+		app, err := s.apps.Change(id, func(a *apps.App) {
+			if a.State == apps.Live {
+				a.State, a.Note = apps.Stopped, "it stopped answering"
+			}
+		})
+		if err != nil || app.State != apps.Stopped {
+			return
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		s.runner.Stop(ctx, app)
-	}
-	s.apps.Delete(app.ID)
+	}()
 }
 
-// AppHeader says which app a request is for. The front door sets it, for a request to an
+// ReconcileApps finishes what a restart cut off, before any app is started: an app left starting is stopped and marked
+// failed, and one left being removed is stopped and forgotten.
+func (s *Server) ReconcileApps() {
+	if s.apps == nil || s.runner == nil {
+		return
+	}
+	all, err := s.apps.All()
+	if err != nil {
+		slog.Error("the shared apps could not be read to finish what a restart cut off", "error", err)
+		return
+	}
+	for _, app := range all {
+		if app.State != apps.Starting && app.State != apps.Removing {
+			continue
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		s.runner.Stop(ctx, app)
+		cancel()
+		if app.State == apps.Removing {
+			s.apps.Delete(app.ID)
+			continue
+		}
+		s.apps.Change(app.ID, func(a *apps.App) {
+			if a.State == apps.Starting {
+				a.State, a.Note = apps.Failed, "the server restarted while it was starting"
+			}
+		})
+	}
+}
+
+// AppHeader says which app a request is for. Gusto cloud sets it, for a request to an
 // app's own host name, and signs it with the key it shares with this server, so a client
 // cannot write it and the request it arrives on can reach nothing but that app.
 const AppHeader = "X-Gusto-App"
 
-// SignApp is the header's value for an app: its id, and a signature only the front door and this server can make.
+// SignApp is the header's value for an app: its id, and a signature only gusto cloud and this server can make.
 func SignApp(key []byte, id string) string {
 	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte("app:" + id))
 	return id + "." + hex.EncodeToString(mac.Sum(nil))
 }
 
-// verifiedApp is the app id in a header the front door signed, or nothing.
+// verifiedApp is the app id in a header gusto cloud signed, or nothing.
 func (s *Server) verifiedApp(header string) (string, bool) {
 	if s.front == nil {
 		return "", false
@@ -198,7 +311,7 @@ func (s *Server) verifiedApp(header string) (string, bool) {
 }
 
 // byApp keeps a request for an app's own host name away from everything else on this
-// server: it is signed in with the token the front door made, and passed to the app, and
+// server: it is signed in with the token gusto cloud made, and passed to the app, and
 // nothing of the organization's pages can be reached on that name.
 func (s *Server) byApp(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -224,13 +337,13 @@ func (s *Server) appOrigin(w http.ResponseWriter, r *http.Request, id string) {
 		return
 	}
 	if !s.keeper.knows(r) {
-		http.Redirect(w, r, s.front.URL+"/open?app="+id, http.StatusSeeOther)
+		http.Redirect(w, r, s.front.page("/open", url.Values{"app": {id}}), http.StatusSeeOther)
 		return
 	}
 	s.serveApp(w, r, id, "")
 }
 
-// appLink is where an app is opened: its own host name behind a front door, and a path on this
+// appLink is where an app is opened: its own host name behind gusto cloud, and a path on this
 // server's own where there is none.
 func (s *Server) appLink(app apps.App) string {
 	if s.front == nil {
@@ -243,7 +356,13 @@ func (s *Server) appLink(app apps.App) string {
 	return parsed.Scheme + "://" + s.front.Org + "--" + app.ID + "." + parsed.Host + "/"
 }
 
-// app is the path an app is opened at on a server with no front door. Behind one, an app has a host
+// appFor is the app an id names, when it is in a workspace the request is in.
+func (s *Server) appFor(r *http.Request, id string) (apps.App, bool) {
+	app, err := s.apps.Get(id)
+	return app, err == nil && s.inWorkspace(r, app.Workspace)
+}
+
+// app is the path an app is opened at on a server with no gusto cloud. Behind one, an app has a host
 // name of its own, and this sends a link somebody kept there.
 func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	if s.apps == nil {
@@ -277,8 +396,8 @@ func (s *Server) serveApp(w http.ResponseWriter, r *http.Request, id, prefix str
 		http.NotFound(w, r)
 		return
 	}
-	app, err := s.apps.Get(id)
-	if err != nil {
+	app, found := s.appFor(r, id)
+	if !found {
 		http.NotFound(w, r)
 		return
 	}
@@ -295,6 +414,10 @@ func (s *Server) serveApp(w http.ResponseWriter, r *http.Request, id, prefix str
 	// would be said twice beside the ones set below.
 	for _, header := range []string{"Content-Security-Policy", "Referrer-Policy", "Cache-Control", "X-Content-Type-Options", "Strict-Transport-Security"} {
 		w.Header().Del(header)
+	}
+	if app.Folder != "" {
+		s.servePage(w, r, app, prefix)
+		return
 	}
 	proxy := &httputil.ReverseProxy{
 		Transport: s.appTransport(app),
@@ -352,7 +475,7 @@ func (s *Server) serveApp(w http.ResponseWriter, r *http.Request, id, prefix str
 			// An app that is slow, or that a person gave up on, has not stopped; one that refuses a connection has.
 			var timeout net.Error
 			if !errors.Is(err, context.Canceled) && !(errors.As(err, &timeout) && timeout.Timeout()) {
-				s.apps.Change(app.ID, func(a *apps.App) { a.State, a.Note = apps.Stopped, "it stopped answering" })
+				s.checkApp(app.ID)
 			}
 			http.Error(w, "this app is not answering", http.StatusBadGateway)
 		},

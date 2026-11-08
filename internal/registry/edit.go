@@ -41,28 +41,34 @@ func (r *Registry) AddProvider(give Give) error {
 	if err != nil {
 		return err
 	}
-	if held := r.Document(); indexOfProvider(held.Providers, provider.Name) >= 0 && !held.Providers[indexOfProvider(held.Providers, provider.Name)].Retired {
+	if give.Reference != "stored" && give.Key != "" {
+		return errors.New("a key is typed only for a provider whose key is kept here")
+	}
+	r.edit.Lock()
+	err = r.addProvider(provider, give)
+	r.edit.Unlock()
+	if err == nil {
+		r.tell()
+	}
+	return err
+}
+
+// addProvider keeps the key and then the provider, by a caller that holds edit. The name is checked first, so a key is
+// kept only for a provider that will be added, and is forgotten again when keeping the provider fails.
+func (r *Registry) addProvider(provider Provider, give Give) error {
+	if held := r.Document(); !free(held.Providers, provider.Name) {
 		return fmt.Errorf("there is a provider called %s already", provider.Name)
 	}
 	if give.Reference == "stored" {
 		if err := r.keep(provider.Name, give.Key); err != nil {
 			return err
 		}
-	} else if give.Key != "" {
-		return errors.New("a key is typed only for a provider whose key is kept here")
 	}
-	err = r.change(func(d *Document) error {
+	err := r.write(func(d *Document) error {
 		if i := indexOfProvider(d.Providers, provider.Name); i >= 0 {
-			if !d.Providers[i].Retired {
-				return fmt.Errorf("there is a provider called %s already", provider.Name)
-			}
 			d.Providers[i] = provider
 			// What the retired provider served is not what this one does.
-			for j := range d.Models {
-				if d.Models[j].Provider == provider.Name {
-					d.Models[j].Retired = true
-				}
-			}
+			retireModelsOf(d, provider.Name)
 			return nil
 		}
 		d.Providers = append(d.Providers, provider)
@@ -72,6 +78,20 @@ func (r *Registry) AddProvider(give Give) error {
 		r.forget(provider.Name)
 	}
 	return err
+}
+
+// free says no provider in use has the name.
+func free(list []Provider, name string) bool {
+	i := indexOfProvider(list, name)
+	return i < 0 || list[i].Retired
+}
+
+func retireModelsOf(d *Document, provider string) {
+	for i := range d.Models {
+		if d.Models[i].Provider == provider {
+			d.Models[i].Retired = true
+		}
+	}
 }
 
 func (r *Registry) provider(give Give) (Provider, error) {
@@ -88,16 +108,11 @@ func (r *Registry) provider(give Give) (Provider, error) {
 	if err != nil {
 		return Provider{}, err
 	}
-	if give.Auth != "" && give.Auth != proxy.Bearer && give.Auth != proxy.Anthropic {
-		return Provider{}, errors.New("a provider takes a bearer token or Anthropic's header")
+	if err := checkWay(give.Auth, give.Wires); err != nil {
+		return Provider{}, err
 	}
 	if err := Check(give.Reference, r.Rules().KeySources); err != nil {
 		return Provider{}, err
-	}
-	for _, wire := range give.Wires {
-		if wire != "chat" && wire != "messages" && wire != "responses" {
-			return Provider{}, fmt.Errorf("%s is not a shape of API: chat, messages or responses", wire)
-		}
 	}
 	return Provider{Name: name, Address: address, Auth: give.Auth, Key: give.Reference, Wires: give.Wires, Pending: true}, nil
 }
@@ -113,6 +128,16 @@ func indexOfProvider(list []Provider, name string) int {
 
 // ReplaceKey gives a provider whose key is kept here another key.
 func (r *Registry) ReplaceKey(provider, key string) error {
+	r.edit.Lock()
+	err := r.replaceKey(provider, key)
+	r.edit.Unlock()
+	if err == nil {
+		r.tell()
+	}
+	return err
+}
+
+func (r *Registry) replaceKey(provider, key string) error {
 	held := r.Document()
 	i := indexOfProvider(held.Providers, provider)
 	if i < 0 || held.Providers[i].Retired {
@@ -124,21 +149,27 @@ func (r *Registry) ReplaceKey(provider, key string) error {
 	if err := r.keep(provider, key); err != nil {
 		return err
 	}
-	return r.change(func(*Document) error { return nil })
+	return r.write(func(*Document) error { return nil })
 }
 
 // RetireProvider stops a provider and its models being used, and forgets a key that was kept here.
 func (r *Registry) RetireProvider(name string) error {
-	err := r.change(func(d *Document) error {
+	r.edit.Lock()
+	err := r.write(func(d *Document) error {
 		i := indexOfProvider(d.Providers, name)
 		if i < 0 || d.Providers[i].Retired {
 			return ErrNoSuch
 		}
 		d.Providers[i].Retired = true
+		retireModelsOf(d, name)
 		return nil
 	})
 	if err == nil {
 		r.forget(name)
+	}
+	r.edit.Unlock()
+	if err == nil {
+		r.tell()
 	}
 	return err
 }
@@ -185,8 +216,8 @@ func (r *Registry) setPending(provider, model string, pending bool) error {
 			d.Providers[i].Pending = pending
 			return nil
 		}
-		i := indexOfModel(d.Models, provider, model)
-		if i < 0 || d.Models[i].Retired {
+		i := liveModel(d, provider, model)
+		if i < 0 {
 			return ErrNoSuch
 		}
 		d.Models[i].Pending = pending
@@ -200,8 +231,8 @@ func (r *Registry) SetPrice(provider, name string, price *spend.Price) error {
 		return err
 	}
 	return r.change(func(d *Document) error {
-		i := indexOfModel(d.Models, provider, name)
-		if i < 0 || d.Models[i].Retired {
+		i := liveModel(d, provider, name)
+		if i < 0 {
 			return ErrNoSuch
 		}
 		d.Models[i].Price = price
@@ -212,13 +243,26 @@ func (r *Registry) SetPrice(provider, name string, price *spend.Price) error {
 // RetireModel stops a model being offered.
 func (r *Registry) RetireModel(provider, name string) error {
 	return r.change(func(d *Document) error {
-		i := indexOfModel(d.Models, provider, name)
-		if i < 0 || d.Models[i].Retired {
+		i := liveModel(d, provider, name)
+		if i < 0 {
 			return ErrNoSuch
 		}
 		d.Models[i].Retired = true
 		return nil
 	})
+}
+
+// liveModel is where a model is that is not retired and whose provider is not, or -1. A registry kept before a retired
+// provider's models were retired with it can hold one that is not.
+func liveModel(d *Document, provider, name string) int {
+	if free(d.Providers, provider) {
+		return -1
+	}
+	i := indexOfModel(d.Models, provider, name)
+	if i < 0 || d.Models[i].Retired {
+		return -1
+	}
+	return i
 }
 
 func indexOfModel(list []Model, provider, name string) int {

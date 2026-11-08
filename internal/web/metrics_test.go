@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/proxy"
 )
 
@@ -53,8 +53,8 @@ func scraped(t *testing.T, body string) map[string]float64 {
 func TestMetricsReportTheQueueTheDiskAndTheProxy(t *testing.T) {
 	here := open(t)
 	here.server.UseHealth(Health{Release: "abc1234", Proxy: func() proxy.Counts { return proxy.Counts{Calls: 40, Errors: 3, Refused: 2} }})
-	for id, state := range map[string]jobs.State{"a": jobs.Queued, "b": jobs.Queued, "c": jobs.Running, "d": jobs.Passed, "e": jobs.Failed} {
-		waitingJob(t, here, id, "amy@acme.test", state, int64(len(id))+int64(state[0]))
+	for id, state := range map[string]tasks.State{"a": tasks.Queued, "b": tasks.Queued, "c": tasks.Running, "d": tasks.Passed, "e": tasks.Failed} {
+		waitingTask(t, here, id, "amy@acme.test", state, int64(len(id))+int64(state[0]))
 	}
 	got := here.call("GET", "/metrics", password)
 	if got.Code != http.StatusOK || !strings.HasPrefix(got.Header().Get("Content-Type"), "text/plain") {
@@ -104,7 +104,7 @@ func TestMetricsAreForACallerThatMayReadThem(t *testing.T) {
 	}
 	here.signIn(t)
 	made := here.ask(t, "POST", "/admin/tokens", map[string][]string{"name": {"prometheus"}, "scope": {"metrics"}})
-	secret := regexp.MustCompile(`gusto_[0-9a-f]{8}_[A-Za-z0-9_-]{43}`).FindString(made.Body.String())
+	secret := regexp.MustCompile(`gusto_[0-9a-f]{16}_[A-Za-z0-9_-]{43}`).FindString(made.Body.String())
 	if got := here.call("GET", "/metrics", secret); got.Code != http.StatusOK {
 		t.Errorf("a token that reads metrics gave %d", got.Code)
 	}
@@ -155,7 +155,7 @@ func TestReadyMeansTheServerCanDoItsWork(t *testing.T) {
 			t.Errorf("a jobs directory that cannot be written gave %d: %s", got.Code, got.Body.String())
 		}
 	}
-	// A queue whose workers are gone takes jobs and never starts them.
+	// A queue whose workers are gone takes tasks and never starts them.
 	stopped := open(t)
 	stopped.server.queue.Stop()
 	if got := stopped.call("GET", "/readyz", ""); got.Code != http.StatusServiceUnavailable || !strings.Contains(got.Body.String(), "workers are running") {

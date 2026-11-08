@@ -116,21 +116,21 @@ func TestAPresetIsSavedFromTheChatAndOffered(t *testing.T) {
 	if page := mine.ask(t, "GET", where, nil).Body.String(); !strings.Contains(page, "Reviewer") || !strings.Contains(page, `value="p:`) {
 		t.Errorf("the chat does not offer the preset and open on it:\n%s", page)
 	}
-	if roles := mine.ask(t, "GET", "/new", nil).Body.String(); !strings.Contains(roles, "Reviewer") || !strings.Contains(roles, "Use in a new chat") {
+	if roles := mine.ask(t, "GET", "/presets", nil).Body.String(); !strings.Contains(roles, "Reviewer") || !strings.Contains(roles, "Use in a new chat") {
 		t.Error("the roles page does not list the preset")
 	}
-	if other := theirs.ask(t, "GET", "/new", nil).Body.String(); strings.Contains(other, "Reviewer") {
+	if other := theirs.ask(t, "GET", "/presets", nil).Body.String(); strings.Contains(other, "Reviewer") {
 		t.Error("somebody else sees the preset")
 	}
 	id := strings.TrimPrefix(where, "/chat?preset=")
 	if gone := theirs.ask(t, "POST", "/presets/"+id+"/delete", nil); gone.Code != http.StatusSeeOther {
 		t.Fatalf("deleting answered %d", gone.Code)
 	}
-	if page := mine.ask(t, "GET", "/new", nil).Body.String(); !strings.Contains(page, "Reviewer") {
+	if page := mine.ask(t, "GET", "/presets", nil).Body.String(); !strings.Contains(page, "Reviewer") {
 		t.Error("somebody else removed the preset")
 	}
 	mine.ask(t, "POST", "/presets/"+id+"/delete", nil)
-	if page := mine.ask(t, "GET", "/new", nil).Body.String(); strings.Contains(page, "Reviewer") {
+	if page := mine.ask(t, "GET", "/presets", nil).Body.String(); strings.Contains(page, "Reviewer") {
 		t.Error("the preset was not removed")
 	}
 }

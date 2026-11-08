@@ -49,7 +49,7 @@ A number the run did not leave reads "unmeasured", never zero. A call the proxy 
 
 ## Reruns, environment and exit code
 
-- A pair with a verdict is not run again. `-again all` or `-again opencode@ollama/gpt-oss:20b,codex@deepseek/deepseek-flash` reruns pairs, and the replaced run is kept as `.attempt-1`.
+- A pair with a verdict is not run again. `-again all` or `-again opencode@ollama/gpt-oss:20b,codex@deepseek/deepseek-flash` reruns pairs, and the replaced run is kept as `.attempt-1`. A cell's time is the time of the run it holds: it is cleared before a run, and set when the run leaves a verdict, also when the runner fails after it. A stop after the old run was moved aside leaves no cell directory, and the next measure makes it again.
 - A pair with no verdict, because its program was missing or the machine stopped, runs again next time. A pair added later runs alone, at the commit the task was first pinned to.
 - Pairs run one after another, so runs do not slow each other.
 - `-here` runs every pair in this process. Without it each pair runs in a container, through the proxy when a credential is held (`GUSTO_CREDENTIALS` or `GUSTO_MODEL_UPSTREAM`), otherwise at `GUSTO_MODEL_URL`.

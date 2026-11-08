@@ -15,7 +15,8 @@ type Policy struct {
 	Prices map[string]Price   `json:"prices"`
 	Teams  map[string]TeamCap `json:"teams"`
 	// Organization is what every task of this server may spend together in a calendar month, UTC, whichever team they
-	// count against. A demo has one, since an organization that lasts half an hour has nobody to set a team's cap.
+	// count against, on the operator's keys: a call on a key the organization added for itself is its own to pay for, and
+	// is not counted. It is how a hosted organization's free credit is held, and a demo's.
 	Organization *TeamCap `json:"organisation,omitempty"`
 }
 
@@ -73,8 +74,8 @@ func (p Policy) price(credential, model string) (Price, bool) {
 	return price, found
 }
 
-// organizationCap is the monthly cap on the whole server, if the policy sets one.
-func (p Policy) organizationCap() (float64, bool) {
+// OrganizationCap is the operator's monthly cap on the whole server, on the operator's keys, if the policy sets one.
+func (p Policy) OrganizationCap() (float64, bool) {
 	if p.Organization == nil {
 		return 0, false
 	}

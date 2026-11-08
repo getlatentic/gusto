@@ -11,9 +11,9 @@ const kvm = "/dev/kvm"
 
 // HostCannotMakeVMs says why this machine cannot be where an OpenShell gateway makes its microVMs, or is nil when it can.
 // The gateway's VM driver needs KVM on Linux, which a cloud machine has only when it is launched with nested
-// virtualization, and a gateway on another machine is told with GUSTO_OPENSHELL_REMOTE=1, since this one then needs none.
-func HostCannotMakeVMs() error {
-	return noHardware(runtime.GOOS, func(path string) bool { _, err := os.Stat(path); return err == nil }, os.Getenv("GUSTO_OPENSHELL_REMOTE") == "1")
+// virtualization, and a gateway that is remote, on another machine, needs none here.
+func HostCannotMakeVMs(remote bool) error {
+	return noHardware(runtime.GOOS, func(path string) bool { _, err := os.Stat(path); return err == nil }, remote)
 }
 
 func noHardware(goos string, exists func(string) bool, remote bool) error {

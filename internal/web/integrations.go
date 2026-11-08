@@ -28,7 +28,6 @@ const importLimit = integration.MaxUpload + 1<<20
 
 func (s *Server) integrationRoutes(mux *http.ServeMux) {
 	offered := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasIntegrations, next)) }
-	mux.HandleFunc("GET "+integrationsPath, offered(s.integrationsPage))
 	mux.HandleFunc("POST "+integrationsPath+"/import", offered(s.importIntegration))
 	mux.HandleFunc("GET "+integrationsPath+"/{name}", offered(s.integrationPage))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/enable", offered(s.enableIntegration))
@@ -37,19 +36,6 @@ func (s *Server) integrationRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/for", offered(s.scopeIntegration))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/programs/allow", offered(s.allowPrograms))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/programs/refuse", offered(s.refusePrograms))
-}
-
-func (s *Server) integrationsPage(w http.ResponseWriter, r *http.Request) {
-	all, err := s.integrations.List()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	s.drawConsole(w, "admin-integrations.html", "integrations", map[string]any{
-		"Title":        productName + " — integrations",
-		"Integrations": all,
-		"Refused":      r.URL.Query().Get("refused"),
-	})
 }
 
 func (s *Server) integrationPage(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +47,7 @@ func (s *Server) integrationPage(w http.ResponseWriter, r *http.Request) {
 	page := map[string]any{
 		"Title":   productName + " — " + held.Name,
 		"Held":    held,
-		"Refused": r.URL.Query().Get("refused"),
+		"Refused": s.refusal(r),
 	}
 	if to, found := held.Version(r.URL.Query().Get("version")); found {
 		page["Shown"] = to
@@ -71,13 +57,13 @@ func (s *Server) integrationPage(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	s.drawConsole(w, "admin-integration.html", "integrations", page)
+	s.drawConsole(w, "admin-integration.html", "apps", page)
 }
 
 // importIntegration takes a plugin in, from an upload or a git address, as a version that is off.
 func (s *Server) importIntegration(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(8 << 20); err != nil && !errors.Is(err, http.ErrNotMultipart) {
-		s.turnAway(w, r, integrationsPath, "the upload could not be read: "+err.Error())
+		s.turnAway(w, r, skillsTab, "the upload could not be read: "+err.Error())
 		return
 	}
 	scratch, err := os.MkdirTemp("", "gusto-integration-")
@@ -88,12 +74,12 @@ func (s *Server) importIntegration(w http.ResponseWriter, r *http.Request) {
 	defer os.RemoveAll(scratch)
 	dir, source, err := s.fetchIntegration(r, scratch)
 	if err != nil {
-		s.turnAway(w, r, integrationsPath, err.Error())
+		s.turnAway(w, r, skillsTab, err.Error())
 		return
 	}
 	held, version, err := s.integrations.Import(dir, source, s.keeper.who(r))
 	if err != nil {
-		s.turnAway(w, r, integrationsPath, err.Error())
+		s.turnAway(w, r, skillsTab, err.Error())
 		return
 	}
 	s.note(r, changelog.IntegrationImported, map[string]string{
@@ -123,23 +109,22 @@ func (s *Server) fetchIntegration(r *http.Request, scratch string) (string, inte
 
 func (s *Server) enableIntegration(w http.ResponseWriter, r *http.Request) {
 	name, version := r.PathValue("name"), r.FormValue("version")
-	before, err := s.integrations.Get(name)
-	if err != nil {
+	if _, err := s.integrations.Get(name); err != nil {
 		http.NotFound(w, r)
 		return
-	}
-	changes := ""
-	if before.On != "" && before.On != version {
-		if difference, err := before.Compare(before.On, version); err == nil {
-			changes = describeChanges(difference)
-		}
 	}
 	held, err := s.integrations.Enable(name, version, s.keeper.who(r))
 	if err != nil {
 		s.turnAway(w, r, integrationsPath+"/"+name, err.Error())
 		return
 	}
-	s.note(r, changelog.IntegrationEnabled, map[string]string{"integration": name, "from": before.On, "to": held.On, "changes": changes})
+	from, changes := held.Last().Was, ""
+	if from != "" && from != held.On {
+		if difference, err := held.Compare(from, held.On); err == nil {
+			changes = describeChanges(difference)
+		}
+	}
+	s.note(r, changelog.IntegrationEnabled, map[string]string{"integration": name, "from": from, "to": held.On, "changes": changes})
 	http.Redirect(w, r, integrationsPath+"/"+name, http.StatusSeeOther)
 }
 
@@ -154,25 +139,27 @@ func (s *Server) restoreIntegration(w http.ResponseWriter, r *http.Request) {
 // turnIntegration does a change that names no version, and records what was on and what is.
 func (s *Server) turnIntegration(w http.ResponseWriter, r *http.Request, kind string, do func(name, by string) (*integration.Integration, error)) {
 	name := r.PathValue("name")
-	before, err := s.integrations.Get(name)
-	if err != nil {
+	if _, err := s.integrations.Get(name); err != nil {
 		http.NotFound(w, r)
 		return
 	}
 	held, err := do(name, s.keeper.who(r))
+	if errors.Is(err, integration.ErrNoChange) {
+		http.Redirect(w, r, integrationsPath+"/"+name, http.StatusSeeOther)
+		return
+	}
 	if err != nil {
 		s.turnAway(w, r, integrationsPath+"/"+name, err.Error())
 		return
 	}
-	s.note(r, kind, map[string]string{"integration": name, "from": before.On, "to": held.On})
+	s.note(r, kind, map[string]string{"integration": name, "from": held.Last().Was, "to": held.On})
 	http.Redirect(w, r, integrationsPath+"/"+name, http.StatusSeeOther)
 }
 
 // scopeIntegration chooses who the integration is on for, by the address people sign in with.
 func (s *Server) scopeIntegration(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
-	before, err := s.integrations.Get(name)
-	if err != nil {
+	if _, err := s.integrations.Get(name); err != nil {
 		http.NotFound(w, r)
 		return
 	}
@@ -181,7 +168,7 @@ func (s *Server) scopeIntegration(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, integrationsPath+"/"+name, err.Error())
 		return
 	}
-	s.note(r, changelog.IntegrationScoped, map[string]string{"integration": name, "was": strings.Join(before.For, " "), "now": strings.Join(held.For, " ")})
+	s.note(r, changelog.IntegrationScoped, map[string]string{"integration": name, "was": held.Last().Was, "now": strings.Join(held.For, " ")})
 	http.Redirect(w, r, integrationsPath+"/"+name, http.StatusSeeOther)
 }
 
@@ -189,8 +176,7 @@ func (s *Server) scopeIntegration(w http.ResponseWriter, r *http.Request) {
 // is for that version only.
 func (s *Server) allowPrograms(w http.ResponseWriter, r *http.Request) {
 	name, version := r.PathValue("name"), r.FormValue("version")
-	before, err := s.integrations.Get(name)
-	if err != nil {
+	if _, err := s.integrations.Get(name); err != nil {
 		http.NotFound(w, r)
 		return
 	}
@@ -203,14 +189,13 @@ func (s *Server) allowPrograms(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, integrationsPath+"/"+name, err.Error())
 		return
 	}
-	s.note(r, changelog.IntegrationPrograms, map[string]string{"integration": name, "allowed": held.Programs, "was": before.Programs})
+	s.note(r, changelog.IntegrationPrograms, map[string]string{"integration": name, "allowed": held.Programs, "was": held.Last().Was})
 	http.Redirect(w, r, integrationsPath+"/"+name, http.StatusSeeOther)
 }
 
 func (s *Server) refusePrograms(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
-	before, err := s.integrations.Get(name)
-	if err != nil {
+	if _, err := s.integrations.Get(name); err != nil {
 		http.NotFound(w, r)
 		return
 	}
@@ -219,7 +204,7 @@ func (s *Server) refusePrograms(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, integrationsPath+"/"+name, err.Error())
 		return
 	}
-	s.note(r, changelog.IntegrationPrograms, map[string]string{"integration": name, "allowed": held.Programs, "was": before.Programs})
+	s.note(r, changelog.IntegrationPrograms, map[string]string{"integration": name, "allowed": held.Programs, "was": held.Last().Was})
 	http.Redirect(w, r, integrationsPath+"/"+name, http.StatusSeeOther)
 }
 

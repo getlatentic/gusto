@@ -17,11 +17,11 @@ gusto protects the assets below from a hostile agent, a hostile caller and a cur
 
 | Actor | Trusted with | Not trusted with |
 | --- | --- | --- |
-| Operator | Everything: the host, the vault, the playbook | |
+| Operator | Everything: the host, its secrets, the deployment | |
 | Admin | Every person's work, tokens, retention, skill sets | The host |
 | Runner (a signed-in person) | Their own agents, tasks and spend | Anyone else's, and settings |
 | API token | Exactly its scopes | Anything else, and any page |
-| The agent in a task | Its workspace and home in the box, the model through a per-task token | The record, the credential, the network, the host, other tasks |
+| The agent in a task | Its working folder and home in the box, the model through a per-task token | The record, the credential, the network, the host, other tasks |
 | The repository's code | Nothing. The check runs it as the agent user | |
 | The model's output | Nothing. It is text, drawn escaped | |
 
@@ -33,7 +33,7 @@ It trusts the session it signed, an API token it hashed, and the identity provid
 | --- | --- |
 | Who someone is | An HMAC-signed, HttpOnly, SameSite=Lax cookie carrying the role, 12 hours, ended on the server at sign-out. Google sign-in uses state, PKCE and a nonce, and checks the address is verified |
 | What they may see | Every object carries its owner. Somebody else's is answered as missing, so a guess learns nothing |
-| Cross-site requests | SameSite=Lax keeps the cookie off a form posted from another site. No route changes state on a GET. `frame-ancestors 'none'` blocks framing and `form-action 'self'` keeps forms to this server |
+| Cross-site requests | SameSite=Lax keeps the cookie off a form posted from another site. No route changes state on a GET. `frame-ancestors 'none'` blocks framing and `form-action 'self'` keeps forms to this server, and, behind gusto cloud, to gusto cloud, where sign-out continues |
 | What a page may run | A content security policy: no inline script except with the response's nonce, no handler attributes, `object-src 'none'`, `base-uri 'none'` |
 | Size and guessing | 4 MB a request, 1 MB for a task. Ten wrong passwords or bearer credentials from one address in ten minutes turns that address away, the right one included |
 | What is drawn | Templates escape. Model Markdown has raw HTML off and links restricted. Record files are plain text with `nosniff`. A task's record is read as files, never links, so what the agent plants in `out/` is never opened |
@@ -56,7 +56,7 @@ It treats everything the agent produced as bytes to hash and show.
 | Boundary | Control |
 | --- | --- |
 | Mounts and network | The task directory and, for a conversation, its own folder. No other mount, no runtime socket, and no network but the proxy's socket |
-| Privilege | Only the runner is root in the box, so it alone writes the record. The agent and check run unprivileged. All capabilities are dropped but the five the runner uses, and no setuid program gains privilege. The runner stages the workspace in a repository of its own, so programs named by the workspace's `.git` configuration never run as root |
+| Privilege | Only the runner is root in the box, so it alone writes the record. The agent and check run unprivileged. All capabilities are dropped but the five the runner uses, and no setuid program gains privilege. The runner stages the working folder in a repository of its own, so programs named by the working folder's `.git` configuration never run as root |
 | The record | `out/` is closed to the agent. Signing happens on the host after the box is gone, with a key the box never held |
 | Limits and secrets | Memory, CPU and processes are limited per task. Only the per-task token and the proxy address enter the box. The password, signing key, model keys and GitHub App key are read by the server alone |
 
@@ -68,7 +68,7 @@ With `GUSTO_SANDBOX=openshell` the agent runs in a microVM on a gateway and the 
 | --- | --- |
 | The record and the check | The runner writes the record on the host after the agent finishes, and is never root inside a sandbox. The check runs in the sandbox, and `gusto verify` re-runs it where verify is run |
 | Network | A deny-by-default policy per task: the proxy and the operator's allowed hosts. The sandbox's log of what it allowed and denied is in the record and signed |
-| What goes in and comes back | It is given the proxy address, a per-task token and skills, and nothing of the server's environment. The workspace comes back with links kept as links and never followed |
+| What goes in and comes back | It is given the proxy address, a per-task token and skills, and nothing of the server's environment. The working folder comes back with links kept as links and never followed |
 | The token | It never shows on the host's process list. It enters on the standard input of `openshell sandbox exec`, or for an ssh agent in a file only the sandbox's user can read, which the command removes as it starts. Inside, it is in the agent's environment. It is worthless once the task ends |
 
 ## Not covered

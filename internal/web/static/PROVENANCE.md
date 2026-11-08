@@ -15,6 +15,8 @@ somebody else can change after review.
 | favicon-32.png | the mark at 32px, for the browser tab | 1080 | 2f76291e40d5f50aee45d619636a994e04afbaee508448db1a9fc987815e7fb0 |
 | apple-touch-icon.png | the mark on the page color at 180px, for a phone's home screen | 3437 | a9787f059c462ee5f967b8f4a1117cbd90b97031cdcee2c12100ab18b202ebb6 |
 | highlight.min.js | highlight.js 11.12.0, the common-languages browser build, BSD 3-Clause, from the npm package @highlightjs/cdn-assets (fetched 2026-10-09) | 129254 | 8ab71eb09c51f501e5e25157d9cff100e46cc29bcbfc744d0b746d451fca7f53 |
+| centrifuge.js | centrifuge-js 5.7.4, the browser client of the Centrifuge server library gusto serves rooms with, MIT, Centrifugal Labs LTD, from the npm package centrifuge `dist/centrifuge.js` (fetched 2026-10-26; the original is 77535 bytes with sha256 efbacc3805ecf7cd68cbb75d99e88cc5487c13b4a29330dc671dacea900d9dcd, and this file is it without its last line, a `sourceMappingURL` comment to a map that is not shipped). The server side is `github.com/centrifugal/centrifuge` v0.40.1 in go.mod | 77496 | 6eb431bdaaa4b1f84b2aca9c499cbbfa2d2b3653f4579a86973e1143200965ba |
+| centrifuge.LICENSE | the MIT licence of centrifuge-js 5.7.4, as the package ships it | 1087 | 8212f3cd2bcd2cab7e66f5337926e11c3f99822d2016ae41fb1b4e084e5c5128 |
 
 Fetched 2026-09-26. Check them:
 

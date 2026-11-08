@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
+	"sort"
 	"sync"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/atomicfile"
 	"github.com/getlatentic/gusto/internal/helper"
 	"github.com/getlatentic/gusto/internal/helper/mirror"
 )
@@ -38,9 +41,12 @@ type FolderSync struct {
 
 type kept struct {
 	instance string
+	path     string
 	cancel   context.CancelFunc
-	stopped  time.Time
-	done     chan struct{}
+	// cancelled says it was stopped for its agent or its folder changing, and is started again as soon as it has ended.
+	cancelled bool
+	stopped   time.Time
+	done      chan struct{}
 }
 
 func (f *FolderSync) file() string { return filepath.Join(f.Dir, "folders.json") }
@@ -106,11 +112,7 @@ func (f *FolderSync) save() error {
 	if err := os.MkdirAll(f.Dir, 0o700); err != nil {
 		return err
 	}
-	scratch := f.file() + ".new"
-	if err := os.WriteFile(scratch, text, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(scratch, f.file())
+	return atomicfile.WriteFile(f.file(), text, 0o600)
 }
 
 // Run looks for the agents of the registered folders and keeps each, until the context ends.
@@ -145,24 +147,49 @@ func (f *FolderSync) look(ctx context.Context) {
 	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	stop, start := due(f.running, f.paths, held, time.Now())
+	for _, key := range stop {
+		f.running[key].cancelled = true
+		f.running[key].cancel()
+	}
+	for _, key := range start {
+		f.start(ctx, key, f.paths[key], held[key], client)
+	}
+	// A stopped engine that ended and was not started again has nothing left to keep.
 	for key, going := range f.running {
-		if agent, found := held[key]; !found || agent.ID != going.instance {
-			going.cancel()
+		if going.cancelled && going.finished() {
 			delete(f.running, key)
 		}
 	}
-	for key, path := range f.paths {
+}
+
+// due is which engines to stop, and which to start. An engine is stopped when its agent or its folder is no longer the
+// registered one, and stays among the running until it has ended, so no second engine starts beside it on the same folder.
+// One that ended is started again: at once when it was stopped for a change, and after folderRetry when it stopped on its own.
+func due(running map[string]*kept, paths map[string]string, held map[string]helper.Instance, now time.Time) (stop, start []string) {
+	for key, going := range running {
 		agent, found := held[key]
-		if !found {
-			continue
+		if !going.cancelled && (!found || agent.ID != going.instance || paths[key] != going.path) {
+			stop = append(stop, key)
 		}
-		if going := f.running[key]; going != nil && !going.finished() {
-			continue
-		} else if going != nil && time.Since(going.stopped) < folderRetry {
-			continue
-		}
-		f.start(ctx, key, path, agent, client)
 	}
+	for key := range paths {
+		if _, found := held[key]; !found {
+			continue
+		}
+		going := running[key]
+		switch {
+		case going == nil:
+		case !going.finished() || slices.Contains(stop, key):
+			continue
+		case !going.cancelled && now.Sub(going.stopped) < folderRetry:
+			continue
+		}
+		start = append(start, key)
+	}
+	sort.Strings(stop)
+	sort.Strings(start)
+	return stop, start
 }
 
 func (k *kept) finished() bool {
@@ -181,7 +208,7 @@ func (f *FolderSync) start(ctx context.Context, key, path string, agent helper.I
 		return
 	}
 	run, cancel := context.WithCancel(ctx)
-	going := &kept{instance: agent.ID, cancel: cancel, done: make(chan struct{})}
+	going := &kept{instance: agent.ID, path: path, cancel: cancel, done: make(chan struct{})}
 	f.running[key] = going
 	fmt.Fprintf(os.Stderr, "keeping %s the same as %s's folder in the cloud\n", path, firstNonEmpty(agent.Title, agent.Harness))
 	go func() {
@@ -195,6 +222,11 @@ func (f *FolderSync) start(ctx context.Context, key, path string, agent helper.I
 		f.mu.Lock()
 		going.stopped = time.Now()
 		f.mu.Unlock()
+		// One stopped for a change is started again when the next look sees it has ended, which this asks for now.
+		select {
+		case f.kick <- struct{}{}:
+		default:
+		}
 	}()
 }
 

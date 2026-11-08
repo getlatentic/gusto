@@ -25,13 +25,13 @@ func TestAnOrchestratorHasTheNameAndTheLeaseAndNoImageOrCredentials(t *testing.T
 		t.Fatal(err)
 	}
 	if count(done, "certbot ") != 1 || count(done, "gusto-dns ") != 1 {
-		t.Errorf("the front door has a certificate and the name: %v", done)
+		t.Errorf("gusto cloud has a certificate and the name: %v", done)
 	}
 	if count(done, "credentials ") != 0 || h.has("lib/runner-all-rootfs.tar.gz") {
 		t.Errorf("it runs no computer, so it has no image and no model credentials: %v", done)
 	}
 	if !h.has("lease/lease.json") {
-		t.Error("the lease is the front door's")
+		t.Error("the lease is gusto cloud's")
 	}
 	secret := filepath.Join(h.dir, "run", "cell-secret")
 	info, err := os.Stat(secret)
@@ -43,7 +43,7 @@ func TestAnOrchestratorHasTheNameAndTheLeaseAndNoImageOrCredentials(t *testing.T
 	}
 }
 
-func TestACellHasTheImageTheCredentialsAndAnIdentityAndNeverTheNameOrTheTokens(t *testing.T) {
+func TestANodeHasTheImageTheCredentialsAndAnIdentityAndNeverTheNameOrTheTokens(t *testing.T) {
 	h := newHost(t)
 	h.put("image/key1.tar.gz", "the image")
 	h.as("cell")
@@ -61,7 +61,7 @@ func TestACellHasTheImageTheCredentialsAndAnIdentityAndNeverTheNameOrTheTokens(t
 		t.Errorf("computers on a cell reach the models: %v", done)
 	}
 	identity := mustRead(t, filepath.Join(h.dir, "run", "cell.env"))
-	if want := "GUSTO_CELL_NAME=cell-0abc123def4567890\nGUSTO_CELL_PRIVATE=10.0.7.21\n"; identity != want {
+	if want := "GUSTO_NODE_NAME=cell-0abc123def4567890\nGUSTO_NODE_PRIVATE=10.0.7.21\n"; identity != want {
 		t.Errorf("who it is: %q", identity)
 	}
 	if h.has("run/secrets/cf-dns-token") || h.has("run/secrets/mail.env") || h.has("lease/lease.json") {
@@ -72,7 +72,54 @@ func TestACellHasTheImageTheCredentialsAndAnIdentityAndNeverTheNameOrTheTokens(t
 	}
 }
 
-func TestACellWithNoSecretDoesNotStart(t *testing.T) {
+func TestANodeWhoseAgentsRunInContainersHasTheImageInDockerUnderItsKeyAndNoOther(t *testing.T) {
+	h := newHost(t)
+	h.put("image/key1.docker.tar.gz", "the archive")
+	h.as("cell")
+	os.WriteFile(h.conf, []byte(mustRead(t, h.conf)+"SANDBOXES=container\n"), 0o644)
+	os.MkdirAll(filepath.Join(h.dir, "docker"), 0o755)
+	os.WriteFile(filepath.Join(h.dir, "docker", "key0"), nil, 0o644)
+	done, err := h.boot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count(done, "docker load ") != 1 || !h.has("docker/key1") || h.has("docker/key0") || h.has("docker/latest") {
+		t.Errorf("the image is loaded once, tagged with its key, and an older one removed: %v", done)
+	}
+	if h.has("lib/runner-all-rootfs.tar.gz") || h.has("lib/runner.docker.tar.gz.part") {
+		t.Errorf("no root file system, and no archive left on the disk: %v", done)
+	}
+	if again, err := h.boot(); err != nil || count(again, "aws ") != 0 || count(again, "docker load ") != 0 {
+		t.Errorf("a restart loads nothing it has: %v %v", again, err)
+	}
+}
+
+// A node runs a sign-up's agents in containers and a demo's in microVMs, so it has both images.
+func TestANodeOfBothSandboxesHasTheContainerImageAndTheRootFileSystem(t *testing.T) {
+	h := newHost(t)
+	h.put("image/key1.docker.tar.gz", "the archive")
+	h.put("image/key1.tar.gz", "the root file system")
+	h.as("cell")
+	os.WriteFile(h.conf, []byte(mustRead(t, h.conf)+"SANDBOXES=\"container openshell\"\n"), 0o644)
+	done, err := h.boot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count(done, "docker load ") != 1 || !h.has("docker/key1") || !h.has("lib/runner-all-rootfs.tar.gz") {
+		t.Errorf("both images: %v", done)
+	}
+}
+
+func TestAHostOfAnotherSandboxIsRefused(t *testing.T) {
+	h := newHost(t)
+	h.as("cell")
+	os.WriteFile(h.conf, []byte(mustRead(t, h.conf)+"SANDBOXES=\"container chroot\"\n"), 0o644)
+	if _, err := h.boot(); err == nil {
+		t.Fatal("a sandbox the boot does not know must stop it")
+	}
+}
+
+func TestANodeWithNoSecretDoesNotStart(t *testing.T) {
 	h := newHost(t)
 	h.put("image/key1.tar.gz", "x")
 	h.as("cell")
@@ -92,7 +139,7 @@ func TestAnUnknownRoleIsRefused(t *testing.T) {
 	}
 }
 
-func TestTheBotChecksSecretIsKeptForTheFrontDoorToReadAsItsEnvironmentAndForNoOneElse(t *testing.T) {
+func TestTheBotChecksSecretIsKeptForGustoCloudToReadAsItsEnvironmentAndForNoOneElse(t *testing.T) {
 	for _, role := range []string{"all", "orchestrator"} {
 		h := newHost(t)
 		h.put("image/key1.tar.gz", "x")
@@ -106,13 +153,13 @@ func TestTheBotChecksSecretIsKeptForTheFrontDoorToReadAsItsEnvironmentAndForNoOn
 			t.Errorf("%s: %v %v", role, info, err)
 		}
 	}
-	cell := newHost(t)
-	cell.put("image/key1.tar.gz", "x")
-	cell.as("cell")
-	if _, err := cell.boot(); err != nil {
+	node := newHost(t)
+	node.put("image/key1.tar.gz", "x")
+	node.as("cell")
+	if _, err := node.boot(); err != nil {
 		t.Fatal(err)
 	}
-	if cell.has("run/secrets/turnstile.env") {
+	if node.has("run/secrets/turnstile.env") {
 		t.Error("a cell, which runs other people's code, holds the bot check's secret")
 	}
 }
@@ -135,7 +182,7 @@ func TestAHostWhoseBotCheckSecretIsNotStoredStartsWithoutOneAndLeavesNoStaleSecr
 	}
 }
 
-func TestTheLeadHooksAddressAndSecretAreKeptForTheFrontDoorAloneAndBothAreNeeded(t *testing.T) {
+func TestTheLeadHooksAddressAndSecretAreKeptForGustoCloudAloneAndBothAreNeeded(t *testing.T) {
 	for _, role := range []string{"all", "orchestrator"} {
 		h := newHost(t)
 		h.put("image/key1.tar.gz", "x")
@@ -156,13 +203,13 @@ func TestTheLeadHooksAddressAndSecretAreKeptForTheFrontDoorAloneAndBothAreNeeded
 			t.Errorf("%s: half a hook, or a hook no longer stored, is still on the host", role)
 		}
 	}
-	cell := newHost(t)
-	cell.put("image/key1.tar.gz", "x")
-	cell.as("cell")
-	if _, err := cell.boot(); err != nil {
+	node := newHost(t)
+	node.put("image/key1.tar.gz", "x")
+	node.as("cell")
+	if _, err := node.boot(); err != nil {
 		t.Fatal(err)
 	}
-	if cell.has("run/secrets/leadhook.env") {
+	if node.has("run/secrets/leadhook.env") {
 		t.Error("a cell, which runs other people's code, holds the lead hook")
 	}
 }

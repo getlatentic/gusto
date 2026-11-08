@@ -12,7 +12,7 @@ import (
 // Policy is the OpenShell policy for a task, as JSON, which a YAML reader takes.
 //
 // Everything is denied that is not named. The sandbox may read the system
-// paths and write its workspace, /tmp and the agent's own directories. It may
+// paths and write its working folder, /tmp and the agent's own directories. It may
 // reach the gusto proxy, which holds the model credential, and the hosts the
 // operator allowed, and nothing else. A name the operator wrote as a wildcard
 // needs three labels in OpenShell, and an entry that cannot be translated is
@@ -61,11 +61,24 @@ var systemReads = []string{
 // /dev/null among them, so these are always there. A pseudo-terminal is what a
 // agent's shell tool opens to run a command: codex fails every one without it.
 func filesystem(writable []string) map[string]any {
-	return map[string]any{
-		"include_workdir": false,
-		"read_only":       systemReads,
-		"read_write":      append([]string{"/sandbox", "/tmp", "/dev/null", "/dev/ptmx", "/dev/pts"}, writable...),
+	granted := []string{"/sandbox", "/tmp", "/dev/null", "/dev/ptmx", "/dev/pts"}
+	for _, path := range writable {
+		if !under(path, granted) {
+			granted = append(granted, path)
+		}
 	}
+	return map[string]any{"include_workdir": false, "read_only": systemReads, "read_write": granted}
+}
+
+// under says a path is one of the roots or inside one. A rule for it adds nothing, and leaving it out keeps the policy of a
+// sandbox the same for every agent whose own folders are in the home, which is what lets one be made before the agent is known.
+func under(path string, roots []string) bool {
+	for _, root := range roots {
+		if path == root || strings.HasPrefix(path, root+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 // Denying policy is a policy that lets a sandbox start and reach nothing.

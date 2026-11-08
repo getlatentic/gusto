@@ -46,7 +46,7 @@ Trust and review: [THREAT_MODEL.md](THREAT_MODEL.md), [SECURITY.md](SECURITY.md)
 - The pull request names the agent, model and check, links the manifest and transcript, and prints the check command.
 - `-dry-run` prints the plan and does nothing. The flags that override what `gusto pr open` reads from the task are in [CLI.md](CLI.md).
 
-A reviewer runs the printed command. It fetches the record ref with the reviewer's own git credentials, re-hashes every file, rebuilds the workspace from `diff.patch` and runs the check. It exits 1 and names what disagrees. `-into <dir>` keeps the unpacked task.
+A reviewer runs the printed command. It fetches the record ref with the reviewer's own git credentials, re-hashes every file, rebuilds the working folder from `diff.patch` and runs the check. It exits 1 and names what disagrees. `-into <dir>` keeps the unpacked task.
 
 ```bash
 gusto pr verify <repository> <manifest sha256>
@@ -100,7 +100,7 @@ gusto compare /tmp/fix-compare-1         # prints it again from the record
 
 ## Task directory
 
-`job.json` holds version, brief, repo, check, agent, model, sensitivity, budget and team. `harnesses/` holds a configured agent of your own. `workspace/` is the checkout. `out/` holds the record:
+`job.json` holds version, brief, repo, check, agent, model, sensitivity, budget and team. `harnesses/` holds an agent of your own. `workspace/` is the checkout. `out/` holds the record:
 
 | File in `out/` | Holds |
 | --- | --- |
@@ -150,15 +150,15 @@ An `opencode` task peaked at 662.7 MiB in its container, with the model outside 
 
 ## Adapters
 
-An agent is the program: `claude`, `codex`, `opencode`. An adapter is how to run it. A configured agent is the adapter's directory plus its prompt, model policy, skills and MCP servers. Every run records it by digest. See [TERMS.md](TERMS.md).
+A harness is the program: `claude`, `codex`, `opencode`. An adapter is how to run it. An agent is the adapter's directory plus its prompt, model policy, skills and MCP servers. Every run records it by digest. See [TERMS.md](TERMS.md).
 
 `gusto agents` lists them with what each needs: `nothing`, `local`, `account` or `key`. With `nothing`, no model is involved and no endpoint is checked.
 
 ## Routines
 
-A routine is a question an agent is asked on a schedule, in a conversation of its own, so the agent remembers from one run to the next. Add one on the agent's page under Routines: a title, what to ask, and either a time of day (`08:00`, in the server's own zone) or a number of hours between runs. Once a minute the server starts every routine whose slot has come as an ordinary turn: through the proxy, under the team's cap, and into the signed record, with the brief `[routine] <title>: <what to ask>`. A routine whose last turn is still answering skips the slot, and the page says so. A routine added after today's time waits for tomorrow's. Routines are kept in `routines.json` in the agent's folder. The person who added a routine is told how each run went the way they are told of any turn of theirs, on the events a tray listens to (`/api/events`). Two more ways are off until set. `GUSTO_NOTIFY_WEBHOOK` is an https address, with `GUSTO_NOTIFY_SECRET`: it is sent `{event, instance, routine, title, job, state, at, link, who}` as JSON when a run ends, with `X-Gusto-Signature: sha256=<HMAC-SHA256 of the body under the secret>`, and never the agent's words. `GUSTO_MAIL` (`outbox`, `smtp://user:password@host:587?from=name@example.com` or `cloudflare://<account id>?from=name@example.com`, with `GUSTO_MAIL_TOKEN` for Cloudflare) mails the person who added the routine, when that person is an address, with the end of what the agent said. `GUSTO_PUBLIC_URL` is where the server's own pages are, for the link. Each channel takes an event once; one that is down is tried again each minute, five times, and the routine's page says why when it gives up. Pause, resume and remove are on the same page; removing a routine keeps its conversation.
+A routine is a question an agent is asked on a schedule, in a conversation of its own, so the agent remembers from one run to the next. Add one on the agent's page under Routines: a title, what to ask, and either a time of day (`08:00`, in the server's own zone) or a number of hours between runs. Once a minute the server starts every routine whose slot has come as an ordinary turn: through the proxy, under the team's cap, and into the signed record, with the brief `[routine] <title>: <what to ask>`. A routine whose last turn is still answering skips the slot, and the page says so. A routine added after today's time waits for tomorrow's. Routines are kept in `routines.json` in the agent's folder. When that file cannot be read, the agent's page says why, and none of the agent's routines runs until the file is mended. The person who added a routine is told how each run went the way they are told of any turn of theirs, on the events a tray listens to (`/api/events`). Two more ways are off until set. `GUSTO_NOTIFY_WEBHOOK` is an https address, with `GUSTO_NOTIFY_SECRET`: it is sent `{event, instance, routine, title, job, state, at, link, who}` as JSON when a run ends, with `X-Gusto-Signature: sha256=<HMAC-SHA256 of the body under the secret>`, and never the agent's words. `GUSTO_MAIL` (`outbox`, `smtp://user:password@host:587?from=name@example.com` or `cloudflare://<account id>?from=name@example.com`, with `GUSTO_MAIL_TOKEN` for Cloudflare) mails the person who added the routine, when that person is an address, with the end of what the agent said. `GUSTO_PUBLIC_URL` is where the server's own pages are, for the link. Each channel takes an event once; one that is down is tried again each minute, five times, and the routine's page says why when it gives up. A run's news is kept until it is taken or given up on, also when the next slot comes first. Pause, resume and remove are on the same page; removing a routine keeps its conversation.
 
-An adapter is a JSON file. A directory named by `GUSTO_HARNESSES` overrides a built-in adapter of the same name, or adds one. It holds bare adapters (`name.json`) or configured agents (`name/adapter.json` with its files beside it, reached through `{harnessDir}`).
+An adapter is a JSON file. A directory named by `GUSTO_HARNESSES` overrides a built-in adapter of the same name, or adds one. It holds bare adapters (`name.json`) or agents (`name/adapter.json` with its files beside it, reached through `{harnessDir}`).
 
 ```json
 {
@@ -193,7 +193,7 @@ The container never holds a model credential. It gets `GUSTO_MODEL_URL=http://12
 GUSTO_ALLOWED_HOSTS=registry.npmjs.org,proxy.golang.org,*.githubusercontent.com
 ```
 
-Not yet measured: that `--network=none` with a mounted socket holds on podman (rootless or not) and on Docker, and whether Docker Desktop on a Mac hands a container a host socket. `GUSTO_JOB_NETWORK=open` keeps the runtime's network and reaches the proxy on `GUSTO_PROXY_ADDR`. That route is not sealed. The allowlist covers only traffic through the proxy.
+Not yet measured: that `--network=none` with a mounted socket holds on podman (rootless or not) and on Docker, and whether Docker Desktop on a Mac hands a container a host socket. `GUSTO_TASK_NETWORK=open` keeps the runtime's network and reaches the proxy on `GUSTO_PROXY_ADDR`. That route is not sealed. The allowlist covers only traffic through the proxy.
 
 ## Spend caps and report
 
@@ -209,6 +209,7 @@ The proxy counts each call from the provider's `usage` object (`prompt_tokens`, 
 A field this build does not know stops the server, because a misspelt cap would be no cap. `inputTokens`, `outputTokens` and `usd` in `out/proxy.jsonl` are `null` when the answer has no usage or the model has no price: unmeasured, not free.
 
 - A task's cap is `budget.usd` in `job.json`. Left out is no cap. Zero allows nothing.
+- `organisation` sets a monthly cap on the whole server, on the operator's keys only: a call on a key an organization's admin added is not counted or stopped by it. A hosted organization's one-time credit is its quota's `creditUsd` instead ([CLOUD.md](CLOUD.md#free-credit)).
 - A team's cap is per calendar month in UTC. A task counts against its `team` field, a label the person asking chooses. The cap holds against mistakes, not against a determined spender.
 - The proxy checks both before each call. When one is spent it answers `402` with the reason. A call in flight finishes.
 - Under a cap, a model with no price is refused. A successful answer with no usage stops the next call.
@@ -216,7 +217,7 @@ A field this build does not know stops the server, because a misspelt cap would 
 - A restarted server rebuilds each team's month from the tasks' `out/proxy.jsonl`.
 
 ```bash
-gusto spend                   # this month, from GUSTO_JOBS
+gusto spend                   # this month, from GUSTO_TASKS
 gusto spend -month 2026-08    # another month
 gusto spend -json             # for a script
 ```
@@ -230,7 +231,7 @@ docker build -t gusto:dev .
 GUSTO_MODEL_URL=http://localhost:11434/v1 gusto run /tmp/fix
 ```
 
-`run` mounts the task directory, allows 512 processes and the limits in `GUSTO_JOB_CPUS` and `GUSTO_JOB_MEMORY`, and destroys the container afterwards. On a shared machine, set the limits. `GUSTO_IMAGE` names another image.
+`run` mounts the task directory, allows 512 processes and the limits in `GUSTO_TASK_CPUS` and `GUSTO_TASK_MEMORY`, and destroys the container afterwards. On a shared machine, set the limits. `GUSTO_IMAGE` names another image.
 
 `HARNESSES` lists the agents an image carries as `name=package` pairs (adapter name, npm package). The default is `opencode=opencode-ai`. The version of each package is pinned in `pkg/harness/pins.json` with the registry's sha512, and the build refuses a tarball that differs; the image records what it installed in `/etc/gusto/harnesses`, which the record names as the agent's build (`harnessVersion`). `gusto serve` reads the image label `com.getlatentic.gusto.harnesses`, checks the image's PATH for each program, and offers only those it finds. A task that names a missing agent fails before it starts.
 
@@ -243,9 +244,11 @@ docker build -t gusto:dev \
 - A bind mount of a path the runtime does not share gives an empty directory. `run` refuses by name. Docker on a Mac shares `/Users`, not `/private/tmp`.
 - A model on the host must listen on more than loopback. For Ollama, set `OLLAMA_HOST=0.0.0.0` and restart.
 
-`gusto doctor` checks the machine before a task. It prints one line per check, gives the fix under a failure, and exits 1 when any fails. It checks the container command, the image, the task's `--memory` and `--cpus`, the tasks directory mount, rootless podman's runtime directory, `git`, `GUSTO_JOBS`, `GUSTO_MODEL_URL`, `GUSTO_HARNESSES` and the index of model calls (it opens, and at what schema version). It reports whether `GUSTO_PASSWORD` is set, never its value.
+`gusto doctor` checks the machine before a task. It prints one line per check, gives the fix under a failure, and exits 1 when any fails. It checks the container command, the image, the task's `--memory` and `--cpus`, the tasks directory mount, rootless podman's runtime directory, `git`, `GUSTO_TASKS`, `GUSTO_MODEL_URL`, `GUSTO_HARNESSES` and the index of model calls (it opens, and at what schema version). It reports whether `GUSTO_PASSWORD` is set, never its value.
 
 ## Environment
+
+`gusto serve` reads every setting it uses when it starts, and a value that does not read, such as a word where a number goes, stops it with the setting's name. `gusto help serve` lists them all with their defaults.
 
 | Name | What it does |
 | --- | --- |
@@ -253,8 +256,11 @@ docker build -t gusto:dev \
 | `GUSTO_MODEL_URL` | where a local model answers |
 | `GUSTO_IMAGE` | the runner image `gusto run` starts |
 | `GUSTO_CONTAINER` | the container command: `docker` by default, `podman` for no daemon |
-| `GUSTO_JOB_MEMORY`, `GUSTO_JOB_CPUS` | memory and CPU for one task, `3g` and `1` by default |
-| `GUSTO_JOB_CONCURRENCY` | how many tasks run at once |
+| `GUSTO_TASK_MEMORY`, `GUSTO_TASK_CPUS` | memory and CPU for one task, `3g` and `1` by default |
+| `GUSTO_HOME_LIMIT_MB` | the most a person's kept home may take in a container, in megabytes, `5120` by default. With `GUSTO_COMPUTERS`, a turn over it is refused until the person resets the home on Connections. [CLOUD.md](CLOUD.md) |
+| `GUSTO_TASK_CONCURRENCY` | how many tasks run at once. A room's agents run at the same time only when this is more than 1 |
+| `GUSTO_LIVE_CONNECTIONS` | the most WebSockets open at once, 10000 by default. A room's page keeps one open at `/live` to be told what others say and what agents do, and asks every few seconds instead when it has none. A proxy in front must pass the upgrade and not buffer or cut off a quiet connection: the server pings every 30 seconds |
+| `GUSTO_ROOM_COPY_MB`, `GUSTO_ROOM_COPY_FILES` | the most a room's folder may hold for a turn to work on a copy of it, `4096` MB and `200000` files by default. [ROOM-WORK.md](ROOM-WORK.md) |
 | `GUSTO_LIMIT_PERSON`, `GUSTO_LIMIT_TEAM` | the most one person or team runs at once. A task over its limit waits. 0 or unset is no limit. [LIMITS.md](LIMITS.md) |
 | `GUSTO_SANDBOX` | how a task runs: unset is a container, `here` is this process, `openshell` is an OpenShell sandbox. [OPENSHELL.md](OPENSHELL.md) lists the `GUSTO_OPENSHELL*` settings |
 | `GUSTO_OPENSHELL_REMOTE` | `1` when the OpenShell gateway is on another machine. Without it, `gusto serve` and `gusto doctor` refuse `GUSTO_SANDBOX=openshell` on Linux with no `/dev/kvm` |
@@ -264,25 +270,30 @@ docker build -t gusto:dev \
 | `GUSTO_MODEL_KEY` | the credential the proxy adds. It never reaches a container |
 | `GUSTO_MODEL_NAME` | what the record calls that credential |
 | `GUSTO_CREDENTIALS` | a directory with one `<name>.json` per credential: address, key, presentation and the API shapes it answers. [GATEWAY.md](GATEWAY.md) |
-| `GUSTO_PROXY_SOCKET` | the socket a sealed container reaches the proxy through, `.proxy.sock` in `GUSTO_JOBS` by default |
+| `GUSTO_PROXY_SOCKET` | the socket a sealed container reaches the proxy through, `.proxy.sock` in `GUSTO_TASKS` by default |
 | `GUSTO_ALLOWED_HOSTS` | hosts besides the model a task may reach, comma separated |
-| `GUSTO_JOB_NETWORK` | `open` gives containers the runtime's network and the proxy on `GUSTO_PROXY_ADDR` |
-| `GUSTO_PROXY_ADDR` | where the proxy listens when `GUSTO_JOB_NETWORK=open`, `0.0.0.0:8041` by default |
+| `GUSTO_TASK_NETWORK` | `open` gives containers the runtime's network and the proxy on `GUSTO_PROXY_ADDR` |
+| `GUSTO_PROXY_ADDR` | where the proxy listens when `GUSTO_TASK_NETWORK=open`, `0.0.0.0:8041` by default |
 | `GUSTO_SPEND_POLICY` | a file of model prices and team caps. Without it every model is unpriced and no team is capped |
+| `GUSTO_IMAGE_SOURCE` | where the runner image can be fetched when this machine lacks it: an `s3://` address read with the AWS command line, or an `http(s)://` one. The first container start fetches it, loads it, and names it `GUSTO_IMAGE`. A cell kept running across releases gets each new image this way. The servers of one machine fetch it one at a time, and an image loaded but not named is named on the next start, not fetched again. A server whose start found no image tries again until the image is here, and then offers its agents. Unset, a missing image fails the start |
+| `GUSTO_PROXY_MAX_OUTPUT_TOKENS` | the most output tokens one model call may ask for. A call that asks for more, or names no limit, is sent with this one. Unset is no cap |
+| `GUSTO_PROXY_SILENCE_SECONDS` | how long a model may send nothing before the call is ended. A stream that never begins is answered 504. An answer that is not streamed is waited for whole. Unset is no limit |
 | `GUSTO_REGISTRY` | the directory of an organization's model registry: providers and models its admins add at `/admin/models`, on top of the operator's. Set by gusto cloud. [CLOUD.md](CLOUD.md) |
 | `GUSTO_REGISTRY_KEYS`, `GUSTO_REGISTRY_PRIVATE` | `file`, `ssm` or `secretsmanager` lets a key be a reference to one of these. `allow` lets a provider be at a private address or plain http |
+| `GUSTO_CONNECTORS`, `GUSTO_PUBLIC_URL` | the folder of people's sealed sign-ins to apps, and the address an app sends a person back to. Both turn connectors on. Set by gusto cloud. [GATEWAY.md](GATEWAY.md#connectors) |
+| `GUSTO_CONNECTOR_CLIENTS`, `GUSTO_CONNECTOR_APPS` | JSON files of the clients the operator registered with apps, by connector id, and of more apps than the catalog's |
 | `GUSTO_ORG_SETTINGS` | the file of an organization's admin choices, such as the monthly budget. Set by gusto cloud. [CLOUD.md](CLOUD.md) |
 | `GUSTO_SIGNING_KEY` | the private key the runner signs with, from `gusto keygen`, or `awskms://<key>`. It stays on the host. [KEYS.md](KEYS.md) |
 | `GUSTO_KEYRING` | a directory of `<name>.pub` keys that `verify`, `show`, `serve`, `pr open` and `export` trust, retired keys included |
 | `GUSTO_SIGNER` | who the manifest names. This is the runner's own word |
 | `GUSTO_CHANGES` | the file recording platform changes: sign-ins, refusals, role, setup and settings changes. Hash-chained, and signed when a key is set. `gusto changes verify` checks it. [CHANGES.md](CHANGES.md) |
-| `GUSTO_RETENTION` | the directory holding `policy.json`, the holds and the last sweep. A task's workspace is removed first, its signed record later. `GUSTO_RETENTION_MINUTES` sets the interval, 60 by default. `gusto retention` lists what a sweep would remove. [RETENTION.md](RETENTION.md) |
+| `GUSTO_RETENTION` | the directory holding `policy.json`, the holds and the last sweep. A task's working folder is removed first, its signed record later. `GUSTO_RETENTION_MINUTES` sets the interval, 60 by default. `gusto retention` lists what a sweep would remove. [RETENTION.md](RETENTION.md) |
 | `GUSTO_GITHUB_TOKEN` | the token `gusto pr open` pushes and opens pull requests with. `GUSTO_GITHUB_API` overrides the API address |
 | `GUSTO_GITHUB_APP_ID`, `GUSTO_GITHUB_APP_KEY` | a GitHub App that reaches the repositories tasks name. Each task gets a token for one repository, revoked when the work is done. Set both or neither. [REPOS.md](REPOS.md) |
 | `GUSTO_GITHUB_URL` | a GitHub Enterprise Server's address, with `GUSTO_GITHUB_API`. github.com when unset |
 | `GUSTO_ADDR` | where `gusto serve` listens, `127.0.0.1:8040` by default |
-| `GUSTO_JOBS` | the directory `gusto serve` keeps tasks in |
-| `GUSTO_DATABASE_URL` | where the indexes are kept: the index of model calls and the index of tasks. Unset, they are `usage.db` and `tasks.db` in the directory that holds `GUSTO_JOBS`. A `postgres://` address keeps both in Postgres, and its `search_path` parameter names the schema, which is how organizations that share a database stay apart. The tasks' `out/proxy.jsonl` and `state.json` stay the record: the indexes are built from them, and `gusto usage reindex` and `gusto tasks reindex` rebuild them. Retention leaves the model calls' rows, which hold no content, and removes a removed task's row. [USAGE.md](USAGE.md), [TASKS.md](TASKS.md) |
+| `GUSTO_TASKS` | the directory `gusto serve` keeps tasks in |
+| `GUSTO_DATABASE_URL` | where the indexes are kept: the index of model calls and the index of tasks. Unset, they are `usage.db` and `tasks.db` in the directory that holds `GUSTO_TASKS`. A `postgres://` address keeps both in Postgres, and its `search_path` parameter names the schema, which is how organizations that share a database stay apart. The tasks' `out/proxy.jsonl` and `state.json` stay the record: the indexes are built from them, and `gusto usage reindex` and `gusto tasks reindex` rebuild them. Retention leaves the model calls' rows, which hold no content, and removes a removed task's row. [USAGE.md](USAGE.md), [TASKS.md](TASKS.md) |
 | `GUSTO_PASSWORD` | the shared sign-in. `gusto serve` refuses to start without it |
 | `GUSTO_OIDC_ISSUER`, `GUSTO_OIDC_CLIENT_ID`, `GUSTO_OIDC_CLIENT_SECRET`, `GUSTO_OIDC_REDIRECT` | sign in with the company's identity provider. Naming an issuer turns it on. It needs the other three, and `GUSTO_RUNNER_GROUPS`, `GUSTO_ADMIN_GROUPS` or `GUSTO_ALLOWED`, or the server refuses to start. [SSO.md](SSO.md) |
 | `GUSTO_OIDC_SCOPES`, `GUSTO_OIDC_GROUPS_CLAIM` | scopes to ask for besides `openid` and `email`, and the claim the groups arrive in (`groups` by default) |
@@ -300,9 +311,10 @@ docker build -t gusto:dev \
 | `GUSTO_CLOUD_DEMO_MAX`, `GUSTO_CLOUD_DEMO_PER_DAY`, `GUSTO_CLOUD_DEMO_PER_PERSON`, `GUSTO_CLOUD_DEMO_PER_COMPANY` | the most demos at once (5), in a day (40), and that one address (2) and one company (6) may start in 24 hours |
 | `GUSTO_CLOUD_BOOK_URL` | where a call is booked, linked from the end page |
 | `GUSTO_CLOUD_DEMO_NOTIFY` | an address mailed when a visitor starts a demo: name, work email, company and time. Nothing is sent when unset |
+| `GUSTO_CLOUD_DEMO_STAFF` | comma-separated addresses and domains whose people alone may start a demo. With it set, demos are a sales call: the landing page leads to sign-up and to booking a demo, and `/demo` offers to book one (the form is at `/demo?team=1`). Unset, anyone may start one |
 | `GUSTO_CLOUD_LEAD_HOOK_URL`, `GUSTO_CLOUD_LEAD_HOOK_SECRET` | an https address that receives a lead as JSON when a demo starts and ends, and a secret sent in each request body. Both or neither. An unsent lead is kept under `leadhook/` and sent later. [deploy/google-sheet](../deploy/google-sheet/README.md) receives into a Google Sheet |
 | `GUSTO_CLOUD_TURNSTILE_SITE`, `GUSTO_CLOUD_TURNSTILE_SECRET` | the Cloudflare Turnstile bot check on the demo form. The secret comes from the environment. Both or neither: one alone stops gusto cloud starting. A visitor who cannot be checked is turned away |
-| `GUSTO_DATABASE_URL` for `gusto cloud` and `gusto operator` | where the accounts are kept: people, organizations, invitations, links, demos, leads, limits and each organization's runtime. Unset, it is `cloud.db` under `GUSTO_CLOUD_ROOT`. A `postgres://` address shares them between front doors, and its `search_path` names the schema, which is made when missing. The front door's address and password never go to an organization's server. [CLOUD-DATABASE.md](CLOUD-DATABASE.md) |
+| `GUSTO_DATABASE_URL` for `gusto cloud` and `gusto operator` | where the accounts are kept: people, organizations, invitations, links, demos, leads, limits and each organization's runtime. Unset, it is `cloud.db` under `GUSTO_CLOUD_ROOT`. A `postgres://` address shares them between gusto cloud servers, and its `search_path` names the schema, which is made when missing. Gusto cloud's address and password never go to an organization's server. [CLOUD-DATABASE.md](CLOUD-DATABASE.md) |
 | `GUSTO_CLOUD_INDEX_DIR` | where gusto cloud has each organization's server keep its indexes when the organization's `GUSTO_DATABASE_URL` (in `GUSTO_CLOUD_ORG_ENV`) is not a Postgres address: `<dir>/<slug>/index.db`, on the local disk of the host the server runs on. `index` under `GUSTO_CLOUD_ROOT` when unset. Set it when the root is on a disk that hosts share |
 
 The demo limits are starting values. The operator changes them on the operator page while gusto cloud runs. The operator page pauses demos. Run the tests with `go test ./... -race`. Gusto is Apache License 2.0 ([LICENSE](../LICENSE)). Third-party licenses are in [NOTICE](../NOTICE).

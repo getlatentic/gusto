@@ -18,6 +18,7 @@
     mode: "0644"
   loop:
     - { src: org.env.j2, dest: /etc/gusto/org.env }
+    - { src: org-demo.env.j2, dest: /etc/gusto/org-demo.env }
     - { src: cloud.env.j2, dest: /etc/gusto/cloud.env }
   notify: Restart the front door
 
@@ -28,12 +29,34 @@
     mode: "0644"
   notify: Restart the front door
 
+# gusto cloud runs as a user that may not remove what an agent's container left as root, and moves such a directory to its trash.
+- name: The job that empties gusto cloud's trash, as root
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: /etc/systemd/system/{{ item }}
+    mode: "0644"
+  loop: [gusto-trash.service, gusto-trash.timer]
+
 - name: The operator's page, which listens on this host's loopback and is not in the web server's site
   ansible.builtin.template:
     src: gusto-owner.service.j2
     dest: /etc/systemd/system/gusto-owner.service
     mode: "0644"
-  notify: Restart the owner's page
+  notify: Restart the operator's page
+
+- name: Where the front door's media are
+  ansible.builtin.file:
+    path: "{{ demo_media }}"
+    state: directory
+    mode: "0755"
+
+- name: The front door's media, as the bucket holds them
+  ansible.builtin.command: aws s3 sync s3://{{ demo_bucket }}/media/ {{ demo_media }}/ --delete --only-show-errors
+  environment:
+    AWS_REGION: "{{ demo_region }}"
+    AWS_DEFAULT_REGION: "{{ demo_region }}"
+    PATH: "/usr/local/bin:/snap/bin:/usr/bin:/bin"
+  changed_when: false
 
 - name: The web server's site
   ansible.builtin.template:
@@ -51,6 +74,28 @@
     - { src: /etc/nginx/sites-available/gusto, dest: /etc/nginx/sites-enabled/gusto, state: link }
     - { dest: /etc/nginx/sites-enabled/default, state: absent }
   notify: Reload nginx
+
+# Cells read the kit from the shared file system, and take it only when its sum is the one this host starts them with.
+- name: Where the kits are
+  ansible.builtin.file:
+    path: "{{ demo_state }}/kits"
+    state: directory
+    mode: "0755"
+  when: demo_cell_kit != ''
+
+- name: The kit a cell configures itself from, where cells can read it
+  ansible.builtin.copy:
+    src: "{{ demo_cell_kit_file }}"
+    dest: "{{ demo_state }}/kits/{{ demo_cell_kit }}.tgz"
+    remote_src: true
+    mode: "0644"
+  when: demo_cell_kit != ''
+
+# A cell started with an earlier kit that is gone runs the playbook, which is slower and right.
+- name: The kits of earlier releases are removed
+  ansible.builtin.command: find "{{ demo_state }}/kits" -name '*.tgz' -not -name "{{ demo_cell_kit }}.tgz" -delete
+  changed_when: false
+  when: demo_cell_kit != ''
 
 - name: The script a host is started with, where gusto cloud may read it
   ansible.builtin.copy:

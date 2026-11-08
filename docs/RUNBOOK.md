@@ -7,7 +7,7 @@ What to watch on a gusto server, and what to do when an alert fires.
 | Path | Answers | Use it for |
 | --- | --- | --- |
 | `/healthz` | `ok` while the process runs | liveness probe. It never depends on the workers or the disk |
-| `/readyz` | `ready`, or 503: fewer workers than `GUSTO_JOB_CONCURRENCY`, or the tasks directory is not writable | readiness probe, and the check a deploy makes before it keeps a new version |
+| `/readyz` | `ready`, or 503: fewer workers than `GUSTO_TASK_CONCURRENCY`, or the tasks directory is not writable | readiness probe, and the check a deploy makes before it keeps a new version |
 | `/metrics` | Prometheus text format | scraping |
 
 `/metrics` needs `Authorization: Bearer`. With API tokens ([TOKENS.md](TOKENS.md)), make a token that may read metrics at `/admin/tokens`. Without, use the shared password. Counters reset to zero on restart.
@@ -22,9 +22,9 @@ What to watch on a gusto server, and what to do when an alert fires.
 | `gusto_queue_stuck_seconds` | the longest wait of a task that nothing holds back (no limit, no busy agent, a runner free). Near zero while the queue moves |
 | `gusto_jobs_running`, `gusto_runner_slots`, `gusto_runner_workers_alive` | tasks running, tasks allowed at once, workers alive. Fewer workers than slots means the queue is broken. `gusto_last_job_started_timestamp_seconds` and `gusto_last_job_finished_timestamp_seconds` give the last start and finish, 0 before the first |
 | `gusto_disk_free_bytes{store="jobs"}`, `gusto_disk_total_bytes{store="jobs"}` | the volume the tasks are on |
-| `gusto_jobs_disk_bytes`, `gusto_jobs_workspace_bytes`, `gusto_oldest_finished_job_timestamp_seconds` | what tasks take (measured at most once a minute), the workspaces among them, and when the longest-kept finished task ended |
+| `gusto_jobs_disk_bytes`, `gusto_jobs_workspace_bytes`, `gusto_oldest_finished_job_timestamp_seconds` | what tasks take (measured at most once a minute), the working folders among them, and when the longest-kept finished task ended |
 | `gusto_proxy_calls_total`, `gusto_proxy_errors_total`, `gusto_proxy_refused_total` | model calls; calls the model's side failed (no answer, or a 5xx); calls a spending cap stopped. Absent with no proxy |
-| `gusto_last_deploy_ok{release}`, `gusto_last_deploy_timestamp_seconds` | 1, or 0 for a failed or rolled-back deploy. Present where a deploy writes `GUSTO_DEPLOY_RESULT`, as the playbook's autodeploy does |
+| `gusto_last_deploy_ok{release}`, `gusto_last_deploy_timestamp_seconds` | 1, or 0 for a failed or rolled-back deploy. Present where a deploy writes `GUSTO_DEPLOY_RESULT` |
 
 ## Alerts
 
@@ -38,7 +38,7 @@ Prometheus could not scrape `/metrics` for two minutes.
 
 ### GustoNotReady
 
-Fewer workers run than `GUSTO_JOB_CONCURRENCY`. `/readyz` gives 503. Run `systemctl restart gusto`. Running tasks end and are marked interrupted. If it recurs, read the log for the error that took a worker.
+Fewer workers run than `GUSTO_TASK_CONCURRENCY`. `/readyz` gives 503. Run `systemctl restart gusto`. Running tasks end and are marked interrupted. If it recurs, read the log for the error that took a worker.
 
 ### GustoQueueStuck
 
@@ -50,7 +50,7 @@ A queued task that nothing holds back has waited over five minutes. The log says
 
 Every runner has been busy, with tasks waiting, for half an hour. Nothing is broken. Check Activity.
 - One person takes every runner: set `GUSTO_LIMIT_PERSON` ([LIMITS.md](LIMITS.md)).
-- Too little capacity: raise `GUSTO_JOB_CONCURRENCY` if memory allows (`GUSTO_JOB_MEMORY` times the concurrency must fit), or add a machine.
+- Too little capacity: raise `GUSTO_TASK_CONCURRENCY` if memory allows (`GUSTO_TASK_MEMORY` times the concurrency must fit), or add a machine.
 - A task hangs: shorten its budget in seconds.
 
 ### GustoJobsFailing
@@ -62,7 +62,7 @@ More than half the tasks that ended in the last hour failed, and at least five d
 
 ### GustoDiskLow
 
-Less than a tenth of the tasks volume is free. Tasks fail to write and the queue stalls. Open `/admin/retention`. Set or shorten the policy ([RETENTION.md](RETENTION.md)), then sweep. `gusto retention` gives a dry run. Run `du` to find other things on the same volume.
+Less than a tenth of the tasks volume is free. Tasks fail to write and the queue stalls. Open `/admin/records?tab=keeping`. Set or shorten the policy ([RETENTION.md](RETENTION.md)), then sweep. `gusto retention` gives a dry run. Run `du` to find other things on the same volume.
 
 ### GustoModelErrors
 
@@ -73,6 +73,14 @@ More than a fifth of model calls in ten minutes failed on the model's side (no a
 The last deploy failed or rolled back, and the server runs the earlier version. The deploy's GitHub workflow run says which step failed.
 1. Read `journalctl -u 'gusto-deploy@*'` on the box for the play's output. A smoke failure means the candidate could not run a task. A refusal from `gusto data check` means the data would not upgrade ([UPGRADE.md](UPGRADE.md)). A rollback means the new version did not answer `/readyz`.
 2. Fix on a branch and merge. A merge to `main` deploys again, and a good deploy clears the alert.
+
+### GustoProvisionFailing
+
+Organizations' servers failed to provision for five minutes (`gusto_provision_failures_total`, gusto cloud's front door). Read the front door's log (`journalctl -u gusto-cloud`) for `an organization's server failed`; the organization's runtime in the database holds the reason in its `error`. `gusto_orgs{state="failed"}` says how many are failing now. Common causes are no node with room, a full disk on the node, and a release the node cannot run.
+
+### GustoFrontErrors
+
+More than one in twenty requests to the front door ended in a 5xx for ten minutes. `gusto_front_requests_total` splits them by route class (`class`, the mux pattern, or `org` and `app` for what is sent on to an organization's server or a computer's app), so the query `topk(5, sum by (class) (increase(gusto_front_requests_total{status="5xx"}[10m])))` names the route. `org` means the organizations' servers: see GustoProvisionFailing.
 
 ### GustoRestartingOften
 

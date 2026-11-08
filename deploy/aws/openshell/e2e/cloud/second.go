@@ -21,8 +21,8 @@ func (r run) secondTurns(slug string, threads []*thread) {
 	}
 	group.Wait()
 	for _, each := range threads {
-		jobs, err := r.host.finished(slug, each.person.email, 2, r.within)
-		check(err == nil, "%s's second turn is done: %v", each.person.email, states(jobs))
+		tasks, err := r.host.finished(slug, each.person.email, 2, r.within)
+		check(err == nil, "%s's second turn is done: %v", each.person.email, states(tasks))
 		answer, err := r.host.fileIn(slug, each.instance, "answer.txt")
 		check(err == nil && strings.Contains(answer, each.secret), "the second turn found what the first left: %q", answer)
 	}
@@ -33,8 +33,17 @@ var computerName = regexp.MustCompile(`c-[0-9a-f]{8}-[0-9a-f]{8}`)
 // observe checks what the host holds against who asked: one computer for each person, all
 // of them the organization's, and nothing else left in the gateway.
 func (r run) observe(slug string, threads []*thread) {
+	if r.host.sandbox == "container" {
+		left, err := r.host.containers()
+		must(err, "Docker's containers")
+		check(len(left) == 0, "every turn's container is gone once it is over: %v", left)
+		strangers, err := r.host.strangers(slug)
+		must(err, "the owners of the organization's files")
+		check(len(strangers) == 0, "every file the turns left belongs to the server, which can remove it: %v", strangers)
+		return
+	}
 	listed, err := r.host.computers()
-	must(err, "gusto cloud workspaces")
+	must(err, "gusto cloud computers")
 	fmt.Println(listed)
 	held := map[string]bool{}
 	for _, name := range computerName.FindAllString(listed, -1) {
@@ -76,9 +85,12 @@ func (r run) isolation(slug string, threads []*thread) {
 	to, err := bob.person.where(r.orgAt(second) + "/")
 	must(err, "another organization")
 	check(strings.Contains(to, "/login"), "%s is not signed in to %s: sent to %s", bob.person.email, second, to)
+	if r.host.sandbox == "container" {
+		return
+	}
 
 	listed, err := r.host.computers()
-	must(err, "gusto cloud workspaces")
+	must(err, "gusto cloud computers")
 	fmt.Println(listed)
 	held := map[string]bool{}
 	for _, name := range computerName.FindAllString(listed, -1) {

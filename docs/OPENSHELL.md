@@ -30,13 +30,14 @@ A server with `GUSTO_SANDBOX=openshell` on Linux with no `/dev/kvm` refuses to s
 | `GUSTO_OPENSHELL_IMAGE` | an image reference the gateway can pull, or the path of a root file system archive on the gateway's machine. It must carry the agent programs. Unset is the gateway's own image, which carries none |
 | `GUSTO_OPENSHELL_HOST` | the name a sandbox gives the gateway's machine, `host.openshell.internal` by default |
 | `GUSTO_OPENSHELL_CPU`, `GUSTO_OPENSHELL_MEMORY` | limits for one sandbox, `1` and `3Gi` by default |
+| `GUSTO_SPARE_COMPUTER` | `on` keeps one blank computer made in the background, so the first task of a person with no computer yet starts without waiting for the gateway to make one (about eight seconds). It holds the memory and CPU of one sandbox while it waits, is made with the same image, limits and policy as a person's, and is removed when the server stops. Off by default |
 | `GUSTO_OPENSHELL_PROCESSES` | the most processes an agent's user may have, `512` by default. The VM driver sets no limit, so the start command sets one with `ulimit`. A sandbox where it cannot be set runs nothing |
 | `GUSTO_ALLOWED_HOSTS` | hosts a task may reach besides its model, as for containers. Each becomes a network rule |
 | `GUSTO_PROXY_ADDR` | the proxy address. In this mode the proxy listens on `127.0.0.1:8041` |
 
 ## How a task runs
 
-The runner stays on the host and writes the record itself. It checks out the repository on the host, makes a sandbox with the task's policy, and puts in the workspace and skills. It runs the agent with `openshell sandbox exec`, or over ssh for an ACP agent. The agent environment is the proxy address and the task token only. It fetches the workspace back and takes the patch on the host. The check runs in the sandbox. The runner writes `out/sandbox-events.log` and `out/sandbox-policy.json`, the manifest hashes them, the host signs it, and the sandbox is deleted.
+The runner stays on the host and writes the record itself. It checks out the repository on the host, makes a sandbox with the task's policy, and puts in the working folder and skills. It runs the agent with `openshell sandbox exec`, or over ssh for an ACP agent. The agent environment is the proxy address and the task token only. It fetches the working folder back and takes the patch on the host. The check runs in the sandbox. The runner writes `out/sandbox-events.log` and `out/sandbox-policy.json`, the manifest hashes them, the host signs it, and the sandbox is deleted.
 
 ## The policy and the image
 
@@ -48,10 +49,50 @@ The runner writes a policy for each task. Everything not named is denied.
 | each allowed host and port | `GUSTO_ALLOWED_HOSTS`: `host` is ports 80 and 443, `host:port` is one port, `*.domain` is every name under it |
 | `/usr`, `/lib`, `/bin`, `/opt`, `/proc`, read-only | the system a sandbox needs to start |
 | part of `/etc`, read-only | users, groups, name resolution, certificates, library cache (`systemReads` in `internal/openshell/policy.go`). A path named there must exist in the image |
-| `/sandbox`, `/tmp` and the agent's own folder, read-write | the workspace is `/sandbox/workspace` |
+| `/sandbox`, `/tmp` and the agent's own folder, read-write | the working folder is `/sandbox/workspace` |
 | `/dev/ptmx` and `/dev/pts`, read-write | an agent's shell tool opens a pseudo-terminal per command |
 
 File rules need Landlock. A sandbox that cannot enforce them does not start. A `GUSTO_ALLOWED_HOSTS` entry that cannot be written as a rule is refused.
+
+### A run's credential
+
+Runs are bound unless an admin chooses plain tokens under **Model access in sandboxes** on the admin overview (`plainRunTokens` in the organization's settings). A plain token works from anywhere until the run ends. Settings that cannot be read leave runs bound. The choice is read as each run starts.
+
+An agent in a sandbox holds nothing it could use anywhere else. It is told `http://127.0.0.1:<port>/model/v1`, the address of a forwarder of its run's own, and the word `dpop` where a key would go.
+
+1. The server gives the run a secret (`WayOut.admitBound`). The proxy never accepts the secret as a token.
+2. The sandbox runs `gusto boxed --model <proxy> -- agent ...`. It starts `gusto boxed-forward`, which starts `gusto boxed-sign`. The signer makes an Ed25519 key that never leaves its process, and answers the forwarder's requests for proofs over a pipe. The signer's memory is closed to every other process (`PR_SET_DUMPABLE`), the agent among them. The forwarder's is not, because OpenShell reads a process's memory to decide each connection it makes, and refuses one it cannot read. So the signer makes no network calls, and the forwarder holds only the token, which is no use without a proof.
+3. The forwarder trades the secret, once, at `POST /model/token`. This is an OAuth token exchange (RFC 8693) with a DPoP proof (RFC 9449). It gets back a run token: a JWT the server signs (RFC 9068 in shape), good for 15 minutes and bound to the key's thumbprint.
+4. Every call goes out with `Authorization: DPoP <token>` and a fresh proof, made for that method, address and token. The proxy refuses a proof it has seen, or one more than a minute from now. The forwarder trades the token for a new one before it expires.
+5. When the run ends, its token is refused even before it expires. The forwarder ends with the agent: by a pipe the agent holds open, and on Linux by `PR_SET_PDEATHSIG`. The signer ends with the forwarder, which holds its input.
+
+| A run token's claim | What it is |
+| --- | --- |
+| `sub` | the person the run acts for, who asked |
+| `client_id` | the room's agent, or the agent type |
+| `run` | the task |
+| `authorization_details` | `gusto_run`: the room and `model`, `tools` (RFC 9396) |
+| `cnf.jkt` | the thumbprint of the run's key |
+
+Only the agent's command starts a forwarder. The check and the image's own checks are given no model address, and spend nothing. The code is `internal/runtoken`, `cmd/gusto/boxed.go` and `pkg/proxy/runtokens.go`. A change to these makes a new runner-image key.
+
+### A room's turn in a person's computer
+
+A person's computer is one sandbox that holds all their conversations and their copies of rooms. The sandbox's policy cannot tell those apart, so a room's turn is held further, inside it:
+
+| A room's turn may | Path |
+| --- | --- |
+| read and write its copy of the room | `/sandbox/jobs/instance-<room>-<agent>` |
+| read and write its agent's home, which keeps what the agent remembers between turns | `/sandbox/rooms/<room>-<agent>/home`, its `HOME` |
+| read and write its own temporary folder | `/sandbox/rooms/<room>-<agent>/tmp`, its `TMPDIR` |
+| read the system folders | `landlock.System` |
+
+It cannot read or write the rest of `/sandbox`, the person's other conversations and rooms among it, nor the shared `/tmp`.
+
+- The runner starts the agent as `gusto boxed --model <proxy> --policy '<policy>' -- agent ...`, and the turn's other commands as `gusto sandbox-run '<policy>' -- ...`. The gusto in the image applies the policy with Landlock, on top of the sandbox's own, before it starts the command.
+- The policy is passed whole, not as a file, so the agent cannot change its next turn's rules.
+- A kernel without Landlock refuses the turn rather than running it unconfined.
+- `sandbox-run` is part of the image, so a change to it, or to `internal/landlock`, makes a new runner-image key (`deploy/aws/openshell/image-key.sh`).
 
 Export the container runner's image as a root file system (`podman export`) and set `GUSTO_OPENSHELL_IMAGE` to it. The backend copies each agent's configuration from `/opt/gusto/harness` into `/sandbox`, and rewrites `/root` to `/sandbox` in the agent's arguments and configuration files. It creates the agent's state folder before the agent starts. It applies an adapter's `whenBoxed` changes: codex gets `danger-full-access` instead of `workspace-write`, because its own namespace sandbox fails inside a sandbox. The gateway's policy is the boundary. The image carries `ripgrep`, because opencode's `glob` and `grep` cannot download it without a network.
 
@@ -64,7 +105,7 @@ OpenShell 0.1.2, on an `m8i.xlarge` with nested virtualization. Scripts are in `
 - Only pi, dsh and hermes reported tokens the proxy could count. No price is set, so no cost is in dollars.
 - opencode on Qwen3 VL passed one of two runs before the image carried `ripgrep`, and four of four after. The cause of the failed run is unknown.
 - Claude Code then Codex worked on one project in one sandbox, and its tests passed (3 of 3). Each turn had its own token, so the proxy told their calls apart. The sandbox denied hosts the agents tried on their own, such as `models.opencode.ai`, `registry.npmjs.org` and `github.com`.
-- An upload leaves `.git` behind. Take a turn's diff on the host after fetching the workspace.
+- An upload leaves `.git` behind. Take a turn's diff on the host after fetching the working folder.
 
 ### Many sandboxes at once
 
@@ -97,4 +138,4 @@ gusto can fetch, check, sign and start OpenShell in user space, with no password
 - The first sandbox took 27.7 s, and one with the image staged took 9.6 s. A chat took 13 s, and each turn gets a fresh VM.
 - The gateway kept 2.2 GB after a few runs, and 6.0 GB after one chat with the six-agent image.
 
-`gusto local sandbox install` writes a launch agent (macOS) or systemd user unit (Linux) named `gusto`. `gusto local sandbox uninstall` removes it. The driver needs `mke2fs`, `debugfs` and `e2fsck`. `deploy/e2fsprogs/build.sh` builds them static from e2fsprogs 1.47.4 (GPLv2). The release workflow builds `gusto-rootfs-<arch>.tar.gz` for amd64 and arm64. Neither release task has run. Not checked: a Mac with no e2fsprogs at all, Linux with KVM, and a gateway kept for days.
+`gusto local sandbox install` writes a launch agent (macOS) or systemd user unit (Linux) named `gusto`. `gusto local sandbox uninstall` removes it. Run again, the install takes away the record of the one before first, replaces a root file system that is not the release's, and stops the gateway when it does not finish, so a half-finished install is never used. The driver needs `mke2fs`, `debugfs` and `e2fsck`. `deploy/e2fsprogs/build.sh` builds them static from e2fsprogs 1.47.4 (GPLv2). The release workflow builds `gusto-rootfs-<arch>.tar.gz` for amd64 and arm64. Neither release task has run. Not checked: a Mac with no e2fsprogs at all, Linux with KVM, and a gateway kept for days.

@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -10,8 +11,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/notify"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // RunRoutines starts the turns routines are due for, every interval until ctx ends. A routine is a turn like any other:
@@ -35,7 +36,12 @@ func (s *Server) RunRoutines(ctx context.Context, every time.Duration) {
 // answering its last turn skips the slot, and the skip is kept, so the page says why nothing started.
 func (s *Server) StartDueRoutines(now time.Time) {
 	for _, held := range s.instances.List() {
-		for _, routine := range s.instances.Routines(held.ID) {
+		routines, err := s.instances.Routines(held.ID)
+		if err != nil {
+			slog.Error("no routine of this agent runs until its routines can be read", "instance", held.ID, "error", err)
+			continue
+		}
+		for _, routine := range routines {
 			if routine.Due(now) {
 				s.startRoutine(now, held, routine)
 			}
@@ -51,41 +57,51 @@ func (s *Server) UseRoutineNews(news notify.Every, publicURL string) {
 // maxTries is how many times news of a run is offered before it is given up on.
 const maxTries = 5
 
-// tellRoutines offers the news of each ended run to the channels that have not taken it. A run whose turn has not ended waits.
+// tellRoutines offers the news of each ended run, the latest and the owed, to the channels that have not taken it.
 func (s *Server) tellRoutines() {
 	if len(s.routineNews) == 0 {
 		return
 	}
 	for _, held := range s.instances.List() {
-		for _, routine := range s.instances.Routines(held.ID) {
-			ran := routine.Last
-			if ran == nil || ran.Job == "" || ran.Notified {
-				continue
+		routines, _ := s.instances.Routines(held.ID)
+		for _, routine := range routines {
+			for _, ran := range routine.Untold() {
+				s.tellRun(held.ID, routine, ran)
 			}
-			record, found := s.index.Get(ran.Job)
-			if !found || !record.State.Done() {
-				continue
-			}
-			taken, err := s.routineNews.Offer(s.routineEvent(held.ID, routine, record), ran.Told)
-			_ = s.instances.NoteRun(held.ID, routine.ID, func(r *instance.Ran) {
-				r.Told = taken
-				if err == nil {
-					r.Notified, r.NotifyError = true, ""
-					return
-				}
-				r.Tries++
-				r.NotifyError = err.Error()
-				r.Notified = r.Tries >= maxTries
-			})
 		}
 	}
 }
 
-func (s *Server) routineEvent(instanceID string, routine instance.Routine, record jobs.Record) notify.Event {
-	state := map[jobs.State]string{jobs.Passed: "finished", jobs.Failed: "failed", jobs.Interrupted: "interrupted"}[record.State]
+// tellRun offers one run's news. A run whose turn has not ended waits, and one whose turn is gone is given up on.
+func (s *Server) tellRun(instanceID string, routine instance.Routine, ran instance.Ran) {
+	record, found := s.index.Get(ran.Task)
+	if !found {
+		_ = s.instances.NoteRun(instanceID, routine.ID, ran.Task, func(r *instance.Ran) {
+			r.Notified, r.NotifyError = true, "its turn is gone"
+		})
+		return
+	}
+	if !record.State.Done() {
+		return
+	}
+	taken, err := s.routineNews.Offer(s.routineEvent(instanceID, routine, record), ran.Told)
+	_ = s.instances.NoteRun(instanceID, routine.ID, ran.Task, func(r *instance.Ran) {
+		r.Told = taken
+		if err == nil {
+			r.Notified, r.NotifyError = true, ""
+			return
+		}
+		r.Tries++
+		r.NotifyError = err.Error()
+		r.Notified = r.Tries >= maxTries
+	})
+}
+
+func (s *Server) routineEvent(instanceID string, routine instance.Routine, record tasks.Record) notify.Event {
+	state := map[tasks.State]string{tasks.Passed: "finished", tasks.Failed: "failed", tasks.Interrupted: "interrupted"}[record.State]
 	event := notify.Event{
 		Name: "routine." + state, Instance: instanceID, Routine: routine.ID, Title: routine.Title,
-		Job: record.ID, State: state, At: record.Ended, Who: routine.Who,
+		Task: record.ID, State: state, At: record.Ended, Who: routine.Who,
 		Answer: lastWords(record.Dir(s.index.Root()).OutFile("transcript.log")),
 	}
 	if s.publicURL != "" {
@@ -120,7 +136,8 @@ func (s *Server) startRoutine(now time.Time, held instance.Instance, routine ins
 	// The slot is the key, so a restart that finds the same slot due starts one turn and not two.
 	key := "routine-" + routine.ID + "-" + strconv.FormatInt(now.Unix()/60, 10)
 	record, _, err := s.startTurn(routine.Who, held, thread, "[routine] "+routine.Title+": "+routine.Prompt, key)
-	ran := instance.Ran{At: now.Unix(), Job: record.ID}
+	// With no channel to tell, there is no news to keep.
+	ran := instance.Ran{At: now.Unix(), Task: record.ID, Notified: len(s.routineNews) == 0}
 	if err != nil {
 		ran = instance.Ran{At: now.Unix(), Skipped: err.Error()}
 	}
@@ -186,9 +203,10 @@ type routineRow struct {
 	Last string
 }
 
-func (s *Server) routineRows(id string) []routineRow {
+func (s *Server) routineRows(id string) ([]routineRow, error) {
+	routines, err := s.instances.Routines(id)
 	var rows []routineRow
-	for _, routine := range s.instances.Routines(id) {
+	for _, routine := range routines {
 		row := routineRow{Routine: routine, When: routine.When()}
 		switch {
 		case routine.Last == nil:
@@ -200,5 +218,5 @@ func (s *Server) routineRows(id string) []routineRow {
 		}
 		rows = append(rows, row)
 	}
-	return rows
+	return rows, err
 }

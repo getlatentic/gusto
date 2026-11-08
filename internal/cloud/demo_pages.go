@@ -1,11 +1,13 @@
 package cloud
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 )
@@ -19,7 +21,31 @@ func (s *Server) demoForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page := view{Title: demoFormTitle, Book: s.Store.set.Demo.BookURL, DemoLeft: s.Store.set.Demo.Length}
-	s.drawDemoForm(w, http.StatusOK, s.seen(page, "/demo", "Start a "+minuteLong(page.DemoLeft)+" demo of "+siteName+": your own organization, with agents working in workspaces of their own, and nothing to sign up for."))
+	if !s.Store.set.Demo.Public() && r.URL.Query().Get("team") == "" {
+		page.Title, page.Wide = bookDemoTitle, true
+		var origins []string
+		page.BookFrame, origins = bookingFrame(page.Book)
+		if page.BookFrame != "" {
+			w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; frame-src "+strings.Join(origins, " "))
+		}
+		s.render(w, http.StatusOK, "demo-book", s.seen(page, "/demo", "Book a demo of "+siteName+" with the team, or create your organization and try it now."))
+		return
+	}
+	s.drawDemoForm(w, http.StatusOK, s.seen(page, "/demo", "Start a "+minuteLong(page.DemoLeft)+" demo of "+siteName+": your own organization, with agents working on computers of their own, and nothing to sign up for."))
+}
+
+// warmDemo starts a node for a visitor who has begun the form, which the form's script asks for on their first keystroke. A
+// page load that types nothing asks for nothing. It answers the same whether or not a node was started, so it says nothing
+// about the demos to whoever asks.
+func (s *Server) warmDemo(w http.ResponseWriter, r *http.Request) {
+	if !s.demoOffered() {
+		http.NotFound(w, r)
+		return
+	}
+	if s.Prewarm != nil && !s.Store.DemosPaused(r.Context()) && s.signups.Allow(r.Context(), "warm:"+s.source(r)) {
+		s.Prewarm()
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // drawDemoForm draws the form. Where there is a bot check its widget is on the form, and the page may load its script and
@@ -46,11 +72,15 @@ func (s *Server) startDemo(w http.ResponseWriter, r *http.Request) {
 			Book: s.Store.set.Demo.BookURL, DemoLeft: s.Store.set.Demo.Length})
 	}
 
-	if !s.all.Allow("demo") {
+	if !s.Store.set.Demo.MayStart(email) {
+		again(http.StatusForbidden, "Demos are given by the gusto team. Book one, or create your organization to try gusto now.")
+		return
+	}
+	if !s.all.Allow(r.Context(), "demo") {
 		again(http.StatusServiceUnavailable, "Demos are busy right now. Try again in a little while, or book a call.")
 		return
 	}
-	if !s.signups.Allow("demo:" + s.source(r)) {
+	if !s.signups.Allow(r.Context(), "demo:"+s.source(r)) {
 		again(http.StatusTooManyRequests, "That is a lot of demos from one place. Try again later.")
 		return
 	}
@@ -64,15 +94,16 @@ func (s *Server) startDemo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	person, org, err := s.Store.StartDemo(name, email, company)
+	person, org, err := s.Store.StartDemo(r.Context(), name, email, company)
 	if err != nil {
 		again(demoStatus(err), demoText(err))
 		return
 	}
-	s.provision(org.Slug)
-	s.tell("started", org.Slug)
-	s.noticeOfDemo(org.Slug)
+	s.provision(r.Context(), org.Slug)
+	s.tell(r.Context(), "started", org.Slug)
+	s.noticeOfDemo(r.Context(), org.Slug)
 	s.Sessions.Issue(w, person.Email)
+	s.Sessions.Choose(w, org.Slug)
 	http.Redirect(w, r, "/demo/wait", http.StatusSeeOther)
 }
 
@@ -94,7 +125,7 @@ func demoText(err error) string {
 			return refusalSentence(known)
 		}
 	}
-	log.Printf("cloud: a demo could not be started: %v", err)
+	slog.Error("a demo could not be started", "error", err)
 	return "Something went wrong on our side. Try again."
 }
 
@@ -115,31 +146,36 @@ func demoStatus(err error) int {
 // demoWait is the page a demo's visitor is on until their server answers, which sends them in once, and is where
 // they come back to for the time they have, to extend it, and to book a call.
 func (s *Server) demoWait(w http.ResponseWriter, r *http.Request, person Person) {
-	demo, left, found := s.Store.DemoLeft(person.Org)
+	demo, left, found := s.Store.DemoLeft(r.Context(), person.Org)
 	if !found {
 		http.Redirect(w, r, "/org", http.StatusSeeOther)
 		return
 	}
 	state := Ready
 	if s.Controller != nil {
-		_, state = s.Controller.Route(person.Org)
+		_, state = s.Controller.Route(r.Context(), person.Org)
 	}
 	page := view{Title: "Your gusto demo", Org: Org{Slug: person.Org, Name: demo.Company}, Person: person, DemoLeft: left,
 		Book: s.Store.set.Demo.BookURL, Extendable: !demo.Extended && s.Store.set.Demo.Extend > 0 && !demo.Expires.IsZero(),
 		Notice: r.URL.Query().Get("notice")}
 	if state != Ready {
-		page.Refresh, page.DemoWords = true, waitingWords(state)
+		// A visitor is waiting on this page, and a demo that is ready is seen at the next look.
+		page.Refresh, page.RefreshEvery, page.DemoWords = true, 1, waitingWords(state)
 		page.Steps = demoSteps(state)
-		if lead, found := s.Store.LeadOf(person.Org); found {
+		if lead, found := s.Store.LeadOf(r.Context(), person.Org); found {
 			page.Waited = waited(lead.Requested, time.Now())
 		}
 		s.render(w, http.StatusOK, "demo-wait", page)
 		return
 	}
-	if demo.Ready.IsZero() {
-		if _, err := s.Store.DemoReady(person.Org); err != nil {
-			log.Printf("cloud: a demo's time was not started: %v", err)
+	// The first time the visitor finds the demo ready, its room is made and they are sent in, once. The demo's time started when its
+	// server first answered; it is started here too, for a demo whose controller could not.
+	if !s.demoOpened(person.Org) {
+		if _, err := s.Store.DemoReady(r.Context(), person.Org); err != nil {
+			slog.Error("a demo's time was not started", "error", err)
 		}
+		s.seedDemoRoom(r.Context(), person)
+		s.markDemoOpened(person.Org)
 		http.Redirect(w, r, "/open", http.StatusSeeOther)
 		return
 	}
@@ -159,13 +195,13 @@ func waitingWords(state State) string {
 }
 
 func (s *Server) extendDemo(w http.ResponseWriter, r *http.Request, person Person) {
-	_, err := s.Store.ExtendDemo(person.Org)
+	_, err := s.Store.ExtendDemo(r.Context(), person.Org)
 	notice := ""
 	switch {
 	case errors.Is(err, ErrNoExtension):
 		notice = "This demo cannot be extended any more."
 	case err != nil:
-		log.Printf("cloud: a demo was not extended: %v", err)
+		slog.Error("a demo was not extended", "error", err)
 		notice = "The demo could not be extended."
 	}
 	if notice == "" {
@@ -177,7 +213,7 @@ func (s *Server) extendDemo(w http.ResponseWriter, r *http.Request, person Perso
 
 // stopDemoPage asks a visitor whether to end their demo now, since everything in it is deleted with it.
 func (s *Server) stopDemoPage(w http.ResponseWriter, r *http.Request, person Person) {
-	if _, _, found := s.Store.DemoLeft(person.Org); !found {
+	if _, _, found := s.Store.DemoLeft(r.Context(), person.Org); !found {
 		http.Redirect(w, r, "/org", http.StatusSeeOther)
 		return
 	}
@@ -187,18 +223,18 @@ func (s *Server) stopDemoPage(w http.ResponseWriter, r *http.Request, person Per
 // stopDemo ends a visitor's demo now, which is what it does at the end of its time, and takes them to the page that
 // says when it is done.
 func (s *Server) stopDemo(w http.ResponseWriter, r *http.Request, person Person) {
-	if err := s.Store.StopDemo(person.Org); err != nil {
+	if err := s.Store.StopDemo(r.Context(), person.Org); err != nil {
 		http.Redirect(w, r, "/org", http.StatusSeeOther)
 		return
 	}
-	s.EndDueDemos()
+	s.EndDueDemos(r.Context())
 	http.Redirect(w, r, "/demo/ended/"+person.Org, http.StatusSeeOther)
 }
 
 // demoEndedPage is where a visitor who ended their demo waits for it to be deleted, and reads that it has been.
 func (s *Server) demoEndedPage(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
-	lead, found := s.Store.LeadOf(slug)
+	lead, found := s.Store.LeadOf(r.Context(), slug)
 	if !found {
 		http.NotFound(w, r)
 		return
@@ -211,8 +247,8 @@ func (s *Server) demoEndedPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // demoEnded is what an address shows after its demo has been deleted: that it has ended, and where to book a call.
-func (s *Server) demoEnded(w http.ResponseWriter, slug string) bool {
-	lead, found := s.Store.LeadOf(slug)
+func (s *Server) demoEnded(ctx context.Context, w http.ResponseWriter, slug string) bool {
+	lead, found := s.Store.LeadOf(ctx, slug)
 	if !found || lead.Ended.IsZero() {
 		return false
 	}
@@ -220,40 +256,64 @@ func (s *Server) demoEnded(w http.ResponseWriter, slug string) bool {
 	return true
 }
 
-// demoLeaseJSON says how long a demo has, for the banner on each of its pages, and where to extend it and book a call.
-func (s *Server) demoLeaseJSON(w http.ResponseWriter, slug string) bool {
-	demo, left, found := s.Store.DemoLeft(slug)
-	if !found || demo.Expires.IsZero() {
+// demoLeaseJSON says how long a demo has, for the banner on each of its pages, and where to extend it and book a call. A demo
+// that has ended says so, so a page still open on it goes to the page that says it has ended.
+func (s *Server) demoLeaseJSON(ctx context.Context, w http.ResponseWriter, slug string) bool {
+	demo, left, found := s.Store.DemoLeft(ctx, slug)
+	if !found {
+		lead, led := s.Store.LeadOf(ctx, slug)
+		if !led || lead.Ended.IsZero() {
+			return false
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		fmt.Fprintln(w, `{"seconds":0,"demo":true,"ended":true}`)
+		return true
+	}
+	if demo.Expires.IsZero() {
 		return false
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
-	fmt.Fprintf(w, `{"seconds":%d,"demo":true,"extend":%q,"end":%q,"book":%q}`+"\n", int(left/time.Second), s.URL.JoinPath("/demo/wait").String(), s.URL.JoinPath("/demo/end").String(), s.Store.set.Demo.BookURL)
+	fmt.Fprintf(w, `{"seconds":%d,"demo":true,"extend":%q,"end":%q,"invite":%q,"book":%q}`+"\n", int(left/time.Second), s.URL.JoinPath("/demo/wait").String(), s.URL.JoinPath("/demo/end").String(), s.URL.JoinPath("/demo/colleague").String(), s.Store.set.Demo.BookURL)
 	return true
 }
 
 // landing is what a visitor sees first where a demo is offered: what gusto is, the video if there is one, and where
 // to start a demo or book a call.
-func (s *Server) landing(w http.ResponseWriter) {
+func (s *Server) landing(w http.ResponseWriter, signedIn bool) {
 	demo := s.Store.set.Demo
-	page := view{Title: landingTitle, DemoLeft: demo.Length, Book: demo.BookURL}
+	page := view{Title: landingTitle, DemoLeft: demo.Length, Book: demo.BookURL, DemoPublic: demo.Public(), StartingCredit: StartingCredit, SignedIn: signedIn}
 	description := landingDescription(page)
 	page = s.seen(page, "/", description)
 	page.LD = s.structured(description)
-	csp := "default-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
+	images := "'self' data:"
+	csp := "default-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
 	if demo.VideoURL == "" {
-		// A short conversation with an agent is what is shown unless an operator names a video of their own.
+		// Two people and their agents in one room is what is shown unless an operator names a video of their own.
 		page.Shot, page.ShotDark = fingerprinted("/static/hero-light.webp"), fingerprinted("/static/hero-dark.webp")
 	} else if video, file, frame := videoOf(demo.VideoURL); video != "" {
 		page.Video, page.VideoFile = video, file
 		if file {
+			page.VideoPoster, images = posterOf(video), images+" https:"
 			csp += "; media-src 'self' https:"
 		} else {
 			csp += "; frame-src " + frame
 		}
 	}
-	w.Header().Set("Content-Security-Policy", csp)
+	w.Header().Set("Content-Security-Policy", csp+"; img-src "+images)
 	s.render(w, http.StatusOK, "landing", page)
+}
+
+// posterOf is the picture a video file is shown with before it plays: a .jpg of the same name beside it. Without one the
+// player shows the video's first frame.
+func posterOf(video string) string {
+	parsed, err := url.Parse(video)
+	if err != nil {
+		return ""
+	}
+	parsed.Path = strings.TrimSuffix(parsed.Path, path.Ext(parsed.Path)) + ".jpg"
+	return parsed.String()
 }
 
 // videoOf is the video to show for an address, whether it is a file, and the origin a page for it is embedded from. An

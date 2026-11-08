@@ -76,9 +76,12 @@ func (g GitHub) Open(ctx context.Context, pull Pull) (string, error) {
 	return opened(response)
 }
 
+// githubClient is the client for a GitHub with none of its own: no call to GitHub's API takes longer than this.
+var githubClient = &http.Client{Timeout: 30 * time.Second}
+
 func (g GitHub) client() *http.Client {
 	if g.Client == nil {
-		return http.DefaultClient
+		return githubClient
 	}
 	return g.Client
 }

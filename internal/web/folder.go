@@ -8,33 +8,41 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // changed is the files a turn changed, from its patch, for the chat to link to.
-func changed(dir job.Dir) []string {
+func changed(dir task.Dir) []string {
+	names, _ := changes(dir)
+	return names
+}
+
+// changes is every file a turn left different, and of those the ones it deleted.
+func changes(dir task.Dir) (names, deleted []string) {
 	if !dir.PlainOut("diff.patch") {
-		return nil
+		return nil, nil
 	}
 	patch, err := os.ReadFile(dir.OutFile("diff.patch"))
 	if err != nil {
-		return nil
+		return nil, nil
 	}
-	var names []string
 	for _, file := range parseDiff(string(patch)) {
 		names = append(names, file.Name)
+		if file.Deleted {
+			deleted = append(deleted, file.Name)
+		}
 	}
-	return names
+	return names, deleted
 }
 
 // mostShown is how much of a file the viewer draws. A folder can hold
 // anything, and a page is not the place to read a gigabyte.
 const mostShown = 512 << 10
 
-// resolveInFolder resolves a path inside a workspace, and refuses it when it leaves it, by a link or otherwise, or reaches
+// resolveInFolder resolves a path inside a folder, and refuses it when it leaves it, by a link or otherwise, or reaches
 // into git's own directory. The path is as the person asked, cleaned and rooted.
-func resolveInFolder(workspace, asked string) (string, bool) {
-	root, err := filepath.EvalSymlinks(workspace)
+func resolveInFolder(folder, asked string) (string, bool) {
+	root, err := filepath.EvalSymlinks(folder)
 	if err != nil {
 		return "", false
 	}
@@ -73,11 +81,11 @@ const mostListed = 500
 // folderPage lists what is in an agent's folder, the most recently changed
 // first, because that is what a conversation has been working on.
 func (s *Server) folderPage(w http.ResponseWriter, r *http.Request) {
-	agentHeld, found := s.mine(w, r)
+	agentHeld, found := s.sharedOr404(w, r)
 	if !found {
 		return
 	}
-	root := s.instances.Workspace(agentHeld.ID)
+	root := s.instances.AgentFolder(agentHeld.ID)
 	var files []held
 	_ = filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {

@@ -1,0 +1,429 @@
+package node
+
+import (
+	"context"
+	"errors"
+	"net"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+)
+
+type fakeHosts struct {
+	hosts      []Instance
+	stopped    []Instance
+	launched   int
+	started    int
+	terminated []string
+	lowered    []string
+	failLaunch error
+	next       string
+	image      string
+}
+
+func (f *fakeHosts) CurrentImage() (string, error) { return f.image, nil }
+
+func (f *fakeHosts) Launch(kept bool) (string, error) {
+	if f.failLaunch != nil {
+		return "", f.failLaunch
+	}
+	f.launched++
+	f.hosts = append(f.hosts, Instance{ID: f.next, Launched: clockNow, Kept: kept})
+	return f.next, nil
+}
+
+func (f *fakeHosts) Stopped() ([]Instance, error) { return append([]Instance(nil), f.stopped...), nil }
+
+func (f *fakeHosts) Start(id string) error {
+	for i, host := range f.stopped {
+		if host.ID == id && host.Stopped {
+			f.started++
+			f.stopped = append(f.stopped[:i], f.stopped[i+1:]...)
+			f.hosts = append(f.hosts, Instance{ID: id, Launched: clockNow, Kept: true})
+			return nil
+		}
+	}
+	return errors.New("not a stopped host")
+}
+
+func (f *fakeHosts) Stop(id string) error {
+	for i, host := range f.hosts {
+		if host.ID == id {
+			f.hosts = append(f.hosts[:i], f.hosts[i+1:]...)
+			host.Stopped = true
+			f.stopped = append(f.stopped, host)
+			return nil
+		}
+	}
+	return errors.New("not a running host")
+}
+
+func (f *fakeHosts) LowerDisk(id string) error {
+	f.lowered = append(f.lowered, id)
+	return nil
+}
+
+func (f *fakeHosts) Terminate(id string) error {
+	f.terminated = append(f.terminated, id)
+	f.stopped = slices.DeleteFunc(f.stopped, func(host Instance) bool { return host.ID == id })
+	for i, host := range f.hosts {
+		if host.ID == id {
+			f.hosts = append(f.hosts[:i], f.hosts[i+1:]...)
+			break
+		}
+	}
+	return nil
+}
+
+func (f *fakeHosts) Running() ([]Instance, error) { return append([]Instance(nil), f.hosts...), nil }
+
+var clockNow = time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)
+
+type rig struct {
+	t       *testing.T
+	scaler  *Scaler
+	hosts   *fakeHosts
+	waiting int
+	now     time.Time
+}
+
+func scaling(t *testing.T) *rig {
+	t.Helper()
+	r := &rig{t: t, hosts: &fakeHosts{next: "i-0aaa1111"}, now: clockNow}
+	pool := &Pool{Dir: filepath.Join(t.TempDir(), "cells"), Secret: secret, MaxAge: time.Hour, MinFreeMiB: 0}
+	r.scaler = &Scaler{Pool: pool, Launcher: r.hosts, Waiting: func() int { return r.waiting }, Max: 2,
+		Idle: 10 * time.Minute, Boot: 10 * time.Minute, Backoff: time.Minute}
+	r.scaler.now = func() time.Time { clockNow = r.now; return r.now }
+	return r
+}
+
+// node registers a node as a node, with a server on it or not.
+func (r *rig) node(id string, withServer bool) *agentNode {
+	r.t.Helper()
+	name := "cell-" + strings.TrimPrefix(id, "i-")
+	h := newAgent(r.t, name, 9000)
+	if withServer {
+		if err := h.servers.Start(fakeOrg(r.t, "acme-com", freePort(r.t))); err != nil {
+			r.t.Fatal(err)
+		}
+	}
+	if err := Register(r.scaler.Pool.Dir, h.registration(name, r.now)); err != nil {
+		r.t.Fatal(err)
+	}
+	return h
+}
+
+func (r *rig) tick(after time.Duration) { r.now = r.now.Add(after); r.scaler.Tick() }
+
+func TestNothingIsStartedWhileNothingWaits(t *testing.T) {
+	r := scaling(t)
+	r.tick(0)
+	r.tick(time.Hour)
+	if r.hosts.launched != 0 {
+		t.Errorf("%d hosts were started for nobody", r.hosts.launched)
+	}
+}
+
+func TestOneHostIsStartedForWhoeverWaitsAndNotAnotherWhileItIsOnItsWay(t *testing.T) {
+	r := scaling(t)
+	r.waiting = 3
+	r.tick(0)
+	r.tick(30 * time.Second)
+	r.tick(2 * time.Minute)
+	if r.hosts.launched != 1 {
+		t.Errorf("one host for however many wait, and no more while it starts: %d", r.hosts.launched)
+	}
+	// It is a node now, and they still wait, since it has not room: another may start, up to the most there may be.
+	r.node("i-0aaa1111", true)
+	r.hosts.next = "i-0bbb2222"
+	r.tick(time.Minute)
+	r.tick(time.Minute)
+	if r.hosts.launched != 2 {
+		t.Errorf("a cell that cannot take them all is joined by another: %d", r.hosts.launched)
+	}
+	r.node("i-0bbb2222", true)
+	r.hosts.next = "i-0ccc3333"
+	r.tick(time.Minute)
+	r.tick(time.Minute)
+	if r.hosts.launched != 2 {
+		t.Errorf("there is a most: %d", r.hosts.launched)
+	}
+}
+
+func TestANodeThatHasJustRegisteredIsGivenAMomentToTakeWhoWaitsBeforeAnotherHostIsStarted(t *testing.T) {
+	r := scaling(t)
+	r.waiting = 1
+	r.tick(0)
+	r.node("i-0aaa1111", false)
+	r.hosts.next = "i-0bbb2222"
+	// The node is up, and the organization that waited has not been placed on it yet.
+	r.tick(10 * time.Second)
+	r.tick(10 * time.Second)
+	if r.hosts.launched != 1 {
+		t.Fatalf("a second host was started for an organization that was about to be placed: %d", r.hosts.launched)
+	}
+	// Placed, so nobody waits, and none is started.
+	r.waiting = 0
+	r.tick(time.Minute)
+	if r.hosts.launched != 1 {
+		t.Errorf("%d", r.hosts.launched)
+	}
+	// Still waiting well after it registered, which is a node that has no room.
+	r.waiting = 1
+	r.tick(time.Minute)
+	if r.hosts.launched != 2 {
+		t.Errorf("a cell that could not take them did not get another: %d", r.hosts.launched)
+	}
+}
+
+func TestAHostThatCouldNotBeStartedIsNotTriedAgainAtOnce(t *testing.T) {
+	r := scaling(t)
+	r.waiting = 1
+	r.hosts.failLaunch = errors.New("no capacity")
+	r.tick(0)
+	r.hosts.failLaunch = nil
+	r.tick(30 * time.Second)
+	if r.hosts.launched != 0 {
+		t.Error("tried again inside the backoff")
+	}
+	r.tick(time.Minute)
+	if r.hosts.launched != 1 {
+		t.Errorf("not tried again after it: %d", r.hosts.launched)
+	}
+}
+
+func TestAHostThatNeverBecomesANodeIsStoppedAfterItsTime(t *testing.T) {
+	r := scaling(t)
+	r.waiting = 1
+	r.tick(0)
+	r.tick(9 * time.Minute)
+	if len(r.hosts.terminated) != 0 {
+		t.Errorf("a host that is still starting was stopped: %v", r.hosts.terminated)
+	}
+	r.tick(2 * time.Minute)
+	if len(r.hosts.terminated) != 1 || r.hosts.terminated[0] != "i-0aaa1111" {
+		t.Errorf("%v", r.hosts.terminated)
+	}
+}
+
+func TestANodeWithNothingOnItIsStoppedAfterItHasBeenIdleAndNotBefore(t *testing.T) {
+	r := scaling(t)
+	r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now}}
+	busy := r.node("i-0aaa1111", false)
+	r.tick(0)
+	r.tick(9 * time.Minute)
+	if len(r.hosts.terminated) != 0 {
+		t.Fatalf("stopped inside the idle time: %v", r.hosts.terminated)
+	}
+	if err := busy.servers.Start(fakeOrg(t, "acme-com", freePort(t))); err != nil {
+		t.Fatal(err)
+	}
+	r.tick(2 * time.Minute)
+	r.tick(9 * time.Minute)
+	if len(r.hosts.terminated) != 0 {
+		t.Errorf("a cell with an organization on it was stopped, or its idle time was not reset: %v", r.hosts.terminated)
+	}
+	for _, slug := range busy.servers.Running() {
+		busy.servers.Stop(slug, time.Second)
+	}
+	r.tick(time.Minute)
+	r.tick(11 * time.Minute)
+	if len(r.hosts.terminated) != 1 || r.hosts.terminated[0] != "i-0aaa1111" {
+		t.Errorf("an idle cell is stopped: %v", r.hosts.terminated)
+	}
+}
+
+func TestAnIdleNodeIsKeptWhileAnOrganizationWaitsForRoom(t *testing.T) {
+	r := scaling(t)
+	r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now}}
+	r.node("i-0aaa1111", false)
+	r.waiting = 1
+	r.hosts.next = "i-0bbb2222"
+	r.tick(0)
+	r.tick(time.Hour)
+	if slices.Contains(r.hosts.terminated, "i-0aaa1111") {
+		t.Errorf("a cell was stopped while somebody waited: %v", r.hosts.terminated)
+	}
+}
+
+func TestANodeThatIsNotOneOfTheScalersIsNeverStopped(t *testing.T) {
+	r := scaling(t)
+	r.node("i-0ddd4444", false)
+	r.tick(0)
+	r.tick(time.Hour)
+	if len(r.hosts.terminated) != 0 {
+		t.Errorf("a cell somebody else started was stopped: %v", r.hosts.terminated)
+	}
+}
+
+func TestHostsAreStartedFromATemplateWithTheScriptFilledInAndNothingElseIsAccepted(t *testing.T) {
+	script := filepath.Join(t.TempDir(), "user-data.sh")
+	os.WriteFile(script, []byte("ROLE=@ROLE@ RUN=@RUN@ RELEASE=@RELEASE@\n"), 0o644)
+	var ran [][]string
+	var seen string
+	e := &EC2{Template: "gusto-poc-demo-host-cell", UserData: script, Settings: map[string]string{"ROLE": "cell", "RUN": "live", "RELEASE": "abc123"},
+		Run: func(args ...string) ([]byte, error) {
+			ran = append(ran, args)
+			for i, arg := range args {
+				if arg == "--user-data" {
+					text, _ := os.ReadFile(strings.TrimPrefix(args[i+1], "file://"))
+					seen = string(text)
+				}
+			}
+			if args[1] == "describe-instances" {
+				return []byte("i-0aaa1111\t2026-10-01T09:00:00+00:00\trunning\tNone\tami-0aaa1111\ni-0bbb2222\t2026-10-01T09:05:00.000Z\tpending\ton\tami-0bbb2222\nnot a line\n"), nil
+			}
+			return []byte("i-0aaa1111\n"), nil
+		}}
+	id, err := e.Launch(false)
+	if err != nil || id != "i-0aaa1111" || seen != "ROLE=cell RUN=live RELEASE=abc123\n" {
+		t.Fatalf("%q %v %q", id, err, seen)
+	}
+	args := strings.Join(ran[0], " ")
+	for _, want := range []string{"LaunchTemplateName=gusto-poc-demo-host-cell,Version=$Latest", "Key=project,Value=gusto-poc", "Key=scaler,Value=on"} {
+		if !strings.Contains(args, want) {
+			t.Errorf("%q is not in %s", want, args)
+		}
+	}
+	hosts, err := e.Running()
+	if err != nil || len(hosts) != 2 || hosts[0].ID != "i-0aaa1111" || hosts[1].Launched.Minute() != 5 || hosts[1].Image != "ami-0bbb2222" {
+		t.Errorf("%+v %v", hosts, err)
+	}
+	if !strings.Contains(strings.Join(ran[1], " "), "Name=tag:scaler,Values=on") {
+		t.Errorf("only the scaler's own hosts are listed: %v", ran[1])
+	}
+	for _, bad := range []string{"", "i-", "--help", "i-0aaa1111 --dry-run", "x-0aaa1111", "i-ZZZZZZZZ"} {
+		if err := e.Terminate(bad); err == nil {
+			t.Errorf("%q was taken for a host", bad)
+		}
+	}
+	if err := e.Terminate("i-0aaa1111"); err != nil {
+		t.Error(err)
+	}
+	os.WriteFile(script, []byte("ROLE=@ROLE@ MORE=@NOBODY_SAID@\n"), 0o644)
+	if _, err := e.Launch(false); err == nil || !strings.Contains(err.Error(), "@NOBODY_SAID@") {
+		t.Errorf("a script with a blank in it was launched: %v", err)
+	}
+	e.Run = func(...string) ([]byte, error) { return []byte("garbage\n"), nil }
+	os.WriteFile(script, []byte("x\n"), 0o644)
+	if _, err := e.Launch(false); err == nil {
+		t.Error("an answer that is not a host was taken for one")
+	}
+}
+
+// freePort is a port nothing listens on.
+func freePort(t *testing.T) int {
+	t.Helper()
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	return l.Addr().(*net.TCPAddr).Port
+}
+
+// launches is a launcher that says on a channel when it starts a node.
+type launches struct{ started chan string }
+
+func (l launches) Launch(bool) (string, error)   { l.started <- "i-0bbb2222"; return "i-0bbb2222", nil }
+func (l launches) Terminate(string) error        { return nil }
+func (l launches) Running() ([]Instance, error)  { return nil, nil }
+func (l launches) Stopped() ([]Instance, error)  { return nil, nil }
+func (l launches) Start(string) error            { return nil }
+func (l launches) Stop(string) error             { return nil }
+func (l launches) LowerDisk(string) error        { return nil }
+func (l launches) CurrentImage() (string, error) { return "", nil }
+
+func TestAWokenScalerStartsAHostAtOnceRatherThanAtItsNextTick(t *testing.T) {
+	var waiting atomic.Int32
+	hosts := launches{started: make(chan string, 4)}
+	scaler := &Scaler{Pool: &Pool{Dir: filepath.Join(t.TempDir(), "cells"), Secret: secret, MaxAge: time.Hour}, Launcher: hosts,
+		Waiting: func() int { return int(waiting.Load()) }, Max: 2, Idle: time.Minute, Boot: time.Minute}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go scaler.Run(ctx, time.Hour)
+	time.Sleep(50 * time.Millisecond)
+	waiting.Store(1)
+	scaler.Wake()
+	scaler.Wake()
+	select {
+	case <-hosts.started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("a woken scaler did not start a host")
+	}
+}
+
+func TestAHostIsStartedForAVisitorAboutToWaitOnceAndOnlyWhileTheyAreExpected(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Prewarms = 2
+	r.scaler.Prewarm()
+	r.tick(0)
+	r.tick(30 * time.Second)
+	if r.hosts.launched != 1 {
+		t.Fatalf("a visitor who began asking for a demo had %d hosts started for them", r.hosts.launched)
+	}
+	// The node is up, so a second visitor starts nothing more: whoever sends the form first takes it.
+	r.node("i-0aaa1111", false)
+	r.scaler.Prewarm()
+	r.tick(time.Minute)
+	if r.hosts.launched != 1 {
+		t.Errorf("a host was started beside one that is up and empty: %d", r.hosts.launched)
+	}
+}
+
+func TestAVisitorWhoNeverSendsTheFormStartsNothingAfterTheyAreNoLongerExpected(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Prewarms = 5
+	r.scaler.Prewarm()
+	r.tick(3 * time.Minute)
+	if r.hosts.launched != 0 {
+		t.Errorf("a visitor who stopped typing minutes ago had a host started: %d", r.hosts.launched)
+	}
+}
+
+func TestVisitorsStartNoMoreHostsInADayThanThePrewarmsAllowed(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Prewarms = 1
+	r.scaler.Max = 5
+	r.scaler.Prewarm()
+	r.tick(0)
+	r.hosts.terminated, r.hosts.hosts = nil, nil
+	r.scaler.Prewarm()
+	r.tick(time.Minute)
+	if r.hosts.launched != 1 {
+		t.Errorf("the day's one prewarm started %d hosts", r.hosts.launched)
+	}
+	r.now = r.now.Add(24 * time.Hour)
+	r.scaler.Prewarm()
+	r.tick(0)
+	if r.hosts.launched != 2 {
+		t.Errorf("a new day allows a prewarm again: %d", r.hosts.launched)
+	}
+	r.waiting = 1
+	r.tick(time.Hour)
+	if r.hosts.launched != 3 {
+		t.Errorf("whoever waits is never held back by the prewarm count: %d", r.hosts.launched)
+	}
+}
+
+// A kept node that powers itself off at its twelfth hour goes quiet while EC2 still lists it as running, and was started long ago.
+func TestANodeThatWasRegisteredAMomentAgoAndWentQuietIsLeftToShutDownAndOneQuietForLongIsRemoved(t *testing.T) {
+	r := scaling(t)
+	r.scaler.Pool.MaxAge = 30 * time.Second
+	r.hosts.hosts = []Instance{{ID: "i-0aaa1111", Launched: r.now, Kept: true}}
+	r.now = r.now.Add(20 * time.Minute)
+	r.node("i-0aaa1111", false)
+	r.tick(0)
+	r.tick(40 * time.Second)
+	if len(r.hosts.terminated) != 0 {
+		t.Fatalf("a cell that went quiet a moment after it was heard from was removed: %v", r.hosts.terminated)
+	}
+	r.tick(11 * time.Minute)
+	if len(r.hosts.terminated) != 1 || r.hosts.terminated[0] != "i-0aaa1111" {
+		t.Errorf("a host that stayed quiet was not removed: %v", r.hosts.terminated)
+	}
+}

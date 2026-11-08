@@ -81,3 +81,22 @@ groups:
         annotations:
           summary: "gusto has restarted three times in half an hour"
           runbook: "docs/RUNBOOK.md#gustorestartingoften"
+
+      - alert: GustoProvisionFailing
+        expr: increase(gusto_provision_failures_total[10m]) > 0
+        for: 5m
+        labels: { severity: page }
+        annotations:
+          summary: "An organization's server failed to provision, and it has kept happening for five minutes"
+          runbook: "docs/RUNBOOK.md#gustoprovisionfailing"
+
+      - alert: GustoFrontErrors
+        expr: |
+          sum(increase(gusto_front_requests_total[10m])) >= 20
+          and
+          sum(increase(gusto_front_requests_total{status="5xx"}[10m])) / sum(increase(gusto_front_requests_total[10m])) > 0.05
+        for: 10m
+        labels: { severity: page }
+        annotations:
+          summary: "More than one in twenty requests to the front door in the last ten minutes ended in a 5xx"
+          runbook: "docs/RUNBOOK.md#gustofronterrors"

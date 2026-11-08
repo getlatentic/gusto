@@ -41,7 +41,7 @@ func describe(counts map[string]int) string {
 }
 
 // importOnce loads the old files into a database that has no import record, in one transaction that takes the
-// import lock, so that front doors started together import once between them. It never changes the files. It says
+// import lock, so that gusto cloud servers started together import once between them. It never changes the files. It says
 // whether this call did the import.
 func (s *Store) importOnce(ctx context.Context) (record ImportRecord, ran bool, err error) {
 	err = s.db.InTx(ctx, func(tx dbkit.Tx) error {

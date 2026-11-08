@@ -31,7 +31,7 @@ func TestAServerIsKeyedTheSameWhateverWayItIsWritten(t *testing.T) {
 
 func TestATokenIsKeptInTheKeychainAndFoundAgainByAnyWritingOfTheServer(t *testing.T) {
 	keyring.MockInit()
-	vault, err := OpenVault(nil)
+	vault, err := OpenVault(nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestWithNoKeychainTheTokenIsKeptInAFileOnlyItsOwnerReadsAndTheFirstTimeSays
 	t.Setenv("XDG_CONFIG_HOME", home)
 	t.Setenv("AppData", home)
 	warned := &bytes.Buffer{}
-	vault, err := OpenVault(warned)
+	vault, err := OpenVault(warned, false)
 	if err != nil {
 		t.Fatal(err)
 	}

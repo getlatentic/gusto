@@ -1,5 +1,5 @@
 // Retakes the landing page's screens from the current app at high pixel density, in light and dark: the hero chat and the four
-// crops below it (agents, activity, limits, record).
+// crops below it (activity, limits, keys, record).
 //
 //   cd <a folder with playwright installed> && node /path/to/deploy/landing/capture.mjs <out dir>
 //
@@ -40,17 +40,17 @@ writeFileSync(join(work, "replies.json"), JSON.stringify([first, ...turns]));
 writeFileSync(join(work, "quota.json"), JSON.stringify({ jobs: 30, concurrent: 2 }));
 mkdirSync(join(work, "registry"));
 writeFileSync(join(work, "creds", "gemma.json"), JSON.stringify({ address: "http://127.0.0.1:9100/v1", auth: "bearer", key: "x", wires: ["chat"] }));
-writeFileSync(join(work, "spend.json"), JSON.stringify({ prices: { "google.gemma-4-26b-a4b": { inputPerMillion: 0.13, outputPerMillion: 0.4 } }, teams: {} }));
-const ask = "fetch(process.env.GUSTO_MODEL_URL+'/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+process.env.GUSTO_MODEL_TOKEN},body:JSON.stringify({model:'google.gemma-4-26b-a4b',messages:[{role:'user',content:'hi'}]})}).then(r=>r.json()).then(j=>console.log(j.choices[0].message.content))";
+writeFileSync(join(work, "spend.json"), JSON.stringify({ prices: { "google.gemma-4-26b-a4b": { inputPerMillion: 0.13, outputPerMillion: 0.4 }, "gemma/google.gemma-4-26b-a4b": { inputPerMillion: 0.13, outputPerMillion: 0.4 }, "gemma/google.gemma-4-31b": { inputPerMillion: 0.14, outputPerMillion: 0.4 } }, teams: {} }));
+const ask = "fetch(process.env.GUSTO_MODEL_URL+'/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+process.env.GUSTO_MODEL_TOKEN},body:JSON.stringify({model:'google.gemma-4-26b-a4b',messages:[{role:'user',content:process.env.GUSTO_BRIEF}]})}).then(r=>r.json()).then(j=>console.log(j.choices[0].message.content))";
 writeFileSync(join(work, "agents", "opencode.json"), JSON.stringify({
   name: "opencode", title: "OpenCode", what: "Open source, and points at whichever model the deployment gives it.", program: "sh",
   argv: ["-c", `node -e "${ask}" | tee out.txt; grep -q 'monthly limit' out.txt && printf '# Spending policy\\n\\n## Budget\\n\\n- $50 a month per person\\n- Unused budget does not carry over\\n\\n## Approval\\n\\n- Spend over the budget needs a manager\\n- Managers answer within two working days\\n\\n## Review\\n\\n- Every purchase is listed monthly\\n- Finance reviews the list each quarter\\n' > policy.md; rm -f out.txt`],
-  env: { GUSTO_MODEL_URL: "{modelUrl}", GUSTO_MODEL_TOKEN: "{modelToken}" }, needs: "key", stream: "plain",
+  env: { GUSTO_MODEL_URL: "{modelUrl}", GUSTO_MODEL_TOKEN: "{modelToken}", GUSTO_BRIEF: "{brief}" }, needs: "key", stream: "plain",
 }));
 execFileSync(bin, ["keygen", "capture", "-dir", join(work, "keys")], { stdio: "ignore" });
 start("python3", [join(root, "deploy/landing/replay.py"), join(work, "replies.json")]);
 start(bin, ["serve"], {
-  GUSTO_PASSWORD: password, GUSTO_ADDR: `127.0.0.1:${port}`, GUSTO_JOBS: join(work, "jobs"), GUSTO_SESSIONS: join(work, "sessions"),
+  GUSTO_PASSWORD: password, GUSTO_ADDR: `127.0.0.1:${port}`, GUSTO_TASKS: join(work, "jobs"), GUSTO_SESSIONS: join(work, "sessions"),
   GUSTO_SANDBOX: "here", GUSTO_CREDENTIALS: join(work, "creds"), GUSTO_MODELS: "gemma/google.gemma-4-26b-a4b", GUSTO_HARNESSES: join(work, "agents"),
   GUSTO_SIGNING_KEY: join(work, "keys", "capture.key"), GUSTO_KEYRING: join(work, "keys"), GUSTO_SPEND_POLICY: join(work, "spend.json"),
   GUSTO_PROXY_ADDR: "127.0.0.1:8721", GUSTO_QUOTA: join(work, "quota.json"), HOME: work,
@@ -61,26 +61,14 @@ for (let i = 0; ; i++) {
   await sleep(500);
 }
 
-// a second server with nothing on it shows what a person sees first: the agents to start with
-const empty = join(work, "empty"), shims = join(work, "shims");
-mkdirSync(empty);
-mkdirSync(shims);
-// the agents that are installed are the ones offered, and a person sees all six on a hosted server
-for (const [program, version] of [["claude-agent-acp", "0.94.0"], ["codex-acp", "2.2.2"]]) { writeFileSync(join(shims, program), `#!/bin/sh\necho ${version}\n`, { mode: 0o755 }); }
-start(bin, ["serve"], {
-  GUSTO_PASSWORD: password, GUSTO_ADDR: "127.0.0.1:8722", GUSTO_JOBS: join(empty, "jobs"), GUSTO_SESSIONS: join(empty, "sessions"),
-  GUSTO_SANDBOX: "here", GUSTO_CREDENTIALS: join(work, "creds"), GUSTO_MODELS: "gemma/google.gemma-4-26b-a4b", GUSTO_HARNESSES: join(root, "pkg/harness/adapters"),
-  GUSTO_PROXY_ADDR: "127.0.0.1:8723", HOME: empty, PATH: `${shims}:${process.env.PATH}`,
-}, empty);
-
-// and a third whose console lists the models an operator has connected, which a server without a registry does not offer
+// a second server whose console lists the models an operator has connected, which a server without a registry does not offer
 const models = join(work, "models");
 mkdirSync(models);
 mkdirSync(join(models, "creds"));
 // an operator's provider, at an address that is only a name here
 writeFileSync(join(models, "creds", "gemma.json"), JSON.stringify({ address: "https://models.example.com/v1", auth: "bearer", key: "x", wires: ["chat"] }));
 start(bin, ["serve"], {
-  GUSTO_PASSWORD: password, GUSTO_ADDR: "127.0.0.1:8724", GUSTO_JOBS: join(models, "jobs"), GUSTO_SESSIONS: join(models, "sessions"),
+  GUSTO_PASSWORD: password, GUSTO_ADDR: "127.0.0.1:8724", GUSTO_TASKS: join(models, "jobs"), GUSTO_SESSIONS: join(models, "sessions"),
   GUSTO_SANDBOX: "here", GUSTO_CREDENTIALS: join(models, "creds"), GUSTO_MODELS: "gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b", GUSTO_REGISTRY: join(work, "registry"),
   GUSTO_HARNESSES: join(root, "pkg/harness/adapters"), GUSTO_SPEND_POLICY: join(work, "spend.json"), GUSTO_PROXY_ADDR: "127.0.0.1:8725", HOME: models,
 }, models);
@@ -107,12 +95,11 @@ const earlier = (await call("POST", "/instances", { harness: "opencode", model }
 await say(earlier, first.say);
 const thread = (await call("POST", "/instances", { harness: "opencode", model })).headers.get("location");
 for (const turn of turns) { await say(thread, turn.say); }
-const ids = [...new Set((await (await call("GET", thread)).text()).match(/href="\/jobs\/([^"#?]+)"/g).map((m) => m.slice(12, -1)))];
+// the thread page no longer links its tasks, so they are read from the job list
+const ids = [...new Set(((await (await call("GET", "/jobs")).text()).match(/href="\/jobs\/([^"#?]+)"/g) ?? []).map((m) => m.slice(12, -1)))];
 let policyJob = ids[0];
 for (const id of ids) { if ((await (await call("GET", `/jobs/${id}`)).text()).includes("policy.md")) { policyJob = id; break; } }
 
-const { jar: freshJar, call: ask2 } = await cookies();
-await ask2("http://127.0.0.1:8722", "POST", "/login", { password });
 const { jar: modelsJar, call: ask3 } = await cookies();
 await ask3("http://127.0.0.1:8724", "POST", "/login", { password });
 
@@ -150,9 +137,14 @@ for (const theme of ["light", "dark"]) {
   await page.goto(base + "/jobs", { waitUntil: "networkidle" });
   let box = await card(page.getByText("Today", { exact: true }).first()).boundingBox();
   await crop(page, "activity", theme, box, 420);
+  // the overview puts its cards in two columns on a wide page, which makes the limits card narrow: on a page that is one column it is as wide as it is shown
+  await context.close();
+  ({ context, page } = await open({ width: 880, height: 1000 }, 2.5, jar, base));
   await page.goto(base + "/admin", { waitUntil: "networkidle" });
   box = await card(page.getByRole("heading", { name: "Limits" })).boundingBox();
   await crop(page, "limits", theme, box);
+  await context.close();
+  ({ context, page } = await open({ width: 1000, height: 1000 }, 2.5, jar, base));
   await page.goto(base + `/jobs/${policyJob}`, { waitUntil: "networkidle" });
   box = await page.locator("section[aria-label=Summary]").boundingBox();
   await crop(page, "record", theme, box);
@@ -164,11 +156,6 @@ for (const theme of ["light", "dark"]) {
   await crop(page, "keys", theme, box, 300);
   await context.close();
 
-  ({ context, page } = await open({ width: 1000, height: 1000 }, 2.5, freshJar, "http://127.0.0.1:8722"));
-  await page.goto("http://127.0.0.1:8722/", { waitUntil: "networkidle" });
-  box = await page.getByRole("heading", { name: "Or pick an agent" }).locator("xpath=following-sibling::div[1]").boundingBox();
-  await crop(page, "agents", theme, box);
-  await context.close();
 }
 await browser.close();
 console.log(`the screens are in ${out}`);

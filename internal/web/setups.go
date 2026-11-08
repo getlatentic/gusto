@@ -13,7 +13,7 @@ import (
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/integration"
 	"github.com/getlatentic/gusto/internal/setup"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // UseSetups hands the pages the store of setups and the MCP servers this
@@ -40,51 +40,36 @@ const setupsPath = "/admin/skill-sets"
 
 // setupsPage is every skill set, for anybody to read.
 func (s *Server) setupsPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "setups.html", s.setupsData(r, "/setups"))
+	s.render(w, "setups.html", map[string]any{
+		"Title":   productName + " — skill sets",
+		"Nav":     "presets",
+		"Base":    "/setups",
+		"Setups":  s.setupsList(),
+		"Keeps":   s.setups != nil,
+		"Refused": s.refusal(r),
+	})
 }
 
-// skillSetsPage is every skill set, and the way to make another.
-func (s *Server) skillSetsPage(w http.ResponseWriter, r *http.Request) {
-	s.drawConsole(w, "setups.html", "skill-sets", s.setupsData(r, setupsPath))
-}
-
-func (s *Server) setupsData(r *http.Request, base string) map[string]any {
-	list := s.setupsList()
-	if base == setupsPath {
-		list = s.setupsAll()
-	}
-	return map[string]any{
-		"Title":    productName + " — skill sets",
-		"Nav":      "new",
-		"Base":     base,
-		"Setups":   list,
-		"Offered":  s.servers,
-		"Imported": s.importedIntegrations(),
-		"Keeps":    s.setups != nil,
-		"Refused":  r.URL.Query().Get("refused"),
-	}
-}
-
-// setupOf is what a job on this instance is given, named for job.json.
-func setupOf(held instance.Instance) *job.Setup {
+// setupOf is what a task on this instance is given, named for job.json.
+func setupOf(held instance.Instance) *task.Setup {
 	if held.Setup == "" {
 		return nil
 	}
-	return &job.Setup{Name: held.Setup}
+	return &task.Setup{Name: held.Setup}
 }
 
 // sensitivityOf is what a turn on this instance is labeled: the instance's
 // own, or internal.
-func sensitivityOf(held instance.Instance) job.Sensitivity {
+func sensitivityOf(held instance.Instance) task.Sensitivity {
 	if held.Sensitivity == "" {
-		return job.Internal
+		return task.Internal
 	}
-	return job.Sensitivity(held.Sensitivity)
+	return task.Sensitivity(held.Sensitivity)
 }
 
-// equip carries the setup a job names into its directory, and puts in
+// equip carries the setup a task names into its directory, and puts in
 // job.json what it actually held, whatever the sender said it held.
-func (s *Server) equip(spec *job.Spec, dir job.Dir, asker string) error {
+func (s *Server) equip(spec *task.Spec, dir task.Dir, asker string) error {
 	if spec.Setup == nil {
 		return nil
 	}
@@ -123,11 +108,11 @@ func (s *Server) setupsAll() []setup.Setup {
 // saveSetup makes a setup, or changes which servers one names.
 func (s *Server) saveSetup(w http.ResponseWriter, r *http.Request) {
 	if s.setups == nil {
-		s.turnAway(w, r, setupsPath, "this server keeps no setups")
+		s.turnAway(w, r, skillsTab, "this server keeps no setups")
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		s.turnAway(w, r, setupsPath, err.Error())
+		s.turnAway(w, r, skillsTab, err.Error())
 		return
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
@@ -142,7 +127,7 @@ func (s *Server) saveSetup(w http.ResponseWriter, r *http.Request) {
 	}
 	wanted.Servers, wanted.Integrations = r.Form["server"], r.Form["integration"]
 	if err := s.setups.Save(wanted, s.servers); err != nil {
-		s.turnAway(w, r, setupsPath, err.Error())
+		s.turnAway(w, r, skillsTab, err.Error())
 		return
 	}
 	s.note(r, changelog.SetupSaved, map[string]string{"setup": name, "action": action, "servers": strings.Join(wanted.Servers, ", "), "integrations": strings.Join(wanted.Integrations, ", "),
@@ -173,7 +158,7 @@ func (s *Server) exportSetup(w http.ResponseWriter, r *http.Request) {
 // skillSetPage is one setup, and the way to change its skills and servers.
 func (s *Server) skillSetPage(w http.ResponseWriter, r *http.Request) {
 	if page, ok := s.setupData(w, r, setupsPath); ok {
-		s.drawConsole(w, "setup-detail.html", "skill-sets", page)
+		s.drawConsole(w, "setup-detail.html", "apps", page)
 	}
 }
 
@@ -192,13 +177,13 @@ func (s *Server) setupData(w http.ResponseWriter, r *http.Request, base string) 
 	return map[string]any{
 		"Earlier":  s.setups.Earlier(held.Name),
 		"Title":    productName + " — " + held.Name,
-		"Nav":      "new",
+		"Nav":      "presets",
 		"Base":     base,
 		"Setup":    held,
 		"Offered":  s.servers,
 		"Imported": s.importedIntegrations(),
 		"Catalog":  s.engines(),
-		"Refused":  r.URL.Query().Get("refused"),
+		"Refused":  s.refusal(r),
 	}, true
 }
 
@@ -311,11 +296,31 @@ func (s *Server) unfit(wanted instance.Instance) string {
 	for _, entry := range s.engines() {
 		if entry.Name == wanted.Harness {
 			if why := held.Fits(entry.Skills, entry.MCP); why != "" {
-				return wanted.Harness + " cannot take " + held.Name + ": " + why
+				return unfitSaid(entry.Title, setupTitle(wanted, held), why)
 			}
 		}
 	}
 	return ""
+}
+
+// setupTitle is what a person calls the setup an instance starts with: the preset's title when it came from one, else the setup's name.
+func setupTitle(wanted instance.Instance, held setup.Setup) string {
+	if template, found := industry.Get(held.Name); found {
+		return template.Title
+	}
+	if wanted.Title != "" && wanted.Setup == held.Name {
+		return wanted.Title
+	}
+	return held.Name
+}
+
+// unfitSaid is why an agent cannot start with a setup, in the words of the person who chose them.
+func unfitSaid(agent, work, why string) string {
+	needs := "skills"
+	if strings.Contains(why, "MCP") {
+		needs = "tool servers"
+	}
+	return agent + " cannot run " + work + ", which needs " + needs + " " + agent + " does not take. Choose another agent."
 }
 
 // importedIntegrations is the integrations a setup may name, or none where the server keeps none.

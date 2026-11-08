@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Runs as root every 30 seconds. It powers the host off when its lease has ended, when the
 # lease file is not a lease, or when the host has been up as long as any host may be, whatever
-# the lease says. An instance launched to terminate on shutdown is removed by that, so
-# nothing here has an AWS credential. A host with no lease file yet, and time left, is left
+# the lease says. What powering off does is set when the instance is launched: it is removed, or
+# for a kept cell stopped so the front door can start it again, so nothing here has an AWS credential. A host with no lease file yet, and time left, is left
 # alone: the start-up script writes it, and a host that never gets one meets the limit.
 #
 # A cell has no lease of its own. It works for a front door, which says every few seconds that it is

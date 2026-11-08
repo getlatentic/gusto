@@ -15,6 +15,10 @@ type heldCredential struct {
 	Address   string   `json:"address"`
 	Harnesses []string `json:"harnesses"`
 	Wires     []string `json:"wires"`
+	Endpoints []struct {
+		Address string `json:"address"`
+		Auth    string `json:"auth"`
+	} `json:"endpoints"`
 }
 
 // credentials runs the script that builds the proxy's credentials, with an aws that answers every parameter with a key.
@@ -57,7 +61,7 @@ func credentials(t *testing.T) map[string]heldCredential {
 // The person chooses which engine runs on which model, so no credential names the engines it is for.
 func TestTheDemoOffersEveryModelToEveryEngine(t *testing.T) {
 	held := credentials(t)
-	if len(held) != 4 {
+	if len(held) != 3 {
 		t.Fatalf("the script wrote %d credentials", len(held))
 	}
 	for name, credential := range held {
@@ -67,6 +71,9 @@ func TestTheDemoOffersEveryModelToEveryEngine(t *testing.T) {
 	}
 	if got := held["gemma"].Wires; !slices.Equal(got, []string{"chat"}) {
 		t.Errorf("the gemma credential says its provider answers %v, so Claude Code's and Codex's calls are not translated", got)
+	}
+	if got := held["deepseek"].Endpoints; len(got) != 1 || got[0].Address != "https://api.deepseek.com/anthropic" || got[0].Auth != "anthropic" {
+		t.Errorf("the deepseek credential has no Anthropic address for Claude Code: %+v", got)
 	}
 }
 
@@ -89,5 +96,27 @@ func TestANewDemoChatStartsOnAPairTheDemoOffers(t *testing.T) {
 	}
 	if !strings.Contains(string(env), "GUSTO_CHAT_DEFAULT={{ demo_chat_default }}") {
 		t.Error("an organization's server is not given the demo's default for a new chat")
+	}
+}
+
+func TestTheCredentialsAreReadWithTheCommandAHostNames(t *testing.T) {
+	dir := t.TempDir()
+	reader := filepath.Join(dir, "read")
+	if err := os.WriteFile(reader, []byte("#!/bin/sh\necho \"key-from-$1\"\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	script, err := filepath.Abs("../../e2e/credentials.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "creds")
+	run := exec.Command("bash", script, out)
+	run.Env = append(os.Environ(), "PATH=/usr/bin:/bin", "READ_PARAMETER="+reader, "BEDROCK_PARAMETER=/b", "DEEPSEEK_PARAMETER=/d")
+	if made, err := run.CombinedOutput(); err != nil {
+		t.Fatalf("%v\n%s", err, made)
+	}
+	raw, err := os.ReadFile(filepath.Join(out, "deepseek.json"))
+	if err != nil || !strings.Contains(string(raw), `"key-from-/d"`) {
+		t.Errorf("the key was not read with the command named: %s %v", raw, err)
 	}
 }

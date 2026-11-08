@@ -18,3 +18,8 @@ ingress:
   enabled: true
   className: nginx
   host: gusto.example.com
+  # A room's page holds a WebSocket at /live and a task's output is held open, so neither may be buffered or cut at 60 seconds.
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"

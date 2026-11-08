@@ -3,7 +3,7 @@
 // gusto pr open commits a run's job.json and out/ on a ref beside the pull request,
 // with the pull request's commit as its parent. Check fetches that ref with
 // git, holds the manifest to the hash the pull request names, re-hashes every
-// file against the manifest, rebuilds the workspace from the hashed patch, and
+// file against the manifest, rebuilds the working folder from the hashed patch, and
 // runs the check. Nothing here talks to GitHub's API or to a gusto server, so the
 // check needs nothing from the platform that produced the record.
 package review
@@ -14,9 +14,9 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Report is what a check found. Wrong names every file or commit that does not
@@ -27,8 +27,8 @@ type Report struct {
 	Files int
 	// Claimed is absent when the task had no check, which a turn in a
 	// conversation does not.
-	Claimed *evidence.Verdict
-	Gate    evidence.Verdict
+	Claimed *record.Verdict
+	Check   record.Verdict
 }
 
 // Holds is true when every file matches and the check answers as it did.
@@ -36,7 +36,7 @@ func (r Report) Holds() bool {
 	if r.Claimed == nil {
 		return false
 	}
-	return len(r.Wrong) == 0 && r.Gate.Passed == r.Claimed.Passed && r.Gate.Code == r.Claimed.Code
+	return len(r.Wrong) == 0 && r.Check.Passed == r.Claimed.Passed && r.Check.Code == r.Claimed.Code
 }
 
 // Lines is the report as `gusto verify` words it.
@@ -48,9 +48,9 @@ func (r Report) Lines() []string {
 		if r.Claimed == nil {
 			return []string{"this task had no check, so there is no verdict to check"}
 		}
-		return []string{fmt.Sprintf("the check now exits %d, and the manifest says %d", r.Gate.Code, r.Claimed.Code)}
+		return []string{fmt.Sprintf("the check now exits %d, and the manifest says %d", r.Check.Code, r.Claimed.Code)}
 	}
-	return []string{fmt.Sprintf("%d files match, and the check still exits %d", r.Files, r.Gate.Code)}
+	return []string{fmt.Sprintf("%d files match, and the check still exits %d", r.Files, r.Check.Code)}
 }
 
 var sha256Hex = regexp.MustCompile(`^[0-9a-f]{64}$`)
@@ -63,7 +63,7 @@ func Check(ctx context.Context, remote, digest, into string) (Report, error) {
 	if !sha256Hex.MatchString(digest) {
 		return Report{}, fmt.Errorf("%q is not a manifest's sha256: want 64 lowercase hex digits", digest)
 	}
-	dir := job.Dir(into)
+	dir := task.Dir(into)
 	if err := emptyOrNew(dir); err != nil {
 		return Report{}, err
 	}
@@ -81,28 +81,28 @@ func Check(ctx context.Context, remote, digest, into string) (Report, error) {
 			return Report{Wrong: wrong}, err
 		}
 	}
-	return gated(dir)
+	return rechecked(ctx, dir)
 }
 
-// gated runs the gate in the rebuilt workspace and sets its answer beside the
+// rechecked runs the check in the rebuilt working folder and sets its answer beside the
 // one the manifest records.
-func gated(dir job.Dir) (Report, error) {
-	manifest, err := evidence.Read(dir)
+func rechecked(ctx context.Context, dir task.Dir) (Report, error) {
+	manifest, err := record.Read(dir)
 	if err != nil {
 		return Report{}, err
 	}
-	spec, err := job.Read(dir)
+	spec, err := task.Read(dir)
 	if err != nil {
 		return Report{}, err
 	}
-	again, _, err := runner.Ask(spec, dir)
+	again, _, err := runner.Ask(ctx, spec, dir)
 	if err != nil {
 		return Report{}, err
 	}
-	return Report{Files: len(manifest.Files), Claimed: manifest.Gate, Gate: again}, nil
+	return Report{Files: len(manifest.Files), Claimed: manifest.Check, Check: again}, nil
 }
 
-func emptyOrNew(dir job.Dir) error {
+func emptyOrNew(dir task.Dir) error {
 	listing, err := os.ReadDir(dir.Path())
 	if os.IsNotExist(err) {
 		return os.MkdirAll(dir.Path(), 0o755)

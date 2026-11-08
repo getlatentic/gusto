@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds static/cloud.css, the front door's whole stylesheet, from app.css and the templates.
+# Builds static/cloud.css, gusto cloud's whole stylesheet, from app.css and the templates.
 # Needs the tailwindcss standalone CLI (brew install tailwindcss).
 # Sizes are in rem, so the pixels Tailwind writes for hairlines and shadows are turned into rem.
 #   internal/cloud/tailwind/build.sh            build once

@@ -1,0 +1,52 @@
+{
+  "prices": {
+    "google.gemma-4-26b-a4b": {
+      "inputPerMillion": 0.13,
+      "outputPerMillion": 0.4
+    },
+    "google.gemma-4-31b": {
+      "inputPerMillion": 0.14,
+      "outputPerMillion": 0.4
+    },
+    "google.gemma-4-e2b": {
+      "inputPerMillion": 0.04,
+      "outputPerMillion": 0.08
+    },
+    "deepseek-flash": {
+      "inputPerMillion": 0.15,
+      "cachedInputPerMillion": 0.003,
+      "outputPerMillion": 0.6,
+      "peak": {
+        "multiplier": 2,
+        "weekdays": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "hoursUtc": [
+          [
+            1,
+            4
+          ],
+          [
+            6,
+            10
+          ]
+        ],
+        "except": []
+      }
+    },
+    "muse-spark-1.3": {
+      "inputPerMillion": 1.25,
+      "cachedInputPerMillion": 0.15,
+      "outputPerMillion": 4.25
+    },
+    "muse-wonder-1.0": {
+      "inputPerMillion": 4.0,
+      "cachedInputPerMillion": 0.2,
+      "outputPerMillion": 20.0
+    }
+  }
+}

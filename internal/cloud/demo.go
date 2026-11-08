@@ -2,12 +2,14 @@ package cloud
 
 import (
 	"errors"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/quota"
 )
 
-// DemoSettings make the front door offer a demo: an organization that a visitor starts without signing up, that
+// DemoSettings make gusto cloud offer a demo: an organization that a visitor starts without signing up, that
 // has a time, and that is deleted when the time is up. A demo is offered when Length is set.
 type DemoSettings struct {
 	// Length is how long a demo lasts from when its server is ready, and Extend is what the one extension adds.
@@ -27,10 +29,26 @@ type DemoSettings struct {
 	// PerPerson is the most demos one address may start in a day, and PerCompany the most that one company's addresses
 	// may: a day is the last twenty-four hours. A visitor who has had them is asked to book a call. Zero is no limit.
 	PerPerson, PerCompany int
+	// Staff are the addresses, and the domains, whose people may start a demo, in lower case. A host with staff gives demos
+	// as a sales call and not to visitors, who sign up instead; with none, anyone may start one.
+	Staff []string
 }
 
-// Enabled says the front door offers a demo.
+// Enabled says gusto cloud offers a demo.
 func (d DemoSettings) Enabled() bool { return d.Length > 0 }
+
+// Public says a visitor may start a demo, rather than only the host's staff.
+func (d DemoSettings) Public() bool { return len(d.Staff) == 0 }
+
+// MayStart says whether the person at an address may start a demo.
+func (d DemoSettings) MayStart(address string) bool {
+	if d.Public() {
+		return true
+	}
+	address = strings.ToLower(strings.TrimSpace(address))
+	_, domain, found := strings.Cut(address, "@")
+	return found && domain != "" && (slices.Contains(d.Staff, address) || slices.Contains(d.Staff, domain))
+}
 
 func (d DemoSettings) patience() time.Duration {
 	if d.Patience > 0 {
@@ -41,11 +59,11 @@ func (d DemoSettings) patience() time.Duration {
 
 // DefaultDemoLimits is what a demo may run: enough for a person to see agents do work, and not enough to cost much.
 func DefaultDemoLimits() quota.Quota {
-	return quota.Quota{Jobs: 30, Concurrent: 2, Members: 1, Computers: 1, Note: "This is a demo, which is removed when its time is up."}
+	return quota.Quota{Tasks: 30, Concurrent: 2, Invites: true, Members: 2, Computers: 2, Note: "This is a demo, which is removed when its time is up.", CreditUSD: 0.5}
 }
 
 // Demo is what makes an organization a demo. Ready is when its server first answered, which is when its time
-// starts, so a visitor who waits for a cell to start is not charged for the wait.
+// starts, so a visitor who waits for a node to start is not charged for the wait.
 type Demo struct {
 	Name     string    `json:"name"`
 	Company  string    `json:"company"`
@@ -54,6 +72,8 @@ type Demo struct {
 	Extended bool      `json:"extended,omitempty"`
 	// Stopped is a demo whose visitor ended it before its time was up.
 	Stopped bool `json:"stopped,omitempty"`
+	// Ending is a demo the sweep has begun to end. It is not started, extended or made again: spec/Demo.tla is the model.
+	Ending bool `json:"ending,omitempty"`
 }
 
 // Lead is a visitor who started a demo, kept after the demo is gone.

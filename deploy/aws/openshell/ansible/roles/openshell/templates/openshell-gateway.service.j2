@@ -1,7 +1,8 @@
 [Unit]
 Description=OpenShell gateway with the VM driver
-After=network-online.target
+After=network-online.target gusto-scratch.service
 Wants=network-online.target
+Requires=gusto-scratch.service
 
 [Service]
 User={{ openshell_user }}
