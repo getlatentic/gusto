@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/task"
 )
@@ -84,6 +85,36 @@ func TestAQueuedTurnThatIsStoppedNeverRunsAndSomebodyElsesCannotBeStopped(t *tes
 		t.Errorf("the turn that was stopped while queued ran: %s", path)
 	default:
 	}
+}
+
+// A stop of a turn whose work is already kept is refused, and leaves no note of a stop that did not happen.
+func TestAStopTheTurnRefusesLeavesNoStopNote(t *testing.T) {
+	running, release := make(chan string, 1), make(chan struct{})
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
+		os.MkdirAll(dir.Out(), 0o755)
+		running <- dir.Path()
+		<-release
+		return 0, nil
+	}
+	t.Cleanup(func() { testWork = nil })
+	here := withTokens(t)
+	ada := here.as(t, alice)
+	_, thread := started2(t, here, alice)
+	ada.ask(t, "POST", thread+"/say", url.Values{"said": {"work that gets kept"}})
+	<-running
+	id := regexpFirst(t, ada.ask(t, "GET", thread, nil).Body.String(), `/jobs/([0-9a-z-]+)/stop`)
+	if err := here.index.Commit(id); err != nil {
+		t.Fatal(err)
+	}
+	if got := ada.ask(t, "POST", "/jobs/"+id+"/stop", url.Values{"back": {thread}}); got.Code != http.StatusSeeOther {
+		t.Fatalf("the refused stop answered %d", got.Code)
+	}
+	record, _ := here.index.Get(id)
+	if _, err := os.Stat(runner.StopFile(record.Dir(here.index.Root()))); !os.IsNotExist(err) {
+		t.Errorf("a stop note was left for a stop that was refused: %v", err)
+	}
+	close(release)
+	turnDone(t, here, id)
 }
 
 func TestThePageStopsATurnAndShowsWhoStoppedIt(t *testing.T) {
