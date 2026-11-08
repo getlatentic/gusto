@@ -32,7 +32,9 @@ func (s *Server) recordsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	switch chosen {
 	case "activity":
-		page["Rows"] = s.recentChanges()
+		withServer := r.URL.Query().Has("server")
+		page["Rows"], page["LeftOut"] = s.recentChanges(withServer)
+		page["WithServer"] = withServer
 	case "checks":
 		page["Checks"] = checks
 	case "keeping":

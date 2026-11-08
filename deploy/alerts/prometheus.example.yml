@@ -14,3 +14,12 @@ scrape_configs:
       credentials_file: /etc/prometheus/gusto-token
     static_configs:
       - targets: ["gusto.example.com"]
+
+  # gusto cloud's front door, scraped by a Prometheus (or a CloudWatch agent's Prometheus scrape) on the front door's own
+  # host. The path answers only a request to localhost that carries no forwarding header, so it is never served to the
+  # public host name. The rules above that name gusto_front_* and gusto_provision_* read this job.
+  - job_name: gusto-front
+    scrape_interval: 15s
+    metrics_path: /.gusto/metrics
+    static_configs:
+      - targets: ["localhost:8050"]

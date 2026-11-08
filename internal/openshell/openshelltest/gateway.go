@@ -14,9 +14,12 @@ root=${OPENSHELL_FAKE_ROOT:?}
 echo "$*" >> "$root/calls.log"
 while [ "${1:-}" = "--gateway" ]; do shift 2; done
 cmd=$1; sub=${2:-}
+[ "${OPENSHELL_FAKE_HANG:-}" = "$cmd $sub" ] && { sleep 30; exit 1; }
+[ "${OPENSHELL_FAKE_REFUSE:-}" = "$cmd $sub" ] && { echo "Error: ${OPENSHELL_FAKE_SAYS:-the gateway refuses this}" >&2; exit 1; }
 case "$cmd $sub" in
-"sandbox create") shift 2; name=""; while [ $# -gt 0 ]; do case "$1" in --name) name=$2; shift 2;; --) break;; *) shift;; esac; done
-  mkdir -p "$root/$name/sandbox"; echo "Created sandbox: $name";;
+"sandbox create") shift 2; name=""; policy=""; while [ $# -gt 0 ]; do case "$1" in --name) name=$2; shift 2;; --policy) policy=$2; shift 2;; --) break;; *) shift;; esac; done
+  mkdir -p "$root/$name/sandbox"; [ -n "$policy" ] && cp "$policy" "$root/$name/policy.json"; echo "Created sandbox: $name";;
+"sandbox list") for each in "$root"/*/; do [ -d "$each/sandbox" ] && basename "$each"; done; true;;
 "sandbox get") [ -d "$root/$3" ] || { echo "Error: sandbox not found" >&2; exit 1; };;
 "sandbox start") rm -f "$root/$3/stopped";;
 "sandbox stop") touch "$root/$3/stopped";;
@@ -37,7 +40,8 @@ esac
 `
 
 // Install puts the stand-in first on the PATH for the rest of the test, and returns the directory its sandboxes are kept in.
-// calls.log there has every command it was given, and deleted.log every sandbox it deleted.
+// OPENSHELL_FAKE_HANG, set to a call such as "sandbox delete", makes the gateway never answer it, and OPENSHELL_FAKE_REFUSE makes
+// it refuse that call, saying OPENSHELL_FAKE_SAYS. calls.log there has every command it was given, and deleted.log every sandbox it deleted.
 func Install(t testing.TB) string {
 	t.Helper()
 	bin, root := t.TempDir(), t.TempDir()

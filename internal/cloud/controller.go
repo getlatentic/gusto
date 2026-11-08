@@ -57,6 +57,8 @@ type Controller struct {
 	// OnWaiting is told when an organization starts waiting for a node with room, so a node can be started for it at
 	// once. It is called outside the controller's lock and must not block.
 	OnWaiting func()
+	// Metrics counts provisions, and reports the organizations held by state. Nothing is counted when it is nil.
+	Metrics *Metrics
 	// Stable is how long a server has to stay ready before the restarts it needed are forgotten, two minutes when not set. A
 	// server that stops again sooner is restarted less and less often.
 	Stable time.Duration
@@ -135,6 +137,13 @@ func (c *Controller) provision(ctx context.Context, slug string) error {
 	if err != nil || running {
 		return err
 	}
+	began := time.Now()
+	err = c.provisionSteps(ctx, slug, runtime)
+	c.Metrics.provisioned(time.Since(began), err)
+	return err
+}
+
+func (c *Controller) provisionSteps(ctx context.Context, slug string, runtime Runtime) error {
 	if err := c.set(ctx, slug, runtime, Provisioning, ""); err != nil {
 		return err
 	}

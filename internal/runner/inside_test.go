@@ -237,7 +237,7 @@ func TestATaskThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testi
 	write(t, filepath.Join(harnesses, "slow.json"), `{
   "name": "slow",
   "program": "sh",
-  "argv": ["-c", "echo started-work > made.txt; sleep 30"],
+  "argv": ["-c", "echo $$ > shell.pid; sleep 30 & echo $! > sleeper.pid; echo started-work > made.txt; wait"],
   "needs": "nothing",
   "stream": "plain"
 }`)
@@ -255,20 +255,22 @@ func TestATaskThatIsStoppedKeepsWhatItDidAndTheManifestSaysWhoStoppedIt(t *testi
 	}
 	ctx, stop := context.WithCancel(context.Background())
 	done := make(chan error, 1)
-	started := time.Now()
 	go func() { _, err := runner.InsideContext(ctx, dir, runner.Place{}); done <- err }()
 	waitForFile(t, filepath.Join(dir.WorkingFolder(), "made.txt"))
 	stop()
+	// What a stop promises is that the harness and what it started are killed, not left to run out their sleep. That is
+	// measured on the processes, so that a busy machine, which slows the work the run does after the kill, cannot fail it.
+	for _, name := range []string{"shell.pid", "sleeper.pid"} {
+		waitForExit(t, filepath.Join(dir.WorkingFolder(), name), 5*time.Second)
+	}
+	// The run then ends its record, which reads and writes the working folder. The bound is for a machine that has stalled.
 	select {
 	case err := <-done:
 		if err != nil {
 			t.Fatal(err)
 		}
-	case <-time.After(15 * time.Second):
-		t.Fatal("a stopped job did not stop")
-	}
-	if time.Since(started) > 10*time.Second {
-		t.Errorf("stopping took %v, which is waiting for the harness's sleep", time.Since(started))
+	case <-time.After(2 * time.Minute):
+		t.Fatal("a stopped job did not end its record")
 	}
 	manifest, err := record.Read(dir)
 	if err != nil {

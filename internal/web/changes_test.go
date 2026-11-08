@@ -294,6 +294,7 @@ func TestWithNoLogNothingIsRecordedAndNobodyIsShownAPage(t *testing.T) {
 // A forwarded address is believed only from the proxy on this machine, because
 // anybody can write the header, and then it is the one the proxy added, the last.
 func TestAForwardedAddressIsBelievedOnlyFromTheLocalProxy(t *testing.T) {
+	clientOf := open(t).server.clientOf
 	behind := httptest.NewRequest("GET", "/", nil)
 	behind.RemoteAddr = "127.0.0.1:5000"
 	behind.Header.Set("X-Forwarded-For", "10.0.0.2, 203.0.113.7")

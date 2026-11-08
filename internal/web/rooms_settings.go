@@ -23,6 +23,9 @@ func init() { helpers["maxGuidelines"] = func() int { return instance.MaxGuideli
 // roomArchivedWords is why nothing is said in an archived room.
 const roomArchivedWords = "this room is archived, so nothing can be said in it until an admin brings it back"
 
+// roomArchivedFilesWords is why no file is added to or changed in an archived room, by a person's upload, an edit or a sync.
+const roomArchivedFilesWords = "this room is archived, so its files cannot be added to or changed until an admin brings it back"
+
 // roomHome is the room's newest conversation, where a change to its settings comes back to.
 func (s *Server) roomHome(held instance.Instance) string {
 	return threadPath(s.instances.Latest(held.ID))

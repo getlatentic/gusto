@@ -11,8 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/accesslog"
-
 	"github.com/getlatentic/gusto/internal/changelog"
 )
 
@@ -74,7 +72,7 @@ func (s *Server) note(r *http.Request, kind string, what map[string]string) {
 		return
 	}
 	who, role, _ := s.keeper.session(r)
-	s.record(changelog.Event{Who: who, Role: string(role), From: clientOf(r), Kind: kind, What: what})
+	s.record(changelog.Event{Who: who, Role: string(role), From: s.clientOf(r), Kind: kind, What: what})
 }
 
 // record writes an event. A change has already happened by the time it is
@@ -91,7 +89,7 @@ func (s *Server) noteSignIn(r *http.Request, who string, role Role, how string) 
 	if s.changes == nil {
 		return
 	}
-	from := clientOf(r)
+	from := s.clientOf(r)
 	if was, known := s.changes.LastRole(who); known && was != string(role) {
 		s.record(changelog.Event{Who: who, Role: string(role), From: from, Kind: changelog.RoleChanged,
 			What: map[string]string{"was": was, "now": string(role)}})
@@ -106,7 +104,7 @@ func (s *Server) noteRefused(r *http.Request, who, how, why string) {
 	if s.changes == nil {
 		return
 	}
-	from := clientOf(r)
+	from := s.clientOf(r)
 	what := map[string]string{"how": how, "why": why}
 	allowed, suppressed := s.turnedAway.allow(from, time.Now())
 	if !allowed {
@@ -166,10 +164,6 @@ func (f *refusals) allow(from string, now time.Time) (bool, int) {
 	return true, carried
 }
 
-// clientOf is where a request came from, as the access log says it (accesslog.Remote): a forwarded address is believed from a proxy
-// on this machine, and from any peer when gusto was told it is only reached through one.
-func clientOf(r *http.Request) string { return accesslog.Remote(r) }
-
 // changesFile is the whole log, as the file holds it, for an admin to export
 // and for a verifier to check.
 func (s *Server) changesFile(w http.ResponseWriter, r *http.Request) {
@@ -199,6 +193,8 @@ type row struct {
 	From  string
 	Times int
 	Since string
+	// Kind is the event's kind, which the page filters on.
+	Kind string
 }
 
 // checkLog reads the whole activity log and says whether its chain holds, how much of it is signed, and its head.
@@ -215,8 +211,25 @@ func (s *Server) checkLog() (changelog.Report, string) {
 	return report, ""
 }
 
-// recentChanges is the newest events first.
-func (s *Server) recentChanges() []row {
+// recentChanges is the newest events first. People's actions are what the page is for, so a server starting, which every deploy
+// does, is left out unless asked for, and how many were left out is said.
+func (s *Server) recentChanges(withServerStarts bool) (rows []row, leftOut int) {
+	for _, each := range s.changeRows() {
+		if each.Kind == changelog.ServerStarted && !withServerStarts {
+			leftOut++
+			continue
+		}
+		rows = append(rows, each)
+	}
+	rows = foldRepeats(rows)
+	if len(rows) > shownChanges {
+		rows = rows[:shownChanges]
+	}
+	return rows, leftOut
+}
+
+// changeRows is every event in the log as the page says it, newest first.
+func (s *Server) changeRows() []row {
 	file, err := os.Open(s.changes.Path())
 	if err != nil {
 		return nil
@@ -234,14 +247,10 @@ func (s *Server) recentChanges() []row {
 		if when, err := time.Parse(time.RFC3339Nano, e.At); err == nil {
 			at, full = shortWhen(when.UTC(), time.Now().UTC()), when.UTC().Format("2 Jan 2006 15:04:05 UTC")
 		}
-		rows = append(rows, row{At: at, Full: full, Who: whoOf(e), Said: saidOf(e), From: e.From, Times: 1})
+		rows = append(rows, row{At: at, Full: full, Who: whoOf(e), Said: saidOf(e), From: e.From, Times: 1, Kind: e.Kind})
 	}
 	for i, j := 0, len(rows)-1; i < j; i, j = i+1, j-1 {
 		rows[i], rows[j] = rows[j], rows[i]
-	}
-	rows = foldRepeats(rows)
-	if len(rows) > shownChanges {
-		rows = rows[:shownChanges]
 	}
 	return rows
 }

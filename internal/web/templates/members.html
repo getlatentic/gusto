@@ -34,6 +34,7 @@
   </nav>
 
   <div class="min-h-0 min-w-0 flex-1 overflow-y-auto">
+    {{if and .Sent .Invite}}<p class="mx-8 mt-6 rounded-sm bg-wash px-4 py-3 text-sm @max-[56rem]:mx-4" role="status">The invitation was sent. The person is mailed a link that works for seven days.</p>{{end}}
     {{with .Agent}}{{template "member-agent" (dict "A" . "P" $)}}
     {{else}}{{with .Person}}{{template "member-person" (dict "M" . "P" $)}}
     {{else}}
@@ -216,6 +217,7 @@
   <form class="grid gap-5 p-6" method="post" action="{{.Action}}">
     <div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="invite-person-title">Invite a person</h2><p class="m-0 mt-1 text-sm text-muted">They are mailed a link that works once, for seven days. They join this workspace when they open it.</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
     <input type="hidden" name="workspace" value="{{.Workspace}}">
+    <input type="hidden" name="back" value="{{.Back}}">
     <label class="{{template "ui-field"}}">Email <input class="input" type="email" name="email" placeholder="ada@company.com" autocomplete="off" required></label>
     <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}} h-9">Send the invitation</button></div>
   </form>

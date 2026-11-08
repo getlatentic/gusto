@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/backend/container"
+	"github.com/getlatentic/gusto/internal/changelog"
 )
 
 // connectionsHomePath is where a person resets the home their agents keep between tasks.
@@ -56,14 +57,26 @@ func (s *Server) resetHome(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	switch err := s.keptHomes.ResetHome(who, s.workspaceOf(r)); {
+	space := s.workspaceOf(r)
+	held := s.connectionsHomeOf(who, space)
+	switch err := s.keptHomes.ResetHome(who, space); {
 	case errors.Is(err, container.ErrHomeBusy):
 		s.turnAway(w, r, connectionsPath, "Your agents are working in it now. Reset it when their task has ended.")
 	case err != nil:
 		s.turnAway(w, r, connectionsPath, "The home could not be reset: "+err.Error())
 	default:
+		s.note(r, changelog.HomeReset, resetDetails(space, held))
 		http.Redirect(w, r, s.withMessage(connectionsPath, "reset", "home"), http.StatusSeeOther)
 	}
+}
+
+// resetDetails is what a reset says in the change record: where, and how much the home held when it was last counted.
+func resetDetails(space string, held *connectionsHome) map[string]string {
+	details := map[string]string{"workspace": space}
+	if held != nil && held.Counted {
+		details["used"] = held.Used
+	}
+	return details
 }
 
 // homeSize is a number of bytes in the words a person reads.

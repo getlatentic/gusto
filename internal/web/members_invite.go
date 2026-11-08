@@ -9,6 +9,8 @@ type inviteOffer struct {
 	// Action is where gusto cloud takes the form, and Workspace the one the person invited joins.
 	Action    string
 	Workspace string
+	// Back is this page, which gusto cloud sends the person back to.
+	Back string
 }
 
 // inviteOffered is the invitation form for an admin of an organization that has gusto cloud, and nothing for anybody else: a server
@@ -17,5 +19,10 @@ func (s *Server) inviteOffered(r *http.Request) *inviteOffer {
 	if s.front == nil || s.front.URL == "" || !s.admin(r) {
 		return nil
 	}
-	return &inviteOffer{Action: s.front.page("/org/invite", nil), Workspace: s.workspaceOf(r)}
+	return &inviteOffer{Action: s.front.page("/org/invite", nil), Workspace: s.workspaceOf(r), Back: pageAddress(r)}
+}
+
+// invitationSent is whether gusto cloud has just sent the person back from an invitation it accepted.
+func invitationSent(r *http.Request) bool {
+	return r.URL.Query().Get("sent") == "1"
 }

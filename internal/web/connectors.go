@@ -64,6 +64,12 @@ type connectorView struct {
 	ForAgents bool
 }
 
+// Offered is an app an admin has turned on and that people can sign in to.
+func (v connectorView) Offered() bool { return v.On && v.Usable }
+
+// SignedInTo is an app the person has a sign-in to, working or not, which they may end whether or not it is still offered.
+func (v connectorView) SignedInTo() bool { return v.Connected || v.SignInAgain }
+
 // appAllowed says whether a task may be given one app of its asker's: any, on their own task that they pay for; on a turn they
 // asked of a room's agent, what they chose for that agent and app, or else their default for their agents.
 func (s *Server) appAllowed(record tasks.Record, app string) bool {
@@ -139,7 +145,7 @@ func (s *Server) connectionsPage(w http.ResponseWriter, r *http.Request) {
 	if !person {
 		home = nil
 	}
-	offered := slices.DeleteFunc(views, func(view connectorView) bool { return !view.On || !view.Usable })
+	offered := slices.DeleteFunc(views, func(view connectorView) bool { return !view.Offered() && !view.SignedInTo() })
 	s.render(w, "connections.html", map[string]any{
 		"Title": productName + " — connections", "Nav": "connections", "Connectors": offered, "Person": person,
 		"Refused": s.refusal(r), "Done": s.message(r, "connected"),
@@ -200,9 +206,11 @@ func (s *Server) finishConnecting(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.withMessage(connectionsPath, "connected", entry.Name), http.StatusSeeOther)
 }
 
+// disconnect ends a person's own sign-in to an app, whether or not an admin has turned the app off since: connecting is the admin's
+// to allow, and taking back what one gave is always the person's.
 func (s *Server) disconnect(w http.ResponseWriter, r *http.Request) {
-	entry, offered := s.offeredConnector(r.PathValue("id"))
-	if !offered {
+	entry, known := s.connectors.App(r.PathValue("id"))
+	if !known {
 		http.NotFound(w, r)
 		return
 	}

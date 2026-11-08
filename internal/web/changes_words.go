@@ -193,6 +193,13 @@ var eventWords = map[string]func(e changelog.Event, w map[string]string) string{
 		}
 		return "unmuted the room " + w["room"]
 	},
+	changelog.HomeReset: func(e changelog.Event, w map[string]string) string {
+		said := "reset the home their agents keep in the workspace " + or(w["workspace"], "main")
+		if w["used"] != "" {
+			said += ", which held " + w["used"]
+		}
+		return said
+	},
 	changelog.PersonBio: func(e changelog.Event, w map[string]string) string {
 		if w["now"] == "" {
 			return "cleared their bio"

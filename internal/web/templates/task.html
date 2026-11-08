@@ -33,6 +33,8 @@
 
 {{with .Manifest}}{{with .StoppedByCap}}<p class="mb-4 flex flex-wrap items-center gap-2 text-sm">{{template "state" (dict "State" "failed" "Text" (printf "stopped by the %s cap" .Cap))}} <span class="text-muted">{{.Reason}}</span></p>{{end}}{{end}}
 
+{{with .Home}}<div class="mb-4 max-w-4xl">{{template "home-full" (dict "H" . "Mine" false)}}</div>{{end}}
+
 <div class="grid max-w-4xl gap-4">
 
   {{if .Live}}

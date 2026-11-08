@@ -169,7 +169,7 @@ func (s *Server) startDevice(w http.ResponseWriter, r *http.Request) {
 	if label == "" {
 		label = "computer"
 	}
-	device, user, ok := s.devices.start(label, clientOf(r), time.Now())
+	device, user, ok := s.devices.start(label, s.clientOf(r), time.Now())
 	if !ok {
 		answerJSON(w, http.StatusTooManyRequests, map[string]string{"error": "slow_down"})
 		return
@@ -220,7 +220,7 @@ func (s *Server) pollDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.devices.done(asked.DeviceCode)
-	s.record(changelog.Event{Who: person, Role: string(Runner), From: clientOf(r), Kind: changelog.TokenCreated,
+	s.record(changelog.Event{Who: person, Role: string(Runner), From: s.clientOf(r), Kind: changelog.TokenCreated,
 		What: map[string]string{"id": token.ID, "name": token.Name, "scopes": "acts as " + person}})
 	answerJSON(w, http.StatusOK, map[string]string{"access_token": secret, "token_type": "bearer", "person": person})
 }
@@ -242,7 +242,7 @@ func (s *Server) endMe(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	s.record(changelog.Event{Who: held.Person, Role: string(Runner), From: clientOf(r), Kind: changelog.TokenRevoked,
+	s.record(changelog.Event{Who: held.Person, Role: string(Runner), From: s.clientOf(r), Kind: changelog.TokenRevoked,
 		What: map[string]string{"id": held.ID, "name": held.Name}})
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -300,13 +300,13 @@ func (s *Server) approveDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now()
-	if s.wrong.blocked(clientOf(r), now) {
+	if s.wrong.blocked(s.clientOf(r), now) {
 		s.showDevices(w, r, map[string]any{"Refused": "Too many codes that were not waiting. Wait a few minutes, then try again."})
 		return
 	}
 	label, ok := s.devices.approve(r.FormValue("code"), person, now)
 	if !ok {
-		s.wrong.failed(clientOf(r), now)
+		s.wrong.failed(s.clientOf(r), now)
 		s.showDevices(w, r, map[string]any{"Refused": "That code is not waiting. Start the sign-in again on your computer and use the new code."})
 		return
 	}

@@ -92,6 +92,7 @@ func drawRecord(page map[string]any, entry tasks.Record, dir task.Dir, manifest 
 	if transcript, found := readExcerpt(dir, entry.ID, "transcript.log", drawn); found {
 		page["Transcript"] = transcript
 	}
+	page["Home"] = homeFullOf(dir)
 	page["Check"] = readCheck(entry, dir, manifest)
 }
 

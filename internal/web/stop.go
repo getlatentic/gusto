@@ -3,6 +3,7 @@ package web
 import (
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -21,10 +22,16 @@ func (s *Server) stopTurn(r *http.Request, by string) (tasks.Record, bool, int) 
 		return record, false, http.StatusConflict
 	}
 	// Before the stop, since a run that ends at once reads it as it ends. A task that cannot be written to is not stopped.
-	if err := runner.NoteStop(record.Dir(s.index.Root()), by, time.Now().Unix()); err != nil {
+	dir := record.Dir(s.index.Root())
+	_, earlier := os.Stat(runner.StopFile(dir))
+	if err := runner.NoteStop(dir, by, time.Now().Unix()); err != nil {
 		return record, false, http.StatusInternalServerError
 	}
 	stopped, wasRunning, err := s.queue.Cancel(record.ID, by)
+	if err != nil && earlier != nil {
+		// The note is for a stop that did not happen. A note that was there before is an earlier stop's, and stays.
+		_ = os.Remove(runner.StopFile(dir))
+	}
 	switch {
 	case errors.Is(err, tasks.ErrNotStoppable):
 		return stopped, false, http.StatusConflict

@@ -257,6 +257,7 @@ docker build -t gusto:dev \
 | `GUSTO_IMAGE` | the runner image `gusto run` starts |
 | `GUSTO_CONTAINER` | the container command: `docker` by default, `podman` for no daemon |
 | `GUSTO_TASK_MEMORY`, `GUSTO_TASK_CPUS` | memory and CPU for one task, `3g` and `1` by default |
+| `GUSTO_HOME_LIMIT_MB` | the most a person's kept home may take in a container, in megabytes, `5120` by default. With `GUSTO_COMPUTERS`, a turn over it is refused until the person resets the home on Connections. [CLOUD.md](CLOUD.md) |
 | `GUSTO_TASK_CONCURRENCY` | how many tasks run at once. A room's agents run at the same time only when this is more than 1 |
 | `GUSTO_LIVE_CONNECTIONS` | the most WebSockets open at once, 10000 by default. A room's page keeps one open at `/live` to be told what others say and what agents do, and asks every few seconds instead when it has none. A proxy in front must pass the upgrade and not buffer or cut off a quiet connection: the server pings every 30 seconds |
 | `GUSTO_ROOM_COPY_MB`, `GUSTO_ROOM_COPY_FILES` | the most a room's folder may hold for a turn to work on a copy of it, `4096` MB and `200000` files by default. [ROOM-WORK.md](ROOM-WORK.md) |
