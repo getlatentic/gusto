@@ -73,40 +73,50 @@ func (r *Registry) listingClient() *http.Client {
 	return client
 }
 
-// listing is the part of an OpenAI-shaped model list this reads. A gateway that prices what it lists says so in pricing.
-type listing struct {
-	Data []struct {
-		ID      string `json:"id"`
-		Type    string `json:"type"`
-		Pricing *struct {
-			Input      float64  `json:"input_price_per_million"`
-			Output     float64  `json:"output_price_per_million"`
-			CacheRead  *float64 `json:"cache_read_price_per_million"`
-			CacheWrite *float64 `json:"cache_write_price_per_million"`
-			Unit       string   `json:"unit"`
-		} `json:"pricing"`
-	} `json:"data"`
+// entry is one model of an OpenAI-shaped list. A gateway that prices what it lists says so in pricing.
+type entry struct {
+	ID      string `json:"id"`
+	Type    string `json:"type"`
+	Pricing *struct {
+		Input      float64  `json:"input_price_per_million"`
+		Output     float64  `json:"output_price_per_million"`
+		CacheRead  *float64 `json:"cache_read_price_per_million"`
+		CacheWrite *float64 `json:"cache_write_price_per_million"`
+		Unit       string   `json:"unit"`
+	} `json:"pricing"`
+}
+
+// chat says whether an entry is a model an agent can talk to. A gateway lists what it can embed, draw and transcribe too.
+func (e entry) chat() bool {
+	return e.ID != "" && modelName.MatchString(e.ID) && (e.Type == "" || e.Type == "chat")
+}
+
+// price is what the entry costs per million tokens, or nil when it gives none or prices by another unit.
+func (e entry) price() *spend.Price {
+	p := e.Pricing
+	if p == nil || (p.Unit != "" && p.Unit != "token") {
+		return nil
+	}
+	price := &spend.Price{InputPerMillion: p.Input, OutputPerMillion: p.Output, CachedInputPerMillion: p.CacheRead, CacheWritePerMillion: p.CacheWrite}
+	if checkPrice(price) != nil {
+		return nil
+	}
+	return price
 }
 
 func readListing(body io.Reader, host string) ([]Listed, error) {
-	var got listing
+	var got struct {
+		Data []entry `json:"data"`
+	}
 	if err := json.NewDecoder(body).Decode(&got); err != nil {
 		return nil, fmt.Errorf("%s did not list its models the way OpenAI's API does", host)
 	}
 	var found []Listed
-	for _, entry := range got.Data {
-		// A gateway lists what it can embed, draw and transcribe too; an agent talks to a chat model.
-		if entry.ID == "" || !modelName.MatchString(entry.ID) || (entry.Type != "" && entry.Type != "chat") {
+	for _, e := range got.Data {
+		if !e.chat() {
 			continue
 		}
-		model := Listed{Name: entry.ID}
-		if p := entry.Pricing; p != nil && (p.Unit == "" || p.Unit == "token") {
-			price := &spend.Price{InputPerMillion: p.Input, OutputPerMillion: p.Output, CachedInputPerMillion: p.CacheRead, CacheWritePerMillion: p.CacheWrite}
-			if checkPrice(price) == nil {
-				model.Price = price
-			}
-		}
-		found = append(found, model)
+		found = append(found, Listed{Name: e.ID, Price: e.price()})
 		if len(found) == maxListed {
 			break
 		}
