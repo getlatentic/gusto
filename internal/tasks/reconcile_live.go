@@ -24,7 +24,7 @@ func (i *Index) Reconcile(ctx context.Context, store taskindex.Store, progress *
 	if err != nil {
 		return ReconcileResult{}, err
 	}
-	p := planFor(i.overlaid(onDisk), indexed)
+	p := planFor(i.overlaid(onDisk), indexed, false)
 	status := taskindex.Status{Building: true, Total: p.Tasks, Done: p.Tasks - len(p.write)}
 	progress.Set(status)
 	defer func() { progress.Set(taskindex.Status{Done: status.Total, Total: status.Total}) }()

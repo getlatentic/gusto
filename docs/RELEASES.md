@@ -10,7 +10,7 @@ A tag needs a section here named for it, or the release workflow stops and copie
 
 - An organization in gusto cloud has workspaces, such as Engineering and Business. Each holds its own tasks and records, conversations, agents, connections to apps and a computer for each of its people, which only its members reach ([CLOUD.md](CLOUD.md#workspaces)). Every organization has the workspace `main`, which holds everything and everybody it had before, so nobody sees a change until an admin makes a second one at `/org`.
 - A person's kept home in a container has a size limit, `GUSTO_HOME_LIMIT_MB` (5120 by default). A turn over it is refused until the person resets the home on Connections. A turn that ended for that reason says so on its page, and a reset is recorded as `home.reset` ([CLOUD.md](CLOUD.md), [CHANGES.md](CHANGES.md)).
-- The accounts database is at schema 8 (`workspaces`, `workspace_members`, and the workspace an invitation's link joins), and the task index at schema 2 (a `workspace` column). Both migrate on start.
+- The accounts database is at schema 8 (`workspaces`, `workspace_members`, and the workspace an invitation's link joins), and the task index at schema 3 (a `workspace` column; the agent's turn columns `agent`, `handed_by`, `answers`, `hops` and `paid_by`; and `progress`, which orders a task's states). Both migrate on start. The task index never writes a row over one that is further along, so `gusto tasks reindex` leaves a row that is ahead of its `state.json`. To make the files win after they were restored from a backup, stop the server and use `gusto tasks reindex -from-scratch`.
 - `job.json` may name its `workspace`. Its schema now also describes `person`, `agent` and `dir`, which tasks already carried.
 
 **Changed**

@@ -88,6 +88,8 @@ type Entry struct {
 	Ended int64
 	Seq   int64
 	Sum   string
+	// Progress is how far along the held row says the task is: see Row.Progress.
+	Progress int
 }
 
 // Store is the index. Every method is safe to call from many goroutines, and a SQLite file may be used by more
@@ -99,6 +101,9 @@ type Store interface {
 	// UpsertMany does Upsert for each row in one transaction at a time. A task named twice keeps the row that is furthest on,
 	// and the later of two that are equally far.
 	UpsertMany(ctx context.Context, rows []Row) error
+	// Restore writes each row whether or not the held row is ahead of it. It is for a repair that has been told the files are
+	// the truth over the index, such as files put back from a backup, and is not for a writer that may race a newer change.
+	Restore(ctx context.Context, rows []Row) error
 	// Delete removes a task's row. A task the index does not hold is not an error.
 	Delete(ctx context.Context, id string) error
 	// Get is a task's row, or ErrNotFound.
