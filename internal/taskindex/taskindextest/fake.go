@@ -28,9 +28,13 @@ func (f *Fake) Upsert(ctx context.Context, row taskindex.Row) error {
 	return f.UpsertMany(ctx, []taskindex.Row{row})
 }
 
-func (f *Fake) UpsertMany(ctx context.Context, rows []taskindex.Row) error { return f.write(ctx, rows, false) }
+func (f *Fake) UpsertMany(ctx context.Context, rows []taskindex.Row) error {
+	return f.write(ctx, rows, false)
+}
 
-func (f *Fake) Restore(ctx context.Context, rows []taskindex.Row) error { return f.write(ctx, rows, true) }
+func (f *Fake) Restore(ctx context.Context, rows []taskindex.Row) error {
+	return f.write(ctx, rows, true)
+}
 
 func (f *Fake) write(ctx context.Context, rows []taskindex.Row, force bool) error {
 	if err := ctx.Err(); err != nil {
