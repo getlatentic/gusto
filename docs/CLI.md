@@ -968,7 +968,7 @@ Environment:
 - `GUSTO_CLOUD_SEAT_USD`: the seat's price the organization page shows, in dollars (default 25)
 - `GUSTO_PAYPAL_CLIENT_ID`: the client id of a PayPal sandbox app that organizations pay for seats through; the client id, its secret and the webhook id are set together or not at all
 - `GUSTO_PAYPAL_CLIENT_SECRET`: the secret of the PayPal sandbox app
-- `GUSTO_PAYPAL_WEBHOOK_ID`: the id of the PayPal sandbox webhook registered for <GUSTO_CLOUD_URL>/paypal/webhook
+- `GUSTO_PAYPAL_WEBHOOK_ID`: the id of the PayPal sandbox webhook registered for <GUSTO_CLOUD_URL>/billing/webhook/paypal
 - `GUSTO_PAYPAL_PLAN_ID`: the PayPal plan of a seat for a month. Without it the product and the plan are made once and remembered
 - `GUSTO_CLOUD_SERVERS`: whether gusto cloud starts organizations' servers; off keeps the accounts only (on, off) (default on)
 - `GUSTO_CLOUD_ORG_ENV`: a file of KEY=VALUE lines every organization's server starts with: the operator's credentials, models and sandbox; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organization a schema of its own for its indexes

@@ -44,17 +44,17 @@ func TestASeatChangeNeedsAnAdminAndThenThePayerBeforeAnythingChanges(t *testing.
 		if err != nil {
 			t.Fatal(err)
 		}
-		if code, _, header := b.admin.post("/org/paypal/proposals/approve", url.Values{"id": {proposal.ID}}); code != 303 || !strings.Contains(header.Get("Location"), "sandbox.paypal.com") {
+		if code, _, header := b.admin.post("/org/billing/proposals/approve", url.Values{"id": {proposal.ID}}); code != 303 || !strings.Contains(header.Get("Location"), "sandbox.paypal.com") {
 			t.Fatalf("approving answered %d to %q", code, header.Get("Location"))
 		}
 		if b.record().Seats != 1 || b.quota().Members != 1 {
 			t.Errorf("seats changed before the payer approved: %+v", b.record())
 		}
-		if code, _, _ := b.admin.post("/org/paypal/proposals/approve", url.Values{"id": {proposal.ID}}); code != 409 {
+		if code, _, _ := b.admin.post("/org/billing/proposals/approve", url.Values{"id": {proposal.ID}}); code != 409 {
 			t.Errorf("approving the same proposal twice answered %d", code)
 		}
 		b.fake.payerApproves(id)
-		b.deliver("WH-2", "BILLING.SUBSCRIPTION.UPDATED", id, 204)
+		b.deliver("WH-2", "BILLING.SUBSCRIPTION.UPDATED", id, 200)
 		open, _ := s.OpenProposals(b.org)
 		if b.record().Seats != 3 || b.quota().Members != 3 || b.quota().Computers != 3 || len(open) != 0 {
 			t.Errorf("%+v %+v %v", b.record(), b.quota(), open)
@@ -69,7 +69,7 @@ func TestASeatChangePayPalRefusesGoesBackToWaitingForAnAdmin(t *testing.T) {
 		b.activate(id, "WH-1")
 		proposal, _ := b.front.store.Propose(b.org, 3, "growing", "agent")
 		b.fake.reviseFails = true
-		if code, _, _ := b.admin.post("/org/paypal/proposals/approve", url.Values{"id": {proposal.ID}}); code != 502 {
+		if code, _, _ := b.admin.post("/org/billing/proposals/approve", url.Values{"id": {proposal.ID}}); code != 502 {
 			t.Fatalf("a refusal from PayPal answered %d", code)
 		}
 		open, _ := b.front.store.OpenProposals(b.org)
@@ -85,7 +85,7 @@ func TestADeclinedProposalFreesTheOrganizationToAskAgain(t *testing.T) {
 		_, id := b.subscribe()
 		b.activate(id, "WH-1")
 		proposal, _ := b.front.store.Propose(b.org, 3, "growing", "agent")
-		if code, _, _ := b.admin.post("/org/paypal/proposals/decline", url.Values{"id": {proposal.ID}}); code != 303 {
+		if code, _, _ := b.admin.post("/org/billing/proposals/decline", url.Values{"id": {proposal.ID}}); code != 303 {
 			t.Fatalf("declining answered %d", code)
 		}
 		if _, err := b.front.store.Propose(b.org, 4, "again", "agent"); err != nil {

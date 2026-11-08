@@ -99,7 +99,7 @@ func (s *Store) mayInvite(ctx context.Context, slug string, by Person) (quota.Qu
 	if err != nil || held.Invites {
 		return held, err
 	}
-	if billing, found, err := s.Billing(ctx, slug); err == nil && found && billing.Lapsed() {
+	if s.lapsed(ctx, slug) {
 		return quota.Quota{}, ErrLapsed
 	}
 	return quota.Quota{}, ErrNoInvites

@@ -143,9 +143,9 @@ func (c *PayPalClient) accessToken(ctx context.Context) (string, error) {
 	return c.token, nil
 }
 
-// Subscription is what gusto reads of a PayPal subscription. The payer's name and address are in PayPal's answer
+// PayPalSubscription is what gusto reads of a PayPal subscription. The payer's name and address are in PayPal's answer
 // and are never read into it.
-type Subscription struct {
+type PayPalSubscription struct {
 	ID             string
 	PlanID         string
 	Status         string
@@ -157,7 +157,7 @@ type Subscription struct {
 }
 
 // Seats is the quantity as a number, and fallback when PayPal sent none.
-func (s Subscription) Seats(fallback int) int {
+func (s PayPalSubscription) Seats(fallback int) int {
 	if n, err := strconv.Atoi(s.Quantity); err == nil && n > 0 {
 		return n
 	}
@@ -191,13 +191,13 @@ func approveLink(links []wireLink) string {
 	return ""
 }
 
-func (w wireSubscription) read() Subscription {
-	return Subscription{ID: w.ID, PlanID: w.PlanID, Status: w.Status, Quantity: w.Quantity, CustomID: w.CustomID,
+func (w wireSubscription) read() PayPalSubscription {
+	return PayPalSubscription{ID: w.ID, PlanID: w.PlanID, Status: w.Status, Quantity: w.Quantity, CustomID: w.CustomID,
 		UpdateTime: w.UpdateTime, FailedPayments: w.BillingInfo.FailedPayments, ApproveURL: approveLink(w.Links)}
 }
 
 // Subscription is PayPal's current record of a subscription.
-func (c *PayPalClient) Subscription(ctx context.Context, id string) (Subscription, error) {
+func (c *PayPalClient) Subscription(ctx context.Context, id string) (PayPalSubscription, error) {
 	var wire wireSubscription
 	err := c.call(ctx, http.MethodGet, "/v1/billing/subscriptions/"+url.PathEscape(id), "", nil, &wire)
 	return wire.read(), err
@@ -205,17 +205,17 @@ func (c *PayPalClient) Subscription(ctx context.Context, id string) (Subscriptio
 
 // CreateSubscription makes a subscription to a plan for a number of seats, tagged with the organization, and
 // returns it with the address the payer approves it at. requestID makes a repeat of the call return the same one.
-func (c *PayPalClient) CreateSubscription(ctx context.Context, planID string, seats int, org, returnURL, cancelURL, requestID string) (Subscription, error) {
+func (c *PayPalClient) CreateSubscription(ctx context.Context, planID string, seats int, org, returnURL, cancelURL, requestID string) (PayPalSubscription, error) {
 	body, err := json.Marshal(map[string]any{
 		"plan_id": planID, "quantity": strconv.Itoa(seats), "custom_id": org,
 		"application_context": map[string]string{"brand_name": "gusto", "user_action": "SUBSCRIBE_NOW", "shipping_preference": "NO_SHIPPING", "return_url": returnURL, "cancel_url": cancelURL},
 	})
 	if err != nil {
-		return Subscription{}, err
+		return PayPalSubscription{}, err
 	}
 	var wire wireSubscription
 	if err := c.call(ctx, http.MethodPost, "/v1/billing/subscriptions", requestID, body, &wire); err != nil {
-		return Subscription{}, err
+		return PayPalSubscription{}, err
 	}
 	return wire.read(), nil
 }

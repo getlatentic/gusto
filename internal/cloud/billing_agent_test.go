@@ -46,7 +46,7 @@ var agentToken = regexp.MustCompile(`gbt_[A-Za-z0-9_-]+`)
 // token is what the admin is shown when they ask for one.
 func (b *billed) token() string {
 	b.t.Helper()
-	code, page, _ := b.admin.post("/org/paypal/agent-token", nil)
+	code, page, _ := b.admin.post("/org/billing/agent-token", nil)
 	found := agentToken.FindString(page)
 	if code != 200 || found == "" {
 		b.t.Fatalf("the admin was given no token: %d", code)
@@ -76,7 +76,7 @@ func TestAnAgentNeedsTheOrganizationsTokenAndAnOldTokenStopsWhenANewOneIsMade(t 
 			t.Errorf("the new token answered %d", code)
 		}
 		var kept string
-		b.front.store.db.QueryRowContext(t.Context(), `SELECT digest FROM paypal_agent_tokens WHERE org = ?`, b.org).Scan(&kept)
+		b.front.store.db.QueryRowContext(t.Context(), `SELECT digest FROM billing_agent_tokens WHERE org = ?`, b.org).Scan(&kept)
 		if kept == second || kept != digest(second) {
 			t.Errorf("only a digest of the token may be kept")
 		}
@@ -97,7 +97,7 @@ func TestAnAgentReadsItsOwnOrganizationsBillingAndNobodyElses(t *testing.T) {
 			t.Fatal(err)
 		}
 		_, answer := b.rpc(mine, call("billing_status", `{}`))
-		if text := answer.Result.Content[0].Text; !strings.Contains(text, `"state":"active"`) || !strings.Contains(text, `"seats_paid":1`) || !strings.Contains(text, `"price_per_seat_usd_a_month":"25.00"`) {
+		if text := answer.Result.Content[0].Text; !strings.Contains(text, `"state":"active"`) || !strings.Contains(text, `"seats_paid":1`) || !strings.Contains(text, `"price_per_seat":"$25 a month each"`) {
 			t.Errorf("%s", text)
 		}
 		_, answer = b.rpc(theirs, call("billing_status", `{}`))

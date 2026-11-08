@@ -12,13 +12,12 @@ import (
 
 // An organization's agents reach billing through one MCP endpoint (streamable HTTP, JSON-RPC 2.0) with two tools.
 // One reads the state. The other proposes a change of seats, which an admin answers on the organization page and
-// the payer approves at PayPal. No tool buys or changes anything by itself.
+// the payer approves at the processor. No tool buys or changes anything by itself.
 
 const (
-	mcpDefaultVersion       = "2025-03-26"
-	mcpBodyMax              = 16 << 10
-	payPalAgentCallsPerHour = 600
-	reasonMax               = 300
+	mcpDefaultVersion = "2025-03-26"
+	mcpBodyMax        = 16 << 10
+	reasonMax         = 300
 )
 
 type rpcRequest struct {
@@ -53,23 +52,23 @@ func text(message string, isError bool) mcpText {
 }
 
 var billingTools = []map[string]any{
-	{"name": "billing_status", "description": "Say how this organization pays for gusto cloud: its state (active, past_due, suspended or not_subscribed), the seats it pays for, how many people it has, the price of a seat, and any seat change waiting for an answer.",
+	{"name": "billing_status", "description": "Say how this organization pays for gusto cloud: its state (pending, active, past_due, suspended or not_subscribed), the processor it pays through, the seats it pays for, how many people it has, the price of a seat, whether its seats follow its people, and any seat change waiting for an answer.",
 		"inputSchema": map[string]any{"type": "object", "properties": map[string]any{}, "additionalProperties": false}},
-	{"name": "billing_propose_seats", "description": "Propose a new number of paid seats for this organization, with the reason. This only records a proposal. An admin must approve it on the organization page and the payer must approve it at PayPal before anything changes or is charged. Ask a person before proposing.",
+	{"name": "billing_propose_seats", "description": "Propose a new number of paid seats for this organization, with the reason. This only records a proposal. An admin must approve it on the organization page and the payer must approve it at the payment processor before anything changes or is charged. Ask a person before proposing.",
 		"inputSchema": map[string]any{"type": "object", "required": []string{"seats", "reason"}, "additionalProperties": false, "properties": map[string]any{
 			"seats":  map[string]any{"type": "integer", "minimum": 1, "maximum": MostSeats},
 			"reason": map[string]any{"type": "string", "maxLength": reasonMax}}}},
 }
 
-// payPalMCP answers an organization's agent. The bearer token names the organization, and nothing in a request does.
-func (s *Server) payPalMCP(w http.ResponseWriter, r *http.Request) {
+// billingMCP answers an organization's agent. The bearer token names the organization, and nothing in a request does.
+func (s *Server) billingMCP(w http.ResponseWriter, r *http.Request) {
 	org, ok := s.agentOrg(r)
 	if !ok {
 		w.Header().Set("WWW-Authenticate", `Bearer realm="gusto billing"`)
 		http.Error(w, "a billing token is needed", http.StatusUnauthorized)
 		return
 	}
-	if !s.payPalCalls.Allow(r.Context(), org) {
+	if !s.billingCalls.Allow(r.Context(), org) {
 		http.Error(w, "too many calls", http.StatusTooManyRequests)
 		return
 	}
@@ -137,16 +136,21 @@ func (s *Server) callTool(ctx context.Context, org, name string, arguments json.
 }
 
 func (s *Server) toolStatus(ctx context.Context, org string) mcpText {
-	status := map[string]any{"state": "not_subscribed", "price_per_seat_usd_a_month": SeatPrice}
+	status := map[string]any{"state": "not_subscribed"}
 	people, err := s.Store.Members(ctx, org)
 	if err != nil {
 		return text("billing could not be read", true)
 	}
 	status["people"] = len(people)
-	if record, found, err := s.Store.PayPalOf(org); err != nil {
+	plan, found, err := s.Store.Plan(ctx, org)
+	if err != nil {
 		return text("billing could not be read", true)
-	} else if found {
-		status["state"], status["seats_paid"] = string(record.State), record.Seats
+	}
+	if found {
+		status["state"], status["seats_paid"], status["seats_follow_people"], status["provider"] = string(plan.State), plan.Seats, !plan.Fixed, plan.Provider
+		if p, ok := s.Billing.Providers.Get(plan.Provider); ok {
+			status["price_per_seat"] = p.Price()
+		}
 	}
 	waiting, _ := s.Store.OpenProposals(org)
 	status["seat_changes_waiting"] = len(waiting)
@@ -170,7 +174,7 @@ func (s *Server) toolPropose(org string, arguments json.RawMessage) mcpText {
 		return text("give a reason of up to 300 characters", true)
 	}
 	proposal, err := s.Store.Propose(org, in.Seats, reason, "agent")
-	for _, known := range payPalSentences {
+	for _, known := range billingSentences {
 		if errors.Is(err, known) {
 			return text(known.Error(), true)
 		}
@@ -178,5 +182,5 @@ func (s *Server) toolPropose(org string, arguments json.RawMessage) mcpText {
 	if err != nil {
 		return text("the proposal could not be recorded", true)
 	}
-	return text("Proposed "+strconv.Itoa(proposal.Seats)+" seats. It is waiting for an admin to approve it on the organization page, and for the payer to approve it at PayPal. Nothing has changed and nothing has been charged.", false)
+	return text("Proposed "+strconv.Itoa(proposal.Seats)+" seats. It is waiting for an admin to approve it on the organization page, and for the payer to approve it at the payment processor. Nothing has changed and nothing has been charged.", false)
 }

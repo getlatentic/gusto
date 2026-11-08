@@ -20,12 +20,10 @@
 39 13 internal/node/scaler.go:(*Scaler).Tick
 35 13 internal/cloud/accounts.go:(*Store).signUpIn
 21 15 internal/cloud/address.go:NormalEmail
-41 18 internal/cloud/billing.go:(*Store).RecordSubscription
-25 14 internal/cloud/billing_pages.go:(*Server).planOf
 41 11 internal/cloud/mail_cloudflare.go:(Cloudflare).once
 38 11 internal/cloud/memberships_sql.go:(*Store).Verify
 40 12 internal/cloud/org.go:(*Server).drawOrg
-53 1 internal/cloud/server.go:(*Server).routes
+51 1 internal/cloud/server.go:(*Server).routes
 31 11 internal/cloud/stripe_events.go:verifyStripe
 41 11 internal/cloud/turnstile.go:(Turnstile).Check
 40 13 internal/compare/board.go:(*Board).Sample

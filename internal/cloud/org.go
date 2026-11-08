@@ -79,7 +79,7 @@ func (s *Server) org(w http.ResponseWriter, r *http.Request, person Person) {
 		notice = "The link is on its way."
 	}
 	if r.URL.Query().Get("billing") == "started" {
-		notice = "Thank you. The plan changes here once Stripe confirms the payment, which takes a few seconds."
+		notice = "Thank you. The plan changes here once the payment is confirmed, which takes a few seconds."
 	}
 	s.drawOrg(r.Context(), w, http.StatusOK, person, notice)
 }
@@ -121,7 +121,7 @@ func (s *Server) drawOrg(ctx context.Context, w http.ResponseWriter, status int,
 	v := view{ComputerOf: byAddress, Members: members, Workspaces: workspaceRows(spaces, members), Admins: admins, Invited: invited, IsAdmin: person.Role == Admin,
 		CanInvite: person.Role == Admin && quota.Invites && len(members)+len(invited) < quota.Members, Server: server, CanOpen: canOpen, Refresh: server != "" && !canOpen, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
 		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice, Several: len(all) > 1, Credit: creditLeft(quota.CreditUSD, s.Store.CreditUsed(org.Slug)),
-		Plan: s.planOf(ctx, org, person), PayPal: s.payPalView(person, len(members)), Console: true}
+		Billing: s.billingViewOf(ctx, org, person, len(members)), Console: true}
 	s.render(w, status, "org", v)
 }
 

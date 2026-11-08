@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"errors"
+	"github.com/getlatentic/gusto/internal/cloud/payments"
 	"net/url"
 	"strings"
 	"testing"
@@ -23,7 +24,7 @@ type billed struct {
 func newBilled(t *testing.T) *billed {
 	t.Helper()
 	fake := newFakePayPal(t)
-	f := newFront(t, Settings{AllowFreeMail: true}, func(c *Config) { c.PayPal = &PayPalBilling{Store: c.Store, PayPal: fake.client()} })
+	f := newFront(t, Settings{AllowFreeMail: true}, func(c *Config) { c.Billing = NewBilling(c.Store, NewPayPalProvider(c.Store, fake.client(), "")) })
 	admin := f.browser()
 	if code, _, _ := admin.post("/signup", signup("ada@acme.com", "Acme")); code != 303 {
 		t.Fatalf("sign-up answered %d", code)
@@ -35,28 +36,28 @@ func newBilled(t *testing.T) *billed {
 	if err != nil || len(memberships) != 1 {
 		t.Fatalf("%v %v", memberships, err)
 	}
-	return &billed{t: t, front: f, fake: fake, admin: admin, org: memberships[0].Org, hook: f.http.URL + payPalWebhookPath}
+	return &billed{t: t, front: f, fake: fake, admin: admin, org: memberships[0].Org, hook: f.http.URL + webhookPrefix + "paypal"}
 }
 
 // subscribe makes the admin press Subscribe, and returns where PayPal sends them and the subscription's id.
 func (b *billed) subscribe() (location, id string) {
 	b.t.Helper()
-	code, _, header := b.admin.post("/org/paypal/subscribe", nil)
+	code, _, header := b.admin.post("/org/billing/subscribe", nil)
 	if code != 303 || !strings.HasPrefix(header.Get("Location"), "https://www.sandbox.paypal.com/") {
 		b.t.Fatalf("subscribing answered %d to %q", code, header.Get("Location"))
 	}
-	record, found, err := b.front.store.PayPalOf(b.org)
+	record, found, err := b.front.store.Plan(b.t.Context(), b.org)
 	if err != nil || !found {
 		b.t.Fatalf("no billing record: %v", err)
 	}
-	return header.Get("Location"), record.SubscriptionID
+	return header.Get("Location"), record.Ref
 }
 
 // activate is the payer approving at PayPal and PayPal's webhook saying so.
 func (b *billed) activate(id, event string) {
 	b.t.Helper()
 	b.fake.activate(id)
-	b.deliver(event, "BILLING.SUBSCRIPTION.ACTIVATED", id, 204)
+	b.deliver(event, "BILLING.SUBSCRIPTION.ACTIVATED", id, 200)
 }
 
 func (b *billed) deliver(event, kind, subscription string, want int) {
@@ -70,9 +71,9 @@ func (b *billed) deliver(event, kind, subscription string, want int) {
 	}
 }
 
-func (b *billed) record() PayPalRecord {
+func (b *billed) record() Plan {
 	b.t.Helper()
-	record, _, err := b.front.store.PayPalOf(b.org)
+	record, _, err := b.front.store.Plan(b.t.Context(), b.org)
 	if err != nil {
 		b.t.Fatal(err)
 	}
@@ -93,7 +94,7 @@ func TestSubscribingWaitsForThePayerAndChangesNothingUntilPayPalSaysItIsActive(t
 		b := newBilled(t)
 		before := b.quota()
 		location, id := b.subscribe()
-		if !strings.Contains(location, id) || b.record().State != PayPalPending || b.record().Seats != 1 {
+		if !strings.Contains(location, id) || b.record().State != payments.Pending || b.record().Seats != 1 {
 			t.Fatalf("%q %+v", location, b.record())
 		}
 		if b.quota() != before {
@@ -104,7 +105,7 @@ func TestSubscribingWaitsForThePayerAndChangesNothingUntilPayPalSaysItIsActive(t
 		}
 		b.activate(id, "WH-1")
 		got := b.quota()
-		if b.record().State != PayPalActive || got.Members != 1 || got.Computers != 1 || !got.Invites || got.Tasks != b.front.store.paidQuota(1).Tasks {
+		if b.record().State != payments.Active || got.Members != 1 || got.Computers != 1 || !got.Invites || got.Tasks != b.front.store.paidQuota(1).Tasks {
 			t.Errorf("%+v %+v", b.record(), got)
 		}
 	})
@@ -135,7 +136,7 @@ func TestADeliveryThatPayPalDidNotSignIsRefusedAndAppliesNothing(t *testing.T) {
 		if code := post(t, b.hook, "", "", body); code != 400 {
 			t.Errorf("a delivery without PayPal's headers answered %d", code)
 		}
-		if b.record().State != PayPalPending {
+		if b.record().State != payments.Pending {
 			t.Errorf("a forged delivery changed the state: %+v", b.record())
 		}
 	})
@@ -147,8 +148,8 @@ func TestAnEventPayPalSendsTwiceIsAppliedOnce(t *testing.T) {
 		_, id := b.subscribe()
 		b.activate(id, "WH-1")
 		reads := b.fake.count("GET /v1/billing/subscriptions/" + id)
-		b.deliver("WH-1", "BILLING.SUBSCRIPTION.ACTIVATED", id, 204)
-		if b.fake.count("GET /v1/billing/subscriptions/"+id) != reads || b.record().State != PayPalActive {
+		b.deliver("WH-1", "BILLING.SUBSCRIPTION.ACTIVATED", id, 200)
+		if b.fake.count("GET /v1/billing/subscriptions/"+id) != reads || b.record().State != payments.Active {
 			t.Errorf("the second delivery was applied again")
 		}
 	})
@@ -158,8 +159,8 @@ func TestAnEventForASubscriptionGustoNeverMadeChangesNothing(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		b := newBilled(t)
 		b.fake.subs["I-OTHER"] = &fakeSub{id: "I-OTHER", status: "ACTIVE", quantity: 9, custom: b.org}
-		b.deliver("WH-9", "BILLING.SUBSCRIPTION.ACTIVATED", "I-OTHER", 204)
-		if _, found, _ := b.front.store.PayPalOf(b.org); found {
+		b.deliver("WH-9", "BILLING.SUBSCRIPTION.ACTIVATED", "I-OTHER", 200)
+		if _, found, _ := b.front.store.Plan(b.t.Context(), b.org); found {
 			t.Errorf("a stranger's subscription became the organization's")
 		}
 	})
@@ -172,20 +173,20 @@ func TestAFailedPaymentIsPastDueAndKeepsWorkingUntilPayPalSuspendsIt(t *testing.
 		b.activate(id, "WH-1")
 		paid := b.quota()
 		b.fake.failPayment(id)
-		b.deliver("WH-2", "BILLING.SUBSCRIPTION.PAYMENT.FAILED", id, 204)
-		if b.record().State != PayPalPastDue || b.quota() != paid {
+		b.deliver("WH-2", "BILLING.SUBSCRIPTION.PAYMENT.FAILED", id, 200)
+		if b.record().State != payments.PastDue || b.quota() != paid {
 			t.Errorf("past due must keep working: %+v %+v", b.record(), b.quota())
 		}
 		b.fake.recover(id)
-		b.deliver("WH-3", "PAYMENT.SALE.COMPLETED", id, 204)
-		if b.record().State != PayPalActive {
+		b.deliver("WH-3", "PAYMENT.SALE.COMPLETED", id, 200)
+		if b.record().State != payments.Active {
 			t.Errorf("a payment that went through left it %s", b.record().State)
 		}
 		b.fake.failPayment(id)
 		b.fake.suspend(id)
-		b.deliver("WH-4", "BILLING.SUBSCRIPTION.SUSPENDED", id, 204)
+		b.deliver("WH-4", "BILLING.SUBSCRIPTION.SUSPENDED", id, 200)
 		got := b.quota()
-		if b.record().State != PayPalSuspended || got.Tasks != 0 || got.Invites || got.Refuse(0) == nil || !errors.Is(got.Refuse(0), quota.ErrExceeded) {
+		if b.record().State != payments.Suspended || got.Tasks != 0 || got.Invites || got.Refuse(0) == nil || !errors.Is(got.Refuse(0), quota.ErrExceeded) {
 			t.Errorf("suspended must stop new tasks: %+v %+v", b.record(), got)
 		}
 	})
@@ -197,7 +198,7 @@ func TestSuspendingNeverDeletesAnythingAndSubscribingAgainRestoresIt(t *testing.
 		_, id := b.subscribe()
 		b.activate(id, "WH-1")
 		b.fake.suspend(id)
-		b.deliver("WH-2", "BILLING.SUBSCRIPTION.SUSPENDED", id, 204)
+		b.deliver("WH-2", "BILLING.SUBSCRIPTION.SUSPENDED", id, 200)
 		if people, _ := b.front.store.Members(t.Context(), b.org); len(people) != 1 {
 			t.Errorf("suspending removed people: %v", people)
 		}
@@ -209,7 +210,7 @@ func TestSuspendingNeverDeletesAnythingAndSubscribingAgainRestoresIt(t *testing.
 			t.Fatalf("a suspended organization must be able to start a new subscription")
 		}
 		b.activate(next, "WH-3")
-		if b.record().State != PayPalActive || b.quota().Tasks == 0 {
+		if b.record().State != payments.Active || b.quota().Tasks == 0 {
 			t.Errorf("%+v %+v", b.record(), b.quota())
 		}
 	})
@@ -220,10 +221,10 @@ func TestCancellingEndsTheSubscriptionAndSuspends(t *testing.T) {
 		b := newBilled(t)
 		_, id := b.subscribe()
 		b.activate(id, "WH-1")
-		if code, _, _ := b.admin.post("/org/paypal/cancel", nil); code != 303 {
+		if code, _, _ := b.admin.post("/org/billing/cancel", nil); code != 303 {
 			t.Fatalf("cancelling answered %d", code)
 		}
-		if b.record().State != PayPalSuspended || b.fake.subs[id].status != "CANCELLED" {
+		if b.record().State != payments.Suspended || b.fake.subs[id].status != "CANCELLED" {
 			t.Errorf("%+v %s", b.record(), b.fake.subs[id].status)
 		}
 	})
@@ -235,10 +236,10 @@ func TestAnOlderAnswerFromPayPalNeverOverwritesANewerOne(t *testing.T) {
 		_, id := b.subscribe()
 		b.activate(id, "WH-1")
 		newer := b.record().SourceTime
-		stale := Subscription{ID: id, Status: "ACTIVE", Quantity: "7", UpdateTime: newer.Add(-time.Hour)}
-		record, err := b.front.store.applySubscription(t.Context(), b.org, stale, PayPalActive)
-		if err != nil || record.Seats != 1 {
-			t.Errorf("a stale answer was applied: %v %+v", err, record)
+		stale := payments.Subscription{Ref: id, State: payments.Active, Seats: 7, At: newer.Add(-time.Hour)}
+		kept, err := b.front.store.apply(t.Context(), "paypal", b.org, stale, true)
+		if err != nil || kept || b.record().Seats != 1 {
+			t.Errorf("a stale answer was applied: %v %v %+v", kept, err, b.record())
 		}
 	})
 }
@@ -256,12 +257,12 @@ func TestOnlyAnAdminMayStartCancelOrApproveAndARunnerSeesTheState(t *testing.T) 
 		if code, _, _ := runner.post("/invite", url.Values{"t": {secret}}); code != 303 {
 			t.Fatalf("accepting answered %d", code)
 		}
-		for _, path := range []string{"/org/paypal/subscribe", "/org/paypal/cancel", "/org/paypal/proposals/approve", "/org/paypal/proposals/decline", "/org/paypal/agent-token"} {
+		for _, path := range []string{"/org/billing/subscribe", "/org/billing/cancel", "/org/billing/proposals/approve", "/org/billing/proposals/decline", "/org/billing/agent-token"} {
 			if code, _, _ := runner.post(path, url.Values{"id": {"x"}}); code != 403 {
 				t.Errorf("%s as a runner answered %d", path, code)
 			}
 		}
-		if _, page := runner.get("/org"); !strings.Contains(page, "Paid, 1 seats") || strings.Contains(page, "Cancel the subscription") {
+		if _, page := runner.get("/org"); !strings.Contains(page, "Paid: 1 seat at $25 a month each") || strings.Contains(page, "Cancel the subscription") {
 			t.Errorf("a runner sees the state and no buttons:\n%s", page)
 		}
 	})
@@ -270,7 +271,7 @@ func TestOnlyAnAdminMayStartCancelOrApproveAndARunnerSeesTheState(t *testing.T) 
 func TestTheOrganizationPageShowsBillingAndProposalsToAnAdmin(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		b := newBilled(t)
-		if _, page := b.admin.get("/org"); !strings.Contains(page, "Subscribe with PayPal") || !strings.Contains(page, "$25.00 a seat a month") {
+		if _, page := b.admin.get("/org"); !strings.Contains(page, "Subscribe: 1 seat at $25 a month each") || !strings.Contains(page, "/org/billing/subscribe") {
 			t.Errorf("%s", page)
 		}
 		_, id := b.subscribe()
@@ -287,10 +288,10 @@ func TestComingBackFromPayPalReadsTheSubscriptionAtOnce(t *testing.T) {
 		b := newBilled(t)
 		_, id := b.subscribe()
 		b.fake.activate(id)
-		if code, _ := b.admin.get("/org/paypal/return?subscription_id=I-SOMEONE-ELSES"); code != 303 {
+		if code, _ := b.admin.get("/org/billing/return?subscription_id=I-SOMEONE-ELSES"); code != 303 {
 			t.Fatalf("returning answered %d", code)
 		}
-		if b.record().State != PayPalActive {
+		if b.record().State != payments.Active {
 			t.Errorf("the return did not read the organization's own subscription: %+v", b.record())
 		}
 	})
@@ -301,10 +302,10 @@ func TestWithoutPayPalThereAreNoBillingPagesOrEndpoints(t *testing.T) {
 		f := newFront(t, Settings{AllowFreeMail: true}, nil)
 		admin := f.browser()
 		admin.post("/signup", signup("ada@acme.com", "Acme"))
-		if code, _, _ := admin.post("/org/paypal/subscribe", nil); code != 404 && code != 405 {
+		if code, _, _ := admin.post("/org/billing/subscribe", nil); code != 404 && code != 405 {
 			t.Errorf("subscribe answered %d", code)
 		}
-		if code := post(t, f.http.URL+payPalWebhookPath, "x", "x", []byte(`{}`)); code != 404 && code != 405 {
+		if code := post(t, f.http.URL+webhookPrefix+"paypal", "x", "x", []byte(`{}`)); code != 404 && code != 405 {
 			t.Errorf("the webhook answered %d", code)
 		}
 		if _, page := admin.get("/org"); strings.Contains(page, "Billing") {
@@ -323,14 +324,14 @@ func TestAPendingSubscriptionThatPayPalHasEndedIsReplacedAndOneThatIsPayingIsNot
 		if b.quota() != earned {
 			t.Errorf("a subscription nobody paid for changed the quota: %+v", b.quota())
 		}
-		if second == first || b.record().State != PayPalPending || b.record().SubscriptionID != second {
+		if second == first || b.record().State != payments.Pending || b.record().Ref != second {
 			t.Fatalf("an expired subscription was not replaced: %+v", b.record())
 		}
 		b.fake.activate(second)
-		if code, page, _ := b.admin.post("/org/paypal/subscribe", nil); code != 409 || !strings.Contains(page, "already has a subscription") {
+		if code, page, _ := b.admin.post("/org/billing/subscribe", nil); code != 409 || !strings.Contains(page, "already has a subscription") {
 			t.Errorf("subscribing while paying answered %d", code)
 		}
-		if b.record().State != PayPalActive {
+		if b.record().State != payments.Active {
 			t.Errorf("the paying subscription was not read in: %+v", b.record())
 		}
 	})
@@ -348,28 +349,12 @@ func TestThePayPalQuotaSurvivesTheQuotaBeingWrittenAgain(t *testing.T) {
 			t.Errorf("writing the quota again lost the paid seats: %+v", got)
 		}
 		b.fake.suspend(id)
-		b.deliver("WH-2", "BILLING.SUBSCRIPTION.SUSPENDED", id, 204)
+		b.deliver("WH-2", "BILLING.SUBSCRIPTION.SUSPENDED", id, 200)
 		if err := b.front.store.ApplyQuota(t.Context(), b.org); err != nil {
 			t.Fatal(err)
 		}
 		if got := b.quota(); got.Tasks != 0 || got.Invites {
 			t.Errorf("a suspended organization was given its tasks back: %+v", got)
-		}
-	})
-}
-
-func TestAnOrganizationThatPaysThroughStripeIsNotSoldAPayPalSubscription(t *testing.T) {
-	onEachDatabase(t, func(t *testing.T) {
-		b := newBilled(t)
-		stripe := Billing{Org: b.org, Customer: "cus_1", Subscription: "sub_1", Item: "si_1", Status: "active", Seats: 1, EventAt: time.Now()}
-		if _, err := b.front.store.db.ExecContext(t.Context(), putBilling.SQL(1), b.front.store.billingArgs(stripe)...); err != nil {
-			t.Fatal(err)
-		}
-		if code, _, _ := b.admin.post("/org/paypal/subscribe", nil); code != 409 {
-			t.Errorf("subscribing by PayPal while paying through Stripe answered %d", code)
-		}
-		if b.fake.count("POST /v1/billing/subscriptions") != 0 {
-			t.Errorf("a PayPal subscription was made")
 		}
 	})
 }

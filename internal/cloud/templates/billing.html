@@ -1,0 +1,28 @@
+{{define "billing"}}
+  <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+    <h2 class="mb-3 text-sm font-semibold">Billing</h2>
+    <dl class="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-8 gap-y-2.5 text-sm [&>dd]:wrap-anywhere [&>dt]:text-muted">
+      <dt>Plan</dt><dd><span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{if eq .State "active"}}bg-ok-wash text-ok{{else}}bg-warn-wash text-warn{{end}}">{{.Words}}</span></dd>
+      {{if .Provider}}<dt>Through</dt><dd>{{.Provider}}</dd>{{end}}
+      {{if .Seats}}<dt>Seats</dt><dd>{{.Seats}} paid, {{.People}} in use</dd>{{end}}
+    </dl>
+    {{range .Proposals}}
+    <div class="mt-4 grid gap-2 rounded-sm border border-line-strong p-3 text-sm">
+      <p>{{if eq .Source "agent"}}An agent{{else}}Someone{{end}} proposes {{.Seats}} seats. <span class="text-muted">{{.Reason}}</span></p>
+      {{if eq .Status "awaiting_payer"}}<p class="text-muted">Waiting for the payer to approve the change at {{$.Provider}}.</p>{{if .ApproveURL}}<a class="underline" href="{{.ApproveURL}}">Approve at {{$.Provider}}</a>{{end}}{{end}}
+      <div class="flex gap-3">
+        {{if eq .Status "pending"}}<form method="post" action="/org/billing/proposals/approve"><input type="hidden" name="id" value="{{.ID}}"><button class="inline-flex h-9 items-center rounded-sm bg-solid px-4 text-sm font-semibold text-on-solid hover:bg-solid-hover" type="submit">Approve and go to {{$.Provider}}</button></form>{{end}}
+        <form method="post" action="/org/billing/proposals/decline"><input type="hidden" name="id" value="{{.ID}}"><button class="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm font-medium text-muted hover:bg-wash hover:text-ink" type="submit">Decline</button></form>
+      </div>
+    </div>
+    {{end}}
+    {{if .Admin}}
+    <div class="mt-4 flex flex-wrap gap-3">
+      {{range .Offers}}<form method="post" action="/org/billing/subscribe"><input type="hidden" name="provider" value="{{.Provider}}"><button class="inline-flex h-9 items-center rounded-sm bg-solid px-4 text-sm font-semibold text-on-solid hover:bg-solid-hover" type="submit">{{.Words}}</button></form>{{end}}
+      {{if .Manage}}<form method="post" action="/org/billing/manage"><button class="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm font-medium text-muted hover:bg-wash hover:text-ink" type="submit">Card, invoices and plan</button></form>{{end}}
+      {{if .Cancel}}<form method="post" action="/org/billing/cancel"><button class="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm font-medium text-muted hover:bg-wash hover:text-ink" type="submit">Cancel the subscription</button></form>{{end}}
+      <form method="post" action="/org/billing/agent-token"><button class="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm font-medium text-muted hover:bg-wash hover:text-ink" type="submit">New agent token</button></form>
+    </div>
+    {{end}}
+  </section>
+{{end}}

@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"errors"
+	"github.com/getlatentic/gusto/internal/cloud/payments"
 	"os"
 	"strings"
 	"testing"
@@ -70,17 +71,16 @@ func TestStateOfASubscriptionIsWhatItsStatusAndFailedPaymentsSay(t *testing.T) {
 	cases := []struct {
 		status string
 		failed int
-		want   PayPalState
-		known  bool
+		want   payments.State
 	}{
-		{"APPROVAL_PENDING", 0, PayPalPending, true}, {"APPROVED", 0, PayPalPending, true},
-		{"ACTIVE", 0, PayPalActive, true}, {"ACTIVE", 2, PayPalPastDue, true},
-		{"SUSPENDED", 0, PayPalSuspended, true}, {"CANCELLED", 0, PayPalSuspended, true}, {"EXPIRED", 0, PayPalSuspended, true},
-		{"SOMETHING_NEW", 0, "", false},
+		{"APPROVAL_PENDING", 0, payments.Pending}, {"APPROVED", 0, payments.Pending},
+		{"ACTIVE", 0, payments.Active}, {"ACTIVE", 2, payments.PastDue},
+		{"SUSPENDED", 0, payments.Suspended}, {"CANCELLED", 0, payments.Suspended}, {"EXPIRED", 0, payments.Suspended},
+		{"SOMETHING_NEW", 0, ""},
 	}
 	for _, c := range cases {
-		if got, known := stateOf(Subscription{Status: c.status, FailedPayments: c.failed}); got != c.want || known != c.known {
-			t.Errorf("%s with %d failed: %q %v", c.status, c.failed, got, known)
+		if got := payPalState(PayPalSubscription{Status: c.status, FailedPayments: c.failed}); got != c.want {
+			t.Errorf("%s with %d failed: %q", c.status, c.failed, got)
 		}
 	}
 }
@@ -98,7 +98,7 @@ func TestPayPalSandbox(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	made, err := client.CreateSubscription(t.Context(), plan, 2, "sandbox-test", "https://cloud.example/org/paypal/return", "https://cloud.example/org", "gusto-sandbox-test-"+time.Now().Format("150405"))
+	made, err := client.CreateSubscription(t.Context(), plan, 2, "sandbox-test", "https://cloud.example/org/billing/return", "https://cloud.example/org", "gusto-sandbox-test-"+time.Now().Format("150405"))
 	if err != nil {
 		t.Fatal(err)
 	}
