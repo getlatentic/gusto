@@ -203,3 +203,9 @@ func (s *Server) payPalSource() string {
 	}
 	return " https://www.sandbox.paypal.com"
 }
+
+// webhookRoutes adds the endpoints the payment processors call, and PayPal's pages with them.
+func (s *Server) webhookRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("POST /stripe/webhook", s.stripeWebhook)
+	s.payPalRoutes(mux)
+}

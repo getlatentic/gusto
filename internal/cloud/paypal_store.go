@@ -116,15 +116,10 @@ func (s *Store) applySubscription(ctx context.Context, org string, answer Subscr
 			return err
 		}
 		record = have
-		if !have.SourceTime.IsZero() && answer.UpdateTime.Before(have.SourceTime) {
+		if older(answer, have) {
 			return nil
 		}
-		record.State, record.Seats, record.FailedPayments = state, answer.Seats(have.Seats), answer.FailedPayments
-		record.PaidOnce = have.PaidOnce || state == PayPalActive || state == PayPalPastDue
-		record.SourceTime, record.Updated, record.ApproveURL = answer.UpdateTime, s.now().UTC(), ""
-		if state == PayPalPending {
-			record.ApproveURL = have.ApproveURL
-		}
+		record = applied(have, answer, state, s.now().UTC())
 		if _, err = tx.ExecContext(ctx, putPayPal.SQL(1), s.payPalArgs(record)...); err != nil {
 			return err
 		}
@@ -192,4 +187,35 @@ func (s *Store) OrgOfAgentToken(secret string) (string, bool, error) {
 		var org string
 		return org, r.Scan(&org)
 	}, `SELECT org FROM paypal_agent_tokens WHERE digest = ?`, digest(secret))
+}
+
+// older says a PayPal answer is older than the one the record already holds.
+func older(answer Subscription, have PayPalRecord) bool {
+	return !have.SourceTime.IsZero() && answer.UpdateTime.Before(have.SourceTime)
+}
+
+// applied is the record with a PayPal answer in it. A subscription that is waiting keeps the address it waits at.
+func applied(have PayPalRecord, answer Subscription, state PayPalState, now time.Time) PayPalRecord {
+	record := have
+	record.State, record.Seats, record.FailedPayments = state, answer.Seats(have.Seats), answer.FailedPayments
+	record.PaidOnce = have.PaidOnce || state == PayPalActive || state == PayPalPastDue
+	record.SourceTime, record.Updated, record.ApproveURL = answer.UpdateTime, now, ""
+	if state == PayPalPending {
+		record.ApproveURL = have.ApproveURL
+	}
+	return record
+}
+
+// payPalQuotaOf is the quota of an organization's PayPal subscription, and false when it has none that counts. An
+// organization that pays through Stripe is worked out by its Stripe subscription.
+func (s *Store) payPalQuotaOf(ctx context.Context, q dbkit.Querier, slug string, stripe Billing) (quota.Quota, bool, error) {
+	if stripe.Paid() || stripe.Lapsed() {
+		return quota.Quota{}, false, nil
+	}
+	record, found, err := fetchPayPal(ctx, q, slug)
+	if err != nil || !found {
+		return quota.Quota{}, false, err
+	}
+	paid, ok := s.payPalQuota(record)
+	return paid, ok, nil
 }

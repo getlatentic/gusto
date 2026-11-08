@@ -34,6 +34,13 @@ func (b *PayPalBilling) planID(ctx context.Context) (string, error) {
 	return id, b.Store.saveSetting(ctx, settingPayPalPlan, id)
 }
 
+// useURL gives the front door's address to billing that was made without one. It does nothing for no billing.
+func (b *PayPalBilling) useURL(u *url.URL) {
+	if b != nil && b.URL == nil {
+		b.URL = u
+	}
+}
+
 func (b *PayPalBilling) returnURL() string {
 	return b.URL.JoinPath("org", "billing", "return").String()
 }
@@ -44,10 +51,8 @@ func (b *PayPalBilling) cancelURL() string { return b.URL.JoinPath("org").String
 // and makes no second subscription, since a payer may be approving the first at that moment. An organization that
 // pays through Stripe is refused: one organization is billed one way.
 func (b *PayPalBilling) Subscribe(ctx context.Context, org string) (string, error) {
-	if stripe, found, err := b.Store.Billing(ctx, org); err != nil {
+	if err := b.refuseIfBilledByStripe(ctx, org); err != nil {
 		return "", err
-	} else if found && (stripe.Paid() || stripe.Lapsed()) {
-		return "", ErrSubscribed
 	}
 	if waiting, err := b.waitingApproval(ctx, org); err != nil || waiting != "" {
 		return waiting, err
@@ -57,25 +62,39 @@ func (b *PayPalBilling) Subscribe(ctx context.Context, org string) (string, erro
 		return "", err
 	}
 	seats := max(len(members), 1)
-	plan, err := b.planID(ctx)
+	made, err := b.create(ctx, org, seats)
 	if err != nil {
 		return "", err
-	}
-	nonce, err := randomID()
-	if err != nil {
-		return "", err
-	}
-	made, err := b.PayPal.CreateSubscription(ctx, plan, seats, org, b.returnURL(), b.cancelURL(), "gusto-"+org+"-"+nonce)
-	if err != nil {
-		return "", err
-	}
-	if made.ApproveURL == "" {
-		return "", errors.New("paypal gave no address to approve the subscription at")
 	}
 	if err := b.Store.startSubscription(ctx, org, made.ID, made.ApproveURL, seats); err != nil {
 		return "", err
 	}
 	return made.ApproveURL, nil
+}
+
+func (b *PayPalBilling) refuseIfBilledByStripe(ctx context.Context, org string) error {
+	stripe, found, err := b.Store.Billing(ctx, org)
+	if err == nil && found && (stripe.Paid() || stripe.Lapsed()) {
+		err = ErrSubscribed
+	}
+	return err
+}
+
+// create makes the subscription at PayPal. Its request id is new each time, so a repeat of the call is a new subscription.
+func (b *PayPalBilling) create(ctx context.Context, org string, seats int) (Subscription, error) {
+	plan, err := b.planID(ctx)
+	if err != nil {
+		return Subscription{}, err
+	}
+	nonce, err := randomID()
+	if err != nil {
+		return Subscription{}, err
+	}
+	made, err := b.PayPal.CreateSubscription(ctx, plan, seats, org, b.returnURL(), b.cancelURL(), "gusto-"+org+"-"+nonce)
+	if err == nil && made.ApproveURL == "" {
+		err = errors.New("paypal gave no address to approve the subscription at")
+	}
+	return made, err
 }
 
 // waitingApproval is the address a pending subscription is approved at, read from PayPal because an address kept

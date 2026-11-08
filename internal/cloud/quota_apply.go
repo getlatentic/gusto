@@ -114,22 +114,8 @@ func (s *Store) quotaOf(ctx context.Context, q dbkit.Querier, org Org) (quota.Qu
 	if org.Demo != nil {
 		return s.set.Demo.Limits, nil
 	}
-	billing, found, err := billingOf(ctx, q, org.Slug)
-	if err != nil {
-		return quota.Quota{}, err
-	}
-	if payPal, found, err := fetchPayPal(ctx, q, org.Slug); err != nil {
-		return quota.Quota{}, err
-	} else if found && !billing.Paid() && !billing.Lapsed() {
-		if paid, ok := s.payPalQuota(payPal); ok {
-			return paid, nil
-		}
-	}
-	switch {
-	case found && billing.Paid():
-		return s.paidQuota(billing.Seats), nil
-	case found && billing.Lapsed():
-		return s.lapsedQuota(), nil
+	if subscribed, ok, err := s.subscribedQuota(ctx, q, org.Slug); err != nil || ok {
+		return subscribed, err
 	}
 	verified, err := count(ctx, q, `SELECT count(*) FROM memberships m JOIN people p ON p.email = m.email
 		WHERE m.org = ? AND m.role = ? AND p.verified IS NOT NULL`, org.Slug, string(Admin))
@@ -140,4 +126,23 @@ func (s *Store) quotaOf(ctx context.Context, q dbkit.Querier, org Org) (quota.Qu
 		return s.set.Limits.Verified, nil
 	}
 	return s.set.Limits.Trial, nil
+}
+
+// subscribedQuota is the quota of an organization with a subscription that counts, and false when it has none: Stripe's
+// paid or lapsed subscription, or else PayPal's.
+func (s *Store) subscribedQuota(ctx context.Context, q dbkit.Querier, slug string) (quota.Quota, bool, error) {
+	billing, found, err := billingOf(ctx, q, slug)
+	if err != nil {
+		return quota.Quota{}, false, err
+	}
+	if paid, ok, err := s.payPalQuotaOf(ctx, q, slug, billing); err != nil || ok {
+		return paid, ok, err
+	}
+	switch {
+	case found && billing.Paid():
+		return s.paidQuota(billing.Seats), true, nil
+	case found && billing.Lapsed():
+		return s.lapsedQuota(), true, nil
+	}
+	return quota.Quota{}, false, nil
 }

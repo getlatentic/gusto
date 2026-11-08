@@ -68,24 +68,7 @@ func (s *Store) Propose(org string, seats int, reason, source string) (Proposal,
 		if err := s.lock(ctx, tx, "paypal:"+org); err != nil {
 			return err
 		}
-		record, found, err := fetchPayPal(ctx, tx, org)
-		if err != nil {
-			return err
-		}
-		if !found || (record.State != PayPalActive && record.State != PayPalPastDue) {
-			return ErrNotBilled
-		}
-		people, err := count(ctx, tx, `SELECT count(*) FROM memberships WHERE org = ?`, org)
-		if err != nil {
-			return err
-		}
-		if seats < max(people, 1) || seats > MostSeats || seats == record.Seats {
-			return ErrSeats
-		}
-		if open, err := count(ctx, tx, `SELECT count(*) FROM paypal_seat_proposals WHERE org = ? AND `+openProposals, org); err != nil || open > 0 {
-			if err == nil {
-				err = ErrProposalOpen
-			}
+		if err := checkProposable(ctx, tx, org, seats); err != nil {
 			return err
 		}
 		id, err := randomID()
@@ -98,6 +81,34 @@ func (s *Store) Propose(org string, seats int, reason, source string) (Proposal,
 		return err
 	})
 	return made, err
+}
+
+// checkProposable is nil when the organization pays and the seats are a number it can have with no other request open.
+func checkProposable(ctx context.Context, tx dbkit.Tx, org string, seats int) error {
+	record, found, err := fetchPayPal(ctx, tx, org)
+	if err != nil {
+		return err
+	}
+	if !found || (record.State != PayPalActive && record.State != PayPalPastDue) {
+		return ErrNotBilled
+	}
+	if err := checkSeats(ctx, tx, org, seats, record.Seats); err != nil {
+		return err
+	}
+	open, err := count(ctx, tx, `SELECT count(*) FROM paypal_seat_proposals WHERE org = ? AND `+openProposals, org)
+	if err == nil && open > 0 {
+		err = ErrProposalOpen
+	}
+	return err
+}
+
+// checkSeats is nil when the seats are at least the organization's people, at most MostSeats and not the number it has.
+func checkSeats(ctx context.Context, tx dbkit.Tx, org string, seats, have int) error {
+	people, err := count(ctx, tx, `SELECT count(*) FROM memberships WHERE org = ?`, org)
+	if err == nil && (seats < max(people, 1) || seats > MostSeats || seats == have) {
+		err = ErrSeats
+	}
+	return err
 }
 
 func randomID() (string, error) {

@@ -101,9 +101,7 @@ func New(c Config) (*Server, error) {
 		c.Controller.Metrics = c.Metrics
 		c.Metrics.watch(c.Controller)
 	}
-	if c.PayPal != nil && c.PayPal.URL == nil {
-		c.PayPal.URL = c.URL
-	}
+	c.PayPal.useURL(c.URL)
 	return &Server{Config: c, pages: pages,
 		signups: c.limiter("signups", c.PerAddress), mails: c.limiter("mails", c.PerMailbox), all: c.limiter("all", c.InAll),
 		invites: c.limiter("invites", 20), codes: c.limiter("codes", codeTries),
@@ -222,8 +220,7 @@ func (s *Server) routes() http.Handler {
 	s.peopleRoutes(mux)
 	mux.HandleFunc("POST /org/billing/subscribe", s.guard(s.subscribe))
 	mux.HandleFunc("POST /org/billing/manage", s.guard(s.manageBilling))
-	mux.HandleFunc("POST /stripe/webhook", s.stripeWebhook)
-	s.payPalRoutes(mux)
+	s.webhookRoutes(mux)
 	mux.HandleFunc("GET /invite", s.invitationPage)
 	mux.HandleFunc("POST /invite", s.acceptInvitation)
 	mux.HandleFunc("GET /demo", s.demoForm)
