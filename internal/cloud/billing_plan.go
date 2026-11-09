@@ -87,7 +87,8 @@ var (
 	errSameInstant = errors.New("two versions of a subscription were made at the same instant")
 )
 
-// begin records a subscription that waits for its payer, for an organization that has none or whose last one ended.
+// begin records a subscription that waits for its payer, for an organization that has none, whose last one ended, or
+// whose last one is a checkout nobody finished.
 func (s *Store) begin(ctx context.Context, a Plan) error {
 	return s.db.InTx(ctx, func(tx dbkit.Tx) error {
 		if err := s.lock(ctx, tx, "billing:"+a.Org); err != nil {
@@ -95,7 +96,7 @@ func (s *Store) begin(ctx context.Context, a Plan) error {
 		}
 		if have, found, err := fetchPlan(ctx, tx, a.Org); err != nil {
 			return err
-		} else if found && have.State != payments.Suspended {
+		} else if found && have.State != payments.Suspended && have.State != payments.Pending {
 			return ErrSubscribed
 		}
 		a.State, a.Updated = payments.Pending, s.now().UTC()

@@ -129,6 +129,8 @@ var (
 	ErrBadSignature = errors.New("the delivery is not signed by the processor")
 	// ErrMalformed is a delivery that cannot be read.
 	ErrMalformed = errors.New("the delivery cannot be read")
+	// ErrGone is a subscription the processor no longer has, as with a checkout nobody finished.
+	ErrGone = errors.New("the processor has no such subscription")
 )
 
 // Registry is the processors a gusto cloud server sells through, in the order they were added.

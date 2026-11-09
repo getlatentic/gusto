@@ -358,3 +358,17 @@ func TestThePayPalQuotaSurvivesTheQuotaBeingWrittenAgain(t *testing.T) {
 		}
 	})
 }
+
+func TestASubscriptionPayPalDroppedBeforeApprovalIsReplacedWhenSubscribingAgain(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		b := newBilled(t)
+		b.fake.subs["I-OTHER"] = &fakeSub{id: "I-OTHER", status: "ACTIVE", quantity: 1, custom: "someone-else"}
+		_, first := b.subscribe()
+		delete(b.fake.subs, first)
+		b.fake.subs["I-FILLER"] = &fakeSub{id: "I-FILLER", status: "ACTIVE", quantity: 1, custom: "someone-else"}
+		_, second := b.subscribe()
+		if second == first || b.record().Ref != second || b.record().State != payments.Pending {
+			t.Errorf("first %q second %q record %+v", first, second, b.record())
+		}
+	})
+}

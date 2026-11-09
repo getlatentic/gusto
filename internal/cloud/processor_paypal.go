@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"errors"
+	"net/http"
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/cloud/payments"
@@ -66,6 +67,10 @@ func (p *payPalProvider) Start(ctx context.Context, req payments.StartRequest) (
 // ref that Start returned.
 func (p *payPalProvider) Fetch(ctx context.Context, ref string) (payments.Subscription, error) {
 	answer, err := p.client.Subscription(ctx, ref)
+	var refusal *PayPalError
+	if errors.As(err, &refusal) && refusal.Status == http.StatusNotFound {
+		return payments.Subscription{}, payments.ErrGone
+	}
 	if err != nil {
 		return payments.Subscription{}, err
 	}

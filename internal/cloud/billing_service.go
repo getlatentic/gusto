@@ -130,6 +130,9 @@ func (b *Billing) start(ctx context.Context, p payments.Provider, org, email str
 // subscription that the processor says is no longer waiting is read in first, and is refused if it is paying.
 func (b *Billing) waitingApproval(ctx context.Context, p payments.Provider, plan Plan) (string, error) {
 	sub, err := p.Fetch(ctx, plan.Ref)
+	if errors.Is(err, payments.ErrGone) {
+		return "", nil
+	}
 	if err != nil {
 		return "", err
 	}
