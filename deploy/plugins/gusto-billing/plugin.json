@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "gusto-billing",
+  "version": "1.0.0",
+  "description": "Lets an organization's agents answer billing questions and propose a seat change that an admin approves.",
+  "author": { "name": "Latentic" },
+  "license": "Apache-2.0",
+  "keywords": ["billing", "paypal", "seats"]
+}

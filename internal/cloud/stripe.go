@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/cloud/payments"
 )
 
 // Stripe is the part of Stripe's API that bills seats: a Checkout page to subscribe, the
@@ -86,21 +88,17 @@ func (s *Stripe) SetSeats(ctx context.Context, item string, seats int) error {
 
 // Subscription is a subscription as it is now, stamped with the second Stripe answered in, which no event
 // made before that second is newer than.
-func (s *Stripe) Subscription(ctx context.Context, id string) (Billing, error) {
+func (s *Stripe) Subscription(ctx context.Context, id string) (payments.Subscription, error) {
 	var sub stripeSubscription
 	header, err := s.call(ctx, http.MethodGet, "/v1/subscriptions/"+url.PathEscape(id), nil, &sub)
 	if err != nil {
-		return Billing{}, err
+		return payments.Subscription{}, err
 	}
 	at, err := http.ParseTime(header.Get("Date"))
 	if err != nil {
-		return Billing{}, fmt.Errorf("stripe answered with no time: %w", err)
+		return payments.Subscription{}, fmt.Errorf("stripe answered with no time: %w", err)
 	}
-	b, about := billingOfSubscription(sub, at)
-	if !about {
-		return Billing{}, fmt.Errorf("stripe's subscription %s names no organization", id)
-	}
-	return b, nil
+	return subscriptionOfStripe(sub, at), nil
 }
 
 func (s *Stripe) post(ctx context.Context, path string, form url.Values, into any) error {

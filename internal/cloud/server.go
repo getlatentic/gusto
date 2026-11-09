@@ -48,9 +48,10 @@ type Config struct {
 	// Prewarm, when it is set, starts a node for a visitor who has begun the demo form, so it is up by the time they send it.
 	// It must not block, and must bound what it starts itself.
 	Prewarm func()
-	// Stripe bills organizations for their seats, when it is set up, and Seats keeps the seats billed equal to the members.
-	Stripe *Stripe
-	Seats  *SeatSync
+	// Billing bills organizations by the seat through the payment processors that are set up, and Seats keeps the seats
+	// billed equal to the members for the processors that follow them.
+	Billing *Billing
+	Seats   *SeatSync
 	// Metrics is what this process reports. New makes one when it is not given, and gives it to the controller.
 	Metrics *Metrics
 }
@@ -64,9 +65,11 @@ type Server struct {
 	all     *Limiter
 	invites *Limiter
 	codes   *Limiter
-	sending sync.WaitGroup
-	making  sync.WaitGroup
-	ender   demoEnder
+	// billingHooks and billingCalls limit the processors' deliveries and an organization's agents.
+	billingHooks, billingCalls *Limiter
+	sending                    sync.WaitGroup
+	making                     sync.WaitGroup
+	ender                      demoEnder
 }
 
 // New makes gusto cloud.
@@ -97,9 +100,11 @@ func New(c Config) (*Server, error) {
 		c.Controller.Metrics = c.Metrics
 		c.Metrics.watch(c.Controller)
 	}
+	c.Billing.useURL(c.URL)
 	return &Server{Config: c, pages: pages,
 		signups: c.limiter("signups", c.PerAddress), mails: c.limiter("mails", c.PerMailbox), all: c.limiter("all", c.InAll),
-		invites: c.limiter("invites", 20), codes: c.limiter("codes", codeTries)}, nil
+		invites: c.limiter("invites", 20), codes: c.limiter("codes", codeTries),
+		billingHooks: c.limiter("billing-webhooks", deliveriesPerHour), billingCalls: c.limiter("billing-agents", agentCallsPerHour)}, nil
 }
 
 // limiter counts most events an hour. With a store the count is shared by every gusto cloud server on its database.
@@ -212,9 +217,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /org/verify", s.guard(s.resend))
 	mux.HandleFunc("GET /open", s.guard(s.open))
 	s.peopleRoutes(mux)
-	mux.HandleFunc("POST /org/billing/subscribe", s.guard(s.subscribe))
-	mux.HandleFunc("POST /org/billing/manage", s.guard(s.manageBilling))
-	mux.HandleFunc("POST /stripe/webhook", s.stripeWebhook)
+	s.billingRoutes(mux)
 	mux.HandleFunc("GET /invite", s.invitationPage)
 	mux.HandleFunc("POST /invite", s.acceptInvitation)
 	mux.HandleFunc("GET /demo", s.demoForm)
@@ -258,7 +261,7 @@ func (s *Server) Wait() {
 func (s *Server) secure(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
-		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; form-action 'self'"+s.orgsSource()+" https://checkout.stripe.com https://billing.stripe.com; frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
+		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; form-action 'self'"+s.orgsSource()+s.billingSource()+"; frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "same-origin")
@@ -275,8 +278,8 @@ func (s *Server) secure(next http.Handler) http.Handler {
 				http.Error(w, "that form was sent from another site", http.StatusForbidden)
 				return
 			}
-			// An event from Stripe is bigger than a form, and its handler bounds it itself.
-			if r.URL.Path != "/stripe/webhook" {
+			// A delivery from a processor is bigger than a form, and its handler bounds it itself.
+			if r.URL.Path != stripeWebhookPath && !strings.HasPrefix(r.URL.Path, webhookPrefix) {
 				r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
 			}
 		}

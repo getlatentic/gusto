@@ -45,8 +45,8 @@ type view struct {
 	Several bool
 	// Credit is what is left of the organization's free credit on the models gusto provides.
 	Credit *credit
-	// Plan is how the organization pays, when this gusto cloud server bills.
-	Plan *plan
+	// Billing is how the organization pays, when this gusto cloud server bills.
+	Billing *billingView
 	// Orgs are the organizations a person chooses among.
 	Orgs     []Org
 	Person   Person

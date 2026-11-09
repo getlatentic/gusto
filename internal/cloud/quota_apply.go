@@ -114,15 +114,8 @@ func (s *Store) quotaOf(ctx context.Context, q dbkit.Querier, org Org) (quota.Qu
 	if org.Demo != nil {
 		return s.set.Demo.Limits, nil
 	}
-	billing, found, err := billingOf(ctx, q, org.Slug)
-	if err != nil {
-		return quota.Quota{}, err
-	}
-	switch {
-	case found && billing.Paid():
-		return s.paidQuota(billing.Seats), nil
-	case found && billing.Lapsed():
-		return s.lapsedQuota(), nil
+	if subscribed, ok, err := s.subscribedQuota(ctx, q, org.Slug); err != nil || ok {
+		return subscribed, err
 	}
 	verified, err := count(ctx, q, `SELECT count(*) FROM memberships m JOIN people p ON p.email = m.email
 		WHERE m.org = ? AND m.role = ? AND p.verified IS NOT NULL`, org.Slug, string(Admin))

@@ -21,15 +21,12 @@
       <dt>Admin</dt><dd>{{.Org.Admin}}</dd>
       {{if not .Org.Demo}}<dt>Your email</dt>
       <dd>{{if .Person.Trial}}<span class="inline-flex items-center rounded-full bg-warn-wash px-2 py-0.5 text-xs font-medium text-warn">Not verified</span>{{else}}<span class="inline-flex items-center rounded-full bg-ok-wash px-2 py-0.5 text-xs font-medium text-ok">Verified</span>{{end}}</dd>{{end}}
-      {{with .Plan}}<dt>Plan</dt><dd>{{.Words}}</dd>{{end}}
       {{if .Server}}<dt>Server</dt><dd>{{if .CanOpen}}<span class="inline-flex items-center rounded-full bg-ok-wash px-2 py-0.5 text-xs font-medium text-ok">Ready</span>{{else}}<span class="inline-flex items-center rounded-full bg-warn-wash px-2 py-0.5 text-xs font-medium text-warn">Starting</span>{{end}}</dd>{{end}}
       {{if and .Credit .IsAdmin}}<dt>Models</dt><dd>When the free credit is spent, add your own key in Admin, Models.</dd>{{end}}
     </dl>
-    {{with .Plan}}
-    {{if .Subscribe}}<form class="mt-4" method="post" action="/org/billing/subscribe"><button class="inline-flex h-9 items-center rounded-sm bg-solid px-4 text-sm font-semibold text-on-solid hover:bg-solid-hover" type="submit">{{.Offer}}</button></form>{{end}}
-    {{if .Manage}}<form class="mt-4" method="post" action="/org/billing/manage"><button class="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm font-medium text-muted hover:bg-wash hover:text-ink" type="submit">Card, invoices and plan</button></form>{{end}}
-    {{end}}
   </section>
+
+  {{with .Billing}}{{template "billing" .}}{{end}}
 
   <section class="rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
     <h2 class="mb-3 text-sm font-semibold">People</h2>

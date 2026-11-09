@@ -11,8 +11,8 @@ import (
 func TestGustoCloudsFormsMayEndAtAnyOrganizationsAddress(t *testing.T) {
 	f := withServers(t)
 	_, _, header := f.browser().do("GET", "/signin", nil, nil)
-	if policy := header.Get("Content-Security-Policy"); !strings.Contains(policy, "form-action 'self' http://*.cloud.test https://checkout.stripe.com") {
-		t.Errorf("a sign-in's way into the organization is refused: %s", policy)
+	if policy := header.Get("Content-Security-Policy"); !strings.Contains(policy, "form-action 'self' http://*.cloud.test;") {
+		t.Errorf("a sign-in's way into the organization is refused, or a processor nobody set up is allowed: %s", policy)
 	}
 	for address, want := range map[string]string{
 		"https://gusto.example.com":   " https://*.gusto.example.com",
