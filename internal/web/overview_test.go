@@ -75,7 +75,7 @@ func TestTheOverviewOnlyReadsAndHasNoForm(t *testing.T) {
 			t.Errorf("the overview still has %q", gone)
 		}
 	}
-	if !strings.Contains(page, "Spent this month") || !strings.Contains(page, "no budget set") {
+	if !strings.Contains(page, "Spent this month") || !strings.Contains(page, "No budget set.") {
 		t.Errorf("the overview does not say what was spent against what:\n%s", page)
 	}
 }
@@ -101,26 +101,26 @@ func TestTheOverviewSplitsTheMonthByPersonAndByAgentTypeAndEachSplitAddsUp(t *te
 	page := overview(t, here)
 	from := "from=" + monthStart(time.Now()).Format("2006-01-02")
 
-	if !strings.Contains(page, ">$3.00</span>") || !strings.Contains(page, "of $50.00") {
+	if !strings.Contains(page, ">$3.00 <span") || !strings.Contains(page, "of $50.00") {
 		t.Errorf("the month's total is not the sum of its calls against the budget:\n%s", page)
 	}
 	if strings.Contains(page, "$40") {
 		t.Error("last month's calls are counted in this month")
 	}
-	person := regexp.MustCompile(`(?s)By person, what they asked for</h2>.*?</section>`).FindString(page)
+	person := regexp.MustCompile(`(?s)>By person <a.*?</section>`).FindString(page)
 	for _, want := range []string{
 		">Ada</span>", "$2.00", "of $10.00", ">Bob</span>", "$1.00", ">No one named</span>", "$0.25",
-		">Cy</span>", "nothing yet", `href="/admin/budgets">View all`,
+		">Cy</span>", "Nothing yet", `href="/admin/budgets">View all`,
 	} {
 		if !strings.Contains(person, want) {
 			t.Errorf("By person lacks %q:\n%s", want, person)
 		}
 	}
 	if strings.Index(person, ">Ada<") > strings.Index(person, ">Bob<") || strings.Index(person, ">Bob<") > strings.Index(person, ">No one named<") ||
-		strings.Index(person, ">No one named<") > strings.Index(person, "nothing yet") {
+		strings.Index(person, ">No one named<") > strings.Index(person, "Nothing yet") {
 		t.Errorf("the people are not in order of what they asked for, then nobody, then those who asked for nothing:\n%s", person)
 	}
-	engines := regexp.MustCompile(`(?s)By agent type</h2>.*?</section>`).FindString(page)
+	engines := regexp.MustCompile(`(?s)>By agent type <a.*?</section>`).FindString(page)
 	for _, want := range []string{
 		`href="/admin/usage?agent_type=Claude&#43;Code&amp;` + from + `"`, "Claude Code <span class=\"text-subtle\">· 2 agents</span>", "$2.00",
 		`href="/admin/usage?agent_type=Codex&amp;` + from + `"`, "Codex <span class=\"text-subtle\">· 1 agent</span>", "$1.00",

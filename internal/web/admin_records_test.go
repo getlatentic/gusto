@@ -42,7 +42,7 @@ func TestARecordThatDoesNotHoldSaysSoOnEveryTab(t *testing.T) {
 	file.Close()
 	for _, path := range []string{"/admin/records", "/admin/records?tab=checks"} {
 		page := here.ask(t, "GET", path, nil).Body.String()
-		if !strings.Contains(page, `text-bad">Broken</strong>`) || !strings.Contains(page, "the activity log does not hold together") {
+		if !strings.Contains(page, `text-bad" role="alert"><strong>The record is broken.</strong>`) || !strings.Contains(page, "the activity log does not hold together") {
 			t.Errorf("%s does not say the record is broken:\n%s", path, page)
 		}
 		if strings.Contains(page, "gusto changes verify -head") {

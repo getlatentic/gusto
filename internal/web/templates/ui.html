@@ -67,3 +67,23 @@
 
 {{/* A switch is a button in a form that turns one thing on or off; aria-checked says which it is now. */}}
 {{define "ui-switch"}}relative inline-flex h-5 w-[2.125rem] flex-none cursor-pointer rounded-full bg-line-strong align-middle transition-colors after:absolute after:top-[0.1875rem] after:left-[0.1875rem] after:size-3.5 after:rounded-full after:bg-plate after:shadow-1 after:transition-[left] after:content-[''] aria-checked:bg-solid aria-checked:after:left-[1.0625rem] hover:bg-faint aria-checked:hover:bg-solid-hover{{end}}
+
+{{/* A page's header: its title, a line under it saying what the page is for, and the page's few actions at the right. */}}
+{{define "ui-page-head"}}mb-6 flex items-start gap-3{{end}}
+{{define "ui-page-title"}}min-w-0 flex-1{{end}}
+{{define "ui-page-sub"}}m-0 mt-1 text-sm text-muted{{end}}
+
+{{/* A menu behind a "…" button, for what a page needs only now and then. menus.js closes it on a click outside or Escape. */}}
+{{define "ui-more-open"}}<details class="relative flex-none" data-menu><summary class="grid size-9 cursor-pointer list-none place-items-center rounded-sm border border-line-strong text-muted hover:bg-wash hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="More" title="More">{{template "icon-more"}}</summary><div class="absolute top-full right-0 z-40 mt-1 grid w-56 gap-px rounded-md border border-line bg-surface p-1.5 shadow-2" role="menu">{{end}}
+{{define "ui-more-close"}}</div></details>{{end}}
+{{define "ui-menu-item"}}flex h-9 w-full cursor-pointer items-center gap-3 rounded-sm border-0 bg-transparent px-2.5 text-left text-sm text-ink no-underline hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted{{end}}
+
+{{/* A list of rows in one card: each row a main line, a quieter line under it, and an optional value at the right. */}}
+{{define "ui-list"}}grid overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line [&>*+*]:border-t [&>*+*]:border-line{{end}}
+{{define "ui-row"}}flex min-w-0 items-center gap-4 px-5 py-3 @max-[56rem]:px-4{{end}}
+{{define "ui-row-main"}}m-0 text-sm font-medium text-ink wrap-anywhere{{end}}
+{{define "ui-row-sub"}}m-0 mt-0.5 text-xs text-subtle{{end}}
+{{define "ui-row-end"}}flex-none text-sm text-muted tabular-nums{{end}}
+
+{{/* A state in one quiet line, a dot before it, for when all is well. When it is not, a page shows ui-notice instead. */}}
+{{define "ui-status-ok"}}m-0 flex items-center gap-2 text-sm text-muted before:size-2 before:flex-none before:rounded-full before:bg-ok{{end}}

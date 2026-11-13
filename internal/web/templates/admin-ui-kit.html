@@ -23,6 +23,25 @@
 
 <div class="grid gap-10">
 
+<section class="grid gap-3" aria-labelledby="kit-page-head">
+  <h2 class="text-base font-semibold" id="kit-page-head">Page header, menu, list and status</h2>
+  <p class="{{template "ui-note"}}">A page leads with what it is for. Actions it needs now and then go in the menu behind "…". Rows carry one main line and a quieter line under it.</p>
+  <div class="{{template "ui-card"}} grid gap-5">
+    <header class="{{template "ui-page-head"}} mb-0!">
+      <div class="{{template "ui-page-title"}}">
+        <h3 class="m-0 text-xl font-semibold">Records</h3>
+        <p class="{{template "ui-page-sub"}}">A signed record of everything that happened</p>
+      </div>
+      {{template "ui-more-open"}}<a class="{{template "ui-menu-item"}}" role="menuitem" href="#kit-page-head">{{template "icon-download"}}<span>Download the record</span></a>{{template "ui-more-close"}}
+    </header>
+    <p class="{{template "ui-status-ok"}}">Intact · 2 events, all signed · the last 3 tasks check out</p>
+    <div class="{{template "ui-list"}}">
+      <div class="{{template "ui-row"}}"><div class="min-w-0 flex-1"><p class="{{template "ui-row-main"}}">Signed in as admin, with the shared password</p><p class="{{template "ui-row-sub"}}">Today 19:18</p></div></div>
+      <div class="{{template "ui-row"}}"><div class="min-w-0 flex-1"><p class="{{template "ui-row-main"}}">Ada</p><p class="{{template "ui-row-sub"}}">ada@example.com</p></div><span class="{{template "ui-row-end"}}">Admin</span></div>
+    </div>
+  </div>
+</section>
+
 <section class="grid gap-3" aria-labelledby="kit-colour">
   <h2 class="text-base font-semibold" id="kit-colour">Colour</h2>
   <p class="{{template "ui-note"}}">Every colour is a token that follows the theme and the accent. Pages name the Tailwind colour, never a value.</p>

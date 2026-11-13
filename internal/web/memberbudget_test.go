@@ -54,7 +54,7 @@ func TestAnAdminSetsEveryMembersBudgetAndOnePersonsOwn(t *testing.T) {
 func TestAPersonSeesTheirBudgetAndTheirTasksAreTheirs(t *testing.T) {
 	here, _, _ := budgeted(t)
 	here.ask(t, "POST", "/admin/member-budget", url.Values{"usd": {"20"}})
-	if page := here.ask(t, "GET", "/usage", nil).Body.String(); !strings.Contains(page, "You have spent $0.0000 of your $20.00 budget this month.") {
+	if page := here.ask(t, "GET", "/usage", nil).Body.String(); !strings.Contains(page, "You have spent $0.00 of your $20.00 budget this month.") {
 		t.Errorf("the person's usage does not show their budget:\n%s", page[:min(len(page), 2000)])
 	}
 	where := startedThread(t, here)
