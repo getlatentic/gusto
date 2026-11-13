@@ -14,7 +14,7 @@
 {{with .Building}}{{if .Building}}<p class="mb-4 rounded-sm bg-warn-wash px-4 py-3 text-sm" role="status">The index is still being built, {{.Done}} of {{.Total}} tasks. What is below is not yet everything.</p>{{end}}{{end}}
 
 <div class="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 text-sm">
-  <p class="m-0 text-muted"><strong class="font-semibold text-ink">{{.Figures.Spent}}</strong> {{.Figures.SpentCaption}} · {{.Figures.Calls}} model calls · {{.Figures.In}} tokens in, {{.Figures.Cache}} cached · {{.Figures.Out}} out{{if .Figures.Refused}} · <span class="text-bad">{{.Figures.Refused}} refused by a cap</span>{{end}}</p>
+  <p class="m-0 text-muted">{{if or (eq .Figures.Spent "no price") (eq .Figures.Spent "—")}}{{.Figures.SpentCaption}}{{else}}<strong class="font-semibold text-ink">{{.Figures.Spent}}</strong> {{.Figures.SpentCaption}}{{end}} · {{.Figures.Calls}} model calls · {{.Figures.In}} tokens in, {{.Figures.Cache}} cached · {{.Figures.Out}} out{{if .Figures.Refused}} · <span class="text-bad">{{.Figures.Refused}} refused by a cap</span>{{end}}</p>
   <nav class="flex gap-3" aria-label="Which conversations">
     {{range .States}}<a class="text-muted no-underline hover:text-ink aria-[current]:font-medium aria-[current]:text-ink" href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{.Label}}{{with .Count}} <span class="font-normal text-subtle">{{.}}</span>{{end}}</a>{{end}}
   </nav>
