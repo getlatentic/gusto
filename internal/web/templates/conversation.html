@@ -246,7 +246,7 @@
       <span class="min-w-0 flex-1 truncate text-sm" title="{{.Who}}">{{personName .Who}}{{if .You}} <span class="text-subtle">you</span>{{end}}</span>
       {{if $.Members.Runs}}
       <form class="m-0" method="post" action="/rooms/{{$room.ID}}/members/role"><input type="hidden" name="who" value="{{.Who}}">
-        <select class="h-7 cursor-pointer rounded-md border-0 bg-transparent pr-1 text-sm text-muted [field-sizing:content] hover:bg-sunken" name="role" aria-label="Role of {{personName .Who}}" data-autosubmit>
+        <select class="h-7 cursor-pointer appearance-none rounded-sm border-0 bg-transparent bg-[image:var(--chevron-down-icon-50)] bg-size-[0.875rem] bg-position-[center_right_0.5rem] bg-no-repeat pr-7 pl-2 text-sm text-muted [field-sizing:content] hover:bg-sunken" name="role" aria-label="Role of {{personName .Who}}" data-autosubmit>
           <option value="admin"{{if eq .Role "admin"}} selected{{end}}>Admin</option><option value="member"{{if eq .Role "member"}} selected{{end}}>Member</option><option value="remove">{{if .You}}Leave the room{{else}}Remove from room{{end}}</option>
         </select>
       </form>

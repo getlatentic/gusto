@@ -1,9 +1,11 @@
 {{template "head" .}}
 
-<div class="{{template "ui-title"}}">
-  <h1>Connections</h1>
-  <span class="text-sm text-muted">Apps your agents use as you</span>
-</div>
+<header class="{{template "ui-page-head"}}">
+  <div class="{{template "ui-page-title"}}">
+    <h1>Connections</h1>
+    <p class="{{template "ui-page-sub"}}">Apps your agents use as you</p>
+  </div>
+</header>
 
 {{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
 {{with .Done}}<p class="mb-4 rounded-sm bg-wash px-4 py-3 text-sm" role="status">You are signed in to {{.}}. Your agents use it from their next task.</p>{{end}}

@@ -1,9 +1,11 @@
 {{template "head" .}}
 
-<div class="{{template "ui-title"}} mb-4!">
-  <h1>Apps &amp; skills</h1>
-  <span class="text-sm text-muted">What agents may use, for everyone in {{with .OrgName}}{{.}}{{else}}this workspace{{end}}</span>
-</div>
+<header class="{{template "ui-page-head"}}">
+  <div class="{{template "ui-page-title"}}">
+    <h1>Apps &amp; skills</h1>
+    <p class="{{template "ui-page-sub"}}">What agents may use, for everyone in {{with .OrgName}}{{.}}{{else}}this workspace{{end}}</p>
+  </div>
+</header>
 {{if gt (len .Tabs) 1}}{{template "ui-tabs" .Tabs}}{{end}}
 
 {{template "ui-flash" .}}

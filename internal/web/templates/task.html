@@ -8,8 +8,8 @@
 
 <header class="mb-5 flex items-end justify-between gap-4 @max-[56rem]:flex-col @max-[56rem]:items-start">
   <div class="min-w-0">
-    <p class="mb-1 text-xs font-semibold text-subtle">Run details{{with .Talk}} · message {{.Place}} of {{.Of}}{{end}}</p>
     <h1 class="text-2xl wrap-anywhere">{{.Job.Brief}}</h1>
+    <p class="{{template "ui-page-sub"}}">Run details{{with .Talk}} · message {{.Place}} of {{.Of}}{{end}}</p>
     {{with waiting .Job.ID}}<p class="mt-1 text-muted" id="why">{{.}}</p>{{end}}
   </div>
   <div class="flex flex-none items-center gap-2">
@@ -18,18 +18,16 @@
   </div>
 </header>
 
-<section class="mb-5 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-6 gap-y-4 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line" aria-label="Summary">
-  <div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Outcome</span><span class="text-sm font-semibold">{{template "state" (dict "State" .Job.State "Text" (outcome .Run) "ID" "state")}}</span></div>
-  <div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Time</span><span class="truncate text-sm font-semibold">{{with took .Job.Started .Job.Ended}}{{.}}{{else}}—{{end}}</span></div>
-  {{if .Run.Metered}}<div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Cost</span><span class="truncate text-sm font-semibold">{{template "cost" .Run}}</span></div>{{end}}
-  {{with .Calls}}<div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Tokens</span><span class="truncate text-sm font-semibold">{{tokens .Tally.InputTokens}} in · {{tokens .Tally.OutputTokens}} out</span></div>{{end}}
-  {{with .Check}}<div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Check</span><span class="text-sm font-semibold">{{with .Verdict}}{{template "state" (dict "State" (printf "%s" (or (and .Passed "passed") "failed")) "Text" (or (and .Passed "passed") "failed"))}}{{else}}no answer{{end}}</span></div>{{end}}
-  <div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Agent</span><span class="truncate text-sm font-semibold">{{with .Agent}}<a class="text-inherit no-underline hover:underline" href="/instances/{{.ID}}">{{.Name}}</a>{{else}}{{.Job.Harness}}{{end}}</span></div>
-  {{with .Build}}<div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Build</span><span class="truncate text-sm font-semibold">{{.}}</span></div>{{end}}
-  {{if not .Agent}}<div class="col-span-2 grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Came from</span><span class="text-sm font-semibold">{{with .On}}{{if .Link}}<a class="text-inherit no-underline hover:underline" href="{{.Link}}" title="{{.Why}}">{{.Named}}</a>{{else}}<span class="text-muted" title="{{.Why}}">{{.Named}}</span>{{end}}{{end}}</span></div>{{end}}
-  <div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Model</span><span class="truncate text-sm font-semibold">{{with .Agent}}{{.Brain}}{{else}}{{with .Job.Model}}{{brain .}}{{else}}—{{end}}{{end}}</span></div>
-  {{with .Proof}}{{if not .Holds}}<div class="grid min-w-0 content-start gap-1"><span class="text-xs font-semibold text-subtle">Integrity</span><a class="text-sm font-semibold text-bad no-underline hover:underline" href="#proof">does not check out</a></div>{{end}}{{end}}
-</section>
+<p class="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm" aria-label="Summary">{{template "state" (dict "State" .Job.State "Text" (outcome .Run) "ID" "state")}}<span class="text-muted">{{with took .Job.Started .Job.Ended}}{{.}}{{else}}—{{end}}{{if .Run.Metered}} · {{template "cost" .Run}}{{end}}</span></p>
+<dl class="{{template "ui-list"}} m-0 mb-5 max-w-4xl" aria-label="Details">
+  {{with .Calls}}<div class="{{template "ui-row"}}"><dt class="w-32 flex-none text-sm text-muted">Tokens</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="truncate text-sm font-semibold">{{tokens .Tally.InputTokens}} in · {{tokens .Tally.OutputTokens}} out</span></dd></div>{{end}}
+  {{with .Check}}<div class="{{template "ui-row"}}"><dt class="w-32 flex-none text-sm text-muted">Check</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="text-sm font-semibold">{{with .Verdict}}{{template "state" (dict "State" (printf "%s" (or (and .Passed "passed") "failed")) "Text" (or (and .Passed "passed") "failed"))}}{{else}}no answer{{end}}</span></dd></div>{{end}}
+  <div class="{{template "ui-row"}}"><dt class="w-32 flex-none text-sm text-muted">Agent</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="truncate text-sm font-semibold">{{with .Agent}}<a class="text-inherit no-underline hover:underline" href="/instances/{{.ID}}">{{.Name}}</a>{{else}}{{.Job.Harness}}{{end}}</span></dd></div>
+  {{with .Build}}<div class="{{template "ui-row"}}"><dt class="w-32 flex-none text-sm text-muted">Build</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="truncate text-sm font-semibold">{{.}}</span></dd></div>{{end}}
+  {{if not .Agent}}<div class="{{template "ui-row"}}"><dt class="w-32 flex-none text-sm text-muted">Came from</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="text-sm font-semibold">{{with .On}}{{if .Link}}<a class="text-inherit no-underline hover:underline" href="{{.Link}}" title="{{.Why}}">{{.Named}}</a>{{else}}<span class="text-muted" title="{{.Why}}">{{.Named}}</span>{{end}}{{end}}</span></dd></div>{{end}}
+  <div class="{{template "ui-row"}}"><dt class="w-32 flex-none text-sm text-muted">Model</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="truncate text-sm font-semibold">{{with .Agent}}{{.Brain}}{{else}}{{with .Job.Model}}{{brain .}}{{else}}—{{end}}{{end}}</span></dd></div>
+  {{with .Proof}}{{if not .Holds}}<div class="{{template "ui-row"}}"><dt class="w-32 flex-none text-sm text-muted">Integrity</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><a class="text-sm font-semibold text-bad no-underline hover:underline" href="#proof">does not check out</a></dd></div>{{end}}{{end}}
+</dl>
 
 {{with .Manifest}}{{with .StoppedByCap}}<p class="mb-4 flex flex-wrap items-center gap-2 text-sm">{{template "state" (dict "State" "failed" "Text" (printf "stopped by the %s cap" .Cap))}} <span class="text-muted">{{.Reason}}</span></p>{{end}}{{end}}
 
