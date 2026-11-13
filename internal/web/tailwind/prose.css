@@ -54,3 +54,6 @@
 .prose :where(blockquote) { border-inline-start-width: 0.1875rem; }
 .prose :where(hr) { border-top-width: 0.0625rem; }
 .prose :where(thead, tbody tr) { border-bottom-width: 0.0625rem; }
+
+/* A file card's preview is a glance at the file, so its headings are the size of the text around the card. */
+.prose[data-preview] :is(h1, h2, h3) { margin: 0 0 0.25rem; font-size: 1rem; line-height: 1.5rem; }

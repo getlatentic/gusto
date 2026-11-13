@@ -31,7 +31,7 @@
   </header>
 
   <div class="said-so-far relative overflow-y-auto px-6 py-8 focus-visible:-outline-offset-2 @max-[56rem]:px-4 @max-[56rem]:py-6" id="said" tabindex="0" role="region" aria-label="Conversation">
-    <div class="mx-auto max-w-[56rem]">
+    <div class="mx-auto max-w-[42.5rem]">
       <div id="turns"{{with .Version}} data-version="{{.}}"{{end}}{{with .Stream}} data-live="{{.Path}}" data-seq="{{.Seq}}" data-epoch="{{.Epoch}}" data-room="{{$.Instance.ID}}" data-thread="{{$.Thread.ID}}" data-me="{{$.Me}}" data-settings="{{$.Settings.Mark}}"{{if $.Sharing}} data-sharing{{end}}{{end}}>{{template "turns" .}}</div>
       <p class="sr-only" role="status" id="typing-news"></p>
       {{if .Stream}}<p class="m-0 mt-2 h-5 text-xs text-subtle" id="typing" aria-hidden="true"></p>{{end}}
@@ -63,11 +63,11 @@
   <form id="model-form" method="post" action="/instances/{{.Instance.ID}}/model"><input type="hidden" name="back" value="{{.Path}}"></form>
   {{if and .Waiting (not .Instance.Room)}}<form id="stop-form" method="post" action="/jobs/{{.Latest}}/stop"><input type="hidden" name="back" value="{{.Path}}"></form>{{end}}
   <div class="composer px-6 pt-2 pb-5 @max-[56rem]:px-3 @max-[56rem]:pb-3">
-    {{if .Settings.Archived}}<div class="mx-auto flex max-w-[56rem] items-center gap-3 rounded-[1.25rem] border border-line bg-sunken py-3 pr-3 pl-5 text-sm text-muted @max-[56rem]:flex-wrap"><span class="min-w-0 flex-1">This room is archived. Nobody can say anything in it until an admin brings it back.</span>{{if .Settings.Runs}}<form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/archive"><input type="hidden" name="archive" value="off"><button type="submit" class="{{template "ui-btn-quiet"}}">Unarchive</button></form>{{end}}</div>{{end}}
-    <form class="relative mx-auto max-w-[56rem]" method="post" action="{{.Path}}/say" id="say-form"{{if .Instance.Room}} enctype="multipart/form-data"{{end}}{{if .Settings.Archived}} hidden{{end}}>
+    {{if .Settings.Archived}}<div class="mx-auto flex max-w-[42.5rem] items-center gap-3 rounded-md border border-line bg-sunken py-3 pr-3 pl-5 text-sm text-muted @max-[56rem]:flex-wrap"><span class="min-w-0 flex-1">This room is archived. Nobody can say anything in it until an admin brings it back.</span>{{if .Settings.Runs}}<form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/archive"><input type="hidden" name="archive" value="off"><button type="submit" class="{{template "ui-btn-quiet"}}">Unarchive</button></form>{{end}}</div>{{end}}
+    <form class="relative mx-auto max-w-[42.5rem]" method="post" action="{{.Path}}/say" id="say-form"{{if .Instance.Room}} enctype="multipart/form-data"{{end}}{{if .Settings.Archived}} hidden{{end}}>
       <p class="{{template "ui-notice-chat"}} mb-2" id="unsent"{{if .Unsent}} role="alert"{{else}} hidden{{end}}>{{.Unsent}}</p>
       {{if .Instance.Room}}<ul class="absolute bottom-full left-0 z-30 mb-2 grid w-80 max-w-full list-none gap-px rounded-xl border border-line bg-surface p-1.5 shadow-2" id="mention-menu" role="listbox" aria-label="Mention" data-people="{{.Mentions}}" hidden></ul>{{end}}
-      <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[1.25rem] border border-line-strong bg-surface py-3 pr-3 pl-5 shadow-1 transition-shadow has-[textarea:focus-visible]:border-focus has-[textarea:focus-visible]:ring-1 has-[textarea:focus-visible]:ring-focus">
+      <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-md border border-line-strong bg-surface py-3 pr-3 pl-5 shadow-1 transition-shadow has-[textarea:focus-visible]:border-focus has-[textarea:focus-visible]:ring-1 has-[textarea:focus-visible]:ring-focus">
         {{if .Instance.Room}}
         <ul class="m-0 flex list-none flex-wrap gap-1.5 p-0 [&[hidden]]:hidden" id="attached" aria-label="Files attached to this message" hidden></ul>
         <div class="relative">
@@ -318,7 +318,7 @@
 {{if .Instance.Room}}{{template "room-turns" .}}{{else}}
 {{range .Turns}}
 <article class="mb-8" id="{{.ID}}">
-  <p class="mb-4 ml-auto w-fit max-w-[34rem] rounded-lg bg-wash px-4 py-2.5 text-base whitespace-pre-wrap wrap-anywhere">{{.Said}}</p>
+  <p class="mb-4 w-fit max-w-full rounded-md bg-accent-wash px-3 py-2 text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere">{{.Said}}</p>
   {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $)}}{{end}}
 </article>
 {{end}}
@@ -362,25 +362,25 @@
 so the one thing that is a viewer's own, which bubbles are theirs, is marked on the element for the browser to apply. */}}
 {{define "room-turn"}}{{with .T}}
 <article id="{{.ID}}"{{if and (not .Note) (not .State.Done)}} data-pending{{end}}>
-  {{with .Divider}}<p class="my-6 flex items-center gap-3 text-xs text-subtle tabular-nums before:h-px before:w-16 before:bg-line after:h-px after:w-16 after:bg-line justify-center">{{.}}</p>{{end}}
+  {{with .Divider}}<p class="my-6 flex items-center gap-3 text-xs font-medium text-subtle before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">{{.}}</p>{{end}}
   {{if .Notice}}
   <p class="mx-auto mt-5 flex w-fit max-w-[40rem] items-start gap-2 rounded-xl bg-warn-wash px-3 py-2 text-sm leading-6 text-warn [&>svg]:mt-1 [&>svg]:size-4 [&>svg]:flex-none" role="status">{{template "icon-info"}}<span>{{.Said}}{{with .File}} <a class="font-medium text-inherit" href="/instances/{{$.P.Instance.ID}}/file?path={{.}}&amp;from={{$.P.Path}}">Open it</a>{{end}}</span></p>
   {{else if not (or .From .Echo)}}
   <div class="group grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5 {{if .SaidJoins}}mt-1.5{{else}}mt-5{{end}}">
     {{if not .SaidJoins}}
-    <span class="row-span-2 grid size-8 place-items-center rounded-full {{if eq .Who $.P.Me}}bg-accent-wash text-accent-ink{{else}}bg-sunken text-muted{{end}} text-xs font-medium [&>svg]:size-4" data-who="{{.Who}}" data-ours="bg-accent-wash text-accent-ink" data-theirs="bg-sunken text-muted" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
-    <p class="m-0 flex h-5 items-center gap-2 text-sm"><span class="font-medium text-ink">{{personName .Who}}</span><time class="text-xs text-subtle opacity-0 tabular-nums group-hover:opacity-100">{{clock .Queued}}</time></p>
+    <span class="grid size-8 place-items-center rounded-full {{if eq .Who $.P.Me}}bg-accent-wash text-accent-ink{{else}}bg-sunken text-muted{{end}} text-xs font-medium [&>svg]:size-4" data-who="{{.Who}}" data-ours="bg-accent-wash text-accent-ink" data-theirs="bg-sunken text-muted" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
+    <p class="m-0 flex h-8 items-center gap-2 text-sm"><span class="font-semibold text-ink">{{personName .Who}}</span><time class="text-xs text-subtle tabular-nums">{{clock .Queued}}</time></p>
     {{end}}
-    <p class="col-start-2 m-0 mt-1 w-fit max-w-[40rem] rounded-xl {{if eq .Who $.P.Me}}bg-accent-wash{{else}}bg-sunken{{end}} px-3 py-2 text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere" data-who="{{.Who}}" data-ours="bg-accent-wash" data-theirs="bg-sunken">{{mentionsIn .Said $.P.Names}}</p>
+    <p class="col-start-2 m-0 w-fit max-w-full rounded-md {{if eq .Who $.P.Me}}bg-accent-wash{{else}}bg-sunken{{end}} px-3 py-2 text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere" data-who="{{.Who}}" data-ours="bg-accent-wash" data-theirs="bg-sunken">{{mentionsIn .Said $.P.Names}}</p>
   </div>
   {{end}}
   {{if not .Note}}
   <div class="group grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5 {{if .ReplyJoins}}mt-1.5{{else}}mt-5{{end}}">
     {{if not .ReplyJoins}}
-    <span class="row-span-2 grid size-8 place-items-center overflow-hidden rounded-full bg-sunken [&_img]:size-5 [&_.mark]:size-5" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
-    <p class="m-0 flex h-5 min-w-0 items-center gap-1.5 text-sm"><span class="font-medium text-ink" title="{{.Engine}}">{{.By}}</span><span class="truncate text-subtle">{{.Role}}</span>{{with .Owner}}<span class="flex-none text-subtle" data-agent-owner="{{.}}" data-yours="· your agent" data-theirs="· {{ownerLabel . ""}}">· {{ownerLabel . $.P.Me}}</span>{{end}}<span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span>{{with .From}}<span class="text-subtle">· asked by {{mentionsIn (print "@" .) $.P.Names}}</span>{{end}}<time class="text-xs text-subtle opacity-0 tabular-nums group-hover:opacity-100">{{clock .Queued}}</time></p>
+    <span class="grid size-8 place-items-center overflow-hidden rounded-full bg-sunken [&_img]:size-5 [&_.mark]:size-5" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
+    <p class="m-0 flex h-8 min-w-0 items-center gap-2 text-sm"><span class="truncate font-semibold text-ink" title="{{.Role}}">{{.By}}</span>{{if .Owner}}<span class="{{template "ui-badge"}} flex-none" data-agent-owner="{{.Owner}}" data-yours="your agent" data-theirs="{{ownerLabel .Owner ""}}">{{ownerLabel .Owner $.P.Me}}</span>{{else}}<span class="{{template "ui-badge"}} flex-none">agent</span>{{end}}{{with .From}}<span class="text-subtle">asked by {{mentionsIn (print "@" .) $.P.Names}}</span>{{end}}<time class="flex-none text-xs text-subtle tabular-nums">{{clock .Queued}}</time></p>
     {{end}}
-    <div class="col-start-2 mt-1 grid w-fit max-w-[40rem] min-w-[min(14rem,100%)] grid-cols-[minmax(0,1fr)] gap-3 rounded-xl bg-sunken px-3 py-2 text-[0.9375rem] leading-6">
+    <div class="col-start-2 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 text-[0.9375rem] leading-6">
       {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $.P)}}{{else}}<div class="flex items-center gap-2 text-sm text-muted">{{if .Holding}}<span class="size-3 flex-none rounded-full border-2 border-line-strong" aria-hidden="true"></span><span data-waiting>{{.Holding}}</span>{{else}}<span class="size-3 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span><span class="min-w-0 truncate" data-progress>Working</span>{{end}}<form class="m-0 ml-2 flex-none" method="post" action="/jobs/{{.ID}}/stop"><input type="hidden" name="back" value="{{$.P.Path}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-ink hover:underline">Stop</button></form></div>{{end}}
     </div>
     {{if .State.Done}}{{with .Files}}{{template "file-cards" (dict "F" . "P" $.P)}}{{end}}{{end}}
@@ -392,7 +392,7 @@ so the one thing that is a viewer's own, which bubbles are theirs, is marked on 
 {{/* The files a reply produced, each a card that opens the file, past the first few folded away. A file that is no longer there
 is a line saying so. */}}
 {{define "file-cards"}}{{with .F}}
-<div class="col-start-2 mt-2 grid w-full max-w-[44rem] min-w-0 gap-2">
+<div class="col-start-2 mt-2 grid w-full min-w-0 gap-2">
   {{range .Cards}}{{template "file-card" (dict "C" . "P" $.P)}}{{end}}
   {{with .More}}
   <details class="group grid gap-2">
@@ -414,10 +414,10 @@ clicks or focus of its own. A web page is previewed in a frame with every permis
       <a class="block truncate text-sm font-medium text-ink no-underline after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:rounded-md focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-focus" href="/instances/{{$.P.Instance.ID}}/file?path={{.Path}}&amp;from={{$.P.Path}}" title="{{.Path}}">{{.Name}}</a>
       <p class="m-0 text-xs text-subtle tabular-nums">{{.Size}}</p>
     </div>
-    <a class="relative z-[1] grid size-8 flex-none place-items-center rounded-sm border border-line-strong text-muted transition-colors hover:bg-wash hover:text-ink" href="{{.Download}}" download aria-label="Download {{.Name}}" title="Download">{{template "icon-download"}}</a>
+    <a class="relative z-[1] grid size-8 flex-none place-items-center rounded-sm text-subtle transition-colors hover:bg-wash hover:text-ink [&>svg]:size-4" href="{{.Download}}" download aria-label="Download {{.Name}}" title="Download">{{template "icon-download"}}</a>
   </div>
   {{if eq .Kind "markdown"}}
-  <div class="prose pointer-events-none max-h-56 overflow-hidden border-t border-line px-4 py-3 text-sm" inert data-preview="markdown">{{.Page}}</div>
+  <div class="prose pointer-events-none max-h-40 overflow-hidden border-t border-line px-4 py-3 text-sm" inert data-preview="markdown">{{.Page}}</div>
   {{else if eq .Kind "html"}}
   <div class="pointer-events-none border-t border-line" inert data-preview="html"><iframe class="block h-56 w-full border-0 bg-white [color-scheme:light]" sandbox="" src="{{.Raw}}" loading="lazy" tabindex="-1" title="{{.Name}}"></iframe></div>
   {{else if eq .Kind "image"}}
