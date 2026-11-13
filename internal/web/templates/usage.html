@@ -1,29 +1,26 @@
 {{template "head" .}}
 
-<div class="mb-6 flex flex-wrap items-start gap-3">
-  <div class="grid gap-1">
-    <div class="flex flex-wrap items-center gap-3"><h1>Usage</h1>{{template "usage-tabs" .Tabs}}</div>
-    <p class="m-0 text-sm text-muted">Every conversation, what it cost, and whether it worked</p>
+<header class="{{template "ui-page-head"}}">
+  <div class="{{template "ui-page-title"}}">
+    <h1>Usage</h1>
+    <p class="{{template "ui-page-sub"}}">Every conversation, what it cost, and whether it worked</p>
   </div>
-  {{with .Usage}}<a class="ml-auto inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-4 py-2 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.Export}}">{{template "icon-download"}} Download CSV</a>{{end}}
-</div>
+  {{with .Usage}}{{template "ui-more-open"}}<a class="{{template "ui-menu-item"}}" role="menuitem" href="{{.Export}}">{{template "icon-download"}}<span>Download CSV</span></a>{{template "ui-more-close"}}{{end}}
+</header>
+{{template "usage-tabs" .Tabs}}
 
 {{with .Mine}}<p class="{{if .Passed}}{{template "ui-notice"}}{{else}}mb-4 rounded-sm bg-wash px-4 py-3 text-sm{{end}}" role="status">{{if .Passed}}You have reached your budget for this month: {{usd .Spent}} of {{usd .Limit}}. Your agents are stopped until next month, or until an admin raises it.{{else}}You have spent {{usd .Spent}} of your {{usd .Limit}} budget this month.{{end}}</p>{{end}}
 {{with .Usage}}
 {{with .Building}}{{if .Building}}<p class="mb-4 rounded-sm bg-warn-wash px-4 py-3 text-sm" role="status">The index is still being built, {{.Done}} of {{.Total}} tasks. What is below is not yet everything.</p>{{end}}{{end}}
 
-<nav class="mb-5 flex gap-1 border-b border-line text-sm" aria-label="Which conversations">
-  {{range .States}}<a class="-mb-px border-b-2 border-transparent px-3 py-2 font-medium text-muted no-underline hover:text-ink aria-[current]:border-ink aria-[current]:text-ink" href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{.Label}}{{with .Count}} <span class="font-normal text-subtle">{{.}}</span>{{end}}</a>{{end}}
-</nav>
+<div class="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 text-sm">
+  <p class="m-0 text-muted"><strong class="font-semibold text-ink">{{.Figures.Spent}}</strong> {{.Figures.SpentCaption}} · {{.Figures.Calls}} model calls · {{.Figures.In}} tokens in, {{.Figures.Cache}} cached · {{.Figures.Out}} out{{if .Figures.Refused}} · <span class="text-bad">{{.Figures.Refused}} refused by a cap</span>{{end}}</p>
+  <nav class="flex gap-3" aria-label="Which conversations">
+    {{range .States}}<a class="text-muted no-underline hover:text-ink aria-[current]:font-medium aria-[current]:text-ink" href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{.Label}}{{with .Count}} <span class="font-normal text-subtle">{{.}}</span>{{end}}</a>{{end}}
+  </nav>
+</div>
 
-<section class="mb-6 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-6 gap-y-5 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
-  {{template "figure" (dict "Value" .Figures.Spent "Label" .Figures.SpentCaption "Headline" true)}}
-  {{template "figure" (dict "Value" .Figures.Calls "Label" "model calls")}}
-  {{template "figure" (dict "Value" .Figures.In "Label" (printf "tokens in, %s cached" .Figures.Cache))}}
-  {{template "figure" (dict "Value" .Figures.Out "Label" "tokens out")}}
-  {{template "figure" (dict "Value" .Figures.Refused "Label" "refused by a cap" "Bad" .Figures.Refused)}}
-</section>
-
+{{if or .Rows .Filtered}}
 <form class="mb-4 grid gap-3 text-sm" method="get" action="{{$.Base}}" role="search">
   <div class="flex flex-wrap items-center gap-3">
     <label class="min-w-56 flex-1"><span class="sr-only">Search sessions, people, agents, agent types, providers and models</span>
@@ -45,6 +42,7 @@
     </div>
   </details>
 </form>
+{{end}}
 
 {{if .Rows}}
 <div class="overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line">
@@ -78,24 +76,24 @@
 </div>
 {{with .Figures.Unpriced}}<p class="mt-3 text-sm text-muted">{{.}}</p>{{end}}
 {{else if .Filtered}}
-<p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1 dark:border dark:border-line">No session matches these filters. <a class="underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{.Clear}}">Clear them</a>.</p>
+<p class="{{template "ui-empty"}}">No session matches these filters. <a class="underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{.Clear}}">Clear them</a>.</p>
 {{else if .Values.Get "state"}}
-<p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1 dark:border dark:border-line">No conversation has failed. One is listed here when its latest turn fails.</p>
+<p class="{{template "ui-empty"}}">No conversation has failed. One is listed here when its latest turn fails.</p>
 {{else if .Building.Building}}
-<p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1 dark:border dark:border-line">Nothing is listed yet: the index is still being built.</p>
+<p class="{{template "ui-empty"}}">Nothing is listed yet: the index is still being built.</p>
 {{else}}
-<p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1 dark:border dark:border-line">No model call has been recorded yet. Every call an agent makes goes through the proxy, and each one is listed here, whoever made it.</p>
+<p class="{{template "ui-empty"}}"><strong class="{{template "ui-empty-title"}}">No model calls yet</strong>Every call an agent makes goes through the proxy and is listed here, whoever made it.</p>
 {{end}}
 
 {{else}}
-<p class="rounded-md bg-surface px-6 py-12 text-center text-muted shadow-1 dark:border dark:border-line">This server keeps no usage index.</p>
+<p class="{{template "ui-empty"}}">This server keeps no usage index.</p>
 {{end}}
 
 {{template "foot" .}}
 
-{{define "usage-tabs"}}<nav class="flex gap-1 rounded-md bg-wash p-[0.1875rem] text-sm" aria-label="Usage views">
-  <a class="inline-flex items-center rounded-sm px-3 py-1.5 font-medium text-muted no-underline hover:text-ink aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink aria-[current]:shadow-1" href="{{.Summary}}"{{if eq .Current "summary"}} aria-current="page"{{end}}>Summary</a>
-  <a class="inline-flex items-center rounded-sm px-3 py-1.5 font-medium text-muted no-underline hover:text-ink aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink aria-[current]:shadow-1" href="{{.Tasks}}"{{if eq .Current "tasks"}} aria-current="page"{{end}}>Conversations</a>
+{{define "usage-tabs"}}<nav class="mb-5 flex gap-1 border-b border-line text-sm" aria-label="Usage views">
+  <a class="-mb-px border-b-2 border-transparent px-3 py-2 font-medium text-muted no-underline hover:text-ink aria-[current]:border-ink aria-[current]:text-ink" href="{{.Summary}}"{{if eq .Current "summary"}} aria-current="page"{{end}}>Summary</a>
+  <a class="-mb-px border-b-2 border-transparent px-3 py-2 font-medium text-muted no-underline hover:text-ink aria-[current]:border-ink aria-[current]:text-ink" href="{{.Tasks}}"{{if eq .Current "tasks"}} aria-current="page"{{end}}>Conversations</a>
 </nav>{{end}}
 
 {{define "usage-select"}}<label><span class="sr-only">{{.Label}}</span>

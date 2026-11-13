@@ -1,19 +1,22 @@
 {{template "head" .}}
 {{with .Ledger}}
 
-<div class="mb-6 flex items-center gap-3">
-  <h1>Usage</h1>
-  {{template "usage-tabs" $.Tabs}}
-  <form class="ml-auto" method="get" action="{{$.Base}}">
+<header class="{{template "ui-page-head"}}">
+  <div class="{{template "ui-page-title"}}">
+    <h1>Usage</h1>
+    <p class="{{template "ui-page-sub"}}">What agents cost this month, day by day</p>
+  </div>
+  <form class="m-0" method="get" action="{{$.Base}}">
     <label><span class="sr-only">Month</span>
       <select class="select" name="month" data-autosubmit>
         {{$month := .Month}}{{range .Months}}<option{{if eq . $month}} selected{{end}}>{{.}}</option>{{end}}
         {{if not .Months}}<option selected>{{.Month}}</option>{{end}}
       </select>
     </label>
-    <noscript><button class="inline-flex h-9 items-center rounded-sm bg-solid px-4 text-sm font-semibold text-on-solid" type="submit">Show</button></noscript>
+    <noscript><button class="{{template "ui-btn"}}" type="submit">Show</button></noscript>
   </form>
-</div>
+</header>
+{{template "usage-tabs" $.Tabs}}
 
 <section class="mb-6 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-6 gap-y-5 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
   {{$spent := usd .Total.USD}}{{if and (eq .Total.USD 0.0) .Total.Unmeasured}}{{$spent = "—"}}{{end}}
