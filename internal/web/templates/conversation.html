@@ -1,11 +1,11 @@
 {{template "head" .}}
 
 <section class="talk grid min-h-0 w-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]">
-  <header class="flex min-h-13 items-center gap-3 px-6 py-2 @max-[56rem]:px-4">
-    <h1 class="flex min-w-0 flex-1 items-center gap-2 font-sans text-base font-semibold" title="{{.Named}}">{{if and .Instance.Direct .Instance.Agents}}{{with index .Instance.Agents 0}}<span class="grid size-7 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Name "Size" "sm")}}</span><span class="truncate">{{.Name}}</span>{{with .Job}}<span class="truncate text-sm font-normal text-subtle">{{.}}</span>{{end}}{{end}}{{else}}<span class="truncate">{{.Named}}</span>{{end}}</h1>
-    {{if .Stream}}<span class="flex flex-none items-center -space-x-1.5" id="here" aria-label="In this room now" hidden></span>{{end}}
+  <header class="flex min-h-16 items-center gap-0.5 px-6 py-2 @max-[56rem]:px-4">
+    <h1 class="flex min-w-0 flex-1 items-center gap-2 font-sans text-base font-semibold" title="{{.Named}}">{{if and .Instance.Direct .Instance.Agents}}{{with index .Instance.Agents 0}}<span class="grid size-7 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Name "Size" "sm")}}</span><span class="truncate">{{.Name}}</span>{{with .Job}}<span class="truncate text-sm font-normal text-subtle">{{.}}</span>{{end}}{{end}}{{else}}{{if .Instance.Room}}<span class="flex-none text-subtle [&>svg]:size-4" aria-hidden="true">{{template "icon-users"}}</span>{{end}}<span class="truncate">{{.Named}}</span>{{end}}</h1>
+    {{if .Stream}}<span class="mr-3 flex flex-none items-center -space-x-1.5" id="here" aria-label="In this room now" hidden></span>{{end}}
     {{if .Instance.Room}}{{else}}
-    <div class="flex min-w-0 items-center gap-2 text-xs text-muted @max-[56rem]:hidden">
+    <div class="mr-3 flex min-w-0 items-center gap-2 text-xs text-muted @max-[56rem]:hidden">
       <a class="inline-flex min-h-6 min-w-0 items-center gap-2 text-inherit no-underline hover:text-ink [&>svg]:size-3.5" href="/instances/{{.Instance.ID}}" title="About this project">{{template "mark" (dict "Harness" .Agent.Harness "Name" .Agent.Name "Size" "xs")}}<span class="max-w-48 truncate">{{.Agent.Name}}</span></a>
       {{with .Thread.Dir}}<span class="text-subtle">/</span><span class="max-w-48 truncate text-ink" title="This conversation works in the folder {{.}}">{{.}}</span>{{end}}
     </div>
@@ -16,7 +16,7 @@
     <a class="flex-none {{template "ui-btn-ghost"}}" href="{{if .Instance.Room}}/rooms/{{.Instance.ID}}/files{{else}}/instances/{{.Instance.ID}}/files?from={{.Path}}{{end}}"{{if .Instance.Room}} data-files-panel data-tab-name="Files"{{end}}>{{template "icon-file"}}<span>Files</span></a>
     {{if .Instance.Room}}<a class="flex-none {{template "ui-btn-ghost"}} tabular-nums" href="{{.Path}}?members=1" data-open="room-members" title="Room members" aria-label="Room members, {{.Headcount}}">{{template "icon-users"}}<span>{{.Headcount}}</span></a>
     <details class="relative flex-none" data-menu>
-      <summary class="grid size-8 cursor-pointer list-none place-items-center rounded-md text-muted hover:bg-hover hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="More for this room" title="More">{{template "icon-more"}}</summary>
+      <summary class="grid size-8 cursor-pointer list-none place-items-center rounded-sm text-muted hover:bg-hover hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="More for this room" title="More">{{template "icon-more"}}</summary>
       <div class="absolute top-full right-0 z-40 mt-1 grid w-64 gap-px rounded-md border border-line bg-surface p-1.5 shadow-2" role="menu">
         <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-sm border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-copy-link>{{template "icon-link"}}<span>Copy link</span></button>
         <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-sm border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="room-guidelines">{{template "icon-file"}}<span>Room guidelines</span></button>
