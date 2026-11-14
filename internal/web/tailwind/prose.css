@@ -56,4 +56,8 @@
 .prose :where(thead, tbody tr) { border-bottom-width: 0.0625rem; }
 
 /* A file card's preview is a glance at the file, so its headings are the size of the text around the card. */
-.prose[data-preview] :is(h1, h2, h3) { margin: 0 0 0.25rem; font-size: 1rem; line-height: 1.5rem; }
+.prose[data-preview] :is(h1, h2, h3) { margin: 0 0 0.25rem; padding: 0; border: 0; font-size: .875rem; line-height: 1.25rem; }
+.prose[data-preview] { font-size: .8125rem; line-height: 1.25rem; }
+.prose[data-preview] :is(p, ul, ol) { margin: 0 0 .25rem; }
+.prose[data-preview] :is(li) { margin: 0; padding-inline-start: .25rem; }
+.prose[data-preview] :is(ul, ol) { padding-inline-start: 1.125rem; }
