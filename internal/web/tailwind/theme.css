@@ -8,6 +8,7 @@
   --color-*: initial;
   --color-canvas: var(--gu-bg);
   --color-rail: var(--gu-rail);
+  --color-side: var(--gu-side);
   --color-wash: var(--gu-bg-subtle);
   --color-sunken: var(--gu-surface-sunken);
   --color-surface: var(--gu-surface);
