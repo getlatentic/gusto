@@ -323,7 +323,7 @@
   <div class="group/msg mt-6 grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5">
     <span class="grid size-8 place-items-center rounded-full bg-sunken text-xs font-medium text-muted [&>svg]:size-4" aria-hidden="true">{{with initials .Asked}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
     <p class="m-0 flex h-8 items-baseline gap-2 text-sm leading-8"><span class="font-semibold text-ink">{{personName .Asked}}</span></p>
-    <p class="col-start-2 m-0 w-fit max-w-full rounded-md bg-sunken px-3 py-2 text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere">{{.Said}}</p>
+    <p class="col-start-2 m-0 max-w-full text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere">{{.Said}}</p>
     {{template "msg-meta" (dict "T" .)}}
   </div>
   {{if .State.Done}}
@@ -385,7 +385,7 @@ so the one thing that is a viewer's own, whose agent replied, is marked on the e
     <span class="grid size-8 place-items-center rounded-full bg-sunken text-xs font-medium text-muted [&>svg]:size-4" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
     <p class="m-0 flex h-8 items-baseline gap-2 text-sm leading-8"><span class="font-semibold text-ink">{{personName .Who}}</span></p>
     {{end}}
-    <p class="col-start-2 m-0 w-fit max-w-full rounded-md bg-sunken px-3 py-2 text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere">{{mentionsIn .Said $.P.Names}}</p>
+    <p class="col-start-2 m-0 max-w-full text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere">{{mentionsIn .Said $.P.Names}}</p>
     {{template "msg-meta" (dict "T" .)}}
   </div>
   {{end}}
