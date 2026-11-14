@@ -4,24 +4,24 @@
    <html> carries data-theme (light or dark, resolved from the person's choice and the system) and data-accent. */
 
 :root {
-  --gu-neutral-50: #F5FBF6; --gu-neutral-100: #EAF4EC; --gu-neutral-200: #DCE9DF; --gu-neutral-300: #C6D6CA; --gu-neutral-400: #9BAEA0;
-  --gu-neutral-500: #738779; --gu-neutral-600: #4F6055; --gu-neutral-700: #36443B; --gu-neutral-800: #1F2B24; --gu-neutral-900: #0E1511;
+  --gu-neutral-50: #FAFAF9; --gu-neutral-100: #F4F4F2; --gu-neutral-200: #E7E7E4; --gu-neutral-300: #D4D4D0; --gu-neutral-400: #A3A39E;
+  --gu-neutral-500: #76766F; --gu-neutral-600: #57574F; --gu-neutral-700: #3D3D37; --gu-neutral-800: #262622; --gu-neutral-900: #141412;
 
-  --gu-rail: #E8F1EA;
-  --gu-bg-subtle: #F0F7F2;
-  --gu-bg: #F7FBF8;
+  --gu-rail: #EFEFEC;
+  --gu-bg-subtle: #F7F7F5;
+  --gu-bg: #FCFCFB;
   --gu-surface: #FFFFFF;
-  --gu-surface-sunken: #EDF4EF;
-  --gu-border: #DCE9DF;
-  --gu-border-strong: #C6D6CA;
-  --gu-text: #0E1511;
-  --gu-text-muted: #36443B;
-  --gu-text-subtle: #4F6055;
-  --gu-text-nontext: #738779;
-  --gu-text-placeholder: #5F7367;
-  --gu-text-inverse: #F5FBF6;
+  --gu-surface-sunken: #F2F2F0;
+  --gu-border: #E7E7E4;
+  --gu-border-strong: #D4D4D0;
+  --gu-text: #141412;
+  --gu-text-muted: #3D3D37;
+  --gu-text-subtle: #57574F;
+  --gu-text-nontext: #8A8A83;
+  --gu-text-placeholder: #6B6B64;
+  --gu-text-inverse: #FAFAF9;
   --gu-hover: color-mix(in srgb, var(--gu-text) 6%, transparent);
-  --gu-scrim: rgb(14 21 17 / .32);
+  --gu-scrim: rgb(20 20 18 / .32);
   --gu-shadow-1: 0 0.0625rem 0.125rem rgb(0 0 0 / .06);
   --gu-shadow-2: 0 0.25rem 1rem rgb(0 0 0 / .08);
   --gu-shadow-3: 0 0.75rem 2rem rgb(0 0 0 / .12);
@@ -30,19 +30,19 @@
 }
 
 :root[data-theme="dark"] {
-  --gu-rail: #070B08;
-  --gu-bg-subtle: #0B110D;
-  --gu-bg: #0E1511;
-  --gu-surface: #151F18;
-  --gu-surface-sunken: #090E0B;
-  --gu-border: #223026;
-  --gu-border-strong: #314136;
-  --gu-text: #F5FBF6;
-  --gu-text-muted: #9FB3A5;
-  --gu-text-subtle: #9FB3A5;
-  --gu-text-nontext: #6F8576;
-  --gu-text-placeholder: #8FA395;
-  --gu-text-inverse: #0E1511;
+  --gu-rail: #0A0A09;
+  --gu-bg-subtle: #111110;
+  --gu-bg: #161615;
+  --gu-surface: #1E1E1C;
+  --gu-surface-sunken: #0F0F0E;
+  --gu-border: #2A2A27;
+  --gu-border-strong: #3A3A36;
+  --gu-text: #F4F4F2;
+  --gu-text-muted: #ABABA5;
+  --gu-text-subtle: #ABABA5;
+  --gu-text-nontext: #7A7A74;
+  --gu-text-placeholder: #9A9A94;
+  --gu-text-inverse: #141412;
   --gu-scrim: rgb(0 0 0 / .6);
   --gu-shadow-1: none;
   --gu-shadow-2: none;
