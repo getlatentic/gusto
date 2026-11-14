@@ -95,7 +95,7 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		running = turns[len(turns)-1].ID
 	}
 	for i := range turns {
-		turns[i].Files = s.fileCards(held.ID, turns[i].Changed, turns[i].Deleted)
+		turns[i].Files = s.fileChips(held.ID, turns[i].Changed, turns[i].Deleted)
 	}
 	if held.Room {
 		// Whoever has the room open has read what it shows, up to its newest message; the room is written only when that moved.

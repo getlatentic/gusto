@@ -52,7 +52,7 @@ func (s *Server) drawItem(held instance.Instance, event roomlog.Event) (roomlive
 		ledger, _ := s.spending()
 		full := s.fullTurn(shown.Record, ledger)
 		full.roomTurn = shown.roomTurn
-		full.Files = s.fileCards(held.ID, full.Changed, full.Deleted)
+		full.Files = s.fileChips(held.ID, full.Changed, full.Deleted)
 		shown = full
 	}
 	var html bytes.Buffer
