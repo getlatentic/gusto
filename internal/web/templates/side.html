@@ -15,7 +15,7 @@
   </nav>
   {{if eq .Nav "chat"}}<div class="sidepanel flex min-h-0 min-w-0 flex-[0_0_var(--panel-w,16rem)] flex-col gap-3 bg-side p-3" id="sidepanel">
     <div class="flex min-h-10 items-center px-3"><span class="font-display text-base font-semibold text-ink">{{or .OrgName "gusto"}}</span></div>
-    <a class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-sm px-3 text-left text-base text-muted no-underline hover:text-ink aria-[current]:bg-surface aria-[current]:text-ink aria-[current]:shadow-1 [&_svg.i]:size-5 border border-line bg-surface font-medium text-ink hover:border-line-strong" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
+    <a class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-sm px-3 text-left text-sm text-muted no-underline hover:text-ink aria-[current]:bg-surface aria-[current]:text-ink aria-[current]:shadow-1 [&_svg.i]:size-5 border border-line bg-surface font-medium text-ink hover:border-line-strong" href="/chat"{{if eq .Nav "chat"}}{{if eq .Here "/chat"}} aria-current="page"{{end}}{{end}}>{{template "icon-compose"}} <span>New chat</span></a>
     {{with .Rail}}{{template "side-chats" .}}{{else}}<div class="chats flex-1"></div>{{end}}
     {{if .AccountFrom}}<div class="grid gap-2 rounded-md border border-line bg-surface p-3 text-sm [&[hidden]]:hidden" data-reminder data-from="{{.AccountFrom}}" data-send="{{.ConfirmAgain}}" hidden>
       <p class="m-0 font-medium text-ink">Confirm your email address</p>
