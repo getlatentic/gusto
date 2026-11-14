@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"io/fs"
 	"math"
 	"regexp"
@@ -13,6 +14,7 @@ var (
 	themeBlock  = regexp.MustCompile(`(?s)([^{}]+)\{([^{}]*)\}`)
 	themeColor  = regexp.MustCompile(`--gu-([a-z0-9-]+):\s*#([0-9A-Fa-f]{6})\b`)
 	themeAccent = regexp.MustCompile(`data-accent="([a-z]+)"`)
+	themeMix    = regexp.MustCompile(`--gu-([a-z0-9-]+):\s*color-mix\(in srgb, var\(--gu-([a-z0-9-]+)\) (\d+)%, #([0-9A-Fa-f]{6})\)`)
 )
 
 // The focus ring is drawn in --gu-focus with nothing between it and the surface it sits on, so it has 3 to 1 against every surface a
@@ -25,7 +27,7 @@ func TestTheFocusRingStandsOutFromEverySurface(t *testing.T) {
 				continue
 			}
 			focus := themeLookup(colors, theme, accent, "focus")
-			for _, surface := range []string{"rail", "bg-subtle", "bg", "surface"} {
+			for _, surface := range []string{"rail", "side", "bg-subtle", "bg", "surface"} {
 				if ratio := contrast(focus, themeLookup(colors, theme, accent, surface)); ratio < 3 {
 					t.Errorf("%s %s: the focus ring #%s is %.2f to 1 on %s", theme, accent, focus, ratio, surface)
 				}
@@ -34,7 +36,8 @@ func TestTheFocusRingStandsOutFromEverySurface(t *testing.T) {
 	}
 }
 
-// themeColors reads theme.css into colors by theme, then by accent ("" for the rules that name none), then by token.
+// themeColors reads theme.css into colors by theme, then by accent ("" for the rules that name none), then by token. A token mixed from
+// another is kept as "mix token percent hex" for themeLookup to work out once it knows the theme and accent.
 func themeColors(t *testing.T) map[string]map[string]map[string]string {
 	t.Helper()
 	body, err := fs.ReadFile(assets, "static/theme.css")
@@ -57,6 +60,9 @@ func themeColors(t *testing.T) map[string]map[string]map[string]string {
 			for _, color := range themeColor.FindAllStringSubmatch(block[2], -1) {
 				colors[theme][accent][color[1]] = color[2]
 			}
+			for _, mix := range themeMix.FindAllStringSubmatch(block[2], -1) {
+				colors[theme][accent][mix[1]] = "mix " + mix[2] + " " + mix[3] + " " + mix[4]
+			}
 		}
 	}
 	return colors
@@ -65,11 +71,26 @@ func themeColors(t *testing.T) map[string]map[string]map[string]string {
 // themeLookup is a token as the page resolves it: the accent's own rule, then the theme's, then the light theme's.
 func themeLookup(colors map[string]map[string]map[string]string, theme, accent, token string) string {
 	for _, rule := range []map[string]string{colors[theme][accent], colors[theme][""], colors["light"][""]} {
-		if hex, ok := rule[token]; ok {
-			return hex
+		if value, ok := rule[token]; ok {
+			if recipe := strings.Fields(value); len(recipe) == 4 {
+				percent, _ := strconv.Atoi(recipe[2])
+				return mixHex(themeLookup(colors, theme, accent, recipe[1]), recipe[3], float64(percent)/100)
+			}
+			return value
 		}
 	}
 	return "000000"
+}
+
+// mixHex is CSS color-mix in srgb: share of a, the rest of b, each channel rounded.
+func mixHex(a, b string, share float64) string {
+	out := ""
+	for i := 0; i < 6; i += 2 {
+		x, _ := strconv.ParseUint(a[i:i+2], 16, 8)
+		y, _ := strconv.ParseUint(b[i:i+2], 16, 8)
+		out += fmt.Sprintf("%02x", int(math.Round(float64(x)*share+float64(y)*(1-share))))
+	}
+	return out
 }
 
 func contrast(a, b string) float64 {
