@@ -69,12 +69,12 @@
     <form class="relative mx-auto max-w-[52rem]" method="post" action="{{.Path}}/say" id="say-form"{{if .Instance.Room}} enctype="multipart/form-data"{{end}}{{if .Settings.Archived}} hidden{{end}}>
       <p class="{{template "ui-notice-chat"}} mb-2" id="unsent"{{if .Unsent}} role="alert"{{else}} hidden{{end}}>{{.Unsent}}</p>
       {{if .Instance.Room}}<ul class="absolute bottom-full left-0 z-30 mb-2 grid w-80 max-w-full list-none gap-px rounded-lg border border-line bg-surface p-1.5 shadow-2" id="mention-menu" role="listbox" aria-label="Mention" data-people="{{.Mentions}}" hidden></ul>{{end}}
-      <div class="grid grid-cols-[minmax(0,1fr)] gap-1 rounded-lg border border-ink/25 bg-surface p-2 transition-[border-color,box-shadow] has-[textarea:focus-visible]:border-faint has-[textarea:focus-visible]:shadow-2">
+      <div class="grid grid-cols-[minmax(0,1fr)] gap-1 rounded-lg border border-line-strong bg-surface p-2 shadow-field transition-[border-color,box-shadow] has-[textarea:focus-visible]:border-ink/20 has-[textarea:focus-visible]:shadow-field-active">
         {{if .Instance.Room}}
         <ul class="m-0 flex list-none flex-wrap gap-1.5 p-0 [&[hidden]]:hidden" id="attached" aria-label="Files attached to this message" hidden></ul>
         <div class="relative">
           <div class="pointer-events-none absolute inset-0 overflow-hidden px-2 py-px leading-[1.375rem] whitespace-pre-wrap wrap-anywhere text-ink" id="composer-marks" aria-hidden="true"></div>
-          <textarea class="relative block max-h-56 min-h-6 w-full resize-none border-0 bg-transparent px-2 py-px leading-[1.375rem] whitespace-pre-wrap wrap-anywhere text-transparent caret-ink placeholder:text-subtle focus-visible:outline-none" name="said" rows="1" placeholder="{{.Hint}}" aria-label="Message the room" role="combobox" aria-autocomplete="list" aria-controls="mention-menu" aria-expanded="false" aria-describedby="unsent" autofocus required></textarea>
+          <textarea class="relative block max-h-56 min-h-6 w-full resize-none border-0 bg-transparent px-2 py-px leading-[1.375rem] whitespace-pre-wrap wrap-anywhere text-transparent caret-ink focus-visible:outline-none" name="said" rows="1" placeholder="{{.Hint}}" aria-label="Message the room" role="combobox" aria-autocomplete="list" aria-controls="mention-menu" aria-expanded="false" aria-describedby="unsent" autofocus required></textarea>
         </div>
         {{else}}
         <textarea class="block max-h-56 min-h-6 w-full resize-none border-0 bg-transparent px-2 py-px leading-[1.375rem] focus-visible:outline-none" name="said" rows="1" placeholder="Message {{.Agent.Name}}" aria-label="Message {{.Agent.Name}}" aria-describedby="unsent" autofocus required></textarea>
@@ -84,7 +84,7 @@
           {{if not .Instance.Room}}{{if not .Several}}<span class="text-xs text-muted">{{.Agent.Brain}}</span>{{end}}{{end}}
           <span class="flex-1"></span>
           {{if and .Several (not .Instance.Room)}}{{template "picker" (dict "ID" "model-pick" "Label" "Model" "Name" "model" "Value" .Instance.Model "Options" .Models "Form" "model-form")}}{{end}}
-          <button type="submit" class="ml-1 grid size-8 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-solid [&>svg]:size-[1.125rem]" id="send" title="Send"{{if and .Waiting (not .Instance.Room)}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
+          <button type="submit" class="ml-1 grid size-8 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:bg-transparent disabled:text-faint disabled:hover:bg-transparent [&>svg]:size-[1.125rem]" id="send" title="Send"{{if and .Waiting (not .Instance.Room)}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
           {{if and .Waiting (not .Instance.Room)}}<button type="submit" class="ml-1 inline-flex h-8 flex-none cursor-pointer items-center gap-2 rounded-full border border-line-strong bg-surface pr-4 pl-3 text-sm font-semibold text-ink hover:bg-wash [&>svg]:size-4" id="stop" form="stop-form" title="Stop">{{template "icon-stop"}}<span>Stop</span></button>{{end}}
         </div>
       </div>

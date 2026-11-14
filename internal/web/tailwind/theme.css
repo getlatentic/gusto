@@ -60,6 +60,8 @@
   --shadow-1: var(--gu-shadow-1);
   --shadow-2: var(--gu-shadow-2);
   --shadow-3: var(--gu-shadow-3);
+  --shadow-field: var(--gu-shadow-field);
+  --shadow-field-active: var(--gu-shadow-field-active);
 
   --ease-standard: var(--gu-ease-standard);
   /* Borders are a hairline, which a screen of one pixel per point draws as one pixel. */
