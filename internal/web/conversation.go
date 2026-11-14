@@ -36,7 +36,7 @@ type turn struct {
 	Steps   []step
 	Changed []string
 	Deleted []string
-	// Files is how a room draws Changed: a card for each file, read from the room's folder.
+	// Files is how a conversation draws Changed: a card for each file, read from the agent's folder.
 	Files *turnFiles
 	// Previews are the folders among Changed that hold a page, which can be looked at.
 	Previews []string
@@ -94,12 +94,12 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 	if len(turns) > 0 && !turns[len(turns)-1].State.Done() {
 		running = turns[len(turns)-1].ID
 	}
+	for i := range turns {
+		turns[i].Files = s.fileCards(held.ID, turns[i].Changed, turns[i].Deleted)
+	}
 	if held.Room {
 		// Whoever has the room open has read what it shows, up to its newest message; the room is written only when that moved.
 		_ = s.instances.Saw(held.ID, thread.ID, s.askerName(r), newest)
-		for i := range turns {
-			turns[i].Files = s.fileCards(held.ID, turns[i].Changed, turns[i].Deleted)
-		}
 		turns = s.roomTimeline(held, thread, turns)
 		running = roomWaiting(turns)
 	}
