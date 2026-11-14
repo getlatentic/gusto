@@ -33,7 +33,7 @@
   </header>
 
   <div class="said-so-far relative overflow-y-auto px-6 py-8 focus-visible:-outline-offset-2 @max-[56rem]:px-4 @max-[56rem]:py-6" id="said" tabindex="0" role="region" aria-label="Conversation">
-    <div class="mx-auto max-w-[42.5rem]">
+    <div class="mx-auto max-w-[52rem]">
       <div id="turns"{{with .Version}} data-version="{{.}}"{{end}}{{with .Stream}} data-live="{{.Path}}" data-seq="{{.Seq}}" data-epoch="{{.Epoch}}" data-room="{{$.Instance.ID}}" data-thread="{{$.Thread.ID}}" data-me="{{$.Me}}" data-settings="{{$.Settings.Mark}}"{{if $.Sharing}} data-sharing{{end}}{{end}}>{{template "turns" .}}</div>
       <p class="sr-only" role="status" id="typing-news"></p>
       {{if .Stream}}<p class="m-0 mt-2 h-5 text-xs text-subtle" id="typing" aria-hidden="true"></p>{{end}}
@@ -64,28 +64,28 @@
 
   <form id="model-form" method="post" action="/instances/{{.Instance.ID}}/model"><input type="hidden" name="back" value="{{.Path}}"></form>
   {{if and .Waiting (not .Instance.Room)}}<form id="stop-form" method="post" action="/jobs/{{.Latest}}/stop"><input type="hidden" name="back" value="{{.Path}}"></form>{{end}}
-  <div class="composer px-6 pt-2 pb-5 @max-[56rem]:px-3 @max-[56rem]:pb-3">
-    {{if .Settings.Archived}}<div class="mx-auto flex max-w-[42.5rem] items-center gap-3 rounded-md border border-line bg-sunken py-3 pr-3 pl-5 text-sm text-muted @max-[56rem]:flex-wrap"><span class="min-w-0 flex-1">This room is archived. Nobody can say anything in it until an admin brings it back.</span>{{if .Settings.Runs}}<form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/archive"><input type="hidden" name="archive" value="off"><button type="submit" class="{{template "ui-btn-quiet"}}">Unarchive</button></form>{{end}}</div>{{end}}
-    <form class="relative mx-auto max-w-[42.5rem]" method="post" action="{{.Path}}/say" id="say-form"{{if .Instance.Room}} enctype="multipart/form-data"{{end}}{{if .Settings.Archived}} hidden{{end}}>
+  <div class="composer px-6 pt-2 pb-3 @max-[56rem]:px-3">
+    {{if .Settings.Archived}}<div class="mx-auto flex max-w-[52rem] items-center gap-3 rounded-md border border-line bg-sunken py-3 pr-3 pl-5 text-sm text-muted @max-[56rem]:flex-wrap"><span class="min-w-0 flex-1">This room is archived. Nobody can say anything in it until an admin brings it back.</span>{{if .Settings.Runs}}<form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/archive"><input type="hidden" name="archive" value="off"><button type="submit" class="{{template "ui-btn-quiet"}}">Unarchive</button></form>{{end}}</div>{{end}}
+    <form class="relative mx-auto max-w-[52rem]" method="post" action="{{.Path}}/say" id="say-form"{{if .Instance.Room}} enctype="multipart/form-data"{{end}}{{if .Settings.Archived}} hidden{{end}}>
       <p class="{{template "ui-notice-chat"}} mb-2" id="unsent"{{if .Unsent}} role="alert"{{else}} hidden{{end}}>{{.Unsent}}</p>
       {{if .Instance.Room}}<ul class="absolute bottom-full left-0 z-30 mb-2 grid w-80 max-w-full list-none gap-px rounded-lg border border-line bg-surface p-1.5 shadow-2" id="mention-menu" role="listbox" aria-label="Mention" data-people="{{.Mentions}}" hidden></ul>{{end}}
-      <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-lg border border-line-strong bg-surface py-3 pr-3 pl-5 transition-[border-color,box-shadow] has-[textarea:focus-visible]:border-faint has-[textarea:focus-visible]:shadow-2">
+      <div class="grid grid-cols-[minmax(0,1fr)] gap-1 rounded-lg border border-line-strong bg-surface p-2 transition-[border-color,box-shadow] has-[textarea:focus-visible]:border-faint has-[textarea:focus-visible]:shadow-2">
         {{if .Instance.Room}}
         <ul class="m-0 flex list-none flex-wrap gap-1.5 p-0 [&[hidden]]:hidden" id="attached" aria-label="Files attached to this message" hidden></ul>
         <div class="relative">
-          <div class="pointer-events-none absolute inset-0 overflow-hidden leading-relaxed whitespace-pre-wrap wrap-anywhere text-ink" id="composer-marks" aria-hidden="true"></div>
-          <textarea class="relative block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed whitespace-pre-wrap wrap-anywhere text-transparent caret-ink placeholder:text-subtle focus-visible:outline-none" name="said" rows="1" placeholder="{{.Hint}}" aria-label="Message the room" role="combobox" aria-autocomplete="list" aria-controls="mention-menu" aria-expanded="false" aria-describedby="unsent" autofocus required></textarea>
+          <div class="pointer-events-none absolute inset-0 overflow-hidden px-2 py-px leading-[1.375rem] whitespace-pre-wrap wrap-anywhere text-ink" id="composer-marks" aria-hidden="true"></div>
+          <textarea class="relative block max-h-56 min-h-6 w-full resize-none border-0 bg-transparent px-2 py-px leading-[1.375rem] whitespace-pre-wrap wrap-anywhere text-transparent caret-ink placeholder:text-subtle focus-visible:outline-none" name="said" rows="1" placeholder="{{.Hint}}" aria-label="Message the room" role="combobox" aria-autocomplete="list" aria-controls="mention-menu" aria-expanded="false" aria-describedby="unsent" autofocus required></textarea>
         </div>
         {{else}}
-        <textarea class="block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed focus-visible:outline-none" name="said" rows="1" placeholder="Message {{.Agent.Name}}" aria-label="Message {{.Agent.Name}}" aria-describedby="unsent" autofocus required></textarea>
+        <textarea class="block max-h-56 min-h-6 w-full resize-none border-0 bg-transparent px-2 py-px leading-[1.375rem] focus-visible:outline-none" name="said" rows="1" placeholder="Message {{.Agent.Name}}" aria-label="Message {{.Agent.Name}}" aria-describedby="unsent" autofocus required></textarea>
         {{end}}
         <div class="flex items-center gap-1">
-          {{if .Instance.Room}}<label class="grid size-9 flex-none cursor-pointer place-items-center rounded-full text-muted hover:bg-sunken hover:text-ink has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-focus [&>svg]:size-[1.125rem]" title="Attach files">{{template "icon-add"}}<span class="sr-only">Attach files</span><input class="sr-only" type="file" name="file" multiple data-attach {{with attachLimits}}data-most="{{.Files}}" data-bytes="{{.Bytes}}"{{end}}></label>{{end}}
+          {{if .Instance.Room}}<label class="grid size-8 flex-none cursor-pointer place-items-center rounded-full text-muted hover:bg-hover hover:text-ink has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-focus [&>svg]:size-[1.125rem]" title="Attach files">{{template "icon-add"}}<span class="sr-only">Attach files</span><input class="sr-only" type="file" name="file" multiple data-attach {{with attachLimits}}data-most="{{.Files}}" data-bytes="{{.Bytes}}"{{end}}></label>{{end}}
           {{if not .Instance.Room}}{{if not .Several}}<span class="text-xs text-muted">{{.Agent.Brain}}</span>{{end}}{{end}}
           <span class="flex-1"></span>
           {{if and .Several (not .Instance.Room)}}{{template "picker" (dict "ID" "model-pick" "Label" "Model" "Name" "model" "Value" .Instance.Model "Options" .Models "Form" "model-form")}}{{end}}
-          <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-solid [&>svg]:size-[1.125rem]" id="send" title="Send"{{if and .Waiting (not .Instance.Room)}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
-          {{if and .Waiting (not .Instance.Room)}}<button type="submit" class="ml-1 inline-flex h-9 flex-none cursor-pointer items-center gap-2 rounded-full border border-line-strong bg-surface pr-4 pl-3 text-sm font-semibold text-ink hover:bg-wash [&>svg]:size-4" id="stop" form="stop-form" title="Stop">{{template "icon-stop"}}<span>Stop</span></button>{{end}}
+          <button type="submit" class="ml-1 grid size-8 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-solid [&>svg]:size-[1.125rem]" id="send" title="Send"{{if and .Waiting (not .Instance.Room)}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
+          {{if and .Waiting (not .Instance.Room)}}<button type="submit" class="ml-1 inline-flex h-8 flex-none cursor-pointer items-center gap-2 rounded-full border border-line-strong bg-surface pr-4 pl-3 text-sm font-semibold text-ink hover:bg-wash [&>svg]:size-4" id="stop" form="stop-form" title="Stop">{{template "icon-stop"}}<span>Stop</span></button>{{end}}
         </div>
       </div>
     </form>
