@@ -1,7 +1,7 @@
 {{template "head" .}}
 
 <section class="flex min-h-0 w-0 min-w-0 flex-1">
-  <nav class="flex w-80 flex-none flex-col gap-3 border-r border-line bg-side p-3 {{if or .Agent .Person}}@max-[56rem]:hidden{{else}}@max-[56rem]:w-full @max-[56rem]:border-r-0{{end}}" aria-label="Members">
+  <nav class="flex w-80 flex-none flex-col gap-3 bg-side p-3 {{if or .Agent .Person}}@max-[56rem]:hidden{{else}}@max-[56rem]:w-full{{end}}" aria-label="Members">
     <div class="flex min-h-10 items-center justify-between px-2"><h1 class="m-0 text-base font-semibold">Members</h1>
       {{if .Invite}}
       <details class="relative flex-none" data-menu>

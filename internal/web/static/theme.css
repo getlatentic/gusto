@@ -13,8 +13,8 @@
   --gu-bg: #FFFFFF;
   --gu-surface: #FFFFFF;
   --gu-surface-sunken: #F2F2F0;
-  --gu-border: rgb(20 20 18 / .14);
-  --gu-border-strong: rgb(20 20 18 / .22);
+  --gu-border: rgb(20 20 18 / .1);
+  --gu-border-strong: rgb(20 20 18 / .16);
   --gu-text: #141412;
   --gu-text-muted: #3D3D37;
   --gu-text-subtle: #57574F;
@@ -37,8 +37,8 @@
   --gu-bg: #161615;
   --gu-surface: #1E1E1C;
   --gu-surface-sunken: #0F0F0E;
-  --gu-border: rgb(244 244 242 / .12);
-  --gu-border-strong: rgb(244 244 242 / .2);
+  --gu-border: rgb(244 244 242 / .1);
+  --gu-border-strong: rgb(244 244 242 / .16);
   --gu-text: #F4F4F2;
   --gu-text-muted: #ABABA5;
   --gu-text-subtle: #ABABA5;

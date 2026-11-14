@@ -18,7 +18,7 @@
     {{if and .Wall .Wall.Unconfirmed (not .NeedsModel)}}{{template "no-sandbox" .Wall}}{{else if and .Picks (not .NeedsModel)}}
     <div class="composer flex w-full max-w-[52rem] flex-col">
     <form class="order-2" method="post" action="/chat">
-      <div class="grid grid-cols-[minmax(0,1fr)] gap-1 rounded-lg border border-line-strong bg-surface p-2 transition-[border-color,box-shadow] has-[textarea:focus-visible]:border-faint has-[textarea:focus-visible]:shadow-2">
+      <div class="grid grid-cols-[minmax(0,1fr)] gap-1 rounded-lg border border-ink/25 bg-surface p-2 transition-[border-color,box-shadow] has-[textarea:focus-visible]:border-faint has-[textarea:focus-visible]:shadow-2">
         <textarea class="block max-h-56 min-h-6 w-full resize-none border-0 bg-transparent px-2 py-px leading-[1.375rem] focus-visible:outline-none @max-[40rem]:text-[1rem]" name="said" rows="1" placeholder="Message" aria-label="Message"{{if .Refused}} aria-describedby="refused"{{end}} autofocus required></textarea>
         <div class="tools flex items-center gap-1">
           <div class="folderpick relative flex min-w-0 items-center" id="folder-pick"{{with .Start.At}} data-at="{{.}}" data-label="{{$.Start.Name}}" data-harness="{{$.Start.Harness}}"{{end}}>
