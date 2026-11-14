@@ -2,7 +2,7 @@
 
 <section class="talk grid min-h-0 w-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]">
   <header class="flex min-h-13 items-center gap-3 border-b border-line px-6 py-2 @max-[56rem]:px-4">
-    <h1 class="flex min-w-0 flex-1 items-center gap-2 font-sans text-base font-semibold" title="{{.Named}}">{{if and .Instance.Direct .Instance.Agents}}{{with index .Instance.Agents 0}}<span class="grid size-7 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Name "Size" "sm")}}</span><span class="truncate">{{.Name}}</span>{{with .Job}}<span class="truncate text-sm font-normal text-subtle @max-[56rem]:hidden">{{.}}</span>{{end}}{{end}}{{else}}<span class="truncate">{{.Named}}</span>{{end}}</h1>
+    <h1 class="flex min-w-0 flex-1 items-center gap-2 font-sans text-base font-semibold" title="{{.Named}}">{{if and .Instance.Direct .Instance.Agents}}{{with index .Instance.Agents 0}}<span class="grid size-7 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Name "Size" "sm")}}</span><span class="truncate">{{.Name}}</span>{{with .Job}}<span class="truncate text-sm font-normal text-subtle">{{.}}</span>{{end}}{{end}}{{else}}<span class="truncate">{{.Named}}</span>{{end}}</h1>
     {{if .Stream}}<span class="flex flex-none items-center -space-x-1.5" id="here" aria-label="In this room now" hidden></span>{{end}}
     {{if .Instance.Room}}{{else}}
     <div class="flex min-w-0 items-center gap-2 text-xs text-muted @max-[56rem]:hidden">
@@ -14,7 +14,7 @@
     {{range .Apps}}<a class="h-8 flex-none {{template "ui-btn-quiet"}}" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
     {{if .Starting}}<span class="text-xs text-muted">Starting the preview…</span><script nonce="{{.Nonce}}">setTimeout(function () { location.reload(); }, 3000);</script>{{end}}
     <a class="h-8 flex-none {{template "ui-btn-quiet"}} [&>svg]:size-3.5" href="{{if .Instance.Room}}/rooms/{{.Instance.ID}}/files{{else}}/instances/{{.Instance.ID}}/files?from={{.Path}}{{end}}"{{if .Instance.Room}} data-files-panel data-tab-name="Files"{{end}}>{{template "icon-file"}}<span>Files</span></a>
-    {{if .Instance.Room}}{{if not .Instance.Direct}}<a class="h-8 flex-none {{template "ui-btn-quiet"}} [&>svg]:size-3.5 tabular-nums" href="{{.Path}}?members=1" data-open="room-members" title="Room members" aria-label="Room members, {{.Headcount}}">{{template "icon-users"}}<span>{{.Headcount}}</span></a>{{end}}
+    {{if .Instance.Room}}<a class="h-8 flex-none {{template "ui-btn-quiet"}} [&>svg]:size-3.5 tabular-nums" href="{{.Path}}?members=1" data-open="room-members" title="Room members" aria-label="Room members, {{.Headcount}}">{{template "icon-users"}}<span>{{.Headcount}}</span></a>
     <details class="relative flex-none" data-menu>
       <summary class="grid size-8 cursor-pointer list-none place-items-center rounded-md text-muted hover:bg-sunken hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="More for this room" title="More">{{template "icon-more"}}</summary>
       <div class="absolute top-full right-0 z-40 mt-1 grid w-64 gap-px rounded-md border border-line bg-surface p-1.5 shadow-2" role="menu">
@@ -319,9 +319,20 @@
 {{define "turns"}}
 {{if .Instance.Room}}{{template "room-turns" .}}{{else}}
 {{range .Turns}}
-<article class="mt-6 grid gap-6" id="{{.ID}}">
-  {{template "solo-said" .}}
-  {{if .State.Done}}{{template "solo-reply" (dict "T" . "P" $ "By" $.Agent.Name)}}{{end}}
+<article id="{{.ID}}">
+  <div class="mt-5 grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5">
+    <span class="grid size-8 place-items-center rounded-full bg-accent-wash text-xs font-medium text-accent-ink [&>svg]:size-4" aria-hidden="true">{{with initials .Asked}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
+    <p class="m-0 flex h-8 items-baseline gap-2 text-sm leading-8"><span class="font-semibold text-ink">{{personName .Asked}}</span><time class="text-xs text-subtle tabular-nums">{{clock .Queued}}</time></p>
+    <p class="col-start-2 m-0 w-fit max-w-full rounded-md bg-accent-wash px-3 py-2 text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere">{{.Said}}</p>
+  </div>
+  {{if .State.Done}}
+  <div class="mt-5 grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5">
+    {{template "agent-avatar" (dict "Harness" $.Agent.Harness "Name" $.Agent.Name)}}
+    <p class="m-0 flex h-8 min-w-0 items-baseline gap-2 text-sm leading-8"><span class="truncate font-semibold text-ink">{{$.Agent.Name}}</span><span class="{{template "ui-badge"}} flex-none leading-5">agent</span><time class="flex-none text-xs text-subtle tabular-nums">{{clock .Queued}}{{with took .Started .Ended}} · {{.}}{{end}}</time></p>
+    <div class="col-start-2 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 text-[0.9375rem] leading-6">{{template "turn-result" (dict "T" . "P" $)}}</div>
+    {{with .Files}}{{template "file-cards" (dict "F" . "P" $)}}{{end}}
+  </div>
+  {{end}}
 </article>
 {{end}}
 {{end}}
@@ -366,10 +377,7 @@ so the one thing that is a viewer's own, which bubbles are theirs, is marked on 
   {{with .Divider}}<p class="my-6 flex items-center gap-3 text-xs font-medium text-subtle before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">{{.}}</p>{{end}}
   {{if .Notice}}
   <p class="mx-auto mt-5 flex w-fit max-w-[40rem] items-start gap-2 rounded-xl bg-warn-wash px-3 py-2 text-sm leading-6 text-warn [&>svg]:mt-1 [&>svg]:size-4 [&>svg]:flex-none" role="status">{{template "icon-info"}}<span>{{.Said}}{{with .File}} <a class="font-medium text-inherit" href="/instances/{{$.P.Instance.ID}}/file?path={{.}}&amp;from={{$.P.Path}}">Open it</a>{{end}}</span></p>
-  {{else if $.P.Instance.Direct}}
-  {{if not (or .From .Echo)}}<div class="mt-6">{{template "solo-said" .}}</div>{{end}}
-  {{if not .Note}}<div class="mt-6">{{if .State.Done}}{{template "solo-reply" (dict "T" . "P" $.P "By" .By)}}{{else}}{{template "turn-working" (dict "T" . "P" $.P)}}{{end}}</div>{{end}}
-  {{else}}{{if not (or .From .Echo)}}
+  {{else if not (or .From .Echo)}}
   <div class="group grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5 {{if .SaidJoins}}mt-1.5{{else}}mt-5{{end}}">
     {{if not .SaidJoins}}
     <span class="grid size-8 place-items-center rounded-full {{if eq .Who $.P.Me}}bg-accent-wash text-accent-ink{{else}}bg-sunken text-muted{{end}} text-xs font-medium [&>svg]:size-4" data-who="{{.Who}}" data-ours="bg-accent-wash text-accent-ink" data-theirs="bg-sunken text-muted" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
@@ -382,14 +390,13 @@ so the one thing that is a viewer's own, which bubbles are theirs, is marked on 
   <div class="group grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5 {{if .ReplyJoins}}mt-1.5{{else}}mt-5{{end}}">
     {{if not .ReplyJoins}}
     {{template "agent-avatar" (dict "Harness" .Harness "Name" .By)}}
-    <p class="m-0 flex h-8 min-w-0 items-baseline gap-2 text-sm leading-8"><span class="truncate font-semibold text-ink" title="{{.Role}}">{{.By}}</span>{{if .Owner}}<span class="{{template "ui-badge"}} flex-none leading-5" data-agent-owner="{{.Owner}}" data-yours="your agent" data-theirs="{{ownerLabel .Owner ""}}">{{ownerLabel .Owner $.P.Me}}</span>{{end}}{{with .From}}<span class="text-subtle">asked by {{mentionsIn (print "@" .) $.P.Names}}</span>{{end}}<time class="flex-none text-xs text-subtle tabular-nums"{{if .State.Done}}{{with took .Started .Ended}} title="Took {{.}}"{{end}}{{end}}>{{clock .Queued}}</time></p>
+    <p class="m-0 flex h-8 min-w-0 items-baseline gap-2 text-sm leading-8"><span class="truncate font-semibold text-ink" title="{{.Role}}">{{.By}}</span>{{if .Owner}}<span class="{{template "ui-badge"}} flex-none leading-5" data-agent-owner="{{.Owner}}" data-yours="your agent" data-theirs="{{ownerLabel .Owner ""}}">{{ownerLabel .Owner $.P.Me}}</span>{{else}}<span class="{{template "ui-badge"}} flex-none leading-5">agent</span>{{end}}{{with .From}}<span class="text-subtle">asked by {{mentionsIn (print "@" .) $.P.Names}}</span>{{end}}<time class="flex-none text-xs text-subtle tabular-nums">{{clock .Queued}}{{if .State.Done}}{{with took .Started .Ended}} · {{.}}{{end}}{{end}}</time></p>
     {{end}}
     <div class="col-start-2 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 text-[0.9375rem] leading-6">
-      {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $.P)}}{{else}}{{template "turn-working" (dict "T" . "P" $.P)}}{{end}}
+      {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $.P)}}{{else}}<div class="flex items-center gap-2 text-sm text-muted">{{if .Holding}}<span class="size-3 flex-none rounded-full border-2 border-line-strong" aria-hidden="true"></span><span data-waiting>{{.Holding}}</span>{{else}}<span class="size-3 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span><span class="min-w-0 truncate" data-progress>Working</span>{{end}}<form class="m-0 ml-2 flex-none" method="post" action="/jobs/{{.ID}}/stop"><input type="hidden" name="back" value="{{$.P.Path}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-ink hover:underline">Stop</button></form></div>{{end}}
     </div>
-    {{if .State.Done}}{{with .Files}}<div class="col-start-2 mt-2">{{template "file-cards" (dict "F" . "P" $.P)}}</div>{{end}}{{end}}
+    {{if .State.Done}}{{with .Files}}{{template "file-cards" (dict "F" . "P" $.P)}}{{end}}{{end}}
   </div>
-  {{end}}
   {{end}}
 </article>
 {{end}}{{end}}
@@ -397,18 +404,10 @@ so the one thing that is a viewer's own, which bubbles are theirs, is marked on 
 {{/* The files a reply produced, each a card that opens the file, past the first few folded away. A file that is no longer there
 is a line saying so. */}}
 {{/* An agent is drawn as the first letter of its name in a circle, the same for every kind of agent. */}}
-{{/* A one-to-one conversation has two sides, so neither needs a name: the person's message is a bubble on the right and the
-agent's reply is plain text, with who and when in its hover. */}}
-{{define "solo-said"}}{{$who := or .Who .Asked}}<p class="m-0 ml-auto w-fit max-w-[80%] rounded-md bg-accent-wash px-3 py-2 text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere" title="{{personName $who}} · {{clock .Queued}}"><span class="sr-only">{{personName $who}}: </span>{{.Said}}</p>{{end}}
-
-{{define "solo-reply"}}{{with .T}}<div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 text-[0.9375rem] leading-6" title="{{$.By}} · {{clock .Queued}}{{with took .Started .Ended}} · took {{.}}{{end}}"><span class="sr-only">{{$.By}}:</span>{{template "turn-result" (dict "T" . "P" $.P)}}{{with .Files}}{{template "file-cards" (dict "F" . "P" $.P)}}{{end}}</div>{{end}}{{end}}
-
-{{define "turn-working"}}{{with .T}}<div class="flex items-center gap-2 text-sm text-muted">{{if .Holding}}<span class="size-3 flex-none rounded-full border-2 border-line-strong" aria-hidden="true"></span><span data-waiting>{{.Holding}}</span>{{else}}<span class="size-3 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span><span class="min-w-0 truncate" data-progress>Working</span>{{end}}<form class="m-0 ml-2 flex-none" method="post" action="/jobs/{{.ID}}/stop"><input type="hidden" name="back" value="{{$.P.Path}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-ink hover:underline">Stop</button></form></div>{{end}}{{end}}
-
 {{define "agent-avatar"}}<span class="grid size-8 place-items-center rounded-full bg-sunken text-xs font-medium text-muted" aria-hidden="true" data-harness="{{.Harness}}">{{initial .Name}}</span>{{end}}
 
 {{define "file-cards"}}{{with .F}}
-<div class="grid w-full min-w-0 gap-2">
+<div class="col-start-2 mt-2 grid w-full min-w-0 gap-2">
   {{range .Cards}}{{template "file-card" (dict "C" . "P" $.P)}}{{end}}
   {{with .More}}
   <details class="group grid gap-2">
@@ -425,7 +424,7 @@ clicks or focus of its own. A web page is previewed in a frame with every permis
 {{define "file-card"}}{{with .C}}
 <div class="relative min-w-0 overflow-hidden rounded-md border border-line bg-surface transition-colors hover:border-line-strong" data-file-card="{{.Kind}}">
   <div class="flex items-center gap-3 px-3 py-2.5">
-    <span class="flex-none text-subtle [&>svg]:size-4">{{if eq .Look "image"}}{{template "icon-file-image"}}{{else if eq .Look "code"}}{{template "icon-file-code"}}{{else if eq .Look "blank"}}{{template "icon-file-blank"}}{{else}}{{template "icon-file"}}{{end}}</span>
+    <span class="grid size-8 flex-none place-items-center rounded-sm bg-sunken text-muted [&>svg]:size-4">{{if eq .Look "image"}}{{template "icon-file-image"}}{{else if eq .Look "code"}}{{template "icon-file-code"}}{{else if eq .Look "blank"}}{{template "icon-file-blank"}}{{else}}{{template "icon-file"}}{{end}}</span>
     <div class="min-w-0 flex-1">
       <a class="block truncate text-sm font-medium text-ink no-underline after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:rounded-md focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-focus" href="/instances/{{$.P.Instance.ID}}/file?path={{.Path}}&amp;from={{$.P.Path}}" title="{{.Path}}">{{.Name}}</a>
       <p class="m-0 text-xs text-subtle tabular-nums">{{.Size}}</p>
@@ -435,6 +434,7 @@ clicks or focus of its own. A web page is previewed in a frame with every permis
   {{if eq .Kind "markdown"}}
   <div class="border-t border-line px-4 pt-3 pb-3">
     <div class="prose pointer-events-none max-h-28 overflow-hidden [mask-image:linear-gradient(to_bottom,black_75%,transparent)]" inert data-preview="markdown">{{.Page}}</div>
+    <span class="mt-1 block text-sm font-medium text-accent-ink" aria-hidden="true">Open file</span>
   </div>
   {{else if eq .Kind "html"}}
   <div class="pointer-events-none border-t border-line" inert data-preview="html"><iframe class="block h-56 w-full border-0 bg-white [color-scheme:light]" sandbox="" src="{{.Raw}}" loading="lazy" tabindex="-1" title="{{.Name}}"></iframe></div>
