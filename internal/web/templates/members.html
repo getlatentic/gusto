@@ -1,36 +1,36 @@
 {{template "head" .}}
 
 <section class="flex min-h-0 w-0 min-w-0 flex-1">
-  <nav class="flex w-80 flex-none flex-col gap-3 border-r border-line p-3 {{if or .Agent .Person}}@max-[56rem]:hidden{{else}}@max-[56rem]:w-full @max-[56rem]:border-r-0{{end}}" aria-label="Members">
+  <nav class="flex w-80 flex-none flex-col gap-3 border-r border-line bg-side p-3 {{if or .Agent .Person}}@max-[56rem]:hidden{{else}}@max-[56rem]:w-full @max-[56rem]:border-r-0{{end}}" aria-label="Members">
     <div class="flex min-h-10 items-center justify-between px-2"><h1 class="m-0 text-base font-semibold">Members</h1>
       {{if .Invite}}
       <details class="relative flex-none" data-menu>
-        <summary class="grid size-8 cursor-pointer list-none place-items-center rounded-md text-muted hover:bg-sunken hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="Add a member" title="Add a member">{{template "icon-add"}}</summary>
+        <summary class="grid size-8 cursor-pointer list-none place-items-center rounded-md text-muted hover:bg-hover hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="Add a member" title="Add a member">{{template "icon-add"}}</summary>
         <div class="absolute top-full right-0 z-40 mt-1 grid w-56 gap-px rounded-xl border border-line bg-surface p-1.5 shadow-2" role="menu">
-          <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="invite-person">{{template "icon-user"}}<span>Invite a person</span></button>
-          {{if .Keeps}}<button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="new-agent">{{template "icon-bot"}}<span>New agent</span></button>{{end}}
+          <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-hover [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="invite-person">{{template "icon-user"}}<span>Invite a person</span></button>
+          {{if .Keeps}}<button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-hover [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="new-agent">{{template "icon-bot"}}<span>New agent</span></button>{{end}}
         </div>
       </details>
-      {{else if .Keeps}}<button type="button" class="grid size-8 cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-open="new-agent" title="New agent" aria-label="New agent">{{template "icon-add"}}</button>{{end}}
+      {{else if .Keeps}}<button type="button" class="grid size-8 cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-hover hover:text-ink [&>svg]:size-4" data-open="new-agent" title="New agent" aria-label="New agent">{{template "icon-add"}}</button>{{end}}
     </div>
     <div class="flex gap-0.5 px-1" role="tablist" aria-label="Which members">
-      <button class="flex h-7 cursor-pointer items-center rounded-full border-0 bg-transparent px-2.5 text-[0.8125rem] font-medium text-muted hover:text-ink aria-selected:bg-sunken aria-selected:text-ink" type="button" role="tab" aria-selected="true" data-member-tab="all">All</button><button class="flex h-7 cursor-pointer items-center rounded-full border-0 bg-transparent px-2.5 text-[0.8125rem] font-medium text-muted hover:text-ink aria-selected:bg-sunken aria-selected:text-ink" type="button" role="tab" aria-selected="false" data-member-tab="people">People</button><button class="flex h-7 cursor-pointer items-center rounded-full border-0 bg-transparent px-2.5 text-[0.8125rem] font-medium text-muted hover:text-ink aria-selected:bg-sunken aria-selected:text-ink" type="button" role="tab" aria-selected="false" data-member-tab="agents">Agents</button>
+      <button class="flex h-7 cursor-pointer items-center rounded-full border-0 bg-transparent px-2.5 text-[0.8125rem] font-medium text-muted hover:text-ink aria-selected:bg-surface aria-selected:shadow-1 aria-selected:text-ink" type="button" role="tab" aria-selected="true" data-member-tab="all">All</button><button class="flex h-7 cursor-pointer items-center rounded-full border-0 bg-transparent px-2.5 text-[0.8125rem] font-medium text-muted hover:text-ink aria-selected:bg-surface aria-selected:shadow-1 aria-selected:text-ink" type="button" role="tab" aria-selected="false" data-member-tab="people">People</button><button class="flex h-7 cursor-pointer items-center rounded-full border-0 bg-transparent px-2.5 text-[0.8125rem] font-medium text-muted hover:text-ink aria-selected:bg-surface aria-selected:shadow-1 aria-selected:text-ink" type="button" role="tab" aria-selected="false" data-member-tab="agents">Agents</button>
     </div>
     <div class="-mx-1 grid min-h-0 flex-1 content-start gap-px overflow-y-auto px-1">
       {{range .People}}
-      <a class="flex items-center gap-3 rounded-lg px-2 py-2 text-ink no-underline hover:bg-sunken aria-[current]:bg-sunken [&[hidden]]:hidden" href="{{.Where}}" data-member-kind="people"{{if eq .Where $.Here}} aria-current="page"{{end}}>
+      <a class="flex items-center gap-3 rounded-lg px-2 py-2 text-ink no-underline hover:bg-hover aria-[current]:bg-surface aria-[current]:shadow-1 [&[hidden]]:hidden" href="{{.Where}}" data-member-kind="people"{{if eq .Where $.Here}} aria-current="page"{{end}}>
         <span class="grid size-9 flex-none place-items-center rounded-full bg-sunken text-xs font-medium text-muted [&>svg]:size-4" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
         <span class="grid min-w-0"><span class="truncate text-sm font-medium">{{.Name}}</span><span class="truncate text-xs text-subtle">{{.Role}}</span></span>
       </a>
       {{end}}
       {{range .Agents}}
-      <a class="flex items-center gap-3 rounded-lg px-2 py-2 text-ink no-underline hover:bg-sunken aria-[current]:bg-sunken [&[hidden]]:hidden" href="{{.Where}}" data-member-kind="agents"{{if eq .Where $.Here}} aria-current="page"{{end}}>
+      <a class="flex items-center gap-3 rounded-lg px-2 py-2 text-ink no-underline hover:bg-hover aria-[current]:bg-surface aria-[current]:shadow-1 [&[hidden]]:hidden" href="{{.Where}}" data-member-kind="agents"{{if eq .Where $.Here}} aria-current="page"{{end}}>
         <span class="grid size-9 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-5" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
         <span class="grid min-w-0"><span class="flex min-w-0 items-center gap-1.5 text-sm font-medium"><span class="truncate">{{.Name}}</span><span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span></span><span class="truncate text-xs text-subtle">{{or .Specialty .Engine}}</span></span>
       </a>
       {{end}}
     </div>
-    <a class="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-muted no-underline hover:bg-sunken hover:text-ink [&>svg]:size-4" href="/presets">{{template "icon-compose"}} Ready-made roles and presets</a>
+    <a class="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-muted no-underline hover:bg-hover hover:text-ink [&>svg]:size-4" href="/presets">{{template "icon-compose"}} Ready-made roles and presets</a>
   </nav>
 
   <div class="min-h-0 min-w-0 flex-1 overflow-y-auto">

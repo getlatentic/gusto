@@ -18,7 +18,7 @@
 </header>
 {{template "usage-tabs" $.Tabs}}
 
-<section class="mb-6 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-6 gap-y-5 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+<section class="mb-6 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-6 gap-y-5 rounded-md bg-surface p-5 shadow-1 border border-line">
   {{$spent := usd .Total.USD}}{{if and (eq .Total.USD 0.0) .Total.Unmeasured}}{{$spent = "—"}}{{end}}
   {{$caption := "spent this month, at least"}}{{if eq .Total.Unmeasured 0}}{{$caption = "spent this month"}}{{else if eq .Total.Calls .Total.Unmeasured}}{{$caption = "no price set for these models"}}{{end}}
   {{template "figure" (dict "Headline" true "Value" $spent "Label" $caption)}}
@@ -29,7 +29,7 @@
   {{template "figure" (dict "Value" .Total.Refused "Label" "refused by a cap" "Bad" .Total.Refused)}}
 </section>
 
-<section class="mb-4 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+<section class="mb-4 rounded-md bg-surface p-5 shadow-1 border border-line">
   <h2 class="mb-4 flex items-baseline gap-2 text-sm font-semibold">Spend by day <span class="font-normal text-muted">{{if eq .Measure "money"}}dollars{{else}}tokens{{end}}</span></h2>
   {{if .Daily}}
   <div class="group/bars flex h-40 items-end gap-1.5" role="img" aria-label="Spending on each day of {{.Month}}">
@@ -44,7 +44,7 @@
 {{with .Tops}}
 <div class="mb-4 grid grid-cols-3 gap-4 @max-[56rem]:grid-cols-1">
   {{range .}}
-  <div class="grid content-start gap-1.5 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+  <div class="grid content-start gap-1.5 rounded-md bg-surface p-5 shadow-1 border border-line">
     <span class="text-xs text-muted">{{.Title}}</span>
     <span class="font-display text-xl font-bold wrap-anywhere">{{.Name}}</span>
     <span class="text-sm text-muted">{{.Says}}</span>
@@ -59,7 +59,7 @@
 {{template "foot" .}}
 
 {{define "shares"}}
-<section class="min-w-0 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+<section class="min-w-0 rounded-md bg-surface p-5 shadow-1 border border-line">
   <h2 class="mb-3 text-sm font-semibold">{{.Title}}</h2>
   {{if .Lines}}
   <table class="text-sm [&_td]:border-t [&_td]:border-line [&_td]:py-2.5 [&_th]:py-1.5">

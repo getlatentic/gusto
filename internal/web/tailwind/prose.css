@@ -18,6 +18,8 @@
 .prose :where(.gone) { color: var(--gu-text-muted); }
 .prose :where(table) { display: block; max-width: 100%; overflow-x: auto; }
 /* Text that sits in a bubble has no margin above its first block or below its last, so the bubble's padding is all there is. */
+/* A reply in the chat reads at the chat's size, not the plugin's own. */
+.prose.in-bubble { font-size: inherit; line-height: inherit; }
 .prose.in-bubble > :first-child { margin-top: 0; }
 .prose.in-bubble > :last-child { margin-bottom: 0; }
 

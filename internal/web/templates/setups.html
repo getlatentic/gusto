@@ -11,7 +11,7 @@
 {{if .Keeps}}
 <section class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-4">
   {{range .Setups}}
-  <a class="grid content-start gap-1 rounded-md bg-surface p-5 text-ink no-underline shadow-1 transition-shadow hover:shadow-2 dark:border dark:border-line" href="{{$.Base}}/{{.Name}}">
+  <a class="grid content-start gap-1 rounded-md bg-surface p-5 text-ink no-underline shadow-1 transition-shadow hover:shadow-2 border border-line" href="{{$.Base}}/{{.Name}}">
     <span class="font-display font-semibold">{{.Name}}</span>
     <span class="text-sm text-muted">{{len .Skills}} skill{{if ne (len .Skills) 1}}s{{end}}{{with .Servers}} · tools: {{range $i, $s := .}}{{if $i}}, {{end}}{{$s}}{{end}}{{end}}</span>
   </a>

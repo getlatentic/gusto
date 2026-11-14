@@ -13,8 +13,8 @@
   --gu-bg: #FFFFFF;
   --gu-surface: #FFFFFF;
   --gu-surface-sunken: #F2F2F0;
-  --gu-border: #E7E7E4;
-  --gu-border-strong: #D4D4D0;
+  --gu-border: rgb(20 20 18 / .14);
+  --gu-border-strong: rgb(20 20 18 / .22);
   --gu-text: #141412;
   --gu-text-muted: #3D3D37;
   --gu-text-subtle: #57574F;
@@ -37,8 +37,8 @@
   --gu-bg: #161615;
   --gu-surface: #1E1E1C;
   --gu-surface-sunken: #0F0F0E;
-  --gu-border: #2A2A27;
-  --gu-border-strong: #3A3A36;
+  --gu-border: rgb(244 244 242 / .12);
+  --gu-border-strong: rgb(244 244 242 / .2);
   --gu-text: #F4F4F2;
   --gu-text-muted: #ABABA5;
   --gu-text-subtle: #ABABA5;
@@ -74,6 +74,7 @@
 
 /* Space and radius in rem, so that they follow the person's text size. */
 :root {
+  --gu-hairline: 0.03125rem;
   --gu-space-1: .25rem; --gu-space-2: .5rem; --gu-space-3: .75rem; --gu-space-4: 1rem; --gu-space-5: 1.25rem; --gu-space-6: 1.5rem;
   --gu-space-8: 2rem; --gu-space-10: 2.5rem; --gu-space-12: 3rem; --gu-space-16: 4rem; --gu-space-20: 5rem; --gu-space-24: 6rem;
   --gu-radius-xs: .25rem; --gu-radius-sm: .5rem; --gu-radius-md: .75rem; --gu-radius-lg: 1rem; --gu-radius-xl: 1.5rem; --gu-radius-2xl: 2rem;

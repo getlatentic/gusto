@@ -69,7 +69,7 @@
     <form class="relative mx-auto max-w-[42.5rem]" method="post" action="{{.Path}}/say" id="say-form"{{if .Instance.Room}} enctype="multipart/form-data"{{end}}{{if .Settings.Archived}} hidden{{end}}>
       <p class="{{template "ui-notice-chat"}} mb-2" id="unsent"{{if .Unsent}} role="alert"{{else}} hidden{{end}}>{{.Unsent}}</p>
       {{if .Instance.Room}}<ul class="absolute bottom-full left-0 z-30 mb-2 grid w-80 max-w-full list-none gap-px rounded-xl border border-line bg-surface p-1.5 shadow-2" id="mention-menu" role="listbox" aria-label="Mention" data-people="{{.Mentions}}" hidden></ul>{{end}}
-      <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-md border border-line-strong bg-surface py-3 pr-3 pl-5 shadow-1 transition-shadow has-[textarea:focus-visible]:border-focus has-[textarea:focus-visible]:ring-1 has-[textarea:focus-visible]:ring-focus">
+      <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-md border border-line-strong bg-surface py-3 pr-3 pl-5 shadow-1 transition-[border-color,box-shadow] has-[textarea:focus-visible]:border-accent has-[textarea:focus-visible]:shadow-2">
         {{if .Instance.Room}}
         <ul class="m-0 flex list-none flex-wrap gap-1.5 p-0 [&[hidden]]:hidden" id="attached" aria-label="Files attached to this message" hidden></ul>
         <div class="relative">
@@ -320,19 +320,17 @@
 {{if .Instance.Room}}{{template "room-turns" .}}{{else}}
 {{range .Turns}}
 <article id="{{.ID}}">
-  <div class="group/msg mt-6 grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5">
-    <span class="grid size-8 place-items-center rounded-full bg-sunken text-xs font-medium text-muted [&>svg]:size-4" aria-hidden="true">{{with initials .Asked}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
-    <p class="m-0 flex h-8 items-baseline gap-2 text-sm leading-8"><span class="font-semibold text-ink">{{personName .Asked}}</span></p>
-    <p class="col-start-2 m-0 max-w-full text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere">{{.Said}}</p>
-    {{template "msg-meta" (dict "T" .)}}
+  <div class="group/msg mt-3 grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3">
+    <span class="row-span-2 grid size-8 place-items-center rounded-full bg-sunken text-xs font-medium text-muted [&>svg]:size-4" aria-hidden="true">{{with initials .Asked}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
+    <p class="m-0 mt-1 mb-1.5 flex h-4 min-w-0 items-center gap-2 text-label"><span class="truncate text-ink">{{personName .Asked}}</span>{{template "msg-meta" (dict "T" .)}}</p>
+    <p class="col-start-2 m-0 max-w-full text-body whitespace-pre-wrap wrap-anywhere">{{.Said}}</p>
   </div>
   {{if .State.Done}}
-  <div class="group/msg mt-6 grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5">
+  <div class="group/msg mt-3 grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3">
     {{template "agent-avatar" (dict "Harness" $.Agent.Harness "Name" $.Agent.Name)}}
-    <p class="m-0 flex h-8 min-w-0 items-baseline gap-2 text-sm leading-8"><span class="truncate font-semibold text-ink">{{$.Agent.Name}}</span><span class="{{template "ui-badge"}} flex-none leading-5">agent</span></p>
-    <div class="col-start-2 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 text-[0.9375rem] leading-6">{{template "turn-result" (dict "T" . "P" $)}}</div>
+    <p class="m-0 mt-1 mb-1.5 flex h-4 min-w-0 items-center gap-2 text-label"><span class="truncate text-ink">{{$.Agent.Name}}</span><span class="{{template "chat-badge"}}">agent</span>{{template "msg-meta" (dict "T" . "Reply" true)}}</p>
+    <div class="col-start-2 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 text-body">{{template "turn-result" (dict "T" . "P" $)}}</div>
     {{with .Files}}{{template "file-chips" (dict "F" . "P" $)}}{{end}}
-    {{template "msg-meta" (dict "T" . "Reply" true)}}
   </div>
   {{end}}
 </article>
@@ -380,25 +378,24 @@ so the one thing that is a viewer's own, whose agent replied, is marked on the e
   {{if .Notice}}
   <p class="mx-auto mt-5 flex w-fit max-w-[40rem] items-start gap-2 rounded-xl bg-warn-wash px-3 py-2 text-sm leading-6 text-warn [&>svg]:mt-1 [&>svg]:size-4 [&>svg]:flex-none" role="status">{{template "icon-info"}}<span>{{.Said}}{{with .File}} <a class="font-medium text-inherit" href="/instances/{{$.P.Instance.ID}}/file?path={{.}}&amp;from={{$.P.Path}}">Open it</a>{{end}}</span></p>
   {{else if not (or .From .Echo)}}
-  <div class="group/msg grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5 {{if .SaidJoins}}mt-1.5{{else}}mt-6{{end}}">
+  <div class="group/msg grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3 {{if .SaidJoins}}mt-1.5{{else}}mt-3{{end}}">
     {{if not .SaidJoins}}
-    <span class="grid size-8 place-items-center rounded-full bg-sunken text-xs font-medium text-muted [&>svg]:size-4" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
-    <p class="m-0 flex h-8 items-baseline gap-2 text-sm leading-8"><span class="font-semibold text-ink">{{personName .Who}}</span></p>
-    {{end}}
-    <p class="col-start-2 m-0 max-w-full text-[0.9375rem] leading-6 whitespace-pre-wrap wrap-anywhere">{{mentionsIn .Said $.P.Names}}</p>
-    {{template "msg-meta" (dict "T" .)}}
+    <span class="row-span-2 grid size-8 place-items-center rounded-full bg-sunken text-xs font-medium text-muted [&>svg]:size-4" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
+    <p class="m-0 mt-1 mb-1.5 flex h-4 min-w-0 items-center gap-2 text-label"><span class="truncate text-ink">{{personName .Who}}</span>{{template "msg-meta" (dict "T" .)}}</p>
+    {{else}}{{template "msg-gutter" (dict "T" .)}}{{end}}
+    <p class="col-start-2 m-0 max-w-full text-body whitespace-pre-wrap wrap-anywhere">{{mentionsIn .Said $.P.Names}}</p>
   </div>
   {{end}}
   {{if not .Note}}
-  <div class="group/msg grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2.5 {{if .ReplyJoins}}mt-1.5{{else}}mt-6{{end}}">
+  <div class="group/msg grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3 {{if .ReplyJoins}}mt-1.5{{else}}mt-3{{end}}">
     {{if not .ReplyJoins}}
     {{template "agent-avatar" (dict "Harness" .Harness "Name" .By)}}
-    <p class="m-0 flex h-8 min-w-0 items-baseline gap-2 text-sm leading-8"><span class="truncate font-semibold text-ink" title="{{.Role}}">{{.By}}</span>{{if .Owner}}<span class="{{template "ui-badge"}} flex-none leading-5" data-agent-owner="{{.Owner}}" data-yours="your agent" data-theirs="{{ownerLabel .Owner ""}}">{{ownerLabel .Owner $.P.Me}}</span>{{else}}<span class="{{template "ui-badge"}} flex-none leading-5">agent</span>{{end}}{{with .From}}<span class="text-subtle">asked by {{mentionsIn (print "@" .) $.P.Names}}</span>{{end}}</p>
-    {{end}}
-    <div class="col-start-2 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 text-[0.9375rem] leading-6">
+    <p class="m-0 mt-1 mb-1.5 flex h-4 min-w-0 items-center gap-2 text-label"><span class="truncate text-ink" title="{{.Role}}">{{.By}}</span>{{if .Owner}}<span class="{{template "chat-badge"}}" data-agent-owner="{{.Owner}}" data-yours="your agent" data-theirs="{{ownerLabel .Owner ""}}">{{ownerLabel .Owner $.P.Me}}</span>{{else}}<span class="{{template "chat-badge"}}">agent</span>{{end}}{{with .From}}<span class="truncate font-normal text-subtle">asked by {{mentionsIn (print "@" .) $.P.Names}}</span>{{end}}{{if .State.Done}}{{template "msg-meta" (dict "T" . "Reply" true)}}{{end}}</p>
+    {{else}}{{template "msg-gutter" (dict "T" . "Reply" true)}}{{end}}
+    <div class="col-start-2 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 text-body">
       {{if .State.Done}}{{template "turn-result" (dict "T" . "P" $.P)}}{{else}}<div class="flex items-center gap-2 text-sm text-muted">{{if .Holding}}<span class="size-3 flex-none rounded-full border-2 border-line-strong" aria-hidden="true"></span><span data-waiting>{{.Holding}}</span>{{else}}<span class="size-3 flex-none animate-spin rounded-full border-2 border-line-strong border-t-ink" aria-hidden="true"></span><span class="min-w-0 truncate" data-progress>Working</span>{{end}}<form class="m-0 ml-2 flex-none" method="post" action="/jobs/{{.ID}}/stop"><input type="hidden" name="back" value="{{$.P.Path}}"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-ink hover:underline">Stop</button></form></div>{{end}}
     </div>
-    {{if .State.Done}}{{with .Files}}{{template "file-chips" (dict "F" . "P" $.P)}}{{end}}{{template "msg-meta" (dict "T" . "Reply" true)}}{{end}}
+    {{if .State.Done}}{{with .Files}}{{template "file-chips" (dict "F" . "P" $.P)}}{{end}}{{end}}
   </div>
   {{end}}
 </article>
@@ -406,12 +403,19 @@ so the one thing that is a viewer's own, whose agent replied, is marked on the e
 
 {{/* The files a reply produced, each a chip with its name that opens the file, past the first few folded away. A file that is no
 longer there is a line saying so. */}}
-{{/* When a message was sent, and for a reply how long it took and what it cost, under the message. It shows on hover or focus and takes
-no room until then, so a message's neighbours do not move; a screen without hover shows it always. */}}
-{{define "msg-meta"}}{{with .T}}<p class="col-start-2 m-0 mt-1 text-xs leading-4 text-subtle tabular-nums transition-opacity [@media(hover:hover)]:mt-0 [@media(hover:hover)]:h-0 [@media(hover:hover)]:translate-y-1 [@media(hover:hover)]:opacity-0 group-hover/msg:opacity-100 group-focus-within/msg:opacity-100"><time>{{clock .Queued}}</time>{{if and $.Reply .State.Done}}{{with took .Started .Ended}} · {{.}}{{end}}{{if and .Metered (eq .Spent.Unmeasured 0) (gt .Spent.USD 0.0)}} · {{.Spent.Money}}{{end}}{{end}}</p>{{end}}{{end}}
+{{/* When a message was sent, and for a reply how long it took and what it cost, at the end of its name row. It shows on hover or
+focus; a screen without hover shows it always. */}}
+{{define "msg-meta"}}{{with .T}}<span class="ml-auto flex-none pl-2 text-xs font-normal text-subtle tabular-nums transition-opacity [@media(hover:hover)]:opacity-0 group-hover/msg:opacity-100 group-focus-within/msg:opacity-100"><time>{{clock .Queued}}</time>{{if and $.Reply .State.Done}}{{with took .Started .Ended}} · {{.}}{{end}}{{if and .Metered (eq .Spent.Unmeasured 0) (gt .Spent.USD 0.0)}} · {{.Spent.Money}}{{end}}{{end}}</span>{{end}}{{end}}
+
+{{/* A message that carries on from the same sender has no name row, so its time sits in the avatar's column, as one line of the
+message tall; the duration and cost of a reply are in its title. */}}
+{{define "msg-gutter"}}{{with .T}}<time class="text-right text-[0.6875rem] leading-[1.375rem] text-subtle tabular-nums transition-opacity [@media(hover:hover)]:opacity-0 group-hover/msg:opacity-100 group-focus-within/msg:opacity-100"{{if and $.Reply .State.Done}} title="{{with took .Started .Ended}}{{.}}{{end}}{{if and .Metered (eq .Spent.Unmeasured 0) (gt .Spent.USD 0.0)}} · {{.Spent.Money}}{{end}}"{{end}}>{{clock .Queued}}</time>{{end}}{{end}}
+
+{{/* Who an agent belongs to, or that it is one, beside its name: a small pill the height of the name row. */}}
+{{define "chat-badge"}}inline-flex h-4 flex-none items-center rounded-full bg-wash px-1.5 text-xs leading-4 font-medium text-subtle{{end}}
 
 {{/* An agent is drawn as the first letter of its name in a circle, the same for every kind of agent. */}}
-{{define "agent-avatar"}}<span class="grid size-8 place-items-center rounded-full bg-sunken text-xs font-medium text-muted" aria-hidden="true" data-harness="{{.Harness}}">{{initial .Name}}</span>{{end}}
+{{define "agent-avatar"}}<span class="row-span-2 grid size-8 place-items-center rounded-full bg-sunken text-xs font-medium text-muted" aria-hidden="true" data-harness="{{.Harness}}">{{initial .Name}}</span>{{end}}
 
 {{define "file-chips"}}{{with .F}}
 <div class="col-start-2 mt-2 grid min-w-0 gap-2">

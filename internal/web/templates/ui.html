@@ -22,9 +22,9 @@
 {{define "home-full"}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad" role="alert">{{if .Mine}}Your agents' home is full{{else}}The home their agents keep is full{{end}}: it takes {{.H.Used}} of the {{.H.Limit}} it may, so this turn was {{or .H.Outcome "ended"}}. {{if .Mine}}Reset it on <a class="font-medium text-bad underline" href="/connections">Connections</a> to start again.{{else}}The person who asked can reset it on Connections.{{end}}</p>{{end}}
 
 {{/* Surfaces. */}}
-{{define "ui-card"}}rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line{{end}}
+{{define "ui-card"}}rounded-md bg-surface p-5 shadow-1 border border-line{{end}}
 {{define "ui-card-title"}}mb-3 text-sm font-semibold text-ink{{end}}
-{{define "ui-figures"}}mb-4 flex flex-wrap gap-px [&>*]:min-w-[min(10rem,100%)] [&>*]:flex-1 overflow-hidden rounded-md bg-line shadow-1 dark:border dark:border-line{{end}}
+{{define "ui-figures"}}mb-4 flex flex-wrap gap-px [&>*]:min-w-[min(10rem,100%)] [&>*]:flex-1 overflow-hidden rounded-md bg-line shadow-1 border border-line{{end}}
 {{define "ui-figure-value"}}font-display text-xl leading-none font-semibold tabular-nums{{end}}
 {{define "ui-figure-label"}}text-sm text-muted{{end}}
 {{define "ui-figure"}}flex flex-col-reverse justify-start gap-1.5 bg-surface px-5 py-4 text-inherit no-underline{{end}}
@@ -44,7 +44,7 @@
 {{define "ui-crumb-link"}}text-muted no-underline hover:text-ink hover:underline{{end}}
 
 {{/* Tables: ui-table-wrap with ui-th and ui-td is a table of its own, ui-table sits inside a card. */}}
-{{define "ui-table-wrap"}}overflow-x-auto rounded-md bg-surface shadow-1 dark:border dark:border-line{{end}}
+{{define "ui-table-wrap"}}overflow-x-auto rounded-md bg-surface shadow-1 border border-line{{end}}
 {{define "ui-th"}}px-5 py-3 text-xs font-semibold text-subtle border-b border-line{{end}}
 {{define "ui-td"}}px-5 py-3 border-b border-line group-last/row:border-b-0{{end}}
 {{/* A table longer than a page shows one page and the links to the pages either side. It takes a pager. */}}
@@ -79,7 +79,7 @@
 {{define "ui-menu-item"}}flex h-9 w-full cursor-pointer items-center gap-3 rounded-sm border-0 bg-transparent px-2.5 text-left text-sm text-ink no-underline hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted{{end}}
 
 {{/* A list of rows in one card: each row a main line, a quieter line under it, and an optional value at the right. */}}
-{{define "ui-list"}}grid overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line [&>*+*]:border-t [&>*+*]:border-line{{end}}
+{{define "ui-list"}}grid overflow-hidden rounded-md bg-surface shadow-1 border border-line [&>*+*]:border-t [&>*+*]:border-line{{end}}
 {{define "ui-row"}}flex min-w-0 items-center gap-4 px-5 py-3 @max-[56rem]:px-4{{end}}
 {{define "ui-row-main"}}m-0 text-sm font-medium text-ink wrap-anywhere{{end}}
 {{define "ui-row-sub"}}m-0 mt-0.5 text-xs text-subtle{{end}}
@@ -89,5 +89,5 @@
 {{define "ui-status-ok"}}m-0 flex items-start gap-2 text-sm text-muted before:mt-1.5 before:size-2 before:flex-none before:rounded-full before:bg-ok{{end}}
 
 {{/* A page with nothing to show yet: what will be here, as a title and one line. */}}
-{{define "ui-empty"}}m-0 rounded-md bg-surface px-6 py-10 text-center text-sm text-muted shadow-1 dark:border dark:border-line{{end}}
+{{define "ui-empty"}}m-0 rounded-md bg-surface px-6 py-10 text-center text-sm text-muted shadow-1 border border-line{{end}}
 {{define "ui-empty-title"}}mb-1 block text-sm font-semibold text-ink{{end}}
