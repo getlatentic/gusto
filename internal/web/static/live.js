@@ -44,11 +44,6 @@
 
   // A live update is drawn for nobody in particular; what is yours, and what only the room's owner is offered, is settled here.
   function settle(root) {
-    root.querySelectorAll("[data-who]").forEach(function (each) {
-      var own = each.dataset.who === me;
-      each.classList.remove.apply(each.classList, (own ? each.dataset.theirs : each.dataset.ours).split(" "));
-      each.classList.add.apply(each.classList, (own ? each.dataset.ours : each.dataset.theirs).split(" "));
-    });
     root.querySelectorAll("[data-agent-owner]").forEach(function (each) {
       var yours = each.dataset.agentOwner.toLowerCase() === (me || "").toLowerCase();
       each.textContent = yours ? each.dataset.yours : each.dataset.theirs;
