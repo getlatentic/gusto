@@ -1,11 +1,12 @@
 {{template "head" .}}
 
-<div class="{{template "ui-title"}}">
-  <h1>API tokens</h1>
-  <span class="text-sm text-muted">What programs use to call this server</span>
-  <span class="flex-1"></span>
-  <button class="{{template "ui-btn"}}" type="button" data-reveal="make-token">{{template "icon-add"}} New token</button>
-</div>
+<header class="{{template "ui-page-head"}}">
+  <div class="{{template "ui-page-title"}}">
+    <h1>API tokens</h1>
+    <p class="{{template "ui-page-sub"}}">What programs use to call this server</p>
+  </div>
+  {{if and .Tokens (not .Refused)}}<button class="{{template "ui-btn"}}" type="button" data-reveal="make-token">{{template "icon-add"}} New token</button>{{end}}
+</header>
 
 {{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
 
@@ -19,16 +20,14 @@
 </section>
 {{end}}
 
-<section class="{{template "ui-card"}}" id="make-token"{{if and .Tokens (not .Refused)}} hidden{{end}}>
-  <h2 class="{{template "ui-card-title"}}">Make a token</h2>
-  <form class="grid max-w-prose gap-4" method="post" action="/admin/tokens">
+<section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Make a token</h2><section class="{{template "ui-card"}}" id="make-token"{{if and .Tokens (not .Refused)}} hidden{{end}}>  <form class="grid max-w-prose gap-4" method="post" action="/admin/tokens">
     <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="ci-nightly" pattern="[a-z0-9][a-z0-9\-]*" required></label>
     <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">It may</legend>
       {{range .Offered}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="scope" value="{{.Scope}}"{{if eq .Scope "submit"}} checked{{end}}> {{.Words}}</label>{{end}}
     </fieldset>
     <div><button class="{{template "ui-btn"}}" type="submit">Make token</button></div>
   </form>
-</section>
+</section></section>
 
 {{if .Tokens}}
 <div class="{{template "ui-card"}} overflow-x-auto">

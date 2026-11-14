@@ -1,36 +1,36 @@
 {{template "head" .}}
 
 <section class="flex min-h-0 w-0 min-w-0 flex-1">
-  <nav class="flex w-80 flex-none flex-col gap-3 border-r border-line p-3 {{if or .Agent .Person}}@max-[56rem]:hidden{{else}}@max-[56rem]:w-full @max-[56rem]:border-r-0{{end}}" aria-label="Members">
+  <nav class="flex w-80 flex-none flex-col gap-3 bg-side p-3 {{if or .Agent .Person}}@max-[56rem]:hidden{{else}}@max-[56rem]:w-full{{end}}" aria-label="Members">
     <div class="flex min-h-10 items-center justify-between px-2"><h1 class="m-0 text-base font-semibold">Members</h1>
       {{if .Invite}}
       <details class="relative flex-none" data-menu>
-        <summary class="grid size-8 cursor-pointer list-none place-items-center rounded-md text-muted hover:bg-sunken hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="Add a member" title="Add a member">{{template "icon-add"}}</summary>
-        <div class="absolute top-full right-0 z-40 mt-1 grid w-56 gap-px rounded-xl border border-line bg-surface p-1.5 shadow-2" role="menu">
-          <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="invite-person">{{template "icon-user"}}<span>Invite a person</span></button>
-          {{if .Keeps}}<button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="new-agent">{{template "icon-bot"}}<span>New agent</span></button>{{end}}
+        <summary class="grid size-8 cursor-pointer list-none place-items-center rounded-md text-muted hover:bg-hover hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="Add a member" title="Add a member">{{template "icon-add"}}</summary>
+        <div class="absolute top-full right-0 z-40 mt-1 grid w-56 gap-px rounded-lg border border-line bg-surface p-1.5 shadow-2" role="menu">
+          <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-hover [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="invite-person">{{template "icon-user"}}<span>Invite a person</span></button>
+          {{if .Keeps}}<button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-hover [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="new-agent">{{template "icon-bot"}}<span>New agent</span></button>{{end}}
         </div>
       </details>
-      {{else if .Keeps}}<button type="button" class="grid size-8 cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-open="new-agent" title="New agent" aria-label="New agent">{{template "icon-add"}}</button>{{end}}
+      {{else if .Keeps}}<button type="button" class="grid size-8 cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-hover hover:text-ink [&>svg]:size-4" data-open="new-agent" title="New agent" aria-label="New agent">{{template "icon-add"}}</button>{{end}}
     </div>
     <div class="flex gap-0.5 px-1" role="tablist" aria-label="Which members">
-      <button class="flex h-7 cursor-pointer items-center rounded-full border-0 bg-transparent px-2.5 text-[0.8125rem] font-medium text-muted hover:text-ink aria-selected:bg-sunken aria-selected:text-ink" type="button" role="tab" aria-selected="true" data-member-tab="all">All</button><button class="flex h-7 cursor-pointer items-center rounded-full border-0 bg-transparent px-2.5 text-[0.8125rem] font-medium text-muted hover:text-ink aria-selected:bg-sunken aria-selected:text-ink" type="button" role="tab" aria-selected="false" data-member-tab="people">People</button><button class="flex h-7 cursor-pointer items-center rounded-full border-0 bg-transparent px-2.5 text-[0.8125rem] font-medium text-muted hover:text-ink aria-selected:bg-sunken aria-selected:text-ink" type="button" role="tab" aria-selected="false" data-member-tab="agents">Agents</button>
+      <button class="flex h-8 cursor-pointer items-center rounded-full border-0 bg-transparent px-3 text-sm font-medium text-muted hover:text-ink aria-selected:bg-surface aria-selected:shadow-1 aria-selected:text-ink" type="button" role="tab" aria-selected="true" data-member-tab="all">All</button><button class="flex h-8 cursor-pointer items-center rounded-full border-0 bg-transparent px-3 text-sm font-medium text-muted hover:text-ink aria-selected:bg-surface aria-selected:shadow-1 aria-selected:text-ink" type="button" role="tab" aria-selected="false" data-member-tab="people">People</button><button class="flex h-8 cursor-pointer items-center rounded-full border-0 bg-transparent px-3 text-sm font-medium text-muted hover:text-ink aria-selected:bg-surface aria-selected:shadow-1 aria-selected:text-ink" type="button" role="tab" aria-selected="false" data-member-tab="agents">Agents</button>
     </div>
     <div class="-mx-1 grid min-h-0 flex-1 content-start gap-px overflow-y-auto px-1">
       {{range .People}}
-      <a class="flex items-center gap-3 rounded-lg px-2 py-2 text-ink no-underline hover:bg-sunken aria-[current]:bg-sunken [&[hidden]]:hidden" href="{{.Where}}" data-member-kind="people"{{if eq .Where $.Here}} aria-current="page"{{end}}>
-        <span class="grid size-9 flex-none place-items-center rounded-full bg-accent-wash text-xs font-medium text-accent-ink [&>svg]:size-4" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
+      <a class="flex items-center gap-3 rounded-lg px-2 py-2 text-ink no-underline hover:bg-hover aria-[current]:bg-surface aria-[current]:shadow-1 [&[hidden]]:hidden" href="{{.Where}}" data-member-kind="people"{{if eq .Where $.Here}} aria-current="page"{{end}}>
+        <span class="grid size-9 flex-none place-items-center rounded-full bg-sunken text-xs font-medium text-muted [&>svg]:size-4" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
         <span class="grid min-w-0"><span class="truncate text-sm font-medium">{{.Name}}</span><span class="truncate text-xs text-subtle">{{.Role}}</span></span>
       </a>
       {{end}}
       {{range .Agents}}
-      <a class="flex items-center gap-3 rounded-lg px-2 py-2 text-ink no-underline hover:bg-sunken aria-[current]:bg-sunken [&[hidden]]:hidden" href="{{.Where}}" data-member-kind="agents"{{if eq .Where $.Here}} aria-current="page"{{end}}>
+      <a class="flex items-center gap-3 rounded-lg px-2 py-2 text-ink no-underline hover:bg-hover aria-[current]:bg-surface aria-[current]:shadow-1 [&[hidden]]:hidden" href="{{.Where}}" data-member-kind="agents"{{if eq .Where $.Here}} aria-current="page"{{end}}>
         <span class="grid size-9 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-5" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
         <span class="grid min-w-0"><span class="flex min-w-0 items-center gap-1.5 text-sm font-medium"><span class="truncate">{{.Name}}</span><span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span></span><span class="truncate text-xs text-subtle">{{or .Specialty .Engine}}</span></span>
       </a>
       {{end}}
     </div>
-    <a class="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-muted no-underline hover:bg-sunken hover:text-ink [&>svg]:size-4" href="/presets">{{template "icon-compose"}} Ready-made roles and presets</a>
+    <a class="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-muted no-underline hover:bg-hover hover:text-ink [&>svg]:size-4" href="/presets">{{template "icon-compose"}} Ready-made roles and presets</a>
   </nav>
 
   <div class="min-h-0 min-w-0 flex-1 overflow-y-auto">
@@ -51,7 +51,7 @@
 {{template "foot" .}}
 
 {{define "member-agent"}}{{$a := .A}}{{$p := .P}}
-<article class="mx-auto grid max-w-3xl gap-5 px-8 py-8 @max-[56rem]:px-4">
+<article class="mx-auto grid max-w-3xl gap-8 px-8 py-8 @max-[56rem]:px-4">
   <a class="hidden text-sm text-muted @max-[56rem]:inline-flex" href="/members">{{template "icon-back"}} Members</a>
   {{template "ui-flash" $p}}
   <header class="flex items-center gap-4">
@@ -65,40 +65,44 @@
   </nav>
 
   {{if eq $p.Tab "profile"}}
-  <form class="grid gap-5" method="post" action="/members/agents/{{$a.ID}}"><input type="hidden" name="tab" value="profile">
-    <section class="grid gap-3 rounded-xl border border-line p-5">
-      <h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">Profile</h3>
-      {{if $a.Mine}}
-      <label class="{{template "ui-field"}}">Name <input class="input" name="name" value="{{$a.Name}}" maxlength="32" required></label>
-      <label class="{{template "ui-field"}}"><span>Specialty <span class="font-normal">what teammates should ask it for</span></span><input class="input" name="specialty" value="{{$a.Specialty}}" placeholder="Research and synthesis" maxlength="80"></label>
-      {{else}}
-      <dl class="m-0 grid grid-cols-[9rem_1fr] gap-y-2 text-sm"><dt class="text-muted">Specialty</dt><dd class="m-0">{{or $a.Specialty "Not set"}}</dd></dl>
-      {{end}}
-      <dl class="m-0 grid grid-cols-[9rem_1fr] gap-y-2 text-sm"><dt class="text-muted">Made by</dt><dd class="m-0">{{personName $a.Owner}}</dd><dt class="text-muted">Made</dt><dd class="m-0">{{ago $a.Created}}</dd></dl>
+  <form class="grid gap-8" method="post" action="/members/agents/{{$a.ID}}"><input type="hidden" name="tab" value="profile">
+    <section class="{{template "ui-section"}}">
+      <h3 class="{{template "ui-section-title"}}">Profile</h3>
+      <div class="{{template "ui-list"}}">
+        {{if $a.Mine}}
+        <label class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Name</span><input class="input flex-1" name="name" value="{{$a.Name}}" maxlength="32" required></label>
+        <label class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Specialty</span><input class="input flex-1" name="specialty" value="{{$a.Specialty}}" placeholder="What teammates should ask it for" maxlength="80"></label>
+        {{else}}
+        <div class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Specialty</span><span class="min-w-0 text-sm">{{or $a.Specialty "Not set"}}</span></div>
+        {{end}}
+        <div class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Made by</span><span class="min-w-0 text-sm">{{personName $a.Owner}}</span></div>
+        <div class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Made</span><span class="min-w-0 text-sm">{{ago $a.Created}}</span></div>
+      </div>
     </section>
-    <section class="grid gap-3 rounded-xl border border-line p-5">
-      <h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">How it runs</h3>
-      <dl class="m-0 grid grid-cols-[9rem_1fr] items-center gap-y-2 text-sm">
-        <dt class="text-muted">Agent type</dt><dd class="m-0 flex items-center gap-2">{{template "mark" (dict "Harness" $a.Harness "Name" $a.Engine "Size" "xs")}}{{$a.Engine}}</dd>
-        <dt class="text-muted">Where</dt><dd class="m-0">In a sandbox on this server. The model's key never reaches it, and what it asks of other sites is checked.</dd>
-        <dt class="text-muted">Model</dt><dd class="m-0">{{if $a.Mine}}<select class="select" name="model"><option value="">Default</option>{{range $p.Offered}}<option value="{{.Value}}"{{if eq .Value $a.Model}} selected{{end}}>{{.Label}}</option>{{end}}</select>{{else}}{{or $a.Brain "Default"}}{{end}}</dd>
-      </dl>
+    <section class="{{template "ui-section"}}">
+      <h3 class="{{template "ui-section-title"}}">How it runs</h3>
+      <div class="{{template "ui-list"}}">
+        <div class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Agent type</span><span class="flex min-w-0 items-center gap-2 text-sm">{{template "mark" (dict "Harness" $a.Harness "Name" $a.Engine "Size" "xs")}}{{$a.Engine}}</span></div>
+        <div class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Where</span><span class="min-w-0 text-sm">In a sandbox on this server. The model's key never reaches it, and what it asks of other sites is checked.</span></div>
+        {{if $a.Mine}}<label class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Model</span><select class="select flex-1" name="model"><option value="">Default</option>{{range $p.Offered}}<option value="{{.Value}}"{{if eq .Value $a.Model}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+        {{else}}<div class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Model</span><span class="min-w-0 text-sm">{{or $a.Brain "Default"}}</span></div>{{end}}
+      </div>
     </section>
-    <section class="grid gap-3 rounded-xl border border-line p-5">
-      <h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">Persona</h3>
-      <p class="m-0 text-sm text-muted">How it works and talks. It is told this at the start of every turn, in every room.</p>
-      {{if $a.Mine}}<textarea class="textarea min-h-40" name="persona" placeholder="You are careful and direct. You say what you checked and what you did not.">{{$a.Persona}}</textarea>
+    <section class="{{template "ui-section"}}">
+      <h3 class="{{template "ui-section-title"}}">Persona</h3>
+      <p class="{{template "ui-section-note"}}">How it works and talks. It is told this at the start of every turn, in every room.</p>
+      {{if $a.Mine}}<textarea class="textarea min-h-40" name="persona" aria-label="Persona" placeholder="You are careful and direct. You say what you checked and what you did not.">{{$a.Persona}}</textarea>
       {{else}}{{with $a.Persona}}<p class="m-0 text-sm whitespace-pre-wrap">{{.}}</p>{{else}}<p class="m-0 text-sm text-subtle">None set.</p>{{end}}{{end}}
     </section>
-    {{if $a.Mine}}<div><button type="submit" class="{{template "ui-btn"}} h-9">Save</button></div>{{end}}
+    {{if $a.Mine}}<div><button type="submit" class="{{template "ui-btn"}}">Save</button></div>{{end}}
   </form>
-  {{with $p.Rooms}}<section class="grid gap-2"><h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">In your rooms</h3>{{range .}}<a class="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-ink no-underline hover:bg-sunken [&>svg]:size-4 [&>svg]:text-subtle" href="{{.Where}}">{{template "icon-users"}}{{.Name}}</a>{{end}}</section>{{end}}
+  {{with $p.Rooms}}<section class="{{template "ui-section"}}"><h3 class="{{template "ui-section-title"}}">In your rooms</h3><div class="{{template "ui-list"}}">{{range .}}<a class="{{template "ui-row"}} text-sm text-ink no-underline hover:bg-hover [&>svg]:size-4 [&>svg]:text-subtle" href="{{.Where}}">{{template "icon-users"}}{{.Name}}</a>{{end}}</div></section>{{end}}
 
   {{else if eq $p.Tab "access"}}
   <section class="grid gap-3">
     <p class="m-0 text-sm text-muted">Only the people listed here can work with {{$a.Name}}: message it, and add it to their rooms.</p>
-    <ul class="m-0 grid list-none gap-px rounded-xl border border-line p-1.5">
-      <li class="flex h-11 items-center gap-3 px-2"><span class="grid size-7 flex-none place-items-center rounded-full bg-accent-wash text-xs font-medium text-accent-ink [&>svg]:size-3.5" aria-hidden="true">{{with initials $a.Owner}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span><span class="min-w-0 flex-1 truncate text-sm">{{personName $a.Owner}}</span><span class="text-sm text-muted">Made it</span></li>
+    <ul class="m-0 grid list-none gap-px rounded-lg border border-line p-1.5">
+      <li class="flex h-11 items-center gap-3 px-2"><span class="grid size-7 flex-none place-items-center rounded-full bg-sunken text-xs font-medium text-muted [&>svg]:size-3.5" aria-hidden="true">{{with initials $a.Owner}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span><span class="min-w-0 flex-1 truncate text-sm">{{personName $a.Owner}}</span><span class="text-sm text-muted">Made it</span></li>
       {{range $a.Access}}
       <li class="flex h-11 items-center gap-3 px-2"><span class="grid size-7 flex-none place-items-center rounded-full bg-sunken text-xs font-medium text-muted" aria-hidden="true">{{initials .}}</span><span class="min-w-0 flex-1 truncate text-sm" title="{{.}}">{{personName .}}</span>
         {{if $a.Mine}}<form class="m-0" method="post" action="/members/agents/{{$a.ID}}/access"><input type="hidden" name="who" value="{{.}}"><input type="hidden" name="action" value="remove"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-sm text-subtle hover:text-ink">Remove</button></form>{{else}}<span class="text-sm text-muted">Can work with it</span>{{end}}
@@ -111,11 +115,11 @@
   {{else if eq $p.Tab "apps"}}{{with $p.Apps}}
   <section class="grid gap-3">
     <p class="m-0 text-sm text-muted">Which of your apps {{$a.Name}} may use when you ask it. Inherit follows your <a class="text-ink underline" href="/connections">default</a>.</p>
-    {{if not .Person}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">Sign in as yourself to choose.</p>
-    {{else if not .Works}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">Only the people who work with {{$a.Name}} choose here. When you ask it in a room, your <a class="text-ink underline" href="/connections">default</a> applies.</p>
-    {{else if not .Apps}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">No apps connected. <a class="text-ink underline" href="/connections">Connect one</a>.</p>
+    {{if not .Person}}<p class="m-0 rounded-lg border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">Sign in as yourself to choose.</p>
+    {{else if not .Works}}<p class="m-0 rounded-lg border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">Only the people who work with {{$a.Name}} choose here. When you ask it in a room, your <a class="text-ink underline" href="/connections">default</a> applies.</p>
+    {{else if not .Apps}}<p class="m-0 rounded-lg border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">No apps connected. <a class="text-ink underline" href="/connections">Connect one</a>.</p>
     {{else}}
-    <ul class="m-0 grid list-none gap-px rounded-xl border border-line p-1.5">
+    <ul class="m-0 grid list-none gap-px rounded-lg border border-line p-1.5">
       {{range .Apps}}
       <li class="flex h-12 items-center gap-3 px-2">
         <span class="grid size-8 flex-none place-items-center rounded-full bg-sunken text-muted [&>svg]:size-4" aria-hidden="true">{{template "icon-link"}}</span>
@@ -145,38 +149,41 @@
     </form>
     {{end}}
     {{if $p.HasSkills}}
-    <ul class="m-0 grid list-none gap-px rounded-xl border border-line p-1.5">
+    <ul class="m-0 grid list-none gap-px rounded-lg border border-line p-1.5">
       {{range $p.SkillSet.Skills}}<li class="grid gap-0.5 px-3 py-2.5"><span class="text-sm font-medium">{{.Name}}</span>{{with .Description}}<span class="text-sm text-muted">{{.}}</span>{{end}}</li>{{else}}<li class="px-3 py-2.5 text-sm text-subtle">{{$p.SkillTitle}} holds no skills yet.</li>{{end}}
     </ul>
-    {{else}}<p class="m-0 rounded-xl border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">No skills given. {{$a.Name}} works with what its agent type knows.</p>{{end}}
+    {{else}}<p class="m-0 rounded-lg border border-dashed border-line px-5 py-8 text-center text-sm text-subtle">No skills given. {{$a.Name}} works with what its agent type knows.</p>{{end}}
   </section>
   {{end}}
 </article>
 {{end}}
 
 {{define "member-person"}}{{$m := .M}}{{$p := .P}}
-<article class="mx-auto grid max-w-3xl gap-5 px-8 py-8 @max-[56rem]:px-4">
+<article class="mx-auto grid max-w-3xl gap-8 px-8 py-8 @max-[56rem]:px-4">
   <a class="hidden text-sm text-muted @max-[56rem]:inline-flex" href="/members">{{template "icon-back"}} Members</a>
   <header class="flex items-center gap-4">
-    <span class="grid size-14 flex-none place-items-center rounded-full bg-accent-wash text-base font-medium text-accent-ink [&>svg]:size-6" aria-hidden="true">{{with initials $m.Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
+    <span class="grid size-14 flex-none place-items-center rounded-full bg-sunken text-base font-medium text-muted [&>svg]:size-6" aria-hidden="true">{{with initials $m.Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
     <div class="grid min-w-0"><h2 class="m-0 truncate text-lg font-semibold">{{$m.Name}}</h2><p class="m-0 truncate text-sm text-muted">{{$m.Role}}</p></div>
   </header>
-  <section class="grid gap-3 rounded-xl border border-line p-5">
-    <h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">Profile</h3>
-    <dl class="m-0 grid grid-cols-[9rem_1fr] gap-y-2 text-sm"><dt class="text-muted">Email</dt><dd class="m-0">{{if eq $m.Who "the shared sign-in"}}Signs in with this server's password{{else}}{{$m.Who}}{{end}}</dd><dt class="text-muted">Role</dt><dd class="m-0">{{$m.Role}}</dd></dl>
+  <section class="{{template "ui-section"}}">
+    <h3 class="{{template "ui-section-title"}}">Profile</h3>
+    <div class="{{template "ui-list"}}">
+      <div class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Email</span><span class="min-w-0 text-sm wrap-anywhere">{{if eq $m.Who "the shared sign-in"}}Signs in with this server's password{{else}}{{$m.Who}}{{end}}</span></div>
+      <div class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Role</span><span class="min-w-0 text-sm">{{$m.Role}}</span></div>
+    </div>
   </section>
-  <section class="grid gap-3 rounded-xl border border-line p-5">
-    <h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">Bio</h3>
+  <section class="{{template "ui-section"}}">
+    <h3 class="{{template "ui-section-title"}}">Bio</h3>
     {{if $p.Bio.Mine}}
     {{template "ui-flash" $p}}
     <form class="m-0 grid gap-3" method="post" action="{{$m.Where}}/bio">
-      <label class="{{template "ui-field"}}"><span class="font-normal">What you do, what you are working on, how you like to work. The agents in your rooms read it, and so does everybody who opens this page.</span><textarea class="input min-h-24 resize-y leading-relaxed" name="bio" maxlength="{{maxBio}}" placeholder="For example: I run launches. This month: the pricing page. I like short answers, with the source." aria-label="Your bio">{{$p.Bio.Text}}</textarea></label>
+      <label class="{{template "ui-field"}}"><span class="text-sm font-normal text-muted">What you do, what you are working on, how you like to work. The agents in your rooms read it, and so does everybody who opens this page.</span><textarea class="input min-h-24 resize-y leading-relaxed" name="bio" maxlength="{{maxBio}}" placeholder="For example: I run launches. This month: the pricing page. I like short answers, with the source." aria-label="Your bio">{{$p.Bio.Text}}</textarea></label>
       <div class="flex items-center gap-2"><span class="mr-auto text-xs text-subtle">Up to {{maxBio}} characters</span><button class="{{template "ui-btn"}} h-9" type="submit">Save</button></div>
     </form>
     {{else}}{{with $p.Bio.Text}}<p class="m-0 text-sm leading-relaxed whitespace-pre-wrap wrap-anywhere">{{.}}</p>{{else}}<p class="m-0 text-sm text-subtle">Nothing written yet.</p>{{end}}{{end}}
   </section>
-  {{with $p.Rooms}}<section class="grid gap-2"><h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">Rooms you share</h3>{{range .}}<a class="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-ink no-underline hover:bg-sunken [&>svg]:size-4 [&>svg]:text-subtle" href="{{.Where}}">{{template "icon-users"}}{{.Name}}</a>{{end}}</section>{{end}}
-  {{with $p.Made}}<section class="grid gap-2"><h3 class="m-0 text-xs font-semibold tracking-wide text-subtle uppercase">Agents they made</h3>{{range .}}<a class="flex h-10 items-center gap-2 rounded-lg px-2 text-sm text-ink no-underline hover:bg-sunken" href="/members/agents/{{.ID}}"><span class="grid size-6 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Name "Size" "sm")}}</span>{{.Name}}{{with .Specialty}}<span class="text-subtle">{{.}}</span>{{end}}</a>{{end}}</section>{{end}}
+  {{with $p.Rooms}}<section class="{{template "ui-section"}}"><h3 class="{{template "ui-section-title"}}">Rooms you share</h3><div class="{{template "ui-list"}}">{{range .}}<a class="{{template "ui-row"}} text-sm text-ink no-underline hover:bg-hover [&>svg]:size-4 [&>svg]:text-subtle" href="{{.Where}}">{{template "icon-users"}}{{.Name}}</a>{{end}}</div></section>{{end}}
+  {{with $p.Made}}<section class="{{template "ui-section"}}"><h3 class="{{template "ui-section-title"}}">Agents they made</h3><div class="{{template "ui-list"}}">{{range .}}<a class="{{template "ui-row"}} text-sm text-ink no-underline hover:bg-hover" href="/members/agents/{{.ID}}"><span class="grid size-6 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Name "Size" "sm")}}</span>{{.Name}}{{with .Specialty}}<span class="text-subtle">{{.}}</span>{{end}}</a>{{end}}</div></section>{{end}}
 </article>
 {{end}}
 
@@ -186,7 +193,7 @@
 {{end}}
 
 {{define "new-agent"}}
-<dialog class="m-auto w-[32rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="new-agent" aria-labelledby="new-agent-title" data-asked="new">
+<dialog class="m-auto w-[32rem] max-w-[calc(100vw-2rem)] rounded-lg border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="new-agent" aria-labelledby="new-agent-title" data-asked="new">
   <form class="grid max-h-[calc(100vh-4rem)] gap-5 overflow-y-auto p-6" method="post" action="/members/agents">
     <div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="new-agent-title">New agent</h2><p class="m-0 mt-1 text-sm text-muted">It starts private: only you can work with it until you share it, and it is in no room until you add it to one.</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
     {{with .Refused}}<p class="m-0 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad" role="alert">{{.}}</p>{{end}}
@@ -213,7 +220,7 @@
 {{end}}
 
 {{define "invite-person"}}
-<dialog class="m-auto w-[27rem] max-w-[calc(100vw-2rem)] rounded-2xl border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="invite-person" aria-labelledby="invite-person-title">
+<dialog class="m-auto w-[27rem] max-w-[calc(100vw-2rem)] rounded-lg border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="invite-person" aria-labelledby="invite-person-title">
   <form class="grid gap-5 p-6" method="post" action="{{.Action}}">
     <div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="invite-person-title">Invite a person</h2><p class="m-0 mt-1 text-sm text-muted">They are mailed a link that works once, for seven days. They join this workspace when they open it.</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
     <input type="hidden" name="workspace" value="{{.Workspace}}">

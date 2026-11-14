@@ -8,6 +8,7 @@
   --color-*: initial;
   --color-canvas: var(--gu-bg);
   --color-rail: var(--gu-rail);
+  --color-side: var(--gu-side);
   --color-wash: var(--gu-bg-subtle);
   --color-sunken: var(--gu-surface-sunken);
   --color-surface: var(--gu-surface);
@@ -59,8 +60,12 @@
   --shadow-1: var(--gu-shadow-1);
   --shadow-2: var(--gu-shadow-2);
   --shadow-3: var(--gu-shadow-3);
+  --shadow-field: var(--gu-shadow-field);
+  --shadow-field-active: var(--gu-shadow-field-active);
 
   --ease-standard: var(--gu-ease-standard);
+  /* Borders are a hairline, which a screen of one pixel per point draws as one pixel. */
+  --default-border-width: var(--gu-hairline);
   --default-transition-duration: var(--gu-dur-fast);
   --default-transition-timing-function: var(--gu-ease-standard);
 }
@@ -69,26 +74,33 @@
    scale is Tailwind's own, whose steps are the tokens' (p-1 is --gu-space-1). */
 @theme {
   --text-xs: 0.75rem;
-  --text-xs--line-height: 1.5;
+  --text-xs--line-height: 1.125rem;
   --text-xs--letter-spacing: 0;
   --text-sm: 0.875rem;
-  --text-sm--line-height: 1.5;
+  --text-sm--line-height: 1.25rem;
   --text-sm--letter-spacing: -0.006em;
-  --text-base: 0.9375rem;
-  --text-base--line-height: 1.5;
-  --text-base--letter-spacing: -0.009em;
-  --text-lg: 1.0625rem;
-  --text-lg--line-height: 1.4;
-  --text-lg--letter-spacing: -0.0125em;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-base--letter-spacing: -0.011em;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.625rem;
+  --text-lg--letter-spacing: -0.014em;
   --text-xl: 1.25rem;
-  --text-xl--line-height: 1.3;
+  --text-xl--line-height: 1.75rem;
   --text-xl--letter-spacing: -0.017em;
   --text-2xl: 1.5rem;
-  --text-2xl--line-height: 1.2;
-  --text-2xl--letter-spacing: -0.021em;
-  --text-3xl: 2rem;
-  --text-3xl--line-height: 1.15;
-  --text-3xl--letter-spacing: -0.022em;
+  --text-2xl--line-height: 2rem;
+  --text-2xl--letter-spacing: -0.019em;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 2.25rem;
+  --text-3xl--letter-spacing: -0.021em;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.375rem;
+  --text-body--letter-spacing: -0.006em;
+  --text-label: 0.75rem;
+  --text-label--line-height: 1rem;
+  --text-label--letter-spacing: 0;
+  --text-label--font-weight: 500;
   --container-page: 72rem;
   --container-prose: 46rem;
 }

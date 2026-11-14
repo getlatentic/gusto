@@ -272,7 +272,7 @@
     function makingRow() {
       var row = el("div", "row making grid grid-cols-[minmax(0,1fr)] items-center gap-1 text-sm " + (browsing ? "min-h-12 px-5" : "min-h-9 px-4"));
       var name = el("span", nameLook()); name.appendChild(icon("folder", browsing ? "size-5" : "size-4", "text-muted"));
-      var input = el("input", "h-7 w-full rounded-xs border border-subtle bg-surface px-2 text-sm text-ink ring-3 ring-hover");
+      var input = el("input", "h-8 w-full rounded-md border border-line-strong bg-surface px-2.5 text-sm text-ink");
       input.type = "text"; input.maxLength = 80; input.placeholder = state.here.at ? "New folder" : "New project";
       input.setAttribute("aria-label", "Name of the new folder");
       if (state.problem) { input.setAttribute("aria-invalid", "true"); input.setAttribute("aria-describedby", "d-problem"); }

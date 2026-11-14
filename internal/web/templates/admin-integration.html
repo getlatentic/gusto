@@ -21,9 +21,7 @@
   </form>
 </section>
 
-<section class="{{template "ui-card"}} overflow-x-auto">
-  <h2 class="{{template "ui-card-title"}}">Versions <span class="font-normal text-muted">{{len .Held.Versions}}</span></h2>
-  <table class="{{template "ui-table"}}">
+<section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Versions <span class="font-normal text-muted">{{len .Held.Versions}}</span></h2><section class="{{template "ui-card"}} overflow-x-auto">  <table class="{{template "ui-table"}}">
     <thead><tr><th>Version</th><th>From</th><th>Imported</th><th></th></tr></thead>
     <tbody>
       {{range .Held.Versions}}
@@ -36,7 +34,7 @@
       {{end}}
     </tbody>
   </table>
-</section>
+</section></section>
 
 {{with .Shown}}
 <section class="{{template "ui-card"}} grid gap-3">
@@ -86,10 +84,8 @@
 {{end}}
 {{end}}
 
-<section class="{{template "ui-card"}}">
-  <h2 class="{{template "ui-card-title"}}">History</h2>
-  <ul class="grid gap-1.5 text-sm text-muted">{{range .Held.History}}<li>{{when .At}} · {{.By}} {{.Action}}{{with .Version}} {{.}}{{end}}</li>{{end}}</ul>
-</section>
+<section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">History</h2><section class="{{template "ui-card"}}">  <ul class="grid gap-1.5 text-sm text-muted">{{range .Held.History}}<li>{{when .At}} · {{.By}} {{.Action}}{{with .Version}} {{.}}{{end}}</li>{{end}}</ul>
+</section></section>
 </div>
 
 {{template "foot" .}}

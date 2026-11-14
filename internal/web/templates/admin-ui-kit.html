@@ -6,9 +6,9 @@
   <span class="flex-1"></span>
   <div class="flex flex-wrap items-center gap-2">
     <span class="flex gap-0.5 rounded-sm bg-wash p-0.5" role="group" aria-label="Theme">
-      <button class="h-8 cursor-pointer rounded-xs px-3 text-xs font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1" type="button" data-kit-theme="light">Light</button>
-      <button class="h-8 cursor-pointer rounded-xs px-3 text-xs font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1" type="button" data-kit-theme="dark">Dark</button>
-      <button class="h-8 cursor-pointer rounded-xs px-3 text-xs font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1" type="button" data-kit-theme="system">System</button>
+      <button class="h-8 cursor-pointer rounded-sm px-3 text-sm font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1" type="button" data-kit-theme="light">Light</button>
+      <button class="h-8 cursor-pointer rounded-sm px-3 text-sm font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1" type="button" data-kit-theme="dark">Dark</button>
+      <button class="h-8 cursor-pointer rounded-sm px-3 text-sm font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1" type="button" data-kit-theme="system">System</button>
     </span>
     <span class="flex items-center gap-2" role="group" aria-label="Accent">
       <button class="size-6 cursor-pointer rounded-full bg-[#2B2B29] shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-bg),0_0_0_0.25rem_var(--gu-text)]" type="button" data-kit-accent="graphite" title="Graphite" aria-label="Graphite"></button>
@@ -23,6 +23,34 @@
 
 <div class="grid gap-10">
 
+<section class="grid gap-3" aria-labelledby="kit-page-head">
+  <h2 class="text-base font-semibold" id="kit-page-head">Page header, menu, list and status</h2>
+  <p class="{{template "ui-note"}}">A page leads with what it is for. Actions it needs now and then go in the menu behind "…". Rows carry one main line and a quieter line under it.</p>
+  <div class="{{template "ui-card"}} grid gap-5">
+    <header class="{{template "ui-page-head"}} mb-0!">
+      <div class="{{template "ui-page-title"}}">
+        <h3 class="m-0 text-xl font-semibold">Records</h3>
+        <p class="{{template "ui-page-sub"}}">A signed record of everything that happened</p>
+      </div>
+      {{template "ui-more-open"}}<a class="{{template "ui-menu-item"}}" role="menuitem" href="#kit-page-head">{{template "icon-download"}}<span>Download the record</span></a>{{template "ui-more-close"}}
+    </header>
+    <p class="{{template "ui-empty"}}"><strong class="{{template "ui-empty-title"}}">No model calls yet</strong>Every call an agent makes goes through the proxy and is listed here.</p>
+    <p class="{{template "ui-status-ok"}}">Intact · 2 events, all signed · the last 3 tasks check out</p>
+    <div class="{{template "ui-list"}}">
+      <div class="{{template "ui-row"}}"><div class="min-w-0 flex-1"><p class="{{template "ui-row-main"}}">Signed in as admin, with the shared password</p><p class="{{template "ui-row-sub"}}">Today 19:18</p></div></div>
+      <div class="{{template "ui-row"}}"><div class="min-w-0 flex-1"><p class="{{template "ui-row-main"}}">Ada</p><p class="{{template "ui-row-sub"}}">ada@example.com</p></div><span class="{{template "ui-row-end"}}">Admin</span></div>
+    </div>
+    <section class="{{template "ui-section"}}">
+      <h4 class="{{template "ui-section-title"}}">Profile</h4>
+      <p class="{{template "ui-section-note"}}">A section: its heading outside, then a list of rows with a label column.</p>
+      <div class="{{template "ui-list"}}">
+        <label class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Name</span><input class="input flex-1" value="Scout" aria-label="Name"></label>
+        <div class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Made by</span><span class="text-sm">Ada</span></div>
+      </div>
+    </section>
+  </div>
+</section>
+
 <section class="grid gap-3" aria-labelledby="kit-colour">
   <h2 class="text-base font-semibold" id="kit-colour">Colour</h2>
   <p class="{{template "ui-note"}}">Every colour is a token that follows the theme and the accent. Pages name the Tailwind colour, never a value.</p>
@@ -35,6 +63,7 @@
         <div class="grid gap-1.5"><span class="h-12 rounded-sm border border-line-strong bg-sunken"></span><code class="text-xs">sunken</code></div>
         <div class="grid gap-1.5"><span class="h-12 rounded-sm border border-line-strong bg-surface"></span><code class="text-xs">surface</code></div>
         <div class="grid gap-1.5"><span class="h-12 rounded-sm border border-line-strong bg-rail"></span><code class="text-xs">rail</code></div>
+        <div class="grid gap-1.5"><span class="h-12 rounded-sm border border-line-strong bg-side"></span><code class="text-xs">side</code></div>
         <div class="grid gap-1.5"><span class="h-12 rounded-sm border border-line-strong bg-hover"></span><code class="text-xs">hover</code></div>
         <div class="grid gap-1.5"><span class="h-12 rounded-sm border border-line-strong bg-line"></span><code class="text-xs">line</code></div>
         <div class="grid gap-1.5"><span class="h-12 rounded-sm border border-line-strong bg-line-strong"></span><code class="text-xs">line-strong</code></div>
@@ -65,12 +94,15 @@
   <h2 class="text-base font-semibold" id="kit-type">Type, shape and depth</h2>
   <div class="{{template "ui-card"}} grid gap-5">
     <div class="grid gap-2">
-      <p class="font-display text-[1.75rem] leading-[1.15] font-bold tracking-[-0.021em]">Page title, 28px bold</p>
-      <p class="{{template "ui-figure-value"}}">Figure, 24px bold</p>
-      <p class="font-display text-base font-semibold">Section, 17px bold</p>
-      <p class="text-base">Base, running text and the lede.</p>
-      <p class="text-sm">Small, controls and table rows.</p>
-      <p class="text-xs text-subtle">Extra small, labels and notes.</p>
+      <p class="font-display text-2xl font-semibold">Page title, 24/32 semibold</p>
+      <p class="{{template "ui-figure-value"}}">Figure, 20 semibold</p>
+      <p class="text-lg font-semibold">Dialog title, 18/26 semibold</p>
+      <p class="text-base">Lede, 16/24</p>
+      <p class="text-sm font-semibold">Section heading, 14/20 semibold</p>
+      <p class="text-sm">Text, controls and rows, 14/20</p>
+      <p class="text-body">Chat message, 14/22</p>
+      <p class="text-label">Chat name and labels, 12/16 medium</p>
+      <p class="text-xs text-subtle">Notes and meta, 12/18</p>
       <p class="text-sm"><code>Monospace, for ids and commands</code></p>
     </div>
     <div class="flex flex-wrap items-end gap-5">
@@ -104,6 +136,7 @@
     <div class="grid gap-2">
       <h3 class="text-xs font-semibold text-subtle"><code>ui-btn-sm</code> and <code>ui-btn-sm-danger</code>, in rows and tables</h3>
       <div class="flex flex-wrap items-center gap-3">
+        <button class="{{template "ui-btn-ghost"}}" type="button">Copy</button>
         <button class="{{template "ui-btn-sm"}}" type="button">Copy</button>
         <button class="{{template "ui-btn-sm"}}" type="button" disabled>Disabled</button>
         <button class="{{template "ui-btn-sm-danger"}}" type="button">Remove</button>
@@ -213,48 +246,50 @@
   <h2 class="text-base font-semibold" id="kit-icons">Icons</h2>
   <p class="{{template "ui-note"}}">One 24 unit grid, a line 1.75 units wide on that grid, so it grows and shrinks with the icon, round ends and joins, and the colour of the text. Each is drawn at 16px and 24px.</p>
   <div class="{{template "ui-card"}} grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-2">
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-log"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-log"}}</span></span><code class="text-xs text-muted">log</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-menu"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-menu"}}</span></span><code class="text-xs text-muted">menu</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-add"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-add"}}</span></span><code class="text-xs text-muted">add</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-info"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-info"}}</span></span><code class="text-xs text-muted">info</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-disk"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-disk"}}</span></span><code class="text-xs text-muted">disk</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-lock"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-lock"}}</span></span><code class="text-xs text-muted">lock</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-go"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-go"}}</span></span><code class="text-xs text-muted">go</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-shield"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-shield"}}</span></span><code class="text-xs text-muted">shield</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-settings"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-settings"}}</span></span><code class="text-xs text-muted">settings</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-sliders"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-sliders"}}</span></span><code class="text-xs text-muted">sliders</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-seal"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-seal"}}</span></span><code class="text-xs text-muted">seal</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-file"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-file"}}</span></span><code class="text-xs text-muted">file</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-send"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-send"}}</span></span><code class="text-xs text-muted">send</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-compare"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-compare"}}</span></span><code class="text-xs text-muted">compare</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-jobs"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-jobs"}}</span></span><code class="text-xs text-muted">jobs</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-spend"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-spend"}}</span></span><code class="text-xs text-muted">spend</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-out"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-out"}}</span></span><code class="text-xs text-muted">out</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-chevron"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-chevron"}}</span></span><code class="text-xs text-muted">chevron</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-check"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-check"}}</span></span><code class="text-xs text-muted">check</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-compose"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-compose"}}</span></span><code class="text-xs text-muted">compose</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-chat"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-chat"}}</span></span><code class="text-xs text-muted">chat</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-activity"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-activity"}}</span></span><code class="text-xs text-muted">activity</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-palette"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-palette"}}</span></span><code class="text-xs text-muted">palette</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-search"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-search"}}</span></span><code class="text-xs text-muted">search</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-back"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-back"}}</span></span><code class="text-xs text-muted">back</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-trash"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-trash"}}</span></span><code class="text-xs text-muted">trash</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-file-image"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-file-image"}}</span></span><code class="text-xs text-muted">file-image</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-file-code"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-file-code"}}</span></span><code class="text-xs text-muted">file-code</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-file-blank"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-file-blank"}}</span></span><code class="text-xs text-muted">file-blank</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-folder"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-folder"}}</span></span><code class="text-xs text-muted">folder</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-users"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-users"}}</span></span><code class="text-xs text-muted">users</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-user"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-user"}}</span></span><code class="text-xs text-muted">user</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-bot"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-bot"}}</span></span><code class="text-xs text-muted">bot</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-upload"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-upload"}}</span></span><code class="text-xs text-muted">upload</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-more"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-more"}}</span></span><code class="text-xs text-muted">more</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-link"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-link"}}</span></span><code class="text-xs text-muted">link</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-bell"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-bell"}}</span></span><code class="text-xs text-muted">bell</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-bell-off"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-bell-off"}}</span></span><code class="text-xs text-muted">bell-off</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-archive"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-archive"}}</span></span><code class="text-xs text-muted">archive</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-x"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-x"}}</span></span><code class="text-xs text-muted">x</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-stop"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-stop"}}</span></span><code class="text-xs text-muted">stop</code></div>
-      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-download"}}<span class="[&_svg]:size-6 [&_svg]:opacity-100 contents">{{template "icon-download"}}</span></span><code class="text-xs text-muted">download</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-log"}}<span class="[&_svg]:size-6 contents">{{template "icon-log"}}</span></span><code class="text-xs text-muted">log</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-menu"}}<span class="[&_svg]:size-6 contents">{{template "icon-menu"}}</span></span><code class="text-xs text-muted">menu</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-add"}}<span class="[&_svg]:size-6 contents">{{template "icon-add"}}</span></span><code class="text-xs text-muted">add</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-info"}}<span class="[&_svg]:size-6 contents">{{template "icon-info"}}</span></span><code class="text-xs text-muted">info</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-disk"}}<span class="[&_svg]:size-6 contents">{{template "icon-disk"}}</span></span><code class="text-xs text-muted">disk</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-lock"}}<span class="[&_svg]:size-6 contents">{{template "icon-lock"}}</span></span><code class="text-xs text-muted">lock</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-go"}}<span class="[&_svg]:size-6 contents">{{template "icon-go"}}</span></span><code class="text-xs text-muted">go</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-shield"}}<span class="[&_svg]:size-6 contents">{{template "icon-shield"}}</span></span><code class="text-xs text-muted">shield</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-settings"}}<span class="[&_svg]:size-6 contents">{{template "icon-settings"}}</span></span><code class="text-xs text-muted">settings</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-sliders"}}<span class="[&_svg]:size-6 contents">{{template "icon-sliders"}}</span></span><code class="text-xs text-muted">sliders</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-seal"}}<span class="[&_svg]:size-6 contents">{{template "icon-seal"}}</span></span><code class="text-xs text-muted">seal</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-file"}}<span class="[&_svg]:size-6 contents">{{template "icon-file"}}</span></span><code class="text-xs text-muted">file</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-send"}}<span class="[&_svg]:size-6 contents">{{template "icon-send"}}</span></span><code class="text-xs text-muted">send</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-compare"}}<span class="[&_svg]:size-6 contents">{{template "icon-compare"}}</span></span><code class="text-xs text-muted">compare</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-jobs"}}<span class="[&_svg]:size-6 contents">{{template "icon-jobs"}}</span></span><code class="text-xs text-muted">jobs</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-spend"}}<span class="[&_svg]:size-6 contents">{{template "icon-spend"}}</span></span><code class="text-xs text-muted">spend</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-out"}}<span class="[&_svg]:size-6 contents">{{template "icon-out"}}</span></span><code class="text-xs text-muted">out</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-chevron"}}<span class="[&_svg]:size-6 contents">{{template "icon-chevron"}}</span></span><code class="text-xs text-muted">chevron</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-check"}}<span class="[&_svg]:size-6 contents">{{template "icon-check"}}</span></span><code class="text-xs text-muted">check</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-compose"}}<span class="[&_svg]:size-6 contents">{{template "icon-compose"}}</span></span><code class="text-xs text-muted">compose</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-chat"}}<span class="[&_svg]:size-6 contents">{{template "icon-chat"}}</span></span><code class="text-xs text-muted">chat</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-copy"}}<span class="[&_svg]:size-6 contents">{{template "icon-copy"}}</span></span><code class="text-xs text-muted">chat</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-reply"}}<span class="[&_svg]:size-6 contents">{{template "icon-reply"}}</span></span><code class="text-xs text-muted">chat</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-activity"}}<span class="[&_svg]:size-6 contents">{{template "icon-activity"}}</span></span><code class="text-xs text-muted">activity</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-palette"}}<span class="[&_svg]:size-6 contents">{{template "icon-palette"}}</span></span><code class="text-xs text-muted">palette</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-search"}}<span class="[&_svg]:size-6 contents">{{template "icon-search"}}</span></span><code class="text-xs text-muted">search</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-back"}}<span class="[&_svg]:size-6 contents">{{template "icon-back"}}</span></span><code class="text-xs text-muted">back</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-trash"}}<span class="[&_svg]:size-6 contents">{{template "icon-trash"}}</span></span><code class="text-xs text-muted">trash</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-file-image"}}<span class="[&_svg]:size-6 contents">{{template "icon-file-image"}}</span></span><code class="text-xs text-muted">file-image</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-file-code"}}<span class="[&_svg]:size-6 contents">{{template "icon-file-code"}}</span></span><code class="text-xs text-muted">file-code</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-file-blank"}}<span class="[&_svg]:size-6 contents">{{template "icon-file-blank"}}</span></span><code class="text-xs text-muted">file-blank</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-folder"}}<span class="[&_svg]:size-6 contents">{{template "icon-folder"}}</span></span><code class="text-xs text-muted">folder</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-users"}}<span class="[&_svg]:size-6 contents">{{template "icon-users"}}</span></span><code class="text-xs text-muted">users</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-user"}}<span class="[&_svg]:size-6 contents">{{template "icon-user"}}</span></span><code class="text-xs text-muted">user</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-bot"}}<span class="[&_svg]:size-6 contents">{{template "icon-bot"}}</span></span><code class="text-xs text-muted">bot</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-upload"}}<span class="[&_svg]:size-6 contents">{{template "icon-upload"}}</span></span><code class="text-xs text-muted">upload</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-more"}}<span class="[&_svg]:size-6 contents">{{template "icon-more"}}</span></span><code class="text-xs text-muted">more</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-link"}}<span class="[&_svg]:size-6 contents">{{template "icon-link"}}</span></span><code class="text-xs text-muted">link</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-bell"}}<span class="[&_svg]:size-6 contents">{{template "icon-bell"}}</span></span><code class="text-xs text-muted">bell</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-bell-off"}}<span class="[&_svg]:size-6 contents">{{template "icon-bell-off"}}</span></span><code class="text-xs text-muted">bell-off</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-archive"}}<span class="[&_svg]:size-6 contents">{{template "icon-archive"}}</span></span><code class="text-xs text-muted">archive</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-x"}}<span class="[&_svg]:size-6 contents">{{template "icon-x"}}</span></span><code class="text-xs text-muted">x</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-stop"}}<span class="[&_svg]:size-6 contents">{{template "icon-stop"}}</span></span><code class="text-xs text-muted">stop</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-download"}}<span class="[&_svg]:size-6 contents">{{template "icon-download"}}</span></span><code class="text-xs text-muted">download</code></div>
   </div>
 </section>
 

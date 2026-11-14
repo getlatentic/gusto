@@ -1,49 +1,44 @@
 {{template "head" .}}
 {{with .Board}}
 
-<div class="mb-5 flex items-baseline gap-3">
-  <h1>Activity</h1>
-  {{with .Shown}}<span class="text-sm text-muted">{{.}}</span>{{end}}
-</div>
+<header class="{{template "ui-page-head"}}">
+  <div class="{{template "ui-page-title"}}">
+    <h1>Activity</h1>
+    <p class="{{template "ui-page-sub"}}">Every task agents ran, newest first{{with .Shown}} · {{.}}{{end}}</p>
+  </div>
+</header>
 
 {{with .Index}}{{with .Building}}{{if .Building}}<p class="mb-4 rounded-sm bg-warn-wash px-4 py-3 text-sm" role="status">The index is still being built, {{.Done}} of {{.Total}} tasks. What is below is not yet everything.</p>{{end}}{{end}}{{end}}
 
-<form class="mb-5 flex flex-wrap items-center gap-x-4 gap-y-3 text-sm" method="get" action="/jobs">
-  <nav class="flex flex-wrap gap-1 rounded-md bg-wash p-[0.1875rem]" aria-label="What happened, this week">
-    <a class="inline-flex items-center gap-2 rounded-sm px-3 py-1.5 font-medium text-muted no-underline hover:text-ink aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink aria-[current]:shadow-1" href="{{if .Harness}}/jobs?agent_type={{.Harness}}{{else}}/jobs{{end}}"{{if not .State}} aria-current="true"{{end}}>Everything</a>
-    {{range .Figures}}<a class="is-{{.Label}} inline-flex items-center gap-2 rounded-sm px-3 py-1.5 font-medium text-muted no-underline hover:text-ink aria-[current]:bg-surface aria-[current]:font-semibold aria-[current]:text-ink aria-[current]:shadow-1" href="{{.Href}}"{{if .Current}} aria-current="true"{{end}}><span class="dot size-1.5 rounded-full {{if eq .Label "running"}}bg-warn{{else if eq .Label "queued"}}bg-warn{{else if eq .Label "passed"}}bg-ok{{else if eq .Label "failed"}}bg-bad{{else}}bg-faint{{end}}"></span>{{.Label}} <span class="n tabular-nums text-subtle">{{.Count}}</span></a>{{end}}
-  </nav>
+<nav class="mb-5 flex gap-1 overflow-x-auto border-b border-line text-sm" aria-label="What happened, this week">
+  <a class="-mb-px border-b-2 border-transparent px-3 py-2 font-medium whitespace-nowrap text-muted no-underline hover:text-ink aria-[current]:border-ink aria-[current]:text-ink" href="{{if .Harness}}/jobs?agent_type={{.Harness}}{{else}}/jobs{{end}}"{{if not .State}} aria-current="true"{{end}}>Everything</a>
+  {{range .Figures}}{{if or .Count .Current}}<a class="is-{{.Label}} capitalize -mb-px border-b-2 border-transparent px-3 py-2 font-medium whitespace-nowrap text-muted no-underline hover:text-ink aria-[current]:border-ink aria-[current]:text-ink" href="{{.Href}}"{{if .Current}} aria-current="true"{{end}}>{{.Label}} <span class="n font-normal tabular-nums text-subtle">{{.Count}}</span></a>{{end}}{{end}}
+</nav>
+{{if or .Days .State .Harness (and .Index (or .Index.Query .Index.Person))}}
+<form class="mb-5 flex flex-wrap items-center gap-2 text-sm" method="get" action="/jobs">
   {{if .State}}<input type="hidden" name="state" value="{{.State}}">{{end}}
-  <div class="ml-auto flex flex-wrap items-center gap-3">
   {{with .Index}}
-  <label><span class="sr-only">Search</span><input class="input w-48" type="search" name="q" value="{{.Query}}" placeholder="Search tasks"></label>
+  <label class="min-w-48 flex-1"><span class="sr-only">Search</span><input class="input w-full" type="search" name="q" value="{{.Query}}" placeholder="Search tasks"></label>
   {{if .Everyone}}<label><span class="sr-only">Person</span><input class="input w-36" type="text" name="person" value="{{.Person}}" placeholder="Person"></label>{{end}}
   {{end}}
+  {{if or (gt (len .Harnesses) 1) .Harness}}<label><span class="sr-only">Agent type</span>
+    <select class="select" name="agent_type" data-autosubmit>
+      <option value="">Every agent</option>
+      {{$chosen := .Harness}}{{range .Harnesses}}<option{{if eq . $chosen}} selected{{end}}>{{.}}</option>{{end}}
+    </select>
+  </label>{{end}}
+  {{with .Index}}<label><span class="sr-only">Order</span>
+    <select class="select" name="sort" data-autosubmit>
+      {{$sorted := .Sort}}{{range .Sorts}}<option value="{{.Name}}"{{if or (eq .Name $sorted) (and (eq .Name "queued") (not $sorted))}} selected{{end}}>{{.Label}}</option>{{end}}
+    </select>
+  </label>{{end}}
   <noscript><button type="submit" class="{{template "ui-btn-quiet"}}">Filter</button></noscript>
-  </div>
-  <details class="group basis-full"{{if .Harness}} open{{end}}>
-    <summary class="flex w-fit cursor-pointer list-none items-center gap-2 text-muted hover:text-ink [&::-webkit-details-marker]:hidden">{{template "chevron"}}More filters</summary>
-    <div class="mt-3 flex flex-wrap gap-3">
-  <label><span class="sr-only">Agent type</span>
-        <select class="select" name="agent_type" data-autosubmit>
-          <option value="">every agent</option>
-          {{$chosen := .Harness}}{{range .Harnesses}}<option{{if eq . $chosen}} selected{{end}}>{{.}}</option>{{end}}
-        </select>
-      </label>
-  {{with .Index}}
-      <label><span class="sr-only">Order</span>
-        <select class="select" name="sort" data-autosubmit>
-          {{$sorted := .Sort}}{{range .Sorts}}<option value="{{.Name}}"{{if or (eq .Name $sorted) (and (eq .Name "queued") (not $sorted))}} selected{{end}}>{{.Label}}</option>{{end}}
-        </select>
-      </label>
-      {{end}}
-    </div>
-  </details>
 </form>
+{{end}}
 
 {{if .Days}}
 {{range .Days}}
-<section class="mb-6 overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line">
+<section class="mb-6 overflow-hidden rounded-lg bg-surface border border-line">
   {{with .Named}}<h2 class="border-b border-line bg-wash px-5 py-3 text-xs font-medium text-muted">{{.}}</h2>{{end}}
   <ol class="divide-y divide-line">
     {{range .Runs}}

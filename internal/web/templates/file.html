@@ -56,7 +56,7 @@
   {{else if eq .File.Kind "office"}}
   <p class="rounded-sm bg-wash px-4 py-3 text-xs text-muted">This is the text of the file, not how it looks. Download it to open it in its own program.</p>
   {{range .File.Parts}}
-  <section class="grid gap-3 rounded-md bg-surface p-5 shadow-1 dark:border dark:border-line">
+  <section class="grid gap-3 {{template "ui-card"}}">
     {{with .Title}}<h2 class="text-xs font-semibold text-subtle">{{.}}</h2>{{end}}
     {{range .Lines}}{{if eq .Heading 0}}<p class="leading-relaxed whitespace-pre-wrap">{{.Text}}</p>{{else if eq .Heading 1}}<h3 class="mt-2 text-sm">{{.Text}}</h3>{{else}}<h4 class="text-sm">{{.Text}}</h4>{{end}}{{end}}
     {{with .Rows}}<div class="overflow-x-auto"><table class="w-auto min-w-full text-xs [&_td]:max-w-96 [&_td]:truncate [&_td]:border [&_td]:border-line [&_td]:px-4 [&_td]:py-2">{{range .}}<tr>{{range .}}<td>{{.}}</td>{{end}}</tr>{{end}}</table></div>{{end}}

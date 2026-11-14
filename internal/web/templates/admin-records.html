@@ -1,32 +1,21 @@
 {{template "head" .}}
 
-<div class="{{template "ui-title"}} mb-4!">
-  <h1>Records</h1>
-  <span class="text-sm text-muted">A signed record of everything that happened, and how long work is kept</span>
-  <span class="flex-1"></span>
-  {{if .Logged}}<a class="{{template "ui-btn-quiet"}}" href="/admin/activity.jsonl">{{template "icon-download"}} Download</a>{{end}}
-</div>
+<header class="{{template "ui-page-head"}}">
+  <div class="{{template "ui-page-title"}}">
+    <h1>Records</h1>
+    <p class="{{template "ui-page-sub"}}">A signed record of everything that happened, and how long work is kept</p>
+  </div>
+  {{if .Logged}}{{template "ui-more-open"}}<a class="{{template "ui-menu-item"}}" role="menuitem" href="/admin/activity.jsonl">{{template "icon-download"}}<span>Download the record</span></a>{{template "ui-more-close"}}{{end}}
+</header>
 {{if gt (len .Tabs) 1}}{{template "ui-tabs" .Tabs}}{{end}}
 
 {{template "ui-flash" .}}
 {{with .Health}}
-<section class="{{template "ui-card"}} mb-4 flex flex-wrap items-center gap-x-4 gap-y-3" aria-label="Whether the record is intact">
-  <p class="min-w-0 flex-1 text-sm">
-    <span class="mr-2 inline-block size-2 rounded-full align-middle {{if .Broken}}bg-bad{{else}}bg-ok{{end}}" aria-hidden="true"></span><strong class="{{if .Broken}}text-bad{{end}}">{{if .Broken}}Broken{{else}}Intact{{end}}</strong>
-    {{if .Logged}}<span class="{{if .LogBad}}text-bad{{else}}text-muted{{end}}"> · {{.Log}}</span>{{end}}
-    <span class="{{if .RunsBad}}text-bad{{else}}text-muted{{end}}"> · {{.Runs}}</span>
-  </p>
-  {{if and (eq $.Tab "activity") (not .LogBad)}}
-  <details class="group basis-full">
-    <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} How to check it yourself</summary>
-    <div class="mt-3 grid max-w-prose gap-2 text-sm text-muted">
-      <p>Each line names the one before it, so an edit shows, and the chain holds. The server can only add to this record.</p>
-      {{if .Head}}<p>Download it, and keep this head to learn later whether lines were cut off the end:</p>
-      <pre class="overflow-x-auto rounded-sm bg-sunken px-3 py-2 text-ink">gusto changes verify -head {{.Head}} changes.jsonl</pre>{{end}}
-    </div>
-  </details>
-  {{end}}
-</section>
+{{if or .Broken .LogBad .RunsBad}}
+<p class="{{template "ui-notice"}}" role="alert"><strong>{{if .Broken}}The record is broken.{{else}}Something does not check out.{{end}}</strong>{{if .Logged}} {{.Log}}.{{end}} {{.Runs}}.</p>
+{{else}}
+<p class="{{template "ui-status-ok"}} mb-3">Intact{{if .Logged}} · {{.Log}}{{end}} · {{.Runs}}</p>
+{{end}}
 {{end}}
 
 {{if eq .Tab "activity"}}{{template "records-activity" .}}{{else if eq .Tab "checks"}}{{template "records-checks" .Checks}}{{else}}{{template "records-keeping" .}}{{end}}
@@ -34,26 +23,31 @@
 {{template "foot" .}}
 
 {{define "records-activity"}}
-{{if or .LeftOut .WithServer}}<p class="mb-3 text-sm text-muted">{{if .WithServer}}Showing the server starting too. <a class="text-accent-ink no-underline hover:underline" href="/admin/records?tab=activity">Show only what people did</a>{{else}}{{.LeftOut}} time{{if ne .LeftOut 1}}s{{end}} the server started {{if ne .LeftOut 1}}are{{else}}is{{end}} left out. <a class="text-accent-ink no-underline hover:underline" href="/admin/records?tab=activity&amp;server=1">Show {{if ne .LeftOut 1}}them{{else}}it{{end}}</a>{{end}}</p>{{end}}
 {{if .Rows}}
-<div class="{{template "ui-card"}} overflow-x-auto">
-  <table class="{{template "ui-table"}}">
-    <thead><tr><th class="w-40">When</th><th>Who</th><th>What happened</th><th>From</th></tr></thead>
-    <tbody>
-      {{range .Rows}}
-      <tr>
-        <td class="whitespace-nowrap text-muted" title="{{.Full}}">{{.At}}</td>
-        <td class="whitespace-nowrap">{{.Who}}</td>
-        <td>{{.Said}}{{if gt .Times 1}} <span class="{{template "ui-badge"}}" title="since {{.Since}}">&times;{{.Times}}</span>{{end}}</td>
-        <td class="whitespace-nowrap font-mono text-xs text-muted">{{.From}}</td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
+<div class="{{template "ui-list"}}">
+  {{range .Rows}}
+  <div class="{{template "ui-row"}}">
+    <div class="min-w-0 flex-1">
+      <p class="{{template "ui-row-main"}}">{{.Said}}{{if gt .Times 1}} <span class="{{template "ui-badge"}}" title="since {{.Since}}">&times;{{.Times}}</span>{{end}}</p>
+      <p class="{{template "ui-row-sub"}}"><time title="{{.Full}}">{{.At}}</time>{{if ne .Who "the shared sign-in"}} · {{.Who}}{{end}}{{with .From}} · <span class="font-mono">{{.}}</span>{{end}}</p>
+    </div>
+  </div>
+  {{end}}
 </div>
 {{else}}
 <p class="text-muted">Nothing has been recorded yet.</p>
 {{end}}
+{{if or .LeftOut .WithServer}}<p class="mt-3 text-sm text-muted">{{if .WithServer}}Showing the server starting too. <a class="text-accent-ink no-underline hover:underline" href="/admin/records?tab=activity">Show only what people did</a>{{else}}{{.LeftOut}} time{{if ne .LeftOut 1}}s{{end}} the server started {{if ne .LeftOut 1}}are{{else}}is{{end}} left out. <a class="text-accent-ink no-underline hover:underline" href="/admin/records?tab=activity&amp;server=1">Show {{if ne .LeftOut 1}}them{{else}}it{{end}}</a>{{end}}</p>{{end}}
+{{with .Health}}{{if not .LogBad}}
+<details class="group mt-6">
+  <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} How to check it yourself</summary>
+  <div class="mt-3 grid max-w-prose gap-2 text-sm text-muted">
+    <p>Each line names the one before it, so an edit shows, and the chain holds. The server can only add to this record.</p>
+    {{if .Head}}<p>Download it, and keep this head to learn later whether lines were cut off the end:</p>
+    <pre class="overflow-x-auto rounded-sm bg-sunken px-3 py-2 text-ink">gusto changes verify -head {{.Head}} changes.jsonl</pre>{{end}}
+  </div>
+</details>
+{{end}}{{end}}
 {{end}}
 
 {{define "records-checks"}}
@@ -95,9 +89,7 @@
 </section>
 
 <div class="grid gap-4">
-<section class="{{template "ui-card"}} overflow-x-auto">
-  <h2 class="{{template "ui-card-title"}}">Policy</h2>
-  {{if .Removes}}
+<section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Policy</h2><section class="{{template "ui-card"}} overflow-x-auto">  {{if .Removes}}
   <table class="{{template "ui-table"}}">
     <thead><tr><th>A task that</th><th>loses its working folder after</th><th>loses its record after</th></tr></thead>
     <tbody>
@@ -107,12 +99,10 @@
   {{else}}
   <p>The policy removes nothing. Set <code>workspaceDays</code> and <code>recordDays</code> by state in <code>policy.json</code> in <code>GUSTO_RETENTION</code>.</p>
   {{end}}
-</section>
+</section></section>
 
 <div class="{{template "ui-masonry"}}">
-<section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">
-  <h2 class="text-sm font-semibold">Next sweep</h2>
-  {{if .Upcoming}}
+<section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Next sweep</h2><section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">  {{if .Upcoming}}
   <p>A sweep now would remove {{len .Upcoming}} item{{if ne (len .Upcoming) 1}}s{{end}}, freeing {{.UpcomingFreed}}.</p>
   <table class="{{template "ui-table"}}">
     <thead><tr><th>Task</th><th>Removes</th><th>Ended</th><th class="text-right">Frees</th></tr></thead>
@@ -125,11 +115,9 @@
   {{end}}
   <form method="post" action="/admin/retention/sweep"><button class="{{template "ui-btn-sm"}}" type="submit">Sweep now</button></form>
   {{with .Last}}<p class="{{template "ui-note"}}">The last sweep was {{$.LastAt}}: {{len .Actions}} removed, {{$.LastFreed}} freed.</p>{{end}}
-</section>
+</section></section>
 
-<section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">
-  <h2 class="text-sm font-semibold">Holds</h2>
-  {{if or .HeldTasks .HeldPeople}}
+<section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Holds</h2><section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">  {{if or .HeldTasks .HeldPeople}}
   <table class="{{template "ui-table"}}">
     <thead><tr><th>What</th><th>Held by</th><th>Why</th><th></th></tr></thead>
     <tbody>
@@ -150,7 +138,7 @@
     <label class="{{template "ui-field"}} min-w-40 flex-1">Why <input class="input" name="why" placeholder="for the record"></label>
     <button class="{{template "ui-btn-sm"}}" type="submit">Keep their work</button>
   </form>
-</section>
+</section></section>
 </div>
 </div>
 {{end}}

@@ -1,50 +1,54 @@
 {{template "head" .}}
 
-<div class="{{template "ui-head"}}">
-  <h1>Overview</h1>
-  <p class="{{template "ui-lede"}}">{{.MonthName}}, so far</p>
-</div>
+<header class="{{template "ui-page-head"}}">
+  <div class="{{template "ui-page-title"}}">
+    <h1>Overview</h1>
+    <p class="{{template "ui-page-sub"}}">{{.MonthName}} so far</p>
+  </div>
+</header>
 
 {{if .Budget.Passed}}<p class="{{template "ui-notice"}}" role="alert">The budget for {{.MonthName}} is {{usd .Budget.Limit}}. {{usd .Spent.USD}} has been spent{{if .Spent.Unmeasured}}, and more that has no price{{end}}, so the budget is {{if .Budget.Over}}passed by {{usd .Budget.Over}}{{if .Spent.Unmeasured}} at least{{end}}{{else}}reached{{end}}.</p>{{end}}
 {{if .Budget.Err}}<p class="{{template "ui-notice"}}">The budget could not be read, so it is not checked. {{.Budget.Err}}</p>{{end}}
 {{if .Spent.Building}}<p class="mb-4 rounded-sm bg-warn-wash px-4 py-3 text-sm" role="status">The index of model calls is still being built, so these figures are not yet everything.</p>{{end}}
 
-<section class="{{template "ui-card"}} mb-4">
-  <p class="text-sm text-muted">Spent this month</p>
-  <p class="mt-1 flex flex-wrap items-baseline gap-x-2"><span class="font-display text-[2.125rem] leading-tight font-semibold tracking-tight tabular-nums">{{usd .Spent.USD}}</span>
-    {{if .Budget.Set}}<span class="text-muted">of {{usd .Budget.Limit}}</span>{{else}}<span class="text-muted">no budget set{{if .BudgetsPage}} · <a class="text-accent-ink no-underline hover:underline" href="/admin/budgets">set one on Budgets</a>{{end}}</span>{{end}}</p>
-  {{if .Spent.Unmeasured}}<p class="text-sm text-muted">at least: {{.Spent.Unmeasured}} {{if eq .Spent.Unmeasured 1}}call has{{else}}calls have{{end}} no price</p>{{end}}
-  <div class="mt-3 mb-2 h-2 overflow-hidden rounded-full bg-line" aria-hidden="true"><div class="h-full rounded-full {{if .Budget.Passed}}bg-bad{{else}}bg-accent{{end}}" style="width:{{if .Budget.Set}}{{.Percent}}{{else}}0{{end}}%"></div></div>
-  <p class="text-xs text-subtle">{{with .Credit}}Free model credit: {{usd .Used}} of {{usd .Limit}} used. {{end}}Each person's agents stop at their own budget{{if .BudgetsPage}}; set it on <a class="text-accent-ink no-underline hover:underline" href="/admin/budgets">Budgets</a>{{end}}.</p>
+<section class="{{template "ui-card"}} mb-6">
+  <p class="m-0 text-sm text-muted">Spent this month</p>
+  <p class="m-0 mt-1 font-display text-3xl leading-tight font-semibold tracking-tight tabular-nums">{{usd .Spent.USD}}{{if .Budget.Set}} <span class="text-base font-normal tracking-normal text-muted">of {{usd .Budget.Limit}}</span>{{end}}</p>
+  {{if .Budget.Set}}<div class="mt-3 h-1.5 overflow-hidden rounded-full bg-line" aria-hidden="true"><div class="h-full rounded-full {{if .Budget.Passed}}bg-bad{{else}}bg-accent{{end}}" style="width:{{.Percent}}%"></div></div>
+  {{else}}<p class="m-0 mt-1 text-sm text-muted">No budget set.{{if .BudgetsPage}} <a class="font-medium text-accent-ink no-underline hover:underline" href="/admin/budgets">Set a budget</a>{{end}}</p>{{end}}
+  {{if .Spent.Unmeasured}}<p class="m-0 mt-2 text-xs text-subtle">At least: {{.Spent.Unmeasured}} {{if eq .Spent.Unmeasured 1}}call has{{else}}calls have{{end}} no price.</p>{{end}}
+  {{with .Credit}}<p class="m-0 mt-2 text-xs text-subtle">Free model credit: {{usd .Used}} of {{usd .Limit}} used.</p>{{end}}
 </section>
 
 {{if .Spent.Split}}
-<div class="grid grid-cols-2 items-start gap-4 @max-[56rem]:grid-cols-1">
-  <section class="{{template "ui-card"}}">
-    <h2 class="{{template "ui-card-title"}}">By person, what they asked for</h2>
+<div class="grid grid-cols-2 items-start gap-6 @max-[56rem]:grid-cols-1">
+  <section class="grid gap-2">
+    <h2 class="m-0 flex items-baseline justify-between text-sm font-semibold">By person <a class="text-sm font-normal text-accent-ink no-underline hover:underline" href="{{.PeopleAll}}">View all</a></h2>
+    <div class="{{template "ui-list"}}">
     {{range .Spent.People}}
-    <a class="grid grid-cols-[minmax(0,1fr)_7.5rem_9.5rem] @max-[40rem]:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-t border-line py-2.5 text-inherit no-underline first-of-type:border-t-0 {{if .Href}}hover:text-accent-ink{{else}}pointer-events-none{{end}}"{{with .Href}} href="{{.}}"{{end}}>
-      <span class="flex min-w-0 items-center gap-2.5"><span class="grid size-7 flex-none place-items-center rounded-full border border-line bg-sunken text-[0.6875rem] font-semibold text-muted" aria-hidden="true">{{if .More}}+{{else}}{{initial .Label}}{{end}}</span><span class="truncate">{{.Label}}</span></span>
-      <span class="h-1.5 overflow-hidden rounded-full bg-line @max-[40rem]:hidden" aria-hidden="true">{{if .Budget}}<span class="block h-full {{if ge .Percent 100}}bg-bad{{else}}bg-accent{{end}}" style="width:{{.Percent}}%"></span>{{end}}</span>
-      <span class="text-right text-sm whitespace-nowrap tabular-nums">{{if .Calls}}{{if and .Unpriced (eq .USD 0.0)}}<span class="text-subtle">no price</span>{{else}}{{usd .USD}}{{end}}{{if .Budget}} <span class="text-subtle">of {{usd .Budget}}</span>{{end}}{{else}}<span class="text-subtle">nothing yet</span>{{end}}</span>
+    <a class="grid grid-cols-[minmax(0,1fr)_7.5rem_9.5rem] @max-[40rem]:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-3 text-inherit no-underline {{if .Href}}hover:text-accent-ink{{else}}pointer-events-none{{end}}"{{with .Href}} href="{{.}}"{{end}}>
+      <span class="flex min-w-0 items-center gap-2.5"><span class="grid size-7 flex-none place-items-center rounded-full border border-line bg-sunken text-xs font-semibold text-muted" aria-hidden="true">{{if .More}}+{{else}}{{initial .Label}}{{end}}</span><span class="truncate">{{.Label}}</span></span>
+      <span class="h-1.5 overflow-hidden rounded-full @max-[40rem]:hidden {{if .Budget}}bg-line{{end}}" aria-hidden="true">{{if .Budget}}<span class="block h-full {{if ge .Percent 100}}bg-bad{{else}}bg-accent{{end}}" style="width:{{.Percent}}%"></span>{{end}}</span>
+      <span class="text-right text-sm whitespace-nowrap tabular-nums">{{if .Calls}}{{if and .Unpriced (eq .USD 0.0)}}<span class="text-subtle">No price set</span>{{else}}{{usd .USD}}{{end}}{{if .Budget}} <span class="text-subtle">of {{usd .Budget}}</span>{{end}}{{else}}<span class="text-subtle">Nothing yet</span>{{end}}</span>
     </a>
     {{else}}
-    <p class="{{template "ui-note"}}">Nobody has spent anything this month.</p>
+    <p class="{{template "ui-note"}} px-5 py-3">Nobody has spent anything this month.</p>
     {{end}}
-    <a class="mt-3 inline-block text-sm text-accent-ink no-underline hover:underline" href="{{.PeopleAll}}">View all</a>
+    </div>
   </section>
 
-  <section class="{{template "ui-card"}}">
-    <h2 class="{{template "ui-card-title"}}">By agent type</h2>
+  <section class="grid gap-2">
+    <h2 class="m-0 flex items-baseline justify-between text-sm font-semibold">By agent type <a class="text-sm font-normal text-accent-ink no-underline hover:underline" href="{{.Spent.AllUsage}}">View all</a></h2>
+    <div class="{{template "ui-list"}}">
     {{range .Spent.Engines}}
-    <a class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-t border-line py-2.5 text-inherit no-underline first-of-type:border-t-0 {{if .Href}}hover:text-accent-ink{{else}}pointer-events-none{{end}}"{{with .Href}} href="{{.}}"{{end}}>
+    <a class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-3 text-inherit no-underline {{if .Href}}hover:text-accent-ink{{else}}pointer-events-none{{end}}"{{with .Href}} href="{{.}}"{{end}}>
       <span class="min-w-0 truncate">{{.Label}}{{with .Sub}} <span class="text-subtle">· {{.}}</span>{{end}}</span>
-      <span class="text-right text-sm whitespace-nowrap tabular-nums">{{if and .Unpriced (eq .USD 0.0)}}<span class="text-subtle">no price</span>{{else}}{{usd .USD}}{{end}}</span>
+      <span class="text-right text-sm whitespace-nowrap tabular-nums">{{if and .Unpriced (eq .USD 0.0)}}<span class="text-subtle">No price set</span>{{else}}{{usd .USD}}{{end}}</span>
     </a>
     {{else}}
-    <p class="{{template "ui-note"}}">No agent has spent anything this month.</p>
+    <p class="{{template "ui-note"}} px-5 py-3">No agent has spent anything this month.</p>
     {{end}}
-    <a class="mt-3 inline-block text-sm text-accent-ink no-underline hover:underline" href="{{.Spent.AllUsage}}">View all</a>
+    </div>
   </section>
 </div>
 {{end}}

@@ -1,12 +1,12 @@
 {{template "head" .}}
 
-<div class="{{template "ui-title"}} mb-2! items-start justify-between">
-  <div class="min-w-0">
+<header class="{{template "ui-page-head"}}">
+  <div class="{{template "ui-page-title"}}">
     <h1>Budgets</h1>
-    <p class="{{template "ui-lede"}}">What each person may spend on models each month</p>
+    <p class="{{template "ui-page-sub"}}">What each person may spend on models each month</p>
   </div>
   {{if not .Budget.Err}}<button type="button" class="{{template "ui-btn-quiet"}}" data-open="budgets">Change</button>{{end}}
-</div>
+</header>
 {{with .Budget}}
 <p class="mb-6 text-sm text-muted">{{if .Err}}The budgets could not be read. {{.Err}}{{else}}{{if .MemberSet}}Each person: {{usd .Member}} a month; their agents stop there.{{else}}No budget for each person, so their agents do not stop.{{end}} {{if .Set}}Organization: {{usd .Limit}} a month, which only warns.{{else}}The organization has no budget to warn at.{{end}}{{end}}</p>
 {{end}}
