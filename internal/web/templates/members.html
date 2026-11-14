@@ -19,7 +19,7 @@
     <div class="-mx-1 grid min-h-0 flex-1 content-start gap-px overflow-y-auto px-1">
       {{range .People}}
       <a class="flex items-center gap-3 rounded-lg px-2 py-2 text-ink no-underline hover:bg-sunken aria-[current]:bg-sunken [&[hidden]]:hidden" href="{{.Where}}" data-member-kind="people"{{if eq .Where $.Here}} aria-current="page"{{end}}>
-        <span class="grid size-9 flex-none place-items-center rounded-full bg-accent-wash text-xs font-medium text-accent-ink [&>svg]:size-4" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
+        <span class="grid size-9 flex-none place-items-center rounded-full bg-sunken text-xs font-medium text-muted [&>svg]:size-4" aria-hidden="true">{{with initials .Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
         <span class="grid min-w-0"><span class="truncate text-sm font-medium">{{.Name}}</span><span class="truncate text-xs text-subtle">{{.Role}}</span></span>
       </a>
       {{end}}
@@ -98,7 +98,7 @@
   <section class="grid gap-3">
     <p class="m-0 text-sm text-muted">Only the people listed here can work with {{$a.Name}}: message it, and add it to their rooms.</p>
     <ul class="m-0 grid list-none gap-px rounded-xl border border-line p-1.5">
-      <li class="flex h-11 items-center gap-3 px-2"><span class="grid size-7 flex-none place-items-center rounded-full bg-accent-wash text-xs font-medium text-accent-ink [&>svg]:size-3.5" aria-hidden="true">{{with initials $a.Owner}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span><span class="min-w-0 flex-1 truncate text-sm">{{personName $a.Owner}}</span><span class="text-sm text-muted">Made it</span></li>
+      <li class="flex h-11 items-center gap-3 px-2"><span class="grid size-7 flex-none place-items-center rounded-full bg-sunken text-xs font-medium text-muted [&>svg]:size-3.5" aria-hidden="true">{{with initials $a.Owner}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span><span class="min-w-0 flex-1 truncate text-sm">{{personName $a.Owner}}</span><span class="text-sm text-muted">Made it</span></li>
       {{range $a.Access}}
       <li class="flex h-11 items-center gap-3 px-2"><span class="grid size-7 flex-none place-items-center rounded-full bg-sunken text-xs font-medium text-muted" aria-hidden="true">{{initials .}}</span><span class="min-w-0 flex-1 truncate text-sm" title="{{.}}">{{personName .}}</span>
         {{if $a.Mine}}<form class="m-0" method="post" action="/members/agents/{{$a.ID}}/access"><input type="hidden" name="who" value="{{.}}"><input type="hidden" name="action" value="remove"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-sm text-subtle hover:text-ink">Remove</button></form>{{else}}<span class="text-sm text-muted">Can work with it</span>{{end}}
@@ -158,7 +158,7 @@
 <article class="mx-auto grid max-w-3xl gap-5 px-8 py-8 @max-[56rem]:px-4">
   <a class="hidden text-sm text-muted @max-[56rem]:inline-flex" href="/members">{{template "icon-back"}} Members</a>
   <header class="flex items-center gap-4">
-    <span class="grid size-14 flex-none place-items-center rounded-full bg-accent-wash text-base font-medium text-accent-ink [&>svg]:size-6" aria-hidden="true">{{with initials $m.Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
+    <span class="grid size-14 flex-none place-items-center rounded-full bg-sunken text-base font-medium text-muted [&>svg]:size-6" aria-hidden="true">{{with initials $m.Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
     <div class="grid min-w-0"><h2 class="m-0 truncate text-lg font-semibold">{{$m.Name}}</h2><p class="m-0 truncate text-sm text-muted">{{$m.Role}}</p></div>
   </header>
   <section class="grid gap-3 rounded-xl border border-line p-5">
