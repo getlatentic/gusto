@@ -8,15 +8,16 @@
   <p class="{{template "ui-lede"}}">Instructions and tools you can give any agent.</p>
 </div>
 
-{{if .Keeps}}
+{{if .Keeps}}{{with .Setups}}
 <section class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-4">
-  {{range .Setups}}
-  <a class="grid content-start gap-1 rounded-md bg-surface p-5 text-ink no-underline shadow-1 transition-shadow hover:shadow-2 border border-line" href="{{$.Base}}/{{.Name}}">
-    <span class="font-display font-semibold">{{.Name}}</span>
+  {{range .}}
+  <a class="grid content-start gap-1 rounded-lg border border-line bg-surface p-5 text-ink no-underline transition-colors hover:border-line-strong" href="{{$.Base}}/{{.Name}}">
+    <span class="font-display text-sm font-semibold">{{.Name}}</span>
     <span class="text-sm text-muted">{{len .Skills}} skill{{if ne (len .Skills) 1}}s{{end}}{{with .Servers}} · tools: {{range $i, $s := .}}{{if $i}}, {{end}}{{$s}}{{end}}{{end}}</span>
   </a>
   {{end}}
 </section>
-{{end}}
+{{else}}<p class="{{template "ui-empty"}}"><strong class="{{template "ui-empty-title"}}">No skill sets yet</strong>Admins add them in Admin, under Apps &amp; skills.</p>
+{{end}}{{end}}
 
 {{template "foot" .}}

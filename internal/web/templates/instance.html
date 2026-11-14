@@ -15,9 +15,7 @@
 
 <div class="{{template "ui-two-col"}}">
 <div class="{{template "ui-col"}}">
-  <section class="{{template "ui-card"}}">
-    <h2 class="{{template "ui-card-title"}}">Conversations</h2>
-    <ol class="divide-y divide-line">
+  <section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Conversations</h2><section class="{{template "ui-card"}}">    <ol class="divide-y divide-line">
       {{range .Threads}}
       <li><a class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-0.5 py-3 text-ink no-underline hover:bg-wash" href="/instances/{{.Thread.Instance}}/threads/{{.Thread.ID}}">
         <span class="truncate font-medium" title="{{.Thread.Name}}">{{.Thread.Name}}</span>
@@ -26,11 +24,9 @@
       </a></li>
       {{end}}
     </ol>
-  </section>
+  </section></section>
 
-  <section class="{{template "ui-card"}}" id="routines">
-    <h2 class="{{template "ui-card-title"}}">Routines</h2>
-    {{if .Unread}}<p class="{{template "ui-notice"}}" role="alert">No routine runs until this is mended: {{.Unread}}</p>{{end}}
+  <section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Routines</h2><section class="{{template "ui-card"}}" id="routines">    {{if .Unread}}<p class="{{template "ui-notice"}}" role="alert">No routine runs until this is mended: {{.Unread}}</p>{{end}}
     {{if .Routines}}
     <ul class="divide-y divide-line border-y border-line">
       {{range .Routines}}
@@ -67,7 +63,7 @@
         <div><button type="submit" class="{{template "ui-btn"}}">Add it</button></div>
       </form>
     </details>
-  </section>
+  </section></section>
 
   {{if .Sharing}}{{template "apps" .}}{{end}}
 

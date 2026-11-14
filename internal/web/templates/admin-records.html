@@ -89,9 +89,7 @@
 </section>
 
 <div class="grid gap-4">
-<section class="{{template "ui-card"}} overflow-x-auto">
-  <h2 class="{{template "ui-card-title"}}">Policy</h2>
-  {{if .Removes}}
+<section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Policy</h2><section class="{{template "ui-card"}} overflow-x-auto">  {{if .Removes}}
   <table class="{{template "ui-table"}}">
     <thead><tr><th>A task that</th><th>loses its working folder after</th><th>loses its record after</th></tr></thead>
     <tbody>
@@ -101,12 +99,10 @@
   {{else}}
   <p>The policy removes nothing. Set <code>workspaceDays</code> and <code>recordDays</code> by state in <code>policy.json</code> in <code>GUSTO_RETENTION</code>.</p>
   {{end}}
-</section>
+</section></section>
 
 <div class="{{template "ui-masonry"}}">
-<section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">
-  <h2 class="text-sm font-semibold">Next sweep</h2>
-  {{if .Upcoming}}
+<section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Next sweep</h2><section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">  {{if .Upcoming}}
   <p>A sweep now would remove {{len .Upcoming}} item{{if ne (len .Upcoming) 1}}s{{end}}, freeing {{.UpcomingFreed}}.</p>
   <table class="{{template "ui-table"}}">
     <thead><tr><th>Task</th><th>Removes</th><th>Ended</th><th class="text-right">Frees</th></tr></thead>
@@ -119,11 +115,9 @@
   {{end}}
   <form method="post" action="/admin/retention/sweep"><button class="{{template "ui-btn-sm"}}" type="submit">Sweep now</button></form>
   {{with .Last}}<p class="{{template "ui-note"}}">The last sweep was {{$.LastAt}}: {{len .Actions}} removed, {{$.LastFreed}} freed.</p>{{end}}
-</section>
+</section></section>
 
-<section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">
-  <h2 class="text-sm font-semibold">Holds</h2>
-  {{if or .HeldTasks .HeldPeople}}
+<section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Holds</h2><section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">  {{if or .HeldTasks .HeldPeople}}
   <table class="{{template "ui-table"}}">
     <thead><tr><th>What</th><th>Held by</th><th>Why</th><th></th></tr></thead>
     <tbody>
@@ -144,7 +138,7 @@
     <label class="{{template "ui-field"}} min-w-40 flex-1">Why <input class="input" name="why" placeholder="for the record"></label>
     <button class="{{template "ui-btn-sm"}}" type="submit">Keep their work</button>
   </form>
-</section>
+</section></section>
 </div>
 </div>
 {{end}}

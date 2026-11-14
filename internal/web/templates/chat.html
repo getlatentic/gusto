@@ -18,7 +18,7 @@
     {{if and .Wall .Wall.Unconfirmed (not .NeedsModel)}}{{template "no-sandbox" .Wall}}{{else if and .Picks (not .NeedsModel)}}
     <div class="composer flex w-full max-w-[46rem] flex-col">
     <form class="order-2" method="post" action="/chat">
-      <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[1.25rem] border border-line-strong bg-surface py-3 pr-3 pl-5 shadow-1 transition-[border-color,box-shadow] has-[textarea:focus-visible]:border-accent has-[textarea:focus-visible]:shadow-2">
+      <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[1.25rem] border border-line-strong bg-surface py-3 pr-3 pl-5 transition-[border-color,box-shadow] has-[textarea:focus-visible]:border-faint has-[textarea:focus-visible]:shadow-2">
         <textarea class="block max-h-56 min-h-7 w-full resize-none border-0 bg-transparent p-0 leading-relaxed focus-visible:outline-none @max-[40rem]:text-[1rem]" name="said" rows="1" placeholder="Message" aria-label="Message"{{if .Refused}} aria-describedby="refused"{{end}} autofocus required></textarea>
         <div class="tools flex items-center gap-1">
           <div class="folderpick relative flex min-w-0 items-center" id="folder-pick"{{with .Start.At}} data-at="{{.}}" data-label="{{$.Start.Name}}" data-harness="{{$.Start.Harness}}"{{end}}>
@@ -30,7 +30,7 @@
           </div>
           <span class="flex-1"></span>
           <div class="relative flex min-w-0"><button type="button" id="run-on" class="inline-flex h-8 min-w-0 max-w-[min(22rem,100%)] cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border-0 bg-transparent pr-2 pl-3 text-xs font-medium text-muted hover:bg-wash hover:text-ink aria-expanded:bg-wash aria-expanded:text-ink [&>svg]:size-3.5" aria-expanded="false" aria-controls="chat-choices" aria-label="Choose the preset, agent and model" title="Choose the preset, agent and model"><span class="label block truncate"></span>{{template "icon-chevron"}}</button></div>
-          <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-solid [&>svg]:size-[1.125rem] [&>svg]:opacity-100" title="Send">{{template "icon-send"}}<span class="sr-only">Send</span></button>
+          <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-solid [&>svg]:size-[1.125rem]" title="Send">{{template "icon-send"}}<span class="sr-only">Send</span></button>
         </div>
         <div class="flex flex-wrap items-center gap-1 border-t border-line pt-2" id="chat-choices" hidden>
           {{template "picker" (dict "ID" "role-pick" "Label" "Preset" "Name" "choice" "Value" .Role "Options" .Roles "Below" true)}}
@@ -45,7 +45,7 @@
       <button type="button" class="starter h-9 flex-none cursor-pointer whitespace-nowrap rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Summarize this folder">Summarize this folder</button>
       <button type="button" class="starter h-9 flex-none cursor-pointer whitespace-nowrap rounded-full border border-line bg-surface px-4 text-sm text-ink hover:border-line-strong" data-said="Research three competitors and write me a short brief">Research competitors and write a brief</button>
     </div>
-    <form class="order-4 mt-3 flex items-center gap-2 rounded-md border border-line-strong bg-surface p-3 shadow-1" id="save-preset" method="post" action="/presets" hidden>
+    <form class="order-4 mt-3 flex items-center gap-2 rounded-lg border border-line-strong bg-surface p-3" id="save-preset" method="post" action="/presets" hidden>
       <input class="h-9 min-w-0 flex-1 input" name="name" placeholder="Name this preset" maxlength="60" aria-label="Name of the preset" required>
       <input type="hidden" name="harness"><input type="hidden" name="model"><input type="hidden" name="role">
       <button type="submit" class="h-9 {{template "ui-btn"}}">Save preset</button>

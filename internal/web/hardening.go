@@ -121,13 +121,13 @@ const faultPage = `<!doctype html>
   root.dataset.accent = accent;
 })();</script>
 <style>
-body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--gu-bg); color: var(--gu-text); font: .9375rem/1.55 var(--gu-font-text); }
+body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--gu-bg); color: var(--gu-text); font: .875rem/1.25rem var(--gu-font-text); }
 main { width: min(26rem, 92vw); display: grid; gap: var(--gu-space-4); padding: var(--gu-space-8); text-align: center; }
-h1 { margin: 0; font: 600 1.375rem/1.2 var(--gu-font-display); letter-spacing: -.02em; }
+h1 { margin: 0; font: 600 1.5rem/2rem var(--gu-font-display); letter-spacing: -.019em; }
 p { margin: 0; color: var(--gu-text-muted); }
 .row { display: flex; flex-wrap: wrap; gap: var(--gu-space-3); justify-content: center; }
-a { padding: var(--gu-space-2) var(--gu-space-4); border: 0.0625rem solid var(--gu-border-strong); border-radius: var(--gu-radius-sm); background: var(--gu-surface); color: var(--gu-text); text-decoration: none; font-weight: 600; font-size: .875rem; }
-a.main { background: var(--gu-accent); border-color: var(--gu-accent); color: var(--gu-on-accent); }
+a { display: inline-flex; align-items: center; height: 2.25rem; padding: 0 var(--gu-space-4); border: var(--gu-hairline) solid var(--gu-border-strong); border-radius: var(--gu-radius-md); background: var(--gu-surface); color: var(--gu-text); text-decoration: none; font-weight: 500; font-size: .875rem; }
+a.main { background: var(--gu-accent-solid); border-color: var(--gu-accent-solid); color: var(--gu-on-accent-solid); }
 </style></head><body><main>
 <h1>{{title}}</h1>
 <p>{{text}}</p>

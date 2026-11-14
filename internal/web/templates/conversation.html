@@ -10,13 +10,13 @@
       {{with .Thread.Dir}}<span class="text-subtle">/</span><span class="max-w-48 truncate text-ink" title="This conversation works in the folder {{.}}">{{.}}</span>{{end}}
     </div>
     {{end}}
-    {{if not .Instance.Room}}<span class="relative inline-grid size-7 flex-none cursor-default place-items-center rounded-full text-subtle hover:bg-wash hover:text-ink focus-visible:bg-wash focus-visible:text-ink after:pointer-events-none after:absolute after:top-[calc(100%+0.5rem)] after:right-0 after:z-40 after:w-max after:max-w-80 after:rounded-sm after:bg-ink after:px-3 after:py-2 after:text-left after:text-xs after:leading-snug after:font-medium after:whitespace-normal after:text-inverse after:opacity-0 after:content-[attr(aria-label)] hover:after:opacity-100 focus-visible:after:opacity-100 [&>svg]:size-4 [&>svg]:opacity-100" tabindex="0" role="img" aria-label="Runs in its own sandbox. The model's key never reaches the agent.{{if eq .Instance.Sensitivity "restricted"}} It stays in your network.{{end}}">{{template "icon-shield"}}</span>{{end}}
-    {{range .Apps}}<a class="h-8 flex-none {{template "ui-btn-quiet"}}" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
+    {{if not .Instance.Room}}<span class="relative inline-grid size-7 flex-none cursor-default place-items-center rounded-full text-subtle hover:bg-wash hover:text-ink focus-visible:bg-wash focus-visible:text-ink after:pointer-events-none after:absolute after:top-[calc(100%+0.5rem)] after:right-0 after:z-40 after:w-max after:max-w-80 after:rounded-sm after:bg-ink after:px-3 after:py-2 after:text-left after:text-xs after:leading-snug after:font-medium after:whitespace-normal after:text-inverse after:opacity-0 after:content-[attr(aria-label)] hover:after:opacity-100 focus-visible:after:opacity-100 [&>svg]:size-4" tabindex="0" role="img" aria-label="Runs in its own sandbox. The model's key never reaches the agent.{{if eq .Instance.Sensitivity "restricted"}} It stays in your network.{{end}}">{{template "icon-shield"}}</span>{{end}}
+    {{range .Apps}}<a class="flex-none {{template "ui-btn-ghost"}}" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
     {{if .Starting}}<span class="text-xs text-muted">Starting the preview…</span><script nonce="{{.Nonce}}">setTimeout(function () { location.reload(); }, 3000);</script>{{end}}
-    <a class="h-8 flex-none {{template "ui-btn-quiet"}} [&>svg]:size-3.5" href="{{if .Instance.Room}}/rooms/{{.Instance.ID}}/files{{else}}/instances/{{.Instance.ID}}/files?from={{.Path}}{{end}}"{{if .Instance.Room}} data-files-panel data-tab-name="Files"{{end}}>{{template "icon-file"}}<span>Files</span></a>
-    {{if .Instance.Room}}<a class="h-8 flex-none {{template "ui-btn-quiet"}} [&>svg]:size-3.5 tabular-nums" href="{{.Path}}?members=1" data-open="room-members" title="Room members" aria-label="Room members, {{.Headcount}}">{{template "icon-users"}}<span>{{.Headcount}}</span></a>
+    <a class="flex-none {{template "ui-btn-ghost"}}" href="{{if .Instance.Room}}/rooms/{{.Instance.ID}}/files{{else}}/instances/{{.Instance.ID}}/files?from={{.Path}}{{end}}"{{if .Instance.Room}} data-files-panel data-tab-name="Files"{{end}}>{{template "icon-file"}}<span>Files</span></a>
+    {{if .Instance.Room}}<a class="flex-none {{template "ui-btn-ghost"}} tabular-nums" href="{{.Path}}?members=1" data-open="room-members" title="Room members" aria-label="Room members, {{.Headcount}}">{{template "icon-users"}}<span>{{.Headcount}}</span></a>
     <details class="relative flex-none" data-menu>
-      <summary class="grid size-8 cursor-pointer list-none place-items-center rounded-md text-muted hover:bg-sunken hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="More for this room" title="More">{{template "icon-more"}}</summary>
+      <summary class="grid size-8 cursor-pointer list-none place-items-center rounded-md text-muted hover:bg-hover hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="More for this room" title="More">{{template "icon-more"}}</summary>
       <div class="absolute top-full right-0 z-40 mt-1 grid w-64 gap-px rounded-md border border-line bg-surface p-1.5 shadow-2" role="menu">
         <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-sm border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-copy-link>{{template "icon-link"}}<span>Copy link</span></button>
         <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-sm border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-sunken [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="room-guidelines">{{template "icon-file"}}<span>Room guidelines</span></button>
@@ -69,7 +69,7 @@
     <form class="relative mx-auto max-w-[42.5rem]" method="post" action="{{.Path}}/say" id="say-form"{{if .Instance.Room}} enctype="multipart/form-data"{{end}}{{if .Settings.Archived}} hidden{{end}}>
       <p class="{{template "ui-notice-chat"}} mb-2" id="unsent"{{if .Unsent}} role="alert"{{else}} hidden{{end}}>{{.Unsent}}</p>
       {{if .Instance.Room}}<ul class="absolute bottom-full left-0 z-30 mb-2 grid w-80 max-w-full list-none gap-px rounded-lg border border-line bg-surface p-1.5 shadow-2" id="mention-menu" role="listbox" aria-label="Mention" data-people="{{.Mentions}}" hidden></ul>{{end}}
-      <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-md border border-line-strong bg-surface py-3 pr-3 pl-5 shadow-1 transition-[border-color,box-shadow] has-[textarea:focus-visible]:border-accent has-[textarea:focus-visible]:shadow-2">
+      <div class="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-lg border border-line-strong bg-surface py-3 pr-3 pl-5 transition-[border-color,box-shadow] has-[textarea:focus-visible]:border-faint has-[textarea:focus-visible]:shadow-2">
         {{if .Instance.Room}}
         <ul class="m-0 flex list-none flex-wrap gap-1.5 p-0 [&[hidden]]:hidden" id="attached" aria-label="Files attached to this message" hidden></ul>
         <div class="relative">
@@ -84,8 +84,8 @@
           {{if not .Instance.Room}}{{if not .Several}}<span class="text-xs text-muted">{{.Agent.Brain}}</span>{{end}}{{end}}
           <span class="flex-1"></span>
           {{if and .Several (not .Instance.Room)}}{{template "picker" (dict "ID" "model-pick" "Label" "Model" "Name" "model" "Value" .Instance.Model "Options" .Models "Form" "model-form")}}{{end}}
-          <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-solid [&>svg]:size-[1.125rem] [&>svg]:opacity-100" id="send" title="Send"{{if and .Waiting (not .Instance.Room)}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
-          {{if and .Waiting (not .Instance.Room)}}<button type="submit" class="ml-1 inline-flex h-9 flex-none cursor-pointer items-center gap-2 rounded-full border border-line-strong bg-surface pr-4 pl-3 text-sm font-semibold text-ink hover:bg-wash [&>svg]:size-3.5 [&>svg]:opacity-100" id="stop" form="stop-form" title="Stop">{{template "icon-stop"}}<span>Stop</span></button>{{end}}
+          <button type="submit" class="ml-1 grid size-9 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-solid [&>svg]:size-[1.125rem]" id="send" title="Send"{{if and .Waiting (not .Instance.Room)}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
+          {{if and .Waiting (not .Instance.Room)}}<button type="submit" class="ml-1 inline-flex h-9 flex-none cursor-pointer items-center gap-2 rounded-full border border-line-strong bg-surface pr-4 pl-3 text-sm font-semibold text-ink hover:bg-wash [&>svg]:size-4" id="stop" form="stop-form" title="Stop">{{template "icon-stop"}}<span>Stop</span></button>{{end}}
         </div>
       </div>
     </form>
@@ -345,7 +345,7 @@
   <div class="grid min-w-0 gap-1.5">
     {{$apps := .Apps}}{{with .Steps}}
     <details class="group text-xs">
-      <summary class="inline-flex min-h-6 w-fit cursor-pointer list-none items-center gap-1 rounded-sm py-0.5 pr-2 pl-1 text-subtle hover:bg-wash hover:text-ink [&::-webkit-details-marker]:hidden"><span class="grid -rotate-90 transition-transform group-open:rotate-0 [&>svg]:size-3.5 [&>svg]:opacity-100">{{template "icon-chevron"}}</span><span>{{len .}} step{{if ne (len .) 1}}s{{end}}</span></summary>
+      <summary class="inline-flex min-h-6 w-fit cursor-pointer list-none items-center gap-1 rounded-sm py-0.5 pr-2 pl-1 text-subtle hover:bg-wash hover:text-ink [&::-webkit-details-marker]:hidden"><span class="grid -rotate-90 transition-transform group-open:rotate-0 [&>svg]:size-3.5">{{template "icon-chevron"}}</span><span>{{len .}} step{{if ne (len .) 1}}s{{end}}</span></summary>
       <div class="[&_ol]:mt-2 [&_ol]:ml-2 [&_ol]:grid [&_ol]:list-none [&_ol]:gap-2 [&_ol]:border-l [&_ol]:border-line-strong [&_ol]:pl-4 [&_.what]:mr-2 [&_.what]:font-semibold [&_.what]:text-ink [&_.detail]:font-mono [&_.detail]:text-xs [&_.detail]:wrap-anywhere [&_.detail]:text-muted">{{with $apps}}<p class="mt-2 mb-0 ml-2 text-muted">Could use {{.}}</p>{{end}}{{template "steps" .}}</div>
     </details>
     {{end}}
@@ -414,7 +414,7 @@ focus; a screen without hover shows it always. */}}
 
 {{/* A message's actions, in a small bar over its top right corner on hover or keyboard focus. Reply, in a room, starts a message
 to the sender; a screen without hover leaves the bar out, and text there is copied the phone's own way. */}}
-{{define "msg-tools"}}<div class="absolute -top-4 right-0 z-10 flex gap-0.5 rounded-md border border-line bg-surface p-0.5 shadow-1 pointer-events-none opacity-0 transition-opacity group-hover/msg:pointer-events-auto group-hover/msg:opacity-100 group-focus-within/msg:pointer-events-auto group-focus-within/msg:opacity-100 [@media(hover:none)]:hidden" role="toolbar" aria-label="Message actions">
+{{define "msg-tools"}}<div class="absolute -top-4 right-0 z-10 flex gap-0.5 rounded-lg border border-line bg-surface p-0.5 pointer-events-none opacity-0 transition-opacity group-hover/msg:pointer-events-auto group-hover/msg:opacity-100 group-focus-within/msg:pointer-events-auto group-focus-within/msg:opacity-100 [@media(hover:none)]:hidden" role="toolbar" aria-label="Message actions">
   <button type="button" class="{{template "msg-tool"}}" data-msg-copy aria-label="Copy message" title="Copy">{{template "icon-copy"}}</button>
   {{with .Reply}}<button type="button" class="{{template "msg-tool"}}" data-reply="{{.}}" aria-label="Reply to {{.}}" title="Reply">{{template "icon-reply"}}</button>{{end}}
 </div>{{end}}
@@ -443,4 +443,4 @@ message tall; the duration and cost of a reply are in its title. */}}
 </div>
 {{end}}{{end}}
 
-{{define "file-chip"}}{{with .C}}<a class="inline-flex h-8 max-w-full min-w-0 items-center gap-2 rounded-sm border border-line bg-surface px-2.5 text-sm text-ink no-underline hover:border-line-strong hover:bg-wash [&>svg]:size-4 [&>svg]:flex-none [&>svg]:text-subtle" href="/instances/{{$.P.Instance.ID}}/file?path={{.Path}}&amp;from={{$.P.Path}}" title="{{.Path}}" data-file-chip="{{.Look}}">{{if eq .Look "image"}}{{template "icon-file-image"}}{{else if eq .Look "code"}}{{template "icon-file-code"}}{{else if eq .Look "blank"}}{{template "icon-file-blank"}}{{else}}{{template "icon-file"}}{{end}}<span class="truncate">{{.Name}}</span></a>{{end}}{{end}}
+{{define "file-chip"}}{{with .C}}<a class="inline-flex h-8 max-w-full min-w-0 items-center gap-2 rounded-md border border-line bg-surface px-2.5 text-sm text-ink no-underline hover:border-line-strong hover:bg-wash [&>svg]:size-4 [&>svg]:flex-none [&>svg]:text-subtle" href="/instances/{{$.P.Instance.ID}}/file?path={{.Path}}&amp;from={{$.P.Path}}" title="{{.Path}}" data-file-chip="{{.Look}}">{{if eq .Look "image"}}{{template "icon-file-image"}}{{else if eq .Look "code"}}{{template "icon-file-code"}}{{else if eq .Look "blank"}}{{template "icon-file-blank"}}{{else}}{{template "icon-file"}}{{end}}<span class="truncate">{{.Name}}</span></a>{{end}}{{end}}

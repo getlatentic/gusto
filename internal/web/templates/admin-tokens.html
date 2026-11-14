@@ -20,16 +20,14 @@
 </section>
 {{end}}
 
-<section class="{{template "ui-card"}}" id="make-token"{{if and .Tokens (not .Refused)}} hidden{{end}}>
-  <h2 class="{{template "ui-card-title"}}">Make a token</h2>
-  <form class="grid max-w-prose gap-4" method="post" action="/admin/tokens">
+<section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Make a token</h2><section class="{{template "ui-card"}}" id="make-token"{{if and .Tokens (not .Refused)}} hidden{{end}}>  <form class="grid max-w-prose gap-4" method="post" action="/admin/tokens">
     <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="ci-nightly" pattern="[a-z0-9][a-z0-9\-]*" required></label>
     <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">It may</legend>
       {{range .Offered}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="scope" value="{{.Scope}}"{{if eq .Scope "submit"}} checked{{end}}> {{.Words}}</label>{{end}}
     </fieldset>
     <div><button class="{{template "ui-btn"}}" type="submit">Make token</button></div>
   </form>
-</section>
+</section></section>
 
 {{if .Tokens}}
 <div class="{{template "ui-card"}} overflow-x-auto">

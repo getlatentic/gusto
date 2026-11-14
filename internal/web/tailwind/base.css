@@ -10,7 +10,7 @@
   h2 { @apply text-lg font-semibold; }
   h3 { @apply text-base font-semibold; }
   a { @apply text-inherit; }
-  strong, b { @apply font-bold; }
+  strong, b { @apply font-semibold; }
   code, kbd, samp, pre { @apply font-mono; }
   pre { @apply text-xs leading-relaxed; }
   small { @apply text-xs; }

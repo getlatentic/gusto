@@ -6,6 +6,7 @@
 {{define "ui-btn"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md bg-solid px-4 text-sm font-medium whitespace-nowrap text-on-solid no-underline transition-colors hover:bg-solid-hover disabled:cursor-default disabled:opacity-50{{end}}
 {{define "ui-btn-quiet"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md border border-line-strong bg-transparent px-4 text-sm font-medium whitespace-nowrap text-muted no-underline transition-colors hover:bg-wash hover:text-ink disabled:cursor-default disabled:opacity-50{{end}}
 {{define "ui-btn-danger"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md border border-bad/40 bg-transparent px-4 text-sm font-medium whitespace-nowrap text-bad no-underline transition-colors hover:bg-bad-wash{{end}}
+{{define "ui-btn-ghost"}}inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-md border-0 bg-transparent px-2.5 text-sm whitespace-nowrap text-muted no-underline transition-colors hover:bg-hover hover:text-ink [&>svg]:size-4{{end}}
 {{define "ui-btn-sm"}}inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-line-strong bg-transparent px-3 text-sm font-medium whitespace-nowrap text-muted no-underline transition-colors hover:bg-wash hover:text-ink disabled:cursor-default disabled:opacity-50{{end}}
 {{define "ui-btn-sm-danger"}}inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-bad/40 bg-transparent px-3 text-sm font-medium whitespace-nowrap text-bad no-underline transition-colors hover:bg-bad-wash{{end}}
 {{define "ui-link-quiet"}}inline-flex items-center gap-1.5 text-sm text-muted no-underline hover:text-ink hover:underline{{end}}
@@ -30,7 +31,7 @@
 {{define "ui-card"}}rounded-lg bg-surface p-5 border border-line{{end}}
 {{define "ui-card-title"}}mb-3 text-sm font-semibold text-ink{{end}}
 {{define "ui-figures"}}mb-4 flex flex-wrap gap-px [&>*]:min-w-[min(10rem,100%)] [&>*]:flex-1 overflow-hidden rounded-lg bg-line border border-line{{end}}
-{{define "ui-figure-value"}}font-display text-xl leading-none font-semibold tabular-nums{{end}}
+{{define "ui-figure-value"}}font-display text-xl font-semibold tabular-nums{{end}}
 {{define "ui-figure-label"}}text-sm text-muted{{end}}
 {{define "ui-figure"}}flex flex-col-reverse justify-start gap-1.5 bg-surface px-5 py-4 text-inherit no-underline{{end}}
 {{define "ui-masonry"}}columns-2 gap-4 @max-[56rem]:columns-1 [&>*]:mb-4 [&>*]:break-inside-avoid{{end}}
