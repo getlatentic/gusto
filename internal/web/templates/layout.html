@@ -88,7 +88,7 @@
 <div class="scrim hidden bg-scrim side-open:@max-[56rem]:fixed side-open:@max-[56rem]:inset-0 side-open:@max-[56rem]:z-10 side-open:@max-[56rem]:block"></div>
 <main class="page min-h-0 min-w-0{{if .Chat}} chat grid grid-rows-[minmax(0,1fr)] overflow-hidden @max-[56rem]:grid-rows-[auto_minmax(0,1fr)]{{else}} overflow-y-auto{{end}}" id="main" tabindex="-1">
 <div class="mobile-bar hidden items-center gap-3 border-b border-line px-4 py-2 @max-[56rem]:flex"><button class="grid size-9 cursor-pointer place-items-center rounded-sm text-ink hover:bg-hover" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button><a class="brand flex items-center gap-2 font-display text-base font-semibold text-inherit no-underline" href="/chat"><img class="w-5" src="/static/mark.png" alt=""> gusto</a></div>
-<div class="wrap{{if .Chat}} flex min-h-0{{else}} mx-auto max-w-page px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16{{end}}">{{end}}
+<div class="wrap{{if .Chat}} flex min-h-0{{else}} mx-auto max-w-page has-[.two-col]:max-w-page-wide px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16{{end}}">{{end}}
 {{end}}
 
 {{/* The console is the admin's own place: its sections down the side, one way
@@ -105,7 +105,7 @@
 <div class="scrim hidden bg-scrim side-open:@max-[56rem]:fixed side-open:@max-[56rem]:inset-0 side-open:@max-[56rem]:z-10 side-open:@max-[56rem]:block"></div>
 <main class="page min-h-0 min-w-0 overflow-y-auto" id="main" tabindex="-1">
 <div class="mobile-bar hidden items-center gap-3 border-b border-line px-4 py-2 @max-[56rem]:flex"><button class="grid size-9 cursor-pointer place-items-center rounded-sm text-ink hover:bg-hover" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button><span class="font-display text-base font-semibold">Admin</span>{{with .OrgName}}<span class="truncate text-sm text-subtle">{{.}}</span>{{end}}</div>
-<div class="wrap mx-auto max-w-page px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16">
+<div class="wrap mx-auto max-w-page has-[.two-col]:max-w-page-wide px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16">
 {{end}}
 
 {{define "foot"}}{{if .Console}}</div>
@@ -154,6 +154,7 @@
 {{define "icon-check"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>{{end}}
 {{define "icon-compose"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>{{end}}
 {{define "icon-bot"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>{{end}}
+{{define "icon-mail"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>{{end}}
 {{define "icon-user"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>{{end}}
 {{define "icon-users"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>{{end}}
 {{define "icon-copy"}}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>{{end}}

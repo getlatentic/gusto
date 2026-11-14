@@ -48,6 +48,13 @@
         <div class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Made by</span><span class="text-sm">Ada</span></div>
       </div>
     </section>
+    <section class="{{template "ui-facts-card"}}">
+      <h4 class="{{template "ui-facts-label"}}">Facts</h4>
+      <dl class="{{template "ui-facts"}}">
+        <dt class="{{template "ui-fact-key"}}">{{template "icon-mail"}}Email</dt><dd class="{{template "ui-fact-value"}}">ada@example.com</dd>
+        <dt class="{{template "ui-fact-key"}}">{{template "icon-user"}}Role</dt><dd class="{{template "ui-fact-value"}}">Admin</dd>
+      </dl>
+    </section>
   </div>
 </section>
 
@@ -193,7 +200,6 @@
   </div>
   <div class="{{template "ui-head"}}"><h3 class="text-xl font-semibold">ui-head</h3><p class="{{template "ui-lede"}}">The lede says in a sentence what the page is for, and no more.</p></div>
   <div class="{{template "ui-stack"}}"><section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-stack</h3><p class="{{template "ui-note"}}">Cards one under another with a gap.</p></section></div>
-  <div class="{{template "ui-masonry"}}"><section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-masonry</h3><p class="{{template "ui-note"}}">Cards of different heights in columns, with no gaps under the short ones.</p></section><section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">Second card</h3><p class="{{template "ui-note"}}">It is taller than the first, and the columns do not leave a hole.</p><p class="{{template "ui-note"}}">A third line makes it so.</p></section></div>
   <div class="{{template "ui-panels"}}">
     <section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-card</h3><p class="{{template "ui-note"}}">A surface that holds one thing, with a title.</p></section>
     <section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-panels</h3><p class="{{template "ui-note"}}">Cards in a grid that fills the width and wraps.</p></section>
@@ -280,6 +286,7 @@
       <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-folder"}}<span class="[&_svg]:size-6 contents">{{template "icon-folder"}}</span></span><code class="text-xs text-muted">folder</code></div>
       <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-users"}}<span class="[&_svg]:size-6 contents">{{template "icon-users"}}</span></span><code class="text-xs text-muted">users</code></div>
       <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-user"}}<span class="[&_svg]:size-6 contents">{{template "icon-user"}}</span></span><code class="text-xs text-muted">user</code></div>
+      <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-mail"}}<span class="[&_svg]:size-6 contents">{{template "icon-mail"}}</span></span><code class="text-xs text-muted">mail</code></div>
       <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-bot"}}<span class="[&_svg]:size-6 contents">{{template "icon-bot"}}</span></span><code class="text-xs text-muted">bot</code></div>
       <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-upload"}}<span class="[&_svg]:size-6 contents">{{template "icon-upload"}}</span></span><code class="text-xs text-muted">upload</code></div>
       <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-more"}}<span class="[&_svg]:size-6 contents">{{template "icon-more"}}</span></span><code class="text-xs text-muted">more</code></div>

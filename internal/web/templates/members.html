@@ -51,8 +51,8 @@
 {{template "foot" .}}
 
 {{define "member-agent"}}{{$a := .A}}{{$p := .P}}
-<article class="mx-auto grid max-w-3xl gap-8 px-8 py-8 @max-[56rem]:px-4">
-  <a class="hidden text-sm text-muted @max-[56rem]:inline-flex" href="/members">{{template "icon-back"}} Members</a>
+<article class="mx-auto grid max-w-[52rem] gap-6 px-8 py-8 @max-[56rem]:px-4">
+  <a class="{{template "ui-link-quiet"}} hidden w-fit @max-[56rem]:inline-flex [&>svg]:size-4" href="/members">{{template "icon-back"}}Members</a>
   {{template "ui-flash" $p}}
   <header class="flex items-center gap-4">
     <span class="grid size-14 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-8" aria-hidden="true">{{template "mark" (dict "Harness" $a.Harness "Name" $a.Engine "Size" "lg")}}</span>
@@ -160,20 +160,20 @@
 
 {{define "member-person"}}{{$m := .M}}{{$p := .P}}
 <article class="mx-auto grid max-w-3xl gap-8 px-8 py-8 @max-[56rem]:px-4">
-  <a class="hidden text-sm text-muted @max-[56rem]:inline-flex" href="/members">{{template "icon-back"}} Members</a>
+  <a class="{{template "ui-link-quiet"}} hidden w-fit @max-[56rem]:inline-flex [&>svg]:size-4" href="/members">{{template "icon-back"}}Members</a>
   <header class="flex items-center gap-4">
-    <span class="grid size-14 flex-none place-items-center rounded-full bg-sunken text-base font-medium text-muted [&>svg]:size-6" aria-hidden="true">{{with initials $m.Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
-    <div class="grid min-w-0"><h2 class="m-0 truncate text-lg font-semibold">{{$m.Name}}</h2><p class="m-0 truncate text-sm text-muted">{{$m.Role}}</p></div>
+    <span class="grid size-16 flex-none place-items-center rounded-full bg-sunken text-sm font-medium text-muted [&>svg]:size-6" aria-hidden="true">{{with initials $m.Who}}{{.}}{{else}}{{template "icon-user"}}{{end}}</span>
+    <div class="grid min-w-0"><h2 class="m-0 truncate text-base font-semibold">{{$m.Name}}</h2><p class="m-0 truncate text-sm text-subtle">{{$m.Role}}</p></div>
   </header>
-  <section class="{{template "ui-section"}}">
-    <h3 class="{{template "ui-section-title"}}">Profile</h3>
-    <div class="{{template "ui-list"}}">
-      <div class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Email</span><span class="min-w-0 text-sm wrap-anywhere">{{if eq $m.Who "the shared sign-in"}}Signs in with this server's password{{else}}{{$m.Who}}{{end}}</span></div>
-      <div class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Role</span><span class="min-w-0 text-sm">{{$m.Role}}</span></div>
-    </div>
+  <section class="{{template "ui-facts-card"}}">
+    <h3 class="{{template "ui-facts-label"}}">Profile</h3>
+    <dl class="{{template "ui-facts"}}">
+      <dt class="{{template "ui-fact-key"}}">{{template "icon-mail"}}Email</dt><dd class="{{template "ui-fact-value"}}">{{if eq $m.Who "the shared sign-in"}}Signs in with this server's password{{else}}{{$m.Who}}{{end}}</dd>
+      <dt class="{{template "ui-fact-key"}}">{{template "icon-user"}}Role</dt><dd class="{{template "ui-fact-value"}}">{{$m.Role}}</dd>
+    </dl>
   </section>
-  <section class="{{template "ui-section"}}">
-    <h3 class="{{template "ui-section-title"}}">Bio</h3>
+  <section class="{{template "ui-facts-card"}} grid gap-3">
+    <h3 class="{{template "ui-facts-label"}}">Bio</h3>
     {{if $p.Bio.Mine}}
     {{template "ui-flash" $p}}
     <form class="m-0 grid gap-3" method="post" action="{{$m.Where}}/bio">

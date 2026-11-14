@@ -27,7 +27,7 @@ func TestTheFocusRingStandsOutFromEverySurface(t *testing.T) {
 				continue
 			}
 			focus := themeLookup(colors, theme, accent, "focus")
-			for _, surface := range []string{"rail", "side", "bg-subtle", "bg", "surface"} {
+			for _, surface := range []string{"rail", "side", "bg-subtle", "bg", "surface", "card"} {
 				if ratio := contrast(focus, themeLookup(colors, theme, accent, surface)); ratio < 3 {
 					t.Errorf("%s %s: the focus ring #%s is %.2f to 1 on %s", theme, accent, focus, ratio, surface)
 				}

@@ -12,6 +12,7 @@
   --gu-bg-subtle: #F7F7F5;
   --gu-bg: #FFFFFF;
   --gu-surface: #FFFFFF;
+  --gu-card: #F9F9F8;
   --gu-surface-sunken: #F2F2F0;
   --gu-border: rgb(20 20 18 / .1);
   --gu-border-strong: rgb(20 20 18 / .16);
@@ -39,6 +40,7 @@
   --gu-bg-subtle: #111110;
   --gu-bg: #161615;
   --gu-surface: #1E1E1C;
+  --gu-card: #1A1A19;
   --gu-surface-sunken: #0F0F0E;
   --gu-border: rgb(244 244 242 / .1);
   --gu-border-strong: rgb(244 244 242 / .16);

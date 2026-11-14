@@ -18,7 +18,7 @@
 </header>
 {{template "usage-tabs" $.Tabs}}
 
-<section class="mb-6 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-6 gap-y-5 {{template "ui-card"}}">
+<section class="{{template "ui-figures"}} mb-9">
   {{$spent := usd .Total.USD}}{{if and (eq .Total.USD 0.0) .Total.Unmeasured}}{{$spent = "—"}}{{end}}
   {{$caption := "spent this month, at least"}}{{if eq .Total.Unmeasured 0}}{{$caption = "spent this month"}}{{else if eq .Total.Calls .Total.Unmeasured}}{{$caption = "no price set for these models"}}{{end}}
   {{template "figure" (dict "Headline" true "Value" $spent "Label" $caption)}}
@@ -42,12 +42,12 @@
 </section>
 
 {{with .Tops}}
-<div class="mb-4 grid grid-cols-3 gap-4 @max-[56rem]:grid-cols-1">
+<div class="mb-4 grid grid-cols-3 gap-3 @max-[56rem]:grid-cols-1">
   {{range .}}
   <div class="grid content-start gap-1.5 {{template "ui-card"}}">
-    <span class="text-xs text-muted">{{.Title}}</span>
-    <span class="font-display text-xl font-semibold wrap-anywhere">{{.Name}}</span>
-    <span class="text-sm text-muted">{{.Says}}</span>
+    <span class="{{template "ui-figure-label"}}">{{.Title}}</span>
+    <span class="font-display text-xl font-semibold tracking-tight wrap-anywhere">{{.Name}}</span>
+    <span class="text-sm text-subtle">{{.Says}}</span>
   </div>
   {{end}}
 </div>

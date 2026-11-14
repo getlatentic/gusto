@@ -12,6 +12,7 @@
   --color-wash: var(--gu-bg-subtle);
   --color-sunken: var(--gu-surface-sunken);
   --color-surface: var(--gu-surface);
+  --color-card: var(--gu-card);
   --color-line: var(--gu-border);
   --color-line-strong: var(--gu-border-strong);
   --color-ink: var(--gu-text);
@@ -101,6 +102,7 @@
   --text-label--line-height: 1rem;
   --text-label--letter-spacing: 0;
   --text-label--font-weight: 500;
-  --container-page: 72rem;
+  --container-page: 52rem;
+  --container-page-wide: 72rem;
   --container-prose: 46rem;
 }

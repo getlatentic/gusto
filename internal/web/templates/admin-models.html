@@ -73,7 +73,7 @@
     <tbody>
       {{range .Providers}}
       <tr>
-        <td class="whitespace-nowrap"><a class="font-medium text-accent-ink no-underline hover:underline" href="{{.Href}}">{{.Name}}</a>{{if .Operator}} <span class="text-subtle">set by the operator</span>{{end}}</td>
+        <td class="whitespace-nowrap"><a class="font-medium text-ink no-underline hover:underline" href="{{.Href}}">{{.Name}}</a>{{if .Operator}} <span class="text-subtle">set by the operator</span>{{end}}</td>
         <td class="whitespace-nowrap text-muted"><code>{{.Address}}</code>{{if .More}} <span class="text-subtle">and {{.More}} more</span>{{end}}</td>
         <td class="whitespace-nowrap text-muted">{{.Key}}</td>
         <td class="text-right tabular-nums">{{.Models}}</td>
