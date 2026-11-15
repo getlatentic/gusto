@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { postForm, usePageData } from "@/lib/api"
+import { postForm, usePageData, useRefreshPage } from "@/lib/api"
 import { ago } from "@/lib/format"
 
 export interface TokenRow {
@@ -47,10 +47,10 @@ interface MadeToken {
 
 // The tokens programs call this server with, and the way to make one.
 export function TokensPage() {
-  const [round, setRound] = useState(0)
   const [made, setMade] = useState<MadeToken>()
   const [making, setMaking] = useState(false)
-  const loaded = usePageData<TokensData>(round)
+  const loaded = usePageData<TokensData>()
+  const refresh = useRefreshPage()
   const page = loaded.state === "ready" ? loaded.data : undefined
   const formShown = making || (page !== undefined && page.Tokens.length === 0)
   return (
@@ -75,7 +75,7 @@ export function TokensPage() {
                   onMade={(token) => {
                     setMade(token)
                     setMaking(false)
-                    setRound((n) => n + 1)
+                    void refresh()
                   }}
                 />
               )}

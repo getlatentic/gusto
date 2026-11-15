@@ -1,1 +1,0 @@
-import{t as e}from"./badge-_YPy7oSb.js";import{Bt as t}from"./DirectionContext-7WM5PgI4.js";var n=t();function r({on:t}){return t?(0,n.jsx)(e,{className:`flex-none bg-ok-wash text-ok`,children:`on`}):(0,n.jsx)(e,{variant:`outline`,className:`flex-none text-muted-foreground`,children:`off`})}export{r as t};

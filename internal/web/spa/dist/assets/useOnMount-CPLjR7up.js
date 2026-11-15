@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-XKyaHtl9.js";import{$t as t,Mt as n}from"./DirectionContext-LmcnkbYQ.js";var r=e(t(),1);function i(e){r.useEffect(e,n)}export{i as t};

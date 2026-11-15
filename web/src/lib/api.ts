@@ -1,4 +1,9 @@
-import { useEffect, useState } from "react"
+import {
+  keepPreviousData,
+  QueryClient,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
 import { useLocation } from "react-router"
 
 // A page's data is the same view the server gave its template, as JSON at /app/api followed by the page's own address. The
@@ -41,41 +46,56 @@ export async function getJSON<T>(
   return (await answer.json()) as T
 }
 
-// useData fetches a path, and fetches again when it changes or when round does, as after the page changed what it shows;
-// what was shown stays on screen while the next one loads.
-export function useData<T>(path: string, round = 0): Loaded<T> {
-  const asked = `${round} ${path}`
-  const [answer, setAnswer] = useState<{ asked: string; loaded: Loaded<T> }>()
-  useEffect(() => {
-    const stop = new AbortController()
-    getJSON<T>(path, stop.signal).then(
-      (data) => setAnswer({ asked, loaded: { state: "ready", data } }),
-      (err: unknown) => {
-        if (stop.signal.aborted) return
-        const status = err instanceof Failure ? err.status : 0
-        setAnswer({
-          asked,
-          loaded: {
-            state: "failed",
-            status,
-            message: err instanceof Error ? err.message : String(err),
-          },
-        })
-      }
-    )
-    return () => stop.abort()
-  }, [path, asked])
-  if (answer?.asked === asked) return answer.loaded
-  return {
-    state: "loading",
-    data: answer?.loaded.state === "ready" ? answer.loaded.data : undefined,
+// newQueryClient keeps each page's data by its address. A failure the server meant (a 4xx) is not asked again; anything else
+// is, twice.
+export function newQueryClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: (count, err) =>
+          !(err instanceof Failure && err.status < 500) && count < 2,
+      },
+    },
+  })
+}
+
+// useData is the data at a path, fetched again when the path changes or the data is marked stale; what was shown stays on
+// screen while the next one loads.
+export function useData<T>(path: string): Loaded<T> {
+  const query = useQuery({
+    queryKey: [path],
+    queryFn: ({ signal }) => getJSON<T>(path, signal),
+    placeholderData: keepPreviousData,
+  })
+  if (query.isError) {
+    const err = query.error
+    return {
+      state: "failed",
+      status: err instanceof Failure ? err.status : 0,
+      message: err.message,
+    }
   }
+  if (query.isSuccess && !query.isPlaceholderData) {
+    return { state: "ready", data: query.data }
+  }
+  return { state: "loading", data: query.data }
+}
+
+// pagePath is where the data of the page the address names is.
+function pagePath(where: { pathname: string; search: string }): string {
+  return "/app/api" + where.pathname + where.search
 }
 
 // usePageData is the data of the page the address names.
-export function usePageData<T>(round = 0): Loaded<T> {
-  const where = useLocation()
-  return useData<T>("/app/api" + where.pathname + where.search, round)
+export function usePageData<T>(): Loaded<T> {
+  return useData<T>(pagePath(useLocation()))
+}
+
+// useRefreshPage marks the page's data stale, so it is fetched again, as after the page changed something the server keeps.
+export function useRefreshPage(): () => Promise<void> {
+  const client = useQueryClient()
+  const path = pagePath(useLocation())
+  return () => client.invalidateQueries({ queryKey: [path] })
 }
 
 // postForm sends a form to the server as the browser would, for a page that reads the answer itself, and gives the answer

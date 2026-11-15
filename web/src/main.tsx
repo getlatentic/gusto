@@ -3,7 +3,10 @@ import { createRoot } from "react-dom/client"
 import { BrowserRouter, Route, Routes } from "react-router"
 
 import "./index.css"
+import { QueryClientProvider } from "@tanstack/react-query"
+
 import { ConsoleShell } from "@/components/console-shell"
+import { newQueryClient } from "@/lib/api"
 import { TooltipProvider } from "@/components/ui/tooltip"
 
 // Each page is fetched when it is first opened, so the first page drawn does not wait for the others' code.
@@ -58,27 +61,32 @@ const IntegrationPage = lazy(() =>
 // behind the same sign-in; any other address is a page the server draws.
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <TooltipProvider>
-      <BrowserRouter>
-        <Suspense>
-          <Routes>
-            <Route path="/admin" element={<ConsoleShell />}>
-              <Route index element={<OverviewPage />} />
-              <Route path="spending" element={<SpendingPage />} />
-              <Route path="usage" element={<UsagePage />} />
-              <Route path="usage/:session" element={<UsageSessionPage />} />
-              <Route path="people" element={<PeoplePage />} />
-              <Route path="budgets" element={<BudgetsPage />} />
-              <Route path="tokens" element={<TokensPage />} />
-              <Route path="records" element={<RecordsPage />} />
-              <Route path="models" element={<ModelsPage />} />
-              <Route path="apps" element={<AppsPage />} />
-              <Route path="skill-sets/:name" element={<SkillSetPage />} />
-              <Route path="integrations/:name" element={<IntegrationPage />} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </TooltipProvider>
+    <QueryClientProvider client={newQueryClient()}>
+      <TooltipProvider>
+        <BrowserRouter>
+          <Suspense>
+            <Routes>
+              <Route path="/admin" element={<ConsoleShell />}>
+                <Route index element={<OverviewPage />} />
+                <Route path="spending" element={<SpendingPage />} />
+                <Route path="usage" element={<UsagePage />} />
+                <Route path="usage/:session" element={<UsageSessionPage />} />
+                <Route path="people" element={<PeoplePage />} />
+                <Route path="budgets" element={<BudgetsPage />} />
+                <Route path="tokens" element={<TokensPage />} />
+                <Route path="records" element={<RecordsPage />} />
+                <Route path="models" element={<ModelsPage />} />
+                <Route path="apps" element={<AppsPage />} />
+                <Route path="skill-sets/:name" element={<SkillSetPage />} />
+                <Route
+                  path="integrations/:name"
+                  element={<IntegrationPage />}
+                />
+              </Route>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   </StrictMode>
 )
