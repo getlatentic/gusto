@@ -27,11 +27,9 @@ func TestAnAdminGivesOneProviderAnOpenAIAndAnAnthropicAddressUnderOneKey(t *test
 		held.Endpoints[0].Address != "https://api.theirs.example/anthropic" || held.Endpoints[0].Auth != proxy.Anthropic {
 		t.Fatalf("the proxy holds %+v", held)
 	}
-	body := admin.ask(t, "GET", added.Header().Get("Location"), nil).Body.String()
-	for _, want := range []string{"OpenAI-compatible", "Anthropic-compatible", "the same at each address"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("the page does not say %q", want)
-		}
+	acme := modelsAt(t, admin, added.Header().Get("Location")).Provider
+	if acme == nil || len(acme.Addresses) != 2 || acme.Addresses[0].Kind != "OpenAI-compatible" || acme.Addresses[1].Kind != "Anthropic-compatible" || !acme.Addresses[1].Extra {
+		t.Errorf("the page does not give both addresses and their kinds: %+v", acme)
 	}
 	admin.ask(t, "POST", "/admin/models/providers/acme/addresses/remove", url.Values{"address": {"https://api.theirs.example/anthropic"}})
 	if len(reg.Effective().Credentials["acme"].Endpoints) != 0 {
@@ -61,7 +59,7 @@ func TestACustomAddressNamesTheShapesItAnswers(t *testing.T) {
 	if provider := reg.Document().Providers[0]; len(provider.Wires) != 1 || provider.Wires[0] != "chat" {
 		t.Fatalf("the provider is %+v", provider)
 	}
-	if body := admin.ask(t, "GET", providerPage("acme"), nil).Body.String(); !strings.Contains(body, "custom: chat, bearer token") {
-		t.Error("the page does not say the address is custom and what it answers")
+	if acme := modelsAt(t, admin, providerPage("acme")).Provider; acme == nil || acme.Addresses[0].Kind != "custom: chat, bearer token" {
+		t.Errorf("the page does not say the address is custom and what it answers: %+v", acme)
 	}
 }
