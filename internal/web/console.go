@@ -72,7 +72,6 @@ func (s *Server) drawConsole(w http.ResponseWriter, name, key string, page map[s
 
 func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	s.mountApp(mux)
-	mux.HandleFunc("GET "+appsPath, s.console(offering(s.hasAppsOrSkills, s.appsPage)))
 	mux.HandleFunc("GET "+uiKitPath, s.console(s.uiKitPage))
 
 	changes := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasChanges, next)) }
@@ -91,7 +90,6 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 
 	setups := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasSetups, next)) }
 	mux.HandleFunc("POST "+setupsPath, setups(s.saveSetup))
-	mux.HandleFunc("GET "+setupsPath+"/{name}", setups(s.skillSetPage))
 	mux.HandleFunc("GET "+setupsPath+"/{name}/plugin.zip", setups(s.exportSetup))
 	mux.HandleFunc("POST "+setupsPath+"/{name}/skills", setups(s.writeSkill))
 	mux.HandleFunc("POST "+setupsPath+"/{name}/skills/{skill}/drop", setups(s.dropSkill))

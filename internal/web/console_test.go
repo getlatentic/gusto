@@ -153,22 +153,6 @@ func TestAFullConsoleListsItsSectionsInOrder(t *testing.T) {
 	}
 }
 
-// A page under a section marks that section, so a skill set's page is in Apps & skills.
-func TestTheConsoleMarksTheSectionAPageBelongsTo(t *testing.T) {
-	admin := everything(t).as(t, boss)
-	admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"reviewer"}})
-	current := regexp.MustCompile(`href="([^"]+)" aria-current="page"`)
-	for path, want := range map[string]string{
-		"/admin/apps?tab=skills":     "/admin/apps",
-		"/admin/skill-sets/reviewer": "/admin/apps",
-	} {
-		marked := current.FindStringSubmatch(sectionsOf(t, admin.ask(t, "GET", path, nil).Body.String()))
-		if marked == nil || marked[1] != want {
-			t.Errorf("%s marks %v, not %s", path, marked, want)
-		}
-	}
-}
-
 // The pages that became tabs answer at their old addresses by sending an admin to the tab, with what they were sent to say.
 func TestTheOldConsolePagesGoToTheirTabs(t *testing.T) {
 	here := everything(t)
@@ -192,39 +176,25 @@ func TestTheOldConsolePagesGoToTheirTabs(t *testing.T) {
 	}
 }
 
-func TestEachTabOfAppsShowsItsOwnPart(t *testing.T) {
+func TestAppsAndSkillsGivesTheSkillsAndBothWaysToAddOne(t *testing.T) {
 	admin := everything(t).as(t, boss)
-	for path, want := range map[string][]string{
-		"/admin/apps": {"Apps &amp; skills", "What agents may use, for everyone in", "Add a skill", "Write a skill set", "Import from git", "Import an upload", `action="/admin/integrations/import"`},
-	} {
-		page := admin.ask(t, "GET", path, nil)
-		if page.Code != http.StatusOK {
-			t.Fatalf("%s answered %d", path, page.Code)
-		}
-		for _, each := range want {
-			if !strings.Contains(page.Body.String(), each) {
-				t.Errorf("%s does not say %q", path, each)
-			}
-		}
+	if page := appsPageOf(t, admin, ""); page.Tab != "skills" || !page.Writes || !page.Imports || page.Skills == nil {
+		t.Errorf("Apps & skills does not give the skills and both ways to add one: %+v", page)
 	}
 }
 
-func TestAnAppIsASwitchAndOneThatNeedsSetupSaysSo(t *testing.T) {
+func TestAnAppIsTurnedOnAndOffForEveryone(t *testing.T) {
 	here, _, _ := connected(t)
-	page := here.ask(t, "GET", "/admin/apps", nil).Body.String()
-	if !strings.Contains(page, `action="/admin/connectors/tasks/on"`) || !strings.Contains(page, `role="switch" aria-checked="false"`) {
-		t.Fatalf("an app that is off is not a switch that turns it on:\n%s", page)
-	}
-	if strings.Contains(page, "Turn on</button>") {
-		t.Error("the app is turned on with a button of words, not the switch")
+	if tasks := appsPageOf(t, here, "").app(t, "tasks"); tasks.On || !tasks.Usable {
+		t.Fatalf("an app that can be turned on is not given as off: %+v", tasks)
 	}
 	here.ask(t, "POST", "/admin/connectors/tasks/on", nil)
-	page = here.ask(t, "GET", "/admin/apps", nil).Body.String()
-	if !strings.Contains(page, `action="/admin/connectors/tasks/off"`) || !strings.Contains(page, `role="switch" aria-checked="true"`) {
-		t.Errorf("an app that is on is not a switch that turns it off:\n%s", page)
+	if tasks := appsPageOf(t, here, "").app(t, "tasks"); !tasks.On {
+		t.Errorf("an app turned on is not given as on: %+v", tasks)
 	}
-	if !strings.Contains(page, "Agents use it only as that person, and only for what they ask.") {
-		t.Error("the page does not say how agents use an app")
+	here.ask(t, "POST", "/admin/connectors/tasks/off", nil)
+	if tasks := appsPageOf(t, here, "").app(t, "tasks"); tasks.On {
+		t.Errorf("an app turned off is still given as on: %+v", tasks)
 	}
 }
 
@@ -252,7 +222,7 @@ func TestOnlyAnAdminSeesTheLinkToTheConsoleAndItIsTheOnlyOne(t *testing.T) {
 
 func TestTheConsoleHasOneLinkBack(t *testing.T) {
 	admin := everything(t).as(t, boss)
-	for _, path := range []string{"/admin/apps?tab=skills"} {
+	for _, path := range []string{uiKitPath} {
 		page := admin.ask(t, "GET", path, nil).Body.String()
 		if got := strings.Count(page, `href="/"`); got != 1 || !strings.Contains(page, "Back to gusto") {
 			t.Errorf("%s has %d links to the employee's pages", path, got)

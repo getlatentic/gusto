@@ -59,6 +59,9 @@ func (s *Server) appViews() []appView {
 		{tokensPath, s.hasTokens, s.tokensData},
 		{recordsPath, always, s.recordsData},
 		{modelsPath, s.hasRegistry, s.modelsData},
+		{appsPath, s.hasAppsOrSkills, s.appsData},
+		{setupsPath + "/{name}", s.hasSetups, s.skillSetData},
+		{integrationsPath + "/{name}", s.hasIntegrations, s.integrationData},
 	}
 }
 

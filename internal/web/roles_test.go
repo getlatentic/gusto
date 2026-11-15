@@ -162,18 +162,18 @@ func TestSkillSetPagesCarryNoControlsAndTheConsoleDoes(t *testing.T) {
 				}
 			}
 		}
-		console := "/admin/skill-sets" + strings.TrimPrefix(path, "/setups")
-		if path == "/setups" {
-			console = "/admin/apps?tab=skills"
-		}
-		if got := runner.ask(t, "GET", console, nil); got.Code != http.StatusForbidden {
-			t.Errorf("a runner reading %s got %d", console, got.Code)
-		}
-		page := admin.ask(t, "GET", console, nil).Body.String()
-		for _, control := range wanted {
-			if !strings.Contains(page, control) {
-				t.Errorf("%s does not offer an admin %q", console, control)
+	}
+	for _, console := range []string{"/admin/apps?tab=skills", "/admin/skill-sets/reviewer"} {
+		for _, path := range []string{console, "/app/api" + console} {
+			if got := runner.ask(t, "GET", path, nil); got.Code != http.StatusForbidden {
+				t.Errorf("a runner reading %s got %d", path, got.Code)
 			}
 		}
+	}
+	if page := appsPageOf(t, admin, "?tab=skills"); !page.Writes {
+		t.Error("the console does not offer an admin a way to write a skill set")
+	}
+	if set := skillSetPageOf(t, admin, "reviewer").Set; len(set.Skills) != 1 || set.Skills[0].Name != "review" {
+		t.Errorf("the console does not give an admin the skill to change: %+v", set)
 	}
 }
