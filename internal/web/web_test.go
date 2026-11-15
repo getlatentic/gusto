@@ -347,9 +347,9 @@ func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
 	}
 }
 
-// The roles are what an agent can be given, and the workspace's agents are its members, so every page names the way to the members,
-// and the members to the roles and presets.
-func TestEveryPageOffersTheWayToTheMembersAndTheRoles(t *testing.T) {
+// The workspace's agents are its members, so every page names the way to the members. The members page's way on to the roles and
+// presets is checked with that page, in web/src/pages/members.
+func TestEveryPageOffersTheWayToTheMembers(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	for _, page := range []string{"/files", "/jobs", "/spend"} {
@@ -357,9 +357,6 @@ func TestEveryPageOffersTheWayToTheMembersAndTheRoles(t *testing.T) {
 		if !strings.Contains(body, `href="/members"`) || !strings.Contains(body, "Members") {
 			t.Errorf("%s does not offer the way to the members", page)
 		}
-	}
-	if body := site.ask(t, "GET", "/members", nil).Body.String(); !strings.Contains(body, `href="/presets"`) {
-		t.Error("the members do not offer the way to the roles and presets")
 	}
 }
 

@@ -1,0 +1,1 @@
+import{dn as e,n as t}from"./controls-BZ-eR7Di.js";var n=e();function r({current:e}){return(0,n.jsx)(t,{label:`Usage views`,current:e,tabs:[{key:`summary`,label:`Summary`,href:`/admin/spending`},{key:`tasks`,label:`Conversations`,href:`/admin/usage`}]})}export{r as t};

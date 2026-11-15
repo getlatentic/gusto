@@ -158,7 +158,7 @@ func TestAgentsAndRoomsStayInTheirWorkspace(t *testing.T) {
 	if got := engineer.ask(t, "GET", agent, nil).Code; got != http.StatusNotFound {
 		t.Errorf("an Engineering member opened Business's agent: %d", got)
 	}
-	if page := engineer.ask(t, "GET", "/members", nil).Body.String(); strings.Contains(page, "Closer") {
+	if engineer.members(t, "/members").listsAgent("Closer") {
 		t.Error("Business's agent is listed in Engineering")
 	}
 	if again := here.as(t, bob).ask(t, "POST", "/members/agents", url.Values{"name": {"Closer"}, "harness": {"fixture"}}); !strings.HasPrefix(again.Header().Get("Location"), "/members/agents/") {

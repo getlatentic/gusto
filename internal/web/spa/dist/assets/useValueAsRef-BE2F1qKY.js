@@ -1,1 +1,0 @@
-import{Dt as e,on as t}from"./controls-BcKqwWZW.js";function n(e,t,n,r){return e.addEventListener(t,n,r),()=>{e.removeEventListener(t,n,r)}}function r(n){let r=t(i,n).current;return r.next=n,e(r.effect),r}function i(e){let t={current:e,next:e,effect:()=>{t.current=t.next}};return t}export{n,r as t};

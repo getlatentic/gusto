@@ -66,6 +66,11 @@ const NewRoomPage = lazy(() =>
     default: m.NewRoomPage,
   }))
 )
+const MembersPage = lazy(() =>
+  import("@/pages/members/members-page").then((m) => ({
+    default: m.MembersPage,
+  }))
+)
 const ConversationPage = lazy(() =>
   import("@/pages/conversation/conversation-page").then((m) => ({
     default: m.ConversationPage,
@@ -88,6 +93,8 @@ createRoot(document.getElementById("root")!).render(
                   path="/instances/:id/threads/:thread"
                   element={<ConversationPage />}
                 />
+                {/* The members pages are one route, so the list stays drawn while whoever is open changes. */}
+                <Route path="/members/*" element={<MembersPage />} />
               </Route>
               <Route path="/admin" element={<ConsoleShell />}>
                 <Route index element={<OverviewPage />} />

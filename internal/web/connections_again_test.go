@@ -50,8 +50,8 @@ func TestASignInThatNeedsMakingAgainSaysSoWhereverAppsAreShown(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if tab := ada.ask(t, "GET", "/members/agents/"+nova.ID+"?tab=apps", nil).Body.String(); !strings.Contains(tab, ">sign in again<") || strings.Contains(tab, `name="choice"`) {
-		t.Errorf("the agent's Apps tab does not ask for a sign-in, or offers a choice for an app that does not work:\n%s", tab)
+	if tasks := ada.members(t, "/members/agents/"+nova.ID+"?tab=apps").app(t, "tasks"); !tasks.SignInAgain {
+		t.Errorf("the agent's Apps tab does not ask for a sign-in to an app that does not work: %+v", tasks)
 	}
 	placed(t, here, "room", tasks.Record{Asked: alice, Agent: inRoom.ID, Instance: room.ID}, "opencode")
 	brief, _ := task.Read(task.Dir(filepath.Join(here.index.Root(), "room")))

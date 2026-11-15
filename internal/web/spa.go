@@ -78,16 +78,20 @@ func (s *Server) personViews() []appView {
 		{"/chat", always, s.chatData},
 		{"/rooms/new", always, s.newRoomData},
 		{conversationRoute, always, s.conversationData},
+		{"/members", always, s.membersData},
+		{agentRoute, always, s.agentData},
+		{personRoute, always, s.personData},
 	}
 }
 
 // pageFound is, for a page whose address names something that may not be there, whether it is, so such a page answers 404 and
 // not the app. It is nil for a page that is always there.
 func (s *Server) pageFound(route string) func(*http.Request) bool {
-	if route == conversationRoute {
-		return s.hasConversation
-	}
-	return nil
+	return map[string]func(*http.Request) bool{
+		conversationRoute: s.hasConversation,
+		agentRoute:        s.hasAgent,
+		personRoute:       s.hasPerson,
+	}[route]
 }
 
 // whenThere serves next when the address names something that is there, and answers 404 when it does not.

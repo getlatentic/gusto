@@ -162,7 +162,6 @@ func New(index *tasks.Index, instances *instance.Store, queue *tasks.Queue, pass
 		"appLink":     s.appLink,
 		"costOf":      s.costOf,
 		"replyIn":     s.replyIn,
-		"installable": s.installable,
 	}).ParseFS(pages, "templates/*.html")
 	if err != nil {
 		return nil, err

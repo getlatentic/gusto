@@ -7,6 +7,7 @@ const appPages = [
   /^\/chat$/,
   /^\/rooms\/new$/,
   /^\/instances\/[^/]+\/threads\/[^/]+$/,
+  /^\/members(?:\/agents\/[^/]+|\/people\/[^/]+)?$/,
   /^\/admin$/,
   /^\/admin\/spending$/,
   /^\/admin\/usage(?:\/[^/]+)?$/,

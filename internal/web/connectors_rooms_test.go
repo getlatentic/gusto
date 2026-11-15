@@ -70,11 +70,11 @@ func TestARoomTurnUsesEachOfItsAskersAppsAsTheyChoseOrTheirDefault(t *testing.T)
 	if page := ada.dataText(t, thread); strings.Contains(page, "use your Tasks") {
 		t.Error("the room's message box asks about apps")
 	}
-	if page := ada.ask(t, "GET", appsTab, nil).Body.String(); !strings.Contains(page, ">Tasks<") || !strings.Contains(page, "Inherit (off)") {
-		t.Fatalf("the agent's Apps tab does not offer the person's app with their default:\n%s", page)
+	if tasks := ada.members(t, appsTab).app(t, "tasks"); tasks.Name != "Tasks" || tasks.Choice != "inherit" || tasks.Default || tasks.SignInAgain {
+		t.Fatalf("the agent's Apps tab does not offer the person's app with their default: %+v", tasks)
 	}
-	if page := bea.ask(t, "GET", appsTab, nil).Body.String(); !strings.Contains(page, "Only the people who work with Nova choose here") {
-		t.Error("the Apps tab offers choices to a person who does not work with the agent")
+	if apps := bea.members(t, appsTab).Apps; apps == nil || !apps.Person || apps.Works || len(apps.Apps) != 0 {
+		t.Errorf("the Apps tab offers choices to a person who does not work with the agent: %+v", apps)
 	}
 
 	byDefault("on")
@@ -105,8 +105,8 @@ func TestARoomTurnUsesEachOfItsAskersAppsAsTheyChoseOrTheirDefault(t *testing.T)
 	if got := turn("allowed", alice); !slices.Equal(got, []string{"tasks"}) {
 		t.Errorf("an app the person allowed the agent was not given though their default is off: %v", got)
 	}
-	if page := ada.ask(t, "GET", appsTab, nil).Body.String(); !strings.Contains(page, `<option value="allow" selected>Allow</option>`) {
-		t.Error("the Apps tab does not show the choice")
+	if tasks := ada.members(t, appsTab).app(t, "tasks"); tasks.Choice != "allow" || tasks.Default {
+		t.Errorf("the Apps tab does not show the choice: %+v", tasks)
 	}
 	if got := turn("bob", bob); got != nil {
 		t.Errorf("another member's turn was given the asker's app: %v", got)
