@@ -66,19 +66,25 @@ func TestTheTaskPageNamesOnlyTheSignerTheKeyringChecked(t *testing.T) {
 	for name, tc := range map[string]struct {
 		id      string
 		keyring signing.Keyring
-		want    string
+		// signer is who the page says signed it, and unchecked why it could not say; the page words them
+		// (web/src/pages/work/task-page.test.tsx).
+		signer, unchecked string
 	}{
-		"unsigned":                           {"unsigned-20260927-0100", keyring, "Not signed"},
-		"signed, no keyring":                 {"acme-20260927-0100", signing.Keyring{}, record.NoKeyring},
-		"signed by a key not in the keyring": {"stranger-20260927-0100", keyring, "is not in the keyring"},
-		"signed by a key in the keyring":     {"acme-20260927-0100", keyring, "signed by acme,"},
+		"unsigned":                           {"unsigned-20260927-0100", keyring, "", ""},
+		"signed, no keyring":                 {"acme-20260927-0100", signing.Keyring{}, "", record.NoKeyring},
+		"signed by a key not in the keyring": {"stranger-20260927-0100", keyring, "", "is not in the keyring"},
+		"signed by a key in the keyring":     {"acme-20260927-0100", keyring, "acme", ""},
 	} {
 		t.Run(name, func(t *testing.T) {
 			site := openKeyed(t, root, tc.keyring)
 			site.signIn(t)
-			body := site.ask(t, "GET", "/jobs/"+tc.id, nil).Body.String()
-			if !strings.Contains(body, tc.want) || strings.Contains(body, "alice") {
-				t.Fatalf("want %q in the proof and never the manifest's claim:\n%s", tc.want, body)
+			proof := site.task(t, tc.id).Proof
+			if proof == nil || proof.Signer != tc.signer || proof.Signed != (tc.signer != "") || !proof.Holds ||
+				(tc.unchecked == "") != (proof.Unchecked == "") || !strings.Contains(proof.Unchecked, tc.unchecked) {
+				t.Fatalf("want the signer %q and %q unchecked in the proof: %+v", tc.signer, tc.unchecked, proof)
+			}
+			if body := site.dataText(t, "/jobs/"+tc.id); strings.Contains(body, "alice") {
+				t.Fatalf("the page carries the manifest's claim: %s", body)
 			}
 		})
 	}

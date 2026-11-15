@@ -201,13 +201,11 @@ func TestAnAppIsTurnedOnAndOffForEveryone(t *testing.T) {
 func TestOnlyAnAdminSeesTheLinkToTheConsoleAndItIsTheOnlyOne(t *testing.T) {
 	here := everything(t)
 	runner, admin := here.as(t, alice), here.as(t, boss)
-	oldTask(t, here.site, "seen", 1)
-	where, _ := started(t, runner)
 	if !shellOf(t, admin).Admin || shellOf(t, runner).Admin {
 		t.Error("the shell gives the console to a runner, or not to an admin")
 	}
 	// The presets, the skill sets and the usage are the React app's, whose rail takes the console's link from the shell.
-	pages := []string{"/jobs", "/compare", "/engines", "/jobs/seen", where}
+	pages := []string{}
 	for _, path := range pages {
 		as := admin.ask(t, "GET", path, nil).Body.String()
 		if got := strings.Count(as, `href="/admin`); got != 1 || !strings.Contains(as, `href="/admin"`) {

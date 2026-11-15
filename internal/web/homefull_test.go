@@ -3,7 +3,6 @@ package web
 import (
 	"context"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/getlatentic/gusto/pkg/task"
@@ -38,9 +37,9 @@ func TestATurnRefusedForAFullHomeSaysSoAndLinksToTheReset(t *testing.T) {
 
 	admin := *here.site
 	admin.signIn(t)
-	task := admin.ask(t, "GET", "/jobs/"+id, nil).Body.String()
-	if !strings.Contains(task, "The home their agents keep is full") || strings.Contains(task, `href="/connections"`) {
-		t.Errorf("the task page, read by somebody else, does not say whose home is full:\n%s", task)
+	// The task's page says whose home it is, and leaves the reset to its owner (web/src/pages/work/task-page.test.tsx).
+	if task := admin.task(t, id); task.Home == nil || task.Home.Outcome != "refused" || task.Home.Used == "" {
+		t.Errorf("the task page, read by somebody else, does not say the home is full: %+v", task.Home)
 	}
 }
 

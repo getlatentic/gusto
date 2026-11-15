@@ -171,9 +171,6 @@ func TestBehindGustoCloudTheMenuLeadsToThePersonsOrganizations(t *testing.T) {
 	if org := shellOf(t, behind).Org; org == nil || org.Manage != "https://cloud.test/orgs" {
 		t.Errorf("the menu does not lead to the person's organizations: %+v", org)
 	}
-	if page := behind.ask(t, "GET", "/jobs", nil).Body.String(); !strings.Contains(page, `href="https://cloud.test/orgs"`) {
-		t.Errorf("the menu of a page drawn here does not lead to the person's organizations:\n%s", page[:min(len(page), 900)])
-	}
 }
 
 // A host that removes itself warns on every page, and the warning links to where it is extended, which
@@ -217,13 +214,6 @@ func TestTheRailsMarkSwitchesBetweenThePersonsOrganizationsBehindGustoCloud(t *t
 		t.Errorf("the shell does not lead to the person's organizations: %+v", org)
 	}
 	page := s.ask(t, "GET", "/jobs", nil)
-	body := page.Body.String()
-	for _, want := range []string{`data-orgs aria-label="Organizations"`, `data-from="https://cloud.test/orgs.json"`, `data-current="acme-com"`, `href="https://cloud.test/orgs"`, "/static/orgs.js",
-		"/static/reminder.js"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("the page has %s:\n%s", want, body)
-		}
-	}
 	if policy := page.Header().Get("Content-Security-Policy"); !strings.Contains(policy, "connect-src 'self' https://cloud.test;") {
 		t.Errorf("the switcher may ask gusto cloud: %s", policy)
 	}
@@ -234,9 +224,6 @@ func TestTheRailsMarkSwitchesBetweenThePersonsOrganizationsBehindGustoCloud(t *t
 		t.Errorf("a server on its own is given an organization: %+v", org)
 	}
 	page = alone.ask(t, "GET", "/jobs", nil)
-	if body := page.Body.String(); strings.Contains(body, "data-orgs") || strings.Contains(body, "data-reminder") || !strings.Contains(body, `class="brand-mark mb-2 grid size-10 place-items-center" href="/chat"`) {
-		t.Errorf("a server on its own has its mark link home:\n%s", body)
-	}
 	if policy := page.Header().Get("Content-Security-Policy"); !strings.Contains(policy, "connect-src 'self';") || !strings.Contains(policy, "form-action 'self';") {
 		t.Errorf("a server on its own asks nowhere else: %s", policy)
 	}

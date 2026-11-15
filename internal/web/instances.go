@@ -171,37 +171,6 @@ func (s *Server) runnable(harness string) string {
 	return "there is no agent called " + harness + " here"
 }
 
-// instancePage is one computer: what it runs, what it works in, and every
-// conversation being held with it.
-func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
-	if !found {
-		return
-	}
-	threads := s.namedThreads(held.ID)
-	said := make([]map[string]any, 0, len(threads))
-	for i := len(threads) - 1; i >= 0; i-- {
-		said = append(said, map[string]any{"Thread": threads[i], "Latest": s.latestTurn(threads[i].Thread)})
-	}
-	routines, unread := s.routineRows(held.ID)
-	s.render(w, "instance.html", map[string]any{
-		"Title":    productName + " — " + s.agentOf(held).Name,
-		"Nav":      "harnesses",
-		"Instance": held,
-		"Agent":    s.agentOf(held),
-		"Threads":  said,
-		"Models":   s.offeredTo(r),
-		"Sharing":  s.apps != nil,
-		"Runs":     s.runner != nil,
-		"Apps":     s.appsOf(held.ID),
-		"Refresh":  startingApp(s.appsOf(held.ID)),
-		"Tasks":    s.tasks(held.ID),
-		"Routines": routines,
-		"Unread":   unread,
-		"Refused":  s.refusal(r),
-	})
-}
-
 // latestTurn is the last thing said in a thread, which is what a list of
 // threads needs to tell them apart.
 func (s *Server) latestTurn(thread instance.Thread) (record tasks.Record) {

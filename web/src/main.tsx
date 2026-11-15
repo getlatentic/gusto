@@ -137,6 +137,26 @@ const DevicePage = lazy(() =>
     default: m.DevicePage,
   }))
 )
+const ActivityPage = lazy(() =>
+  import("@/pages/work/activity-page").then((m) => ({
+    default: m.ActivityPage,
+  }))
+)
+const TaskPage = lazy(() =>
+  import("@/pages/work/task-page").then((m) => ({ default: m.TaskPage }))
+)
+const ProjectPage = lazy(() =>
+  import("@/pages/work/project-page").then((m) => ({ default: m.ProjectPage }))
+)
+const EnginesPage = lazy(() =>
+  import("@/pages/work/engines-page").then((m) => ({ default: m.EnginesPage }))
+)
+const ComparePage = lazy(() =>
+  import("@/pages/work/compare-page").then((m) => ({ default: m.ComparePage }))
+)
+const LineupPage = lazy(() =>
+  import("@/pages/work/lineup-page").then((m) => ({ default: m.LineupPage }))
+)
 
 // The pages the gusto server hands to this app. Each address is also a route on the server, which serves this app for it
 // behind the same sign-in; any other address is a page the server draws.
@@ -170,6 +190,13 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/spend" element={<MySpendPage />} />
                 <Route path="/connections" element={<ConnectionsPage />} />
                 <Route path="/device" element={<DevicePage />} />
+                {/* The work pages: Activity, a task, a project, how each agent type did, and comparing agents. */}
+                <Route path="/jobs" element={<ActivityPage />} />
+                <Route path="/jobs/:id" element={<TaskPage />} />
+                <Route path="/instances/:id" element={<ProjectPage />} />
+                <Route path="/engines" element={<EnginesPage />} />
+                <Route path="/compare" element={<ComparePage />} />
+                <Route path="/compare/:id" element={<LineupPage />} />
               </Route>
               <Route path="/login" element={<SignInPage />} />
               <Route path="/auth/desktop/handoff" element={<HandoffPage />} />

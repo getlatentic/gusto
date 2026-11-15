@@ -150,7 +150,10 @@ writeFileSync(
 writeFileSync(
   join(work, "spend.json"),
   JSON.stringify({
-    prices: { "stub-model": { inputPerMillion: 1, outputPerMillion: 1 } },
+    prices: {
+      "stub-model": { inputPerMillion: 1, outputPerMillion: 1 },
+      "stub-large": { inputPerMillion: 2, outputPerMillion: 2 },
+    },
   })
 )
 const now = new Date().toISOString()
@@ -205,7 +208,8 @@ start("gusto", bin, ["serve"], {
   GUSTO_SESSIONS: join(work, "sessions"),
   GUSTO_SANDBOX: "here",
   GUSTO_CREDENTIALS: join(work, "creds"),
-  GUSTO_MODELS: "stub/stub-model",
+  // A second model, so an agent's model can be changed; the stub answers for both.
+  GUSTO_MODELS: "stub/stub-model,stub/stub-large",
   GUSTO_SPEND_POLICY: join(work, "spend.json"),
   GUSTO_HARNESSES: join(work, "agents"),
   GUSTO_SIGNING_KEY: join(work, "keys", "e2e.key"),

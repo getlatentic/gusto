@@ -106,9 +106,8 @@ func TestATaskSentWithATokenIsAskedForByThatToken(t *testing.T) {
 		t.Fatalf("the job was asked for by %q", record.Asked)
 	}
 	here.signIn(t)
-	page := here.ask(t, "GET", "/jobs/"+answer.ID, nil).Body.String()
-	if !strings.Contains(page, "sent to POST /api/jobs") {
-		t.Fatalf("the record does not say the job came over the API:\n%s", page)
+	if on := here.task(t, answer.ID).On; !strings.Contains(on.Why, "sent to POST /api/jobs") {
+		t.Fatalf("the record does not say the job came over the API: %+v", on)
 	}
 	stranger := here.as(t, "amy@acme.test")
 	if got := stranger.ask(t, "GET", "/jobs/"+answer.ID, nil); got.Code != http.StatusNotFound {

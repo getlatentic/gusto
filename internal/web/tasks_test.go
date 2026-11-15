@@ -118,11 +118,9 @@ func TestAOneOffAgainstARepositoryIsAnInstanceStartedForATask(t *testing.T) {
 	if started.Code != http.StatusSeeOther || !found {
 		t.Fatalf("starting for a task sent to %d %q", started.Code, started.Header().Get("Location"))
 	}
-	body := site.ask(t, "GET", where, nil).Body.String()
-	for _, want := range []string{repo, `id="task"`, `name="sensitivity"`, `name="team"`, `name="usd"`} {
-		if !strings.Contains(body, want) {
-			t.Errorf("the instance page does not carry %s", want)
-		}
+	// The page draws the task form with its sensitivity, team and cap (web/src/pages/work/project-page.test.tsx).
+	if page := site.project(t, strings.TrimPrefix(where, "/instances/")); page.Instance.Repo != repo {
+		t.Errorf("the instance page does not carry its repository: %+v", page.Instance)
 	}
 	answer := site.ask(t, "POST", where+"/tasks", url.Values{"brief": {"fix it"}, "gate": {"true"}})
 	id := strings.TrimPrefix(answer.Header().Get("Location"), "/jobs/")

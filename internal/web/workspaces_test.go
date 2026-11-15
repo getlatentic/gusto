@@ -110,8 +110,10 @@ func TestABusinessMemberIsRefusedEngineeringsTasksRecordsAndConversations(t *tes
 	if err != nil || record.Workspace != "business" || spec.Workspace != "business" {
 		t.Fatalf("a task in Business is kept in it: record %q, spec %q, %v", record.Workspace, spec.Workspace, err)
 	}
-	if got := engineer.ask(t, "GET", "/jobs/"+theirs, nil).Code; got != http.StatusNotFound {
-		t.Errorf("an Engineering member reached Business's task: %d", got)
+	for _, path := range []string{"/jobs/" + theirs, "/app/api/jobs/" + theirs} {
+		if got := engineer.ask(t, "GET", path, nil).Code; got != http.StatusNotFound {
+			t.Errorf("an Engineering member reached Business's task at %s: %d", path, got)
+		}
 	}
 }
 
@@ -187,9 +189,6 @@ func TestAPersonInOneWorkspaceIsShownNoWorkspacesAndCannotChooseAnother(t *testi
 	}
 	if shown := shellOf(t, admin).Workspaces; shown == nil || shown.Here.Name != "Engineering" || len(shown.Other) != 1 || shown.Other[0].ID != "business" {
 		t.Errorf("a person in two workspaces is not shown which one they are in: %+v", shown)
-	}
-	if page := admin.ask(t, "GET", "/jobs", nil).Body.String(); !strings.Contains(page, "· Engineering") || !strings.Contains(page, `data-workspace="main"`) {
-		t.Error("a page drawn here does not show a person in two workspaces which one they are in")
 	}
 	if shell := shellOf(t, admin.inWorkspace(t, "business")); shell.Workspace != "business" || shell.Workspaces == nil || shell.Workspaces.Here.Name != "Business" {
 		t.Errorf("choosing Business did not put the admin in it: %+v", shell.Workspaces)

@@ -45,7 +45,6 @@ var kitRules = []kitRule{
 
 // kitExceptions are the places that look like a component and are not one, each with why.
 var kitExceptions = map[string]string{
-	`task.html:<table class="w-full font-mono`:          "a diff, numbered line by line",
 	`admin-ui-kit.html:<span class="grid h-12`:          "a swatch of the solid colour",
 	`admin-ui-kit.html:<span class="size-16 rounded-md`: "a swatch of each shadow",
 	`layout.html:<a class="skip`:                        "the skip link, which floats only while it has the keyboard",

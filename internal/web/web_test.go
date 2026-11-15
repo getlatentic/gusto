@@ -348,11 +348,11 @@ func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
 }
 
 // The workspace's agents are its members, so every page names the way to the members. The members page's way on to the roles and
-// presets is checked with that page, in web/src/pages/members.
+// presets is checked with that page, in web/src/pages/members, and the app's own rail in web/src/components/person.
 func TestEveryPageOffersTheWayToTheMembers(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	for _, page := range []string{"/jobs"} {
+	for _, page := range []string{} {
 		body := site.ask(t, "GET", page, nil).Body.String()
 		if !strings.Contains(body, `href="/members"`) || !strings.Contains(body, "Members") {
 			t.Errorf("%s does not offer the way to the members", page)
@@ -384,8 +384,8 @@ func TestATaskRunsInTheInstancesOwnFolder(t *testing.T) {
 		t.Errorf("a task is not said to a thread, but it names %q", record.Thread)
 	}
 	// It belongs to the instance's page, which is where it was asked for.
-	if body := site.ask(t, "GET", where, nil).Body.String(); !strings.Contains(body, "count the files") {
-		t.Error("the instance does not list the task run on it")
+	if listed := site.project(t, strings.TrimPrefix(where, "/instances/")).Tasks; len(listed) != 1 || listed[0].ID != id || listed[0].Brief != "count the files" {
+		t.Errorf("the instance does not list the task run on it: %+v", listed)
 	}
 }
 

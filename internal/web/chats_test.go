@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -42,8 +43,8 @@ func TestARemovedHarnessLeavesTheListAndKeepsItsTasks(t *testing.T) {
 	if _, listed := shellOf(t, site).Rail.project(record.Instance); listed {
 		t.Error("the removed harness is still listed")
 	}
-	if page := site.ask(t, "GET", "/jobs/"+id, nil); page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "removed") {
-		t.Errorf("its job no longer reads as the record of a removed harness: %d", page.Code)
+	if page := site.task(t, id); page.On.Named != "removed" || page.Agent != nil {
+		t.Errorf("its job no longer reads as the record of a removed harness: %+v", page.On)
 	}
 }
 
@@ -54,13 +55,12 @@ func TestTheRecordFiltersByState(t *testing.T) {
 	site.signIn(t)
 	site.leave(t, "went-well", leftBehind{state: tasks.Passed, out: map[string]string{}, check: passed})
 	site.leave(t, "went-badly", leftBehind{state: tasks.Failed, out: map[string]string{}, check: passed})
-	all := site.ask(t, "GET", "/jobs", nil).Body.String()
-	if !strings.Contains(all, `href="/jobs?state=failed"`) {
-		t.Fatal("the failed count is not a filter")
+	if count := site.activity(t, "").figure(t, "failed"); count.Href != "/jobs?state=failed" || count.Count != 1 {
+		t.Fatalf("the failed count is not a filter: %+v", count)
 	}
-	failed := site.ask(t, "GET", "/jobs?state=failed", nil).Body.String()
-	if !strings.Contains(failed, "/jobs/went-badly") || strings.Contains(failed, "/jobs/went-well") {
-		t.Error("filtering by failed did not keep only the failure")
+	failed := site.activity(t, "?state=failed")
+	if fmt.Sprint(failed.ids()) != "[went-badly]" || !failed.figure(t, "failed").Current {
+		t.Errorf("filtering by failed did not keep only the failure: %v", failed.ids())
 	}
 }
 
@@ -73,11 +73,11 @@ func TestATurnsPageLeadsBackToItsThread(t *testing.T) {
 	said := site.ask(t, "POST", where+"/say", url.Values{"said": {"hello"}})
 	id := strings.TrimPrefix(said.Header().Get("Location"), where+"#")
 	site.wait(t, id)
-	page := site.ask(t, "GET", "/jobs/"+id, nil).Body.String()
-	if !strings.Contains(page, `href="`+where+`"`) {
-		t.Error("the turn's page does not lead back to its thread")
+	page := site.task(t, id)
+	if page.ThreadPath != where || page.Talk == nil || page.Talk.Place != 1 || page.Talk.Of != 1 {
+		t.Errorf("the turn's page does not lead back to its thread: %q %+v", page.ThreadPath, page.Talk)
 	}
-	if strings.Contains(page, "never answered") || strings.Contains(page, "before its check") {
+	if page.Check != nil {
 		t.Error("a turn with no check is shown as missing a verdict")
 	}
 }

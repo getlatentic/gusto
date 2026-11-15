@@ -21,6 +21,7 @@ const appPages = [
   /^\/admin\/integrations\/[^/]+$/,
   /^\/files$/,
   /^\/instances\/[^/]+\/file$/,
+  /^\/jobs\/[^/]+\/files\/[^/]+$/,
   /^\/setups(?:\/[^/]+)?$/,
   /^\/presets$/,
   /^\/templates\/[^/]+$/,
@@ -30,6 +31,11 @@ const appPages = [
   /^\/spend$/,
   /^\/connections$/,
   /^\/device$/,
+  // The work pages.
+  /^\/jobs(?:\/[^/]+)?$/,
+  /^\/instances\/(?!new$)[^/]+$/,
+  /^\/engines$/,
+  /^\/compare(?:\/[^/]+)?$/,
 ]
 
 export function isAppPage(href: string): boolean {
