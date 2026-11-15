@@ -40,8 +40,12 @@
 {{define "ui-two-col"}}two-col grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-4 @max-[56rem]:grid-cols-[minmax(0,1fr)]{{end}}
 {{define "ui-col"}}grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4{{end}}
 {{define "ui-stack"}}grid gap-4{{end}}
-{{define "ui-dialog"}}m-auto w-[32rem] max-w-[calc(100vw-2rem)] rounded-lg border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25{{end}}
-{{define "ui-dialog-head"}}<div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="{{.ID}}">{{.Title}}</h2><p class="m-0 mt-1 text-sm text-muted">{{.Words}}</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>{{end}}
+{{define "ui-dialog"}}m-auto w-[32rem] max-w-[calc(100vw-2rem)] rounded-lg border border-line-strong bg-surface p-0 text-ink shadow-dialog backdrop:bg-black/50{{end}}
+{{define "ui-dialog-title"}}m-0 pr-6 text-lg leading-none font-semibold{{end}}
+{{define "ui-dialog-words"}}m-0 mt-2 text-sm text-subtle{{end}}
+{{/* The close button sits in the dialog's corner, out of the flow of its form. */}}
+{{define "ui-dialog-close"}}absolute top-3 right-3 grid size-6 cursor-pointer place-items-center rounded-xs border-0 bg-transparent p-0 text-ink opacity-70 hover:opacity-100 [&>svg]:size-4{{end}}
+{{define "ui-dialog-head"}}<div><h2 class="{{template "ui-dialog-title"}}" id="{{.ID}}">{{.Title}}</h2><p class="{{template "ui-dialog-words"}}">{{.Words}}</p><button type="button" class="{{template "ui-dialog-close"}}" data-close aria-label="Close">{{template "icon-x"}}</button></div>{{end}}
 
 {{/* A page's bar: across the top of the pane, between head and body. ui-bar-where
      holds the page's title, after the pages above it when there are any; the
@@ -83,9 +87,14 @@
 
 
 {{/* A menu behind a "…" button, for what a page needs only now and then. menus.js closes it on a click outside or Escape. */}}
-{{define "ui-more-open"}}<details class="relative flex-none" data-menu><summary class="grid size-9 cursor-pointer list-none place-items-center rounded-md border border-line-strong text-muted hover:bg-wash hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="More" title="More">{{template "icon-more"}}</summary><div class="absolute top-full right-0 z-40 mt-1 grid w-56 gap-px rounded-md border border-line bg-surface p-1.5 shadow-2" role="menu">{{end}}
+{{/* A popover is anything that floats over the page; a menu is a popover holding a list of ui-menu-item, split by ui-menu-sep. */}}
+{{define "ui-popover"}}rounded-lg border border-line-strong bg-surface shadow-menu{{end}}
+{{define "ui-menu"}}grid min-w-56 rounded-lg border border-line-strong bg-surface p-2 shadow-menu{{end}}
+{{define "ui-more-open"}}<details class="relative flex-none" data-menu><summary class="grid size-9 cursor-pointer list-none place-items-center rounded-md border border-line-strong text-muted hover:bg-wash hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="More" title="More">{{template "icon-more"}}</summary><div class="absolute top-full right-0 z-40 mt-1 {{template "ui-menu"}}" role="menu">{{end}}
 {{define "ui-more-close"}}</div></details>{{end}}
-{{define "ui-menu-item"}}flex h-9 w-full cursor-pointer items-center gap-3 rounded-sm border-0 bg-transparent px-2.5 text-left text-sm text-ink no-underline hover:bg-hover [&>svg]:size-4 [&>svg]:text-muted{{end}}
+{{define "ui-menu-item"}}flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent px-3 text-left text-sm font-medium text-ink no-underline hover:bg-hover [&>svg]:size-4 [&>svg]:flex-none [&>svg]:text-subtle{{end}}
+{{define "ui-menu-item-danger"}}flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent px-3 text-left text-sm font-medium text-bad no-underline hover:bg-bad-wash [&>svg]:size-4 [&>svg]:flex-none{{end}}
+{{define "ui-menu-sep"}}my-1 h-px bg-line-strong{{end}}
 
 {{/* A list of rows in one card: each row a main line, a quieter line under it, and an optional value at the right. */}}
 {{define "ui-list"}}grid overflow-hidden rounded-lg border border-line bg-card [&>*+*]:border-t [&>*+*]:border-line{{end}}

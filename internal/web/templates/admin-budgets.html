@@ -61,7 +61,7 @@
 {{define "budgets-more"}}
 <details class="relative inline-block text-left">
   <summary class="grid size-8 cursor-pointer list-none place-items-center rounded-sm border border-line-strong text-muted hover:bg-wash hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="More for {{.Name}}" title="More">{{template "icon-more"}}</summary>
-  <div class="absolute top-full right-0 z-40 mt-1 grid w-72 gap-3 rounded-md border border-line bg-surface p-4 shadow-2">
+  <div class="absolute top-full right-0 z-40 mt-1 grid w-72 gap-3 {{template "ui-popover"}} p-4">
     {{with .Budget}}<form method="post" action="/admin/member-budget" class="grid gap-2">
       <input type="hidden" name="who" value="{{.Who}}">
       <label class="{{template "ui-field"}}">Their own budget, a month

@@ -7,9 +7,9 @@
       {{if .Invite}}
       <details class="relative flex-none" data-menu>
         <summary class="grid size-8 cursor-pointer list-none place-items-center rounded-md text-muted hover:bg-hover hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="Add a member" title="Add a member">{{template "icon-add"}}</summary>
-        <div class="absolute top-full right-0 z-40 mt-1 grid w-56 gap-px rounded-lg border border-line bg-surface p-1.5 shadow-2" role="menu">
-          <button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-hover [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="invite-person">{{template "icon-user"}}<span>Invite a person</span></button>
-          {{if .Keeps}}<button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-2.5 text-left text-sm text-ink hover:bg-hover [&>svg]:size-4 [&>svg]:text-muted" type="button" role="menuitem" data-open="new-agent">{{template "icon-bot"}}<span>New agent</span></button>{{end}}
+        <div class="absolute top-full right-0 z-40 mt-1 {{template "ui-menu"}} w-56" role="menu">
+          <button class="{{template "ui-menu-item"}}" type="button" role="menuitem" data-open="invite-person">{{template "icon-user"}}<span>Invite a person</span></button>
+          {{if .Keeps}}<button class="{{template "ui-menu-item"}}" type="button" role="menuitem" data-open="new-agent">{{template "icon-bot"}}<span>New agent</span></button>{{end}}
         </div>
       </details>
       {{else if .Keeps}}<button type="button" class="grid size-8 cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-hover hover:text-ink [&>svg]:size-4" data-open="new-agent" title="New agent" aria-label="New agent">{{template "icon-add"}}</button>{{end}}
@@ -194,9 +194,9 @@
 {{end}}
 
 {{define "new-agent"}}
-<dialog class="m-auto w-[32rem] max-w-[calc(100vw-2rem)] rounded-lg border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="new-agent" aria-labelledby="new-agent-title" data-asked="new">
+<dialog class="{{template "ui-dialog"}}" id="new-agent" aria-labelledby="new-agent-title" data-asked="new">
   <form class="grid max-h-[calc(100vh-4rem)] gap-5 overflow-y-auto p-6" method="post" action="/members/agents">
-    <div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="new-agent-title">New agent</h2><p class="m-0 mt-1 text-sm text-muted">It starts private: only you can work with it until you share it, and it is in no room until you add it to one.</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
+    <div class="flex items-start justify-between gap-3"><div><h2 class="{{template "ui-dialog-title"}}" id="new-agent-title">New agent</h2><p class="{{template "ui-dialog-words"}}">It starts private: only you can work with it until you share it, and it is in no room until you add it to one.</p></div><button type="button" class="{{template "ui-dialog-close"}}" data-close aria-label="Close">{{template "icon-x"}}</button></div>
     {{with .Refused}}<p class="m-0 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad" role="alert">{{.}}</p>{{end}}
     <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="Atlas" maxlength="32" required autocomplete="off"></label>
     <label class="{{template "ui-field"}}"><span>Specialty <span class="font-normal">helps teammates know what to ask it for</span></span><input class="input" name="specialty" placeholder="Research and synthesis" maxlength="80"></label>
@@ -221,9 +221,9 @@
 {{end}}
 
 {{define "invite-person"}}
-<dialog class="m-auto w-[27rem] max-w-[calc(100vw-2rem)] rounded-lg border-0 bg-surface p-0 text-ink shadow-3 backdrop:bg-ink/25" id="invite-person" aria-labelledby="invite-person-title">
+<dialog class="{{template "ui-dialog"}} w-[27rem]!" id="invite-person" aria-labelledby="invite-person-title">
   <form class="grid gap-5 p-6" method="post" action="{{.Action}}">
-    <div class="flex items-start justify-between gap-3"><div><h2 class="m-0 text-lg font-semibold" id="invite-person-title">Invite a person</h2><p class="m-0 mt-1 text-sm text-muted">They are mailed a link that works once, for seven days. They join this workspace when they open it.</p></div><button type="button" class="grid size-7 flex-none cursor-pointer place-items-center rounded-md border-0 bg-transparent p-0 text-muted hover:bg-sunken hover:text-ink [&>svg]:size-4" data-close aria-label="Close">{{template "icon-x"}}</button></div>
+    <div class="flex items-start justify-between gap-3"><div><h2 class="{{template "ui-dialog-title"}}" id="invite-person-title">Invite a person</h2><p class="{{template "ui-dialog-words"}}">They are mailed a link that works once, for seven days. They join this workspace when they open it.</p></div><button type="button" class="{{template "ui-dialog-close"}}" data-close aria-label="Close">{{template "icon-x"}}</button></div>
     <input type="hidden" name="workspace" value="{{.Workspace}}">
     <input type="hidden" name="back" value="{{.Back}}">
     <label class="{{template "ui-field"}}">Email <input class="input" type="email" name="email" placeholder="ada@company.com" autocomplete="off" required></label>

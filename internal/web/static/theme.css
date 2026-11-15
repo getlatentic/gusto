@@ -30,6 +30,9 @@
   /* The message box lifts off the page with a wide, faint shadow, a little more while it is being typed in. */
   --gu-shadow-field: 0 0.0625rem 1rem 0 rgb(0 0 0 / .04);
   --gu-shadow-field-active: 0 0.125rem 1.25rem 0 rgb(0 0 0 / .06);
+  /* A menu floats a little off the page, a dialog well off it, each with one wide soft shadow. */
+  --gu-shadow-menu: 0 0.125rem 1.5rem rgb(0 0 0 / .08);
+  --gu-shadow-dialog: 0 0.125rem 3rem rgb(0 0 0 / .16);
   /* The status colors of the vendored tokens, darkened where their text falls under 4.5 to 1 on its own surface. */
   --gu-warning: #8A5300;
 }
@@ -56,6 +59,8 @@
   --gu-shadow-3: 0 0.75rem 2rem rgb(0 0 0 / .5);
   --gu-shadow-field: none;
   --gu-shadow-field-active: none;
+  --gu-shadow-menu: 0 0.75rem 2rem rgb(0 0 0 / .5);
+  --gu-shadow-dialog: 0 0.75rem 2rem rgb(0 0 0 / .5);
   --gu-warning: #E3A21F;
 }
 

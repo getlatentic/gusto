@@ -3,8 +3,8 @@
 // (picker.setOptions), which is how choosing a harness changes the models on offer.
 (function () {
   var groupClass = "px-3 pt-3 pb-1 text-xs font-semibold text-subtle";
-  var separatorClass = "mx-1 my-2 h-px bg-line";
-  var itemClass = "relative grid min-h-11 w-full cursor-pointer content-center gap-0.5 rounded-sm border-0 bg-transparent px-3 py-2 pr-9 text-left text-ink hover:bg-wash focus-visible:bg-wash focus-visible:-outline-offset-2";
+  var separatorClass = "my-1 h-px bg-line-strong";
+  var itemClass = "relative grid min-h-11 w-full cursor-pointer content-center gap-0.5 rounded-md border-0 bg-transparent px-3 py-2 pr-9 text-left text-ink hover:bg-hover focus-visible:bg-hover focus-visible:-outline-offset-2";
   var actionClass = " sticky bottom-0 min-h-10 bg-surface shadow-[0_-0.5rem_0.5rem_-0.25rem_var(--gu-surface)]";
   var checkMark = '<svg class="i absolute top-3.5 right-3 size-3.5 opacity-100" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 
