@@ -1,12 +1,11 @@
 {{template "head" .}}
 
-<header class="{{template "ui-page-head"}}">
-  <div class="{{template "ui-page-title"}}">
-    <h1>Usage</h1>
-    <p class="{{template "ui-page-sub"}}">Every conversation, what it cost, and whether it worked</p>
-  </div>
+{{template "ui-bar-open"}}
+  <div class="{{template "ui-bar-where"}}"><h1 class="{{template "ui-bar-title"}}">Usage</h1></div>
   {{with .Usage}}{{template "ui-more-open"}}<a class="{{template "ui-menu-item"}}" role="menuitem" href="{{.Export}}">{{template "icon-download"}}<span>Download CSV</span></a>{{template "ui-more-close"}}{{end}}
-</header>
+{{template "ui-bar-close"}}
+{{template "body" $}}
+<p class="{{template "ui-page-sub"}}">Every conversation, what it cost, and whether it worked</p>
 {{template "usage-tabs" .Tabs}}
 
 {{with .Mine}}<p class="{{if .Passed}}{{template "ui-notice"}}{{else}}mb-4 rounded-sm bg-wash px-4 py-3 text-sm{{end}}" role="status">{{if .Passed}}You have reached your budget for this month: {{usd .Spent}} of {{usd .Limit}}. Your agents are stopped until next month, or until an admin raises it.{{else}}You have spent {{usd .Spent}} of your {{usd .Limit}} budget this month.{{end}}</p>{{end}}

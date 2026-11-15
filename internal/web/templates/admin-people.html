@@ -1,12 +1,11 @@
 {{template "head" .}}
 
-<header class="{{template "ui-page-head"}}">
-  <div class="{{template "ui-page-title"}}">
-    <h1>People</h1>
-    <p class="{{template "ui-page-sub"}}">Who is in {{or .OrgName "this organization"}}, and what they may do</p>
-  </div>
+{{template "ui-bar-open"}}
+  <div class="{{template "ui-bar-where"}}"><h1 class="{{template "ui-bar-title"}}">People</h1></div>
   {{with .Manage}}<a class="{{template "ui-btn"}}" href="{{.}}">Invite people</a>{{end}}
-</header>
+{{template "ui-bar-close"}}
+{{template "body" $}}
+<p class="{{template "ui-page-sub"}}">Who is in {{or .OrgName "this organization"}}, and what they may do</p>
 {{with .Tabs}}{{if gt (len .) 1}}{{template "ui-tabs" .}}{{end}}{{end}}
 
 {{template "ui-flash" .}}

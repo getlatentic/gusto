@@ -1,12 +1,13 @@
 {{template "head" .}}
 
-<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/compare">Compare</a><span>/</span><span>this task</span></nav>
+{{template "ui-bar-open"}}
+  <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Where this is"><a class="{{template "ui-bar-crumb"}}" href="/compare">Compare</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span></nav><h1 class="{{template "ui-bar-title"}}" title="{{with .Lineup}}{{.Brief}}{{end}}">{{with .Lineup}}{{.Brief}}{{else}}This task{{end}}</h1></div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
 
 {{with .Lineup}}
-<div class="{{template "ui-head"}}">
-  <h1>{{.Brief}}</h1>
-  <p class="{{template "ui-lede"}}">Same code, same model ({{.Model}}), same skills, same check. Only the agent differs.</p>
-</div>
+<p class="m-0 mb-1 text-lg font-semibold text-ink wrap-anywhere">{{.Brief}}</p>
+<p class="{{template "ui-page-sub"}}">Same code, same model ({{.Model}}), same skills, same check. Only the agent differs.</p>
 {{end}}
 
 <p class="mb-3 flex items-baseline gap-2"><span class="{{template "ui-figure-value"}} text-accent-ink">{{.Passed}} of {{len .Sides}}</span>

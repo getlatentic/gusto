@@ -1,12 +1,13 @@
 {{template "head" .}}
 
+{{template "ui-bar-open"}}
+  <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Where this is"><a class="{{template "ui-bar-crumb"}}" href="/presets">New agent</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span></nav><h1 class="{{template "ui-bar-title"}}">Skill sets</h1></div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
+
 {{template "ui-flash" .}}
 
-<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/presets">New agent</a><span>/</span><span>Skill sets</span></nav>
-<div class="{{template "ui-head"}}">
-  <h1>Skill sets</h1>
-  <p class="{{template "ui-lede"}}">Instructions and tools you can give any agent.</p>
-</div>
+<p class="{{template "ui-page-sub"}}">Instructions and tools you can give any agent.</p>
 
 {{if .Keeps}}{{with .Setups}}
 <section class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-4">

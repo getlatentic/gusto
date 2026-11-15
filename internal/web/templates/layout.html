@@ -55,7 +55,7 @@
     });
     // The side list slides over on a narrow window, and anything that takes you away closes it again, giving the keyboard back to the button.
     var sideOpen = function (open) {
-      var toggle = document.querySelector("[data-side-toggle]");
+      var toggle = Array.prototype.find.call(document.querySelectorAll("[data-side-toggle]"), function (each) { return each.offsetParent !== null; });
       var wasOpen = document.body.classList.contains("side-open");
       document.body.classList.toggle("side-open", open);
       if (!toggle) { return; }
@@ -87,9 +87,13 @@
 {{template "side" .}}
 <div class="scrim hidden bg-scrim side-open:@max-[56rem]:fixed side-open:@max-[56rem]:inset-0 side-open:@max-[56rem]:z-10 side-open:@max-[56rem]:block"></div>
 <main class="page min-h-0 min-w-0{{if .Chat}} chat grid grid-rows-[minmax(0,1fr)] overflow-hidden @max-[56rem]:grid-rows-[auto_minmax(0,1fr)]{{else}} overflow-y-auto{{end}}" id="main" tabindex="-1">
-<div class="mobile-bar hidden items-center gap-3 border-b border-line px-4 py-2 @max-[56rem]:flex"><button class="grid size-9 cursor-pointer place-items-center rounded-sm text-ink hover:bg-hover" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button><a class="brand flex items-center gap-2 font-display text-base font-semibold text-inherit no-underline" href="/chat"><img class="w-5" src="/static/mark.png" alt=""> gusto</a></div>
-<div class="wrap{{if .Chat}} flex min-h-0{{else}} mx-auto max-w-page has-[.two-col]:max-w-page-wide px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16{{end}}">{{end}}
+<div class="mobile-bar hidden items-center gap-3 border-b border-line px-4 py-2 @max-[56rem]:flex [&:has(~.bar)]:hidden"><button class="grid size-9 cursor-pointer place-items-center rounded-sm text-ink hover:bg-hover" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button><a class="brand flex items-center gap-2 font-display text-base font-semibold text-inherit no-underline" href="/chat"><img class="w-5" src="/static/mark.png" alt=""> gusto</a></div>
 {{end}}
+{{end}}
+
+{{/* body opens the page's own column. A page with a bar puts it between head
+     and body, so the bar spans the whole pane while the column stays narrow. */}}
+{{define "body"}}<div class="wrap{{if .Chat}} flex min-h-0{{else}} mx-auto max-w-page has-[.two-col]:max-w-page-wide px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16 [.bar~&]:pt-4{{end}}">{{end}}
 
 {{/* The console is the admin's own place: its sections down the side, one way
      back to the pages everybody uses, and no other link between the two. */}}
@@ -104,8 +108,7 @@
 </nav>
 <div class="scrim hidden bg-scrim side-open:@max-[56rem]:fixed side-open:@max-[56rem]:inset-0 side-open:@max-[56rem]:z-10 side-open:@max-[56rem]:block"></div>
 <main class="page min-h-0 min-w-0 overflow-y-auto" id="main" tabindex="-1">
-<div class="mobile-bar hidden items-center gap-3 border-b border-line px-4 py-2 @max-[56rem]:flex"><button class="grid size-9 cursor-pointer place-items-center rounded-sm text-ink hover:bg-hover" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button><span class="font-display text-base font-semibold">Admin</span>{{with .OrgName}}<span class="truncate text-sm text-subtle">{{.}}</span>{{end}}</div>
-<div class="wrap mx-auto max-w-page has-[.two-col]:max-w-page-wide px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16">
+<div class="mobile-bar hidden items-center gap-3 border-b border-line px-4 py-2 @max-[56rem]:flex [&:has(~.bar)]:hidden"><button class="grid size-9 cursor-pointer place-items-center rounded-sm text-ink hover:bg-hover" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button><span class="font-display text-base font-semibold">Admin</span>{{with .OrgName}}<span class="truncate text-sm text-subtle">{{.}}</span>{{end}}</div>
 {{end}}
 
 {{define "foot"}}{{if .Console}}</div>

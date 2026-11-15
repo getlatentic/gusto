@@ -1,15 +1,19 @@
 {{template "head" .}}
 
+{{template "ui-bar-open"}}
+  <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Where this is"><a class="{{template "ui-bar-crumb"}}" href="/presets">Start an agent</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span></nav><h1 class="{{template "ui-bar-title"}}" title="{{.Harness.Title}}">{{.Harness.Title}}</h1></div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
+
 {{template "ui-flash" .}}
 
-<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/presets">Start an agent</a><span>/</span><span>{{.Harness.Title}}</span></nav>
-<header class="mb-6 flex items-center gap-4">
+<div class="mb-6 flex items-center gap-4">
   {{template "mark" (dict "Harness" .Harness.Name "Field" "" "Name" .Harness.Title "Size" "lg")}}
   <div class="min-w-0 flex-1">
-    <h1>{{.Harness.Title}}</h1>
-    <p class="mt-1 text-sm text-muted">{{.Harness.What}}</p>
+    <p class="m-0 text-base font-semibold text-ink">{{.Harness.Title}}</p>
+    <p class="m-0 text-sm text-subtle">{{.Harness.What}}</p>
   </div>
-</header>
+</div>
 
 <form class="grid max-w-xl gap-4 {{template "ui-card"}}" method="post" action="/instances">
   <input type="hidden" name="harness" value="{{.Harness.Name}}">

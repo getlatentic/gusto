@@ -1,10 +1,8 @@
 {{template "head" .}}
 
-<div class="{{template "ui-title"}}">
-  <h1>UI kit</h1>
-  <span class="text-sm text-muted">The shared pieces in templates/ui.html, as they look now</span>
-  <span class="flex-1"></span>
-  <div class="flex flex-wrap items-center gap-2">
+{{template "ui-bar-open"}}
+  <div class="{{template "ui-bar-where"}}"><h1 class="{{template "ui-bar-title"}}">UI kit</h1></div>
+  <div class="flex flex-none items-center gap-2 @max-[56rem]:hidden">
     <span class="flex gap-0.5 rounded-sm bg-wash p-0.5" role="group" aria-label="Theme">
       <button class="h-8 cursor-pointer rounded-sm px-3 text-sm font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1" type="button" data-kit-theme="light">Light</button>
       <button class="h-8 cursor-pointer rounded-sm px-3 text-sm font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1" type="button" data-kit-theme="dark">Dark</button>
@@ -19,21 +17,23 @@
       <button class="size-6 cursor-pointer rounded-full bg-[#D23F67] shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-bg),0_0_0_0.25rem_var(--gu-text)]" type="button" data-kit-accent="rose" title="Rose" aria-label="Rose"></button>
     </span>
   </div>
-</div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
+<p class="{{template "ui-page-sub"}}">The shared pieces in templates/ui.html, as they look now</p>
 
 <div class="grid gap-10">
 
 <section class="grid gap-3" aria-labelledby="kit-page-head">
   <h2 class="text-base font-semibold" id="kit-page-head">Page header, menu, list and status</h2>
-  <p class="{{template "ui-note"}}">A page leads with what it is for. Actions it needs now and then go in the menu behind "…". Rows carry one main line and a quieter line under it.</p>
+  <p class="{{template "ui-note"}}">A page's bar runs across the top of the pane: the pages above it, its title, and its few actions. Actions it needs now and then go in the menu behind "…". Under the bar, a line says what the page is for. Rows carry one main line and a quieter line under it.</p>
   <div class="{{template "ui-card"}} grid gap-5">
-    <header class="{{template "ui-page-head"}} mb-0!">
-      <div class="{{template "ui-page-title"}}">
-        <h3 class="m-0 text-xl font-semibold">Records</h3>
-        <p class="{{template "ui-page-sub"}}">A signed record of everything that happened</p>
-      </div>
+    <div class="overflow-hidden rounded-md border border-line [&>.bar]:static">
+    {{template "ui-bar-open"}}
+      <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Example trail"><a class="{{template "ui-bar-crumb"}}" href="#kit-page-head">Admin</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span></nav><h3 class="{{template "ui-bar-title"}}">Records</h3></div>
       {{template "ui-more-open"}}<a class="{{template "ui-menu-item"}}" role="menuitem" href="#kit-page-head">{{template "icon-download"}}<span>Download the record</span></a>{{template "ui-more-close"}}
-    </header>
+    {{template "ui-bar-close"}}
+    </div>
+    <p class="{{template "ui-page-sub"}} mb-0!">A signed record of everything that happened</p>
     <p class="{{template "ui-empty"}}"><strong class="{{template "ui-empty-title"}}">No model calls yet</strong>Every call an agent makes goes through the proxy and is listed here.</p>
     <p class="{{template "ui-status-ok"}}">Intact · 2 events, all signed · the last 3 tasks check out</p>
     <div class="{{template "ui-list"}}">
@@ -198,7 +198,6 @@
     <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">9.8M</span><span class="{{template "ui-figure-label"}}">tokens in, 41% cached</span></div>
     <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">1.1M</span><span class="{{template "ui-figure-label"}}">tokens out</span></div>
   </div>
-  <div class="{{template "ui-head"}}"><h3 class="text-xl font-semibold">ui-head</h3><p class="{{template "ui-lede"}}">The lede says in a sentence what the page is for, and no more.</p></div>
   <div class="{{template "ui-stack"}}"><section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-stack</h3><p class="{{template "ui-note"}}">Cards one under another with a gap.</p></section></div>
   <div class="{{template "ui-panels"}}">
     <section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-card</h3><p class="{{template "ui-note"}}">A surface that holds one thing, with a title.</p></section>
@@ -217,7 +216,6 @@
     </form>
   </dialog>
   <div class="flex items-center gap-3 text-sm"><button class="{{template "ui-switch"}}" type="button" role="switch" aria-checked="true" aria-label="ui-switch, on"></button><button class="{{template "ui-switch"}}" type="button" role="switch" aria-checked="false" aria-label="ui-switch, off"></button><span class="text-muted">ui-switch, on and off</span></div>
-  <nav class="{{template "ui-crumb"}}" aria-label="Breadcrumb"><a class="{{template "ui-crumb-link"}}" href="#kit-surfaces">Usage</a><span>/</span><span>ui-crumb</span></nav>
   <div>
     <details class="group">
       <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} More filters (ui-summary and ui-chev)</summary>

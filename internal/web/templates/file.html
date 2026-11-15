@@ -1,24 +1,18 @@
 {{template "head" .}}
 
-<div class="grid max-w-[60rem] gap-5" data-file>
-  <nav class="flex flex-wrap items-center gap-2 text-xs text-subtle [&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center [&_a]:text-muted [&_a]:no-underline [&_a]:hover:text-ink [&_a]:hover:underline" aria-label="Where this is">
-    {{if .TaskID}}<a href="/jobs">Activity</a><span>/</span><a href="/jobs/{{.TaskID}}">Details</a>
-    {{else}}<a href="/files">Files</a>
-    {{range .Crumbs}}<span>/</span><a href="/files?at={{.At}}">{{.Name}}</a>{{end}}{{end}}
-  </nav>
+{{template "ui-bar-open"}}
+  <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Where this is">{{if .TaskID}}<a class="{{template "ui-bar-crumb"}}" href="/jobs">Activity</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span><a class="{{template "ui-bar-crumb"}}" href="/jobs/{{.TaskID}}">Details</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span>{{else}}<a class="{{template "ui-bar-crumb"}}" href="/files">Files</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span>{{range .Crumbs}}<a class="{{template "ui-bar-crumb"}}" href="/files?at={{.At}}">{{.Name}}</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span>{{end}}{{end}}</nav><h1 class="{{template "ui-bar-title"}}" title="{{.File.Name}}">{{.File.Name}}</h1></div>
+  <div class="flex flex-none items-center gap-2">
+      {{if .Back}}<a class="{{template "ui-btn-sm"}} [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" href="{{.Back}}">{{template "icon-compose"}}<span>{{or .BackWord "Back to the chat"}}</span></a>{{end}}
+      {{if eq .File.Kind "html"}}<a class="{{template "ui-btn-sm"}} [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" href="/instances/{{.Instance.ID}}/file?path={{.File.Path}}&amp;source=1">View source</a>{{end}}
+      {{if .File.Editable}}<button type="button" class="{{template "ui-btn-sm"}} [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" data-edit>Edit</button>{{end}}
+      <a class="{{template "ui-btn-sm"}} [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download</span></a>
+  </div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
 
-  <header class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-b border-line pb-4">
-    <div class="min-w-0 flex-1 basis-48">
-      <h1 class="text-lg wrap-anywhere">{{.File.Name}}</h1>
-      <p class="mt-1 text-xs text-muted">{{.File.Size}}{{if .File.Lines}} · {{.File.Lines}} line{{if ne .File.Lines 1}}s{{end}}{{end}}{{if .File.Modified}} · changed {{ago .File.Modified}}{{end}}</p>
-    </div>
-    <div class="flex flex-none flex-wrap gap-2">
-      {{if .Back}}<a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.Back}}">{{template "icon-compose"}}<span>{{or .BackWord "Back to the chat"}}</span></a>{{end}}
-      {{if eq .File.Kind "html"}}<a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="/instances/{{.Instance.ID}}/file?path={{.File.Path}}&amp;source=1">View source</a>{{end}}
-      {{if .File.Editable}}<button type="button" class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-sm border border-line-strong bg-transparent px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-wash hover:text-ink" data-edit>Edit</button>{{end}}
-      <a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download</span></a>
-    </div>
-  </header>
+<div class="grid max-w-[60rem] gap-5" data-file>
+  <p class="m-0 text-xs text-subtle">{{.File.Size}}{{if .File.Lines}} · {{.File.Lines}} line{{if ne .File.Lines 1}}s{{end}}{{end}}{{if .File.Modified}} · changed {{ago .File.Modified}}{{end}}</p>
 
   {{template "file-edit" .}}
   <div data-file-view>{{template "file-body" .}}</div>

@@ -1,13 +1,14 @@
 {{template "head" .}}
 
+{{template "ui-bar-open"}}
+  <div class="{{template "ui-bar-where"}}"><h1 class="{{template "ui-bar-title"}}">Presets</h1></div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
+
 {{template "ui-flash" .}}
 
-<div class="{{template "ui-head"}}">
-  <h1>Presets</h1>
-</div>
-
 {{if .Presets}}<section class="mb-8 grid gap-3" aria-label="Your presets">
-  <h2>Your presets</h2>
+  <h2 class="{{template "ui-section-title"}}">Your presets</h2>
   <div class="divide-y divide-line overflow-hidden rounded-lg bg-surface border border-line">
     {{range .Presets}}
     <div class="grid min-h-16 grid-cols-[minmax(0,1fr)_auto_2rem] items-center gap-3 py-2 pr-3 pl-5">
@@ -22,7 +23,7 @@
   </div>
 </section>{{end}}
 
-<h2 class="mb-3">Built-in presets</h2>
+<h2 class="{{template "ui-section-title"}} mb-3">Built-in presets</h2>
 <div class="mb-8 flex flex-wrap items-start gap-6 @max-[56rem]:flex-col @max-[56rem]:items-stretch @max-[56rem]:gap-4" id="roles">
   <div class="grid max-w-[26rem] flex-[1_1_21rem] gap-3 @max-[56rem]:max-w-none @max-[56rem]:flex-none">
     <label class="hidden gap-2 text-xs text-muted @max-[56rem]:grid"><span>Built-in preset</span>

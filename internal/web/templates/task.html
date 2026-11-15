@@ -1,22 +1,19 @@
 {{template "head" .}}
 
-<nav class="mb-4 flex flex-wrap items-baseline gap-2 text-xs text-subtle [&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center [&_a]:text-muted [&_a]:no-underline [&_a]:hover:text-ink [&_a]:hover:underline" aria-label="Where this is">
-  {{if .Agent}}<a href="/files">Files</a><span>/</span><a href="/instances/{{.Agent.ID}}">{{.Agent.Name}}</a><span>/</span>{{else}}<a href="/jobs">Activity</a><span>/</span>{{end}}
-  {{with .Talk}}<a href="{{$.ThreadPath}}">{{.Name}}</a>{{else}}<span>this run</span>{{end}}
-  <span>/</span><span>Details</span>
-</nav>
-
-<header class="mb-5 flex items-end justify-between gap-4 @max-[56rem]:flex-col @max-[56rem]:items-start">
-  <div class="min-w-0">
-    <h1 class="text-2xl wrap-anywhere">{{.Job.Brief}}</h1>
-    <p class="{{template "ui-page-sub"}}">Run details{{with .Talk}} · message {{.Place}} of {{.Of}}{{end}}</p>
-    {{with waiting .Job.ID}}<p class="mt-1 text-muted" id="why">{{.}}</p>{{end}}
-  </div>
+{{template "ui-bar-open"}}
+  <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Where this is">{{if .Agent}}<a class="{{template "ui-bar-crumb"}}" href="/files">Files</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span><a class="{{template "ui-bar-crumb"}}" href="/instances/{{.Agent.ID}}">{{.Agent.Name}}</a>{{else}}<a class="{{template "ui-bar-crumb"}}" href="/jobs">Activity</a>{{end}}<span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span>{{with .Talk}}<a class="{{template "ui-bar-crumb"}}" href="{{$.ThreadPath}}">{{.Name}}</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span>{{end}}</nav><h1 class="{{template "ui-bar-title"}}">Run details</h1></div>
   <div class="flex flex-none items-center gap-2">
-    {{with .Talk}}{{if .Before}}<a class="inline-flex items-center gap-1.5 rounded-sm border border-line-strong px-3 py-1.5 text-xs whitespace-nowrap text-muted no-underline transition-colors hover:border-accent hover:text-ink" href="/jobs/{{.Before}}">{{template "icon-back"}} Previous</a>{{end}}{{if .After}}<a class="inline-flex items-center gap-1.5 rounded-sm border border-line-strong px-3 py-1.5 text-xs whitespace-nowrap text-muted no-underline transition-colors hover:border-accent hover:text-ink" href="/jobs/{{.After}}">Next {{template "icon-go"}}</a>{{end}}{{end}}
-    {{if .ThreadPath}}<a class="inline-flex items-center justify-center rounded-sm bg-solid px-4 py-2 text-sm font-semibold whitespace-nowrap text-on-solid no-underline transition-colors hover:bg-solid-hover" href="{{.ThreadPath}}">Open the conversation</a>{{end}}
+    {{with .Talk}}{{if .Before}}<a class="{{template "ui-btn-sm"}} [&>svg]:size-4" href="/jobs/{{.Before}}">{{template "icon-back"}} Previous</a>{{end}}{{if .After}}<a class="{{template "ui-btn-sm"}} [&>svg]:size-4" href="/jobs/{{.After}}">Next {{template "icon-go"}}</a>{{end}}{{end}}
+    {{if .ThreadPath}}<a class="{{template "ui-btn"}}" href="{{.ThreadPath}}">Open the conversation</a>{{end}}
   </div>
-</header>
+{{template "ui-bar-close"}}
+{{template "body" .}}
+
+<div class="mb-5">
+  <p class="m-0 text-lg font-semibold text-ink wrap-anywhere">{{.Job.Brief}}</p>
+  {{with .Talk}}<p class="m-0 mt-1 text-sm text-subtle">Message {{.Place}} of {{.Of}}</p>{{end}}
+  {{with waiting .Job.ID}}<p class="m-0 mt-1 text-sm text-muted" id="why">{{.}}</p>{{end}}
+</div>
 
 <p class="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm" aria-label="Summary">{{template "state" (dict "State" .Job.State "Text" (outcome .Run) "ID" "state")}}<span class="text-muted">{{with took .Job.Started .Job.Ended}}{{.}}{{else}}—{{end}}{{if .Run.Metered}} · {{template "cost" .Run}}{{end}}</span></p>
 <dl class="{{template "ui-list"}} m-0 mb-5 max-w-4xl" aria-label="Details">

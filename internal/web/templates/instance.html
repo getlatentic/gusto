@@ -1,17 +1,21 @@
 {{template "head" .}}
 
+{{template "ui-bar-open"}}
+  <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Where this is"><a class="{{template "ui-bar-crumb"}}" href="/files">Files</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span></nav><h1 class="{{template "ui-bar-title"}}" title="{{.Agent.Name}}">{{.Agent.Name}}</h1></div>
+  <a class="{{template "ui-link-quiet"}} flex-none" href="/instances/{{.Instance.ID}}/files">{{template "icon-file"}} Files</a>
+  <form class="flex-none" method="post" action="/instances/{{.Instance.ID}}/threads"><button type="submit" class="{{template "ui-btn"}}">{{template "icon-add"}} New conversation</button></form>
+{{template "ui-bar-close"}}
+{{template "body" .}}
+
 {{template "ui-flash" .}}
 
-<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/files">Files</a><span>/</span><span>{{.Agent.Name}}</span></nav>
-<header class="mb-6 flex items-center gap-4 @max-[56rem]:flex-wrap">
+<div class="mb-6 flex items-center gap-4">
   {{template "mark" (dict "Harness" .Agent.Harness "Field" .Agent.Field "Name" .Agent.Name "Size" "lg")}}
-  <div class="min-w-48 flex-1">
-    <h1>{{.Agent.Name}}</h1>
-    <p class="mt-1 text-sm text-muted">{{.Agent.Brain}}{{if eq .Instance.Sensitivity "restricted"}} · <span class="font-medium text-warn">stays in your network</span>{{end}}</p>
+  <div class="min-w-0 flex-1">
+    <p class="m-0 text-base font-semibold text-ink wrap-anywhere">{{.Agent.Name}}</p>
+    <p class="m-0 text-sm text-subtle">{{.Agent.Brain}}{{if eq .Instance.Sensitivity "restricted"}} · <span class="font-medium text-warn">stays in your network</span>{{end}}</p>
   </div>
-  <a class="{{template "ui-link-quiet"}}" href="/instances/{{.Instance.ID}}/files">{{template "icon-file"}} Files</a>
-  <form method="post" action="/instances/{{.Instance.ID}}/threads"><button type="submit" class="{{template "ui-btn"}}">{{template "icon-add"}} New conversation</button></form>
-</header>
+</div>
 
 <div class="{{template "ui-two-col"}}">
 <div class="{{template "ui-col"}}">

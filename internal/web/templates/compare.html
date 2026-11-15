@@ -1,11 +1,13 @@
 {{template "head" .}}
 
+{{template "ui-bar-open"}}
+  <div class="{{template "ui-bar-where"}}"><h1 class="{{template "ui-bar-title"}}">Compare agents</h1></div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
+
 {{template "ui-flash" .}}
 
-<div class="{{template "ui-head"}}">
-  <h1>Compare agents</h1>
-  <p class="{{template "ui-lede"}}">Give several agents the same task on the same code. The project's own tests decide which of them did it.</p>
-</div>
+<p class="{{template "ui-page-sub"}}">Give several agents the same task on the same code. The project's own tests decide which of them did it.</p>
 
 {{with .Template}}
 <form class="grid max-w-xl gap-4 {{template "ui-card"}}" method="post" action="/compare">

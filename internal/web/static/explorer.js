@@ -114,7 +114,8 @@
       container.textContent = "";
       if (!state.here) { container.appendChild(el("div", "p-8 text-center text-subtle [grid-row:1/-1]", state.problem || "Looking…")); return; }
       if (browsing) {
-        container.appendChild(pageHead());
+        options.bar.textContent = "";
+        options.bar.appendChild(pageHead());
         container.appendChild(list());
       } else {
         container.appendChild(toolbar());
@@ -152,21 +153,27 @@
       return filter;
     }
 
-    // The Files page has no window around it: the way down is the heading itself, and what can be done here sits to its right.
+    // The Files page has no window around it: its trail is the page's own bar, as on every page, and what can be done here sits to its right.
     function pageHead() {
-      var head = el("div", "mb-6 flex min-h-10 flex-wrap items-center gap-x-4 gap-y-3");
-      var trail = el("h1", "flex min-w-0 flex-[1_1_14rem] items-center gap-2");
+      var head = document.createDocumentFragment();
+      var where = el("div", "flex min-w-0 flex-1 items-center gap-1.5 text-sm");
+      var trail = el("nav", "contents");
+      trail.setAttribute("aria-label", "Where this is");
+      var last = state.here.crumbs.length - 1;
       state.here.crumbs.forEach(function (crumb, i) {
-        var name = i === 0 ? "Files" : crumb.name;
-        if (i > 0) { trail.appendChild(el("span", "font-normal text-line-strong", "/")); }
-        trail.appendChild(i === state.here.crumbs.length - 1 ? el("span", "min-w-0 truncate", name, name) : button(look.crumb + " text-[length:inherit] font-[inherit]", function () { load(crumb.at, true); }, [name]));
+        if (i === last) { return; }
+        trail.appendChild(button("min-w-0 max-w-48 flex-none cursor-pointer truncate border-0 bg-transparent p-0 text-sm text-subtle hover:text-ink @max-[40rem]:hidden", function () { load(crumb.at, true); }, [i === 0 ? "Files" : crumb.name]));
+        trail.appendChild(el("span", "flex-none text-faint @max-[40rem]:hidden", "/"));
       });
-      head.appendChild(trail);
-      var tools = el("div", "flex min-w-0 flex-[1_1_22rem] items-center justify-end gap-2");
-      tools.appendChild(filterBox("h-9 min-w-24 flex-[1_1_8rem] text-sm"));
-      tools.appendChild(button(look.button + " h-9 px-4 text-sm font-medium", function () { state.making = true; state.focusNew = true; state.problem = ""; draw(); }, [icon("plus", "size-[1.125rem]"), state.here.at ? "New folder" : "New project"]));
+      where.appendChild(trail);
+      var name = last === 0 ? "Files" : state.here.crumbs[last].name;
+      where.appendChild(el("h1", "m-0 min-w-0 truncate font-sans text-sm font-semibold tracking-tight text-ink", name, name));
+      head.appendChild(where);
+      var tools = el("div", "flex flex-none items-center gap-2");
+      tools.appendChild(filterBox("h-8 w-40 text-xs @max-[40rem]:hidden"));
+      tools.appendChild(button(look.button + " h-8 rounded-md px-3 text-xs font-semibold", function () { state.making = true; state.focusNew = true; state.problem = ""; draw(); }, [icon("plus", "size-4"), state.here.at ? "New folder" : "New project"]));
       if (state.here.at) {
-        var chat = el("a", look.primary + " d-choose h-9 px-4 text-sm font-semibold", "Chat here");
+        var chat = el("a", look.primary + " d-choose h-8 rounded-md px-3 text-xs font-semibold", "Chat here");
         chat.href = "/chat?at=" + encodeURIComponent(state.here.at);
         tools.appendChild(chat);
       }

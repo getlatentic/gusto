@@ -1,11 +1,10 @@
 {{template "head" .}}
 
-<header class="{{template "ui-page-head"}}">
-  <div class="{{template "ui-page-title"}}">
-    <h1>Overview</h1>
-    <p class="{{template "ui-page-sub"}}">{{.MonthName}} so far</p>
-  </div>
-</header>
+{{template "ui-bar-open"}}
+  <div class="{{template "ui-bar-where"}}"><h1 class="{{template "ui-bar-title"}}">Overview</h1></div>
+{{template "ui-bar-close"}}
+{{template "body" $}}
+<p class="{{template "ui-page-sub"}}">{{.MonthName}} so far</p>
 
 {{if .Budget.Passed}}<p class="{{template "ui-notice"}}" role="alert">The budget for {{.MonthName}} is {{usd .Budget.Limit}}. {{usd .Spent.USD}} has been spent{{if .Spent.Unmeasured}}, and more that has no price{{end}}, so the budget is {{if .Budget.Over}}passed by {{usd .Budget.Over}}{{if .Spent.Unmeasured}} at least{{end}}{{else}}reached{{end}}.</p>{{end}}
 {{if .Budget.Err}}<p class="{{template "ui-notice"}}">The budget could not be read, so it is not checked. {{.Budget.Err}}</p>{{end}}

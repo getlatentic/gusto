@@ -1,16 +1,15 @@
 {{template "head" .}}
 
-{{template "ui-flash" .}}
-
-{{if .Console}}<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/admin/apps?tab=skills">Skills</a><span>/</span><span>{{.Setup.Name}}</span></nav>
-{{else}}<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/presets">Start an agent</a><span>/</span><span>setup</span></nav>{{end}}
-<div class="mb-6 flex items-center gap-3">
-  <h1 class="flex-1">{{.Setup.Name}}{{if .Setup.Off}} <span class="{{template "ui-badge"}} align-middle">off</span>{{end}}</h1>
+{{template "ui-bar-open"}}
+{{if .Console}}  <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Where this is"><a class="{{template "ui-bar-crumb"}}" href="/admin/apps?tab=skills">Skills</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span></nav><h1 class="{{template "ui-bar-title"}}" title="{{.Setup.Name}}">{{.Setup.Name}}</h1>{{if .Setup.Off}} <span class="{{template "ui-badge"}} flex-none">off</span>{{end}}</div>{{else}}  <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Where this is"><a class="{{template "ui-bar-crumb"}}" href="/presets">Start an agent</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span></nav><h1 class="{{template "ui-bar-title"}}" title="{{.Setup.Name}}">{{.Setup.Name}}</h1></div>{{end}}
   {{if .Console}}
-  {{if .Setup.Off}}<form method="post" action="{{.Base}}/{{.Setup.Name}}/enable"><button type="submit" class="{{template "ui-btn"}}">Turn on</button></form>
-  {{else}}<form method="post" action="{{.Base}}/{{.Setup.Name}}/disable"><button type="submit" class="{{template "ui-btn-quiet"}}">Turn off</button></form>{{end}}
+  {{if .Setup.Off}}<form class="flex-none" method="post" action="{{.Base}}/{{.Setup.Name}}/enable"><button type="submit" class="{{template "ui-btn"}}">Turn on</button></form>
+  {{else}}<form class="flex-none" method="post" action="{{.Base}}/{{.Setup.Name}}/disable"><button type="submit" class="{{template "ui-btn-quiet"}}">Turn off</button></form>{{end}}
   {{end}}
-</div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
+
+{{template "ui-flash" .}}
 {{if and .Console .Setup.Off}}<p class="mb-5 rounded-sm bg-warn-wash px-4 py-3 text-sm" role="status">This skill set is off: it is not offered to anybody, and no agent starts with it, until you turn it on.</p>{{end}}
 
 <div class="{{template "ui-two-col"}}">

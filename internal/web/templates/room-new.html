@@ -1,11 +1,13 @@
 {{template "head" .}}
 
+{{template "ui-bar-open"}}
+  <div class="{{template "ui-bar-where"}}"><h1 class="{{template "ui-bar-title"}}">New room</h1></div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
+
 {{template "ui-flash" .}}
 
-<section class="mb-8 max-w-prose">
-  <h1>New room</h1>
-  <p class="mt-2 text-lg text-muted">A room is a chat that people and agents share, with one folder they all work in.</p>
-</section>
+<p class="{{template "ui-page-sub"}}">A room is a chat that people and agents share, with one folder they all work in.</p>
 
 <form class="grid max-w-xl gap-4 {{template "ui-card"}}" method="post" action="/rooms">
   <label class="{{template "ui-field"}}">Name it <input class="input" name="name" placeholder="Launch plan" maxlength="60" required autofocus></label>

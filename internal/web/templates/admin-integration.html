@@ -1,14 +1,13 @@
 {{template "head" .}}
 
-{{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
-
-<nav class="mb-2 flex items-center gap-2 text-sm text-muted" aria-label="Where this is"><a class="hover:text-ink" href="/admin/apps?tab=skills">Skills</a><span aria-hidden="true">/</span><span>{{.Held.Name}}</span></nav>
-<div class="{{template "ui-title"}}">
-  <h1>{{.Held.Name}} <span class="text-base font-normal text-muted">{{if .Held.On}}on{{else}}off{{end}}</span></h1>
-  <span class="flex-1"></span>
+{{template "ui-bar-open"}}
+  <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Where this is"><a class="{{template "ui-bar-crumb"}}" href="/admin/apps?tab=skills">Skills</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span></nav><h1 class="{{template "ui-bar-title"}}" title="{{.Held.Name}}">{{.Held.Name}}</h1> <span class="{{if .Held.On}}{{template "ui-badge-ok"}}{{else}}{{template "ui-badge"}}{{end}} flex-none">{{if .Held.On}}on{{else}}off{{end}}</span></div>
   {{if .Held.On}}<form method="post" action="/admin/integrations/{{.Held.Name}}/disable"><button type="submit" class="{{template "ui-btn-sm"}}">Turn off</button></form>{{end}}
   {{if .Held.Before}}<form method="post" action="/admin/integrations/{{.Held.Name}}/restore"><button type="submit" class="{{template "ui-btn-sm"}}">Put the earlier version back</button></form>{{end}}
-</div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
+
+{{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
 
 <div class="grid gap-4">
 <section class="{{template "ui-card"}} grid gap-3">
