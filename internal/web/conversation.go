@@ -395,7 +395,8 @@ func (s *Server) limitWords(record tasks.Record, refusal *spend.Refusal) string 
 	if refusal == nil || (refusal.Cap == "credit" && refusal.SpentUSD >= refusal.LimitUSD) {
 		return ""
 	}
-	if refusal.Cap == "person" && record.Asked != "" {
+	// A budget is said to be used up only when it is; a call it cannot count (a model with no price) says why instead.
+	if refusal.Cap == "person" && record.Asked != "" && refusal.SpentUSD >= refusal.LimitUSD {
 		month := time.Unix(record.Started, 0).UTC().Format("January")
 		return fmt.Sprintf("Stopped before asking the model: %s's budget for %s is used up, $%.2f of $%.2f.", s.personName(record.Asked), month, refusal.SpentUSD, refusal.LimitUSD)
 	}
