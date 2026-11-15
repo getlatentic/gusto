@@ -11,6 +11,7 @@ const appPages = [
   /^\/admin\/budgets$/,
   /^\/admin\/tokens$/,
   /^\/admin\/records$/,
+  /^\/admin\/models$/,
 ]
 
 export function isAppPage(href: string): boolean {
