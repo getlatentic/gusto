@@ -1,14 +1,9 @@
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { Link, useNavigate } from "react-router"
 import type { DateRange } from "react-day-picker"
-import {
-  CalendarIcon,
-  CheckIcon,
-  PlusCircleIcon,
-  SearchIcon,
-  XIcon,
-} from "lucide-react"
+import { CalendarIcon, CheckIcon, PlusCircleIcon, XIcon } from "lucide-react"
 
+import { SearchBox } from "@/components/search-box"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -21,11 +16,6 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group"
 import {
   Popover,
   PopoverContent,
@@ -77,7 +67,11 @@ export function UsageToolbar({
   const chosenSomething = view.Filtered || Boolean(value("from") || value("to"))
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2" role="search">
-      <SearchBox initial={value("q")} onSearch={(q) => go({ q })} />
+      <SearchBox
+        label="Search sessions, people, agents, agent types, providers and models"
+        initial={value("q")}
+        onSearch={(q) => go({ q })}
+      />
       <DateRangeButton
         from={value("from")}
         to={value("to")}
@@ -101,46 +95,6 @@ export function UsageToolbar({
         </Link>
       )}
     </div>
-  )
-}
-
-// SearchBox searches as the person types, once they pause, and at once on Enter.
-function SearchBox({
-  initial,
-  onSearch,
-}: {
-  initial: string
-  onSearch: (q: string) => void
-}) {
-  const [text, setText] = useState(initial)
-  const sent = useRef(initial)
-  useEffect(() => {
-    if (text === sent.current) return
-    const wait = setTimeout(() => {
-      sent.current = text
-      onSearch(text)
-    }, 400)
-    return () => clearTimeout(wait)
-  }, [text, onSearch])
-  return (
-    <InputGroup className="h-8 w-60 max-sm:w-full">
-      <InputGroupAddon>
-        <SearchIcon />
-      </InputGroupAddon>
-      <InputGroupInput
-        type="search"
-        aria-label="Search sessions, people, agents, agent types, providers and models"
-        placeholder="Search"
-        value={text}
-        onChange={(event) => setText(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && text !== sent.current) {
-            sent.current = text
-            onSearch(text)
-          }
-        }}
-      />
-    </InputGroup>
   )
 }
 

@@ -1,13 +1,12 @@
-import { useState, type FormEvent } from "react"
-import { useNavigate, useParams } from "react-router"
+import { Link, useNavigate, useParams } from "react-router"
+import { XIcon } from "lucide-react"
 
-import { AppLink } from "@/components/app-link"
 import { Loading, Pager } from "@/components/controls"
+import { SearchBox } from "@/components/search-box"
 import { PageBar, PageBody, PageSub } from "@/components/page"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -20,8 +19,8 @@ import { usePageData } from "@/lib/api"
 import type { SessionData } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
-// The columns a narrow table leaves out, the least needed first, by the width of the table's own card. When, which task, how many
-// what it cost always stay.
+// The columns a narrow table leaves out, the least needed first, by the width of the table's own card. When, which task and what it
+// cost always stay.
 const hides = {
   translated: "@max-6xl:hidden",
   refused: "@max-5xl:hidden",
@@ -60,11 +59,6 @@ function Session({ page }: { page: SessionData }) {
   const session = page.Session
   const here = `${page.Base}/${encodeURIComponent(session.ID)}`
   const navigate = useNavigate()
-  const [search, setSearch] = useState(session.Search)
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    navigate(search ? `${here}?q=${encodeURIComponent(search)}` : here)
-  }
   return (
     <>
       <PageSub>
@@ -73,30 +67,23 @@ function Session({ page }: { page: SessionData }) {
         {session.Engine && `, agent type ${session.Engine}`}. The latest call
         first.
       </PageSub>
-      <form
-        className="mb-4 flex flex-wrap items-center gap-3 text-sm"
-        role="search"
-        onSubmit={submit}
-      >
-        <label className="min-w-48 flex-1">
-          <span className="sr-only">Search this session's calls</span>
-          <Input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search"
-          />
-        </label>
-        <Button type="submit">Search</Button>
+      <div className="mb-4 flex flex-wrap items-center gap-2" role="search">
+        <SearchBox
+          label="Search this session's calls"
+          initial={session.Search}
+          onSearch={(q) =>
+            navigate(q ? `${here}?q=${encodeURIComponent(q)}` : here)
+          }
+        />
         {session.Search && (
-          <AppLink
-            href={here}
-            className="text-muted-foreground no-underline underline-offset-4 hover:text-foreground hover:underline"
+          <Link
+            to={here}
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
           >
-            Clear
-          </AppLink>
+            Reset <XIcon />
+          </Link>
         )}
-      </form>
+      </div>
       <Card className="@container gap-0 overflow-hidden py-0">
         <Table className="[&_td]:whitespace-nowrap">
           <TableHeader>
