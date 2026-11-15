@@ -59,10 +59,7 @@ func operatorCommand() int {
 	if cfg.hosts.launch == "ec2" {
 		hosts = &node.EC2{Project: cfg.hosts.project}
 	}
-	app, err := operator.New(store, hosts)
-	if err != nil {
-		return fail(err)
-	}
+	app := operator.New(store, hosts)
 	server := &http.Server{Addr: address, Handler: app.Handler(), ReadHeaderTimeout: 10 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

@@ -115,21 +115,13 @@ func luminance(hex string) float64 {
 }
 
 var (
-	motionRule     = regexp.MustCompile(`@media\(prefers-reduced-motion:reduce\)\{\*,(?:\*::before|:before),(?:\*::after|:after)\{([^}]*)\}`)
 	motionDuration = regexp.MustCompile(`(?:transition|animation)[a-z-]*:[^;}]*?(\d*\.?\d+)(ms|s)\b`)
 )
 
-// Motion is short, and none of it is left for a person who asks for less. The spinner turns for as long as a turn runs, and is exempt.
-func TestMotionIsShortAndOptional(t *testing.T) {
-	app, err := fs.ReadFile(assets, "static/operator.css")
-	if err != nil {
-		t.Fatal(err)
-	}
-	rule := motionRule.FindStringSubmatch(strings.NewReplacer(" ", "", "\n", "", "\t", "").Replace(string(app)))
-	if rule == nil || !strings.Contains(rule[1], "transition-duration:0s") || !strings.Contains(rule[1], "animation-duration:0s") {
-		t.Fatal("operator.css does not stop every transition and animation under prefers-reduced-motion")
-	}
-	err = fs.WalkDir(assets, "static", func(path string, entry fs.DirEntry, err error) error {
+// Motion is short. The spinner turns for as long as a turn runs, and is exempt. The web app's stylesheet stops all of it for a
+// person who asks for less (web/src/index.css, and its test).
+func TestMotionIsShort(t *testing.T) {
+	err := fs.WalkDir(assets, "static", func(path string, entry fs.DirEntry, err error) error {
 		if err != nil || entry.IsDir() || !strings.HasSuffix(path, ".css") || strings.HasSuffix(path, "tokens.css") {
 			return err
 		}

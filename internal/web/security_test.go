@@ -19,7 +19,7 @@ import (
 func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
 	here := open(t)
 	here.signIn(t)
-	for _, path := range []string{"/login", "/", "/jobs", "/spend", "/compare", "/nothing-here", "/healthz", "/static/operator.css"} {
+	for _, path := range []string{"/login", "/", "/jobs", "/spend", "/compare", "/nothing-here", "/healthz", "/static/tokens.css"} {
 		got := here.ask(t, "GET", path, nil)
 		for name, want := range map[string]string{
 			"X-Frame-Options": "DENY", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "same-origin",

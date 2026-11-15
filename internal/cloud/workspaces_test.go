@@ -28,8 +28,8 @@ func TestANewOrganizationHasOneWorkspaceWithItsAdminAndAPersonInvitedJoinsIt(t *
 		if len(list.Workspaces) != 1 || list.Workspaces[0].ID != "main" || list.Workspaces[0].Name != "Acme" || !slices.Equal(list.Workspaces[0].Members, []string{"ada@acme.com"}) {
 			t.Fatalf("a new organization's workspaces: %+v", list.Workspaces)
 		}
-		if _, page := ada.get("/org"); !strings.Contains(page, `id="workspaces"`) || strings.Contains(page, `name="workspace" aria-label="Workspace they join"`) {
-			t.Fatalf("an admin sees the workspaces, and with one, the invitation does not ask which:\n%s", page)
+		if got := shownAt(t, ada, "/org"); !got.IsAdmin || len(got.Workspaces) != 1 || got.Workspaces[0].ID != "main" {
+			t.Fatalf("an admin sees the workspaces, and with one, the invitation does not ask which: %+v", got.Workspaces)
 		}
 		f.invitedAndJoined(ada, "bob@acme.com")
 		if main, _ := spaceIn(f.roster(), "main"); !slices.Equal(main.Members, []string{"ada@acme.com", "bob@acme.com"}) {
@@ -85,8 +85,8 @@ func TestARunnerCannotChangeWorkspacesNorSeeThemWithOnlyOne(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f, ada := acme(t)
 		bob := f.invitedAndJoined(ada, "bob@acme.com")
-		if _, page := bob.get("/org"); strings.Contains(page, `id="workspaces"`) {
-			t.Fatal("a runner in one workspace is shown the workspaces")
+		if got := shownAt(t, bob, "/org"); got.IsAdmin || len(got.Workspaces) != 1 {
+			t.Fatalf("a runner in one workspace is shown the workspaces: %+v", got.Workspaces)
 		}
 		if status, _, _ := bob.post("/org/workspaces", url.Values{"name": {"Mine"}}); status != http.StatusForbidden {
 			t.Fatalf("a runner made a workspace: %d", status)
@@ -118,7 +118,7 @@ func TestLeavingAWorkspaceRemovesThatComputerOnlyAndAPersonKeepsOneWorkspace(t *
 		if len(retiring) != 1 || retiring[0].ID != engineering.ID || retiring[0].ID == first.ID {
 			t.Fatalf("leaving engineering marks only that computer: %+v", retiring)
 		}
-		if status, page, _ := ada.post("/org/workspaces/remove", url.Values{"workspace": {"main"}, "email": {"bob@acme.com"}}); status != http.StatusConflict || !strings.Contains(page, "at least one workspace") {
+		if status, page, _ := ada.post("/org/workspaces/remove", url.Values{"workspace": {"main"}, "email": {"bob@acme.com"}}); status != http.StatusConflict || !strings.Contains(shown(t, page).Notice, "at least one workspace") {
 			t.Fatalf("taking bob out of his last workspace: %d", status)
 		}
 		if spaces := f.roster().SpacesOf("bob@acme.com"); len(spaces) != 1 || spaces[0].ID != "main" {

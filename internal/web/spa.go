@@ -1,22 +1,11 @@
 package web
 
 import (
-	"bytes"
 	"cmp"
-	"embed"
 	"errors"
 	"html"
-	"io/fs"
 	"net/http"
-	"sync"
 )
-
-// The React app in web/ is built into spa/dist by web/build.sh and carried in the binary, so the server is still one artifact.
-// Its pages are served at their own addresses, behind the server's sign-in, and read their data from /app/api/ as JSON. The
-// built files are not committed: spa/README.md is, so a checkout that has not built the app still compiles.
-//
-//go:embed all:spa
-var spaFiles embed.FS
 
 // appDataPrefix is where every page of the app reads its data.
 const appDataPrefix = "/app/api/"
@@ -161,29 +150,14 @@ func (s *Server) mountApp(mux *http.ServeMux) {
 	mux.HandleFunc("GET /app/api/rooms/{id}/files", s.guard(s.roomFilesData))
 	// A run's file is a page for a browser and its bytes for anybody else, so its page is served where its bytes are.
 	mux.HandleFunc("GET /app/api"+recordFileRoute, s.guard(s.appData(s.recordFileData)))
-	assets, err := fs.Sub(spaFiles, "spa/dist/assets")
-	if err != nil {
-		panic(err)
-	}
-	files := http.StripPrefix("/app/assets/", http.FileServerFS(assets))
-	// A built file's name carries a hash of what is in it, so a browser keeps it until a new build names another.
-	mux.HandleFunc("GET /app/assets/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-		files.ServeHTTP(w, r)
-	})
+	mux.Handle("GET /app/assets/", AppAssets())
 }
 
-// appHead is what the app's page loads from /static before its own files: the tokens, the faces and the theme, the script that
-// sets the person's theme before anything is drawn, and the one that keeps the page above a phone's keyboard. Behind gusto cloud
-// it also loads the lease banner, which extends the host the organization runs on, and its guide. Each is named with its
-// fingerprint, as the templates name them.
+// appHead is what the product's pages load before their own files: the shared head, and the script that keeps the page above a
+// phone's keyboard. Behind gusto cloud it also loads the lease banner, which extends the host the organization runs on, and its
+// guide.
 func appHead(lease string) string {
-	head := `<link rel="icon" type="image/svg+xml" href="` + asset("/static/mark.svg") + `">` +
-		`<link rel="stylesheet" href="` + asset("/static/tokens.css") + `">` +
-		`<link rel="stylesheet" href="` + asset("/static/fonts.css") + `">` +
-		`<link rel="stylesheet" href="` + asset("/static/theme.css") + `">` +
-		`<script src="` + asset("/static/look.js") + `"></script>` +
-		`<script src="` + asset("/static/keyboard.js") + `" defer></script>`
+	head := SharedHead() + `<script src="` + asset("/static/keyboard.js") + `" defer></script>`
 	if lease != "" {
 		head += `<script src="` + asset("/static/lease.js") + `" defer data-extend="` + html.EscapeString(lease) + `"></script>` +
 			`<script src="` + asset("/static/guide.js") + `" defer></script>`
@@ -191,26 +165,15 @@ func appHead(lease string) string {
 	return head
 }
 
-// appIndex is the app's one page as built, read once.
-var appIndex = sync.OnceValues(func() ([]byte, error) { return spaFiles.ReadFile("spa/dist/index.html") })
-
 // appPage is the React app's one page, which draws whichever of its pages the address names.
 func (s *Server) appPage(w http.ResponseWriter, _ *http.Request) {
-	writeApp(w, appHead(s.leaseExtend()))
+	WriteAppPage(w, http.StatusOK, ProductEntry, appHead(s.leaseExtend()), "")
 }
 
 // publicPage is the app's page for a page served before anybody is signed in. It loads nothing that a session gives, so not the
 // lease banner, which asks for the host the organization runs on.
-func (s *Server) publicPage(w http.ResponseWriter, _ *http.Request) { writeApp(w, appHead("")) }
-
-func writeApp(w http.ResponseWriter, head string) {
-	page, err := appIndex()
-	if err != nil {
-		http.Error(w, "this gusto was built without its web app: run web/build.sh, then build gusto again", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write(bytes.Replace(page, []byte("<!--gusto-head-->"), []byte(head), 1))
+func (s *Server) publicPage(w http.ResponseWriter, _ *http.Request) {
+	WriteAppPage(w, http.StatusOK, ProductEntry, appHead(""), "")
 }
 
 // appData answers a page's data as JSON.

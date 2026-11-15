@@ -35,10 +35,19 @@ export default defineConfig({
     outDir: resolve(import.meta.dirname, "../internal/web/spa/dist"),
     emptyOutDir: true,
     assetsDir: "assets",
+    // The product's pages, and gusto cloud's own pages, which the front door serves with its landing page among them.
+    rollupOptions: {
+      input: {
+        index: resolve(import.meta.dirname, "index.html"),
+        cloud: resolve(import.meta.dirname, "cloud.html"),
+      },
+    },
   },
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
+    // The app's stylesheet reaches the test that reads its rules; every other stylesheet is left out, as vitest leaves them.
+    css: { include: [/src\/index\.css/] },
     // e2e/ is Playwright's: those tests drive a real server in a real browser, and run with npm run e2e.
     exclude: [...configDefaults.exclude, "e2e/**"],
   },
