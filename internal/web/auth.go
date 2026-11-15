@@ -250,11 +250,12 @@ func (k *keeper) sign(value string) string {
 
 // guard sends anybody this server does not know to the sign-in page, and never
 // to the thing they asked for. The page they asked for is remembered, so that
-// signing in takes them to it. A page's data is not a page to come back to: it
-// answers 401, and the page that asked reloads, which remembers the page.
+// signing in takes them to it. What a page asks for itself (its data, a check
+// of its version) is not a page to come back to: it answers 401, and the page
+// that asked reloads, which remembers the page.
 func (s *Server) guard(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !s.keeper.knows(r) && strings.HasPrefix(r.URL.Path, appDataPrefix) {
+		if !s.keeper.knows(r) && !pageLoad(r) {
 			http.Error(w, "sign in first", http.StatusUnauthorized)
 			return
 		}
@@ -265,6 +266,18 @@ func (s *Server) guard(next http.HandlerFunc) http.HandlerFunc {
 		}
 		next(w, r)
 	}
+}
+
+// pageLoad is whether a request loads a page into a window or frame, as a browser says on every request it makes. A request that
+// does not say is taken for a page, unless it is for a page's data.
+func pageLoad(r *http.Request) bool {
+	switch r.Header.Get("Sec-Fetch-Dest") {
+	case "document", "iframe":
+		return true
+	case "":
+		return !strings.HasPrefix(r.URL.Path, appDataPrefix)
+	}
+	return false
 }
 
 // who is the name in a signature this server made, or nobody when there is none.

@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"slices"
 	"testing"
@@ -67,4 +68,23 @@ func (r railList) room(name string) (railChat, bool) {
 		}
 	}
 	return railChat{}, false
+}
+
+func TestOnlyAPageLoadIsRememberedForAfterSigningIn(t *testing.T) {
+	plain := open(t)
+	asked := func(path, dest string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest("GET", path, nil)
+		if dest != "" {
+			r.Header.Set("Sec-Fetch-Dest", dest)
+		}
+		w := httptest.NewRecorder()
+		plain.server.Handler().ServeHTTP(w, r)
+		return w
+	}
+	if got := asked("/instances/a/threads/1/version", "empty"); got.Code != http.StatusUnauthorized || len(got.Result().Cookies()) != 0 {
+		t.Errorf("a page's own check, signed out, gave %d and set %v", got.Code, got.Result().Cookies())
+	}
+	if got := asked("/instances/a/threads/1", "document"); got.Code != http.StatusSeeOther || len(got.Result().Cookies()) == 0 {
+		t.Errorf("a page load, signed out, gave %d and remembered nothing", got.Code)
+	}
 }
