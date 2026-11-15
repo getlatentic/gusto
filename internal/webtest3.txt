@@ -1,0 +1,275 @@
+2026/11/15 15:08:41 WARN a stopped task ended with an error task=20261115-1408-a-long-piece-of-work error="context canceled"
+2026/11/15 15:08:42 WARN a stopped task ended with an error task=20261115-1408-a-long-piece-of-work error="context canceled"
+--- FAIL: TestTheRailsMarkSwitchesBetweenThePersonsOrganizationsBehindGustoCloud (0.02s)
+    cloudlink_test.go:224: the page has font-semibold text-ink">Acme Research</span>:
+        <!doctype html>
+        <html lang="en">
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+        <title>gusto — files</title>
+        <link rel="icon" type="image/svg+xml" href="/static/mark.svg?v=162a8be451">
+        <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png?v=2f76291e40">
+        <link rel="apple-touch-icon" href="/static/apple-touch-icon.png?v=5dd9f48743">
+        <link rel="stylesheet" href="/static/tokens.css?v=c8e8196ffa">
+        <link rel="stylesheet" href="/static/fonts.css?v=72e043a43b">
+        <link rel="stylesheet" href="/static/theme.css?v=6e50451df5">
+        <link rel="stylesheet" href="/static/app.css?v=ad71147063">
+        <script src="/static/look.js?v=55c6291d51"></script>
+        
+        <script src="/static/htmx.min.js?v=d6fdc75f20" defer></script>
+        <script src="/static/keyboard.js?v=d681f3ef52" defer></script>
+        <script src="/static/menus.js?v=80b3acacf9" defer></script>
+        <script src="/static/lease.js?v=f4972fc68b" defer data-extend="https://cloud.test/lease?org=acme-com"></script><script src="/static/guide.js?v=d75345b17d" defer></script>
+          <script nonce="PSDy7XFJdn8ALUTE4w4uDm46gbVX4Fl-">
+            
+            try {
+              var drawn = document.documentElement.style;
+              var wide = localStorage.getItem("gusto-panel-w"), files = localStorage.getItem("gusto-files-w");
+              if (+wide) { drawn.setProperty("--panel-w", +wide + "rem"); }
+              if (+files) { drawn.setProperty("--files-w", +files + "rem"); }
+            } catch (e) {}
+            
+            
+            
+            document.addEventListener("change", function (event) {
+              var field = event.target;
+              if (!field.matches("[data-autosubmit]") || !field.form) { return; }
+              if (field.dataset.confirmWhen === field.value && !confirm(field.dataset.confirm)) { field.form.reset(); return; }
+              field.form.submit();
+            });
+            
+            var sideOpen = function (open) {
+              var toggle = Array.prototype.find.call(document.querySelectorAll("[data-side-toggle]"), function (each) { return each.offsetParent !== null; });
+              var wasOpen = document.body.classList.contains("side-open");
+              document.body.classList.toggle("side-open", open);
+              if (!toggle) { return; }
+              toggle.setAttribute("aria-expanded", String(open));
+              if (open) { var first = document.querySelector(".side a, .side button"); if (first) { first.focus(); } }
+              else if (wasOpen && document.getElementById("side").contains(document.activeElement)) { toggle.focus(); }
+            };
+            document.addEventListener("click", function (event) {
+              if (event.target.closest("[data-side-toggle]")) { sideOpen(!document.body.classList.contains("side-open")); }
+              else if (event.target.matches(".scrim") || event.target.closest(".side a")) { sideOpen(false); }
+            });
+            document.addEventListener("keydown", function (event) {
+              if (event.key === "Escape" && document.body.classList.contains("side-open")) { sideOpen(false); }
+            });
+            document.addEventListener("submit", function (event) {
+              var ask = event.target.getAttribute && event.target.getAttribute("data-confirm");
+              if (ask && !confirm(ask)) { event.preventDefault(); return; }
+              
+              var busy = event.submitter;
+              if (busy && busy.dataset.busy) {
+                setTimeout(function () { busy.disabled = true; busy.textContent = busy.dataset.busy; }, 0);
+              }
+            });
+          </script>
+        </head>
+        <body class="h-[calc(100dvh-var(--lease-h,0rem))] overflow-hidden">
+        <a class="skip absolute top-3 left-3 z-[100] -translate-y-[200%] rounded-sm bg-surface px-4 py-2 text-ink shadow-2 focus:translate-y-0" href="#main">Skip to the page</a>
+        <div class="shell grid h-full min-h-0 grid-cols-[auto_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] @max-[56rem]:grid-cols-[minmax(0,1fr)]">
+        <aside id="side" aria-label="Menu" class="side relative flex min-h-0 min-w-0 w-13
+          @max-[56rem]:invisible @max-[56rem]:fixed @max-[56rem]:inset-y-0 @max-[56rem]:left-0 @max-[56rem]:z-20 @max-[56rem]:w-13 @max-[56rem]:-translate-x-full @max-[56rem]:bg-side @max-[56rem]:transition-[transform,visibility] @max-[56rem]:duration-[var(--gu-dur-base)]
+          side-open:@max-[56rem]:visible side-open:@max-[56rem]:translate-x-0 side-open:@max-[56rem]:shadow-3">
+          <nav class="rail flex w-13 flex-none flex-col items-center gap-1 border-r border-line bg-rail py-3" aria-label="Places">
+            <button class="brand-mark mb-2 grid size-10 cursor-pointer place-items-center rounded-md hover:bg-hover" type="button" data-orgs aria-label="Organizations" aria-expanded="false" aria-controls="orgs"><img class="size-6" src="/static/mark.svg?v=162a8be451" alt=""></button>
+            <a class="group/tip relative grid size-10 cursor-pointer place-items-center rounded-md p-0 text-faint no-underline transition-colors hover:bg-hover hover:text-ink aria-[current]:bg-hover aria-[current]:text-ink forced-colors:aria-[current]:bg-[SelectedItem] forced-colors:aria-[current]:text-[SelectedItemText] [&_svg.i]:size-4" href="/chat" aria-label="Chat"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></svg><span class="pointer-events-none absolute top-1/2 left-[calc(100%+0.5rem)] z-40 -translate-y-1/2 rounded-sm bg-ink px-3 py-1 text-xs font-medium whitespace-nowrap text-inverse opacity-0 transition-opacity group-hover/tip:opacity-100 group-hover/tip:delay-300 group-focus-visible/tip:opacity-100" aria-hidden="true">Chat</span></a>
+            <a class="group/tip relative grid size-10 cursor-pointer place-items-center rounded-md p-0 text-faint no-underline transition-colors hover:bg-hover hover:text-ink aria-[current]:bg-hover aria-[current]:text-ink forced-colors:aria-[current]:bg-[SelectedItem] forced-colors:aria-[current]:text-[SelectedItemText] [&_svg.i]:size-4" href="/files" aria-label="Files" aria-current="page"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span class="pointer-events-none absolute top-1/2 left-[calc(100%+0.5rem)] z-40 -translate-y-1/2 rounded-sm bg-ink px-3 py-1 text-xs font-medium whitespace-nowrap text-inverse opacity-0 transition-opacity group-hover/tip:opacity-100 group-hover/tip:delay-300 group-focus-visible/tip:opacity-100" aria-hidden="true">Files</span></a>
+            <a class="group/tip relative grid size-10 cursor-pointer place-items-center rounded-md p-0 text-faint no-underline transition-colors hover:bg-hover hover:text-ink aria-[current]:bg-hover aria-[current]:text-ink forced-colors:aria-[current]:bg-[SelectedItem] forced-colors:aria-[current]:text-[SelectedItemText] [&_svg.i]:size-4" href="/members" aria-label="Members"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="pointer-events-none absolute top-1/2 left-[calc(100%+0.5rem)] z-40 -translate-y-1/2 rounded-sm bg-ink px-3 py-1 text-xs font-medium whitespace-nowrap text-inverse opacity-0 transition-opacity group-hover/tip:opacity-100 group-hover/tip:delay-300 group-focus-visible/tip:opacity-100" aria-hidden="true">Members</span></a>
+            <a class="group/tip relative grid size-10 cursor-pointer place-items-center rounded-md p-0 text-faint no-underline transition-colors hover:bg-hover hover:text-ink aria-[current]:bg-hover aria-[current]:text-ink forced-colors:aria-[current]:bg-[SelectedItem] forced-colors:aria-[current]:text-[SelectedItemText] [&_svg.i]:size-4" href="/usage" aria-label="Usage"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg><span class="pointer-events-none absolute top-1/2 left-[calc(100%+0.5rem)] z-40 -translate-y-1/2 rounded-sm bg-ink px-3 py-1 text-xs font-medium whitespace-nowrap text-inverse opacity-0 transition-opacity group-hover/tip:opacity-100 group-hover/tip:delay-300 group-focus-visible/tip:opacity-100" aria-hidden="true">Usage</span></a>
+            <span class="flex-1"></span>
+            <span class="mb-1 h-px w-6 bg-line-strong" aria-hidden="true"></span>
+            
+            <button class="group/tip relative mt-1 grid size-10 cursor-pointer place-items-center rounded-full p-0 hover:bg-hover aria-expanded:bg-hover" type="button" data-look aria-label="Ada, account and settings" aria-expanded="false" aria-controls="look" title="ada@acme.com"><span class="grid size-8 place-items-center rounded-full bg-surface text-xs font-semibold text-ink shadow-1" aria-hidden="true">A</span><span class="pointer-events-none absolute top-1/2 left-[calc(100%+0.5rem)] z-40 -translate-y-1/2 rounded-sm bg-ink px-3 py-1 text-xs font-medium whitespace-nowrap text-inverse opacity-0 transition-opacity group-hover/tip:opacity-100 group-hover/tip:delay-300 group-focus-visible/tip:opacity-100" aria-hidden="true">Ada</span></button>
+          </nav>
+          
+          <div class="fixed top-3 left-[3.5rem] z-50 dropdown w-64" id="orgs" hidden role="dialog" aria-label="Organizations" data-from="https://cloud.test/orgs.json" data-current="acme-com" data-workspace="main">
+            <div class="grid gap-0.5" data-orgs-list><span class="dropdown-item bg-hover! [&_svg.i]:size-4"><span class="min-w-0 flex-1 truncate">Acme Research</span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+            <span class="dropdown-sep" aria-hidden="true"></span>
+            <a class="dropdown-item [&_svg.i]:size-4" href="https://cloud.test/orgs"><svg class="i size-4 flex-none text-subtle" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg> Manage organizations</a>
+          </div>
+          <div class="look fixed bottom-3 left-[3.5rem] z-50 grid w-64 gap-4 popover p-4" id="look" hidden role="dialog" aria-label="Settings">
+            <div class="grid gap-0.5"><a class="dropdown-item" href="/jobs"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg> Activity</a></div>
+            <div><h3 class="mb-2 text-xs font-semibold text-muted">Theme</h3><div class="flex gap-[0.1875rem] rounded-sm bg-wash p-[0.1875rem]"><button class="h-8 min-w-0 flex-1 cursor-pointer rounded-sm text-sm font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1 forced-colors:aria-pressed:bg-[SelectedItem] forced-colors:aria-pressed:text-[SelectedItemText]" type="button" data-mode="system">System</button><button class="h-8 min-w-0 flex-1 cursor-pointer rounded-sm text-sm font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1 forced-colors:aria-pressed:bg-[SelectedItem] forced-colors:aria-pressed:text-[SelectedItemText]" type="button" data-mode="light">Light</button><button class="h-8 min-w-0 flex-1 cursor-pointer rounded-sm text-sm font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1 forced-colors:aria-pressed:bg-[SelectedItem] forced-colors:aria-pressed:text-[SelectedItemText]" type="button" data-mode="dark">Dark</button></div></div>
+            <div><h3 class="mb-2 text-xs font-semibold text-muted">Text size</h3><div class="flex items-center gap-2"><button class="h-8 w-9 flex-none cursor-pointer rounded-md border border-line-strong bg-surface text-xs font-semibold text-ink hover:bg-wash" type="button" data-zoom="-1" aria-label="Smaller">A&minus;</button><output class="flex-1 text-center text-xs tabular-nums text-muted" id="look-size" aria-live="polite">100%</output><button class="h-8 w-9 flex-none cursor-pointer rounded-md border border-line-strong bg-surface text-xs font-semibold text-ink hover:bg-wash" type="button" data-zoom="1" aria-label="Larger">A+</button></div></div>
+            <div><h3 class="mb-2 text-xs font-semibold text-muted">Accent</h3><div class="flex justify-between">
+              <button class="size-[1.625rem] flex-none cursor-pointer rounded-full shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-surface),0_0_0_0.25rem_var(--gu-text)] bg-[#2B2B29]" type="button" data-accent="graphite" title="Graphite" aria-label="Graphite"></button>
+              <button class="size-[1.625rem] flex-none cursor-pointer rounded-full shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-surface),0_0_0_0.25rem_var(--gu-text)] bg-[#FF8A1F]" type="button" data-accent="orange" title="Orange" aria-label="Orange"></button>
+              <button class="size-[1.625rem] flex-none cursor-pointer rounded-full shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-surface),0_0_0_0.25rem_var(--gu-text)] bg-[#3B6FE0]" type="button" data-accent="blue" title="Blue" aria-label="Blue"></button>
+              <button class="size-[1.625rem] flex-none cursor-pointer rounded-full shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-surface),0_0_0_0.25rem_var(--gu-text)] bg-[#23805A]" type="button" data-accent="green" title="Green" aria-label="Green"></button>
+              <button class="size-[1.625rem] flex-none cursor-pointer rounded-full shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-surface),0_0_0_0.25rem_var(--gu-text)] bg-[#7352D4]" type="button" data-accent="violet" title="Violet" aria-label="Violet"></button>
+              <button class="size-[1.625rem] flex-none cursor-pointer rounded-full shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-surface),0_0_0_0.25rem_var(--gu-text)] bg-[#D23F67]" type="button" data-accent="rose" title="Rose" aria-label="Rose"></button>
+            </div></div>
+            <form class="border-t border-line pt-3" method="post" action="/logout"><button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-sm border-0 bg-transparent px-2 text-left text-sm font-medium text-ink hover:bg-hover" type="submit"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></svg> Sign out</button></form>
+          </div>
+          
+        </aside>
+        <div class="scrim hidden bg-scrim side-open:@max-[56rem]:fixed side-open:@max-[56rem]:inset-0 side-open:@max-[56rem]:z-10 side-open:@max-[56rem]:block"></div>
+        <main class="page min-h-0 min-w-0 overflow-y-auto" id="main" tabindex="-1">
+        <div class="mobile-bar hidden items-center gap-3 border-b border-line px-4 py-2 @max-[56rem]:flex [&:has(~.bar)]:hidden"><button class="grid size-9 cursor-pointer place-items-center rounded-sm text-ink hover:bg-hover" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg></button><a class="brand flex items-center gap-2 font-display text-base font-semibold text-inherit no-underline" href="/chat"><img class="w-5" src="/static/mark.png" alt=""> gusto</a></div>
+        
+        
+        <header class="bar sticky top-0 z-20 flex h-16 flex-none items-center gap-3 bg-canvas/92 px-4 backdrop-blur-xl @max-[56rem]:px-3"><button class="hidden size-8 flex-none cursor-pointer place-items-center rounded-md text-ink hover:bg-hover @max-[56rem]:grid [&>svg]:size-4" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg></button><div class="contents" id="files-bar"><div class="bar-where"><h1 class="bar-title">Files</h1></div></div></header>
+        <div class="wrap mx-auto max-w-page has-[.two-col,.page-wide]:max-w-page-wide px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16 [.bar~&]:pt-4">
+        
+        <div id="files-app"></div>
+        
+        <script src="/static/explorer.js?v=c3b68c84f1"></script>
+        <script src="/static/files.js?v=8666d362c2"></script>
+        
+        </div>
+        </main>
+        </div>
+        <script src="/static/resize.js?v=6bef2b0a69"></script>
+        <script src="/static/appearance.js?v=df6574f840"></script>
+        <script src="/static/orgs.js?v=6983d7a265"></script>
+        <script src="/static/reminder.js?v=ede35643ae"></script>
+        <script src="/static/sidetabs.js?v=a795e3f892"></script>
+        </body></html>
+    cloudlink_test.go:224: the page has data-reminder data-from="https://cloud.test/account.json" data-send="https://cloud.test/account/confirm":
+        <!doctype html>
+        <html lang="en">
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+        <title>gusto — files</title>
+        <link rel="icon" type="image/svg+xml" href="/static/mark.svg?v=162a8be451">
+        <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png?v=2f76291e40">
+        <link rel="apple-touch-icon" href="/static/apple-touch-icon.png?v=5dd9f48743">
+        <link rel="stylesheet" href="/static/tokens.css?v=c8e8196ffa">
+        <link rel="stylesheet" href="/static/fonts.css?v=72e043a43b">
+        <link rel="stylesheet" href="/static/theme.css?v=6e50451df5">
+        <link rel="stylesheet" href="/static/app.css?v=ad71147063">
+        <script src="/static/look.js?v=55c6291d51"></script>
+        
+        <script src="/static/htmx.min.js?v=d6fdc75f20" defer></script>
+        <script src="/static/keyboard.js?v=d681f3ef52" defer></script>
+        <script src="/static/menus.js?v=80b3acacf9" defer></script>
+        <script src="/static/lease.js?v=f4972fc68b" defer data-extend="https://cloud.test/lease?org=acme-com"></script><script src="/static/guide.js?v=d75345b17d" defer></script>
+          <script nonce="PSDy7XFJdn8ALUTE4w4uDm46gbVX4Fl-">
+            
+            try {
+              var drawn = document.documentElement.style;
+              var wide = localStorage.getItem("gusto-panel-w"), files = localStorage.getItem("gusto-files-w");
+              if (+wide) { drawn.setProperty("--panel-w", +wide + "rem"); }
+              if (+files) { drawn.setProperty("--files-w", +files + "rem"); }
+            } catch (e) {}
+            
+            
+            
+            document.addEventListener("change", function (event) {
+              var field = event.target;
+              if (!field.matches("[data-autosubmit]") || !field.form) { return; }
+              if (field.dataset.confirmWhen === field.value && !confirm(field.dataset.confirm)) { field.form.reset(); return; }
+              field.form.submit();
+            });
+            
+            var sideOpen = function (open) {
+              var toggle = Array.prototype.find.call(document.querySelectorAll("[data-side-toggle]"), function (each) { return each.offsetParent !== null; });
+              var wasOpen = document.body.classList.contains("side-open");
+              document.body.classList.toggle("side-open", open);
+              if (!toggle) { return; }
+              toggle.setAttribute("aria-expanded", String(open));
+              if (open) { var first = document.querySelector(".side a, .side button"); if (first) { first.focus(); } }
+              else if (wasOpen && document.getElementById("side").contains(document.activeElement)) { toggle.focus(); }
+            };
+            document.addEventListener("click", function (event) {
+              if (event.target.closest("[data-side-toggle]")) { sideOpen(!document.body.classList.contains("side-open")); }
+              else if (event.target.matches(".scrim") || event.target.closest(".side a")) { sideOpen(false); }
+            });
+            document.addEventListener("keydown", function (event) {
+              if (event.key === "Escape" && document.body.classList.contains("side-open")) { sideOpen(false); }
+            });
+            document.addEventListener("submit", function (event) {
+              var ask = event.target.getAttribute && event.target.getAttribute("data-confirm");
+              if (ask && !confirm(ask)) { event.preventDefault(); return; }
+              
+              var busy = event.submitter;
+              if (busy && busy.dataset.busy) {
+                setTimeout(function () { busy.disabled = true; busy.textContent = busy.dataset.busy; }, 0);
+              }
+            });
+          </script>
+        </head>
+        <body class="h-[calc(100dvh-var(--lease-h,0rem))] overflow-hidden">
+        <a class="skip absolute top-3 left-3 z-[100] -translate-y-[200%] rounded-sm bg-surface px-4 py-2 text-ink shadow-2 focus:translate-y-0" href="#main">Skip to the page</a>
+        <div class="shell grid h-full min-h-0 grid-cols-[auto_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] @max-[56rem]:grid-cols-[minmax(0,1fr)]">
+        <aside id="side" aria-label="Menu" class="side relative flex min-h-0 min-w-0 w-13
+          @max-[56rem]:invisible @max-[56rem]:fixed @max-[56rem]:inset-y-0 @max-[56rem]:left-0 @max-[56rem]:z-20 @max-[56rem]:w-13 @max-[56rem]:-translate-x-full @max-[56rem]:bg-side @max-[56rem]:transition-[transform,visibility] @max-[56rem]:duration-[var(--gu-dur-base)]
+          side-open:@max-[56rem]:visible side-open:@max-[56rem]:translate-x-0 side-open:@max-[56rem]:shadow-3">
+          <nav class="rail flex w-13 flex-none flex-col items-center gap-1 border-r border-line bg-rail py-3" aria-label="Places">
+            <button class="brand-mark mb-2 grid size-10 cursor-pointer place-items-center rounded-md hover:bg-hover" type="button" data-orgs aria-label="Organizations" aria-expanded="false" aria-controls="orgs"><img class="size-6" src="/static/mark.svg?v=162a8be451" alt=""></button>
+            <a class="group/tip relative grid size-10 cursor-pointer place-items-center rounded-md p-0 text-faint no-underline transition-colors hover:bg-hover hover:text-ink aria-[current]:bg-hover aria-[current]:text-ink forced-colors:aria-[current]:bg-[SelectedItem] forced-colors:aria-[current]:text-[SelectedItemText] [&_svg.i]:size-4" href="/chat" aria-label="Chat"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></svg><span class="pointer-events-none absolute top-1/2 left-[calc(100%+0.5rem)] z-40 -translate-y-1/2 rounded-sm bg-ink px-3 py-1 text-xs font-medium whitespace-nowrap text-inverse opacity-0 transition-opacity group-hover/tip:opacity-100 group-hover/tip:delay-300 group-focus-visible/tip:opacity-100" aria-hidden="true">Chat</span></a>
+            <a class="group/tip relative grid size-10 cursor-pointer place-items-center rounded-md p-0 text-faint no-underline transition-colors hover:bg-hover hover:text-ink aria-[current]:bg-hover aria-[current]:text-ink forced-colors:aria-[current]:bg-[SelectedItem] forced-colors:aria-[current]:text-[SelectedItemText] [&_svg.i]:size-4" href="/files" aria-label="Files" aria-current="page"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span class="pointer-events-none absolute top-1/2 left-[calc(100%+0.5rem)] z-40 -translate-y-1/2 rounded-sm bg-ink px-3 py-1 text-xs font-medium whitespace-nowrap text-inverse opacity-0 transition-opacity group-hover/tip:opacity-100 group-hover/tip:delay-300 group-focus-visible/tip:opacity-100" aria-hidden="true">Files</span></a>
+            <a class="group/tip relative grid size-10 cursor-pointer place-items-center rounded-md p-0 text-faint no-underline transition-colors hover:bg-hover hover:text-ink aria-[current]:bg-hover aria-[current]:text-ink forced-colors:aria-[current]:bg-[SelectedItem] forced-colors:aria-[current]:text-[SelectedItemText] [&_svg.i]:size-4" href="/members" aria-label="Members"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="pointer-events-none absolute top-1/2 left-[calc(100%+0.5rem)] z-40 -translate-y-1/2 rounded-sm bg-ink px-3 py-1 text-xs font-medium whitespace-nowrap text-inverse opacity-0 transition-opacity group-hover/tip:opacity-100 group-hover/tip:delay-300 group-focus-visible/tip:opacity-100" aria-hidden="true">Members</span></a>
+            <a class="group/tip relative grid size-10 cursor-pointer place-items-center rounded-md p-0 text-faint no-underline transition-colors hover:bg-hover hover:text-ink aria-[current]:bg-hover aria-[current]:text-ink forced-colors:aria-[current]:bg-[SelectedItem] forced-colors:aria-[current]:text-[SelectedItemText] [&_svg.i]:size-4" href="/usage" aria-label="Usage"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg><span class="pointer-events-none absolute top-1/2 left-[calc(100%+0.5rem)] z-40 -translate-y-1/2 rounded-sm bg-ink px-3 py-1 text-xs font-medium whitespace-nowrap text-inverse opacity-0 transition-opacity group-hover/tip:opacity-100 group-hover/tip:delay-300 group-focus-visible/tip:opacity-100" aria-hidden="true">Usage</span></a>
+            <span class="flex-1"></span>
+            <span class="mb-1 h-px w-6 bg-line-strong" aria-hidden="true"></span>
+            
+            <button class="group/tip relative mt-1 grid size-10 cursor-pointer place-items-center rounded-full p-0 hover:bg-hover aria-expanded:bg-hover" type="button" data-look aria-label="Ada, account and settings" aria-expanded="false" aria-controls="look" title="ada@acme.com"><span class="grid size-8 place-items-center rounded-full bg-surface text-xs font-semibold text-ink shadow-1" aria-hidden="true">A</span><span class="pointer-events-none absolute top-1/2 left-[calc(100%+0.5rem)] z-40 -translate-y-1/2 rounded-sm bg-ink px-3 py-1 text-xs font-medium whitespace-nowrap text-inverse opacity-0 transition-opacity group-hover/tip:opacity-100 group-hover/tip:delay-300 group-focus-visible/tip:opacity-100" aria-hidden="true">Ada</span></button>
+          </nav>
+          
+          <div class="fixed top-3 left-[3.5rem] z-50 dropdown w-64" id="orgs" hidden role="dialog" aria-label="Organizations" data-from="https://cloud.test/orgs.json" data-current="acme-com" data-workspace="main">
+            <div class="grid gap-0.5" data-orgs-list><span class="dropdown-item bg-hover! [&_svg.i]:size-4"><span class="min-w-0 flex-1 truncate">Acme Research</span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+            <span class="dropdown-sep" aria-hidden="true"></span>
+            <a class="dropdown-item [&_svg.i]:size-4" href="https://cloud.test/orgs"><svg class="i size-4 flex-none text-subtle" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg> Manage organizations</a>
+          </div>
+          <div class="look fixed bottom-3 left-[3.5rem] z-50 grid w-64 gap-4 popover p-4" id="look" hidden role="dialog" aria-label="Settings">
+            <div class="grid gap-0.5"><a class="dropdown-item" href="/jobs"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg> Activity</a></div>
+            <div><h3 class="mb-2 text-xs font-semibold text-muted">Theme</h3><div class="flex gap-[0.1875rem] rounded-sm bg-wash p-[0.1875rem]"><button class="h-8 min-w-0 flex-1 cursor-pointer rounded-sm text-sm font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1 forced-colors:aria-pressed:bg-[SelectedItem] forced-colors:aria-pressed:text-[SelectedItemText]" type="button" data-mode="system">System</button><button class="h-8 min-w-0 flex-1 cursor-pointer rounded-sm text-sm font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1 forced-colors:aria-pressed:bg-[SelectedItem] forced-colors:aria-pressed:text-[SelectedItemText]" type="button" data-mode="light">Light</button><button class="h-8 min-w-0 flex-1 cursor-pointer rounded-sm text-sm font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1 forced-colors:aria-pressed:bg-[SelectedItem] forced-colors:aria-pressed:text-[SelectedItemText]" type="button" data-mode="dark">Dark</button></div></div>
+            <div><h3 class="mb-2 text-xs font-semibold text-muted">Text size</h3><div class="flex items-center gap-2"><button class="h-8 w-9 flex-none cursor-pointer rounded-md border border-line-strong bg-surface text-xs font-semibold text-ink hover:bg-wash" type="button" data-zoom="-1" aria-label="Smaller">A&minus;</button><output class="flex-1 text-center text-xs tabular-nums text-muted" id="look-size" aria-live="polite">100%</output><button class="h-8 w-9 flex-none cursor-pointer rounded-md border border-line-strong bg-surface text-xs font-semibold text-ink hover:bg-wash" type="button" data-zoom="1" aria-label="Larger">A+</button></div></div>
+            <div><h3 class="mb-2 text-xs font-semibold text-muted">Accent</h3><div class="flex justify-between">
+              <button class="size-[1.625rem] flex-none cursor-pointer rounded-full shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-surface),0_0_0_0.25rem_var(--gu-text)] bg-[#2B2B29]" type="button" data-accent="graphite" title="Graphite" aria-label="Graphite"></button>
+              <button class="size-[1.625rem] flex-none cursor-pointer rounded-full shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-surface),0_0_0_0.25rem_var(--gu-text)] bg-[#FF8A1F]" type="button" data-accent="orange" title="Orange" aria-label="Orange"></button>
+              <button class="size-[1.625rem] flex-none cursor-pointer rounded-full shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-surface),0_0_0_0.25rem_var(--gu-text)] bg-[#3B6FE0]" type="button" data-accent="blue" title="Blue" aria-label="Blue"></button>
+              <button class="size-[1.625rem] flex-none cursor-pointer rounded-full shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-surface),0_0_0_0.25rem_var(--gu-text)] bg-[#23805A]" type="button" data-accent="green" title="Green" aria-label="Green"></button>
+              <button class="size-[1.625rem] flex-none cursor-pointer rounded-full shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-surface),0_0_0_0.25rem_var(--gu-text)] bg-[#7352D4]" type="button" data-accent="violet" title="Violet" aria-label="Violet"></button>
+              <button class="size-[1.625rem] flex-none cursor-pointer rounded-full shadow-[inset_0_0_0_0.0625rem_rgb(0_0_0/0.12)] aria-pressed:shadow-[0_0_0_0.125rem_var(--gu-surface),0_0_0_0.25rem_var(--gu-text)] bg-[#D23F67]" type="button" data-accent="rose" title="Rose" aria-label="Rose"></button>
+            </div></div>
+            <form class="border-t border-line pt-3" method="post" action="/logout"><button class="flex h-9 w-full cursor-pointer items-center gap-3 rounded-sm border-0 bg-transparent px-2 text-left text-sm font-medium text-ink hover:bg-hover" type="submit"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></svg> Sign out</button></form>
+          </div>
+          
+        </aside>
+        <div class="scrim hidden bg-scrim side-open:@max-[56rem]:fixed side-open:@max-[56rem]:inset-0 side-open:@max-[56rem]:z-10 side-open:@max-[56rem]:block"></div>
+        <main class="page min-h-0 min-w-0 overflow-y-auto" id="main" tabindex="-1">
+        <div class="mobile-bar hidden items-center gap-3 border-b border-line px-4 py-2 @max-[56rem]:flex [&:has(~.bar)]:hidden"><button class="grid size-9 cursor-pointer place-items-center rounded-sm text-ink hover:bg-hover" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg></button><a class="brand flex items-center gap-2 font-display text-base font-semibold text-inherit no-underline" href="/chat"><img class="w-5" src="/static/mark.png" alt=""> gusto</a></div>
+        
+        
+        <header class="bar sticky top-0 z-20 flex h-16 flex-none items-center gap-3 bg-canvas/92 px-4 backdrop-blur-xl @max-[56rem]:px-3"><button class="hidden size-8 flex-none cursor-pointer place-items-center rounded-md text-ink hover:bg-hover @max-[56rem]:grid [&>svg]:size-4" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg></button><div class="contents" id="files-bar"><div class="bar-where"><h1 class="bar-title">Files</h1></div></div></header>
+        <div class="wrap mx-auto max-w-page has-[.two-col,.page-wide]:max-w-page-wide px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16 [.bar~&]:pt-4">
+        
+        <div id="files-app"></div>
+        
+        <script src="/static/explorer.js?v=c3b68c84f1"></script>
+        <script src="/static/files.js?v=8666d362c2"></script>
+        
+        </div>
+        </main>
+        </div>
+        <script src="/static/resize.js?v=6bef2b0a69"></script>
+        <script src="/static/appearance.js?v=df6574f840"></script>
+        <script src="/static/orgs.js?v=6983d7a265"></script>
+        <script src="/static/reminder.js?v=ede35643ae"></script>
+        <script src="/static/sidetabs.js?v=a795e3f892"></script>
+        </body></html>
+keeping /var/folders/5_/9887_5g13_vg959myb77kdl00000gn/T/TestAFolderOnThePersonsComputerIsKeptTheSameAsTheirAgentsFolder338884835/009/thesis the same as thesis's folder in the cloud
+2026/11/15 15:09:14 ERROR a file in the inbox is not a change gusto cloud reports, and is set aside file=00000000000000000000-bad kind="" error="invalid character 'n' looking for beginning of object key string"
+2026/11/15 15:09:14 ERROR a file in the inbox is not a change gusto cloud reports, and is set aside file=00000000000000000001-nobody kind="" error="it names no kind of change, or nobody who made it"
+2026/11/15 15:09:14 ERROR a file in the inbox is not a change gusto cloud reports, and is set aside file=01794751754365343000-4e175765 kind=signin error=<nil>
+2026/11/15 15:09:14 ERROR a file in the inbox is not a change gusto cloud reports, and is set aside file=01794751754374333000-5889d8a4 kind=settings.changed error=<nil>
+2026/11/15 15:09:14 ERROR a change gusto cloud reported could not be recorded kind=member.removed error="write /var/folders/5_/9887_5g13_vg959myb77kdl00000gn/T/TestAnEventThatCannotBeWrittenStaysInTheInboxForTheNextPass2462999086/007/changes.jsonl: file already closed"
+2026/11/15 15:09:18 WARN a stopped task ended with an error task=20261115-1409-take-a-long-time error="context canceled"
+2026/11/15 15:09:24 WARN a sign-in could not be checked error="the identity token was not issued for this sign-in"
+2026/11/15 15:09:24 WARN a sign-in could not be checked error="the sign-in carried no verifier"
+2026/11/15 15:09:24 WARN a sign-in could not be checked error="oauth2: cannot fetch token: 400 Bad Request\nResponse: {\"error\":\"invalid_grant\"}\n"
+2026/11/15 15:09:24 INFO a sign-in was refused: no role maps to this person email=mallory@evil.test groups=0
+2026/11/15 15:09:30 ERROR retention could not read its holds, so it removed nothing error="invalid character 'n' looking for beginning of object key string"
+2026/11/15 15:09:31 WARN a stopped task ended with an error task=20261115-1409-atlas-take-a-long-time error="context canceled"
+2026/11/15 15:09:32 WARN a stopped task ended with an error task=20261115-1409-atlas-take-a-long-time error="context canceled"
+2026/11/15 15:09:54 WARN a stopped task ended with an error task=20261115-1409-a-long-piece-of-work error="context canceled"
+2026/11/15 15:09:54 WARN a stopped task ended with an error task=20261115-1409-holds-the-worker error="context canceled"
+2026/11/15 15:09:55 WARN a stopped task ended with an error task=20261115-1409-a-long-piece-of-work error="context canceled"
+FAIL
+FAIL	github.com/getlatentic/gusto/internal/web	105.179s
+FAIL

@@ -23,7 +23,7 @@ func TestTheThemeIsSetByOneScriptEveryPageLoads(t *testing.T) {
 	if err != nil || !strings.Contains(string(look), "window.gustoLook") {
 		t.Fatalf("static/look.js does not give window.gustoLook: %v", err)
 	}
-	if !strings.Contains(appHead(), "/static/look.js?v=") || !strings.Contains(appHead(), "/static/theme.css?v=") {
-		t.Errorf("the app's pages do not load the theme: %s", appHead())
+	if head := appHead(""); !strings.Contains(head, "/static/look.js?v=") || !strings.Contains(head, "/static/theme.css?v=") {
+		t.Errorf("the app's pages do not load the theme: %s", head)
 	}
 }

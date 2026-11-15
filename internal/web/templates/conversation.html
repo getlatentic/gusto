@@ -1,3 +1,11 @@
+{{/* A picker is a button that names the choice and a menu that lists the choices; picker.js fills the menu and the label.
+     It takes ID, Label, Name and Value for the hidden input, Options (JSON, optional), Below to open downward, and Form (optional). */}}
+{{define "picker"}}<div class="picker relative [&.locked>button]:cursor-default [&.locked>button]:opacity-75" id="{{.ID}}" data-picker{{with .Options}} data-options="{{.}}"{{end}} data-label="{{.Label}}">
+  <input type="hidden" name="{{.Name}}" value="{{.Value}}"{{with .Form}} form="{{.}}"{{end}}>
+  <button type="button" class="inline-flex h-8 max-w-60 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border-0 bg-transparent pr-2 pl-3 text-xs font-medium text-muted hover:bg-wash hover:text-ink open:bg-wash open:text-ink [&>svg]:size-3.5" aria-haspopup="listbox" aria-expanded="false"><span class="label block truncate">{{.Label}}</span>{{template "icon-chevron"}}</button>
+  <div class="menu absolute z-30 hidden max-h-[min(30rem,70dvh)] min-w-72 max-w-96 overflow-y-auto dropdown open:grid {{if .Below}}top-[calc(100%+0.25rem)] left-0{{else}}right-0 bottom-[calc(100%+0.5rem)]{{end}}" role="listbox"></div>
+</div>{{end}}
+
 {{template "head" .}}
 {{template "body" .}}
 

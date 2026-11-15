@@ -12,17 +12,15 @@ import (
 func TestAMessageInAnAddressIsShownOnlyWhenThisServerSaidIt(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	made := site.ask(t, "GET", "/chat?refused="+url.QueryEscape("Your account is locked. Call 555-0100."), nil).Body.String()
-	if strings.Contains(made, "Call 555-0100") {
-		t.Error("a message somebody put in a link was shown as the server's")
+	if made := chatOf(t, site, "?refused="+url.QueryEscape("Your account is locked. Call 555-0100.")); made.Refused != "" {
+		t.Errorf("a message somebody put in a link was shown as the server's: %q", made.Refused)
 	}
-	said := site.ask(t, "GET", site.server.withMessage("/chat", "refused", "That folder is not yours."), nil).Body.String()
-	if !strings.Contains(said, "That folder is not yours.") {
-		t.Error("a message this server said was not shown")
+	said := strings.TrimPrefix(site.server.withMessage("/chat", "refused", "That folder is not yours."), "/chat")
+	if chat := chatOf(t, site, said); chat.Refused != "That folder is not yours." {
+		t.Errorf("a message this server said was shown as %q", chat.Refused)
 	}
-	other := site.server.withMessage("/chat", "refused", "That folder is not yours.")
-	if forged := site.ask(t, "GET", strings.Replace(other, "folder", "account", 1), nil).Body.String(); strings.Contains(forged, "That account is not yours.") {
-		t.Error("a seal for one message let another be shown")
+	if forged := chatOf(t, site, strings.Replace(said, "folder", "account", 1)); forged.Refused != "" {
+		t.Errorf("a seal for one message let another be shown: %q", forged.Refused)
 	}
 }
 

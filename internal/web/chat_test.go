@@ -14,11 +14,12 @@ import (
 func TestTheChatPageOffersAnAgentAndAModel(t *testing.T) {
 	site := twoEngines(t)
 	site.signIn(t)
-	page := site.ask(t, "GET", "/chat", nil).Body.String()
-	for _, want := range []string{`name="harness"`, `name="model"`, `name="harness" value="first"`, `action="/chat"`} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the chat page lacks %s", want)
-		}
+	chat := chatOf(t, site, "")
+	if !chat.Ready || chat.Harness != "first" || !offers(chat.Agents, "first") || !offers(chat.Agents, "second") {
+		t.Errorf("the chat does not offer both agents with the first chosen: %+v", chat)
+	}
+	if chat.Model == "" || !offers(chat.Models["first"], chat.Model) {
+		t.Errorf("the chat does not choose a model of the first agent: %q of %+v", chat.Model, chat.Models["first"])
 	}
 }
 
@@ -36,8 +37,8 @@ func TestAChatGoesToTheChosenAgentAndCarriesOn(t *testing.T) {
 	if strings.Split(where, "/threads/")[0] != strings.Split(again, "/threads/")[0] || where[:strings.Index(where, "#")] == again[:strings.Index(again, "#")] {
 		t.Errorf("the second chat went to %q, not a new conversation on the same agent as %q", again, where)
 	}
-	if page := site.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, `name="harness" value="second"`) {
-		t.Error("the chat page does not offer the agent used last")
+	if chat := chatOf(t, site, ""); chat.Harness != "second" {
+		t.Errorf("the chat page opens on %q, not the agent used last", chat.Harness)
 	}
 }
 
@@ -113,8 +114,9 @@ func TestAPresetIsSavedFromTheChatAndOffered(t *testing.T) {
 	if saved.Code != http.StatusSeeOther || !strings.HasPrefix(where, "/chat?preset=") {
 		t.Fatalf("saving answered %d to %q", saved.Code, where)
 	}
-	if page := mine.ask(t, "GET", where, nil).Body.String(); !strings.Contains(page, "Reviewer") || !strings.Contains(page, `value="p:`) {
-		t.Errorf("the chat does not offer the preset and open on it:\n%s", page)
+	chat := chatOf(t, mine, strings.TrimPrefix(where, "/chat"))
+	if offered, found := chat.roleOf(chat.Role); !found || !strings.HasPrefix(chat.Role, "p:") || offered.Label != "Reviewer" {
+		t.Errorf("the chat does not offer the preset and open on it: %q of %+v", chat.Role, chat.Roles)
 	}
 	if roles := mine.ask(t, "GET", "/presets", nil).Body.String(); !strings.Contains(roles, "Reviewer") || !strings.Contains(roles, "Use in a new chat") {
 		t.Error("the roles page does not list the preset")

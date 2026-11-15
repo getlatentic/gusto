@@ -73,3 +73,24 @@ export function dayFromISO(text: string | null): Date | undefined {
   const m = text ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(text) : null
   return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : undefined
 }
+
+// bytes is a file's size at a glance: 512 B, 12 KB, 3.4 MB.
+export function bytes(n: number): string {
+  if (n < 1024) return `${n} B`
+  if (n < 1_048_576) return `${Math.round(n / 1024)} KB`
+  return `${(n / 1_048_576).toFixed(1)} MB`
+}
+
+// shortWhen is when something changed: the time when it was today, the day when it was this year, and the date before that.
+export function shortWhen(unix: number, now = new Date()): string {
+  if (!unix) return ""
+  const then = new Date(unix * 1000)
+  if (then.toDateString() === now.toDateString()) {
+    return then.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+  }
+  return then.toLocaleDateString([], {
+    day: "numeric",
+    month: "short",
+    year: then.getFullYear() === now.getFullYear() ? undefined : "numeric",
+  })
+}

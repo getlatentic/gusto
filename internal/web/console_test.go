@@ -203,7 +203,10 @@ func TestOnlyAnAdminSeesTheLinkToTheConsoleAndItIsTheOnlyOne(t *testing.T) {
 	runner, admin := here.as(t, alice), here.as(t, boss)
 	oldTask(t, here.site, "seen", 1)
 	where, _ := started(t, runner)
-	pages := []string{"/chat", "/jobs", "/spend", "/presets", "/compare", "/setups", "/engines", "/jobs/seen", where}
+	if !shellOf(t, admin).Admin || shellOf(t, runner).Admin {
+		t.Error("the shell gives the console to a runner, or not to an admin")
+	}
+	pages := []string{"/jobs", "/spend", "/presets", "/compare", "/setups", "/engines", "/jobs/seen", where}
 	for _, path := range pages {
 		as := admin.ask(t, "GET", path, nil).Body.String()
 		if got := strings.Count(as, `href="/admin`); got != 1 || !strings.Contains(as, `href="/admin"`) {

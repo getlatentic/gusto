@@ -168,8 +168,11 @@ func cookieOf(t *testing.T, answer *httptest.ResponseRecorder) *http.Cookie {
 func TestBehindGustoCloudTheMenuLeadsToThePersonsOrganizations(t *testing.T) {
 	behind := behindCloud(t)
 	behind.cookie = cookieOf(t, behind.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
-	if page := behind.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, `href="https://cloud.test/orgs"`) {
-		t.Errorf("the menu does not lead to the person's organizations:\n%s", page[:min(len(page), 900)])
+	if org := shellOf(t, behind).Org; org == nil || org.Manage != "https://cloud.test/orgs" {
+		t.Errorf("the menu does not lead to the person's organizations: %+v", org)
+	}
+	if page := behind.ask(t, "GET", "/files", nil).Body.String(); !strings.Contains(page, `href="https://cloud.test/orgs"`) {
+		t.Errorf("the menu of a page drawn here does not lead to the person's organizations:\n%s", page[:min(len(page), 900)])
 	}
 }
 
@@ -178,7 +181,7 @@ func TestBehindGustoCloudTheMenuLeadsToThePersonsOrganizations(t *testing.T) {
 func TestAnOrganizationsPagesCarryTheLeaseScriptOnlyBehindGustoCloud(t *testing.T) {
 	behind := behindCloud(t)
 	behind.cookie = cookieOf(t, behind.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
-	page := behind.ask(t, "GET", "/chat", nil).Body.String()
+	page := behind.ask(t, "GET", "/files", nil).Body.String()
 	if !strings.Contains(page, `src="/static/lease.js`) || !strings.Contains(page, `data-extend="https://cloud.test/lease?org=acme-com"`) {
 		t.Errorf("the page does not warn of the end of the host:\n%s", page[:min(len(page), 900)])
 	}
@@ -208,7 +211,12 @@ func TestTheRailsMarkSwitchesBetweenThePersonsOrganizationsBehindGustoCloud(t *t
 	s.server.UseCloud(Cloud{Key: entryKey, Org: "acme-com", Name: "Acme Research", URL: "https://cloud.test"})
 	s.handler = s.server.Handler()
 	s.cookie = cookieOf(t, s.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "runner", time.Now())))
-	page := s.ask(t, "GET", "/chat", nil)
+	want := orgLinks{Slug: "acme-com", Name: "Acme Research", Manage: "https://cloud.test/orgs", OrgsFrom: "https://cloud.test/orgs.json",
+		AccountFrom: "https://cloud.test/account.json", ConfirmAgain: "https://cloud.test/account/confirm"}
+	if org := shellOf(t, s).Org; org == nil || *org != want {
+		t.Errorf("the shell does not lead to the person's organizations: %+v", org)
+	}
+	page := s.ask(t, "GET", startedThread(t, s), nil)
 	body := page.Body.String()
 	for _, want := range []string{`data-orgs aria-label="Organizations"`, `data-from="https://cloud.test/orgs.json"`, `data-current="acme-com"`, `font-semibold text-ink">Acme Research</span>`, `href="https://cloud.test/orgs"`, "/static/orgs.js",
 		`data-reminder data-from="https://cloud.test/account.json" data-send="https://cloud.test/account/confirm"`, "/static/reminder.js"} {
@@ -222,7 +230,10 @@ func TestTheRailsMarkSwitchesBetweenThePersonsOrganizationsBehindGustoCloud(t *t
 
 	alone := open(t)
 	alone.signIn(t)
-	page = alone.ask(t, "GET", "/chat", nil)
+	if org := shellOf(t, alone).Org; org != nil {
+		t.Errorf("a server on its own is given an organization: %+v", org)
+	}
+	page = alone.ask(t, "GET", "/files", nil)
 	if body := page.Body.String(); strings.Contains(body, "data-orgs") || strings.Contains(body, "data-reminder") || !strings.Contains(body, `class="brand-mark mb-2 grid size-10 place-items-center" href="/chat"`) {
 		t.Errorf("a server on its own has its mark link home:\n%s", body)
 	}

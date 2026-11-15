@@ -42,7 +42,9 @@ describe("the console", () => {
     const links = screen
       .getAllByRole("link")
       .map((link) => link.getAttribute("href"))
-    expect(links.filter((href) => !href?.startsWith("/admin"))).toEqual(["/"])
+    expect(
+      links.filter((href) => !href?.startsWith("/admin") && href !== "#main")
+    ).toEqual(["/"])
     expect(screen.getByRole("link", { name: "Back to gusto" })).toBeTruthy()
   })
 

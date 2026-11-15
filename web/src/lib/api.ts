@@ -32,9 +32,9 @@ export async function getJSON<T>(
     headers: { Accept: "application/json" },
     signal,
   })
-  // A session that ended is sent to the sign-in page, which is a page and not JSON.
-  if (answer.redirected && new URL(answer.url).pathname === "/login") {
-    window.location.assign("/login")
+  // A session that ended answers 401. Loading the page again takes the person to sign in, and back to this page after.
+  if (answer.status === 401) {
+    window.location.reload()
     throw new Failure(401, "signed out")
   }
   if (!answer.ok) {

@@ -4,6 +4,7 @@ import { Link } from "react-router"
 // The pages this app draws. A link to one of them moves within the app; a link anywhere else is a page the server still
 // draws, and loads it.
 const appPages = [
+  /^\/chat$/,
   /^\/admin$/,
   /^\/admin\/spending$/,
   /^\/admin\/usage(?:\/[^/]+)?$/,

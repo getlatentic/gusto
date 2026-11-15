@@ -5,6 +5,7 @@ import (
 	"cmp"
 	"embed"
 	"errors"
+	"html"
 	"io/fs"
 	"net/http"
 	"sync"
@@ -16,6 +17,9 @@ import (
 //
 //go:embed all:spa/dist
 var spaFiles embed.FS
+
+// appDataPrefix is where every page of the app reads its data.
+const appDataPrefix = "/app/api/"
 
 // failed is why a page's data could not be given, with the status that says so.
 type failed struct {
@@ -65,13 +69,26 @@ func (s *Server) appViews() []appView {
 	}
 }
 
-// mountApp serves each of the app's pages at its own address and its data under /app/api, behind the console's sign-in.
-func (s *Server) mountApp(mux *http.ServeMux) {
-	for _, view := range s.appViews() {
-		mux.HandleFunc("GET "+view.path, s.console(offering(view.has, s.appPage)))
-		mux.HandleFunc("GET /app/api"+view.path, s.console(offering(view.has, s.appData(view.gather))))
+// personViews are a person's own pages that have moved to the React app.
+func (s *Server) personViews() []appView {
+	return []appView{
+		{"/chat", always, s.chatData},
 	}
+}
+
+// mountApp serves each of the app's pages at its own address and its data under /app/api: the console's behind the console's
+// sign-in, and a person's own behind theirs.
+func (s *Server) mountApp(mux *http.ServeMux) {
+	mount := func(views []appView, admit func(http.HandlerFunc) http.HandlerFunc) {
+		for _, view := range views {
+			mux.HandleFunc("GET "+view.path, admit(offering(view.has, s.appPage)))
+			mux.HandleFunc("GET /app/api"+view.path, admit(offering(view.has, s.appData(view.gather))))
+		}
+	}
+	mount(s.appViews(), s.console)
+	mount(s.personViews(), s.guard)
 	mux.HandleFunc("GET /app/api/console", s.console(s.consoleJSON))
+	mux.HandleFunc("GET /app/api/shell", s.guard(s.personShellJSON))
 	assets, err := fs.Sub(spaFiles, "spa/dist/assets")
 	if err != nil {
 		panic(err)
@@ -84,24 +101,26 @@ func (s *Server) mountApp(mux *http.ServeMux) {
 	})
 }
 
-// appHead is what the app's page loads from /static before its own files: the tokens, the faces and the theme, and the script
-// that sets the person's theme before anything is drawn. Each is named with its fingerprint, as the templates name them.
-func appHead() string {
-	return `<link rel="icon" type="image/svg+xml" href="` + asset("/static/mark.svg") + `">` +
+// appHead is what the app's page loads from /static before its own files: the tokens, the faces and the theme, the script that
+// sets the person's theme before anything is drawn, and the one that keeps the page above a phone's keyboard. Behind gusto cloud
+// it also loads the lease banner, which extends the host the organization runs on, and its guide. Each is named with its
+// fingerprint, as the templates name them.
+func appHead(lease string) string {
+	head := `<link rel="icon" type="image/svg+xml" href="` + asset("/static/mark.svg") + `">` +
 		`<link rel="stylesheet" href="` + asset("/static/tokens.css") + `">` +
 		`<link rel="stylesheet" href="` + asset("/static/fonts.css") + `">` +
 		`<link rel="stylesheet" href="` + asset("/static/theme.css") + `">` +
-		`<script src="` + asset("/static/look.js") + `"></script>`
+		`<script src="` + asset("/static/look.js") + `"></script>` +
+		`<script src="` + asset("/static/keyboard.js") + `" defer></script>`
+	if lease != "" {
+		head += `<script src="` + asset("/static/lease.js") + `" defer data-extend="` + html.EscapeString(lease) + `"></script>` +
+			`<script src="` + asset("/static/guide.js") + `" defer></script>`
+	}
+	return head
 }
 
-// appIndex is the app's one page as built, with its head filled in, made once.
-var appIndex = sync.OnceValues(func() ([]byte, error) {
-	page, err := spaFiles.ReadFile("spa/dist/index.html")
-	if err != nil {
-		return nil, err
-	}
-	return bytes.Replace(page, []byte("<!--gusto-head-->"), []byte(appHead()), 1), nil
-})
+// appIndex is the app's one page as built, read once.
+var appIndex = sync.OnceValues(func() ([]byte, error) { return spaFiles.ReadFile("spa/dist/index.html") })
 
 // appPage is the React app's one page, which draws whichever of its pages the address names.
 func (s *Server) appPage(w http.ResponseWriter, _ *http.Request) {
@@ -111,7 +130,7 @@ func (s *Server) appPage(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write(page)
+	_, _ = w.Write(bytes.Replace(page, []byte("<!--gusto-head-->"), []byte(appHead(s.leaseExtend())), 1))
 }
 
 // appData answers a page's data as JSON.

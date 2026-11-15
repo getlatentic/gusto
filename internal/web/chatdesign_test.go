@@ -34,17 +34,15 @@ func TestAProjectInTheSideListStartsAChatInItsFolder(t *testing.T) {
 	site.signIn(t)
 	id := strings.TrimPrefix(startedInstance(t, site), "/instances/")
 	site.ask(t, "POST", "/instances/"+id+"/threads/1/say", url.Values{"said": {"hello"}})
-	list := site.ask(t, "GET", "/chat", nil).Body.String()
-	if !strings.Contains(list, `href="/chat?at=`+id+`"`) {
-		t.Errorf("the project has no button for a new chat: %s", list)
+	if _, listed := shellOf(t, site).Rail.project(id); !listed {
+		t.Errorf("the side list does not carry the project %s to start a chat in", id)
 	}
-	page := site.ask(t, "GET", "/chat?at="+id, nil).Body.String()
-	if !strings.Contains(page, `data-at="`+id+`"`) {
-		t.Errorf("the chat does not open in the project's folder")
+	if chat := chatOf(t, site, "?at="+id); chat.Start.At != id {
+		t.Errorf("the chat opens in %q, not the project's folder", chat.Start.At)
 	}
 	for _, bad := range []string{"nobody", id + "/..", id + "/../.."} {
-		if page := site.ask(t, "GET", "/chat?at="+url.QueryEscape(bad), nil).Body.String(); strings.Contains(page, "data-at=") {
-			t.Errorf("%q opened a chat in a folder", bad)
+		if chat := chatOf(t, site, "?at="+url.QueryEscape(bad)); chat.Start.At != "" {
+			t.Errorf("%q opened a chat in %q", bad, chat.Start.At)
 		}
 	}
 }

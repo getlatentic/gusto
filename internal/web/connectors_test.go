@@ -62,7 +62,7 @@ func TestAPersonConnectsAnAppTheAdminTurnedOnAndTheirTaskReachesIt(t *testing.T)
 	if page := appsPageOf(t, here, strings.TrimPrefix(turnedOn, appsPath)); !page.app(t, "tasks").On || page.TurnedOn != "Tasks" {
 		t.Errorf("the admin's page does not show it on and that people connect it: %+v", page)
 	}
-	if page := ada.ask(t, "GET", "/chat", nil).Body.String(); strings.Contains(page, "/connections/tasks/connect") {
+	if chat := ada.dataText(t, "/chat"); strings.Contains(chat, "/connections/tasks/connect") {
 		t.Errorf("the chat page asks the person to connect an app; they connect it from Connections")
 	}
 	if page := ada.ask(t, "GET", "/connections", nil).Body.String(); !strings.Contains(page, `href="/connections/tasks/connect"`) {

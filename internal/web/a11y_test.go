@@ -18,7 +18,7 @@ func a11yPages(t *testing.T) map[string]*html.Node {
 	conversation := startedThread(t, site)
 	instance := conversation[:strings.Index(conversation, "/threads/")]
 	pages := map[string]*html.Node{}
-	for _, path := range []string{"/chat", "/jobs", "/files", "/spend", "/presets", conversation, instance} {
+	for _, path := range []string{"/jobs", "/files", "/spend", "/presets", conversation, instance} {
 		answer := site.ask(t, "GET", path, nil)
 		if answer.Code != http.StatusOK {
 			t.Fatalf("%s answered %d", path, answer.Code)
@@ -125,7 +125,7 @@ func TestEveryPageHasItsLandmarks(t *testing.T) {
 
 // A toggle says what it opens and whether it is open.
 func TestTogglesSayWhetherTheyAreOpen(t *testing.T) {
-	doc := a11yPages(t)["/chat"]
+	doc := a11yPages(t)["/files"]
 	for _, toggle := range []string{"data-look", "data-side-toggle"} {
 		found := false
 		each(doc, func(n *html.Node) {
@@ -137,7 +137,7 @@ func TestTogglesSayWhetherTheyAreOpen(t *testing.T) {
 			}
 		})
 		if !found {
-			t.Errorf("no %s button on the chat", toggle)
+			t.Errorf("no %s button on the files page", toggle)
 		}
 	}
 }
@@ -200,28 +200,13 @@ func TestACutNameIsWholeInItsTitle(t *testing.T) {
 	}
 }
 
-// A chat that could not start says why where it is read at once, linked to the box it is about, and the message is required.
+// A chat that could not start carries why, for the page to say at the box.
 func TestARefusedChatSaysWhyAtTheBox(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	doc, err := html.Parse(site.ask(t, "GET", site.server.withMessage("/chat", "refused", "That folder is not yours."), nil).Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var box, why *html.Node
-	each(doc, func(n *html.Node) {
-		if n.Data == "textarea" && attr(n, "name") == "said" {
-			box = n
-		}
-		if attr(n, "id") == "refused" {
-			why = n
-		}
-	})
-	if box == nil || why == nil {
-		t.Fatal("the chat has no box or no reason")
-	}
-	if attr(why, "role") != "alert" || attr(why, "id") == "" || attr(box, "aria-describedby") != attr(why, "id") || !hasAttr(box, "required") {
-		t.Errorf("the reason is not announced and linked to a required box: %s %s", render(why), render(box))
+	sealed := strings.TrimPrefix(site.server.withMessage("/chat", "refused", "That folder is not yours."), "/chat")
+	if chat := chatOf(t, site, sealed); chat.Refused != "That folder is not yours." || !chat.Ready {
+		t.Errorf("the chat does not carry the reason with a box to say it at: %+v", chat)
 	}
 }
 

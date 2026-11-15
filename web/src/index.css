@@ -7,6 +7,11 @@
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+/* nav is where a side list folds away into a menu, in the console and on a person's own pages alike. */
+@theme {
+  --breakpoint-nav: 56rem;
+}
+
 @theme inline {
   --font-sans: var(--gu-font-text);
   --font-heading: var(--gu-font-display);
@@ -53,6 +58,11 @@
   --color-bad-wash: var(--gu-danger-surface);
   --color-brand: var(--gu-accent);
   --color-brand-ink: var(--gu-accent-text);
+  --color-rail: var(--gu-rail);
+  --color-side: var(--gu-side);
+  --color-hover: var(--gu-hover);
+  --color-sunken: var(--gu-surface-sunken);
+  --color-surface: var(--gu-surface);
 
   --radius-xs: var(--gu-radius-xs);
   --radius-sm: var(--gu-radius-sm);
@@ -104,8 +114,13 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* The page is as tall as the window less the lease banner gusto cloud may show; keyboard.js shortens it while a phone's
+     keyboard is open, and the shells fill it. */
   body {
-    @apply bg-background font-sans text-foreground antialiased;
+    @apply h-[calc(100dvh-var(--lease-h,0rem))] overflow-hidden bg-background font-sans text-foreground antialiased;
+  }
+  #root {
+    @apply h-full;
   }
   h1,
   h2,

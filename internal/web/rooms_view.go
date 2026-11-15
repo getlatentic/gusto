@@ -122,6 +122,7 @@ func (s *Server) roomRows(r *http.Request, archived bool) []railChat {
 		if held.Direct && len(held.Agents) == 1 {
 			live := s.liveRoom(held).Agents[0]
 			room.Name, room.Harness = live.Name, live.Harness
+			room.Mark, room.MarkDark = logo(live.Harness), logoDark(live.Harness)
 		}
 		rooms = append(rooms, room)
 	}

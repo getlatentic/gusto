@@ -151,10 +151,10 @@ func aCrewAgent(t *testing.T, site *site, owner, name, harness string) crew.Agen
 func TestMakingARoomListsItForItsMembersAndNobodyElse(t *testing.T) {
 	work := &roomWork{}
 	site, id, thread := aRoom(t, work)
-	if page := site.as(t, alice).ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, "Launch plan") || !strings.Contains(page, thread) {
-		t.Error("the side list does not carry the room to the person who made it")
+	if room, listed := shellOf(t, site.as(t, alice)).Rail.room("Launch plan"); !listed || room.Where != thread {
+		t.Errorf("the side list does not carry the room to the person who made it: %+v", room)
 	}
-	if page := site.as(t, bob).ask(t, "GET", "/chat", nil).Body.String(); strings.Contains(page, "Launch plan") {
+	if _, listed := shellOf(t, site.as(t, bob)).Rail.room("Launch plan"); listed {
 		t.Error("the side list carries a room to somebody who is not in it")
 	}
 	if got := site.as(t, bob).ask(t, "GET", thread, nil); got.Code != http.StatusNotFound {
@@ -166,7 +166,7 @@ func TestMakingARoomListsItForItsMembersAndNobodyElse(t *testing.T) {
 	if got := site.as(t, bob).ask(t, "GET", thread, nil); got.Code != http.StatusOK {
 		t.Errorf("the room answered %d to a member", got.Code)
 	}
-	if page := site.as(t, bob).ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, "Launch plan") {
+	if _, listed := shellOf(t, site.as(t, bob)).Rail.room("Launch plan"); !listed {
 		t.Error("the side list does not carry the room to a member")
 	}
 }
@@ -375,19 +375,15 @@ func TestARoomCountsWhatAPersonHasNotReadAndWhatMentionsThem(t *testing.T) {
 	mine.ask(t, "POST", thread+"/say", url.Values{"said": {"@bob can you look?"}})
 	mine.ask(t, "POST", thread+"/say", url.Values{"said": {"and lunch at noon"}})
 
-	tabs := func(who *site) (unread, forYou string) {
-		page := who.ask(t, "GET", "/chat", nil).Body.String()
-		return between(page, `data-side-tab="unread">Unread`, "</button>"), between(page, `data-side-tab="me">@me`, "</button>")
+	if rail := shellOf(t, his).Rail; rail.Unread != 1 || rail.ForYou != 1 {
+		t.Errorf("bob's tabs count %d unread and %d for him, not one room unread that mentions him", rail.Unread, rail.ForYou)
 	}
-	if unread, forYou := tabs(his); !strings.Contains(unread, ">1<") || !strings.Contains(forYou, ">1<") {
-		t.Errorf("bob's tabs read %q and %q, not one room unread that mentions him", unread, forYou)
-	}
-	if unread, _ := tabs(mine); strings.Contains(unread, "<span") {
-		t.Errorf("what alice said herself counts as unread for her: %q", unread)
+	if rail := shellOf(t, mine).Rail; rail.Unread != 0 {
+		t.Errorf("what alice said herself counts as unread for her: %d", rail.Unread)
 	}
 	his.ask(t, "GET", thread, nil)
-	if unread, forYou := tabs(his); strings.Contains(unread, "<span") || strings.Contains(forYou, "<span") {
-		t.Errorf("after bob looked his tabs still read %q and %q", unread, forYou)
+	if rail := shellOf(t, his).Rail; rail.Unread != 0 || rail.ForYou != 0 {
+		t.Errorf("after bob looked his tabs still count %d and %d", rail.Unread, rail.ForYou)
 	}
 }
 
@@ -545,9 +541,8 @@ func TestARoomSaysWhetherItChangedAndIsWrittenOnlyWhenItDid(t *testing.T) {
 	if version() == before {
 		t.Error("the version did not move when a turn was said and answered")
 	}
-	unreadTab := between(his.ask(t, "GET", "/chat", nil).Body.String(), `data-side-tab="me">@me`, "</button>")
-	if !strings.Contains(unreadTab, ">1<") {
-		t.Errorf("a reply that mentions bob is not counted for him: %q", unreadTab)
+	if forYou := shellOf(t, his).Rail.ForYou; forYou != 1 {
+		t.Errorf("a reply that mentions bob is counted %d times for him", forYou)
 	}
 	if got := here.as(t, "carol@example.com").ask(t, "GET", thread+"/version", nil); got.Code != http.StatusNotFound {
 		t.Errorf("somebody outside the room read its version: %d", got.Code)

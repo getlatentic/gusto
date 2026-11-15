@@ -6,6 +6,7 @@ import "./index.css"
 import { QueryClientProvider } from "@tanstack/react-query"
 
 import { ConsoleShell } from "@/components/console-shell"
+import { PersonShell } from "@/components/person/person-shell"
 import { newQueryClient } from "@/lib/api"
 import { TooltipProvider } from "@/components/ui/tooltip"
 
@@ -57,6 +58,10 @@ const IntegrationPage = lazy(() =>
   }))
 )
 
+const ChatPage = lazy(() =>
+  import("@/pages/chat/chat-page").then((m) => ({ default: m.ChatPage }))
+)
+
 // The pages the gusto server hands to this app. Each address is also a route on the server, which serves this app for it
 // behind the same sign-in; any other address is a page the server draws.
 createRoot(document.getElementById("root")!).render(
@@ -66,6 +71,9 @@ createRoot(document.getElementById("root")!).render(
         <BrowserRouter>
           <Suspense>
             <Routes>
+              <Route element={<PersonShell />}>
+                <Route path="/chat" element={<ChatPage />} />
+              </Route>
               <Route path="/admin" element={<ConsoleShell />}>
                 <Route index element={<OverviewPage />} />
                 <Route path="spending" element={<SpendingPage />} />

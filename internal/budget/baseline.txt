@@ -126,7 +126,7 @@
 19 11 internal/web/templates.go:(*Server).runnersOf
 43 11 internal/web/templates.go:(*Server).startTemplate
 23 12 internal/web/usage_server.go:(*Server).UsageProvider
-98 4 internal/web/web.go:(*Server).Handler
+97 4 internal/web/web.go:(*Server).Handler
 29 11 internal/web/web.go:(*Server).render
 64 15 internal/web/workspace_write.go:(*Server).putFile
 29 16 internal/web/workspace_write.go:folderPath

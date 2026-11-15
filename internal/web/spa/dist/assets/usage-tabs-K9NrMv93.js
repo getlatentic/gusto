@@ -1,0 +1,1 @@
+import{n as e,sn as t}from"./controls-BFC3_hUB.js";var n=t();function r({current:t}){return(0,n.jsx)(e,{label:`Usage views`,current:t,tabs:[{key:`summary`,label:`Summary`,href:`/admin/spending`},{key:`tasks`,label:`Conversations`,href:`/admin/usage`}]})}export{r as t};

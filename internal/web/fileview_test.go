@@ -154,12 +154,15 @@ func TestTheListOfChatsIsBesideChatsAndTheRailLeadsToFiles(t *testing.T) {
 	if files.Code != http.StatusOK || !strings.Contains(files.Body.String(), `id="files-app"`) {
 		t.Fatalf("the files page answered %d", files.Code)
 	}
-	for _, page := range []string{"/files", "/jobs", "/spend", "/chat"} {
+	if _, listed := shellOf(t, site).Rail.project(id); !listed {
+		t.Errorf("the side list beside chats does not carry %s", id)
+	}
+	for _, page := range []string{"/files", "/jobs", "/spend"} {
 		body := site.ask(t, "GET", page, nil).Body.String()
 		if !strings.Contains(body, `href="/files"`) {
 			t.Errorf("%s does not carry the rail with Files in it", page)
 		}
-		if carries := strings.Contains(body, `href="/chat?at=`+id+`"`); carries != (page == "/chat") {
+		if carries := strings.Contains(body, `href="/chat?at=`+id+`"`); carries {
 			t.Errorf("%s carries the list of chats: %v", page, carries)
 		}
 		if strings.Contains(body, "hx-trigger=\"load\"") || strings.Contains(body, `href="/compare" data-tip`) {

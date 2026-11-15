@@ -250,9 +250,14 @@ func (k *keeper) sign(value string) string {
 
 // guard sends anybody this server does not know to the sign-in page, and never
 // to the thing they asked for. The page they asked for is remembered, so that
-// signing in takes them to it.
+// signing in takes them to it. A page's data is not a page to come back to: it
+// answers 401, and the page that asked reloads, which remembers the page.
 func (s *Server) guard(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if !s.keeper.knows(r) && strings.HasPrefix(r.URL.Path, appDataPrefix) {
+			http.Error(w, "sign in first", http.StatusUnauthorized)
+			return
+		}
 		if !s.keeper.knows(r) {
 			rememberWanted(w, r)
 			http.Redirect(w, r, "/login", http.StatusSeeOther)

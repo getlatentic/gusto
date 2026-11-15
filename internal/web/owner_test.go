@@ -77,8 +77,8 @@ func TestTheSideListCarriesOnlyYourOwnProjects(t *testing.T) {
 	}
 	hers, his := spoke(alice), spoke(bob)
 
-	page := site.as(t, alice).ask(t, "GET", "/chat", nil).Body.String()
-	if !strings.Contains(page, `href="/chat?at=`+hers+`"`) || strings.Contains(page, his) {
+	hersToo := site.as(t, alice)
+	if _, listed := shellOf(t, hersToo).Rail.project(hers); !listed || strings.Contains(hersToo.dataText(t, "/shell"), his) {
 		t.Errorf("alice's side list should carry %s and not %s", hers, his)
 	}
 }
@@ -215,7 +215,11 @@ func TestSpendIsYourOwnUnlessYouAreAnAdmin(t *testing.T) {
 // screen can tell whose it is.
 func TestTheRailSaysWhoIsSignedIn(t *testing.T) {
 	site := open(t)
-	page := site.as(t, "ada.lovelace@example.com").ask(t, "GET", "/chat", nil).Body.String()
+	ada := site.as(t, "ada.lovelace@example.com")
+	if who := shellOf(t, ada).SignedAs; who != (signedAs{Name: "Ada Lovelace", Initials: "AL", Who: "ada.lovelace@example.com"}) {
+		t.Errorf("the shell does not say who is signed in: %+v", who)
+	}
+	page := ada.ask(t, "GET", "/files", nil).Body.String()
 	if !strings.Contains(page, `aria-label="Ada Lovelace, account and settings"`) || !strings.Contains(page, `title="ada.lovelace@example.com"`) ||
 		!strings.Contains(page, `aria-hidden="true">AL</span>`) {
 		t.Errorf("the rail does not say who is signed in:\n%s", page)

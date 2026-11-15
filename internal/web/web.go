@@ -205,7 +205,6 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /files", s.guard(s.filesPage))
 	mux.HandleFunc("GET /chat/folders", s.guard(s.chatFolders))
 	mux.HandleFunc("POST /chat/folders", s.guard(s.newChatFolder))
-	mux.HandleFunc("GET /chat", s.guard(s.chatPage))
 	mux.HandleFunc("POST /chat", s.guard(s.startChat))
 	mux.HandleFunc("POST /presets", s.guard(s.savePreset))
 	mux.HandleFunc("POST /presets/{id}/delete", s.guard(s.deletePreset))

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 // A page's bar runs across the top of the pane: the pages above it, its title, and its few actions. On a narrow window it
-// carries the button that opens the side list.
+// carries the button that opens the side list. A title in words is also the window's.
 export function PageBar({
   title,
   crumbs = [],
@@ -20,10 +20,11 @@ export function PageBar({
   const navigation = useNavigation()
   return (
     <header className="sticky top-0 z-20 flex h-16 flex-none items-center gap-3 bg-background/92 px-4 backdrop-blur-xl max-md:px-3">
+      {typeof title === "string" && <title>{`${title} — gusto`}</title>}
       <Button
         variant="ghost"
         size="icon-sm"
-        className="md:hidden"
+        className="nav:hidden"
         aria-label="Menu"
         onClick={navigation.open}
       >

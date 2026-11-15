@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 
@@ -66,8 +67,7 @@ func TestSharingAnAgentLetsAnotherPersonMessageIt(t *testing.T) {
 	if !found || !direct.Direct || direct.RoleOf(alice) != "" {
 		t.Fatalf("the direct room is %+v", direct)
 	}
-	page := his.ask(t, "GET", "/chat", nil).Body.String()
-	if !strings.Contains(between(page, `aria-label="Direct messages"`, "</section>"), "Atlas") {
+	if direct := shellOf(t, his).Rail.Direct; !slices.ContainsFunc(direct, func(room railChat) bool { return room.Name == "Atlas" }) {
 		t.Error("the side list does not carry the direct room under Direct messages")
 	}
 	mine.ask(t, "POST", where+"/access", url.Values{"who": {bob}, "action": {"remove"}})

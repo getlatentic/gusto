@@ -24,7 +24,7 @@ func TestTheHomePageIsChatAndItsSideListLeadsBackIntoAChat(t *testing.T) {
 	if landed.Code != http.StatusSeeOther || landed.Header().Get("Location") != "/chat" {
 		t.Fatalf("the home address answered %d to %q", landed.Code, landed.Header().Get("Location"))
 	}
-	if body := site.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(body, `href="/chat?at=`+project+`"`) {
+	if _, listed := shellOf(t, site).Rail.project(project); !listed {
 		t.Errorf("the chat page's side list does not carry the project of %s", where)
 	}
 }
@@ -40,7 +40,7 @@ func TestARemovedHarnessLeavesTheListAndKeepsItsTasks(t *testing.T) {
 	if answer.Code != http.StatusSeeOther || answer.Header().Get("Location") != "/" {
 		t.Fatalf("removing answered %d to %q", answer.Code, answer.Header().Get("Location"))
 	}
-	if home := site.ask(t, "GET", "/chat", nil).Body.String(); strings.Contains(home, record.Instance) {
+	if _, listed := shellOf(t, site).Rail.project(record.Instance); listed {
 		t.Error("the removed harness is still listed")
 	}
 	if page := site.ask(t, "GET", "/jobs/"+id, nil); page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "removed") {

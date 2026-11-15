@@ -2,7 +2,6 @@ package web
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -38,9 +37,8 @@ func aRecordedRoom(t *testing.T, work *roomWork) (*site, *changelog.Log, string,
 
 // railOf is the side list the person of this session is shown.
 func railOf(t *testing.T, site *site, who string) railList {
-	request := httptest.NewRequest("GET", "/chat", nil)
-	request.AddCookie(site.as(t, who).cookie)
-	return site.server.railFor(request, "")
+	t.Helper()
+	return shellOf(t, site.as(t, who)).Rail
 }
 
 func TestAnAdminWritesGuidelinesAndEveryAgentIsToldThemInEveryTurn(t *testing.T) {
@@ -139,7 +137,10 @@ func TestAnArchivedRoomLeavesTheRailAndCannotBeSaidInUntilItIsBack(t *testing.T)
 	if rail := railOf(t, site, bob); len(rail.Rooms) != 0 || len(rail.Archived) != 1 {
 		t.Errorf("bob's rail holds %d rooms and %d archived", len(rail.Rooms), len(rail.Archived))
 	}
-	if page := mine.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, "Archived rooms") {
+	if archived := railOf(t, site, alice).Archived; len(archived) != 1 {
+		t.Errorf("the rail holds %d archived rooms for the admin", len(archived))
+	}
+	if page := mine.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "Archived rooms") {
 		t.Error("the rail has no way to the archived rooms")
 	}
 

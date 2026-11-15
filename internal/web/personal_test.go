@@ -125,8 +125,8 @@ func TestAPersonsTokenIsNeverAnAdminsEvenForAnAdmin(t *testing.T) {
 	here := withTokens(t)
 	here.server.UseAdmins([]string{alice})
 	_, _ = started(t, here.as(t, bob))
-	if page := here.as(t, alice).ask(t, "GET", "/", nil).Body.String(); !strings.Contains(page, "Admin") {
-		t.Skip("the site does not mark an admin's page the way this test looks for")
+	if !shellOf(t, here.as(t, alice)).Admin {
+		t.Fatal("alice is not an admin, so her token proves nothing")
 	}
 	secret := signInADevice(t, here, alice)
 	if list := here.getAs(secret, "/api/instances"); strings.TrimSpace(list.Body.String()) != "[]" {
