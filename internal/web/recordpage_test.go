@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -28,16 +29,18 @@ func TestAnRecordFileIsAPageWithTheWayBackForABrowserAndTheBytesForAnyoneElse(t 
 	file := "/jobs/" + id + "/files/transcript.log"
 
 	page := askAs(t, site, file, "text/html,application/xhtml+xml")
-	body := page.Body.String()
-	for _, want := range []string{"<html", `href="/jobs/` + id + `"`, "Back to the record", "?raw=1"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("the page lacks %q:\n%s", want, body)
-		}
+	if body := page.Body.String(); page.Code != http.StatusOK || !strings.Contains(body, `<div id="root">`) {
+		t.Errorf("a browser is not given the file's page: %d\n%s", page.Code, body)
 	}
-
-	framed := askAs(t, site, file+"?embed=1", "text/html")
-	if body := framed.Body.String(); framed.Code != http.StatusOK || strings.Contains(body, `id="side"`) || strings.Contains(body, "Back to the record") || framed.Header().Get("X-Frame-Options") != "SAMEORIGIN" {
-		t.Errorf("the file is not drawn alone for the file panel's frame: %d\n%s", framed.Code, body)
+	var shown fileJSON
+	site.data(t, file, &shown)
+	crumbs := []pageCrumb{{"Activity", "/jobs"}, {"Details", "/jobs/" + id}}
+	if shown.Back != "/jobs/"+id || shown.BackWord != "Back to the record" || !reflect.DeepEqual(shown.Crumbs, crumbs) || shown.File.Raw != file+"?raw=1" ||
+		shown.File.Download != file+"?raw=1&download=1" || shown.File.Kind != kindText || shown.Save != "" {
+		t.Errorf("the file's page is not under its record, with the way back: %+v", shown)
+	}
+	if got := site.ask(t, "GET", "/app/api/jobs/"+id+"/files/nothing.log", nil); got.Code != http.StatusNotFound {
+		t.Errorf("a file the record does not have answered %d", got.Code)
 	}
 
 	for name, accept := range map[string]string{"a program": "", "a program that takes anything": "*/*"} {

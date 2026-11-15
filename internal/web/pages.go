@@ -236,20 +236,17 @@ func (s *Server) turnAway(w http.ResponseWriter, r *http.Request, back, why stri
 }
 
 // file hands back one record file. The name is checked against the listing
-// rather than cleaned, so nothing outside out/ can be asked for.
+// rather than cleaned, so nothing outside out/ can be asked for. A person's browser is given the file in a page of the app, with the
+// way back to the record, so that the window of the desktop app, which has no address bar, has one; a program or a download is given
+// the bytes as they are.
 func (s *Server) file(w http.ResponseWriter, r *http.Request) {
-	record, dir, found := s.find(r)
+	_, dir, name, found := s.recordFileAsked(r)
 	if !found {
 		http.NotFound(w, r)
 		return
 	}
-	name := r.PathValue("name")
-	if !slicesContains(listing(dir), name) {
-		http.NotFound(w, r)
-		return
-	}
-	// A person's browser is given the file in a page, with the way back to the record, and a program or a download the bytes as they are.
-	if r.URL.Query().Get("raw") == "" && strings.Contains(r.Header.Get("Accept"), "text/html") && s.recordPage(w, r, record, dir, name) {
+	if r.URL.Query().Get("raw") == "" && strings.Contains(r.Header.Get("Accept"), "text/html") && shownAsPage(dir.OutFile(name)) {
+		s.appPage(w, r)
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -257,30 +254,48 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, dir.OutFile(name))
 }
 
-// recordPage draws one of a run's files as a page of the app, so that the window of the desktop app, which has no address bar, has a way
-// back to the record. It says whether it did: a file that is not text is not drawn, and is given as it is.
-func (s *Server) recordPage(w http.ResponseWriter, r *http.Request, record tasks.Record, dir task.Dir, name string) bool {
-	path := dir.OutFile(name)
+// recordFileAsked is the record and the file of it the address names, when the person may see them.
+func (s *Server) recordFileAsked(r *http.Request) (tasks.Record, task.Dir, string, bool) {
+	record, dir, found := s.find(r)
+	name := r.PathValue("name")
+	if !found || !slicesContains(listing(dir), name) {
+		return tasks.Record{}, "", "", false
+	}
+	return record, dir, name, true
+}
+
+// shownAsPage is whether a run's file is drawn as a page: one that is text is, and anything else is given as it is.
+func shownAsPage(path string) bool {
 	info, err := os.Stat(path)
 	if err != nil || info.IsDir() {
 		return false
 	}
 	head, _ := readSome(path, 8<<10)
-	switch kindOf(name, head) {
+	switch kindOf(filepath.Base(path), head) {
 	case kindText, kindMarkdown, kindTable, kindHTML:
-	default:
-		return false
+		return true
+	}
+	return false
+}
+
+// recordFileData is one of a run's files as the viewer draws it: as text, whatever it is, under the record it is part of.
+func (s *Server) recordFileData(r *http.Request) (map[string]any, error) {
+	record, dir, name, found := s.recordFileAsked(r)
+	if !found || !shownAsPage(dir.OutFile(name)) {
+		return nil, failed{http.StatusNotFound, "there is no such file"}
+	}
+	path := dir.OutFile(name)
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, failed{http.StatusNotFound, "there is no such file"}
 	}
 	here := "/jobs/" + record.ID + "/files/" + url.PathEscape(name)
 	file := viewedFile{Name: name, Kind: kindText, Size: measure(info.Size()), Modified: info.ModTime().Unix(), Raw: here + "?raw=1", Download: here + "?raw=1&download=1"}
 	s.fill(&file, path, info.Size())
-	page := map[string]any{
-		"Title": productName + " — " + name, "Nav": "jobs", "File": file, "TaskID": record.ID,
-		"Back": "/jobs/" + record.ID, "BackWord": "Back to the record",
-	}
-	embedded(w, r, page)
-	s.render(w, "file.html", page)
-	return true
+	return map[string]any{
+		"File": file, "Back": "/jobs/" + record.ID, "BackWord": "Back to the record", "Prose": "", "Save": "", "Source": "",
+		"Crumbs": []pageCrumb{{Label: "Activity", Href: "/jobs"}, {Label: "Details", Href: "/jobs/" + record.ID}},
+	}, nil
 }
 
 func (s *Server) find(r *http.Request) (tasks.Record, task.Dir, bool) {

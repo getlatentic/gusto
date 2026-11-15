@@ -117,3 +117,51 @@ export function emptyWords(shown: ShownFolders, filter: string): string {
     ? "This folder is empty."
     : "No projects yet. Choose New Project to start one."
 }
+
+// The Files page shows one place at its own address, so the browser's Back goes where the person was.
+
+// filesHref is the Files page open at a place.
+export function filesHref(at: string): string {
+  return at ? `/files?at=${encodeURIComponent(at)}` : "/files"
+}
+
+// viewerHref is the page of a file in the place open, which leads back to that place.
+export function viewerHref(at: string, name: string): string {
+  const [id, ...dir] = at.split("/")
+  const path = [...dir, name].join("/")
+  return `/instances/${encodeURIComponent(id)}/file?path=${encodeURIComponent(path)}&from=${encodeURIComponent(filesHref(at))}`
+}
+
+// chatHref is a new chat in the place open.
+export function chatHref(at: string): string {
+  return `/chat?at=${encodeURIComponent(at)}`
+}
+
+// trailOf is the Files page's bar: the places above this one, the top called Files, and the name of the place open.
+export function trailOf(shown: ShownFolders): {
+  crumbs: { label: string; href: string }[]
+  title: string
+} {
+  const above = shown.crumbs.slice(0, -1)
+  return {
+    crumbs: above.map((crumb, index) => ({
+      label: index === 0 ? "Files" : crumb.name,
+      href: filesHref(crumb.at),
+    })),
+    title:
+      above.length === 0 ? "Files" : shown.crumbs[shown.crumbs.length - 1].name,
+  }
+}
+
+// fileKindOf is how the list marks a file, by its name.
+export function fileKindOf(name: string): "image" | "table" | "code" | "file" {
+  if (/\.(png|jpe?g|gif|webp|svg|avif)$/i.test(name)) return "image"
+  if (/\.(csv|tsv|xlsx?)$/i.test(name)) return "table"
+  if (
+    /\.(js|mjs|ts|tsx|jsx|go|py|rb|rs|java|c|h|cpp|css|html?|json|ya?ml|toml|sh|sql|php)$/i.test(
+      name
+    )
+  )
+    return "code"
+  return "file"
+}

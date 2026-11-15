@@ -17,7 +17,6 @@ somebody else can change after review.
 | mark.svg | gusto's mark (brand/gusto-mark.svg) | 1353 | 162a8be4516144137fdfc650ee0b6fa3d4da1cb8b5bbe1b641cb4a8849b00c6b |
 | favicon-32.png | the mark at 32px, for the browser tab | 1080 | 2f76291e40d5f50aee45d619636a994e04afbaee508448db1a9fc987815e7fb0 |
 | apple-touch-icon.png | the mark on the page color at 180px, for a phone's home screen | 3437 | a9787f059c462ee5f967b8f4a1117cbd90b97031cdcee2c12100ab18b202ebb6 |
-| highlight.min.js | highlight.js 11.12.0, the common-languages browser build, BSD 3-Clause, from the npm package @highlightjs/cdn-assets (fetched 2026-10-09) | 129254 | 8ab71eb09c51f501e5e25157d9cff100e46cc29bcbfc744d0b746d451fca7f53 |
 
 Fetched 2026-09-26. Check them:
 
@@ -27,4 +26,4 @@ shasum -a 256 internal/web/static/*
 
 IBM Plex Sans, the text and display face, IBM Plex Serif, the face of the figures that matter, and JetBrains Mono, the code face, are vendored, so a page looks the same on every machine.
 
-The icons in `templates/layout.html` and `static/explorer.js` are from Lucide (https://lucide.dev, ISC license), on its 24 unit grid.
+The icons in `templates/layout.html` are from Lucide (https://lucide.dev, ISC license), on its 24 unit grid.

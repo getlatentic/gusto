@@ -2,10 +2,8 @@ package web
 
 import (
 	"encoding/csv"
-	"github.com/getlatentic/gusto/internal/instance"
 	"mime"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -58,7 +56,7 @@ func kindOf(name string, head []byte) fileKind {
 	return kindBinary
 }
 
-// shownFile is what the page for one file is drawn from.
+// viewedFile is what the page for one file is drawn from.
 type viewedFile struct {
 	Name, Path, Dir string
 	Kind            fileKind
@@ -75,71 +73,9 @@ type viewedFile struct {
 	Cut      bool
 	Rows     [][]string
 	Parts    []officePart
-	Crumbs   []crumb
 }
 
 const tableRows = 300
-
-// folderFile shows one file from an agent's folder as it is now, in the way its kind is read: text and Markdown as words, a picture as a
-// picture, a PDF in the page, a web page running in a sealed frame, a document, slide deck or sheet as the words it says, a table as a
-// table. The path is resolved inside the folder and refused if it leaves it, a link included, so nothing else on the machine can be asked for.
-func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
-	held, found := s.sharedOr404(w, r)
-	if !found {
-		return
-	}
-	asked := filepath.Clean("/" + r.URL.Query().Get("path"))
-	resolved, ok := resolveInFolder(s.instances.AgentFolder(held.ID), asked)
-	if !ok {
-		http.NotFound(w, r)
-		return
-	}
-	info, err := os.Stat(resolved)
-	if err != nil || info.IsDir() {
-		http.NotFound(w, r)
-		return
-	}
-	head, err := readSome(resolved, 8<<10)
-	if err != nil && info.Size() > 0 {
-		http.NotFound(w, r)
-		return
-	}
-	name := filepath.Base(asked)
-	file := viewedFile{Name: name, Path: strings.TrimPrefix(asked, "/"), Dir: strings.TrimPrefix(filepath.ToSlash(filepath.Dir(asked)), "/"),
-		Kind: kindOf(name, head), Size: measure(info.Size()), Modified: info.ModTime().Unix()}
-	query := "?path=" + url.QueryEscape(file.Path)
-	file.Raw = "/instances/" + held.ID + "/raw" + query
-	file.Download = file.Raw + "&download=1"
-	if file.Kind == kindHTML && r.URL.Query().Get("source") != "" {
-		file.Kind = kindText
-	}
-	s.fill(&file, resolved, info.Size())
-	editable(&file, resolved, info.Size(), held.Archived != 0)
-	s.drawFile(w, r, held, file)
-}
-
-// drawFile draws a file of an agent's folder as a page.
-func (s *Server) drawFile(w http.ResponseWriter, r *http.Request, held instance.Instance, file viewedFile) {
-	page := map[string]any{
-		"Title": productName + " — " + file.Name, "Nav": "files", "Instance": held, "Agent": s.agentOf(held),
-		"File": file, "Back": r.URL.Query().Get("from"), "Crumbs": s.fileCrumbs(held.ID, s.agentOf(held).Name, file.Path),
-	}
-	embedded(w, r, page)
-	s.render(w, "file.html", page)
-}
-
-// embedded draws a file's page alone when the request asks with embed, for the frame of the file panel beside a conversation: no
-// side list and no way back, which the conversation around it is. Only this server's own pages may put it in a frame, where every
-// other response may not be framed at all.
-func embedded(w http.ResponseWriter, r *http.Request, page map[string]any) {
-	if r.URL.Query().Get("embed") == "" {
-		return
-	}
-	page["Embed"], page["Rail"], page["Back"] = true, nil, ""
-	h := w.Header()
-	h.Set("Content-Security-Policy", strings.Replace(h.Get("Content-Security-Policy"), "frame-ancestors 'none'", "frame-ancestors 'self'", 1))
-	h.Set("X-Frame-Options", "SAMEORIGIN")
-}
 
 // fill reads what the kind of file needs of it.
 func (s *Server) fill(file *viewedFile, resolved string, size int64) {
@@ -175,18 +111,6 @@ func (s *Server) fill(file *viewedFile, resolved string, size int64) {
 		}
 		file.Parts = parts
 	}
-}
-
-// fileCrumbs is where a file is: the agent, then each folder it is in.
-func (s *Server) fileCrumbs(id, agent, path string) []crumb {
-	crumbs := []crumb{{Name: agent, At: id}}
-	walked := id
-	parts := strings.Split(path, "/")
-	for _, part := range parts[:len(parts)-1] {
-		walked += "/" + part
-		crumbs = append(crumbs, crumb{Name: part, At: walked})
-	}
-	return crumbs
 }
 
 // folderRaw gives a file of an agent's folder as it is, for the page to show in a frame, a picture or a player, or for the person to
@@ -268,11 +192,6 @@ func rawPolicy(kind fileKind) string {
 		return "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'"
 	}
 	return "default-src 'none'; style-src 'unsafe-inline'; img-src data:; media-src 'self'; frame-ancestors 'self'"
-}
-
-// filesPage is the explorer of the person's cloud computer as a page of its own. What it shows is read as the person moves about it.
-func (s *Server) filesPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "files.html", map[string]any{"Title": productName + " — files", "Nav": "files"})
 }
 
 // languages are the names highlight.js knows the common kinds of file by.

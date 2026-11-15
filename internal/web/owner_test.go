@@ -219,7 +219,7 @@ func TestTheRailSaysWhoIsSignedIn(t *testing.T) {
 	if who := shellOf(t, ada).SignedAs; who != (signedAs{Name: "Ada Lovelace", Initials: "AL", Who: "ada.lovelace@example.com"}) {
 		t.Errorf("the shell does not say who is signed in: %+v", who)
 	}
-	page := ada.ask(t, "GET", "/files", nil).Body.String()
+	page := ada.ask(t, "GET", "/jobs", nil).Body.String()
 	if !strings.Contains(page, `aria-label="Ada Lovelace, account and settings"`) || !strings.Contains(page, `title="ada.lovelace@example.com"`) ||
 		!strings.Contains(page, `aria-hidden="true">AL</span>`) {
 		t.Errorf("the rail does not say who is signed in:\n%s", page)

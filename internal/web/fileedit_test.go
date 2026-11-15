@@ -4,12 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"html"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 )
@@ -27,18 +25,14 @@ func TestATextFileShownWholeCanBeChangedAndOthersCannot(t *testing.T) {
 	os.WriteFile(filepath.Join(folder, "blob.bin"), []byte{0, 1, 2}, 0o644)
 
 	page := viewed(t, site, id, "plan.md")
-	source := regexp.MustCompile(`(?s)<textarea[^>]*name="text"[^>]*>\n(.*?)</textarea>`).FindStringSubmatch(page)
-	if !strings.Contains(page, "data-edit>Edit</button>") || source == nil || html.UnescapeString(source[1]) != "\n# Plan <b>\n" {
-		t.Fatalf("the file does not open to be changed as it is: %q", source)
+	if !page.File.Editable || page.File.Source != "\n# Plan <b>\n" || page.Save != "/instances/"+id+"/file?path=plan.md" {
+		t.Fatalf("the file does not open to be changed as it is: %+v", page)
 	}
-	if !strings.Contains(page, `name="seen" value="`+hashOf("\n# Plan <b>\n")+`"`) {
+	if page.File.Hash != hashOf("\n# Plan <b>\n") {
 		t.Error("the page does not say what the file was")
 	}
-	if framed := site.ask(t, "GET", "/instances/"+id+"/file?path=plan.md&embed=1", nil).Body.String(); !strings.Contains(framed, "data-file-edit") || !strings.Contains(framed, "/static/fileedit.js") {
-		t.Error("its page in the file panel's frame cannot change it")
-	}
 	for _, name := range []string{"big.txt", "blob.bin"} {
-		if strings.Contains(viewed(t, site, id, name), "data-file-edit") {
+		if shown := viewed(t, site, id, name); shown.File.Editable || shown.Save != "" || shown.File.Source != "" {
 			t.Errorf("%s opens to be changed", name)
 		}
 	}

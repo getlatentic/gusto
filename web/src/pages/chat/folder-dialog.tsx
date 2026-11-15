@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { NewFolderField } from "@/components/new-folder-field"
 import {
   chosenPlace,
   emptyWords,
@@ -465,13 +466,8 @@ function Contents({
   )
 }
 
-// NewFolder names a folder to make here: Enter makes it, Escape leaves it.
-function NewFolder({
-  top,
-  problem,
-  onMake,
-  onCancel,
-}: {
+// NewFolder names a folder to make here.
+function NewFolder(props: {
   top: boolean
   problem: string
   onMake: (name: string) => void
@@ -479,33 +475,7 @@ function NewFolder({
 }) {
   return (
     <div className="grid min-h-9 gap-1 px-4 py-1">
-      <span className="flex items-center gap-3">
-        <FolderIcon
-          aria-hidden="true"
-          className="size-4 flex-none text-muted-foreground"
-        />
-        <Input
-          autoFocus
-          maxLength={80}
-          placeholder={top ? "New project" : "New folder"}
-          aria-label="Name of the new folder"
-          data-testid="new-folder-name"
-          aria-invalid={Boolean(problem) || undefined}
-          aria-describedby={problem ? "new-folder-problem" : undefined}
-          className="h-8"
-          onKeyDown={(event) => {
-            event.stopPropagation()
-            if (event.key === "Enter" && event.currentTarget.value.trim())
-              onMake(event.currentTarget.value.trim())
-            if (event.key === "Escape") onCancel()
-          }}
-        />
-      </span>
-      {problem && (
-        <span id="new-folder-problem" className="ml-7 text-xs text-bad">
-          {problem}
-        </span>
-      )}
+      <NewFolderField {...props} />
     </div>
   )
 }

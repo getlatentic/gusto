@@ -12,7 +12,7 @@ test.describe("a reply's file", () => {
   test.describe("on a wide window", () => {
     test.use({ viewport: { width: 1440, height: 900 } })
 
-    test("opens beside the conversation, in a frame of the file's page", async ({
+    test("opens beside the conversation, drawn as its page draws it, and is changed there", async ({
       page,
       gusto,
     }) => {
@@ -22,13 +22,19 @@ test.describe("a reply's file", () => {
 
       const panel = page.getByTestId("file-panel")
       await expect(panel).toBeVisible()
-      const frame = panel.getByTestId("file-frame")
-      await expect(frame).toHaveAttribute(
-        "src",
-        /\/file\?path=policy\.md&.*embed=1/
-      )
-      await expect(frame.contentFrame().locator("body")).toContainText(
+      const file = panel.getByTestId("panel-file")
+      await expect(file.getByTestId("file-body")).toContainText(
         "Spending policy"
+      )
+      await expect(file.getByTestId("file-back")).toHaveCount(0)
+
+      await file.getByRole("button", { name: "Edit" }).click()
+      await file
+        .getByRole("textbox", { name: "The text of policy.md" })
+        .fill("# Revised policy\n")
+      await file.getByRole("button", { name: "Save" }).click()
+      await expect(file.getByTestId("file-body")).toContainText(
+        "Revised policy"
       )
       await expect(page).toHaveURL(new RegExp(`${room.path}$`))
     })

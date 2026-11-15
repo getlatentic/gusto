@@ -200,7 +200,6 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 
 	mux.HandleFunc("GET /{$}", s.guard(s.home))
-	mux.HandleFunc("GET /files", s.guard(s.filesPage))
 	mux.HandleFunc("GET /chat/folders", s.guard(s.chatFolders))
 	mux.HandleFunc("POST /chat/folders", s.guard(s.newChatFolder))
 	mux.HandleFunc("POST /chat", s.guard(s.startChat))
@@ -220,7 +219,6 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /instances", s.guard(s.startInstance))
 	mux.HandleFunc("GET /instances/{id}", s.guard(s.instancePage))
 	mux.HandleFunc("POST /instances/{id}/remove", s.guard(s.removeInstance))
-	mux.HandleFunc("GET /instances/{id}/file", s.guard(s.folderFile))
 	mux.HandleFunc("POST /instances/{id}/file", s.guard(s.saveFile))
 	mux.HandleFunc("GET /instances/{id}/files", s.guard(s.folderPage))
 	mux.HandleFunc("GET /instances/{id}/raw", s.guard(s.folderRaw))

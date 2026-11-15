@@ -24,7 +24,7 @@ func TestARoomsFileCardOpensInThePanelAndDownloadsUnderItsName(t *testing.T) {
 
 func openAndDownload(t *testing.T, here *site, who, id string) {
 	t.Helper()
-	panel := here.as(t, who).ask(t, "GET", "/instances/"+id+"/file?path=audience.md&embed=1", nil)
+	panel := here.as(t, who).ask(t, "GET", "/app/api/instances/"+id+"/file?path=audience.md", nil)
 	if panel.Code != http.StatusOK {
 		t.Errorf("%s: the panel answered %d: %.300s", who, panel.Code, panel.Body.String())
 	}

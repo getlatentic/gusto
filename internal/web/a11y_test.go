@@ -18,8 +18,8 @@ func a11yPages(t *testing.T) map[string]*html.Node {
 	conversation := startedThread(t, site)
 	instance := conversation[:strings.Index(conversation, "/threads/")]
 	pages := map[string]*html.Node{}
-	// A conversation is drawn by the React app, whose pages are checked where they are built.
-	for _, path := range []string{"/jobs", "/files", "/spend", "/presets", instance} {
+	// A conversation and the Files pages are drawn by the React app, whose pages are checked where they are built.
+	for _, path := range []string{"/jobs", "/spend", "/presets", instance} {
 		answer := site.ask(t, "GET", path, nil)
 		if answer.Code != http.StatusOK {
 			t.Fatalf("%s answered %d", path, answer.Code)
@@ -126,7 +126,7 @@ func TestEveryPageHasItsLandmarks(t *testing.T) {
 
 // A toggle says what it opens and whether it is open.
 func TestTogglesSayWhetherTheyAreOpen(t *testing.T) {
-	doc := a11yPages(t)["/files"]
+	doc := a11yPages(t)["/jobs"]
 	for _, toggle := range []string{"data-look", "data-side-toggle"} {
 		found := false
 		each(doc, func(n *html.Node) {
@@ -138,7 +138,7 @@ func TestTogglesSayWhetherTheyAreOpen(t *testing.T) {
 			}
 		})
 		if !found {
-			t.Errorf("no %s button on the files page", toggle)
+			t.Errorf("no %s button on the activity page", toggle)
 		}
 	}
 }

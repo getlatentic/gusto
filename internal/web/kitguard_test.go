@@ -45,7 +45,6 @@ var kitRules = []kitRule{
 
 // kitExceptions are the places that look like a component and are not one, each with why.
 var kitExceptions = map[string]string{
-	`file.html:<table class="w-auto min-w-full text-xs`:   "a CSV file shown as its grid of cells, not a table of records",
 	`task.html:<table class="w-full font-mono`:            "a diff, numbered line by line",
 	`admin-ui-kit.html:<span class="grid h-12`:            "a swatch of the solid colour",
 	`admin-ui-kit.html:<span class="size-16 rounded-md`:   "a swatch of each shadow",
@@ -53,7 +52,6 @@ var kitExceptions = map[string]string{
 	`desktop-handoff.html:<main class="grid w-full max-w`: "the hand-off panel, the only thing on its page",
 	`layout.html:<a class="skip`:                          "the skip link, which floats only while it has the keyboard",
 	`guide.js:bg-solid text-on-solid`:                     "the number of the step the tour is on",
-	`file.html:<textarea class="min-h-[60vh] w-full`:      "the editor of a whole file, in the file's own monospace",
 }
 
 // Every page and every script draws a shared control with its component class from tailwind/components.css, so no page can
