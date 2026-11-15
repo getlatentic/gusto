@@ -4,6 +4,9 @@
 @plugin "@tailwindcss/typography";
 /* Markdown reads the same here as in the pages the server draws. */
 @import "../../internal/web/tailwind/prose.css";
+/* The lease bar and the demo tour that gusto cloud adds to every page draw with this stylesheet's names. */
+@source "../../internal/web/static/lease.js";
+@source "../../internal/web/static/guide.js";
 
 /* shadcn's components read the variables below. Each one is a gusto token from /static/tokens.css and /static/theme.css, which the
    page loads first, so the theme and the accent a person chose in the app move these pages too. */

@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"errors"
+
 	"github.com/getlatentic/gusto/internal/isolation"
 	"github.com/getlatentic/gusto/internal/registry"
 	"github.com/getlatentic/gusto/pkg/proxy"

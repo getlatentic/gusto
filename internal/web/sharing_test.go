@@ -450,7 +450,7 @@ func TestOnAnAppsHostNameEveryPathIsTheAppsAndNoneIsAPageOfTheOrganization(t *te
 	site, _, gateway := behindCloudSharing(t)
 	id := sharedApp(t, site, startedInstance(t, site))
 	cookie := site.signedInTo(t, id)
-	for _, path := range []string{"/spend", "/instances/anything", "/jobs", "/tokens", "/logout", "/apps/" + id + "/", "/static/app.css"} {
+	for _, path := range []string{"/spend", "/instances/anything", "/jobs", "/tokens", "/logout", "/apps/" + id + "/", "/static/operator.css"} {
 		got := site.appRequest(t, id, "GET", path, cookie)
 		if !strings.Contains(got.Body.String(), "<h1>the app</h1> "+path) {
 			t.Errorf("%s was not the app's: %d %.100s", path, got.Code, got.Body)

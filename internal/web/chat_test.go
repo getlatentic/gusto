@@ -1,12 +1,13 @@
 package web
 
 import (
-	"github.com/getlatentic/gusto/internal/instance"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/getlatentic/gusto/internal/instance"
 )
 
 // The chat page offers the agent and the model its message will go to, with the

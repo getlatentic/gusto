@@ -4,15 +4,16 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/tasks"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 func challengeFor(secret string) string {

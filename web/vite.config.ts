@@ -43,6 +43,8 @@ export default defineConfig({
     exclude: [...configDefaults.exclude, "e2e/**"],
   },
   server: {
+    // The page scripts the server serves are read by the tests that run them.
+    fs: { allow: [".", "../internal/web/static"] },
     proxy: {
       "/app/api": gusto,
       "/static": gusto,

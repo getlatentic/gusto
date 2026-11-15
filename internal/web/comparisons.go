@@ -3,11 +3,12 @@ package web
 import (
 	"errors"
 	"fmt"
-	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/workspace"
 
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/compare"

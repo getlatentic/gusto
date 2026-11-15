@@ -1,11 +1,12 @@
 package web
 
 import (
-	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"net/url"
 	"slices"
 	"strings"
+
+	"github.com/getlatentic/gusto/internal/workspace"
 
 	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/roster"

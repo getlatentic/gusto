@@ -7,11 +7,7 @@
 package web
 
 import (
-	"cmp"
 	"context"
-	"embed"
-	"html/template"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -40,9 +36,6 @@ import (
 	"github.com/getlatentic/gusto/pkg/wire"
 )
 
-//go:embed templates/*.html
-var pages embed.FS
-
 type Server struct {
 	index     *tasks.Index
 	instances *instance.Store
@@ -51,7 +44,6 @@ type Server struct {
 	routineNews notify.Every
 	publicURL   string
 	keeper      *keeper
-	templates   *template.Template
 	identity    *Identity
 	catalog     []catalog.Entry
 	// liveCatalog, when set, is asked for the catalog each time a page wants it, as on a person's own computer, where they
@@ -152,17 +144,6 @@ func New(index *tasks.Index, instances *instance.Store, queue *tasks.Queue, pass
 	}
 	s := &Server{index: index, instances: instances, queue: queue, keeper: keeper, identity: identity, catalog: offered, models: models}
 	keeper.now = s.memberNow
-	s.templates, err = template.New("").Funcs(helpers).Funcs(template.FuncMap{
-		"personName": s.personName,
-		"initials":   s.initials,
-		// Where a host that has a lease is extended, which is at gusto cloud.
-		"leaseExtend": s.leaseExtend,
-		"costOf":      s.costOf,
-		"replyIn":     s.replyIn,
-	}).ParseFS(pages, "templates/*.html")
-	if err != nil {
-		return nil, err
-	}
 	// A server made only to read who is who has no tasks, so nothing to hand on.
 	if index != nil {
 		index.OnFinish(s.handOff)
@@ -272,33 +253,3 @@ func redirected(to string, status int) http.HandlerFunc {
 
 // productName is what every page calls itself.
 const productName = "gusto"
-
-func (s *Server) render(w http.ResponseWriter, page string, data any) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	// An inline script runs only with the nonce this response's policy names.
-	if fields, ok := data.(map[string]any); ok {
-		marks := markOf(w)
-		fields["Nonce"] = nonceOf(w)
-		fields["Admin"] = marks.admin
-		fields["Connections"] = s.hasConnectors()
-		if s.front != nil && s.front.Org != "" {
-			fields["Org"] = s.front.Org
-			fields["OrgName"] = cmp.Or(s.front.Name, s.front.Org)
-			fields["Organizations"] = s.front.URL + "/orgs"
-			fields["OrgsFrom"] = s.front.URL + "/orgs.json"
-			fields["AccountFrom"] = s.front.URL + "/account.json"
-			fields["ConfirmAgain"] = s.front.URL + "/account/confirm"
-		}
-		// Every page of the app carries the side list drawn with it, so that moving between pages does not redraw it.
-		if _, carried := fields["Rail"]; !carried && fields["Console"] == nil && marks.req != nil && s.keeper.knows(marks.req) {
-			fields["Rail"] = s.railFor(marks.req, "")
-		}
-		if marks.req != nil && s.keeper.knows(marks.req) {
-			fields["SignedAs"], fields["Workspace"], fields["Workspaces"] = s.signedAs(marks.req), s.workspaceOf(marks.req), s.shownWorkspaces(marks.req)
-		}
-	}
-	if err := s.templates.ExecuteTemplate(w, page, data); err != nil {
-		slog.Error("a page could not be drawn", "page", page, "error", err)
-		http.Error(w, "the page could not be drawn", http.StatusInternalServerError)
-	}
-}

@@ -3,110 +3,20 @@ package web
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/getlatentic/gusto/internal/workspace"
-	"html/template"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/workspace"
 
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/harness"
 	"github.com/getlatentic/gusto/pkg/task"
 )
-
-var helpers = template.FuncMap{
-	"modelName": modelName,
-	// dict passes more than one value to a template defined in another, which
-	// html/template has no literal for.
-	"dict": func(pairs ...any) map[string]any {
-		made := map[string]any{}
-		for i := 0; i+1 < len(pairs); i += 2 {
-			if key, ok := pairs[i].(string); ok {
-				made[key] = pairs[i+1]
-			}
-		}
-		return made
-	},
-	"when": func(unix int64) string {
-		if unix == 0 {
-			return ""
-		}
-		return time.Unix(unix, 0).Format("2 Jan 15:04")
-	},
-	// money is a cost a harness reported. It is a pointer because a cost of
-	// nothing and no cost reported are different answers, and a page must not
-	// show one as the other — and because a pointer handed to printf prints an
-	// address rather than an amount.
-	"money": func(usd *float64) string {
-		if usd == nil {
-			return ""
-		}
-		return fmt.Sprintf("$%.4f", *usd)
-	},
-	"tokens":  compact,
-	"brain":   modelName,
-	"hue":     fieldClass,
-	"initial": initial,
-	// split is a list text, such as "send tasks, read spending", as its items.
-	"split": func(text, by string) []string { return strings.Split(text, by) },
-	// modelOnly is a model without the credential that serves it, which is
-	// what somebody choosing between models reads.
-	"modelOnly": func(model string) string {
-		if _, alone, found := strings.Cut(model, "/"); found {
-			return alone
-		}
-		return model
-	},
-	// span is a number of seconds as a person says it.
-	"size": measure,
-	"span": func(seconds int64) string { return (time.Duration(seconds) * time.Second).String() },
-	"has":  func(list []string, item string) bool { return slices.Contains(list, item) },
-	"seconds": func(wall *float64) string {
-		if wall == nil {
-			return ""
-		}
-		return (time.Duration(*wall) * time.Second).String()
-	},
-	"markdown": markdown,
-	"asset":    asset,
-	"logo":     logo,
-	"logoDark": logoDark,
-	"base":     filepath.Base,
-	"add":      func(a, b int64) int64 { return a + b },
-	// usd is an amount of money as a headline shows it: cents once there are
-	// dollars, and the fractions of a cent an agent's calls cost until then.
-	"usd": headlineUSD,
-	// ago is how long ago something happened, as a list read at a glance says
-	// it, with the date itself once it is more than a day old.
-	"ago": func(unix int64) string {
-		if unix == 0 {
-			return ""
-		}
-		since := time.Since(time.Unix(unix, 0))
-		switch {
-		case since < time.Minute:
-			return "just now"
-		case since < time.Hour:
-			return fmt.Sprintf("%dm ago", int(since.Minutes()))
-		case since < 24*time.Hour:
-			return fmt.Sprintf("%dh ago", int(since.Hours()))
-		}
-		return time.Unix(unix, 0).Format("2 Jan")
-	},
-	// percent is a part of a whole, rounded, for a label.
-	"percent": func(part, whole int64) string {
-		if whole == 0 {
-			return "0%"
-		}
-		return fmt.Sprintf("%.0f%%", 100*float64(part)/float64(whole))
-	},
-	"took": took,
-}
 
 // took is how long something ran from one unix second to another, or nothing when it has not started or ended.
 func took(from, to int64) string {

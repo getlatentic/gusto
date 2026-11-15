@@ -2,13 +2,14 @@ package web
 
 import (
 	"cmp"
-	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"slices"
 	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/getlatentic/gusto/internal/workspace"
 
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/tasks"

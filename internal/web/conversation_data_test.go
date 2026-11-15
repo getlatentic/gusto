@@ -91,16 +91,6 @@ func (c conversationJSON) shows(text string) bool {
 	return false
 }
 
-// replies is every reply of the conversation, as HTML, one after another.
-func (c conversationJSON) replies() string {
-	var all strings.Builder
-	for _, each := range c.Turns {
-		all.WriteString(each.ReplyHTML)
-		all.WriteByte('\n')
-	}
-	return all.String()
-}
-
 // turnOf is the turn a live frame carries, or nothing for a frame without one.
 func turnOf(t *testing.T, frame roomlive.Frame) turnView {
 	t.Helper()

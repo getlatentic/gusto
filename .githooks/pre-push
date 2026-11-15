@@ -63,8 +63,8 @@ check_css() {
   "$build" >/dev/null
   git diff --quiet -- "$out" || fail "$out is not what its sources build; run $build and commit it"
 }
-if printf '%s\n' "$changed" | grep -qE '^internal/web/(tailwind/|templates/|static/(theme|tokens)\.css|static/.*\.js)'; then
-  check_css internal/web/tailwind/build.sh internal/web/static/app.css
+if printf '%s\n' "$changed" | grep -qE '^internal/(web/tailwind/|operator/templates/|web/static/(theme|tokens)\.css)'; then
+  check_css internal/web/tailwind/build.sh internal/web/static/operator.css
 fi
 if printf '%s\n' "$changed" | grep -qE '^internal/cloud/(tailwind/|templates/)'; then
   check_css internal/cloud/tailwind/build.sh internal/cloud/static/cloud.css

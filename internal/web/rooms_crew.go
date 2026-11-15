@@ -1,12 +1,13 @@
 package web
 
 import (
-	"github.com/getlatentic/gusto/internal/workspace"
 	"html/template"
 	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/getlatentic/gusto/internal/workspace"
 
 	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/instance"

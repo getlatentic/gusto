@@ -7,27 +7,32 @@
   var extend = document.currentScript && document.currentScript.getAttribute("data-extend");
   var warnAt = 300, every = 30000, left = null, bar = null, link = null, text = null, book = null, stop = null, invite = null, demo = false, strip = "2rem";
 
-  var action = "font-semibold underline underline-offset-2";
+  // The bar is drawn on the app's pages and on gusto cloud's, whose stylesheets differ, so it styles itself from the tokens
+  // both load.
+  var action = "color:inherit;font-weight:600;text-decoration:underline;text-underline-offset:2px";
 
-  function anchor(label, classes) {
+  function anchor(label, style) {
     var a = document.createElement("a");
     a.textContent = label;
     a.target = "_blank";
     a.rel = "noopener";
-    a.className = classes;
+    a.style.cssText = style;
     return a;
   }
 
   function build() {
     bar = document.createElement("div");
     bar.setAttribute("role", "status");
-    bar.className = "fixed inset-x-0 bottom-0 z-[1000] box-border flex h-8 items-center justify-center gap-3 overflow-hidden whitespace-nowrap bg-ink px-4 text-sm font-medium text-inverse";
+    bar.dataset.testid = "lease-bar";
+    bar.style.cssText = "position:fixed;inset:auto 0 0 0;z-index:1000;box-sizing:border-box;display:flex;height:" + strip + ";align-items:center;" +
+      "justify-content:center;gap:0.75rem;overflow:hidden;white-space:nowrap;padding:0 1rem;background:var(--gu-text);color:var(--gu-text-inverse);" +
+      "font:500 0.875rem/1 var(--gu-font-text)";
     text = document.createElement("span");
     link = anchor("Keep it", action);
     link.href = extend || "/lease";
     book = anchor("Book a call", action);
     book.hidden = true;
-    stop = anchor("End demo", "opacity-70 hover:opacity-100");
+    stop = anchor("End demo", "color:inherit;opacity:0.8");
     stop.hidden = true;
     invite = anchor("Invite a colleague", action);
     invite.hidden = true;

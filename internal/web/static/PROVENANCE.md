@@ -6,7 +6,6 @@ somebody else can change after review.
 
 | file | what it is | size | sha256 |
 | --- | --- | --- | --- |
-| htmx.min.js | htmx 2.0.11, from https://cdn.jsdelivr.net/npm/htmx.org@2/dist/htmx.min.js | 52182 | d6fdc75f204e6bdefa99b69bf1e6d4ac69b8a364f77929f45c13476b4000f717 |
 | tokens.css | gusto's design tokens | 4808 | c8e8196ffaed04d92e0383e7ba61edbf2c9630ce4505a66006a80cf842a0bf7b |
 | ibm-plex-sans.woff2 | IBM Plex Sans, weights 100 to 700, latin subset, SIL Open Font License 1.1, from the npm package @fontsource-variable/ibm-plex-sans 5.3.0 (fetched 2026-11-15) | 45712 | e2291e842cf5af167122a22881a740c7f2dda7716f1e8cd76680264f4a859470 |
 | ibm-plex-serif-400.woff2 | IBM Plex Serif, weight 400, latin subset, SIL Open Font License 1.1, from the npm package @fontsource/ibm-plex-serif 5.3.0 (fetched 2026-11-15) | 19580 | cb2c5eee2c0a43ff30d2365407c7bc8b20e3bd90720a4a64102ba0b328022a02 |
@@ -25,5 +24,3 @@ shasum -a 256 internal/web/static/*
 ```
 
 IBM Plex Sans, the text and display face, IBM Plex Serif, the face of the figures that matter, and JetBrains Mono, the code face, are vendored, so a page looks the same on every machine.
-
-The icons in `templates/layout.html` are from Lucide (https://lucide.dev, ISC license), on its 24 unit grid.

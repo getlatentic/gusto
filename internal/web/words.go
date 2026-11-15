@@ -101,19 +101,3 @@ func modelName(model string) string {
 	}
 	return strings.Join(words, " ")
 }
-
-// fieldClass is the color a field's work is drawn in.
-func fieldClass(field string) string {
-	if field == "" {
-		return "hue-general"
-	}
-	return "hue-" + strings.ToLower(field)
-}
-
-// initial is the first letter of a name, for a mark.
-func initial(name string) string {
-	for _, letter := range name {
-		return strings.ToUpper(string(letter))
-	}
-	return "·"
-}

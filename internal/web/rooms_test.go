@@ -412,15 +412,6 @@ func TestARoomCountsWhatAPersonHasNotReadAndWhatMentionsThem(t *testing.T) {
 	}
 }
 
-func between(text, start, end string) string {
-	at := strings.Index(text, start)
-	if at < 0 {
-		return ""
-	}
-	text = text[at+len(start):]
-	return text[:max(strings.Index(text, end), 0)]
-}
-
 func TestAWorkspaceAgentAndAPersonAreAddedToARoomTogether(t *testing.T) {
 	work := &roomWork{}
 	here, id, thread := aRoom(t, work)

@@ -2,12 +2,13 @@ package web
 
 import (
 	"encoding/json"
-	"github.com/coreos/go-oidc/v3/oidc"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/coreos/go-oidc/v3/oidc"
 
 	"github.com/getlatentic/gusto/internal/changelog"
 )

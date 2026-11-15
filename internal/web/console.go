@@ -58,21 +58,8 @@ func (s *Server) hasTokens() bool    { return s.tokens != nil }
 func (s *Server) hasRetention() bool { return s.retention != nil }
 func (s *Server) hasSetups() bool    { return s.setups != nil }
 
-// drawConsole draws a page of the console. key names the section it belongs to.
-func (s *Server) drawConsole(w http.ResponseWriter, name, key string, page map[string]any) {
-	page["Console"], page["Nav"], page["Sections"] = true, key, s.sections()
-	if s.front != nil {
-		page["Org"] = s.front.Org
-		if s.front.Org != "" {
-			page["OrgPage"] = s.front.page("/org", nil)
-		}
-	}
-	s.render(w, name, page)
-}
-
 func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	s.mountApp(mux)
-	mux.HandleFunc("GET "+uiKitPath, s.console(s.uiKitPage))
 
 	changes := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasChanges, next)) }
 	mux.HandleFunc("GET /admin/activity.jsonl", changes(s.changesFile))

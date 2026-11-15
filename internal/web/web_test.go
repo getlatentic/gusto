@@ -271,17 +271,13 @@ func TestAFinishedTurnInTheSnapshotIsTheTurnThePageHas(t *testing.T) {
 
 func TestWhatIsVendoredIsServedFromTheBinary(t *testing.T) {
 	site := open(t)
-	answer := site.ask(t, "GET", "/static/htmx.min.js", nil)
+	// It is in the binary, so it needs no sign-in: it is the same bytes for everybody and a page draws its text with it.
+	answer := site.ask(t, "GET", "/static/ibm-plex-sans.woff2", nil)
 	if answer.Code != http.StatusOK {
 		t.Fatalf("code %d", answer.Code)
 	}
-	if answer.Body.Len() < 10_000 {
-		t.Fatalf("%d bytes came back, which is not htmx", answer.Body.Len())
-	}
-	// It is in the binary, so it needs no sign-in: it is the same bytes for
-	// everybody and a page cannot render without it.
-	if strings.Contains(answer.Body.String(), "cdn.") {
-		t.Fatal("the vendored copy reaches a content delivery network")
+	if answer.Body.Len() < 10_000 || !strings.HasPrefix(answer.Body.String(), "wOF2") {
+		t.Fatalf("%d bytes came back, which is not the font", answer.Body.Len())
 	}
 }
 
@@ -436,27 +432,6 @@ func TestTheSharedPasswordIsNotOfferedBesideAProvider(t *testing.T) {
 	// A wrong one keeps it open, or there is nowhere to try again.
 	if wrong := signInOf(t, site, "?wrong=1"); !wrong.Shared || !wrong.Wrong {
 		t.Error("a wrong password left nowhere to try again")
-	}
-}
-
-// A cost is a pointer, because a cost of nothing and no cost reported are
-// different answers. Handed to printf it prints an address, which is what the
-// page showed the first time a harness reported one.
-func TestACostIsShownAsMoneyAndNotAsAPointer(t *testing.T) {
-	shown, ok := helpers["money"].(func(*float64) string)
-	if !ok {
-		t.Fatal("there is no money helper")
-	}
-	amount := 1.3161
-	if got := shown(&amount); got != "$1.3161" {
-		t.Errorf("a cost of %v is shown as %q", amount, got)
-	}
-	nothing := 0.0
-	if got := shown(&nothing); got != "$0.0000" {
-		t.Errorf("a cost of nothing is shown as %q, and it was reported", got)
-	}
-	if got := shown(nil); got != "" {
-		t.Errorf("a cost nobody reported is shown as %q", got)
 	}
 }
 

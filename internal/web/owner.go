@@ -1,9 +1,10 @@
 package web
 
 import (
-	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"strings"
+
+	"github.com/getlatentic/gusto/internal/workspace"
 
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/instance"

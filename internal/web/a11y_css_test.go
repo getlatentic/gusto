@@ -121,13 +121,13 @@ var (
 
 // Motion is short, and none of it is left for a person who asks for less. The spinner turns for as long as a turn runs, and is exempt.
 func TestMotionIsShortAndOptional(t *testing.T) {
-	app, err := fs.ReadFile(assets, "static/app.css")
+	app, err := fs.ReadFile(assets, "static/operator.css")
 	if err != nil {
 		t.Fatal(err)
 	}
 	rule := motionRule.FindStringSubmatch(strings.NewReplacer(" ", "", "\n", "", "\t", "").Replace(string(app)))
 	if rule == nil || !strings.Contains(rule[1], "transition-duration:0s") || !strings.Contains(rule[1], "animation-duration:0s") {
-		t.Fatal("app.css does not stop every transition and animation under prefers-reduced-motion")
+		t.Fatal("operator.css does not stop every transition and animation under prefers-reduced-motion")
 	}
 	err = fs.WalkDir(assets, "static", func(path string, entry fs.DirEntry, err error) error {
 		if err != nil || entry.IsDir() || !strings.HasSuffix(path, ".css") || strings.HasSuffix(path, "tokens.css") {
