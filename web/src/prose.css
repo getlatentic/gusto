@@ -1,0 +1,60 @@
+/* Markdown as it is read: the typography plugin, on the gusto tokens. */
+@source inline("prose");
+
+/* Unlayered, so every rule here beats the plugin's own in the utilities layer. */
+.prose {
+  /* A grid item sizes to its widest line unless told not to, and a wide code block would then push the reply off the page. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--gu-font-text);
+}
+.prose :where(code):not(:where(pre *)) { font-family: var(--gu-font-mono); background: var(--gu-bg-subtle); padding: 0.0625rem 0.3125rem; border-radius: var(--gu-radius-xs); }
+.prose :where(code)::before, .prose :where(code)::after { content: none; }
+.prose :where(pre) { border-radius: var(--gu-radius-sm); }
+.prose :where(ul, ol):has(> li > input[type="checkbox"]) { padding-inline-start: 0; }
+.prose :where(li:has(> input[type="checkbox"])) { list-style: none; position: relative; padding-left: 1.5rem; }
+.prose :where(li > input[type="checkbox"]) { position: absolute; left: 0; top: .45em; width: .9rem; height: .9rem; padding: 0; margin: 0; accent-color: var(--gu-accent); }
+.prose :where(.image) { color: var(--gu-text-muted); font-size: .8125rem; }
+.prose :where(.gone) { color: var(--gu-text-muted); }
+.prose :where(table) { display: block; max-width: 100%; overflow-x: auto; }
+/* Text that sits in a bubble has no margin above its first block or below its last, so the bubble's padding is all there is. */
+/* A reply in the chat reads at the chat's size, not the plugin's own. */
+.prose.in-bubble { font-size: inherit; line-height: inherit; }
+.prose.in-bubble > :first-child { margin-top: 0; }
+.prose.in-bubble > :last-child { margin-bottom: 0; }
+
+.prose {
+  --tw-prose-body: var(--gu-text);
+  --tw-prose-headings: var(--gu-text);
+  --tw-prose-lead: var(--gu-text-muted);
+  --tw-prose-links: var(--gu-text);
+  --tw-prose-bold: var(--gu-text);
+  --tw-prose-counters: var(--gu-text-subtle);
+  --tw-prose-bullets: var(--gu-text-subtle);
+  --tw-prose-hr: var(--gu-border);
+  --tw-prose-quotes: var(--gu-text-muted);
+  --tw-prose-quote-borders: var(--gu-border-strong);
+  --tw-prose-captions: var(--gu-text-subtle);
+  --tw-prose-code: var(--gu-text);
+  --tw-prose-pre-code: var(--gu-text);
+  --tw-prose-pre-bg: var(--gu-bg-subtle);
+  --tw-prose-th-borders: var(--gu-border);
+  --tw-prose-td-borders: var(--gu-border);
+  max-width: none; font-size: 1rem; line-height: 1.65; }
+.prose :where(h1) { font-size: 1.5em; font-weight: 600; letter-spacing: -.01em; margin-bottom: 1.2em; }
+.prose :where(h2) { font-size: 1.2857em; font-weight: 600; letter-spacing: -.01em; margin: 2.2em 0 .8em; padding-bottom: .4em; border-bottom: 0.0625rem solid var(--gu-border); }
+.prose :where(h3, h4) { font-size: 1em; font-weight: 600; margin: 1.6em 0 .5em; }
+.prose :where(strong) { font-weight: 600; }
+.prose :where(a) { font-weight: inherit; text-decoration-color: var(--gu-border-strong); text-underline-offset: 0.1875rem; }
+.prose :where(a):hover { text-decoration-color: var(--gu-text); }
+.prose :where(blockquote) { font-style: normal; font-weight: inherit; }
+.prose :where(blockquote p)::before, .prose :where(blockquote p)::after { content: none; }
+.prose :where(p, ul, ol, pre, table, blockquote) { margin-top: 0; margin-bottom: 1em; }
+.prose :where(li) { margin: .25em 0; }
+.prose :where(li p) { margin: 0; }
+.prose :where(blockquote, hr, thead, tbody tr, tfoot) { border-style: solid; border-width: 0; }
+.prose :where(blockquote) { border-inline-start-width: 0.1875rem; }
+.prose :where(hr) { border-top-width: 0.0625rem; }
+.prose :where(thead, tbody tr) { border-bottom-width: 0.0625rem; }
+
+/* A file card's preview is a glance at the file, so its headings are the size of the text around the card. */

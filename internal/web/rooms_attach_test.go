@@ -53,8 +53,9 @@ func TestAMessageWithFilesKeepsThemInTheRoomAndNamesThemToTheAgent(t *testing.T)
 		!strings.Contains(heard[0].Brief, "report (2).pdf") || !strings.Contains(heard[0].Brief, "notes.txt") {
 		t.Fatalf("the agent was not told which files came with the message: %+v", heard)
 	}
-	if page := mine.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "Attached: ") || strings.Count(page, "summarise these") != 1 {
-		t.Error("the room does not show the files with the message as one turn")
+	page := mine.conversation(t, thread)
+	if len(page.Turns) != 1 || !strings.Contains(page.Turns[0].Said, "Attached: ") || strings.Count(page.Turns[0].Said, "summarise these") != 1 {
+		t.Errorf("the room does not show the files with the message as one turn: %+v", page.Turns)
 	}
 }
 

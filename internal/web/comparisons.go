@@ -3,11 +3,12 @@ package web
 import (
 	"errors"
 	"fmt"
-	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/workspace"
 
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/compare"
@@ -31,20 +32,6 @@ func comparable() []industry.Template {
 		}
 	}
 	return fit
-}
-
-func (s *Server) comparePage(w http.ResponseWriter, r *http.Request) {
-	page := map[string]any{"Title": productName + " — compare agents", "Nav": "compare", "Refused": s.refusal(r)}
-	if s.lineups != nil {
-		page["Lineups"] = s.ownLineups(r, s.lineups.List())
-	}
-	if fit := comparable(); len(fit) > 0 {
-		held := fit[0]
-		page["Template"] = held
-		page["Engines"] = s.runnersOf(held)
-		page["Models"] = s.sharedModels(held, s.offeredTo(r))
-	}
-	s.render(w, "compare.html", page)
 }
 
 // sharedModels is each model, by the name a person reads, that the template's engines can be compared on: every model

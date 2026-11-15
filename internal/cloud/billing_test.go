@@ -242,15 +242,15 @@ func TestStripesEventsArriveSignedAndChangeTheOrganizationsPlan(t *testing.T) {
 		if status, _ := f.postEvent(body, signStripe(body, "wrong", time.Now())); status != http.StatusUnauthorized {
 			t.Errorf("an unsigned event was taken: %d", status)
 		}
-		if _, page := admin.get("/org"); !strings.Contains(page, "Free trial") || !strings.Contains(page, "Subscribe: 1 seat at $25 a month each") {
-			t.Fatalf("before paying:\n%s", page)
+		if _, page := admin.get("/org"); shown(t, page).Billing == nil || shown(t, page).Billing.Words != "Free trial" || len(shown(t, page).Billing.Offers) != 1 || shown(t, page).Billing.Offers[0].Words != "Subscribe: 1 seat at $25 a month each" {
+			t.Fatalf("before paying: %+v", shown(t, page).Billing)
 		}
 		if status, text := f.postEvent(body, signStripe(body, testWebhookSecret, time.Now())); status != http.StatusOK {
 			t.Fatalf("%d %s", status, text)
 		}
 		_, page := admin.get("/org")
-		if !strings.Contains(page, "Paid: 1 seat at $25 a month each") || strings.Contains(page, "/org/billing/subscribe") || !strings.Contains(page, "/org/billing/manage") {
-			t.Errorf("after paying:\n%s", page)
+		if paid := shown(t, page).Billing; paid == nil || paid.Words != "Paid: 1 seat at $25 a month each" || len(paid.Offers) != 0 || !paid.Manage || !paid.Active {
+			t.Errorf("after paying: %+v", paid)
 		}
 		// An event bigger than a form, as Stripe's are, is taken.
 		big := subscriptionEvent("customer.subscription.updated", "acme-com", "sub_1", "active", 1, time.Now())
@@ -289,11 +289,11 @@ func TestAnAdminSubscribesForASeatForEachMemberAndARunnerCannot(t *testing.T) {
 		if status, _, _ := bob.post("/org/billing/subscribe", nil); status != http.StatusForbidden || stripe.count() != calls {
 			t.Errorf("a runner subscribed: %d", status)
 		}
-		if _, page := admin.get("/org?billing=started"); !strings.Contains(page, "once the payment is confirmed") {
-			t.Errorf("%s", page)
+		if got := shownAt(t, admin, "/org?billing=started"); !strings.Contains(got.Notice, "once the payment is confirmed") {
+			t.Errorf("%q", got.Notice)
 		}
 		stripe.fail(true)
-		if status, page, _ := admin.post("/org/billing/subscribe", nil); status != http.StatusBadGateway || !strings.Contains(page, "Payments are not answering") {
+		if status, page, _ := admin.post("/org/billing/subscribe", nil); status != http.StatusBadGateway || !strings.Contains(shown(t, page).Notice, "Payments are not answering") {
 			t.Errorf("%d", status)
 		}
 	})
@@ -388,8 +388,8 @@ func TestBillingIsOffUntilItIsSetUp(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		admin := f.verifiedAdmin("ada@acme.com", "Acme")
-		if _, page := admin.get("/org"); strings.Contains(page, "Plan") || strings.Contains(page, "Subscribe") {
-			t.Errorf("%s", page)
+		if _, page := admin.get("/org"); shown(t, page).Billing != nil {
+			t.Errorf("%+v", shown(t, page).Billing)
 		}
 		body := subscriptionEvent("customer.subscription.created", "acme-com", "sub_1", "active", 1, time.Now())
 		if status, _ := f.postEvent(body, signStripe(body, testWebhookSecret, time.Now())); status != http.StatusNotFound {
@@ -440,13 +440,12 @@ func TestTheOrganizationPageSaysWhatIsLeftOfTheCredit(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		admin := f.verifiedAdmin("ada@acme.com", "Acme")
-		if _, page := admin.get("/org"); !strings.Contains(page, ">$5.00</span>") || !strings.Contains(page, "left of $5.00 on gusto's models") ||
-			!strings.Contains(page, "add your own key in Admin, Models") {
-			t.Errorf("a new organization's credit:\n%s", page)
+		if _, page := admin.get("/org"); shown(t, page).Credit == nil || *shown(t, page).Credit != (credit{Left: "$5.00", Of: "$5.00"}) || !shown(t, page).IsAdmin {
+			t.Errorf("a new organization's credit: %+v", shown(t, page).Credit)
 		}
 		os.WriteFile(filepath.Join(f.store.DataDir("acme-com"), "credit-used.json"), []byte(`{"usd":1.8}`), 0o600)
-		if _, page := admin.get("/org"); !strings.Contains(page, ">$3.20</span>") {
-			t.Errorf("after the server used some:\n%s", page)
+		if _, page := admin.get("/org"); shown(t, page).Credit == nil || shown(t, page).Credit.Left != "$3.20" {
+			t.Errorf("after the server used some: %+v", shown(t, page).Credit)
 		}
 	})
 }

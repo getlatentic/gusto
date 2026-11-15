@@ -36,16 +36,16 @@ func TestTheBookADemoPageFramesTheBookingPage(t *testing.T) {
 		set := staffSet()
 		set.Demo.BookURL = "https://calendly.com/tosin/gusto-demo"
 		status, page, header := newFront(t, set, nil).browser().do("GET", "/demo", nil, nil)
-		if status != http.StatusOK || !strings.Contains(page, `<iframe`) || !strings.Contains(page, `src="https://calendly.com/tosin/gusto-demo?embed_type=Inline"`) || !strings.Contains(page, `href="https://calendly.com/tosin/gusto-demo"`) {
-			t.Errorf("%d: the booking page is not framed\n%s", status, page)
+		if got := shown(t, page); status != http.StatusOK || got.Page != "demo-book" || got.BookFrame != "https://calendly.com/tosin/gusto-demo?embed_type=Inline" || got.Book != "https://calendly.com/tosin/gusto-demo" {
+			t.Errorf("%d: the booking page is not framed: %+v", status, got)
 		}
 		if csp := header.Get("Content-Security-Policy"); !strings.Contains(csp, "frame-src https://calendly.com") || !strings.Contains(csp, "frame-ancestors 'none'") {
 			t.Errorf("the page's policy: %s", csp)
 		}
 		// A booking page on a service that may not be framed is linked to, and the page frames nothing.
 		status, page, header = newFront(t, staffSet(), nil).browser().do("GET", "/demo", nil, nil)
-		if status != http.StatusOK || strings.Contains(page, "<iframe") || !strings.Contains(page, `href="https://cal.example/gusto"`) || strings.Contains(header.Get("Content-Security-Policy"), "frame-src") {
-			t.Errorf("%d: a booking page that may not be framed was framed\n%s", status, page)
+		if got := shown(t, page); status != http.StatusOK || got.Page != "demo-book" || got.BookFrame != "" || got.Book != "https://cal.example/gusto" || strings.Contains(header.Get("Content-Security-Policy"), "frame-src") {
+			t.Errorf("%d: a booking page that may not be framed was framed: %+v", status, got)
 		}
 	})
 }

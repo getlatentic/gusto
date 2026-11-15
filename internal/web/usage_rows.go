@@ -15,6 +15,7 @@ func (s *Server) describeRows(rows []usageRow) int {
 	for i := range rows {
 		row := &rows[i]
 		row.Harness = s.harnessOf(row.Engine)
+		row.Mark, row.MarkDark = logo(row.Harness), logoDark(row.Harness)
 		row.Owner = s.whoReads(row.Person)
 		row.Asked = row.Owner
 		if task, found := s.index.Get(strings.TrimPrefix(row.Record, "/jobs/")); found {

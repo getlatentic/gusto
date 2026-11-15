@@ -40,15 +40,6 @@ func (s *Server) chosen(r *http.Request, all []Person) (Person, bool) {
 	return Person{}, false
 }
 
-// person is who a request is signed in as, in the organization it is for.
-func (s *Server) person(r *http.Request) (Person, bool) {
-	all, ok := s.memberships(r)
-	if !ok {
-		return Person{}, false
-	}
-	return s.chosen(r, all)
-}
-
 // guard lets a page through for a person signed in to one of their organizations. Somebody signed out goes to sign
 // in, and a person in several organizations who has not said which goes to choose one. An organization named with
 // ?org= is remembered, so a link to one organization's page switches to it.

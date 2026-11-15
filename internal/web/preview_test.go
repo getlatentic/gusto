@@ -55,8 +55,8 @@ func TestAPageTheAgentBuiltIsPreviewedFromTheConversationItWasBuiltIn(t *testing
 	if len(shared) != 1 || shared[0].Folder != "2048-app" || shared[0].State != apps.Live || shared[0].Command != "" {
 		t.Fatalf("the page is not shared, live, with nothing run for it: %+v", shared)
 	}
-	if page := site.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "Open the app") || strings.Contains(page, "Starting the preview") {
-		t.Errorf("the conversation does not link to the page at once")
+	if page := site.conversation(t, thread); len(page.Apps) != 1 || page.Apps[0].Link != "/apps/"+shared[0].ID+"/" || page.Apps[0].Name != "2048-app" || page.Starting {
+		t.Errorf("the conversation does not link to the page at once: %+v starting %v", page.Apps, page.Starting)
 	}
 	submit(url.Values{"preview": {"2048-app"}, "back": {thread}})
 	if again := site.server.appsOf(strings.TrimPrefix(instance, "/instances/")); len(again) != 1 {

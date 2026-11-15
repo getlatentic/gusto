@@ -6,10 +6,8 @@ package operator
 
 import (
 	"context"
-	"embed"
 	"encoding/csv"
 	"fmt"
-	"html/template"
 	"log/slog"
 	"net"
 	"net/http"
@@ -24,9 +22,6 @@ import (
 	"github.com/getlatentic/gusto/internal/web"
 )
 
-//go:embed templates/*.html
-var files embed.FS
-
 // Hosts lists the hosts that run organizations' servers.
 type Hosts interface {
 	Running() ([]node.Instance, error)
@@ -38,16 +33,11 @@ type App struct {
 	// Hosts is nil where hosts are not started on demand.
 	Hosts Hosts
 	Now   func() time.Time
-	pages *template.Template
 }
 
-// New parses the pages.
-func New(store *cloud.Store, hosts Hosts) (*App, error) {
-	pages, err := template.New("").Funcs(template.FuncMap{"asset": web.Asset, "ago": ago, "left": left}).ParseFS(files, "templates/*.html")
-	if err != nil {
-		return nil, err
-	}
-	return &App{Store: store, Hosts: hosts, Now: time.Now, pages: pages}, nil
+// New is the operator's pages over a gusto cloud's store.
+func New(store *cloud.Store, hosts Hosts) *App {
+	return &App{Store: store, Hosts: hosts, Now: time.Now}
 }
 
 // Handler serves the pages to requests that came to this machine's own loopback address, and to no others.
@@ -58,6 +48,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("POST /demos/limits", a.limits)
 	mux.HandleFunc("GET /leads.csv", a.leadsCSV)
 	mux.Handle("GET /static/", web.Static())
+	mux.Handle("GET /app/assets/", web.AppAssets())
 	return local(mux)
 }
 
@@ -90,11 +81,6 @@ type running struct {
 	Ready               bool
 }
 
-type hostRow struct {
-	ID       string
-	Launched time.Time
-}
-
 func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 	leads, err := a.Store.Leads(r.Context())
 	if err != nil {
@@ -102,19 +88,7 @@ func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "the leads could not be read", http.StatusInternalServerError)
 		return
 	}
-	page := map[string]any{"Title": "gusto operator", "Leads": leads, "Paused": a.Store.DemosPaused(r.Context()), "Limits": a.Store.DemoLimits(r.Context()), "LimitsSet": a.Store.DemoLimitsSet(r.Context()), "Now": a.Now(), "Notice": r.URL.Query().Get("notice")}
-	page["Running"] = a.running(r.Context())
-	if a.Hosts != nil {
-		if hosts, err := a.Hosts.Running(); err != nil {
-			page["HostsError"] = err.Error()
-		} else {
-			page["Hosts"] = hosts
-			page["HostsKnown"] = true
-		}
-	}
-	if err := a.pages.ExecuteTemplate(w, "operator.html", page); err != nil {
-		slog.Error("the operator page was not drawn", "error", err)
-	}
+	draw(w, a.view(r.Context(), r.URL.Query().Get("notice"), leads))
 }
 
 // running is the demos that have not ended, soonest to end first.

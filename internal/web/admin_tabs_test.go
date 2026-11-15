@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -26,43 +27,45 @@ func withAcme(t *testing.T) (*tokened, *registry.Registry, *site) {
 	return here, reg, admin
 }
 
+// modelsParts are the parts of the Models page's data that each tab holds, so each tab can be checked for its own and no other.
+var modelsParts = map[string]func(modelsJSON) bool{
+	"models": func(m modelsJSON) bool { _, held := m.rowNamed("acme/big-1"); return held },
+	"providers": func(m modelsJSON) bool {
+		row, held := m.providerNamed("acme")
+		return held && row.Href == providerPage("acme")
+	},
+	"access":   func(m modelsJSON) bool { return len(m.Limits) == 1 },
+	"settings": func(m modelsJSON) bool { return m.RunTokens != nil },
+}
+
 func TestEachTabOfTheModelsPageShowsItsOwnPartAndNoOther(t *testing.T) {
 	_, _, admin := withAcme(t)
-	parts := map[string]string{
-		"models":    `title="acme/big-1"`,
-		"providers": `href="/admin/models?tab=providers&amp;provider=acme"`,
-		"access":    `action="/admin/models/access"`,
-		"settings":  `action="/admin/run-tokens"`,
-	}
-	for tab, own := range parts {
-		page := admin.ask(t, "GET", modelsTab(tab), nil).Body.String()
-		if !strings.Contains(page, own) {
-			t.Errorf("the %s tab lacks %s", tab, own)
+	for key, has := range modelsParts {
+		page := modelsAt(t, admin, modelsTab(key))
+		if !has(page) {
+			t.Errorf("the %s tab lacks its part", key)
 		}
-		if !strings.Contains(page, `href="/admin/models?tab=`+tab+`" aria-current="page"`) {
-			t.Errorf("the %s tab is not the one marked", tab)
+		if page.Tab != key || !slices.ContainsFunc(page.Tabs, func(each tab) bool { return each.On && each.Href == modelsTab(key) }) {
+			t.Errorf("the %s tab is not the one marked: %+v", key, page.Tabs)
 		}
-		for other, theirs := range parts {
-			if other != tab && strings.Contains(page, theirs) {
-				t.Errorf("the %s tab shows the %s tab's %s", tab, other, theirs)
+		for other, theirs := range modelsParts {
+			if other != key && theirs(page) {
+				t.Errorf("the %s tab shows the %s tab's part", key, other)
 			}
 		}
-		if !strings.Contains(page, `data-open="add-provider"`) {
-			t.Errorf("the %s tab does not offer to add a provider", tab)
+		if page.View.Unnamed {
+			t.Errorf("the %s tab does not offer to add a provider", key)
 		}
 	}
-	if page := admin.ask(t, "GET", "/admin/models", nil).Body.String(); !strings.Contains(page, parts["models"]) {
+	if page := modelsAt(t, admin, modelsPath); !modelsParts["models"](page) {
 		t.Error("the page does not open on the Models tab")
 	}
-	provider := admin.ask(t, "GET", providerPage("acme"), nil).Body.String()
-	for _, want := range []string{`action="/admin/models/providers/acme/price"`, `action="/admin/models/providers/acme/models"`, `action="/admin/models/providers/acme/addresses"`,
-		`action="/admin/models/providers/acme/key"`, `action="/admin/models/providers/acme/enable"`, `action="/admin/models/providers/acme/retire"`} {
-		if !strings.Contains(provider, want) {
-			t.Errorf("acme's page lacks %s", want)
-		}
+	acme := modelsAt(t, admin, providerPage("acme"))
+	if acme.Provider == nil || acme.Provider.Name != "acme" || acme.Provider.Operator || !acme.Provider.Pending || acme.Provider.Key != "stored" {
+		t.Fatalf("acme's page is not acme's to change, waiting to be turned on: %+v", acme.Provider)
 	}
-	if strings.Contains(provider, "<details class=\"group ") {
-		t.Error("acme's page is folded")
+	if got := acme.modelsOf(); len(got) != 1 || got[0] != "acme/big-1" {
+		t.Errorf("acme's page lists %v", got)
 	}
 }
 
@@ -112,7 +115,7 @@ func TestAFormOnTheModelsPageGoesBackToItsTab(t *testing.T) {
 			t.Errorf("a refusal of %s went to %s", each.path, where)
 			continue
 		}
-		if page := admin.ask(t, "GET", where, nil).Body.String(); !strings.Contains(page, `role="alert"`) {
+		if page := modelsAt(t, admin, where); page.Refused == "" {
 			t.Errorf("the tab %s does not say why %s was refused", each.back, each.path)
 		}
 	}
@@ -126,30 +129,39 @@ func TestTheModelsTableAndAProvidersModelsArePagedAt25(t *testing.T) {
 		}
 	}
 	// The Models tab lists the operator's qwen before acme's thirty, so its 26th row is big-25.
-	for _, each := range []struct{ here, row, total string }{
-		{modelsTab("models"), `title="acme/big-%d"`, "of 31"},
-		{providerPage("acme"), `<code>acme/big-%d</code>`, "of 30"},
+	for _, each := range []struct {
+		here, total string
+		names       func(modelsJSON) []string
+		twentySixth int
+	}{
+		{modelsTab("models"), "of 31", modelRowNames, 25},
+		{providerPage("acme"), "of 30", modelsJSON.modelsOf, 26},
 	} {
-		twentyFifth, twentySixth := 25, 26
-		if each.here == modelsTab("models") {
-			twentyFifth, twentySixth = 24, 25
+		twentyFifth, twentySixth := fmt.Sprintf("acme/big-%d", each.twentySixth-1), fmt.Sprintf("acme/big-%d", each.twentySixth)
+		first := modelsAt(t, admin, each.here)
+		if names := each.names(first); len(names) != 25 || names[24] != twentyFifth || first.Pages.Shown != "1–25 "+each.total {
+			t.Errorf("the first page of %s is not the first 25 rows: %v %+v", each.here, names, first.Pages)
 		}
-		first := admin.ask(t, "GET", each.here, nil).Body.String()
-		if !strings.Contains(first, fmt.Sprintf(each.row, twentyFifth)) || strings.Contains(first, fmt.Sprintf(each.row, twentySixth)) || !strings.Contains(first, "1–25 "+each.total) {
-			t.Errorf("the first page of %s is not the first 25 rows", each.here)
+		if first.Pages.Next != each.here+"&page=2" {
+			t.Errorf("the first page of %s does not lead to the second: %+v", each.here, first.Pages)
 		}
-		next := strings.ReplaceAll(each.here, "&", "&amp;") + "&amp;page=2"
-		if !strings.Contains(first, `href="`+next+`" rel="next"`) {
-			t.Errorf("the first page of %s does not lead to the second", each.here)
-		}
-		second := admin.ask(t, "GET", each.here+"&page=2", nil).Body.String()
-		if !strings.Contains(second, fmt.Sprintf(each.row, twentySixth)) || strings.Contains(second, fmt.Sprintf(each.row, twentyFifth)) || !strings.Contains(second, `rel="prev"`) {
-			t.Errorf("the second page of %s does not start at the 26th row", each.here)
+		second := modelsAt(t, admin, each.here+"&page=2")
+		if names := each.names(second); len(names) == 0 || names[0] != twentySixth || second.Pages.Previous == "" {
+			t.Errorf("the second page of %s does not start at the 26th row: %v %+v", each.here, names, second.Pages)
 		}
 	}
-	if page := admin.ask(t, "GET", modelsTab("access"), nil).Body.String(); strings.Contains(page, `aria-label="Pages"`) {
-		t.Error("a table that fits one page has a pager")
+	if page := modelsAt(t, admin, modelsTab("access")); page.Pages != (pager{}) {
+		t.Errorf("a table that fits one page has a pager: %+v", page.Pages)
 	}
+}
+
+// modelRowNames is the full names of the models the Models tab lists.
+func modelRowNames(m modelsJSON) []string {
+	var names []string
+	for _, row := range m.Rows {
+		names = append(names, row.Full)
+	}
+	return names
 }
 
 // spendFor counts a call of this many dollars, made now, against the person who asked for it.
@@ -169,22 +181,15 @@ func TestBudgetsSaysTheBudgetsInALineAndListsEachPersonsAgainstWhatTheySpent(t *
 	spendFor(ledger, alice, 5)
 	spendFor(ledger, bob, 2.5)
 	page := budgets(t, here)
-	if !strings.Contains(page, "Each person: $10.00 a month; their agents stop there. Organization: $50.00 a month, which only warns.") {
-		t.Errorf("Budgets does not say both budgets in a line:\n%s", page)
+	if !page.Budget.MemberSet || page.Budget.Member != 10 || !page.Budget.Set || page.Budget.Limit != 50 {
+		t.Errorf("Budgets does not give both budgets: %+v", page.Budget)
 	}
-	own, theirs := rowOf(t, page, alice), rowOf(t, page, bob)
-	if !strings.Contains(own, "$4.00 <span") || !strings.Contains(own, ">own</span>") || !strings.Contains(own, "reached") || !strings.Contains(own, "bg-bad") || !strings.Contains(own, "width:100%") {
-		t.Errorf("alice's row does not show her own budget, reached:\n%s", own)
+	own, theirs := budgetRowOf(t, page, alice), budgetRowOf(t, page, bob)
+	if !own.Budget.Own || own.Budget.Limit != 4 || !own.Budget.Passed || own.Percent != 100 {
+		t.Errorf("alice's row does not show her own budget, reached: %+v", own)
 	}
-	if !strings.Contains(theirs, "$10.00") || strings.Contains(theirs, ">own<") || strings.Contains(theirs, "bg-bad") || !strings.Contains(theirs, "width:25%") {
-		t.Errorf("bob's row does not show everyone's budget, a quarter spent:\n%s", theirs)
-	}
-	dialog, form := strings.Index(page, `<dialog class="`), strings.Index(page, `action="/admin/budget"`)
-	if strings.Count(page, `data-open="budgets"`) != 1 || dialog < 0 || form < dialog || form < strings.Index(page, "</table>") {
-		t.Error("the one Change does not open the budget form in a dialog")
-	}
-	if strings.Count(page, `action="/admin/member-budget"`) != 2 {
-		t.Error("each row does not hold its own budget form behind its menu")
+	if theirs.Budget.Own || theirs.Budget.Limit != 10 || theirs.Budget.Passed || theirs.Percent != 25 {
+		t.Errorf("bob's row does not show everyone's budget, a quarter spent: %+v", theirs)
 	}
 }
 
@@ -195,23 +200,26 @@ func TestBudgetsIsPagedAt25AndListedAfterUsage(t *testing.T) {
 	}
 	here, _ := withPeople(t, list)
 	here.server.UseOrgSettings(filepath.Join(t.TempDir(), "settings.json"))
-	first := budgets(t, here)
-	if !strings.Contains(first, "person25@acme.com") || strings.Contains(first, "person26@acme.com") || !strings.Contains(first, `href="/admin/budgets?page=2" rel="next"`) {
-		t.Error("the first page of Budgets is not the first 25 people")
+	emails := func(page budgetsJSON) string {
+		var all []string
+		for _, row := range page.People {
+			all = append(all, row.Email)
+		}
+		return strings.Join(all, " ")
 	}
-	second := here.ask(t, "GET", "/admin/budgets?page=2", nil).Body.String()
-	if !strings.Contains(second, "person26@acme.com") || strings.Contains(second, "person25@acme.com") {
+	first := budgets(t, here)
+	if !strings.Contains(emails(first), "person25@acme.com") || strings.Contains(emails(first), "person26@acme.com") || first.Pages.Next != "/admin/budgets?page=2" {
+		t.Errorf("the first page of Budgets is not the first 25 people: %+v", first.Pages)
+	}
+	var second budgetsJSON
+	here.data(t, "/admin/budgets?page=2", &second)
+	if !strings.Contains(emails(second), "person26@acme.com") || strings.Contains(emails(second), "person25@acme.com") {
 		t.Error("the second page of Budgets does not start at the 26th person")
 	}
-	usage, budgetsAt, peopleAt := strings.Index(first, `href="/admin/usage"`), strings.Index(first, `href="/admin/budgets"`), strings.Index(first, `href="/admin/people"`)
+	menu := strings.Join(consoleList(t, here), "\n")
+	usage, budgetsAt, peopleAt := strings.Index(menu, "/admin/usage"), strings.Index(menu, "/admin/budgets"), strings.Index(menu, "/admin/people")
 	if usage < 0 || budgetsAt < usage || peopleAt < budgetsAt {
-		t.Error("the menu does not list Budgets between Usage and People")
-	}
-	people := here.ask(t, "GET", "/admin/people", nil).Body.String()
-	for _, gone := range []string{`action="/admin/budget"`, `action="/admin/member-budget"`, `data-open="budgets"`, "Each person:"} {
-		if strings.Contains(people, gone) {
-			t.Errorf("People still has %s", gone)
-		}
+		t.Errorf("the menu does not list Budgets between Usage and People:\n%s", menu)
 	}
 }
 
@@ -221,21 +229,28 @@ func TestPeopleIsPagedAt25AndInvitationsHaveATabOfTheirOwn(t *testing.T) {
 		list.Members = append(list.Members, roster.Member{Email: fmt.Sprintf("person%02d@acme.com", i), Role: "runner"})
 	}
 	here, _ := withPeople(t, list)
-	first := here.ask(t, "GET", "/admin/people", nil).Body.String()
-	if !strings.Contains(first, "person25@acme.com") || strings.Contains(first, "person26@acme.com") || !strings.Contains(first, "1–25 of 30") {
-		t.Error("the first page of People is not the first 25 people")
+	emails := func(page peopleJSON) string {
+		var all []string
+		for _, each := range page.People {
+			all = append(all, each.Email)
+		}
+		return strings.Join(all, " ")
 	}
-	if strings.Contains(first, "tab=invited") || strings.Contains(first, `aria-label="Views"`) {
+	first := people(t, here, "")
+	if len(first.People) != 25 || !strings.Contains(emails(first), "person25@acme.com") || first.Pages.Shown != "1–25 of 30" {
+		t.Errorf("the first page of People is not the first 25 people: %d, %q", len(first.People), first.Pages.Shown)
+	}
+	if len(first.Tabs) > 1 {
 		t.Error("People has tabs with nobody invited")
 	}
-	second := here.ask(t, "GET", "/admin/people?tab=people&page=2", nil).Body.String()
-	if !strings.Contains(second, "person26@acme.com") || strings.Contains(second, "person25@acme.com") {
-		t.Error("the second page of People does not start at the 26th person")
+	second := people(t, here, "?tab=people&page=2")
+	if !strings.HasPrefix(emails(second), "person26@acme.com") || strings.Contains(emails(second), "person25@acme.com") {
+		t.Errorf("the second page of People does not start at the 26th person: %s", emails(second))
 	}
 
 	list.Invited = []roster.Invited{{Email: "dee@acme.com", By: "ada@acme.com", Created: time.Now(), Expires: time.Now().Add(time.Hour)}}
 	invited, _ := withPeople(t, list)
-	if page := invited.ask(t, "GET", "/admin/people", nil).Body.String(); !strings.Contains(page, `href="/admin/people?tab=invited">Invited <span class="font-normal text-subtle">1</span>`) {
-		t.Error("People has no Invited tab with one invitation")
+	if page := people(t, invited, ""); len(page.Tabs) != 2 || page.Tabs[1].Label != "Invited" || page.Tabs[1].Count != 1 || page.Tabs[1].Href != "/admin/people?tab=invited" {
+		t.Errorf("People has no Invited tab with one invitation: %+v", page.Tabs)
 	}
 }

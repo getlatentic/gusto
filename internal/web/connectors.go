@@ -31,7 +31,6 @@ func (s *Server) connectorRoutes(mux *http.ServeMux) {
 	// An app reads the client document to know this server, and has no sign-in here.
 	mux.HandleFunc("GET /connectors/client.json", offering(s.hasConnectors, s.clientDocument))
 	mine := func(next http.HandlerFunc) http.HandlerFunc { return s.guard(offering(s.hasConnectors, next)) }
-	mux.HandleFunc("GET "+connectionsPath, mine(s.connectionsPage))
 	mux.HandleFunc("GET "+connectionsPath+"/callback", mine(s.finishConnecting))
 	mux.HandleFunc("POST "+connectionsHomePath, s.guard(offering(s.hasKeptHomes, s.resetHome)))
 	// Connecting is a link and not a form: the page it leads to is the app's, and a form may only lead to this server.
@@ -132,25 +131,6 @@ func (s *Server) connectorViews(person, space string) ([]connectorView, error) {
 func (s *Server) connectingPerson(r *http.Request) (string, bool) {
 	who := s.keeper.who(r)
 	return who, who != "" && who != sharedSignIn
-}
-
-func (s *Server) connectionsPage(w http.ResponseWriter, r *http.Request) {
-	who, person := s.connectingPerson(r)
-	views, err := s.connectorViews(who, s.workspaceOf(r))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	home := s.connectionsHomeOf(who, s.workspaceOf(r))
-	if !person {
-		home = nil
-	}
-	offered := slices.DeleteFunc(views, func(view connectorView) bool { return !view.Offered() && !view.SignedInTo() })
-	s.render(w, "connections.html", map[string]any{
-		"Title": productName + " — connections", "Nav": "connections", "Connectors": offered, "Person": person,
-		"Refused": s.refusal(r), "Done": s.message(r, "connected"),
-		"Home": home, "HomeReset": s.message(r, "reset") != "",
-	})
 }
 
 // offeredConnector is the connector of that id, when an admin has turned it on and people can sign in to it.

@@ -2,7 +2,7 @@ package web
 
 import (
 	"cmp"
-	"github.com/getlatentic/gusto/internal/workspace"
+	"maps"
 	"net/http"
 	"slices"
 	"time"
@@ -12,24 +12,60 @@ import (
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/setup"
 	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/internal/workspace"
 )
 
-// templatePage is one template: what it is for, what it brings, and which of
-// this deployment's harnesses can run it.
-func (s *Server) templatePage(w http.ResponseWriter, r *http.Request) {
+// templateView is a template as its page shows it: what it is for, the skills it brings with their instructions drawn from their
+// Markdown, what to try asking, and the names of its sample files.
+type templateView struct {
+	Name, Title, Industry, Summary string
+	Restricted                     bool
+	Skills                         []templateSkill
+	Starters                       []string
+	Files                          []string
+}
+
+// templateSkill is one of a template's skills. Instructions is its body as HTML, drawn as an agent's reply is, so none of it runs.
+type templateSkill struct {
+	Title, Blurb, Instructions string
+}
+
+// templateRunner is an agent type a template can be started on.
+type templateRunner struct{ Name, Title string }
+
+// hasTemplate is whether the address names a template.
+func (s *Server) hasTemplate(r *http.Request) bool {
+	_, found := industry.Get(r.PathValue("name"))
+	return found
+}
+
+// templateData is one template: what it is for, what it brings, and which of this deployment's harnesses can run it, the one
+// it starts on first. InBuilding is whether a model inside the deployment's own network is reachable, which restricted work needs.
+func (s *Server) templateData(r *http.Request) (map[string]any, error) {
 	held, found := industry.Get(r.PathValue("name"))
 	if !found {
-		http.NotFound(w, r)
-		return
+		return nil, failed{http.StatusNotFound, "there is no such template"}
 	}
-	s.render(w, "template.html", map[string]any{
-		"Title":      productName + " — " + held.Title,
-		"Nav":        "presets",
-		"Template":   held,
-		"Harnesses":  s.runnersOf(held),
+	runners := []templateRunner{}
+	for _, entry := range s.runnersOf(held) {
+		runners = append(runners, templateRunner{Name: entry.Name, Title: entry.Title})
+	}
+	return map[string]any{
+		"Template":   viewOfTemplate(held),
+		"Harnesses":  runners,
 		"InBuilding": s.inBuilding.Load(),
 		"Refused":    s.refusal(r),
-	})
+	}, nil
+}
+
+func viewOfTemplate(held industry.Template) templateView {
+	view := templateView{Name: held.Name, Title: held.Title, Industry: held.Industry, Summary: held.Summary, Restricted: held.Restricted(),
+		Skills: []templateSkill{}, Starters: orNone(held.Starters), Files: slices.Sorted(maps.Keys(held.Files))}
+	for _, skill := range held.Skills {
+		view.Skills = append(view.Skills, templateSkill{Title: skill.Title, Blurb: skill.Blurb, Instructions: string(markdown(skill.Body))})
+	}
+	view.Files = orNone(view.Files)
+	return view
 }
 
 // runnersOf is the harnesses here that can take a template: the ones it

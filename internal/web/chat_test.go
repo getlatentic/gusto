@@ -1,12 +1,13 @@
 package web
 
 import (
-	"github.com/getlatentic/gusto/internal/instance"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/getlatentic/gusto/internal/instance"
 )
 
 // The chat page offers the agent and the model its message will go to, with the
@@ -14,11 +15,12 @@ import (
 func TestTheChatPageOffersAnAgentAndAModel(t *testing.T) {
 	site := twoEngines(t)
 	site.signIn(t)
-	page := site.ask(t, "GET", "/chat", nil).Body.String()
-	for _, want := range []string{`name="harness"`, `name="model"`, `name="harness" value="first"`, `action="/chat"`} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the chat page lacks %s", want)
-		}
+	chat := chatOf(t, site, "")
+	if !chat.Ready || chat.Harness != "first" || !offers(chat.Agents, "first") || !offers(chat.Agents, "second") {
+		t.Errorf("the chat does not offer both agents with the first chosen: %+v", chat)
+	}
+	if chat.Model == "" || !offers(chat.Models["first"], chat.Model) {
+		t.Errorf("the chat does not choose a model of the first agent: %q of %+v", chat.Model, chat.Models["first"])
 	}
 }
 
@@ -36,8 +38,8 @@ func TestAChatGoesToTheChosenAgentAndCarriesOn(t *testing.T) {
 	if strings.Split(where, "/threads/")[0] != strings.Split(again, "/threads/")[0] || where[:strings.Index(where, "#")] == again[:strings.Index(again, "#")] {
 		t.Errorf("the second chat went to %q, not a new conversation on the same agent as %q", again, where)
 	}
-	if page := site.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, `name="harness" value="second"`) {
-		t.Error("the chat page does not offer the agent used last")
+	if chat := chatOf(t, site, ""); chat.Harness != "second" {
+		t.Errorf("the chat page opens on %q, not the agent used last", chat.Harness)
 	}
 }
 
@@ -113,24 +115,27 @@ func TestAPresetIsSavedFromTheChatAndOffered(t *testing.T) {
 	if saved.Code != http.StatusSeeOther || !strings.HasPrefix(where, "/chat?preset=") {
 		t.Fatalf("saving answered %d to %q", saved.Code, where)
 	}
-	if page := mine.ask(t, "GET", where, nil).Body.String(); !strings.Contains(page, "Reviewer") || !strings.Contains(page, `value="p:`) {
-		t.Errorf("the chat does not offer the preset and open on it:\n%s", page)
-	}
-	if roles := mine.ask(t, "GET", "/presets", nil).Body.String(); !strings.Contains(roles, "Reviewer") || !strings.Contains(roles, "Use in a new chat") {
-		t.Error("the roles page does not list the preset")
-	}
-	if other := theirs.ask(t, "GET", "/presets", nil).Body.String(); strings.Contains(other, "Reviewer") {
-		t.Error("somebody else sees the preset")
+	chat := chatOf(t, mine, strings.TrimPrefix(where, "/chat"))
+	if offered, found := chat.roleOf(chat.Role); !found || !strings.HasPrefix(chat.Role, "p:") || offered.Label != "Reviewer" {
+		t.Errorf("the chat does not offer the preset and open on it: %q of %+v", chat.Role, chat.Roles)
 	}
 	id := strings.TrimPrefix(where, "/chat?preset=")
+	if roles := presetsOf(t, mine); !roles.saved("Reviewer") || roles.Presets[0].ID != id || roles.Presets[0].Line != "Software engineer on fixture with Test Model" {
+		t.Errorf("the presets page does not list the preset in words: %+v", roles.Presets)
+	}
+	if other := presetsOf(t, theirs); other.saved("Reviewer") {
+		t.Error("somebody else sees the preset")
+	}
 	if gone := theirs.ask(t, "POST", "/presets/"+id+"/delete", nil); gone.Code != http.StatusSeeOther {
 		t.Fatalf("deleting answered %d", gone.Code)
 	}
-	if page := mine.ask(t, "GET", "/presets", nil).Body.String(); !strings.Contains(page, "Reviewer") {
+	if page := presetsOf(t, mine); !page.saved("Reviewer") {
 		t.Error("somebody else removed the preset")
 	}
-	mine.ask(t, "POST", "/presets/"+id+"/delete", nil)
-	if page := mine.ask(t, "GET", "/presets", nil).Body.String(); strings.Contains(page, "Reviewer") {
+	if removed := mine.ask(t, "POST", "/presets/"+id+"/delete", nil); removed.Header().Get("Location") != "/presets" {
+		t.Errorf("removing a preset went to %q", removed.Header().Get("Location"))
+	}
+	if page := presetsOf(t, mine); page.saved("Reviewer") {
 		t.Error("the preset was not removed")
 	}
 }
@@ -144,8 +149,8 @@ func TestAChatWithARoleStartsAnAgentThatHasItsSkills(t *testing.T) {
 		t.Fatalf("starting a chat with a role answered %d to %q", started.Code, where)
 	}
 	instance := where[:strings.Index(where, "/threads/")]
-	if page := site.ask(t, "GET", instance, nil).Body.String(); !strings.Contains(page, "Software engineer") {
-		t.Errorf("the agent is not the role's:\n%s", page)
+	if page := site.project(t, strings.TrimPrefix(instance, "/instances/")); page.Agent.Name != "Software engineer" || page.Instance.Setup != "engineering" {
+		t.Errorf("the agent is not the role's: %+v %+v", page.Agent, page.Instance)
 	}
 	again := site.ask(t, "POST", "/chat", url.Values{"said": {"and again"}, "harness": {"fixture"}, "role": {"engineering"}})
 	if got := again.Header().Get("Location"); !strings.HasPrefix(got, instance+"/threads/") {

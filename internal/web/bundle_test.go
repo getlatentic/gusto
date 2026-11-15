@@ -266,16 +266,16 @@ func TestTheFileListShowsTheHashTheManifestClaims(t *testing.T) {
 		t.Fatal("the run left no files to list")
 	}
 
-	page := site.ask(t, "GET", "/jobs/"+id, nil).Body.String()
+	page := site.task(t, id)
 	for _, entry := range manifest.Files {
-		if !strings.Contains(page, entry.SHA256) {
+		if page.hashOf(entry.Name) != entry.SHA256 {
 			t.Errorf("the page does not show the hash of %s, so nobody can check it against the manifest", entry.Name)
 		}
 	}
-	if !strings.Contains(page, "files match") {
-		t.Error("the page should say it checked the files against the manifest")
+	if page.Proof == nil || !page.Proof.Holds || page.Proof.Files != len(manifest.Files) {
+		t.Errorf("the page should say it checked the files against the manifest: %+v", page.Proof)
 	}
-	if !strings.Contains(page, "/jobs/"+id+"/bundle") {
+	if page.Proof == nil || page.Proof.Bundle != "/jobs/"+id+"/bundle" {
 		t.Error("the bundle must be reachable from the job page")
 	}
 }
@@ -296,11 +296,12 @@ func TestAFailedTaskShowsWhatTheCheckSaid(t *testing.T) {
 		t.Fatalf("the check log does not hold the refusal: %q", log)
 	}
 
-	page := site.ask(t, "GET", "/jobs/"+id, nil).Body.String()
-	if !strings.Contains(page, refusal) {
+	// The page draws the output of a check that explains under "What the check said" (web/src/pages/work/task-page.test.tsx).
+	check := site.task(t, id).Check
+	if check == nil || check.Log == nil || !strings.Contains(check.Log.Text, refusal) {
 		t.Error("a failed job must show the check's output inline, because that is the useful part")
 	}
-	if !strings.Contains(page, "What the check said") {
+	if check == nil || !check.Explains {
 		t.Error("the check's output needs a heading a reader can find")
 	}
 }
@@ -309,7 +310,7 @@ func TestAPassingTaskDoesNotRepeatTheCheckOutput(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	id, _ := site.ranTask(t, wroteTheAnswer)
-	if page := site.ask(t, "GET", "/jobs/"+id, nil).Body.String(); strings.Contains(page, "What the check said") {
+	if check := site.task(t, id).Check; check == nil || check.Explains {
 		t.Error("a check that passed has nothing to explain")
 	}
 }
@@ -320,7 +321,7 @@ func TestTheHashOnThePageIsTheHashOfTheFileItServes(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	id, _ := site.ranTask(t, wroteTheAnswer)
-	page := site.ask(t, "GET", "/jobs/"+id, nil).Body.String()
+	page := site.task(t, id)
 
 	for _, name := range []string{"gate.log", "diff.patch", "transcript.log"} {
 		got := site.ask(t, "GET", "/jobs/"+id+"/files/"+name, nil)
@@ -328,7 +329,7 @@ func TestTheHashOnThePageIsTheHashOfTheFileItServes(t *testing.T) {
 			t.Fatalf("%s gave %d", name, got.Code)
 		}
 		sum := fmt.Sprintf("%x", sha256.Sum256(got.Body.Bytes()))
-		if !strings.Contains(page, sum) {
+		if page.hashOf(name) != sum {
 			t.Errorf("%s hashes to %s and the page does not say so", name, sum)
 		}
 	}

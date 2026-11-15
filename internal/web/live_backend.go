@@ -82,7 +82,7 @@ func (b liveBackend) RoomHead(room string) (roomlog.Position, error) {
 	return b.s.instances.RoomHead(room)
 }
 
-// Draw draws what an event changed: the turn or note it names, from the state as it is, with the same templates as the page.
+// Draw draws what an event changed: the turn or note it names, from the state as it is, as the conversation's snapshot gives it.
 func (b liveBackend) Draw(ctx context.Context, room string, event roomlog.Event) (roomlive.Drawn, error) {
 	return b.s.drawEvent(ctx, room, event)
 }

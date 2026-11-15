@@ -32,9 +32,11 @@ type railChat struct {
 	// Room says the conversation is a room, and Unread what its person has not read there.
 	Room   bool
 	Unread unread
-	// ID is the room's, and Harness the agent type of a person's own room with one agent, which shows as that agent.
-	ID      string
-	Harness string
+	// ID is the room's, and Harness the agent type of a person's own room with one agent, which shows as that agent, with its
+	// marks.
+	ID             string
+	Harness        string
+	Mark, MarkDark string
 }
 
 // railList is the side list: the projects used lately, the older ones folded away, and where the page is, so its conversation shows as

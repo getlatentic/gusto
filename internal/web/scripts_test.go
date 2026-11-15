@@ -3,18 +3,13 @@ package web
 import (
 	"fmt"
 	"io/fs"
-	"path"
 	"reflect"
-	"slices"
 	"testing"
 
 	"github.com/dop251/goja/ast"
 	"github.com/dop251/goja/file"
 	"github.com/dop251/goja/parser"
 )
-
-// vendoredScripts are the scripts static/PROVENANCE.md lists as somebody else's, which are not checked.
-var vendoredScripts = []string{"htmx.min.js", "highlight.min.js", "centrifuge.js"}
 
 // A scope that declares one function name twice keeps only the second: the first is replaced everywhere, and nothing says so. That is
 // how the @ menu of a room stopped opening when polling added a second look() to the same function. No test loads the page scripts, so
@@ -25,9 +20,6 @@ func TestNoPageScriptDeclaresAFunctionTwiceInOneScope(t *testing.T) {
 		t.Fatalf("no page scripts were found: %v", err)
 	}
 	for _, script := range scripts {
-		if slices.Contains(vendoredScripts, path.Base(script)) {
-			continue
-		}
 		source, err := fs.ReadFile(assets, script)
 		if err != nil {
 			t.Fatal(err)

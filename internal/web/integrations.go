@@ -29,35 +29,12 @@ const importLimit = integration.MaxUpload + 1<<20
 func (s *Server) integrationRoutes(mux *http.ServeMux) {
 	offered := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasIntegrations, next)) }
 	mux.HandleFunc("POST "+integrationsPath+"/import", offered(s.importIntegration))
-	mux.HandleFunc("GET "+integrationsPath+"/{name}", offered(s.integrationPage))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/enable", offered(s.enableIntegration))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/disable", offered(s.disableIntegration))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/restore", offered(s.restoreIntegration))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/for", offered(s.scopeIntegration))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/programs/allow", offered(s.allowPrograms))
 	mux.HandleFunc("POST "+integrationsPath+"/{name}/programs/refuse", offered(s.refusePrograms))
-}
-
-func (s *Server) integrationPage(w http.ResponseWriter, r *http.Request) {
-	held, err := s.integrations.Get(r.PathValue("name"))
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	page := map[string]any{
-		"Title":   productName + " — " + held.Name,
-		"Held":    held,
-		"Refused": s.refusal(r),
-	}
-	if to, found := held.Version(r.URL.Query().Get("version")); found {
-		page["Shown"] = to
-		if held.On != "" && held.On != to.ID {
-			if changes, err := held.Compare(held.On, to.ID); err == nil {
-				page["Changes"], page["Against"] = changes, held.On
-			}
-		}
-	}
-	s.drawConsole(w, "admin-integration.html", "apps", page)
 }
 
 // importIntegration takes a plugin in, from an upload or a git address, as a version that is off.

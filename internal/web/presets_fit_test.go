@@ -1,8 +1,6 @@
 package web
 
 import (
-	"encoding/json"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -23,12 +21,8 @@ func TestAnAgentThatCannotTakeAPresetIsToldSoInTheWordsOfTheChoice(t *testing.T)
 func TestEachBuiltInPresetCarriesTheAgentsThatCanTakeIt(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	var choices []roleChoice
-	if err := json.Unmarshal([]byte(site.server.roleChoices(httptest.NewRequest("GET", "/chat", nil))), &choices); err != nil {
-		t.Fatal(err)
-	}
 	seen := 0
-	for _, choice := range choices {
+	for _, choice := range chatOf(t, site, "").Roles {
 		name, built := strings.CutPrefix(choice.Value, "r:")
 		if !built {
 			continue

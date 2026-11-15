@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -224,22 +225,24 @@ func TestAPersonInSeveralOrganizationsChoosesOneAndOpensOnlyTheirOwn(t *testing.
 			}
 		}
 		_, page := eve.get("/orgs")
-		for _, want := range []string{`href="/open?org=acme-com"`, `href="/open?org=globex-com"`, `href="/org?org=acme-com"`, `href="/org?org=globex-com"`} {
-			if !strings.Contains(page, want) || strings.Contains(page, "initech") {
-				t.Fatalf("the choice is their own organizations, to go into or to manage, and lacks %s:\n%s", want, page)
-			}
+		var slugs []string
+		for _, org := range shown(t, page).Orgs {
+			slugs = append(slugs, org.Slug)
 		}
-		if _, page := eve.get("/org?org=globex-com"); !strings.Contains(page, ">Globex</h1>") || !strings.Contains(page, `href="/orgs"`) {
-			t.Fatalf("choosing Globex shows Globex, with a way back to the choice:\n%s", page)
+		if slices.Sort(slugs); shown(t, page).Page != "orgs" || !slices.Equal(slugs, []string{"acme-com", "globex-com"}) || strings.Contains(page, "initech") {
+			t.Fatalf("the choice is their own organizations, to go into or to manage: %v", slugs)
 		}
-		if _, page := eve.get("/org"); !strings.Contains(page, ">Globex</h1>") {
-			t.Errorf("the choice is remembered:\n%s", page)
+		if got := shownAt(t, eve, "/org?org=globex-com"); got.Org == nil || got.Org.Name != "Globex" || !got.Several {
+			t.Fatalf("choosing Globex shows Globex, with a way back to the choice: %+v", got)
+		}
+		if got := shownAt(t, eve, "/org"); got.Org == nil || got.Org.Name != "Globex" {
+			t.Errorf("the choice is remembered: %+v", got)
 		}
 		if status, _, header := eve.get2("/"); status != http.StatusSeeOther || header.Get("Location") != "/open" {
 			t.Errorf("once chosen, gusto cloud takes them into it: %d %v", status, header)
 		}
-		if _, page := eve.get("/org?org=initech-com"); !strings.Contains(page, ">Globex</h1>") {
-			t.Errorf("an organization they are not in is not chosen:\n%s", page)
+		if got := shownAt(t, eve, "/org?org=initech-com"); got.Org == nil || got.Org.Name != "Globex" {
+			t.Errorf("an organization they are not in is not chosen: %+v", got)
 		}
 		entered := func(org string) (string, string) {
 			status, _, header := eve.get2("/open?org=" + org)
@@ -259,8 +262,8 @@ func TestAPersonInSeveralOrganizationsChoosesOneAndOpensOnlyTheirOwn(t *testing.
 		if host, _ := entered("initech-com"); host != "globex-com.cloud.test" {
 			t.Errorf("another organization's name opens the one they are in, not it: %s", host)
 		}
-		if _, page := ada.get("/org"); strings.Contains(page, `href="/orgs"`) {
-			t.Errorf("a person in one organization is offered no switch:\n%s", page)
+		if shownAt(t, ada, "/org").Several {
+			t.Error("a person in one organization is offered a switch")
 		}
 	})
 }

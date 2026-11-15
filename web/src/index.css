@@ -1,0 +1,151 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@plugin "@tailwindcss/typography";
+/* Markdown reads the same here as in the pages the server draws. */
+@import "./prose.css";
+/* The lease bar and the demo tour that gusto cloud adds to every page draw with this stylesheet's names. */
+@source "../../internal/web/static/lease.js";
+@source "../../internal/web/static/guide.js";
+
+/* shadcn's components read the variables below. Each one is a gusto token from /static/tokens.css and /static/theme.css, which the
+   page loads first, so the theme and the accent a person chose in the app move these pages too. */
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* nav is where a side list folds away into a menu, in the console and on a person's own pages alike. */
+@theme {
+  --breakpoint-nav: 56rem;
+}
+
+@theme inline {
+  --font-sans: var(--gu-font-text);
+  --font-heading: var(--gu-font-display);
+  --font-numeric: var(--gu-font-numeric);
+  --font-mono: var(--gu-font-mono);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  /* A solid button darkens when pointed at; fading it would put its white text under 4.5 : 1. */
+  --color-primary-hover: var(--gu-accent-solid-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+
+  /* gusto's own names for what shadcn has no name for: the states, and the quieter greys of text. */
+  --color-subtle: var(--gu-text-subtle);
+  --color-faint: var(--gu-text-nontext);
+  --color-ok: var(--gu-success);
+  --color-ok-wash: var(--gu-success-surface);
+  --color-warn: var(--gu-warning);
+  --color-warn-wash: var(--gu-warning-surface);
+  --color-bad: var(--gu-danger);
+  --color-bad-wash: var(--gu-danger-surface);
+  --color-info: var(--gu-info);
+  --color-info-wash: var(--gu-info-surface);
+  --color-brand: var(--gu-accent);
+  --color-brand-ink: var(--gu-accent-text);
+  --color-rail: var(--gu-rail);
+  --color-side: var(--gu-side);
+  --color-hover: var(--gu-hover);
+  --color-sunken: var(--gu-surface-sunken);
+  --color-surface: var(--gu-surface);
+
+  --radius-xs: var(--gu-radius-xs);
+  --radius-sm: var(--gu-radius-sm);
+  --radius-md: var(--gu-radius-md);
+  --radius-lg: var(--gu-radius-lg);
+  --radius-xl: var(--gu-radius-xl);
+  --radius-2xl: var(--gu-radius-2xl);
+
+  --shadow-xs: var(--gu-shadow-field);
+  --shadow-sm: var(--gu-shadow-1);
+  --shadow-md: var(--gu-shadow-menu);
+  --shadow-lg: var(--gu-shadow-dialog);
+
+  /* Borders are a hairline, which a screen of one pixel per point draws as one pixel. */
+  --default-border-width: var(--gu-hairline);
+}
+
+:root {
+  --radius: var(--gu-radius-lg);
+  --background: var(--gu-bg);
+  --foreground: var(--gu-text);
+  --card: var(--gu-card);
+  --card-foreground: var(--gu-text);
+  --popover: var(--gu-surface);
+  --popover-foreground: var(--gu-text);
+  --primary: var(--gu-accent-solid);
+  --primary-foreground: var(--gu-on-accent-solid);
+  --secondary: var(--gu-bg-subtle);
+  --secondary-foreground: var(--gu-text);
+  --muted: var(--gu-surface-sunken);
+  --muted-foreground: var(--gu-text-subtle);
+  --accent: var(--gu-hover);
+  --accent-foreground: var(--gu-text);
+  --destructive: var(--gu-danger);
+  --border: var(--gu-border);
+  --input: var(--gu-border-strong);
+  --ring: var(--gu-focus);
+  --sidebar: var(--gu-side);
+  --sidebar-foreground: var(--gu-text-muted);
+  --sidebar-accent: var(--gu-surface);
+  --sidebar-accent-foreground: var(--gu-text);
+  --sidebar-border: var(--gu-border);
+  --sidebar-ring: var(--gu-focus);
+  --sidebar-primary: var(--gu-accent-solid);
+  --sidebar-primary-foreground: var(--gu-on-accent-solid);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  /* The page is as tall as the window less the lease banner gusto cloud may show; keyboard.js shortens it while a phone's
+     keyboard is open, and the shells fill it. */
+  body {
+    @apply h-[calc(100dvh-var(--lease-h,0rem))] overflow-hidden bg-background font-sans text-foreground antialiased;
+  }
+  #root {
+    @apply h-full;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading;
+  }
+  /* A person who asks for less motion gets none. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0s !important;
+      transition-delay: 0s !important;
+      animation-duration: 0s !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
+}

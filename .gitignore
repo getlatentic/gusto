@@ -32,3 +32,6 @@ CLAUDE.md
 # Photographs of the app, made by deploy/shots/shots.mjs.
 /screenshots/
 /shots-out/
+
+# The web app as built, which the binary embeds. web/build.sh writes it, and CI and the release build it from source.
+/internal/web/spa/dist/

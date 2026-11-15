@@ -1,8 +1,10 @@
 """A model that answers Chat Completions the same way every time: one short message and a fixed usage.
 
-The install check points a credential at it, so that what the proxy counts can be compared with numbers that are known.
+The install check points a credential at it, so that what the proxy counts can be compared with numbers that are known. It
+listens on port 9000, or on STUB_PORT when that is set, as the web app's end-to-end tests set it.
 """
 import json
+import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 PROMPT_TOKENS = 1000
@@ -35,4 +37,4 @@ class Stub(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    HTTPServer(("0.0.0.0", 9000), Stub).serve_forever()
+    HTTPServer(("0.0.0.0", int(os.environ.get("STUB_PORT", "9000"))), Stub).serve_forever()

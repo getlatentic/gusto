@@ -114,30 +114,5 @@ func taskLimit(text string) (int, error) {
 	return n, nil
 }
 
-// link is this query as an address under base, with the changes given: an empty value takes a name out.
-func (q taskQuery) link(base string, change map[string]string) string {
-	values := url.Values{}
-	for name, held := range q.Values {
-		values[name] = held
-	}
-	if q.Page.Sort != "" {
-		values.Set("sort", q.Page.Sort)
-	}
-	if q.Page.Limit != taskindex.DefaultPerPage {
-		values.Set("limit", strconv.Itoa(q.Page.Limit))
-	}
-	for name, value := range change {
-		if value == "" {
-			values.Del(name)
-		} else {
-			values.Set(name, value)
-		}
-	}
-	if len(values) == 0 {
-		return base
-	}
-	return base + "?" + values.Encode()
-}
-
 // sinceLately is the start of the week the counts across the top of the list look at.
 func sinceLately(now time.Time) time.Time { return now.Add(-lately) }

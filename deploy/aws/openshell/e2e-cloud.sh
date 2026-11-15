@@ -17,6 +17,7 @@ if [ "${SANDBOX:-openshell}" = container ]; then
     sudo podman save --format docker-archive docker.io/library/gusto-runner | sudo docker load -q
     sudo docker tag gusto-runner:latest gusto-runner:e2e"
 fi
+"$root/web/build.sh"
 (cd "$root" && for program in gusto:./cmd/gusto drive:./deploy/aws/openshell/e2e/cloud; do
   GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$PWD/deploy/aws/openshell/$state/${program%%:*}" "${program#*:}"
 done)

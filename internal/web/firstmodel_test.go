@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"errors"
+
 	"github.com/getlatentic/gusto/internal/isolation"
 	"github.com/getlatentic/gusto/internal/registry"
 	"github.com/getlatentic/gusto/pkg/proxy"
@@ -50,8 +51,8 @@ func modelLister(t *testing.T) *httptest.Server {
 func TestAPersonAddsTheirFirstModelInOneStepAndEveryEngineIsOfferedIt(t *testing.T) {
 	here, reg := ownComputer(t)
 	admin := here.as(t, boss)
-	if page := admin.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, `action="/setup/model"`) || strings.Contains(page, `name="said"`) {
-		t.Fatalf("the chat page does not ask for a model first:\n%s", page)
+	if chat := chatOf(t, admin, ""); !chat.NeedsModel || len(chat.Presets) == 0 {
+		t.Fatalf("the chat page does not ask for a model first: %+v", chat)
 	}
 	provider := modelLister(t)
 	listed := admin.ask(t, "POST", "/setup/models", url.Values{"address": {provider.URL}, "key": {"sk-theirs"}})
@@ -73,9 +74,11 @@ func TestAPersonAddsTheirFirstModelInOneStepAndEveryEngineIsOfferedIt(t *testing
 	if held := effective.Credentials["local"]; held.Key != "sk-theirs" || !slices.Equal(held.Wires, []string{"chat"}) {
 		t.Errorf("the provider is not held with its key and the shape it answers: %+v", held)
 	}
-	page := admin.ask(t, "GET", "/chat", nil).Body.String()
-	if strings.Contains(page, `action="/setup/model"`) || !strings.Contains(page, `name="said"`) || strings.Contains(page, "sk-theirs") {
-		t.Errorf("the chat page does not start a chat on the model, or shows the key:\n%s", page)
+	if chat := chatOf(t, admin, ""); chat.NeedsModel || !chat.Ready {
+		t.Errorf("the chat page does not start a chat on the model: %+v", chat)
+	}
+	if strings.Contains(admin.dataText(t, "/chat"), "sk-theirs") {
+		t.Error("the chat page shows the key")
 	}
 }
 
@@ -142,8 +145,8 @@ func TestWhatTheComputerLacksIsSaidAndNoAgentStartsWithoutIt(t *testing.T) {
 	lacking := []string{"gusto needs Git, which keeps each conversation's files: install it"}
 	here.server.UseNeeds(func() []string { return lacking })
 	admin := here.as(t, boss)
-	if page := admin.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, "gusto needs Git") {
-		t.Error("the chat page does not say what the computer lacks")
+	if chat := chatOf(t, admin, ""); !slices.Equal(chat.Lacking, lacking) {
+		t.Errorf("the chat page says the computer lacks %q, not %q", chat.Lacking, lacking)
 	}
 	got := admin.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}})
 	if where, _ := url.Parse(got.Header().Get("Location")); where.Query().Get("refused") != lacking[0] {
@@ -161,9 +164,8 @@ func TestAnAgentWaitsForAPersonWithNoSandboxToConfirmOnce(t *testing.T) {
 	here.server.UseWall(Wall{Choice: isolation.Choice{Kind: isolation.Nothing, Passed: []isolation.Backend{{Kind: isolation.Container, Detail: "neither Docker nor Podman is installed"}}},
 		Accepted: confirmed.Load, Accept: func() error { confirmed.Store(true); return nil }})
 	admin := here.as(t, boss)
-	page := admin.ask(t, "GET", "/chat", nil).Body.String()
-	if !strings.Contains(page, `action="/setup/no-sandbox"`) || !strings.Contains(page, "Nothing stands between an agent and your files") || strings.Contains(page, `name="said"`) {
-		t.Errorf("the chat page does not hold the first agent for a confirmation:\n%s", page)
+	if chat := chatOf(t, admin, ""); chat.Wall == nil || !chat.Wall.Unconfirmed || !strings.Contains(chat.Wall.Words, "Nothing stands between an agent and your files") {
+		t.Errorf("the chat page does not hold the first agent for a confirmation: %+v", chat.Wall)
 	}
 	if got := admin.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}}); !strings.Contains(got.Header().Get("Location"), "refused=confirm") {
 		t.Errorf("an agent started before the person confirmed: %s", got.Header().Get("Location"))
@@ -171,9 +173,8 @@ func TestAnAgentWaitsForAPersonWithNoSandboxToConfirmOnce(t *testing.T) {
 	if got := admin.ask(t, "POST", "/setup/no-sandbox", nil); got.Code != http.StatusSeeOther || !confirmed.Load() {
 		t.Fatalf("the confirmation was not kept: %d", got.Code)
 	}
-	page = admin.ask(t, "GET", "/chat", nil).Body.String()
-	if strings.Contains(page, `action="/setup/no-sandbox"`) || !strings.Contains(page, "Agents run in no sandbox.") || !strings.Contains(page, "neither Docker nor Podman is installed") {
-		t.Errorf("after confirming, the page does not say which wall and why no stronger:\n%s", page)
+	if chat := chatOf(t, admin, ""); chat.Wall == nil || chat.Wall.Unconfirmed || chat.Wall.Short != "no sandbox" || !slices.Contains(chat.Wall.Missing, "neither Docker nor Podman is installed") {
+		t.Errorf("after confirming, the page does not say which wall and why no stronger: %+v", chat.Wall)
 	}
 	if got := admin.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}}); !strings.Contains(got.Header().Get("Location"), "/threads/") {
 		t.Errorf("an agent did not start after the confirmation: %s", got.Header().Get("Location"))
@@ -188,9 +189,8 @@ func TestAWallNeedsNoConfirmationAndNoneCanBeGiven(t *testing.T) {
 	}
 	here.server.UseWall(Wall{Choice: isolation.Choice{Kind: isolation.Container, Detail: "docker"}, Accepted: func() bool { return false }, Accept: func() error { return nil }})
 	admin := here.as(t, boss)
-	page := admin.ask(t, "GET", "/chat", nil).Body.String()
-	if strings.Contains(page, "no-sandbox") || !strings.Contains(page, "Agents run in a container.") {
-		t.Errorf("the page does not say the wall:\n%s", page)
+	if chat := chatOf(t, admin, ""); chat.Wall == nil || chat.Wall.Unconfirmed || chat.Wall.Short != "a container" {
+		t.Errorf("the page does not say the wall: %+v", chat.Wall)
 	}
 	if got := admin.ask(t, "POST", "/setup/no-sandbox", nil); got.Code != http.StatusNotFound {
 		t.Errorf("a confirmation was taken for a computer that has a wall: %d", got.Code)

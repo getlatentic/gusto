@@ -16,8 +16,8 @@ func TestADemoGustoCloudRestartedPartWayThroughStartsAndTheVisitorGoesIn(t *test
 	onEachDatabase(t, func(t *testing.T) {
 		f := demoFront(t, "FAKE_DELAY=3s")
 		visitor := startDemoAs(t, f, "Ada Lovelace", "ada@acme.com", "Acme Research")
-		if _, waiting := visitor.get("/demo/wait"); !strings.Contains(waiting, "Getting your demo ready") {
-			t.Fatalf("the demo is not starting:\n%s", waiting)
+		if got := shownAt(t, visitor, "/demo/wait"); !strings.HasPrefix(got.DemoWords, "Getting your demo ready") {
+			t.Fatalf("the demo is not starting: %+v", got)
 		}
 		// The upgrade: the first gusto cloud server's servers are stopped part-way through starting, and it is gone.
 		f.server.Controller.StopAll()

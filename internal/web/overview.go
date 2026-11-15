@@ -8,12 +8,11 @@ import (
 
 // overviewPage answers one question for an admin: is this month's spending under control. It changes nothing; budgets
 // are set on Budgets.
-func (s *Server) overviewPage(w http.ResponseWriter, r *http.Request) {
+func (s *Server) overviewData(r *http.Request) (map[string]any, error) {
 	month := monthStart(time.Now())
 	spent, err := s.monthSpend(r, month)
 	if err != nil {
-		http.Error(w, "the spend could not be read: "+err.Error(), http.StatusInternalServerError)
-		return
+		return nil, failed{http.StatusInternalServerError, "the spend could not be read: " + err.Error()}
 	}
 	budget := s.budgetOf(spent.USD)
 	page := map[string]any{
@@ -33,7 +32,7 @@ func (s *Server) overviewPage(w http.ResponseWriter, r *http.Request) {
 			page["Credit"] = map[string]float64{"Used": used, "Limit": limit}
 		}
 	}
-	s.drawConsole(w, "admin-overview.html", "overview", page)
+	return page, nil
 }
 
 // percentOf is how much of a budget is spent, as a bar draws it: whole, at most all of it, and never none once anything is.

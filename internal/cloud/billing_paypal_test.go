@@ -262,8 +262,8 @@ func TestOnlyAnAdminMayStartCancelOrApproveAndARunnerSeesTheState(t *testing.T) 
 				t.Errorf("%s as a runner answered %d", path, code)
 			}
 		}
-		if _, page := runner.get("/org"); !strings.Contains(page, "Paid: 1 seat at $25 a month each") || strings.Contains(page, "Cancel the subscription") {
-			t.Errorf("a runner sees the state and no buttons:\n%s", page)
+		if billing := shownAt(t, runner, "/org").Billing; billing == nil || billing.Words != "Paid: 1 seat at $25 a month each" || billing.Admin || len(billing.Offers) != 0 {
+			t.Errorf("a runner sees the state and no buttons: %+v", billing)
 		}
 	})
 }
@@ -271,14 +271,16 @@ func TestOnlyAnAdminMayStartCancelOrApproveAndARunnerSeesTheState(t *testing.T) 
 func TestTheOrganizationPageShowsBillingAndProposalsToAnAdmin(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		b := newBilled(t)
-		if _, page := b.admin.get("/org"); !strings.Contains(page, "Subscribe: 1 seat at $25 a month each") || !strings.Contains(page, "/org/billing/subscribe") {
-			t.Errorf("%s", page)
+		if billing := shownAt(t, b.admin, "/org").Billing; billing == nil || len(billing.Offers) != 1 || billing.Offers[0].Words != "Subscribe: 1 seat at $25 a month each" {
+			t.Errorf("%+v", billing)
 		}
 		_, id := b.subscribe()
 		b.activate(id, "WH-1")
 		b.front.store.Propose(b.org, 3, "two colleagues are joining", "agent")
-		if _, page := b.admin.get("/org"); !strings.Contains(page, "An agent proposes 3 seats") || !strings.Contains(page, "Approve and go to PayPal") {
-			t.Errorf("%s", page)
+		billing := shownAt(t, b.admin, "/org").Billing
+		if billing == nil || billing.Provider != "PayPal" || len(billing.Proposals) != 1 ||
+			billing.Proposals[0].Seats != 3 || !billing.Proposals[0].ByAgent || !billing.Proposals[0].Pending {
+			t.Errorf("%+v", billing)
 		}
 	})
 }
@@ -308,8 +310,8 @@ func TestWithoutPayPalThereAreNoBillingPagesOrEndpoints(t *testing.T) {
 		if code := post(t, f.http.URL+webhookPrefix+"paypal", "x", "x", []byte(`{}`)); code != 404 && code != 405 {
 			t.Errorf("the webhook answered %d", code)
 		}
-		if _, page := admin.get("/org"); strings.Contains(page, "Billing") {
-			t.Errorf("the page offers billing")
+		if billing := shownAt(t, admin, "/org").Billing; billing != nil {
+			t.Errorf("the page offers billing: %+v", billing)
 		}
 	})
 }

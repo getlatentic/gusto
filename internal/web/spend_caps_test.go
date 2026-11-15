@@ -3,7 +3,6 @@ package web
 import (
 	"net/http"
 	"net/url"
-	"strings"
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/changelog"
@@ -20,8 +19,8 @@ func TestOnePersonsBudgetOfNothingAllowsNothing(t *testing.T) {
 	if usd, set := settings.MemberBudget(bob); !set || usd != 0 {
 		t.Errorf("bob's $0 budget reads as %v, set %v", usd, set)
 	}
-	if row := rowOf(t, budgets(t, here), bob); !strings.Contains(row, `value="0.00"`) {
-		t.Errorf("bob's row does not show his $0 budget:\n%s", row)
+	if own := budgetRowOf(t, budgets(t, here), bob).Budget; !own.Own || !own.Set || own.Limit != 0 {
+		t.Errorf("bob's row does not show his $0 budget: %+v", own)
 	}
 	if set := ofKind(written(t, log), changelog.MemberBudgetSet); len(set) != 1 || set[0].What["now"] != "$0.00" {
 		t.Errorf("the record has %+v", set)

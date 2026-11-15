@@ -3,7 +3,7 @@ package cloud
 import (
 	"net/http"
 	"net/url"
-	"strings"
+	"slices"
 	"testing"
 	"time"
 
@@ -214,19 +214,15 @@ func TestWhatIsRefusedOrChangesNothingIsNotRecorded(t *testing.T) {
 func TestAnAdminIsOfferedTheOtherRoleAndTheLastAdminIsNotOfferedRunner(t *testing.T) {
 	f, ada := acme(t)
 	bob := f.invitedAndJoined(ada, "bob@acme.com")
-	_, page := ada.get("/org")
-	if !strings.Contains(page, `name="role" value="admin"`) {
-		t.Errorf("an admin cannot make a runner an admin:\n%s", page)
+	if got := shownAt(t, ada, "/org"); !got.IsAdmin || got.Admins != 1 || !slices.Contains(got.Members, memberView{Email: "bob@acme.com", Role: "runner"}) {
+		t.Errorf("an admin is offered to make a runner an admin, and the only admin is not offered to become a runner: %+v", got)
 	}
-	if strings.Contains(page, `name="role" value="runner"`) {
-		t.Errorf("the only admin is offered to become a runner:\n%s", page)
-	}
-	if _, page := bob.get("/org"); strings.Contains(page, "/org/people/role") {
-		t.Errorf("a runner is offered to change roles:\n%s", page)
+	if shownAt(t, bob, "/org").IsAdmin {
+		t.Error("a runner is offered to change roles")
 	}
 	ada.post("/org/people/role", url.Values{"email": {"bob@acme.com"}, "role": {"admin"}})
-	if _, page := ada.get("/org"); !strings.Contains(page, `name="role" value="runner"`) {
-		t.Errorf("with two admins either may step down:\n%s", page)
+	if got := shownAt(t, ada, "/org"); got.Admins != 2 || !slices.Contains(got.Members, memberView{Email: "bob@acme.com", Role: "admin"}) {
+		t.Errorf("with two admins either may step down: %+v", got)
 	}
 }
 

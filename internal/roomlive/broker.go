@@ -218,7 +218,7 @@ func (b *Broker) frame(ctx context.Context, room, epoch string, event roomlog.Ev
 		frame.Type = FrameRefresh
 		return frame.encode()
 	}
-	frame.Type, frame.ID, frame.HTML, frame.Ver = drawn.Type, drawn.ID, drawn.HTML, drawn.Version
+	frame.Type, frame.ID, frame.Turn, frame.Ver = drawn.Type, drawn.ID, drawn.Turn, drawn.Version
 	if drawn.Thread != "" {
 		frame.Thread = drawn.Thread
 	}

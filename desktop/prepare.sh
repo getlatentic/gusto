@@ -23,5 +23,6 @@ flags="-s -w -X github.com/getlatentic/gusto/internal/helper/cli.Version=$tag"
 [ "$os" = windows ] && flags="$flags -H=windowsgui"
 (cd "$root" && CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags "$flags" -o "$out/gusto-helper-$triple$ext" ./cmd/gusto-helper)
 echo "$out/gusto-helper-$triple$ext"
+"$root/web/build.sh"
 (cd "$root" && CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags "-s -w -X main.release=$tag" -o "$out/gusto-$triple$ext" ./cmd/gusto)
 echo "$out/gusto-$triple$ext"

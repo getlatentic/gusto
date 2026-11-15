@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 
@@ -25,7 +26,7 @@ func TestAnAgentIsMadeInMembersAndStartsPrivate(t *testing.T) {
 	if member.Name != "Atlas" || member.Harness != "other" || member.Owner != alice || len(member.Access) != 0 {
 		t.Fatalf("made %+v", member)
 	}
-	if page := his.ask(t, "GET", "/members", nil).Body.String(); !strings.Contains(page, "Atlas") {
+	if !his.members(t, "/members").listsAgent("Atlas") {
 		t.Error("the members list does not show the workspace's agent to everybody")
 	}
 	if got := his.ask(t, "POST", where, url.Values{"name": {"Mine now"}}); got.Code != http.StatusForbidden {
@@ -66,8 +67,7 @@ func TestSharingAnAgentLetsAnotherPersonMessageIt(t *testing.T) {
 	if !found || !direct.Direct || direct.RoleOf(alice) != "" {
 		t.Fatalf("the direct room is %+v", direct)
 	}
-	page := his.ask(t, "GET", "/chat", nil).Body.String()
-	if !strings.Contains(between(page, `aria-label="Direct messages"`, "</section>"), "Atlas") {
+	if direct := shellOf(t, his).Rail.Direct; !slices.ContainsFunc(direct, func(room railChat) bool { return room.Name == "Atlas" }) {
 		t.Error("the side list does not carry the direct room under Direct messages")
 	}
 	mine.ask(t, "POST", where+"/access", url.Values{"who": {bob}, "action": {"remove"}})
@@ -99,19 +99,25 @@ func TestAnAgentsPageShowsItsProfileAccessAndSkills(t *testing.T) {
 	mine := site.as(t, alice)
 	where := "/members/agents/" + member.ID
 	mine.ask(t, "POST", where, url.Values{"tab": {"profile"}, "persona": {"You are careful."}, "specialty": {"Research"}})
-	for tab, want := range map[string]string{"profile": "You are careful.", "access": "Let somebody work with it", "skills": "No skills given"} {
-		if page := mine.ask(t, "GET", where+"?tab="+tab, nil).Body.String(); !strings.Contains(page, want) {
-			t.Errorf("the %s tab does not show %q", tab, want)
-		}
+	page := mine.members(t, where+"?tab=profile")
+	if shown := page.Agent; shown == nil || shown.Persona != "You are careful." || shown.Specialty != "Research" || !shown.Mine || !shown.Usable {
+		t.Errorf("the agent's page shows %+v", shown)
 	}
-	if page := site.as(t, bob).ask(t, "GET", where, nil).Body.String(); strings.Contains(page, `name="persona"`) {
-		t.Error("somebody else is offered the agent to edit")
+	if shown := page.Agent; shown.OwnerName == "" || shown.Created == 0 || len(shown.Access) != 0 || shown.Engine == "" {
+		t.Errorf("the agent's page does not say who made it, when, and who else may work with it: %+v", shown)
+	}
+	if page.Skills == nil || page.Skills.Given || len(page.Skills.Choices) == 0 {
+		t.Errorf("the skills tab does not offer skills to an agent given none: %+v", page.Skills)
+	}
+	if theirs := site.as(t, bob).members(t, where).Agent; theirs == nil || theirs.Mine || theirs.Usable {
+		t.Errorf("somebody else is offered the agent to edit or use: %+v", theirs)
 	}
 	if got := mine.ask(t, "GET", "/members/agents/000000000000", nil); got.Code != http.StatusNotFound {
 		t.Errorf("a missing agent answered %d", got.Code)
 	}
-	if page := mine.ask(t, "GET", "/members/people/"+url.PathEscape(alice), nil).Body.String(); !strings.Contains(page, "Agents they made") || !strings.Contains(page, "Atlas") {
-		t.Error("a person's page does not list the agents they made")
+	person := mine.members(t, "/members/people/"+url.PathEscape(alice))
+	if len(person.Made) != 1 || person.Made[0].Name != "Atlas" || person.Made[0].Where != where {
+		t.Errorf("a person's page does not list the agents they made: %+v", person.Made)
 	}
 }
 
@@ -120,28 +126,26 @@ func TestADirectRoomStillOpensAfterItsAgentIsRemoved(t *testing.T) {
 	member := aCrewAgent(t, site, alice, "Atlas", "other")
 	mine := site.as(t, alice)
 	opened := mine.ask(t, "POST", "/members/agents/"+member.ID+"/message", nil).Header().Get("Location")
-	if page := mine.ask(t, "GET", opened, nil).Body.String(); !strings.Contains(page, "Your own conversation with Atlas") {
-		t.Fatal("the direct room does not say whose it is")
+	if page := mine.conversation(t, opened); !page.Instance.Direct || page.DirectAgent == nil || page.DirectAgent.Name != "Atlas" || page.Hint != "Message Atlas" {
+		t.Fatalf("the direct room does not say whose it is: %+v %+v", page.Instance, page.DirectAgent)
 	}
 	mine.ask(t, "POST", "/members/agents/"+member.ID+"/remove", nil)
 	if got := mine.ask(t, "GET", opened, nil); got.Code != http.StatusOK {
 		t.Errorf("the direct room answered %d once its agent was removed", got.Code)
 	}
+	mine.conversation(t, opened)
 }
 
 func TestTheNewAgentDialogShowsEveryAgentTypeAndWhyOneCannotRun(t *testing.T) {
 	kinds := append(twoHarnesses(), catalog.Entry{Name: "claude", Title: "Claude Code", Program: "claude", Ready: false, Why: "npm install -g @anthropic-ai/claude-code"})
 	site := openOffering(t, kinds)
 	mine := site.as(t, alice)
-	page := mine.ask(t, "GET", "/members", nil).Body.String()
-	dialog := between(page, `id="new-agent"`, "</dialog>")
-	for _, want := range []string{"Claude Code", "Not on this server: npm install -g @anthropic-ai/claude-code", `value="claude" disabled`} {
-		if !strings.Contains(dialog, want) {
-			t.Errorf("the new agent dialog does not show %q", want)
-		}
+	page := mine.members(t, "/members")
+	if claude := page.kind(t, "claude"); claude.Title != "Claude Code" || claude.Ready || claude.Installable || claude.Why != "npm install -g @anthropic-ai/claude-code" {
+		t.Errorf("the new agent dialog does not say why Claude Code cannot run: %+v", claude)
 	}
-	if strings.Contains(dialog, `name="setup"`) {
-		t.Error("the new agent dialog asks for skills, which belong on the agent's page")
+	if !page.kind(t, "other").Ready || page.NewAgent.FirstReady == "" || page.NewAgent.FirstReady == "claude" {
+		t.Errorf("the new agent dialog does not start on an agent type that can run: %+v", page.NewAgent)
 	}
 	if got := mine.ask(t, "POST", "/members/agents", url.Values{"name": {"Atlas"}, "harness": {"claude"}}); !strings.Contains(got.Header().Get("Location"), "refused") {
 		t.Error("an agent type the server cannot run was taken")
@@ -167,7 +171,7 @@ func TestGustoOnAPersonsOwnComputerInstallsAnAgentItLacks(t *testing.T) {
 	site.signIn(t)
 	installer := &installs{}
 	site.server.UseInstaller(installer)
-	if page := site.ask(t, "GET", "/members", nil).Body.String(); strings.Contains(page, `action="/agents/claude/install"`) {
+	if site.members(t, "/members").kind(t, "claude").Installable {
 		t.Error("a shared server offers to install an agent on itself")
 	}
 	if got := site.ask(t, "POST", "/agents/claude/install", nil); !strings.Contains(got.Header().Get("Location"), "refused") || len(installer.asked) != 0 {
@@ -175,9 +179,8 @@ func TestGustoOnAPersonsOwnComputerInstallsAnAgentItLacks(t *testing.T) {
 	}
 
 	site.server.UseLocalSignIn("a-secret", "ada")
-	page := site.ask(t, "GET", "/members", nil).Body.String()
-	if !strings.Contains(page, `action="/agents/claude/install"`) || !strings.Contains(page, "Not on this computer yet") {
-		t.Fatal("a person's own gusto does not offer to install the agent it lacks")
+	if claude := site.members(t, "/members").kind(t, "claude"); !claude.Installable || claude.Ready {
+		t.Fatalf("a person's own gusto does not offer to install the agent it lacks: %+v", claude)
 	}
 	got := site.ask(t, "POST", "/agents/claude/install", url.Values{"back": {"/members?new=1"}})
 	if got.Header().Get("Location") != "/members?new=1" || len(installer.asked) != 1 {

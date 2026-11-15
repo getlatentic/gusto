@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 
@@ -38,12 +39,12 @@ func leaksOf(body string, words []string) []string {
 func TestSomebodyWhoIsNotAnAdminSeesOnlyTheirOwnSessions(t *testing.T) {
 	here, _ := withUsage(t, secretsOfBob()...)
 	hers := here.as(t, alice)
-	page := hers.ask(t, "GET", "/usage", nil)
-	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "alice-session") || len(leaks(page.Body.String())) > 0 {
-		t.Fatalf("alice's page showed %v:\n%s", leaks(page.Body.String()), page.Body)
+	page := hers.dataText(t, "/usage")
+	if !strings.Contains(page, "alice-session") || len(leaks(page)) > 0 {
+		t.Fatalf("alice's page showed %v:\n%s", leaks(page), page)
 	}
-	if strings.Contains(page.Body.String(), `name="person"`) {
-		t.Error("a person who sees only their own has no use for a choice of people")
+	if view := usageAt(t, hers, "/usage").Usage; view.Everyone || view.ShowWho || !slices.Equal(view.Facets.People, []string{alice}) {
+		t.Errorf("a person who sees only their own has no use for a choice of people, nor a column naming who asked: %+v", view)
 	}
 }
 
@@ -54,10 +55,10 @@ func TestNoQueryParameterWidensWhatAPersonSees(t *testing.T) {
 		"person=" + url.QueryEscape(bob), "q=bob", "q=bobs-model", "model=bobs-model", "agent=BobsAgent", "team=bobs-team", "project=bobs-repo",
 		"person=", "person=%20", "from=2000-01-01&to=2100-01-01&person=" + url.QueryEscape(bob),
 	} {
-		for _, path := range []string{"/usage?" + query, "/api/usage/sessions?" + query, "/api/usage/totals?" + query, "/api/usage/facets?" + query, "/api/usage.csv?" + query} {
+		for _, path := range []string{"/app/api/usage?" + query, "/api/usage/sessions?" + query, "/api/usage/totals?" + query, "/api/usage/facets?" + query, "/api/usage.csv?" + query} {
 			got := hers.ask(t, "GET", path, nil)
 			seen := leaks
-			if strings.HasPrefix(path, "/usage") {
+			if strings.HasPrefix(path, "/app/api/usage") {
 				seen = func(body string) []string { return leaksOf(body, rowsOfBob) }
 			}
 			if found := seen(got.Body.String()); len(found) > 0 {
@@ -74,15 +75,15 @@ func TestNoQueryParameterWidensWhatAPersonSees(t *testing.T) {
 func TestSomebodyElsesSessionIsNotFoundByItsId(t *testing.T) {
 	here, _ := withUsage(t, secretsOfBob()...)
 	hers := here.as(t, alice)
-	for _, path := range []string{"/usage/bob-session", "/usage/bobs-hidden-session", "/api/usage/calls?session=bob-session", "/api/usage/calls?session=bobs-hidden-session"} {
+	for _, path := range []string{"/app/api/usage/bob-session", "/app/api/usage/bobs-hidden-session", "/api/usage/calls?session=bob-session", "/api/usage/calls?session=bobs-hidden-session"} {
 		if got := hers.ask(t, "GET", path, nil); got.Code != http.StatusNotFound || len(leaks(got.Body.String())) > 0 {
 			t.Errorf("%s answered alice %d %s", path, got.Code, got.Body)
 		}
 	}
-	if got := hers.ask(t, "GET", "/usage/alice-session", nil); got.Code != http.StatusOK {
+	if got := hers.ask(t, "GET", "/app/api/usage/alice-session", nil); got.Code != http.StatusOK {
 		t.Errorf("her own session answered %d", got.Code)
 	}
-	if missing := hers.ask(t, "GET", "/usage/no-such-session", nil); missing.Code != http.StatusNotFound {
+	if missing := hers.ask(t, "GET", "/app/api/usage/no-such-session", nil); missing.Code != http.StatusNotFound {
 		t.Errorf("a session that does not exist answered %d, which would tell it from bob's", missing.Code)
 	}
 }
@@ -148,7 +149,7 @@ func TestAnAdminSignedInSeesEveryoneAndAPersonsTokenIsNeverAnAdmins(t *testing.T
 func TestSomebodySignedInWithNoNameSeesNothing(t *testing.T) {
 	here, _ := withUsage(t, secretsOfBob()...)
 	nameless := here.as(t, "")
-	for _, path := range []string{"/usage", "/api/usage/sessions", "/api/usage.csv"} {
+	for _, path := range []string{"/app/api/usage", "/api/usage/sessions", "/api/usage.csv"} {
 		if got := nameless.ask(t, "GET", path, nil); got.Code == http.StatusOK && len(leaks(got.Body.String())) > 0 {
 			t.Errorf("%s showed a nameless person %v", path, leaks(got.Body.String()))
 		}

@@ -3,7 +3,6 @@ package web
 import (
 	"context"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/getlatentic/gusto/pkg/task"
@@ -25,21 +24,22 @@ func TestATurnRefusedForAFullHomeSaysSoAndLinksToTheReset(t *testing.T) {
 	id := said["job"].(string)
 	turnDone(t, here, id)
 
-	page := ada.ask(t, "GET", thread, nil).Body.String()
-	for _, want := range []string{"Your agents' home is full", "6.0 GiB of the 5.0 GiB", "was refused", `href="/connections"`} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the conversation does not say %q:\n%s", want, page)
-		}
+	shown, found := ada.conversation(t, thread).turnIn(id)
+	if !found {
+		t.Fatal("the conversation does not have the turn")
 	}
-	if strings.Contains(page, "It stopped before it finished") {
-		t.Error("the conversation shows the agent's error as well as the full home")
+	if home := shown.Home; home == nil || home.Outcome != "refused" || home.Used == "" || home.Limit == "" {
+		t.Errorf("the turn does not say the home was full: %+v", home)
+	}
+	if shown.Stopped != "" {
+		t.Errorf("the turn carries the agent's error as well as the full home: %q", shown.Stopped)
 	}
 
 	admin := *here.site
 	admin.signIn(t)
-	task := admin.ask(t, "GET", "/jobs/"+id, nil).Body.String()
-	if !strings.Contains(task, "The home their agents keep is full") || strings.Contains(task, `href="/connections"`) {
-		t.Errorf("the task page, read by somebody else, does not say whose home is full:\n%s", task)
+	// The task's page says whose home it is, and leaves the reset to its owner (web/src/pages/work/task-page.test.tsx).
+	if task := admin.task(t, id); task.Home == nil || task.Home.Outcome != "refused" || task.Home.Used == "" {
+		t.Errorf("the task page, read by somebody else, does not say the home is full: %+v", task.Home)
 	}
 }
 

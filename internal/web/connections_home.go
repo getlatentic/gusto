@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/getlatentic/gusto/internal/backend/container"
 	"github.com/getlatentic/gusto/internal/changelog"
@@ -33,7 +32,8 @@ type connectionsHome struct {
 	Used, Limit string
 	// Full is a home over its limit, which refuses their tasks until it is reset.
 	Full bool
-	At   time.Time
+	// At is when it was counted, in Unix seconds.
+	At int64
 }
 
 // connectionsHomeOf is the home of the person asking in the workspace they are in, or nil when this server keeps none or the
@@ -46,7 +46,7 @@ func (s *Server) connectionsHomeOf(person, space string) *connectionsHome {
 	if !counted {
 		return &connectionsHome{}
 	}
-	return &connectionsHome{Counted: true, Used: homeSize(use.Used), Limit: homeSize(use.Limit), Full: use.Used > use.Limit, At: use.At}
+	return &connectionsHome{Counted: true, Used: homeSize(use.Used), Limit: homeSize(use.Limit), Full: use.Used > use.Limit, At: use.At.Unix()}
 }
 
 // resetHome removes the home of the person asking, which is how a person whose home is full starts again: a task cannot free
