@@ -61,6 +61,11 @@ const IntegrationPage = lazy(() =>
 const ChatPage = lazy(() =>
   import("@/pages/chat/chat-page").then((m) => ({ default: m.ChatPage }))
 )
+const NewRoomPage = lazy(() =>
+  import("@/pages/rooms/new-room-page").then((m) => ({
+    default: m.NewRoomPage,
+  }))
+)
 const ConversationPage = lazy(() =>
   import("@/pages/conversation/conversation-page").then((m) => ({
     default: m.ConversationPage,
@@ -78,6 +83,7 @@ createRoot(document.getElementById("root")!).render(
             <Routes>
               <Route element={<PersonShell />}>
                 <Route path="/chat" element={<ChatPage />} />
+                <Route path="/rooms/new" element={<NewRoomPage />} />
                 <Route
                   path="/instances/:id/threads/:thread"
                   element={<ConversationPage />}

@@ -5,6 +5,7 @@ import { Link } from "react-router"
 // draws, and loads it.
 const appPages = [
   /^\/chat$/,
+  /^\/rooms\/new$/,
   /^\/instances\/[^/]+\/threads\/[^/]+$/,
   /^\/admin$/,
   /^\/admin\/spending$/,

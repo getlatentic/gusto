@@ -76,6 +76,7 @@ const conversationRoute = "/instances/{id}/threads/{thread}"
 func (s *Server) personViews() []appView {
 	return []appView{
 		{"/chat", always, s.chatData},
+		{"/rooms/new", always, s.newRoomData},
 		{conversationRoute, always, s.conversationData},
 	}
 }

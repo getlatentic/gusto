@@ -25,7 +25,6 @@ const (
 
 func (s *Server) roomRoutes(mux *http.ServeMux) {
 	s.roomSettingRoutes(mux)
-	mux.HandleFunc("GET /rooms/new", s.guard(s.newRoomPage))
 	mux.HandleFunc("POST /rooms", s.guard(s.makeRoom))
 	mux.HandleFunc("GET /rooms/{id}/members", s.guard(s.roomMembersPage))
 	mux.HandleFunc("GET /rooms/{id}/files", s.guard(s.roomFiles))
@@ -41,8 +40,9 @@ func (s *Server) roomRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /rooms/{id}/agents/{agent}/allowance", s.guard(s.setRoomAgentAllowance))
 }
 
-func (s *Server) newRoomPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "room-new.html", map[string]any{"Title": productName + " — new room", "Nav": "chat"})
+// newRoomData is the page that makes a room, with why the last name was refused.
+func (s *Server) newRoomData(r *http.Request) (map[string]any, error) {
+	return map[string]any{"Refused": s.refusal(r)}, nil
 }
 
 // makeRoom makes a room with the person asking as its admin, and opens its members, where its agents are added.
