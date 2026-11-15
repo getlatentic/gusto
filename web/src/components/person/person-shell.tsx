@@ -6,7 +6,8 @@ import { AppLink } from "@/components/app-link"
 import { NavigationContext } from "@/components/navigation"
 import { SkipLink } from "@/components/skip-link"
 import { EmailReminder } from "@/components/person/email-reminder"
-import { usePanelWidth } from "@/components/person/panel-resize"
+import { usePanelWidth } from "@/components/panel-resize"
+import { sidePanel } from "@/domain/panel-width"
 import { PlacesRail } from "@/components/person/places-rail"
 import { showsConversations } from "@/components/person/places"
 import { SideList } from "@/components/person/side-list"
@@ -21,7 +22,22 @@ export function PersonShell() {
   const here = useLocation().pathname
   const [open, setOpen] = useState(false)
   const navigation = useMemo(() => ({ open: () => setOpen(true) }), [])
-  const { width, divider } = usePanelWidth()
+  // The panel is beside the rail, which is 3.25rem wide, so it is as wide as the pointer is from the rail's edge.
+  const { width, divider } = usePanelWidth(
+    "gusto-panel-w",
+    sidePanel,
+    "right",
+    (event) => {
+      const left =
+        event.currentTarget.parentElement?.getBoundingClientRect().left ?? 0
+      const rail =
+        3.25 *
+        (Number.parseFloat(
+          getComputedStyle(document.documentElement).fontSize
+        ) || 16)
+      return event.clientX - left - rail
+    }
+  )
   const conversations = showsConversations(here)
   return (
     <NavigationContext.Provider value={navigation}>

@@ -68,7 +68,8 @@ func TestEveryInlineScriptCarriesTheResponsesNonceAndNoElementHasAHandler(t *tes
 		t.Fatalf("starting an agent did not open a conversation: %q", where)
 	}
 	instance := where[:strings.Index(where, "/threads/")]
-	pages := []string{"/jobs", "/spend", "/compare", "/presets", "/setups", "/engines", instance, where}
+	// The conversation at where is the React app's page, which is checked where the app is built.
+	pages := []string{"/jobs", "/spend", "/compare", "/presets", "/setups", "/engines", instance}
 	seen := map[string]bool{}
 	for _, path := range pages {
 		got := site.ask(t, "GET", path, nil)

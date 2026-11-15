@@ -1,7 +1,6 @@
 package web
 
 import (
-	"html"
 	"net/url"
 	"strings"
 	"testing"
@@ -32,21 +31,40 @@ func TestARoomSaysWhoseEachAgentIs(t *testing.T) {
 		{alice, "your agent", "Bob's agent"},
 		{bob, "Alice's agent", "your agent"},
 	} {
-		page := html.UnescapeString(site.as(t, view.who).ask(t, "GET", thread, nil).Body.String())
-		for _, want := range []string{
-			`>does Scout</span><span class="flex-none text-subtle">· ` + view.scout + `<`,
-			`>does Atlas</span><span class="flex-none text-subtle">· ` + view.atlas + `<`,
-			`data-agent-owner="` + alice + `" data-yours="your agent" data-theirs="Alice's agent">` + view.scout + `<`,
-			`data-agent-owner="` + bob + `" data-yours="your agent" data-theirs="Bob's agent">` + view.atlas + `<`,
-			`"name":"Scout","role":"does Scout","owner":"` + view.scout + `"`,
-			`"name":"Atlas","role":"does Atlas","owner":"` + view.atlas + `"`,
-		} {
-			if !strings.Contains(page, want) {
-				t.Errorf("%s's view of the room does not show %q", view.who, want)
+		page := site.as(t, view.who).conversation(t, thread)
+		owners := map[string]string{}
+		for _, each := range page.Members.Agents {
+			owners[each.Name] = each.Job + " · " + each.Owner
+			if each.Mine != (each.Owner == "" && each.Name != "Relic") {
+				t.Errorf("%s's members dialog says %s is theirs: %v", view.who, each.Name, each.Mine)
 			}
 		}
-		if !strings.Contains(page, `"name":"Relic","role":"Fixture","agent":true`) {
-			t.Errorf("%s's view gives an owner to an agent the workspace does not keep", view.who)
+		label := func(owner string) string {
+			if owner == "your agent" {
+				return ""
+			}
+			return owner
+		}
+		if owners["Scout"] != "does Scout · "+label(view.scout) || owners["Atlas"] != "does Atlas · "+label(view.atlas) {
+			t.Errorf("%s's members dialog says %v", view.who, owners)
+		}
+		for _, each := range page.Turns {
+			if want := map[string]string{"Scout": alice, "Atlas": bob}[each.By]; each.Owner != want || each.OwnerName != nameFromAddress(want) {
+				t.Errorf("%s's view says %s is %q's (%q)", view.who, each.By, each.Owner, each.OwnerName)
+			}
+		}
+		mentions := map[string]mentionable{}
+		for _, each := range page.Mentions {
+			mentions[each.Name] = each
+		}
+		if scout := mentions["Scout"]; scout.Role != "does Scout" || scout.Owner != view.scout || !scout.Agent {
+			t.Errorf("%s may mention Scout as %+v", view.who, scout)
+		}
+		if atlas := mentions["Atlas"]; atlas.Role != "does Atlas" || atlas.Owner != view.atlas {
+			t.Errorf("%s may mention Atlas as %+v", view.who, atlas)
+		}
+		if relic := mentions["Relic"]; relic.Role != "Fixture" || relic.Owner != "" || !relic.Agent {
+			t.Errorf("%s's view gives an owner to an agent the workspace does not keep: %+v", view.who, relic)
 		}
 	}
 }

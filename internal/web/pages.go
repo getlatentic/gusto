@@ -20,8 +20,7 @@ import (
 )
 
 var helpers = template.FuncMap{
-	"modelName":  modelName,
-	"mentionsIn": mentionsIn,
+	"modelName": modelName,
 	// dict passes more than one value to a template defined in another, which
 	// html/template has no literal for.
 	"dict": func(pairs ...any) map[string]any {
@@ -104,7 +103,6 @@ var helpers = template.FuncMap{
 	"usd": headlineUSD,
 	// ago is how long ago something happened, as a list read at a glance says
 	// it, with the date itself once it is more than a day old.
-	"clock": clock,
 	"ago": func(unix int64) string {
 		if unix == 0 {
 			return ""
@@ -127,12 +125,15 @@ var helpers = template.FuncMap{
 		}
 		return fmt.Sprintf("%.0f%%", 100*float64(part)/float64(whole))
 	},
-	"took": func(from, to int64) string {
-		if from == 0 || to == 0 {
-			return ""
-		}
-		return (time.Duration(to-from) * time.Second).String()
-	},
+	"took": took,
+}
+
+// took is how long something ran from one unix second to another, or nothing when it has not started or ended.
+func took(from, to int64) string {
+	if from == 0 || to == 0 {
+		return ""
+	}
+	return (time.Duration(to-from) * time.Second).String()
 }
 
 // headlineUSD is an amount of money as a headline shows it: cents once there are
@@ -273,14 +274,12 @@ func (s *Server) recordPage(w http.ResponseWriter, r *http.Request, record tasks
 	here := "/jobs/" + record.ID + "/files/" + url.PathEscape(name)
 	file := viewedFile{Name: name, Kind: kindText, Size: measure(info.Size()), Modified: info.ModTime().Unix(), Raw: here + "?raw=1", Download: here + "?raw=1&download=1"}
 	s.fill(&file, path, info.Size())
-	if r.URL.Query().Get("panel") != "" {
-		s.render(w, "file-panel", map[string]any{"File": file, "Rail": nil, "Page": here})
-		return true
-	}
-	s.render(w, "file.html", map[string]any{
+	page := map[string]any{
 		"Title": productName + " — " + name, "Nav": "jobs", "File": file, "TaskID": record.ID,
 		"Back": "/jobs/" + record.ID, "BackWord": "Back to the record",
-	})
+	}
+	embedded(w, r, page)
+	s.render(w, "file.html", page)
 	return true
 }
 

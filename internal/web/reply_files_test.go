@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,8 +25,8 @@ func patchOf(names ...string) string {
 }
 
 // aRoomTurnWrote is a room whose agent took one turn that changed the files named, with each file's contents put in the room's
-// folder. It gives the room page as alice sees it and the turn as it is drawn live.
-func aRoomTurnWrote(t *testing.T, files map[string][]byte, names ...string) (page, live, id string) {
+// folder. It gives the turn as alice's page data has it and as it is sent live, each as JSON too.
+func aRoomTurnWrote(t *testing.T, files map[string][]byte, names ...string) (page, live turnView, pageJSON, liveJSON string) {
 	t.Helper()
 	work := &roomWork{patch: patchOf(names...)}
 	here, id, thread := aRoom(t, work, [2]string{"Scout", "fixture"})
@@ -37,14 +38,24 @@ func aRoomTurnWrote(t *testing.T, files map[string][]byte, names ...string) (pag
 			t.Fatal(err)
 		}
 	}
-	page = here.as(t, alice).ask(t, "GET", thread, nil).Body.String()
 	held, _ := here.server.instances.Get(id)
 	latest := here.server.instances.Latest(id)
+	page, found := here.as(t, alice).conversation(t, thread).turnIn(latest.Turns[0])
+	if !found {
+		t.Fatal("the page does not have the turn")
+	}
 	drawn, err := here.server.drawItem(held, roomlog.Event{Kind: "turn", Thread: latest.ID, Ref: latest.Turns[0]})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return page, drawn.HTML, id
+	if err := json.Unmarshal(drawn.Turn, &live); err != nil {
+		t.Fatal(err)
+	}
+	shown, err := json.Marshal(page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return page, live, string(shown), string(drawn.Turn)
 }
 
 func TestAReplyShowsTheFilesItWroteAsChips(t *testing.T) {
@@ -59,24 +70,28 @@ func TestAReplyShowsTheFilesItWroteAsChips(t *testing.T) {
 		files[name] = []byte("x\n")
 		names = append(names, name)
 	}
-	page, live, id := aRoomTurnWrote(t, files, names...)
+	page, live, pageJSON, liveJSON := aRoomTurnWrote(t, files, names...)
 
-	for name, drawn := range map[string]string{"the page": page, "a live turn": live} {
-		if got := strings.Count(drawn, "data-file-chip="); got != chipsShown+3 {
-			t.Errorf("%s draws %d file chips, not %d", name, got, chipsShown+3)
+	for name, turn := range map[string]turnView{"the page": page, "a live turn": live} {
+		chips := turn.Files
+		if chips == nil || len(chips.Shown) != chipsShown || len(chips.More) != 3 {
+			t.Fatalf("%s has the chips %+v, not %d shown and 3 more", name, chips, chipsShown)
 		}
-		for _, want := range []string{
-			`href="/instances/` + id + `/file?path=notes.md&amp;from=`, `data-file-chip="doc"`, `<span class="truncate">notes.md</span>`,
-			`data-file-chip="image"`, `<span class="truncate">chart.png</span>`, `data-file-chip="code"`,
-			"Show 3 more files<", `old.txt</span> was deleted`,
-		} {
-			if !strings.Contains(drawn, want) {
-				t.Errorf("%s does not draw %q", name, want)
-			}
+		looks := map[string]string{}
+		for _, chip := range append(chips.Shown, chips.More...) {
+			looks[chip.Name] = chip.Look
 		}
-		for _, never := range []string{"Launch notes", "Agent headline", "from the agent", `title="old.txt"`, "<iframe"} {
+		if looks["notes.md"] != "doc" || looks["chart.png"] != "image" || looks["site.html"] != "code" {
+			t.Errorf("%s gives the chips the looks %v", name, looks)
+		}
+		if len(chips.Removed) != 1 || chips.Removed[0].Path != "old.txt" || chips.Removed[0].Gone != "was deleted" {
+			t.Errorf("%s says of the deleted file %+v", name, chips.Removed)
+		}
+	}
+	for name, drawn := range map[string]string{"the page": pageJSON, "a live turn": liveJSON} {
+		for _, never := range []string{"Launch notes", "Agent headline", "from the agent"} {
 			if strings.Contains(drawn, never) {
-				t.Errorf("%s draws %q, which a chip never shows", name, never)
+				t.Errorf("%s carries %q, which a chip never shows", name, never)
 			}
 		}
 	}

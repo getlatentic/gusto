@@ -25,14 +25,14 @@ func TestAReplysDetailsPageIsForAdministrators(t *testing.T) {
 	if page.Code != http.StatusSeeOther || !strings.HasPrefix(page.Header().Get("Location"), where) {
 		t.Errorf("a person's own reply page answered %d to %q, want the conversation", page.Code, page.Header().Get("Location"))
 	}
-	if body := mine.ask(t, "GET", where, nil).Body.String(); strings.Contains(body, `href="/jobs/`+turn+`"`) {
+	if body := mine.dataText(t, where); strings.Contains(body, `/jobs/`+turn+`"`) {
 		t.Error("the reply links to a page that is not theirs to open")
 	}
 	site.signIn(t)
 	if page := site.ask(t, "GET", "/jobs/"+turn, nil); page.Code != http.StatusOK {
 		t.Errorf("an administrator's reply page answered %d", page.Code)
 	}
-	if body := site.ask(t, "GET", where, nil).Body.String(); strings.Contains(body, `href="/jobs/`+turn+`"`) {
+	if body := site.dataText(t, where); strings.Contains(body, `/jobs/`+turn+`"`) {
 		t.Error("the conversation links an administrator to the reply page; it is reached from the admin pages")
 	}
 }

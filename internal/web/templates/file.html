@@ -1,10 +1,10 @@
 {{template "head" .}}
 
-{{template "ui-bar-open"}}
+{{if .Embed}}{{template "ui-bar-alone"}}{{else}}{{template "ui-bar-open"}}{{end}}
   <div class="bar-where"><nav class="contents" aria-label="Where this is">{{if .TaskID}}<a class="bar-crumb" href="/jobs">Activity</a><span class="bar-sep" aria-hidden="true">/</span><a class="bar-crumb" href="/jobs/{{.TaskID}}">Details</a><span class="bar-sep" aria-hidden="true">/</span>{{else}}<a class="bar-crumb" href="/files">Files</a><span class="bar-sep" aria-hidden="true">/</span>{{range .Crumbs}}<a class="bar-crumb" href="/files?at={{.At}}">{{.Name}}</a><span class="bar-sep" aria-hidden="true">/</span>{{end}}{{end}}</nav><h1 class="bar-title" title="{{.File.Name}}">{{.File.Name}}</h1></div>
   <div class="flex flex-none items-center gap-2">
       {{if .Back}}<a class="btn-sm [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" href="{{.Back}}">{{template "icon-compose"}}<span>{{or .BackWord "Back to the chat"}}</span></a>{{end}}
-      {{if eq .File.Kind "html"}}<a class="btn-sm [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" href="/instances/{{.Instance.ID}}/file?path={{.File.Path}}&amp;source=1">View source</a>{{end}}
+      {{if eq .File.Kind "html"}}<a class="btn-sm [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" href="/instances/{{.Instance.ID}}/file?path={{.File.Path}}&amp;source=1{{if .Embed}}&amp;embed=1{{end}}"{{if .Embed}} target="_self"{{end}}>View source</a>{{end}}
       {{if .File.Editable}}<button type="button" class="btn-sm [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" data-edit>Edit</button>{{end}}
       <a class="btn-sm [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download</span></a>
   </div>
@@ -20,7 +20,7 @@
 
 {{template "foot" .}}
 
-{{/* file-body is what a file is, drawn by its kind, whether it is a page or a tab beside a chat. */}}
+{{/* file-body is what a file is, drawn by its kind. */}}
 {{define "file-body"}}
   {{if eq .File.Kind "markdown"}}
   <article class="prose max-w-[46rem]">{{replyIn .File.Text .Instance.ID .File.Dir (printf "/instances/%s/file?path=%s" .Instance.ID .File.Path)}}</article>
@@ -65,23 +65,6 @@
   {{end}}
   {{if .File.Cut}}<p class="text-xs text-muted">The file is longer than the page draws. Download it to read the rest.</p>{{end}}
 {{end}}
-
-{{/* file-panel is a file as a tab beside a chat: its name and what can be done with it, and the file. */}}
-{{define "file-panel"}}<div class="grid gap-5" data-file>
-  <header class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-b border-line pb-4">
-    <div class="min-w-0 flex-1 basis-40">
-      <h2 class="text-lg wrap-anywhere">{{.File.Name}}</h2>
-      <p class="mt-1 text-xs text-muted">{{.File.Size}}{{if .File.Modified}} · changed {{ago .File.Modified}}{{end}}</p>
-    </div>
-    <div class="flex flex-none flex-wrap gap-2">
-      {{if .File.Editable}}<button type="button" class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-sm border border-line-strong bg-transparent px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-wash hover:text-ink" data-edit>Edit</button>{{end}}
-      <a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" data-page href="{{.Page}}">Open as a page</a>
-      <a class="inline-flex items-center justify-center gap-2 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-muted no-underline transition-colors hover:bg-wash hover:text-ink" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download</span></a>
-    </div>
-  </header>
-  {{template "file-edit" .}}
-  <div data-file-view>{{template "file-body" .}}</div>
-</div>{{end}}
 
 {{/* file-edit is a text file opened to be changed: all of it, and what it was, so a save is refused when it changed since. */}}
 {{define "file-edit"}}{{if .File.Editable}}

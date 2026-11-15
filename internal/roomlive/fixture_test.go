@@ -2,6 +2,7 @@ package roomlive
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -27,7 +28,7 @@ type fakeBackend struct {
 
 	// gate, when set, holds every draw until it is closed.
 	gate atomic.Pointer[chan struct{}]
-	// bulk is the size of padding added to each drawn page, for tests that need large events.
+	// bulk is the size of padding added to each drawn turn, for tests that need large events.
 	bulk   int
 	draws  atomic.Int64
 	server *Server
@@ -104,11 +105,11 @@ func (b *fakeBackend) Draw(ctx context.Context, room string, event roomlog.Event
 			return Drawn{}, ctx.Err()
 		}
 	}
-	html := fmt.Sprintf(`<article id="%s">%s #%d</article>`, event.Ref, event.Kind, event.Seq)
-	if b.bulk > 0 {
-		html += strings.Repeat("x", b.bulk)
+	turn, err := json.Marshal(map[string]string{"ID": event.Ref, "Said": fmt.Sprintf("%s #%d", event.Kind, event.Seq) + strings.Repeat("x", b.bulk)})
+	if err != nil {
+		return Drawn{}, err
 	}
-	return Drawn{Type: event.Kind, Thread: event.Thread, ID: event.Ref, HTML: html}, nil
+	return Drawn{Type: event.Kind, Thread: event.Thread, ID: event.Ref, Turn: turn}, nil
 }
 
 func (b *fakeBackend) Authenticate(r *http.Request) (Viewer, error) {

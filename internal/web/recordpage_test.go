@@ -35,9 +35,9 @@ func TestAnRecordFileIsAPageWithTheWayBackForABrowserAndTheBytesForAnyoneElse(t 
 		}
 	}
 
-	panel := askAs(t, site, file+"?panel=1", "text/html")
-	if strings.Contains(panel.Body.String(), "<html") || panel.Code != http.StatusOK {
-		t.Errorf("the tab is not a fragment: %d\n%s", panel.Code, panel.Body.String())
+	framed := askAs(t, site, file+"?embed=1", "text/html")
+	if body := framed.Body.String(); framed.Code != http.StatusOK || strings.Contains(body, `id="side"`) || strings.Contains(body, "Back to the record") || framed.Header().Get("X-Frame-Options") != "SAMEORIGIN" {
+		t.Errorf("the file is not drawn alone for the file panel's frame: %d\n%s", framed.Code, body)
 	}
 
 	for name, accept := range map[string]string{"a program": "", "a program that takes anything": "*/*"} {

@@ -38,9 +38,11 @@ The design tokens (tokens.css) and the mark (mark.svg and its images) in interna
 Files served from the binary (internal/web/static, see PROVENANCE.md there):
   htmx            BSD-style (htmx.org)
   highlight.js    BSD 3-Clause
-  centrifuge-js   MIT (Centrifugal Labs LTD; the license is served beside it as centrifuge.LICENSE)
   IBM Plex Sans, IBM Plex Serif, JetBrains Mono (fonts)  SIL Open Font License 1.1
   Lucide (icons)  ISC
+
+The React app in web/, built into internal/web/spa/dist and served from the binary, bundles:
+  centrifuge-js   MIT (Centrifugal Labs LTD), the npm package centrifuge 5.7.4, the browser client of the live room layer
 
 Programs a person may install beside gusto, which gusto runs and does not link:
   OpenShell       Apache-2.0 (github.com/NVIDIA/OpenShell)

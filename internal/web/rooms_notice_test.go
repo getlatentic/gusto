@@ -19,14 +19,15 @@ func TestWhatTheRoomSaysOfItselfShowsAsANoticeAndNotAsAPersonsMessage(t *testing
 		t.Errorf("an agent is not told of the conflict:\n%s", brief)
 	}
 	site.as(t, alice).ask(t, "POST", thread+"/say", url.Values{"said": {"a word from a person"}})
-	page := site.as(t, alice).ask(t, "GET", thread, nil).Body.String()
-	for _, want := range []string{"both changed report.md", `role="status"`, "a word from a person"} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the room does not show %q", want)
-		}
+	page := site.as(t, alice).conversation(t, thread)
+	if len(page.Turns) != 2 {
+		t.Fatalf("the room shows %d items, not the notice and the message", len(page.Turns))
 	}
-	at := strings.Index(page, "both changed report.md")
-	if before := page[max(0, at-400):at]; strings.Contains(before, "rounded-full bg-sunken") {
-		t.Errorf("the notice reads as a message from somebody: %s", before)
+	notice, message := page.Turns[0], page.Turns[1]
+	if notice.Kind != "notice" || !strings.Contains(notice.Said, "both changed report.md") || notice.Who != "" {
+		t.Errorf("the room's notice reads as a message from somebody: %+v", notice)
+	}
+	if message.Kind != "note" || message.Said != "a word from a person" || message.Who != alice {
+		t.Errorf("the person's message is %+v", message)
 	}
 }

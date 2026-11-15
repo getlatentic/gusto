@@ -60,11 +60,11 @@ func TestAnAdminWritesGuidelinesAndEveryAgentIsToldThemInEveryTurn(t *testing.T)
 			t.Errorf("turn %d was not given the guidelines: %q", i, turn.Brief)
 		}
 	}
-	if page := his.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "Answer in French.") || strings.Contains(page, `name="guidelines"`) {
-		t.Error("a member sees the guidelines as text, and not as a form")
+	if page := his.conversation(t, thread); page.Guidelines != "Answer in French." || page.Settings.Runs {
+		t.Error("a member is not given the guidelines to read, or is given them to change")
 	}
-	if page := mine.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, `name="guidelines"`) {
-		t.Error("an admin has no form to change the guidelines")
+	if page := mine.conversation(t, thread); !page.Settings.Runs || page.MaxGuidelines != instance.MaxGuidelines {
+		t.Error("an admin is not given the guidelines to change")
 	}
 	changed := ofKind(written(t, log), changelog.RoomGuidelines)
 	if len(changed) != 1 || changed[0].Who != alice || changed[0].What["now"] != "Answer in French." {
@@ -77,6 +77,9 @@ func TestGuidelinesThatAreTooLongAreRefusedAndChangeNothing(t *testing.T) {
 	got := site.as(t, alice).ask(t, "POST", "/rooms/"+id+"/guidelines", url.Values{"guidelines": {strings.Repeat("x", instance.MaxGuidelines+1)}})
 	if why := refusedTo(t, got.Header().Get("Location")); !strings.Contains(why, "at most") || !strings.Contains(got.Header().Get("Location"), "guidelines=1") {
 		t.Errorf("an over-long guideline was answered with %q at %s", why, got.Header().Get("Location"))
+	}
+	if page := site.as(t, alice).conversation(t, got.Header().Get("Location")); !strings.Contains(page.GuidelinesRefused, "at most") || page.Refused != "" || page.AddRefused != "" || page.Unsent != "" {
+		t.Errorf("the refusal comes back to the wrong part of the page: %q %q %q %q", page.GuidelinesRefused, page.Refused, page.AddRefused, page.Unsent)
 	}
 	if held, _ := site.server.instances.Get(id); held.Guidelines != "" {
 		t.Error("an over-long guideline was kept")
@@ -140,9 +143,6 @@ func TestAnArchivedRoomLeavesTheRailAndCannotBeSaidInUntilItIsBack(t *testing.T)
 	if archived := railOf(t, site, alice).Archived; len(archived) != 1 {
 		t.Errorf("the rail holds %d archived rooms for the admin", len(archived))
 	}
-	if page := mine.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "Archived rooms") {
-		t.Error("the rail has no way to the archived rooms")
-	}
 
 	said := his.ask(t, "POST", thread+"/say", url.Values{"said": {"@Scout anyone there?"}})
 	if why := refusedTo(t, said.Header().Get("Location")); !strings.Contains(why, "archived") {
@@ -154,11 +154,11 @@ func TestAnArchivedRoomLeavesTheRailAndCannotBeSaidInUntilItIsBack(t *testing.T)
 	if held := site.server.instances.Latest(id); len(held.Turns) != 0 || len(held.Notes) != 0 {
 		t.Errorf("an archived room took in %d turns and %d notes", len(held.Turns), len(held.Notes))
 	}
-	if page := his.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "This room is archived") || strings.Contains(page, `value="off"`) {
-		t.Error("a member sees the room as archived, with a way to bring it back")
+	if settings := his.conversation(t, thread).Settings; !settings.Archived || settings.Runs {
+		t.Errorf("a member is not told the room is archived, or may bring it back: %+v", settings)
 	}
-	if page := mine.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "Unarchive") {
-		t.Error("an admin has no way to bring the room back")
+	if settings := mine.conversation(t, thread).Settings; !settings.Archived || !settings.Runs {
+		t.Errorf("an admin may not bring the room back: %+v", settings)
 	}
 
 	mine.ask(t, "POST", "/rooms/"+id+"/archive", url.Values{"archive": {"off"}})

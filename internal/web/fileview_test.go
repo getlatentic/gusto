@@ -171,33 +171,35 @@ func TestTheListOfChatsIsBesideChatsAndTheRailLeadsToFiles(t *testing.T) {
 	}
 }
 
-// A file can be asked for as a tab beside a chat: its name, what can be done with it and the file, without the page around it.
-func TestAFileIsGivenAsATabBesideAChatWithoutThePageAroundIt(t *testing.T) {
+// A file can be asked for alone, for the frame of the file panel beside a conversation: the file and what can be done with it,
+// without the side list, the rail or the mobile bar, and framable by this server's own pages and nobody else's.
+func TestAFileIsDrawnAloneForTheFilePanelsFrame(t *testing.T) {
 	site, id, folder := viewerSite(t)
 	os.WriteFile(filepath.Join(folder, "plan.md"), []byte("# The plan\n\nBegin here."), 0o644)
-	answer := site.ask(t, "GET", "/instances/"+id+"/file?path=plan.md&panel=1", nil)
+	answer := site.ask(t, "GET", "/instances/"+id+"/file?path=plan.md&embed=1&from=/elsewhere", nil)
 	body := answer.Body.String()
-	if answer.Code != http.StatusOK || !strings.Contains(body, "The plan") || !strings.Contains(body, "plan.md") || !strings.Contains(body, "Open as a page") {
-		t.Fatalf("the tab: %d %s", answer.Code, body)
+	if answer.Code != http.StatusOK || !strings.Contains(body, "The plan") || !strings.Contains(body, "plan.md") || !strings.Contains(body, "data-edit>Edit</button>") {
+		t.Fatalf("the framed file: %d %s", answer.Code, body)
 	}
-	for _, page := range []string{"<html", "<body", `class="rail"`} {
-		if strings.Contains(body, page) {
-			t.Errorf("the tab carries the page around it (%s)", page)
+	for _, around := range []string{`id="side"`, `class="rail`, "mobile-bar", `type="button" data-side-toggle`, "/static/sidetabs.js", "Back to the chat"} {
+		if strings.Contains(body, around) {
+			t.Errorf("the framed file carries the page around it (%s)", around)
 		}
 	}
-	if gone := site.as(t, bob).ask(t, "GET", "/instances/"+id+"/file?path=plan.md&panel=1", nil); gone.Code != http.StatusNotFound {
-		t.Errorf("somebody else's file as a tab answered %d", gone.Code)
+	if !strings.Contains(body, `<base target="_top">`) || strings.Count(body, "<main") != 1 {
+		t.Error("the framed file's links do not open in the page around it, or it has no one main")
 	}
-}
-
-// A conversation carries the panel the files open in, and the dividers that change the widths.
-func TestAConversationHasAPanelForFilesAndDividersToResize(t *testing.T) {
-	site := open(t)
-	site.signIn(t)
-	page := site.ask(t, "GET", startedThread(t, site), nil).Body.String()
-	for _, want := range []string{`id="file-panel"`, `id="file-panel-resize"`, `id="panel-resize"`, "/static/filepanel.js", "/static/resize.js"} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the conversation does not carry %s", want)
-		}
+	if got := answer.Header().Get("X-Frame-Options"); got != "SAMEORIGIN" {
+		t.Errorf("the framed file says X-Frame-Options %q", got)
+	}
+	if policy := answer.Header().Get("Content-Security-Policy"); !strings.Contains(policy, "frame-ancestors 'self'") || strings.Contains(policy, "frame-ancestors 'none'") {
+		t.Errorf("the framed file's policy is %q", policy)
+	}
+	page := site.ask(t, "GET", "/instances/"+id+"/file?path=plan.md", nil)
+	if page.Header().Get("X-Frame-Options") != "DENY" || !strings.Contains(page.Header().Get("Content-Security-Policy"), "frame-ancestors 'none'") {
+		t.Error("the file's own page may be framed")
+	}
+	if gone := site.as(t, bob).ask(t, "GET", "/instances/"+id+"/file?path=plan.md&embed=1", nil); gone.Code != http.StatusNotFound {
+		t.Errorf("somebody else's file in the frame answered %d", gone.Code)
 	}
 }

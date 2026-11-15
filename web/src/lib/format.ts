@@ -94,3 +94,10 @@ export function shortWhen(unix: number, now = new Date()): string {
     year: then.getFullYear() === now.getFullYear() ? undefined : "numeric",
   })
 }
+
+// clock is the time of day something happened, on the 24-hour clock: 09:05.
+export function clock(unix: number): string {
+  if (!unix) return ""
+  const at = new Date(unix * 1000)
+  return `${two(at.getHours())}:${two(at.getMinutes())}`
+}

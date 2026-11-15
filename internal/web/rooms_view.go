@@ -189,9 +189,6 @@ func dayOf(at, now time.Time) string {
 	return at.Format("2 Jan 2006")
 }
 
-// clock is the time of day something was said.
-func clock(unix int64) string { return time.Unix(unix, 0).Format("15:04") }
-
 // nameFromAddress is what a person's address says they are called: ada.lovelace+work@acme.com is Ada Lovelace. A tag after a +
 // is a mailbox's, not the person's, and dots, dashes and underscores part words. The shared sign-in is Owner.
 func nameFromAddress(who string) string {
@@ -233,11 +230,11 @@ func initialsOf(name string) string {
 // mentionable is someone a room's message box offers after an @: its agents, which answer, and its people.
 type mentionable struct {
 	Name  string `json:"name"`
-	Role  string `json:"role,omitempty"`
-	Owner string `json:"owner,omitempty"`
-	Agent bool   `json:"agent,omitempty"`
-	Icon  string `json:"icon,omitempty"`
-	Short string `json:"short,omitempty"`
+	Role  string `json:"role"`
+	Owner string `json:"owner"`
+	Agent bool   `json:"agent"`
+	Icon  string `json:"icon"`
+	Short string `json:"short"`
 }
 
 func (s *Server) mentionables(held instance.Instance, you string) []mentionable {

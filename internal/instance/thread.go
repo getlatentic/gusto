@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Thread is one conversation with an instance. An instance has as many as
@@ -214,20 +215,22 @@ func (s *Store) Name(id, thread, title string) error {
 	return err
 }
 
-// TitleOf is the start of what was said, short enough for a list: the first
-// line, cut at a word.
+// titleMost is the longest title a conversation is given, in characters. Pages truncate a title to fit, so it only bounds what
+// is kept.
+const titleMost = 200
+
+// TitleOf is the first line of what was said, its spaces made single, cut at a word when it is longer than titleMost.
 func TitleOf(said string) string {
 	line, _, _ := strings.Cut(strings.TrimSpace(said), "\n")
-	words := strings.Fields(line)
-	const most = 48
-	title := ""
-	for _, word := range words {
-		if len(title)+len(word)+1 > most {
-			return title + "…"
-		}
-		title = strings.TrimSpace(title + " " + word)
+	title := strings.Join(strings.Fields(line), " ")
+	if utf8.RuneCountInString(title) <= titleMost {
+		return title
 	}
-	return title
+	cut := string([]rune(title)[:titleMost])
+	if at := strings.LastIndexByte(cut, ' '); at > 0 {
+		cut = cut[:at]
+	}
+	return cut + "…"
 }
 
 func (s *Store) writeThread(thread Thread) error {

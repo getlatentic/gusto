@@ -76,7 +76,7 @@ func TestPagesDrawSharedControlsWithTheKit(t *testing.T) {
 	}
 	literal := regexp.MustCompile(`"([^"\\]*(?:\\.[^"\\]*)*)"`)
 	for _, file := range scripts {
-		if strings.HasSuffix(file, ".min.js") || strings.HasSuffix(file, "centrifuge.js") {
+		if strings.HasSuffix(file, ".min.js") {
 			continue
 		}
 		for _, found := range literal.FindAllStringSubmatch(read(t, file), -1) {

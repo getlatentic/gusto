@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@plugin "@tailwindcss/typography";
+/* Markdown reads the same here as in the pages the server draws. */
+@import "../../internal/web/tailwind/prose.css";
 
 /* shadcn's components read the variables below. Each one is a gusto token from /static/tokens.css and /static/theme.css, which the
    page loads first, so the theme and the accent a person chose in the app move these pages too. */

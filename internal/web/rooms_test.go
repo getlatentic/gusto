@@ -220,11 +220,13 @@ func TestAMentionGoesToTheAgentNamedOnItsOwnHarness(t *testing.T) {
 			t.Errorf("the agent was not told %q:\n%s", want, heard[0].Brief)
 		}
 	}
-	page := site.as(t, alice).ask(t, "GET", thread, nil).Body.String()
-	for _, want := range []string{">Bob<", `>@Draft</span> write the page`, ">Draft<", "does Draft"} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the room does not show %q", want)
-		}
+	page := site.as(t, alice).conversation(t, thread)
+	if len(page.Turns) != 1 {
+		t.Fatalf("the room shows %d turns", len(page.Turns))
+	}
+	shown := page.Turns[0]
+	if shown.WhoName != "Bob" || shown.Who != bob || shown.SaidHTML != `<span class="mention">@Draft</span> write the page` || shown.By != "Draft" || shown.Role != "does Draft" || !shown.ShowSaid {
+		t.Errorf("the room shows the turn as %+v", shown)
 	}
 }
 
@@ -236,8 +238,14 @@ func TestBothAgentsMentionedAnswer(t *testing.T) {
 	if len(heard) != 2 {
 		t.Fatalf("the agents took %d turns, not one each", len(heard))
 	}
-	if page := site.as(t, alice).ask(t, "GET", thread, nil).Body.String(); strings.Count(page, "@Scout</span> again") != 1 {
-		t.Error("the room shows one message once for each agent it mentions")
+	shown := 0
+	for _, each := range site.as(t, alice).conversation(t, thread).Turns {
+		if each.ShowSaid && strings.Contains(each.SaidHTML, `@Scout</span> again`) {
+			shown++
+		}
+	}
+	if shown != 1 {
+		t.Errorf("the room shows one message %d times, once for each agent it mentions", shown)
 	}
 }
 
@@ -249,8 +257,12 @@ func TestWhatIsSaidStaysInTheOrderItWasSaid(t *testing.T) {
 	mine.ask(t, "POST", thread+"/say", url.Values{"said": {"@Scout the question"}})
 	work.waitTurns(t, site, 1)
 	mine.ask(t, "POST", thread+"/say", url.Values{"said": {"the last note"}})
-	page := mine.ask(t, "GET", thread, nil).Body.String()
-	order := []int{strings.Index(page, "the first note"), strings.Index(page, "the question"), strings.Index(page, "the reply"), strings.Index(page, "the last note")}
+	var page strings.Builder
+	for _, each := range mine.conversation(t, thread).Turns {
+		page.WriteString(each.Said + "\n" + each.ReplyHTML + "\n")
+	}
+	said := page.String()
+	order := []int{strings.Index(said, "the first note"), strings.Index(said, "the question"), strings.Index(said, "the reply"), strings.Index(said, "the last note")}
 	for i := 1; i < len(order); i++ {
 		if order[i-1] < 0 || order[i] <= order[i-1] {
 			t.Fatalf("the room shows what was said out of order: %v", order)
@@ -266,8 +278,8 @@ func TestWithSeveralAgentsAndNoMentionNobodyAnswers(t *testing.T) {
 	if said.Code != http.StatusSeeOther || !strings.Contains(said.Header().Get("Location"), "#n1") {
 		t.Fatalf("a note gave %d to %s", said.Code, said.Header().Get("Location"))
 	}
-	if page := mine.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "lunch at noon") {
-		t.Error("the room does not show what was said to nobody")
+	if page := mine.conversation(t, thread); len(page.Turns) != 1 || page.Turns[0].Said != "lunch at noon" || page.Turns[0].Kind != "note" || !page.Turns[0].Done {
+		t.Errorf("the room does not show what was said to nobody as a note: %+v", page.Turns)
 	}
 	mine.ask(t, "POST", thread+"/say", url.Values{"said": {"@Scout what did I say?"}})
 	heard := work.waitTurns(t, site, 1)
@@ -296,7 +308,7 @@ func TestARoomsOnlyAgentLeavesAMessageToAPersonAlone(t *testing.T) {
 	if heard := work.turns(); len(heard) != 0 {
 		t.Fatalf("the agent took a message said to a person: %+v", heard)
 	}
-	if page := site.as(t, alice).ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "the webinar is on 12 November") {
+	if page := site.as(t, alice).conversation(t, thread); !page.shows("the webinar is on 12 November") {
 		t.Error("the room does not show the message")
 	}
 	site.as(t, alice).ask(t, "POST", thread+"/say", url.Values{"said": {"@Scout use what " + to + " was told"}})
@@ -317,7 +329,11 @@ func TestAnAgentHandsWorkOnByMentioningAnotherAndTheChainStops(t *testing.T) {
 	if !strings.Contains(heard[1].Brief, "@Scout says to you:\n@Draft over to you") {
 		t.Errorf("the agent handed to was not told who handed it on:\n%s", heard[1].Brief)
 	}
-	if page := site.as(t, alice).ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, `asked by <span class="text-accent">@Scout</span>`) {
+	handed := false
+	for _, each := range site.as(t, alice).conversation(t, thread).Turns {
+		handed = handed || (each.From == "Scout" && each.By == "Draft" && !each.ShowSaid)
+	}
+	if !handed {
 		t.Error("the room does not show which agent handed a turn on")
 	}
 }
@@ -351,8 +367,11 @@ func TestAnAgentKeepsItsOwnConversationInARoom(t *testing.T) {
 
 func TestAMessageShowsItsMentionsAndNothingElseAsMarkup(t *testing.T) {
 	names := []string{"Scout", "Ada", "Ada Lovelace", "Tosin's Claude"}
-	shown := string(mentionsIn(`<b>hi</b> @Scout, mail me@example.com, @Ada Lovelace and @tosin's claude, not @Scouting`, names))
-	for _, want := range []string{`>@Scout</span>,`, `>@Ada Lovelace</span> and`, `>@tosin&#39;s claude</span>,`} {
+	shown := mentionsIn(`<b>hi</b> @Scout, mail me@example.com, @Ada Lovelace and @tosin's claude, not @Scouting`, names)
+	if !strings.HasPrefix(shown, `&lt;b&gt;hi&lt;/b&gt; <span class="mention">@Scout</span>, mail me@example.com, `) {
+		t.Errorf("the message does not escape what was written around a mention: %s", shown)
+	}
+	for _, want := range []string{`<span class="mention">@Scout</span>,`, `<span class="mention">@Ada Lovelace</span> and`, `<span class="mention">@tosin&#39;s claude</span>,`} {
 		if !strings.Contains(shown, want) {
 			t.Errorf("the message does not show %s: %s", want, shown)
 		}
@@ -370,7 +389,7 @@ func TestARoomCountsWhatAPersonHasNotReadAndWhatMentionsThem(t *testing.T) {
 	here, id, thread := aRoom(t, work, [2]string{"Scout", "fixture"}, [2]string{"Draft", "other"})
 	mine, his := here.as(t, alice), here.as(t, bob)
 	mine.ask(t, "POST", "/rooms/"+id+"/members", url.Values{"who": {bob}})
-	his.ask(t, "GET", thread, nil)
+	his.conversation(t, thread)
 	time.Sleep(1100 * time.Millisecond)
 	mine.ask(t, "POST", thread+"/say", url.Values{"said": {"@bob can you look?"}})
 	mine.ask(t, "POST", thread+"/say", url.Values{"said": {"and lunch at noon"}})
@@ -381,7 +400,13 @@ func TestARoomCountsWhatAPersonHasNotReadAndWhatMentionsThem(t *testing.T) {
 	if rail := shellOf(t, mine).Rail; rail.Unread != 0 {
 		t.Errorf("what alice said herself counts as unread for her: %d", rail.Unread)
 	}
-	his.ask(t, "GET", thread, nil)
+	if page := his.ask(t, "GET", thread, nil); page.Code != http.StatusOK {
+		t.Fatalf("the room's page answered %d", page.Code)
+	}
+	if rail := shellOf(t, his).Rail; rail.Unread != 1 {
+		t.Errorf("opening the page before it asked for its data read the room for bob: %d unread", rail.Unread)
+	}
+	his.conversation(t, thread)
 	if rail := shellOf(t, his).Rail; rail.Unread != 0 || rail.ForYou != 0 {
 		t.Errorf("after bob looked his tabs still count %d and %d", rail.Unread, rail.ForYou)
 	}
@@ -402,9 +427,9 @@ func TestAWorkspaceAgentAndAPersonAreAddedToARoomTogether(t *testing.T) {
 	member := aCrewAgent(t, here, alice, "Tosin's Claude", "other")
 	theirs := aCrewAgent(t, here, bob, "Bob's Codex", "fixture")
 	mine := here.as(t, alice)
-	page := mine.ask(t, "GET", thread, nil).Body.String()
-	if !strings.Contains(page, `value="`+member.ID+`"`) || strings.Contains(page, `value="`+theirs.ID+`"`) {
-		t.Fatal("the add dialog does not offer exactly the agents the person may work with")
+	addable := mine.conversation(t, thread).Members.Addable
+	if len(addable) != 1 || addable[0].ID != member.ID || addable[0].ID == theirs.ID || addable[0].Engine == "" {
+		t.Fatalf("the add dialog does not offer exactly the agents the person may work with: %+v", addable)
 	}
 	added := mine.ask(t, "POST", "/rooms/"+id+"/members/add", url.Values{"agent": {member.ID}, "who": {bob + ", carol@example.com"}})
 	if added.Code != http.StatusSeeOther || strings.Contains(added.Header().Get("Location"), "refused") {
@@ -453,7 +478,7 @@ func TestARoomUsesItsAgentsAsTheWorkspaceHasThemNow(t *testing.T) {
 			t.Errorf("the agent was not told %q:\n%s", want, heard[0].Brief)
 		}
 	}
-	if page := here.as(t, alice).ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, ">@Scout Prime</span>") {
+	if page := here.as(t, alice).conversation(t, thread); len(page.Turns) == 0 || !strings.Contains(page.Turns[0].SaidHTML, `<span class="mention">@Scout Prime</span>`) {
 		t.Error("the room does not show the renamed agent's mention")
 	}
 }
@@ -495,13 +520,19 @@ func TestARoomListsItsFilesByWhoMadeThemAndTakesUploadsFromItsPeople(t *testing.
 		t.Errorf("somebody outside the room uploaded, answered %d", got)
 	}
 
-	panel := his.ask(t, "GET", "/rooms/"+id+"/files?panel=1", nil).Body.String()
-	agents, people := between(panel, `data-files-list="agents"`, `data-files-list="people"`), panel[strings.Index(panel, `data-files-list="people"`):]
-	if !strings.Contains(agents, "brief.md") || strings.Contains(agents, "notes.txt") {
-		t.Errorf("the agents' list is wrong:\n%s", agents)
+	files := his.roomFilesOf(t, id)
+	agents, people := strings.Join(names(files.ByAgents), " "), strings.Join(names(files.ByPeople), " ")
+	if !strings.Contains(agents, "brief.md") || strings.Contains(agents, "notes.txt") || files.Agents != len(names(files.ByAgents)) {
+		t.Errorf("the agents' list is wrong: %s", agents)
 	}
-	if !strings.Contains(people, "notes.txt") || !strings.Contains(people, "notes (2).txt") || strings.Contains(people, "brief.md") {
-		t.Errorf("the people's list is wrong:\n%s", people)
+	if !strings.Contains(people, "notes.txt") || !strings.Contains(people, "notes (2).txt") || strings.Contains(people, "brief.md") || files.People != 2 {
+		t.Errorf("the people's list is wrong: %s", people)
+	}
+	if files.Room.ID != id || files.From == "" || files.Archived {
+		t.Errorf("the files do not say which room they are of: %+v", files)
+	}
+	if moved := his.ask(t, "GET", "/rooms/"+id+"/files", nil); moved.Code != http.StatusSeeOther || !strings.HasPrefix(moved.Header().Get("Location"), "/instances/"+id+"/files?from=") {
+		t.Errorf("the room's files as a page answered %d %q", moved.Code, moved.Header().Get("Location"))
 	}
 }
 
@@ -516,7 +547,7 @@ func TestARoomSaysWhetherItChangedAndIsWrittenOnlyWhenItDid(t *testing.T) {
 	if again := version(); again != before {
 		t.Errorf("the version moved with nothing said: %s then %s", before, again)
 	}
-	his.ask(t, "GET", thread, nil)
+	his.conversation(t, thread)
 	file := filepath.Join(here.server.instances.Dir(id), "threads")
 	stamp := func() map[string]int64 {
 		stamps := map[string]int64{}
@@ -530,8 +561,8 @@ func TestARoomSaysWhetherItChangedAndIsWrittenOnlyWhenItDid(t *testing.T) {
 	looked := stamp()
 	// Seen times are whole seconds, so the looks are a second apart, as they would be when a room's page asks again.
 	time.Sleep(1100 * time.Millisecond)
-	his.ask(t, "GET", thread+"/turns", nil)
-	his.ask(t, "GET", thread, nil)
+	his.turnsAt(t, thread)
+	his.conversation(t, thread)
 	if after := stamp(); fmt.Sprint(after) != fmt.Sprint(looked) {
 		t.Error("looking at a room that had not changed wrote it")
 	}
@@ -562,9 +593,9 @@ func TestOnlyTheTextAfterAMentionIsKeptOfAReply(t *testing.T) {
 // A new room's add dialog, for somebody with no agents yet, says to make one rather than that every agent is already in.
 func TestANewRoomSaysToMakeAnAgentWhenThereIsNone(t *testing.T) {
 	site, _, where := aRoom(t, &roomWork{})
-	page := site.as(t, alice).ask(t, "GET", where+"?add=1", nil).Body.String()
-	if !strings.Contains(page, "You have no agents yet.") || strings.Contains(page, "is in this room already") {
-		t.Error("the add dialog of a room with no agents does not say to make one")
+	members := site.as(t, alice).conversation(t, where+"?add=1").Members
+	if members == nil || members.RoomAgents != 0 || len(members.Addable) != 0 || !members.Runs {
+		t.Errorf("the add dialog of a room with no agents does not say there are none: %+v", members)
 	}
 }
 

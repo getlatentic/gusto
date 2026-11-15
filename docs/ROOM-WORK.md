@@ -167,5 +167,5 @@ An agent belongs to the person who made it. The room keeps its own record of eac
 | A person's change while turns work | `Hub.Hold` in `internal/roomwork/change.go`, used by `internal/web/workspace_write.go` and `rooms_files.go` |
 | The lane | `Record.Lane` in `internal/jobs/state.go` |
 | Running a turn on a copy, in a container, a sandbox or this process | `cmd/gusto/roomturn.go` |
-| The note | `Store.Notice` in `internal/instance/room.go`, shown by `internal/web/templates/conversation.html` |
+| The note | `Store.Notice` in `internal/instance/room.go`, shown by `web/src/pages/conversation/turn-item.tsx` |
 | What a waiting turn says | `internal/web/rooms_waiting.go` |

@@ -67,7 +67,7 @@ func TestARoomTurnUsesEachOfItsAskersAppsAsTheyChoseOrTheirDefault(t *testing.T)
 	if got := brief("before"); !strings.Contains(got, "has not let you use their Tasks") || !strings.Contains(got, "on your Apps page") {
 		t.Errorf("the agent is not told the asker has not let it use their app:\n%s", got)
 	}
-	if page := ada.ask(t, "GET", thread, nil).Body.String(); strings.Contains(page, "use your Tasks") {
+	if page := ada.dataText(t, thread); strings.Contains(page, "use your Tasks") {
 		t.Error("the room's message box asks about apps")
 	}
 	if page := ada.ask(t, "GET", appsTab, nil).Body.String(); !strings.Contains(page, ">Tasks<") || !strings.Contains(page, "Inherit (off)") {

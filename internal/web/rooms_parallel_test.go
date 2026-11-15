@@ -103,9 +103,8 @@ func TestTwoAgentsMentionedTogetherRunAtTheSameTime(t *testing.T) {
 	if (who[0] == who[1]) || len(who) != 2 {
 		t.Fatalf("the agents inside at once were %v", who)
 	}
-	page := site.as(t, alice).ask(t, "GET", thread, nil).Body.String()
-	if strings.Count(page, "Working") != 2 || strings.Contains(page, "Waiting for") {
-		t.Errorf("two running turns read %d Working and waiting text %v", strings.Count(page, "Working"), strings.Contains(page, "Waiting for"))
+	if running, waits := site.as(t, alice).conversation(t, thread).working(); running != 2 || len(waits) != 0 {
+		t.Errorf("two running turns read %d working and %v waiting", running, waits)
 	}
 	work.release()
 	waitIdle(t, site)
@@ -128,12 +127,12 @@ func TestOneAgentAskedTwiceGoesOneMessageAtATimeWhileAnotherRuns(t *testing.T) {
 		t.Fatalf("%s started while its agent was still on a message", again)
 	case <-time.After(150 * time.Millisecond):
 	}
-	page := mine.ask(t, "GET", thread, nil).Body.String()
-	if !strings.Contains(page, "Waiting for Scout to finish the message before this one.") {
-		t.Errorf("the second message to Scout does not say what it waits for:\n%s", page)
+	running, waits := mine.conversation(t, thread).working()
+	if len(waits) != 1 || !strings.HasPrefix(waits[0], "Waiting for Scout to finish the message before this one.") {
+		t.Errorf("the second message to Scout does not say what it waits for: %v", waits)
 	}
-	if strings.Count(page, "Working") != 2 {
-		t.Errorf("%d turns read Working, and two are working", strings.Count(page, "Working"))
+	if running != 2 {
+		t.Errorf("%d turns read working, and two are working", running)
 	}
 	work.release()
 	work.waitEntered(t, 1)
@@ -151,9 +150,9 @@ func TestATurnWaitingForARunnerSaysItIsWaitingAndForWhat(t *testing.T) {
 	mine.ask(t, "POST", thread+"/say", url.Values{"said": {"@Scout and @Draft go"}})
 	work.waitEntered(t, 1)
 
-	page := mine.ask(t, "GET", thread, nil).Body.String()
-	if !strings.Contains(page, "Every runner is busy: 1 of 1") || strings.Count(page, "Working") != 1 {
-		t.Errorf("a turn with no runner free reads %d Working:\n%s", strings.Count(page, "Working"), page)
+	running, waits := mine.conversation(t, thread).working()
+	if len(waits) != 1 || !strings.Contains(waits[0], "Every runner is busy: 1 of 1") || running != 1 {
+		t.Errorf("a turn with no runner free reads %d working and waits for %v", running, waits)
 	}
 	_, before := site.server.roomActivity(site.server.instances.Latest(strings.Split(strings.TrimPrefix(thread, "/instances/"), "/")[0]))
 	work.release()
@@ -162,8 +161,8 @@ func TestATurnWaitingForARunnerSaysItIsWaitingAndForWhat(t *testing.T) {
 	if before == after {
 		t.Error("the room's version did not change when the waiting turn started")
 	}
-	if page := mine.ask(t, "GET", thread, nil).Body.String(); strings.Contains(page, "Every runner is busy") {
-		t.Error("a turn that has finished still says it waits")
+	if _, waits := mine.conversation(t, thread).working(); len(waits) != 0 {
+		t.Errorf("a turn that has finished still says it waits: %v", waits)
 	}
 }
 

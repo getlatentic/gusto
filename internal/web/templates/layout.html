@@ -13,6 +13,8 @@
 <link rel="stylesheet" href="{{asset "/static/app.css"}}">
 <script src="{{asset "/static/look.js"}}"></script>
 {{if .Refresh}}<meta http-equiv="refresh" content="3">{{end}}
+{{/* A page drawn inside another one opens its links in the page around it. */}}
+{{if .Embed}}<base target="_top">{{end}}
 <script src="{{asset "/static/htmx.min.js"}}" defer></script>
 <script src="{{asset "/static/keyboard.js"}}" defer></script>
 <script src="{{asset "/static/menus.js"}}" defer></script>
@@ -64,7 +66,8 @@
 </head>
 <body class="h-[calc(100dvh-var(--lease-h,0rem))] overflow-hidden">
 <a class="skip absolute top-3 left-3 z-[100] -translate-y-[200%] rounded-sm bg-surface px-4 py-2 text-ink shadow-2 focus:translate-y-0" href="#main">Skip to the page</a>
-{{if .Console}}{{template "console-bar" .}}{{else}}<div class="shell grid h-full min-h-0 grid-cols-[auto_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] @max-[56rem]:grid-cols-[minmax(0,1fr)]">
+{{if .Console}}{{template "console-bar" .}}{{else if .Embed}}<main class="page min-h-0 min-w-0 overflow-y-auto" id="main" tabindex="-1">
+{{else}}<div class="shell grid h-full min-h-0 grid-cols-[auto_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] @max-[56rem]:grid-cols-[minmax(0,1fr)]">
 {{template "side" .}}
 <div class="scrim hidden bg-scrim side-open:@max-[56rem]:fixed side-open:@max-[56rem]:inset-0 side-open:@max-[56rem]:z-10 side-open:@max-[56rem]:block"></div>
 <main class="page min-h-0 min-w-0{{if .Chat}} chat grid grid-rows-[minmax(0,1fr)] overflow-hidden @max-[56rem]:grid-rows-[auto_minmax(0,1fr)]{{else}} overflow-y-auto{{end}}" id="main" tabindex="-1">
@@ -72,7 +75,8 @@
 {{end}}
 {{end}}
 
-{{/* body opens the page's own column. A page with a bar puts it between head
+{{/* A page with Embed set is drawn alone, to sit in a frame beside a conversation: no side list, rail or mobile bar.
+     body opens the page's own column. A page with a bar puts it between head
      and body, so the bar spans the whole pane while the column stays narrow.
      The admin's pages are tables and lists of everybody, and take the pane;
      so does any other page whose column holds .page-wide or .two-col. */}}
@@ -98,6 +102,8 @@
 </main>
 </div>
 <script src="{{asset "/static/appearance.js"}}"></script>
+{{else if .Embed}}</div>
+</main>
 {{else}}</div>
 </main>
 </div>

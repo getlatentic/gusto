@@ -34,8 +34,8 @@ func TestATextFileShownWholeCanBeChangedAndOthersCannot(t *testing.T) {
 	if !strings.Contains(page, `name="seen" value="`+hashOf("\n# Plan <b>\n")+`"`) {
 		t.Error("the page does not say what the file was")
 	}
-	if panel := site.ask(t, "GET", "/instances/"+id+"/file?path=plan.md&panel=1", nil).Body.String(); !strings.Contains(panel, "data-file-edit") {
-		t.Error("its tab beside a chat cannot change it")
+	if framed := site.ask(t, "GET", "/instances/"+id+"/file?path=plan.md&embed=1", nil).Body.String(); !strings.Contains(framed, "data-file-edit") || !strings.Contains(framed, "/static/fileedit.js") {
+		t.Error("its page in the file panel's frame cannot change it")
 	}
 	for _, name := range []string{"big.txt", "blob.bin"} {
 		if strings.Contains(viewed(t, site, id, name), "data-file-edit") {
@@ -87,8 +87,8 @@ func TestAChangeToARoomsFileIsSaidInTheRoom(t *testing.T) {
 	if answer.Code != http.StatusOK {
 		t.Fatalf("saving answered %d: %s", answer.Code, answer.Body)
 	}
-	page := mine.ask(t, "GET", where, nil).Body.String()
-	if !strings.Contains(page, "changed launch-plan.md.") || !strings.Contains(page, `/instances/`+id+`/file?path=launch-plan.md&amp;from=`) {
-		t.Errorf("the room does not say the file was changed, with a way to it")
+	page := mine.conversation(t, where)
+	if len(page.Turns) != 1 || page.Turns[0].Kind != "notice" || !strings.Contains(page.Turns[0].Said, "changed launch-plan.md.") || page.Turns[0].File != "launch-plan.md" {
+		t.Errorf("the room does not say the file was changed, with a way to it: %+v", page.Turns)
 	}
 }

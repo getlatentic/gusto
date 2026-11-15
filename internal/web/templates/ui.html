@@ -14,6 +14,8 @@
      page's few actions follow it at the right. On a narrow window it carries
      the button that opens the side list. */}}
 {{define "ui-bar-open"}}<header class="bar sticky top-0 z-20 flex h-16 flex-none items-center gap-3 bg-canvas/92 px-4 backdrop-blur-xl @max-[56rem]:px-3"><button class="hidden size-8 flex-none cursor-pointer place-items-center rounded-md text-ink hover:bg-hover @max-[56rem]:grid [&>svg]:size-4" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button>{{end}}
+{{/* ui-bar-alone opens the bar of a page drawn without the side list, which has no menu to open it. */}}
+{{define "ui-bar-alone"}}<header class="bar sticky top-0 z-20 flex h-16 flex-none items-center gap-3 bg-canvas/92 px-4 backdrop-blur-xl @max-[56rem]:px-3">{{end}}
 {{define "ui-bar-close"}}</header>{{end}}
 
 {{/* A table longer than a page shows one page and the links to the pages either side. It takes a pager. */}}

@@ -120,13 +120,14 @@ func TestADirectRoomStillOpensAfterItsAgentIsRemoved(t *testing.T) {
 	member := aCrewAgent(t, site, alice, "Atlas", "other")
 	mine := site.as(t, alice)
 	opened := mine.ask(t, "POST", "/members/agents/"+member.ID+"/message", nil).Header().Get("Location")
-	if page := mine.ask(t, "GET", opened, nil).Body.String(); !strings.Contains(page, "Your own conversation with Atlas") {
-		t.Fatal("the direct room does not say whose it is")
+	if page := mine.conversation(t, opened); !page.Instance.Direct || page.DirectAgent == nil || page.DirectAgent.Name != "Atlas" || page.Hint != "Message Atlas" {
+		t.Fatalf("the direct room does not say whose it is: %+v %+v", page.Instance, page.DirectAgent)
 	}
 	mine.ask(t, "POST", "/members/agents/"+member.ID+"/remove", nil)
 	if got := mine.ask(t, "GET", opened, nil); got.Code != http.StatusOK {
 		t.Errorf("the direct room answered %d once its agent was removed", got.Code)
 	}
+	mine.conversation(t, opened)
 }
 
 func TestTheNewAgentDialogShowsEveryAgentTypeAndWhyOneCannotRun(t *testing.T) {

@@ -11,8 +11,13 @@ function grow(box: HTMLTextAreaElement) {
 }
 
 // sendOnEnter sends with Enter and makes a new line with Shift+Enter; an empty box sends nothing.
-function sendOnEnter(event: KeyboardEvent<HTMLTextAreaElement>) {
-  if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing)
+export function sendOnEnter(event: KeyboardEvent<HTMLTextAreaElement>) {
+  if (
+    event.defaultPrevented ||
+    event.key !== "Enter" ||
+    event.shiftKey ||
+    event.nativeEvent.isComposing
+  )
     return
   event.preventDefault()
   if (event.currentTarget.value.trim())
@@ -25,6 +30,8 @@ export function Composer({
   label,
   placeholder,
   defaultValue,
+  text,
+  field,
   describedBy,
   autoFocus,
   canSend,
@@ -38,6 +45,9 @@ export function Composer({
   label: string
   placeholder: string
   defaultValue?: string
+  // text makes the box hold what its owner keeps, and field replaces the box altogether, as a room's box with mentions does.
+  text?: string
+  field?: ReactNode
   describedBy?: string
   autoFocus?: boolean
   canSend: boolean
@@ -55,23 +65,26 @@ export function Composer({
         className
       )}
     >
-      <textarea
-        ref={boxRef}
-        name="said"
-        rows={1}
-        aria-label={label}
-        aria-describedby={describedBy}
-        placeholder={placeholder}
-        defaultValue={defaultValue}
-        autoFocus={autoFocus}
-        required
-        className="block [field-sizing:content] max-h-56 min-h-6 w-full resize-none border-0 bg-transparent p-0 text-sm leading-6 outline-none placeholder:text-muted-foreground max-sm:text-base"
-        onInput={(event) => {
-          grow(event.currentTarget)
-          onWrite?.(event.currentTarget.value)
-        }}
-        onKeyDown={sendOnEnter}
-      />
+      {field ?? (
+        <textarea
+          ref={boxRef}
+          name="said"
+          rows={1}
+          aria-label={label}
+          aria-describedby={describedBy}
+          placeholder={placeholder}
+          defaultValue={text === undefined ? defaultValue : undefined}
+          value={text}
+          autoFocus={autoFocus}
+          required
+          className="block [field-sizing:content] max-h-56 min-h-6 w-full resize-none border-0 bg-transparent p-0 text-sm leading-6 outline-none placeholder:text-muted-foreground max-sm:text-base"
+          onChange={(event) => {
+            grow(event.currentTarget)
+            onWrite?.(event.currentTarget.value)
+          }}
+          onKeyDown={sendOnEnter}
+        />
+      )}
       <div className="flex min-w-0 items-center gap-1">
         {tools}
         <span className="flex-1" />

@@ -25,22 +25,22 @@ func TestATurnWaitingForItsAgentIsShownWaitingLiveAndThenDone(t *testing.T) {
 
 	for name, c := range map[string]*livetest.Client{"alice": ada, "bob": ben} {
 		var waiting roomlive.Frame
-		for !strings.Contains(waiting.HTML, "Waiting for Scout") || waiting.ID != second.Ref {
+		for !strings.Contains(turnOf(t, waiting).Holding, "Waiting for Scout") || waiting.ID != second.Ref {
 			waiting = frames(t, c, 1)[0]
 		}
-		if strings.Contains(waiting.HTML, "Working") {
-			t.Fatalf("%s was shown Working for a turn that waits: %s", name, waiting.HTML)
+		if turn := turnOf(t, waiting); turn.Done || turn.Started != 0 {
+			t.Fatalf("%s was shown a turn that waits as working: %+v", name, turn)
 		}
 	}
 
 	close(work.hold)
 	for name, c := range map[string]*livetest.Client{"alice": ada, "bob": ben} {
 		var last roomlive.Frame
-		for !(last.ID == second.Ref && strings.Contains(last.HTML, "done")) {
+		for !(last.ID == second.Ref && turnOf(t, last).Done) {
 			last = frames(t, c, 1)[0]
 		}
-		if strings.Contains(last.HTML, "Waiting for") {
-			t.Fatalf("%s still saw the finished turn waiting: %s", name, last.HTML)
+		if turn := turnOf(t, last); turn.Holding != "" || !strings.Contains(turn.ReplyHTML, "done") {
+			t.Fatalf("%s saw the finished turn as %+v", name, turn)
 		}
 	}
 }
@@ -70,7 +70,7 @@ func TestAMergeNoticeAppearsInEveryOpenView(t *testing.T) {
 	}
 	for name, c := range map[string]*livetest.Client{"alice": ada, "bob": ben} {
 		got := frames(t, c, 1)[0]
-		if got.Type != roomlive.FrameNote || !strings.Contains(got.HTML, "both changed plan.md") || !strings.Contains(got.HTML, `role="status"`) {
+		if notice := turnOf(t, got); got.Type != roomlive.FrameNote || !strings.Contains(notice.Said, "both changed plan.md") || notice.Kind != "notice" {
 			t.Fatalf("%s saw %+v", name, got)
 		}
 	}

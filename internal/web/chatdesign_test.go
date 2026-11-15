@@ -47,17 +47,12 @@ func TestAProjectInTheSideListStartsAChatInItsFolder(t *testing.T) {
 	}
 }
 
-// While a turn runs the box offers Stop where it offers Send, and not a second Stop beside the reply.
-func TestWhileATurnRunsTheBoxOffersStop(t *testing.T) {
+// With nothing running, the conversation's data names no turn to stop.
+func TestWithNothingRunningTheConversationNamesNoTurnToStop(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	where := startedThread(t, site)
-	body := site.ask(t, "GET", where, nil).Body.String()
-	if strings.Contains(body, `id="stop"`) {
-		t.Error("a conversation with nothing running offers Stop")
-	}
-	if !strings.Contains(body, `id="send"`) {
-		t.Error("the box has no Send")
+	if page := site.conversation(t, startedThread(t, site)); page.Waiting || page.Latest != "" {
+		t.Errorf("a conversation with nothing running is waiting on %q", page.Latest)
 	}
 }
 

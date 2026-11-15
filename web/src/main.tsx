@@ -61,6 +61,11 @@ const IntegrationPage = lazy(() =>
 const ChatPage = lazy(() =>
   import("@/pages/chat/chat-page").then((m) => ({ default: m.ChatPage }))
 )
+const ConversationPage = lazy(() =>
+  import("@/pages/conversation/conversation-page").then((m) => ({
+    default: m.ConversationPage,
+  }))
+)
 
 // The pages the gusto server hands to this app. Each address is also a route on the server, which serves this app for it
 // behind the same sign-in; any other address is a page the server draws.
@@ -73,6 +78,10 @@ createRoot(document.getElementById("root")!).render(
             <Routes>
               <Route element={<PersonShell />}>
                 <Route path="/chat" element={<ChatPage />} />
+                <Route
+                  path="/instances/:id/threads/:thread"
+                  element={<ConversationPage />}
+                />
               </Route>
               <Route path="/admin" element={<ConsoleShell />}>
                 <Route index element={<OverviewPage />} />

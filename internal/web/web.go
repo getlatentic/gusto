@@ -155,7 +155,6 @@ func New(index *tasks.Index, instances *instance.Store, queue *tasks.Queue, pass
 	s.templates, err = template.New("").Funcs(helpers).Funcs(template.FuncMap{
 		"waiting":    s.waiting,
 		"personName": s.personName,
-		"ownerLabel": s.ownerLabel,
 		"initials":   s.initials,
 		"askedBy":    askerOf,
 		// Where a host that has a lease is extended, which is at gusto cloud.
@@ -235,8 +234,6 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /instances/{id}/routines", s.guard(s.addRoutine))
 	mux.HandleFunc("POST /instances/{id}/routines/{routine}/{action}", s.guard(s.changeRoutine))
 	mux.HandleFunc("POST /instances/{id}/threads", s.guard(s.openThread))
-	mux.HandleFunc("GET /instances/{id}/threads/{thread}", s.guard(s.conversation))
-	mux.HandleFunc("GET /instances/{id}/threads/{thread}/turns", s.guard(s.turns))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}/live", s.guard(s.turnLive))
 	mux.HandleFunc("POST /instances/{id}/threads/{thread}/say", s.guard(s.say))
 	mux.HandleFunc("GET /templates/{name}", s.guard(s.templatePage))

@@ -9,7 +9,6 @@
 @source "../templates";
 @source "../../operator/templates";
 @source "../static/*.js";
-@source not "../static/centrifuge.js";
 
 @import "./theme.css";
 @import "./base.css";

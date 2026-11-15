@@ -28,7 +28,7 @@ func (s *Server) roomRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /rooms/new", s.guard(s.newRoomPage))
 	mux.HandleFunc("POST /rooms", s.guard(s.makeRoom))
 	mux.HandleFunc("GET /rooms/{id}/members", s.guard(s.roomMembersPage))
-	mux.HandleFunc("GET /rooms/{id}/files", s.guard(s.roomFilesPanel))
+	mux.HandleFunc("GET /rooms/{id}/files", s.guard(s.roomFiles))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}/version", s.guard(s.turnsVersion))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}/progress", s.guard(s.roomProgress))
 	mux.HandleFunc("POST /rooms/{id}/files", s.guard(s.uploadToRoom))

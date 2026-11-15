@@ -216,10 +216,10 @@ func TestTheRailsMarkSwitchesBetweenThePersonsOrganizationsBehindGustoCloud(t *t
 	if org := shellOf(t, s).Org; org == nil || *org != want {
 		t.Errorf("the shell does not lead to the person's organizations: %+v", org)
 	}
-	page := s.ask(t, "GET", startedThread(t, s), nil)
+	page := s.ask(t, "GET", "/files", nil)
 	body := page.Body.String()
-	for _, want := range []string{`data-orgs aria-label="Organizations"`, `data-from="https://cloud.test/orgs.json"`, `data-current="acme-com"`, `font-semibold text-ink">Acme Research</span>`, `href="https://cloud.test/orgs"`, "/static/orgs.js",
-		`data-reminder data-from="https://cloud.test/account.json" data-send="https://cloud.test/account/confirm"`, "/static/reminder.js"} {
+	for _, want := range []string{`data-orgs aria-label="Organizations"`, `data-from="https://cloud.test/orgs.json"`, `data-current="acme-com"`, `href="https://cloud.test/orgs"`, "/static/orgs.js",
+		"/static/reminder.js"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the page has %s:\n%s", want, body)
 		}

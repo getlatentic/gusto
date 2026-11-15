@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -237,9 +238,8 @@ func offered() []catalog.Entry {
 	}}
 }
 
-// The page and the fragment must agree: a turn swapped in should be the same
-// markup the whole page would have rendered for it.
-func TestAFinishedTurnIsSwappedInRatherThanReloaded(t *testing.T) {
+// The page and the snapshot of its turns must agree: a turn swapped in is the turn the whole page's data had for it.
+func TestAFinishedTurnInTheSnapshotIsTheTurnThePageHas(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	where := startedThread(t, site)
@@ -251,17 +251,21 @@ func TestAFinishedTurnIsSwappedInRatherThanReloaded(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("the turn never ran")
 	}
+	eventually(t, 5*time.Second, "the turn to finish", func() bool { return site.allDone() })
 
-	whole := site.ask(t, "GET", where, nil).Body.String()
-	fragment := site.ask(t, "GET", where+"/turns", nil).Body.String()
-	if !strings.Contains(fragment, "hello there") {
-		t.Fatalf("the fragment does not carry the turn:\n%s", fragment)
+	whole := site.conversation(t, where)
+	snapshot, header := site.turnsAt(t, where)
+	if len(whole.Turns) != 1 || whole.Turns[0].Said != "hello there" || !whole.Turns[0].Done {
+		t.Fatalf("the page does not carry the finished turn: %+v", whole.Turns)
 	}
-	if !strings.Contains(whole, "hello there") {
-		t.Fatal("the whole page does not carry the turn")
+	if fmt.Sprint(snapshot.Turns) != fmt.Sprint(whole.Turns) {
+		t.Errorf("the snapshot's turns differ from the page's:\n%+v\n%+v", snapshot.Turns, whole.Turns)
 	}
-	if strings.Contains(fragment, "<html") || strings.Contains(fragment, "</body>") {
-		t.Fatal("the fragment is a whole page, which would nest one inside the other when swapped")
+	if header.Get("X-Room-Settings") == "" || snapshot.Settings != header.Get("X-Room-Settings") || header.Get("X-Room-Version") != "" {
+		t.Errorf("a conversation that is not a room says %q %q %q", snapshot.Settings, header.Get("X-Room-Settings"), header.Get("X-Room-Version"))
+	}
+	if missing := site.ask(t, "GET", "/app/api/instances/nobody/threads/1/turns", nil); missing.Code != http.StatusNotFound {
+		t.Errorf("the turns of a conversation that is not there answered %d", missing.Code)
 	}
 }
 
@@ -306,9 +310,12 @@ func TestStartingAHarnessLandsInAConversationWithIt(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	where := startedThread(t, site)
-	body := site.ask(t, "GET", where, nil).Body.String()
-	if !strings.Contains(body, `name="said"`) {
-		t.Error("the page you land on has nowhere to say anything")
+	page := site.ask(t, "GET", where, nil)
+	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "/static/look.js") {
+		t.Errorf("the page you land on is not the app: %d", page.Code)
+	}
+	if data := site.conversation(t, where); data.Path != where || data.Agent.Name == "" || data.Hint != "Message "+data.Agent.Name {
+		t.Errorf("the conversation you land on has nowhere to say anything: %+v", data)
 	}
 }
 
@@ -332,10 +339,10 @@ func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("the turn never ran")
 	}
-	if body := site.ask(t, "GET", first, nil).Body.String(); !strings.Contains(body, "only in the first") {
+	if !site.conversation(t, first).shows("only in the first") {
 		t.Error("the first thread does not carry what was said in it")
 	}
-	if body := site.ask(t, "GET", second+"/turns", nil).Body.String(); strings.Contains(body, "only in the first") {
+	if snapshot, _ := site.turnsAt(t, second); len(snapshot.Turns) != 0 {
 		t.Error("the second thread carries what was said in the first")
 	}
 }
@@ -470,8 +477,8 @@ func TestABlankAgentStartsWithOneButton(t *testing.T) {
 	if where := started.Header().Get("Location"); !strings.Contains(where, "/threads/") {
 		t.Fatalf("starting with no engine chosen went to %q", where)
 	}
-	if instances := site.ask(t, "GET", started.Header().Get("Location"), nil).Body.String(); !strings.Contains(instances, "Research helper") {
-		t.Error("the agent is not listed by the name it was given")
+	if page := site.conversation(t, started.Header().Get("Location")); page.Agent.Name != "Research helper" || page.Instance.Title != "Research helper" {
+		t.Errorf("the agent is not named by the name it was given: %+v", page.Agent)
 	}
 }
 

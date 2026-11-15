@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// A room's file card opens in the side panel and downloads under its own name, as it does in a chat.
+// A room's file card opens in the frame of the file panel and downloads under its own name, as it does in a chat.
 func TestARoomsFileCardOpensInThePanelAndDownloadsUnderItsName(t *testing.T) {
 	here, id, _ := aRoom(t, &roomWork{}, [2]string{"Scout", "fixture"})
 	if err := os.WriteFile(filepath.Join(here.server.instances.AgentFolder(id), "audience.md"), []byte("- Teams that run agents\n"), 0o644); err != nil {
@@ -24,7 +24,7 @@ func TestARoomsFileCardOpensInThePanelAndDownloadsUnderItsName(t *testing.T) {
 
 func openAndDownload(t *testing.T, here *site, who, id string) {
 	t.Helper()
-	panel := here.as(t, who).ask(t, "GET", "/instances/"+id+"/file?path=audience.md&panel=1", nil)
+	panel := here.as(t, who).ask(t, "GET", "/instances/"+id+"/file?path=audience.md&embed=1", nil)
 	if panel.Code != http.StatusOK {
 		t.Errorf("%s: the panel answered %d: %.300s", who, panel.Code, panel.Body.String())
 	}

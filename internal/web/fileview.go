@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/csv"
+	"github.com/getlatentic/gusto/internal/instance"
 	"mime"
 	"net/http"
 	"net/url"
@@ -114,14 +115,30 @@ func (s *Server) folderFile(w http.ResponseWriter, r *http.Request) {
 	}
 	s.fill(&file, resolved, info.Size())
 	editable(&file, resolved, info.Size(), held.Archived != 0)
-	if r.URL.Query().Get("panel") != "" {
-		s.render(w, "file-panel", map[string]any{"File": file, "Instance": held, "Rail": nil, "Page": "/instances/" + held.ID + "/file" + query})
+	s.drawFile(w, r, held, file)
+}
+
+// drawFile draws a file of an agent's folder as a page.
+func (s *Server) drawFile(w http.ResponseWriter, r *http.Request, held instance.Instance, file viewedFile) {
+	page := map[string]any{
+		"Title": productName + " — " + file.Name, "Nav": "files", "Instance": held, "Agent": s.agentOf(held),
+		"File": file, "Back": r.URL.Query().Get("from"), "Crumbs": s.fileCrumbs(held.ID, s.agentOf(held).Name, file.Path),
+	}
+	embedded(w, r, page)
+	s.render(w, "file.html", page)
+}
+
+// embedded draws a file's page alone when the request asks with embed, for the frame of the file panel beside a conversation: no
+// side list and no way back, which the conversation around it is. Only this server's own pages may put it in a frame, where every
+// other response may not be framed at all.
+func embedded(w http.ResponseWriter, r *http.Request, page map[string]any) {
+	if r.URL.Query().Get("embed") == "" {
 		return
 	}
-	s.render(w, "file.html", map[string]any{
-		"Title": productName + " — " + name, "Nav": "files", "Instance": held, "Agent": s.agentOf(held),
-		"File": file, "Back": r.URL.Query().Get("from"), "Crumbs": s.fileCrumbs(held.ID, s.agentOf(held).Name, file.Path),
-	})
+	page["Embed"], page["Rail"], page["Back"] = true, nil, ""
+	h := w.Header()
+	h.Set("Content-Security-Policy", strings.Replace(h.Get("Content-Security-Policy"), "frame-ancestors 'none'", "frame-ancestors 'self'", 1))
+	h.Set("X-Frame-Options", "SAMEORIGIN")
 }
 
 // fill reads what the kind of file needs of it.

@@ -18,7 +18,8 @@ func a11yPages(t *testing.T) map[string]*html.Node {
 	conversation := startedThread(t, site)
 	instance := conversation[:strings.Index(conversation, "/threads/")]
 	pages := map[string]*html.Node{}
-	for _, path := range []string{"/jobs", "/files", "/spend", "/presets", conversation, instance} {
+	// A conversation is drawn by the React app, whose pages are checked where they are built.
+	for _, path := range []string{"/jobs", "/files", "/spend", "/presets", instance} {
 		answer := site.ask(t, "GET", path, nil)
 		if answer.Code != http.StatusOK {
 			t.Fatalf("%s answered %d", path, answer.Code)
@@ -142,61 +143,20 @@ func TestTogglesSayWhetherTheyAreOpen(t *testing.T) {
 	}
 }
 
-// While a turn runs, what it is doing is announced politely as it changes, the log of its steps is not read out again each time it is
-// redrawn, and a region outside the running turn is there to say when the reply is in.
-func TestARunningTurnIsAnnouncedPolitelyAndOnce(t *testing.T) {
+// While a turn runs, the conversation's data says so and names it, so the page can say what it is doing and offer to stop it.
+func TestARunningTurnIsNamedInTheConversationsDataSoItCanBeStopped(t *testing.T) {
 	started := holding(t)
 	site := open(t)
 	site.signIn(t)
 	where := startedThread(t, site)
 	site.ask(t, "POST", where+"/say", url.Values{"said": {"a long piece of work"}})
 	<-started
-	page := site.ask(t, "GET", where, nil).Body.String()
-	site.ask(t, "POST", "/jobs/"+regexpFirst(t, page, `/jobs/([0-9a-z-]+)/stop`)+"/stop", nil)
-	doc, err := html.Parse(strings.NewReader(page))
-	if err != nil {
-		t.Fatal(err)
+	page := site.conversation(t, where)
+	if !page.Waiting || page.Latest == "" || len(page.Turns) != 1 || page.Turns[0].ID != page.Latest || page.Turns[0].Done {
+		t.Errorf("the data does not say a turn is running: waiting %v, latest %q, %+v", page.Waiting, page.Latest, page.Turns)
 	}
-	roles := map[string]string{}
-	each(doc, func(n *html.Node) {
-		if attr(n, "aria-live") == "assertive" || attr(n, "role") == "alert" {
-			t.Errorf("the running turn interrupts: %s", render(n))
-		}
-		if id := attr(n, "id"); id != "" {
-			roles[id] = attr(n, "role") + attr(n, "aria-live")
-		}
-	})
-	for id, want := range map[string]string{"doing": "status", "live": "", "turn-news": "status"} {
-		if got, ok := roles[id]; !ok || got != want {
-			t.Errorf("#%s is %q, want %q", id, got, want)
-		}
-	}
-}
-
-// A name cut short by its column is whole in the page's text, and in a title for whoever points at it.
-func TestACutNameIsWholeInItsTitle(t *testing.T) {
-	site := open(t)
-	site.signIn(t)
-	where := startedThread(t, site)
-	site.ask(t, "POST", where+"/say", url.Values{"said": {"a name long enough to be cut short by the side list"}})
-	doc, err := html.Parse(site.ask(t, "GET", where, nil).Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	checked := 0
-	each(doc, func(n *html.Node) {
-		cut := (n.Data == "h1" && inside(n, "main")) || (n.Data == "summary" && inside(n, "aside")) || (n.Data == "a" && inside(n, "ol") && inside(n, "aside"))
-		if !cut {
-			return
-		}
-		checked++
-		name, title := strings.Join(strings.Fields(accessibleName(n)), " "), attr(n, "title")
-		if title == "" || !(strings.HasPrefix(title, name) || strings.HasPrefix(name, title)) {
-			t.Errorf("%q is cut with the title %q", name, title)
-		}
-	})
-	if checked < 3 {
-		t.Errorf("only %d cut names were found to check", checked)
+	if stopped := site.ask(t, "POST", "/jobs/"+page.Latest+"/stop", nil); stopped.Code != http.StatusSeeOther {
+		t.Errorf("stopping the running turn answered %d", stopped.Code)
 	}
 }
 

@@ -69,10 +69,37 @@ func (s *Server) appViews() []appView {
 	}
 }
 
+// conversationRoute is a conversation's page.
+const conversationRoute = "/instances/{id}/threads/{thread}"
+
 // personViews are a person's own pages that have moved to the React app.
 func (s *Server) personViews() []appView {
 	return []appView{
 		{"/chat", always, s.chatData},
+		{conversationRoute, always, s.conversationData},
+	}
+}
+
+// pageFound is, for a page whose address names something that may not be there, whether it is, so such a page answers 404 and
+// not the app. It is nil for a page that is always there.
+func (s *Server) pageFound(route string) func(*http.Request) bool {
+	if route == conversationRoute {
+		return s.hasConversation
+	}
+	return nil
+}
+
+// whenThere serves next when the address names something that is there, and answers 404 when it does not.
+func whenThere(there func(*http.Request) bool, next http.HandlerFunc) http.HandlerFunc {
+	if there == nil {
+		return next
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !there(r) {
+			http.NotFound(w, r)
+			return
+		}
+		next(w, r)
 	}
 }
 
@@ -81,7 +108,7 @@ func (s *Server) personViews() []appView {
 func (s *Server) mountApp(mux *http.ServeMux) {
 	mount := func(views []appView, admit func(http.HandlerFunc) http.HandlerFunc) {
 		for _, view := range views {
-			mux.HandleFunc("GET "+view.path, admit(offering(view.has, s.appPage)))
+			mux.HandleFunc("GET "+view.path, admit(offering(view.has, whenThere(s.pageFound(view.path), s.appPage))))
 			mux.HandleFunc("GET /app/api"+view.path, admit(offering(view.has, s.appData(view.gather))))
 		}
 	}
@@ -89,6 +116,8 @@ func (s *Server) mountApp(mux *http.ServeMux) {
 	mount(s.personViews(), s.guard)
 	mux.HandleFunc("GET /app/api/console", s.console(s.consoleJSON))
 	mux.HandleFunc("GET /app/api/shell", s.guard(s.personShellJSON))
+	mux.HandleFunc("GET /app/api"+conversationRoute+"/turns", s.guard(s.turnsData))
+	mux.HandleFunc("GET /app/api/rooms/{id}/files", s.guard(s.roomFilesData))
 	assets, err := fs.Sub(spaFiles, "spa/dist/assets")
 	if err != nil {
 		panic(err)

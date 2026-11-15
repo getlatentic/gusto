@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -128,7 +127,7 @@ func TestTheOldAddressOfThePresetsPageLeadsToThePresetsPage(t *testing.T) {
 	}
 }
 
-// A message that was refused says why above the box it was typed in, and a refusal of the members dialog stays in the dialog.
+// A message that was refused carries why, for above the box it was typed in, and a refusal of the members dialog stays in the dialog.
 func TestARefusedMessageSaysWhyAboveTheBox(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
@@ -142,13 +141,10 @@ func TestARefusedMessageSaysWhyAboveTheBox(t *testing.T) {
 	site.ask(t, "POST", where+"/say", url.Values{"said": {"the one allowed"}})
 	said := site.ask(t, "POST", where+"/say", url.Values{"said": {"one more"}})
 	back := said.Header().Get("Location")
-	page := site.ask(t, "GET", back, nil).Body.String()
-	shown := regexp.MustCompile(`<p [^>]*id="unsent" role="alert">([^<]*)</p>`).FindStringSubmatch(page)
-	if shown == nil || !strings.Contains(shown[1], "1 task in all") {
-		t.Fatalf("the refusal from %q is not shown above the box", back)
+	if page := site.conversation(t, back); !strings.Contains(page.Unsent, "1 task in all") {
+		t.Fatalf("the refusal from %q is not given for above the box: %q", back, page.Unsent)
 	}
-	members := site.ask(t, "GET", back+"&members=1", nil).Body.String()
-	if !strings.Contains(members, `id="unsent" hidden>`) {
-		t.Error("a refusal of the members dialog is shown above the box as well")
+	if members := site.conversation(t, back+"&members=1"); members.Unsent != "" {
+		t.Error("a refusal of the members dialog is given for above the box as well")
 	}
 }

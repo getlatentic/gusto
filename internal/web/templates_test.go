@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -27,9 +28,8 @@ func TestATemplateStartsAHarnessReadyForItsWork(t *testing.T) {
 	if started.Code != http.StatusSeeOther || !strings.Contains(where, "/threads/") {
 		t.Fatalf("starting the template answered %d to %q", started.Code, where)
 	}
-	page := site.ask(t, "GET", where, nil).Body.String()
-	if !strings.Contains(page, "Draft a SOAP note from the visit notes") {
-		t.Error("the first thread does not offer the template's starters")
+	if starters := site.conversation(t, where).Starters; !slices.Contains(starters, "Draft a SOAP note from the visit notes") {
+		t.Errorf("the first thread does not offer the template's starters: %v", starters)
 	}
 	if setup := site.ask(t, "GET", "/setups/health", nil).Body.String(); !strings.Contains(setup, "phi-guard") {
 		t.Error("the template's skills are not a setup")

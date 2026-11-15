@@ -40,10 +40,8 @@ func TestWhatTheAddDialogRefusesIsSaidInTheAddDialog(t *testing.T) {
 	if !strings.Contains(added, "add=1") || strings.Contains(added, "members=1") {
 		t.Fatalf("a refusal in the add dialog went to %q", added)
 	}
-	page := site.as(t, alice).ask(t, "GET", added, nil).Body.String()
-	addDialog := between(page, `id="room-add"`, "</dialog>")
-	membersDialog := between(page, `id="room-members"`, "</dialog>")
-	if !strings.Contains(addDialog, "not one you may work with") || strings.Contains(membersDialog, "not one you may work with") {
-		t.Errorf("the add dialog's refusal is not in the add dialog alone:\nadd: %s\nmembers: %s", addDialog, membersDialog)
+	page := site.as(t, alice).conversation(t, added)
+	if !strings.Contains(page.AddRefused, "not one you may work with") || page.Refused != "" || page.Unsent != "" || page.GuidelinesRefused != "" {
+		t.Errorf("the add dialog's refusal is not the add dialog's alone: add %q, members %q, box %q", page.AddRefused, page.Refused, page.Unsent)
 	}
 }

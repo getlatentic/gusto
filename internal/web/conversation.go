@@ -2,29 +2,18 @@ package web
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/proxy"
 	"github.com/getlatentic/gusto/pkg/spend"
 	"github.com/getlatentic/gusto/pkg/task"
 )
-
-// conversation shows what has been said in one thread, and offers somewhere to
-// say more.
-func (s *Server) conversation(w http.ResponseWriter, r *http.Request) {
-	page, found := s.conversationPage(r)
-	if !found {
-		http.NotFound(w, r)
-		return
-	}
-	s.render(w, "conversation.html", page)
-}
 
 // turn is one thing said and what came back of it.
 type turn struct {
@@ -52,34 +41,60 @@ type turn struct {
 	// in a sentence for the people reading the turn.
 	Capped *spend.Refusal
 	Limit  string
-	// Blocked is how many requests to other sites the proxy refused, Refused
-	// the sites they were for, and Signed whether the turn's record is signed:
-	// the guarantees, shown where the work is rather than a page away.
+	// Blocked is how many requests to other sites the proxy refused, and Refused
+	// the sites they were for: the guarantee, shown where the work is rather than a page away.
 	Blocked int
 	Refused []blocked
-	Signed  bool
 	// Apps says whose connected apps a room turn could use, shown with its steps.
 	Apps string
 	roomTurn
 }
 
-// conversationPage is what both the whole page and the fragment need, so a
-// swapped-in turn cannot disagree with the page it lands in.
-func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
+// conversationState is a conversation as it is now, read for one person: its turns in their places, and where the room's stream
+// and version stood when they were read.
+type conversationState struct {
+	held    instance.Instance
+	thread  instance.Thread
+	stream  *liveStream
+	version string
+	turns   []turn
+	// running is the turn that has not finished, or the first of a room's that has not.
+	running string
+}
+
+// conversationOf reads the conversation the path names, for the person asking. Whoever opens a room has read what it shows, up
+// to its newest message.
+func (s *Server) conversationOf(r *http.Request) (conversationState, bool) {
 	held, found := s.shared(r)
 	if !found {
-		return nil, false
+		return conversationState{}, false
 	}
-	held = s.liveRoom(held)
+	state := conversationState{held: s.liveRoom(held)}
 	// The room's place in its event stream is read before its conversation, so everything the page shows is at least as new as
 	// the position it follows from.
-	stream := s.streamOf(held)
-	thread, found := s.instances.Thread(held.ID, r.PathValue("thread"))
+	state.stream = s.streamOf(state.held)
+	state.thread, found = s.instances.Thread(held.ID, r.PathValue("thread"))
 	if !found {
-		return nil, false
+		return conversationState{}, false
 	}
 	// Its version is read first too: read after the turns, it could stand for a change they do not show.
-	newest, roomVersion := s.activityOfRoom(held, thread)
+	newest, version := s.activityOfRoom(state.held, state.thread)
+	state.version = version
+	state.turns = s.fullTurns(state.held, state.thread)
+	if len(state.turns) > 0 && !state.turns[len(state.turns)-1].State.Done() {
+		state.running = state.turns[len(state.turns)-1].ID
+	}
+	if state.held.Room {
+		// The room is written only when its newest message moved.
+		_ = s.instances.Saw(held.ID, state.thread.ID, s.askerName(r), newest)
+		state.turns = s.roomTimeline(state.held, state.thread, state.turns)
+		state.running = roomWaiting(state.turns)
+	}
+	return state, true
+}
+
+// fullTurns is every turn of a conversation as the page shows it, with the files each produced.
+func (s *Server) fullTurns(held instance.Instance, thread instance.Thread) []turn {
 	var turns []turn
 	ledger, _ := s.spending()
 	for _, id := range thread.Turns {
@@ -87,65 +102,102 @@ func (s *Server) conversationPage(r *http.Request) (map[string]any, bool) {
 		if !found {
 			continue
 		}
-		turns = append(turns, s.fullTurn(record, ledger))
+		shown := s.fullTurn(record, ledger)
+		shown.Files = s.fileChips(held.ID, shown.Changed, shown.Deleted)
+		turns = append(turns, shown)
 	}
-	liveApps, appsStarting := previewing(s.appsOf(held.ID))
-	running := ""
-	if len(turns) > 0 && !turns[len(turns)-1].State.Done() {
-		running = turns[len(turns)-1].ID
+	return turns
+}
+
+// hasConversation says whether the path names a conversation the person asking may open, so the page of one that is not there
+// is a 404 and not the app.
+func (s *Server) hasConversation(r *http.Request) bool {
+	held, found := s.shared(r)
+	if !found {
+		return false
 	}
-	for i := range turns {
-		turns[i].Files = s.fileChips(held.ID, turns[i].Changed, turns[i].Deleted)
+	_, found = s.instances.Thread(held.ID, r.PathValue("thread"))
+	return found
+}
+
+// conversationData is the conversation page's data: what has been said in one thread, and somewhere to say more.
+func (s *Server) conversationData(r *http.Request) (map[string]any, error) {
+	state, found := s.conversationOf(r)
+	if !found {
+		return nil, failed{http.StatusNotFound, "there is no such conversation"}
 	}
-	if held.Room {
-		// Whoever has the room open has read what it shows, up to its newest message; the room is written only when that moved.
-		_ = s.instances.Saw(held.ID, thread.ID, s.askerName(r), newest)
-		turns = s.roomTimeline(held, thread, turns)
-		running = roomWaiting(turns)
-	}
+	held, thread := state.held, state.thread
+	answers := s.agentOf(held)
+	offered := s.offeredTo(r)
 	_, owns := s.owned(r)
+	liveApps, starting := previewing(s.appsOf(held.ID))
+	page := map[string]any{
+		"Instance":    instanceViewOf(held),
+		"Thread":      threadView{ID: thread.ID, Dir: thread.Dir},
+		"Named":       s.nameOf(thread),
+		"Path":        threadPath(thread),
+		"Me":          s.askerName(r),
+		"Agent":       agentViewOf(answers),
+		"DirectAgent": directAgentOf(held),
+		"Turns":       s.turnViews(state.turns, s.sceneOf(held, thread)),
+		"Starters":    s.startersOf(held),
+		"Several":     len(offered) > 1,
+		"Models":      s.modelOptionsOf(offered),
+		"Sharing":     s.apps != nil && owns,
+		"Owns":        owns,
+		"Apps":        s.appLinks(liveApps),
+		"Starting":    starting,
+		"Waiting":     !held.Room && state.running != "",
+		"Latest":      state.running,
+		"Holding":     s.holdingOfLatest(held, state.running),
+		"Hint":        hintOf(held, answers),
+	}
+	maps.Copy(page, s.roomParts(r, state))
+	return page, nil
+}
+
+// roomParts is what the page carries of a room: who can be mentioned, its stream, its settings and members, and what was
+// refused in its dialogs.
+func (s *Server) roomParts(r *http.Request, state conversationState) map[string]any {
+	held := state.held
 	return map[string]any{
-		// Every conversation on this instance, because one instance holds as
-		// many as somebody wants and the page you are on is the one place you
-		// would go looking for the others.
-		"Threads":  s.namedThreads(held.ID),
-		"Named":    s.nameOf(thread),
-		"Agent":    s.agentOf(held),
-		"Starters": s.startersOf(held),
-		"Models":   asJSON(s.modelOptionsOf(s.offeredTo(r))),
-		"Several":  len(s.offeredTo(r)) > 1,
-		"Rail":     s.railFor(r, threadPath(thread)),
-		"Here":     threadPath(thread),
-		// A chat fills the window rather than sitting in a document.
-		"Chat":       true,
-		"Title":      productName + " — " + s.nameOf(thread),
-		"Nav":        "chat",
-		"Instance":   held,
-		"Thread":     thread,
-		"Path":       threadPath(thread),
-		"Turns":      turns,
-		"Sharing":    s.apps != nil && owns,
-		"Owns":       owns,
-		"Me":         s.askerName(r),
-		"Mentions":   asJSON(s.mentionables(held, s.askerName(r))),
-		"Names":      s.roomNames(held),
-		"Version":    roomVersion,
-		"Stream":     stream,
-		"Members":    s.roomMembersOf(r, held),
-		"Headcount":  len(held.Members) + len(held.Agents),
-		"Settings":   s.roomSettingsOf(r, held),
-		"Refused":    s.refusedIn(r, "members"),
-		"AddRefused": s.refusedIn(r, "add"),
-		"Unsent":     s.refusedIn(r, ""),
-		"Hint":       composerHint(held),
-		"Apps":       liveApps,
-		"Starting":   appsStarting,
-		// While a preview starts the page looks again, so its link appears without being asked for.
-		"Refresh": appsStarting,
-		"Waiting": running != "",
-		"Latest":  running,
-		"Holding": s.holdingOfLatest(held, running),
-	}, true
+		"Mentions":          s.mentionables(held, s.askerName(r)),
+		"Names":             s.roomNames(held),
+		"Stream":            state.stream,
+		"Version":           state.version,
+		"Headcount":         len(held.Members) + len(held.Agents),
+		"Settings":          s.roomSettingsOf(r, held),
+		"Members":           s.roomMembersOf(r, held),
+		"Guidelines":        held.Guidelines,
+		"MaxGuidelines":     instance.MaxGuidelines,
+		"Refused":           s.refusedIn(r, "members"),
+		"AddRefused":        s.refusedIn(r, "add"),
+		"GuidelinesRefused": s.refusedIn(r, "guidelines"),
+		"Unsent":            s.refusedIn(r, ""),
+		"AttachMost":        attachLimits.Files,
+		"AttachBytes":       attachLimits.Bytes,
+	}
+}
+
+// turnsData is the conversation's turns as they are now, for a page that was told something changed. Its headers say where the
+// conversation and its room's settings stood, so the page can tell whether it has to look again.
+func (s *Server) turnsData(w http.ResponseWriter, r *http.Request) {
+	state, found := s.conversationOf(r)
+	if !found {
+		http.NotFound(w, r)
+		return
+	}
+	settings := roomSettingsMark(state.held)
+	if state.version != "" {
+		w.Header().Set("X-Room-Version", state.version)
+	}
+	w.Header().Set("X-Room-Settings", settings)
+	w.Header().Set("Cache-Control", "no-store")
+	s.asJSON(w, map[string]any{
+		"Turns":    s.turnViews(state.turns, s.sceneOf(state.held, state.thread)),
+		"Version":  state.version,
+		"Settings": settings,
+	})
 }
 
 // activityOfRoom is a room's newest change and version, and nothing for a conversation that is not a room's.
@@ -183,8 +235,6 @@ func (s *Server) fullTurn(entry tasks.Record, ledger *spend.Ledger) turn {
 		shown.Blocked, shown.Refused = len(calls.Denied), calls.Sites()
 	}
 	shown.Apps = s.usedApps(entry, dir)
-	attested, err := record.Attest(dir, s.keyring)
-	shown.Signed = err == nil && attested.Signed
 	return shown
 }
 
@@ -214,23 +264,6 @@ func said(dir task.Dir) string {
 		return "…" + string(text[len(text)-most:])
 	}
 	return string(text)
-}
-
-// turns is the conversation so far, on its own, so a finished turn can be
-// swapped in without throwing away everything already on the page.
-func (s *Server) turns(w http.ResponseWriter, r *http.Request) {
-	page, found := s.conversationPage(r)
-	if !found {
-		http.NotFound(w, r)
-		return
-	}
-	if version, _ := page["Version"].(string); version != "" {
-		w.Header().Set("X-Room-Version", version)
-	}
-	if settings, _ := page["Settings"].(roomSettings); settings.Mark != "" {
-		w.Header().Set("X-Room-Settings", settings.Mark)
-	}
-	s.render(w, "turns", page)
 }
 
 // say is one turn: an ordinary task that mounts the instance and names the

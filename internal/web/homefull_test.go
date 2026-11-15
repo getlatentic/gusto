@@ -25,14 +25,15 @@ func TestATurnRefusedForAFullHomeSaysSoAndLinksToTheReset(t *testing.T) {
 	id := said["job"].(string)
 	turnDone(t, here, id)
 
-	page := ada.ask(t, "GET", thread, nil).Body.String()
-	for _, want := range []string{"Your agents' home is full", "6.0 GiB of the 5.0 GiB", "was refused", `href="/connections"`} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the conversation does not say %q:\n%s", want, page)
-		}
+	shown, found := ada.conversation(t, thread).turnIn(id)
+	if !found {
+		t.Fatal("the conversation does not have the turn")
 	}
-	if strings.Contains(page, "It stopped before it finished") {
-		t.Error("the conversation shows the agent's error as well as the full home")
+	if home := shown.Home; home == nil || home.Outcome != "refused" || home.Used == "" || home.Limit == "" {
+		t.Errorf("the turn does not say the home was full: %+v", home)
+	}
+	if shown.Stopped != "" {
+		t.Errorf("the turn carries the agent's error as well as the full home: %q", shown.Stopped)
 	}
 
 	admin := *here.site
