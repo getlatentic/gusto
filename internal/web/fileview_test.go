@@ -157,7 +157,7 @@ func TestTheListOfChatsIsBesideChatsAndTheRailLeadsToFiles(t *testing.T) {
 	if _, listed := shellOf(t, site).Rail.project(id); !listed {
 		t.Errorf("the side list beside chats does not carry %s", id)
 	}
-	for _, page := range []string{"/files", "/jobs", "/spend"} {
+	for _, page := range []string{"/files", "/jobs"} {
 		body := site.ask(t, "GET", page, nil).Body.String()
 		if !strings.Contains(body, `href="/files"`) {
 			t.Errorf("%s does not carry the rail with Files in it", page)

@@ -33,6 +33,48 @@ func connected(t *testing.T) (*site, *changelog.Log, *connectortest.App) {
 	return here, log, app
 }
 
+// connectionsJSON is a person's Connections page's data.
+type connectionsJSON struct {
+	Person, HomeReset bool
+	Refused, Done     string
+	Connectors        []connectionJSON
+	Home              *struct {
+		Counted, Full bool
+		Used, Limit   string
+		At            int64
+	}
+}
+
+type connectionJSON struct {
+	ID, Name, What                             string
+	Offered, Connected, SignInAgain, ForAgents bool
+	Since                                      int64
+}
+
+// connections is the Connections page's data as who reads it, at the address given.
+func connections(t *testing.T, who *site, path string) connectionsJSON {
+	t.Helper()
+	var page connectionsJSON
+	who.data(t, path, &page)
+	return page
+}
+
+// app is the row of the app of that id, or nothing when the page does not list it.
+func (c connectionsJSON) app(id string) (connectionJSON, bool) {
+	for _, row := range c.Connectors {
+		if row.ID == id {
+			return row, true
+		}
+	}
+	return connectionJSON{}, false
+}
+
+// offersToConnect is an app the person may connect and has not: the page links to the app's sign-in.
+func (c connectionsJSON) offersToConnect(id string) bool {
+	row, listed := c.app(id)
+	return listed && row.Offered && !row.Connected && !row.SignInAgain
+}
+
 // signInAt is a person connecting an app: the link sends them to the app, they sign in there, and the app sends them back.
 func signInAt(t *testing.T, who *site, app *connectortest.App) *http.Response {
 	t.Helper()
@@ -49,8 +91,8 @@ func signInAt(t *testing.T, who *site, app *connectortest.App) *http.Response {
 func TestAPersonConnectsAnAppTheAdminTurnedOnAndTheirTaskReachesIt(t *testing.T) {
 	here, log, app := connected(t)
 	ada := here.as(t, alice)
-	if page := ada.ask(t, "GET", "/connections", nil).Body.String(); !strings.Contains(page, "No app is turned on yet.") {
-		t.Fatalf("an app is offered before an admin turned it on:\n%s", page)
+	if page := connections(t, ada, "/connections"); len(page.Connectors) != 0 || !page.Person {
+		t.Fatalf("an app is offered before an admin turned it on: %+v", page)
 	}
 	if got := ada.ask(t, "GET", "/connections/tasks/connect", nil).Code; got != http.StatusNotFound {
 		t.Errorf("an app that is off could be connected: %d", got)
@@ -65,17 +107,21 @@ func TestAPersonConnectsAnAppTheAdminTurnedOnAndTheirTaskReachesIt(t *testing.T)
 	if chat := ada.dataText(t, "/chat"); strings.Contains(chat, "/connections/tasks/connect") {
 		t.Errorf("the chat page asks the person to connect an app; they connect it from Connections")
 	}
-	if page := ada.ask(t, "GET", "/connections", nil).Body.String(); !strings.Contains(page, `href="/connections/tasks/connect"`) {
-		t.Fatalf("the person is not offered it:\n%s", page)
+	if page := connections(t, ada, "/connections"); !page.offersToConnect("tasks") {
+		t.Fatalf("the person is not offered it: %+v", page)
 	}
 	back := signInAt(t, ada, app)
 	connected := here.server.withMessage("/connections", "connected", "Tasks")
 	if back.StatusCode != http.StatusSeeOther || back.Header.Get("Location") != connected {
 		t.Fatalf("coming back went to %d %q", back.StatusCode, back.Header.Get("Location"))
 	}
-	if page := ada.ask(t, "GET", connected, nil).Body.String(); !strings.Contains(page, "You are signed in to Tasks.") ||
-		!strings.Contains(page, `action="/connections/tasks/disconnect"`) {
-		t.Errorf("the page does not show the person signed in:\n%s", page)
+	if page := connections(t, ada, connected); page.Done != "Tasks" {
+		t.Errorf("the page does not say the person signed in: %+v", page)
+	} else if row, _ := page.app("tasks"); !row.Connected || row.Since == 0 || row.Name != "Tasks" || row.What != "Your tasks" {
+		t.Errorf("the page does not show the person signed in, and since when: %+v", row)
+	}
+	if forged := connections(t, ada, "/connections?connected=Evil"); forged.Done != "" {
+		t.Errorf("a message this server did not seal is shown: %+v", forged)
 	}
 
 	dir := placed(t, here, "own", tasks.Record{Asked: alice}, "opencode")

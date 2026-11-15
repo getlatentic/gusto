@@ -128,7 +128,7 @@ func TestApprovingCodesThatAreNotWaitingIsCountedAsWrongAttempts(t *testing.T) {
 		ada.ask(t, "POST", "/device", url.Values{"code": {"BCDF-GHJK"}})
 	}
 	started := jsonOf(t, here.post("/api/device", `{"label":"Laptop"}`, ""))
-	if got := ada.ask(t, "POST", "/device", url.Values{"code": {started["user_code"].(string)}}); strings.Contains(got.Body.String(), "Approved <strong>") {
-		t.Error("a source that guessed codes went on guessing")
+	if got := sendCode(t, ada, started["user_code"].(string)); got.Approved != "" || !strings.Contains(got.Refused, "Too many codes") {
+		t.Errorf("a source that guessed codes went on guessing: %+v", got)
 	}
 }

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+
+	"github.com/getlatentic/gusto/internal/usage"
 )
 
 // data is a console page's data as the app reads it from /app/api, decoded into into.
@@ -94,34 +96,90 @@ type dataReader interface {
 	data(t *testing.T, path string, into any)
 }
 
-// usageJSON is the console's Usage page's data.
+// usageJSON is a Usage page's data: the console's, or a person's own.
 type usageJSON struct {
-	Tabs  struct{ Summary, Tasks, Current string }
-	Usage struct {
-		Values   map[string][]string
-		Everyone bool
-		Rows     []struct{ ID, Href, Asked, Agent, Engine, Owner string }
-		Columns  []struct{ Label, Href, Sorted string }
-		States   []struct {
-			Label, Href, Count string
-			Current            bool
-		}
-		ShowWho, Filtered bool
-		Clear, Export     string
+	Base string
+	Tabs struct{ Summary, Tasks, Current string }
+	Mine *struct {
+		Set, Passed  bool
+		Limit, Spent float64
 	}
+	Usage *usageViewJSON
 }
 
 func usagePageOf(t *testing.T, here dataReader, query string) usageJSON {
 	t.Helper()
+	return usageAt(t, here, "/admin/usage"+query)
+}
+
+// usageAt is the data of the usage page at path.
+func usageAt(t *testing.T, here dataReader, path string) usageJSON {
+	t.Helper()
 	var page usageJSON
-	here.data(t, "/admin/usage"+query, &page)
+	here.data(t, path, &page)
+	return page
+}
+
+// sessionJSON is a session page's data.
+type sessionJSON struct {
+	Base    string
+	Session struct {
+		ID, Person, Agent, Engine, Search string
+		Next, Newest                      string
+		Calls                             []struct {
+			At, AtFull, Task, Record, Model, Provider, Key string
+			In, Out, Cache, Cost, Refused, Translated      string
+			Status                                         int
+			Unpriced                                       bool
+		}
+	}
+}
+
+// sessionAt is the data of the session page at path.
+func sessionAt(t *testing.T, here dataReader, path string) sessionJSON {
+	t.Helper()
+	var page sessionJSON
+	here.data(t, path, &page)
 	return page
 }
 
 // sessionsOf is the ids of the sessions a page of the usage lists.
 func (u usageJSON) sessionsOf() []string {
+	if u.Usage == nil {
+		return nil
+	}
+	return u.Usage.sessionIDs()
+}
+
+// usageViewJSON is the usage index as a Usage page shows it.
+type usageViewJSON struct {
+	Values   map[string][]string
+	Everyone bool
+	Facets   usage.Facets
+	Building usage.Status
+	Figures  struct {
+		Spent, SpentCaption, In, Out, Cache, Unpriced string
+		Calls, Refused                                int64
+	}
+	Rows []struct {
+		ID, Href, Asked, Agent, Engine, Owner, Providers, Models, Cost, Unpriced string
+		Turns                                                                    int
+	}
+	Columns []struct {
+		Label, Href, Sorted string
+		Num                 bool
+	}
+	States []struct {
+		Label, Href, Count string
+		Current            bool
+	}
+	ShowWho, Filtered           bool
+	Clear, Export, Newest, Next string
+}
+
+func (v *usageViewJSON) sessionIDs() []string {
 	var ids []string
-	for _, row := range u.Usage.Rows {
+	for _, row := range v.Rows {
 		ids = append(ids, row.ID)
 	}
 	return ids

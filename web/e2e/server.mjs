@@ -1,6 +1,6 @@
 // Starts a real gusto for the end-to-end tests, as Playwright's webServer: it builds the web app into the binary's embedded
-// files and builds ./cmd/gusto, then starts a stub model, an identity provider and `gusto serve` on fixed ports, with everything
-// it keeps in a temporary folder that goes when it stops.
+// files and builds ./cmd/gusto, then starts a stub model, an identity provider, an app to connect and `gusto serve` on fixed
+// ports, with everything it keeps in a temporary folder that goes when it stops.
 //
 //   node e2e/server.mjs      (from web/; Playwright runs it)
 //
@@ -19,9 +19,12 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
 import { startIdentity } from "./identity.mjs"
+import { startApp } from "./oauth-app.mjs"
 import {
   admin,
+  appPort,
   client,
+  connectedApp,
   gustoPort,
   gustoURL,
   identityPort,
@@ -66,7 +69,7 @@ function taken(port) {
   })
 }
 
-for (const port of [gustoPort, identityPort, modelPort, proxyPort]) {
+for (const port of [gustoPort, identityPort, modelPort, proxyPort, appPort]) {
   if (await taken(port)) {
     console.error(
       `e2e: port ${port} is taken; stop what listens on it (lsof -i :${port}) and run again`
@@ -104,7 +107,7 @@ execFileSync("go", ["build", "-o", bin, "./cmd/gusto"], {
   stdio: "inherit",
 })
 
-for (const dir of ["creds", "agents", "keys", "retention"])
+for (const dir of ["creds", "agents", "keys", "retention", "connectors"])
   mkdirSync(join(work, dir))
 writeFileSync(
   join(work, "creds", "stub.json"),
@@ -168,6 +171,19 @@ execFileSync(bin, ["keygen", "e2e", "-dir", join(work, "keys")], {
 const redirect = `${gustoURL}/auth/callback`
 const identity = await startIdentity({ port: identityPort, client, redirect })
 closers.push(identity.close)
+// The app people connect is the organization's own, on this computer, so gusto is let reach a private address.
+const app = await startApp({ port: appPort })
+closers.push(app.close)
+writeFileSync(
+  join(work, "connector-apps.json"),
+  JSON.stringify([
+    {
+      ...connectedApp,
+      what: "Your tasks in the test app",
+      url: app.mcp,
+    },
+  ])
+)
 start("the stub model", "python3", [join(root, "deploy/stubmodel/stub.py")], {
   STUB_PORT: String(modelPort),
 })
@@ -202,6 +218,10 @@ start("gusto", bin, ["serve"], {
   GUSTO_INTEGRATIONS: join(work, "integrations"),
   GUSTO_PRESETS: join(work, "presets"),
   GUSTO_CREW: join(work, "crew"),
+  GUSTO_PUBLIC_URL: gustoURL,
+  GUSTO_CONNECTORS: join(work, "connectors"),
+  GUSTO_CONNECTOR_APPS: join(work, "connector-apps.json"),
+  GUSTO_GATEWAY_PRIVATE: "1",
 })
 console.log(
   `e2e: gusto is starting at ${gustoURL}; its log is e2e/.run/server.log`

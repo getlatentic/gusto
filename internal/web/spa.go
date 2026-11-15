@@ -81,6 +81,11 @@ func (s *Server) personViews() []appView {
 		{"/members", always, s.membersData},
 		{agentRoute, always, s.agentData},
 		{personRoute, always, s.personData},
+		{"/usage", always, func(r *http.Request) (map[string]any, error) { return s.usageData(r, "/usage", false) }},
+		{"/usage/{session}", always, func(r *http.Request) (map[string]any, error) { return s.sessionData(r, "/usage") }},
+		{"/spend", always, func(r *http.Request) (map[string]any, error) { return s.spendData(r, "/spend") }},
+		{connectionsPath, s.hasConnectors, s.connectionsData},
+		{devicePath, s.hasTokens, s.deviceData},
 	}
 }
 

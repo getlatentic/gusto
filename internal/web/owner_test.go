@@ -180,13 +180,12 @@ func TestSpendIsYourOwnUnlessYouAreAnAdmin(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// Each run cost $0.25, so a person who sees only their own sees $0.2500 and one who sees the bill sees $0.5000.
+	// Each run cost $0.25, so a person who sees only their own sees $0.25 and one who sees the bill sees $0.50.
 	spent := func(who *site) string {
-		body := who.ask(t, "GET", "/spend?month=2026-09", nil).Body.String()
-		switch {
-		case strings.Contains(body, "$0.5000"):
+		switch spendAt(t, who, "/spend?month=2026-09").Ledger.Total.USD {
+		case 0.5:
 			return "both"
-		case strings.Contains(body, "$0.2500"):
+		case 0.25:
 			return "one"
 		}
 		return "none"

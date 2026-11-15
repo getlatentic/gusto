@@ -19,6 +19,10 @@ const appPages = [
   /^\/admin\/apps$/,
   /^\/admin\/skill-sets\/[^/]+$/,
   /^\/admin\/integrations\/[^/]+$/,
+  /^\/usage(?:\/[^/]+)?$/,
+  /^\/spend$/,
+  /^\/connections$/,
+  /^\/device$/,
 ]
 
 export function isAppPage(href: string): boolean {

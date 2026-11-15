@@ -128,7 +128,7 @@ func TestAConnectionIsMadeInOneWorkspaceAndReachesNothingInAnother(t *testing.T)
 	if _, connected := here.server.connectors.Connected(alice, "main", "tasks"); connected {
 		t.Fatal("a sign-in made in Business is used in Engineering")
 	}
-	if page := admin.ask(t, "GET", "/connections", nil).Body.String(); !strings.Contains(page, `href="/connections/tasks/connect"`) {
+	if page := connections(t, admin, "/connections"); !page.offersToConnect("tasks") {
 		t.Error("in Engineering the app is not offered to connect, as if Business's sign-in were Engineering's")
 	}
 	spec, err := task.Read(placed(t, here, "engineering", tasks.Record{Asked: alice}, "opencode"))

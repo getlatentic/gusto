@@ -50,15 +50,15 @@ func TestAPersonSeesTheirHomeTakesAndResetsIt(t *testing.T) {
 	here.server.UseHomes(homes)
 	ada, bea := here.as(t, alice), here.as(t, bob)
 
-	page := ada.ask(t, "GET", "/connections", nil).Body.String()
-	if !strings.Contains(page, "<strong>1.5 GiB</strong> of the <strong>5.0 GiB</strong>") || strings.Contains(page, "It is full") {
-		t.Errorf("the person is not told how much of its limit their home takes:\n%s", page)
+	if home := connections(t, ada, "/connections").Home; home == nil || !home.Counted || home.Used != "1.5 GiB" || home.Limit != "5.0 GiB" ||
+		home.Full || home.At == 0 {
+		t.Errorf("the person is not told how much of its limit their home takes: %+v", home)
 	}
-	if page := bea.ask(t, "GET", "/connections", nil).Body.String(); !strings.Contains(page, "<strong>6.0 GiB</strong>") || !strings.Contains(page, "It is full, so a task you ask for is refused until you reset it.") {
-		t.Errorf("a person whose home is over its limit is not told so:\n%s", page)
+	if home := connections(t, bea, "/connections").Home; home == nil || home.Used != "6.0 GiB" || !home.Full {
+		t.Errorf("a person whose home is over its limit is not told so: %+v", home)
 	}
-	if page := here.ask(t, "GET", "/connections", nil).Body.String(); strings.Contains(page, "Your agents' home") {
-		t.Error("the shared sign-in, which is nobody, is shown a home")
+	if page := connections(t, here, "/connections"); page.Home != nil || page.Person {
+		t.Errorf("the shared sign-in, which is nobody, is shown a home: %+v", page)
 	}
 	if got := here.ask(t, "POST", "/connections/home/reset", nil).Code; got != http.StatusNotFound {
 		t.Errorf("the shared sign-in reset a home: %d", got)
@@ -73,10 +73,10 @@ func TestAPersonSeesTheirHomeTakesAndResetsIt(t *testing.T) {
 	if got.Code != http.StatusSeeOther || len(homes.resets) != 1 || homes.resets[0] != bob+"/main" {
 		t.Fatalf("resetting went %d and reset %v, not only bob's", got.Code, homes.resets)
 	}
-	if page := bea.ask(t, "GET", got.Header().Get("Location"), nil).Body.String(); !strings.Contains(page, "Your agents' home is reset.") || !strings.Contains(page, "Nothing is counted yet.") {
-		t.Errorf("the person is not told the home is reset:\n%s", page)
+	if page := connections(t, bea, got.Header().Get("Location")); !page.HomeReset || page.Home == nil || page.Home.Counted {
+		t.Errorf("the person is not told the home is reset: %+v", page)
 	}
-	if page := ada.ask(t, "GET", "/connections", nil).Body.String(); !strings.Contains(page, "<strong>1.5 GiB</strong>") {
+	if home := connections(t, ada, "/connections").Home; home == nil || home.Used != "1.5 GiB" {
 		t.Error("resetting bob's home touched alice's")
 	}
 	resets := ofKind(written(t, log), changelog.HomeReset)
@@ -92,8 +92,8 @@ func TestAPersonSeesTheirHomeTakesAndResetsIt(t *testing.T) {
 func TestAServerThatKeepsNoHomesOffersNoReset(t *testing.T) {
 	here, _, _ := connected(t)
 	ada := here.as(t, alice)
-	if page := ada.ask(t, "GET", "/connections", nil).Body.String(); strings.Contains(page, "Your agents' home") {
-		t.Errorf("a server with no homes shows one:\n%s", page)
+	if page := connections(t, ada, "/connections"); page.Home != nil {
+		t.Errorf("a server with no homes shows one: %+v", page.Home)
 	}
 	if got := ada.ask(t, "POST", "/connections/home/reset", nil).Code; got != http.StatusNotFound {
 		t.Errorf("a server with no homes answered a reset: %d", got)
