@@ -20,7 +20,7 @@
   </form>
 </section>
 
-<section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Versions <span class="font-normal text-muted">{{len .Held.Versions}}</span></h2><section class="{{template "ui-card"}} overflow-x-auto">  <table class="{{template "ui-table"}}">
+<section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Versions <span class="font-normal text-muted">{{len .Held.Versions}}</span></h2><section class="{{template "ui-table-wrap"}}">  <table class="{{template "ui-table"}}">
     <thead><tr><th>Version</th><th>From</th><th>Imported</th><th></th></tr></thead>
     <tbody>
       {{range .Held.Versions}}

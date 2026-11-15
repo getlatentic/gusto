@@ -34,11 +34,11 @@
 {{with .Lineups}}
 <h2 class="mt-10 mb-3">Earlier comparisons</h2>
 <div class="{{template "ui-table-wrap"}}">
-  <table>
-    <thead><tr><th class="{{template "ui-th"}}">Task</th><th class="{{template "ui-th"}}">Model</th><th class="{{template "ui-th"}}">Agents</th><th class="{{template "ui-th"}}">When</th></tr></thead>
+  <table class="{{template "ui-table"}}">
+    <thead><tr><th>Task</th><th>Model</th><th>Agents</th><th>When</th></tr></thead>
     <tbody>
     {{range .}}
-    <tr class="group/row"><td class="{{template "ui-td"}}"><a class="font-medium" href="/compare/{{.ID}}">{{.Brief}}</a></td><td class="{{template "ui-td"}} text-muted">{{.Model}}</td><td class="{{template "ui-td"}} text-muted">{{len .Runs}}</td><td class="{{template "ui-td"}} text-muted" title="{{when .At}}">{{ago .At}}</td></tr>
+    <tr><td><a class="font-medium" href="/compare/{{.ID}}">{{.Brief}}</a></td><td class="text-muted">{{.Model}}</td><td class="text-muted">{{len .Runs}}</td><td class="text-muted" title="{{when .At}}">{{ago .At}}</td></tr>
     {{end}}
     </tbody>
   </table>

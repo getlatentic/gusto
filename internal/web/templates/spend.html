@@ -61,7 +61,7 @@
 <section class="min-w-0 {{template "ui-card"}}">
   <h2 class="mb-3 text-sm font-semibold">{{.Title}}</h2>
   {{if .Lines}}
-  <table class="text-sm [&_td]:border-t [&_td]:border-line [&_td]:py-2.5 [&_th]:py-1.5">
+  <table class="{{template "ui-table"}} {{template "ui-table-flush"}}">
     <thead><tr><th>Name</th><th class="pl-4 text-right">Spent</th><th class="pl-4 text-right">Tokens</th></tr></thead>
     <tbody>
     {{range .Lines}}

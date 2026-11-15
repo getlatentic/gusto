@@ -40,8 +40,8 @@
 {{/* The Models tab: every model the organization has, what it costs and who may use it. */}}
 {{define "models-prices"}}
 {{if .Rows}}
-<div class="{{template "ui-card"}} relative overflow-x-auto">
-  <table class="{{template "ui-table"}} text-sm">
+<div class="{{template "ui-table-wrap"}} relative">
+  <table class="{{template "ui-table"}}">
     <thead><tr><th class="text-left text-xs text-subtle">Model</th><th class="text-left text-xs text-subtle">Provider</th><th class="text-right text-xs text-subtle">Input / M</th><th class="text-right text-xs text-subtle">Output / M</th><th class="text-right text-xs text-subtle">Who</th></tr></thead>
     <tbody>
       {{range .Rows}}
@@ -66,8 +66,8 @@
 {{/* The Providers tab: each provider in a line, which leads to its own addresses, key and models. */}}
 {{define "models-providers"}}
 {{if .Providers}}
-<div class="{{template "ui-card"}} relative overflow-x-auto">
-  <table class="{{template "ui-table"}} text-sm">
+<div class="{{template "ui-table-wrap"}} relative">
+  <table class="{{template "ui-table"}}">
     <thead><tr><th class="text-left text-xs text-subtle">Provider</th><th class="text-left text-xs text-subtle">Address</th><th class="text-left text-xs text-subtle">Key</th><th class="text-right text-xs text-subtle">Models</th><th class="text-right text-xs text-subtle">State</th></tr></thead>
     <tbody>
       {{range .Providers}}
@@ -137,8 +137,8 @@
 {{if .Problem}}<p class="{{template "ui-notice"}}">Not in use: {{.Problem}}</p>{{end}}
 {{end}}
 
-<div class="{{template "ui-card"}} relative overflow-x-auto">
-  <table class="{{template "ui-table"}} text-sm [&_td]:align-middle">
+<div class="{{template "ui-table-wrap"}} relative">
+  <table class="{{template "ui-table"}} [&_td]:align-middle">
     <thead><tr><th class="text-left text-xs text-subtle">Model</th><th class="text-right text-xs text-subtle">Input <span class="font-normal">$ / million</span></th><th class="text-right text-xs text-subtle">Output <span class="font-normal">$ / million</span></th><th class="text-right text-xs text-subtle">Cached input <span class="font-normal">$ / million</span></th>{{if not $provider.Operator}}<th class="text-right text-xs text-subtle"><span class="sr-only">Actions</span></th>{{end}}</tr></thead>
     <tbody>
       {{range .Models}}
@@ -214,8 +214,8 @@
   {{if .View.Available}}<button type="button" class="{{template "ui-btn-quiet"}}" data-open="limit-person">Limit a person</button>{{end}}
 </div>
 {{if .Limits}}
-<div class="{{template "ui-card"}} relative overflow-x-auto">
-  <table class="{{template "ui-table"}} text-sm">
+<div class="{{template "ui-table-wrap"}} relative">
+  <table class="{{template "ui-table"}}">
     <thead><tr><th class="text-left text-xs text-subtle">Person</th><th class="text-left text-xs text-subtle">May use</th><th><span class="sr-only">Actions</span></th></tr></thead>
     <tbody>
       {{range .Limits}}
@@ -283,8 +283,8 @@
     <h2 class="text-sm font-semibold">Go back to an earlier version</h2>
     <p class="{{template "ui-note"}} m-0 max-w-prose">Each earlier state of the registry is kept, and going back to one is a change of its own, so it can be gone back from. What was added is off until you turn it on. A key kept here is forgotten when its provider is retired, so a provider that comes back that way has no key until you give it one.</p>
   </div>
-  <div class="{{template "ui-card"}} relative overflow-x-auto">
-    <table class="{{template "ui-table"}} text-sm">
+  <div class="{{template "ui-table-wrap"}} relative">
+    <table class="{{template "ui-table"}}">
       <tbody>
         {{range .Steps}}
         <tr>

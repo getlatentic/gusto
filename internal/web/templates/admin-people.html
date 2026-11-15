@@ -17,7 +17,7 @@
 {{if .SpendUnreadable}}<p class="{{template "ui-notice"}}">Spending could not be read, so none is shown. {{.SpendUnreadable}}</p>{{end}}
 
 {{if eq .Tab "invited"}}
-<div class="{{template "ui-card"}} relative overflow-x-auto">
+<div class="{{template "ui-table-wrap"}} relative">
   <table class="{{template "ui-table"}}">
     <thead><tr><th>Invited</th><th>By</th><th class="text-right">Link works until</th></tr></thead>
     <tbody>
@@ -26,7 +26,7 @@
   </table>
 </div>
 {{else}}
-<div class="{{template "ui-card"}} relative @max-[56rem]:overflow-x-auto">
+<div class="{{template "ui-table-wrap"}} relative">
   <table class="{{template "ui-table"}}">
     <thead><tr><th>Person</th><th>Role</th><th class="text-right">{{if .Budgets}}<a class="text-inherit no-underline hover:underline" href="/admin/budgets">Spent this month</a>{{else}}Spent this month{{end}}</th><th class="text-right">Last in</th></tr></thead>
     <tbody>

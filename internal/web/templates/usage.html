@@ -44,9 +44,9 @@
 {{end}}
 
 {{if .Rows}}
-<div class="overflow-hidden rounded-lg bg-surface border border-line">
-  <div class="overflow-x-auto">
-  <table class="w-full text-sm [&_th]:bg-wash [&_th]:px-2.5 [&_th]:py-2.5 [&_th]:whitespace-nowrap [&_td]:border-t [&_td]:border-line [&_td]:px-2.5 [&_td]:py-2.5 [&_td]:whitespace-nowrap [&_th[aria-sort]]:text-ink">
+<div class="{{template "ui-table-wrap"}}">
+  <div>
+  <table class="{{template "ui-table"}} [&_td]:whitespace-nowrap [&_th[aria-sort]]:text-ink">
     <thead><tr>
       {{range .Columns}}<th scope="col"{{with .Sorted}} aria-sort="{{.}}"{{end}}{{if .Num}} class="text-right"{{end}}>{{if .Href}}<a class="text-inherit no-underline hover:text-ink" href="{{.Href}}">{{.Label}}</a>{{else}}{{.Label}}{{end}}</th>
       {{end}}
@@ -55,7 +55,7 @@
       {{range .Rows}}
       <tr>
         <td title="{{.LastFull}}">{{.Last}}</td>
-        <td class="max-w-72"><span class="flex min-w-0 items-baseline gap-1.5"><a class="min-w-0 truncate no-underline underline-offset-4 hover:underline" href="{{.Href}}" title="{{.ID}}">{{or .Title .ID}}</a>{{if gt .Turns 1}}<span class="shrink-0 whitespace-nowrap text-xs text-subtle">· {{.Turns}} turns</span>{{end}}</span></td>
+        <td class="w-full max-w-0"><span class="flex min-w-0 items-baseline gap-1.5"><a class="min-w-0 truncate no-underline underline-offset-4 hover:underline" href="{{.Href}}" title="{{.ID}}">{{or .Title .ID}}</a>{{if gt .Turns 1}}<span class="shrink-0 whitespace-nowrap text-xs text-subtle">· {{.Turns}} turns</span>{{end}}</span></td>
         {{if $.Usage.ShowWho}}<td class="max-w-40 truncate">{{.Asked}}</td>{{end}}
         <td class="max-w-56 truncate">{{if .Engine}}<span class="flex items-center gap-2" title="{{.Engine}}">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "xs")}}<span class="truncate">{{or .Agent .Engine}} <span class="text-subtle">· {{.Owner}}'s</span></span></span>{{else}}{{or .Agent "—"}} <span class="text-subtle">· {{.Owner}}'s</span>{{end}}</td>
         <td class="text-right tabular-nums">{{if eq .Cost "no price"}}<span class="text-muted">no price</span>{{else}}{{.Cost}}{{end}}{{with .Unpriced}} <span class="text-muted">{{.}}</span>{{end}}</td>
@@ -90,9 +90,9 @@
 
 {{template "foot" .}}
 
-{{define "usage-tabs"}}<nav class="mb-5 flex gap-1 border-b border-line text-sm" aria-label="Usage views">
-  <a class="-mb-px border-b-2 border-transparent px-3 py-2 font-medium text-muted no-underline hover:text-ink aria-[current]:border-ink aria-[current]:text-ink" href="{{.Summary}}"{{if eq .Current "summary"}} aria-current="page"{{end}}>Summary</a>
-  <a class="-mb-px border-b-2 border-transparent px-3 py-2 font-medium text-muted no-underline hover:text-ink aria-[current]:border-ink aria-[current]:text-ink" href="{{.Tasks}}"{{if eq .Current "tasks"}} aria-current="page"{{end}}>Conversations</a>
+{{define "usage-tabs"}}<nav class="page-wide {{template "ui-tab-list"}}" aria-label="Usage views">
+  <a class="{{template "ui-tab"}}" href="{{.Summary}}"{{if eq .Current "summary"}} aria-current="page"{{end}}>Summary</a>
+  <a class="{{template "ui-tab"}}" href="{{.Tasks}}"{{if eq .Current "tasks"}} aria-current="page"{{end}}>Conversations</a>
 </nav>{{end}}
 
 {{define "usage-select"}}<label><span class="sr-only">{{.Label}}</span>

@@ -9,9 +9,9 @@
 
 {{with .Index}}{{with .Building}}{{if .Building}}<p class="mb-4 rounded-sm bg-warn-wash px-4 py-3 text-sm" role="status">The index is still being built, {{.Done}} of {{.Total}} tasks. What is below is not yet everything.</p>{{end}}{{end}}{{end}}
 
-<nav class="mb-5 flex gap-1 overflow-x-auto border-b border-line text-sm" aria-label="What happened, this week">
-  <a class="-mb-px border-b-2 border-transparent px-3 py-2 font-medium whitespace-nowrap text-muted no-underline hover:text-ink aria-[current]:border-ink aria-[current]:text-ink" href="{{if .Harness}}/jobs?agent_type={{.Harness}}{{else}}/jobs{{end}}"{{if not .State}} aria-current="true"{{end}}>Everything</a>
-  {{range .Figures}}{{if or .Count .Current}}<a class="is-{{.Label}} capitalize -mb-px border-b-2 border-transparent px-3 py-2 font-medium whitespace-nowrap text-muted no-underline hover:text-ink aria-[current]:border-ink aria-[current]:text-ink" href="{{.Href}}"{{if .Current}} aria-current="true"{{end}}>{{.Label}} <span class="n font-normal tabular-nums text-subtle">{{.Count}}</span></a>{{end}}{{end}}
+<nav class="{{template "ui-tab-list"}}" aria-label="What happened, this week">
+  <a class="{{template "ui-tab"}}" href="{{if .Harness}}/jobs?agent_type={{.Harness}}{{else}}/jobs{{end}}"{{if not .State}} aria-current="true"{{end}}>Everything</a>
+  {{range .Figures}}{{if or .Count .Current}}<a class="is-{{.Label}} capitalize {{template "ui-tab"}}" href="{{.Href}}"{{if .Current}} aria-current="true"{{end}}>{{.Label}} <span class="n font-normal tabular-nums text-subtle">{{.Count}}</span></a>{{end}}{{end}}
 </nav>
 {{if or .Days .State .Harness (and .Index (or .Index.Query .Index.Person))}}
 <form class="mb-5 flex flex-wrap items-center gap-2 text-sm" method="get" action="/jobs">

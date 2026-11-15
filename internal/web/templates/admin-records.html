@@ -60,7 +60,7 @@
 
 {{if .Rows}}
 <h2 class="mb-3 text-sm font-semibold">Needs a look</h2>
-<div class="{{template "ui-card"}} overflow-x-auto">
+<div class="{{template "ui-table-wrap"}}">
   <table class="{{template "ui-table"}}">
     <thead><tr><th class="w-32">When</th><th>Run</th><th>Who</th><th>Result</th></tr></thead>
     <tbody>
@@ -89,7 +89,7 @@
 
 <div class="grid gap-4">
 <section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Policy</h2><section class="{{template "ui-card"}} overflow-x-auto">  {{if .Removes}}
-  <table class="{{template "ui-table"}}">
+  <table class="{{template "ui-table"}} {{template "ui-table-flush"}}">
     <thead><tr><th>A task that</th><th>loses its working folder after</th><th>loses its record after</th></tr></thead>
     <tbody>
       {{range .Policy}}<tr><td>{{.State}}</td><td>{{if .WorkingFolder}}{{.WorkingFolder}} days{{else}}<span class="text-muted">kept</span>{{end}}</td><td>{{if .Record}}{{.Record}} days{{else}}<span class="text-muted">kept</span>{{end}}</td></tr>{{end}}
@@ -103,7 +103,7 @@
 <div class="grid gap-9">
 <section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Next sweep</h2><section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">  {{if .Upcoming}}
   <p>A sweep now would remove {{len .Upcoming}} item{{if ne (len .Upcoming) 1}}s{{end}}, freeing {{.UpcomingFreed}}.</p>
-  <table class="{{template "ui-table"}}">
+  <table class="{{template "ui-table"}} {{template "ui-table-flush"}}">
     <thead><tr><th>Task</th><th>Removes</th><th>Ended</th><th class="text-right">Frees</th></tr></thead>
     <tbody>
       {{range .Upcoming}}<tr><td><a class="underline" href="/jobs/{{.Task}}">{{.Brief}}</a></td><td>{{.Kind}}</td><td class="whitespace-nowrap">{{.Days}} days ago</td><td class="text-right whitespace-nowrap tabular-nums">{{.Bytes}} bytes</td></tr>{{end}}
@@ -117,7 +117,7 @@
 </section></section>
 
 <section class="{{template "ui-section"}}"><h2 class="{{template "ui-section-title"}}">Holds</h2><section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">  {{if or .HeldTasks .HeldPeople}}
-  <table class="{{template "ui-table"}}">
+  <table class="{{template "ui-table"}} {{template "ui-table-flush"}}">
     <thead><tr><th>What</th><th>Held by</th><th>Why</th><th></th></tr></thead>
     <tbody>
       {{range $id, $h := .HeldTasks}}<tr><td>task <a class="underline" href="/jobs/{{$id}}">{{$id}}</a></td><td>{{$h.By}}</td><td>{{$h.Why}}</td>

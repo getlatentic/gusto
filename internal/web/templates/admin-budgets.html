@@ -16,7 +16,7 @@
 {{if .Unreadable}}
 <p class="{{template "ui-notice"}}">The list of people could not be read, so none is shown. {{.Unreadable}}</p>
 {{else if .People}}
-<div class="{{template "ui-card"}} relative @max-[56rem]:overflow-x-auto">
+<div class="{{template "ui-table-wrap"}} relative">
   <table class="{{template "ui-table"}}">
     <thead><tr><th>Person</th><th>Budget</th><th class="text-right">Spent this month</th><th><span class="sr-only">More</span></th></tr></thead>
     <tbody>
