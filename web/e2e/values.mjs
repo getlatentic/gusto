@@ -1,11 +1,13 @@
 // What the end-to-end tests and the server they drive agree on: where each part listens, the shared password, and the people
 // who sign in.
 
-export const gustoPort = 8840
-export const identityPort = 8841
-export const modelPort = 8842
+// The four ports in a row from E2E_PORT_BASE, 8840 when it is not set, so two runs on one machine can each have their own.
+const base = Number(process.env.E2E_PORT_BASE || 8840)
+export const gustoPort = base
+export const identityPort = base + 1
+export const modelPort = base + 2
 // The way out of a sandbox: gusto's proxy, which carries an agent's model calls.
-export const proxyPort = 8843
+export const proxyPort = base + 3
 
 export const gustoURL = `http://127.0.0.1:${gustoPort}`
 export const identityURL = `http://127.0.0.1:${identityPort}`
