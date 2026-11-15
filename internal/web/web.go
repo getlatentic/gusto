@@ -263,7 +263,6 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /spend", s.guard(s.spendPage))
 	s.mountUsage(mux)
 	s.consoleRoutes(mux)
-	s.mountApp(mux)
 	mux.HandleFunc("GET /readyz", s.ready)
 	mux.HandleFunc("GET /metrics", s.sent(apitoken.Metrics, s.metrics))
 	// Conversations were held at /talk before an instance could hold more than

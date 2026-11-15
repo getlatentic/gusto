@@ -20,23 +20,22 @@ func TestAnAdminSetsEveryMembersBudgetAndOnePersonsOwn(t *testing.T) {
 	if got := set(url.Values{"usd": {"20"}}); got.Header.Get("Location") != budgetsPath {
 		t.Fatalf("setting everyone's went to %q", got.Header.Get("Location"))
 	}
-	if page := budgets(t, here); !strings.Contains(page, "Each person: $20.00 a month; their agents stop there.") {
-		t.Errorf("everyone's budget is not on Budgets")
+	if page := budgets(t, here); !page.Budget.MemberSet || page.Budget.Member != 20 {
+		t.Errorf("everyone's budget is not on Budgets: %+v", page.Budget)
 	}
 	if got := set(url.Values{"who": {alice}, "usd": {"50"}}); got.Header.Get("Location") != budgetsPath {
 		t.Fatalf("setting alice's went to %q", got.Header.Get("Location"))
 	}
 	page := budgets(t, here)
-	own := rowOf(t, page, alice)
-	if !strings.Contains(own, `action="/admin/member-budget"`) || !strings.Contains(own, `placeholder="no limit" value="50.00"`) {
-		t.Errorf("alice's row does not hold her own budget behind its menu:\n%s", own)
+	if own := budgetRowOf(t, page, alice).Budget; !own.Own || own.Limit != 50 || own.Who != alice {
+		t.Errorf("alice's row does not hold her own budget: %+v", own)
 	}
-	if theirs := rowOf(t, page, bob); !strings.Contains(theirs, `placeholder="20.00, as everyone"`) || !strings.Contains(theirs, "nothing") {
-		t.Errorf("bob's row does not hold everyone's budget:\n%s", theirs)
+	if theirs := budgetRowOf(t, page, bob).Budget; theirs.Own || theirs.Limit != 20 || theirs.Spent != 0 {
+		t.Errorf("bob's row does not hold everyone's budget: %+v", theirs)
 	}
 	set(url.Values{"who": {alice}, "usd": {""}})
-	if page := budgets(t, here); strings.Count(page, `placeholder="20.00, as everyone"`) != 2 {
-		t.Error("alice's own budget, cleared, does not fall back to everyone's")
+	if own := budgetRowOf(t, budgets(t, here), alice).Budget; own.Own || own.Limit != 20 {
+		t.Errorf("alice's own budget, cleared, does not fall back to everyone's: %+v", own)
 	}
 	if got := set(url.Values{"usd": {"-3"}}); !strings.Contains(got.Header.Get("Location"), "refused=") {
 		t.Errorf("a budget below nothing was taken: %q", got.Header.Get("Location"))

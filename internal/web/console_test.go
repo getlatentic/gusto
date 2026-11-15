@@ -260,7 +260,7 @@ func TestOnlyAnAdminSeesTheLinkToTheConsoleAndItIsTheOnlyOne(t *testing.T) {
 
 func TestTheConsoleHasOneLinkBack(t *testing.T) {
 	admin := everything(t).as(t, boss)
-	for _, path := range []string{"/admin/tokens", "/admin/records", "/admin/records?tab=keeping", "/admin/apps?tab=skills"} {
+	for _, path := range []string{"/admin/records", "/admin/records?tab=keeping", "/admin/apps?tab=skills"} {
 		page := admin.ask(t, "GET", path, nil).Body.String()
 		if got := strings.Count(page, `href="/"`); got != 1 || !strings.Contains(page, "Back to gusto") {
 			t.Errorf("%s has %d links to the employee's pages", path, got)

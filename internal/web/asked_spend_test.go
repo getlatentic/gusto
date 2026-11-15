@@ -34,11 +34,11 @@ func TestSpendShownAgainstABudgetIsWhatThePersonAskedForAsTheProxyCountsIt(t *te
 	}
 
 	page := budgets(t, here)
-	if bob := rowOf(t, page, "bob@acme.com"); !strings.Contains(bob, "$5.00") || !strings.Contains(bob, "reached") {
-		t.Errorf("Budgets does not show bob's $5.00 against his budget, reached:\n%s", bob)
+	if bob := budgetRowOf(t, page, "bob@acme.com").Budget; bob.Spent != 5 || !bob.Passed {
+		t.Errorf("Budgets does not show bob's $5.00 against his budget, reached: %+v", bob)
 	}
-	if ada := rowOf(t, page, "ada@acme.com"); strings.Contains(ada, "$5.00") || strings.Contains(ada, "reached") {
-		t.Errorf("Budgets counts what bob asked of ada's agent against ada:\n%s", ada)
+	if ada := budgetRowOf(t, page, "ada@acme.com").Budget; ada.Spent == 5 || ada.Passed {
+		t.Errorf("Budgets counts what bob asked of ada's agent against ada: %+v", ada)
 	}
 
 	page2 := people(t, here, "")

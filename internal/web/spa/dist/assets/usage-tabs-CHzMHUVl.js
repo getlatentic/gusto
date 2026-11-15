@@ -1,0 +1,1 @@
+import{u as e}from"./card-2w2Yxfue.js";import{Rt as t}from"./DirectionContext-n5ySzmar.js";var n=t();function r({current:t}){return(0,n.jsx)(e,{label:`Usage views`,current:t,tabs:[{key:`summary`,label:`Summary`,href:`/admin/spending`},{key:`tasks`,label:`Conversations`,href:`/admin/usage`}]})}export{r as t};

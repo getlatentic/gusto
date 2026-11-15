@@ -169,22 +169,15 @@ func TestBudgetsSaysTheBudgetsInALineAndListsEachPersonsAgainstWhatTheySpent(t *
 	spendFor(ledger, alice, 5)
 	spendFor(ledger, bob, 2.5)
 	page := budgets(t, here)
-	if !strings.Contains(page, "Each person: $10.00 a month; their agents stop there. Organization: $50.00 a month, which only warns.") {
-		t.Errorf("Budgets does not say both budgets in a line:\n%s", page)
+	if !page.Budget.MemberSet || page.Budget.Member != 10 || !page.Budget.Set || page.Budget.Limit != 50 {
+		t.Errorf("Budgets does not give both budgets: %+v", page.Budget)
 	}
-	own, theirs := rowOf(t, page, alice), rowOf(t, page, bob)
-	if !strings.Contains(own, "$4.00 <span") || !strings.Contains(own, ">own</span>") || !strings.Contains(own, "reached") || !strings.Contains(own, "bg-bad") || !strings.Contains(own, "width:100%") {
-		t.Errorf("alice's row does not show her own budget, reached:\n%s", own)
+	own, theirs := budgetRowOf(t, page, alice), budgetRowOf(t, page, bob)
+	if !own.Budget.Own || own.Budget.Limit != 4 || !own.Budget.Passed || own.Percent != 100 {
+		t.Errorf("alice's row does not show her own budget, reached: %+v", own)
 	}
-	if !strings.Contains(theirs, "$10.00") || strings.Contains(theirs, ">own<") || strings.Contains(theirs, "bg-bad") || !strings.Contains(theirs, "width:25%") {
-		t.Errorf("bob's row does not show everyone's budget, a quarter spent:\n%s", theirs)
-	}
-	dialog, form := strings.Index(page, `<dialog class="`), strings.Index(page, `action="/admin/budget"`)
-	if strings.Count(page, `data-open="budgets"`) != 1 || dialog < 0 || form < dialog || form < strings.Index(page, "</table>") {
-		t.Error("the one Change does not open the budget form in a dialog")
-	}
-	if strings.Count(page, `action="/admin/member-budget"`) != 2 {
-		t.Error("each row does not hold its own budget form behind its menu")
+	if theirs.Budget.Own || theirs.Budget.Limit != 10 || theirs.Budget.Passed || theirs.Percent != 25 {
+		t.Errorf("bob's row does not show everyone's budget, a quarter spent: %+v", theirs)
 	}
 }
 
@@ -195,23 +188,26 @@ func TestBudgetsIsPagedAt25AndListedAfterUsage(t *testing.T) {
 	}
 	here, _ := withPeople(t, list)
 	here.server.UseOrgSettings(filepath.Join(t.TempDir(), "settings.json"))
-	first := budgets(t, here)
-	if !strings.Contains(first, "person25@acme.com") || strings.Contains(first, "person26@acme.com") || !strings.Contains(first, `href="/admin/budgets?page=2" rel="next"`) {
-		t.Error("the first page of Budgets is not the first 25 people")
+	emails := func(page budgetsJSON) string {
+		var all []string
+		for _, row := range page.People {
+			all = append(all, row.Email)
+		}
+		return strings.Join(all, " ")
 	}
-	second := here.ask(t, "GET", "/admin/budgets?page=2", nil).Body.String()
-	if !strings.Contains(second, "person26@acme.com") || strings.Contains(second, "person25@acme.com") {
+	first := budgets(t, here)
+	if !strings.Contains(emails(first), "person25@acme.com") || strings.Contains(emails(first), "person26@acme.com") || first.Pages.Next != "/admin/budgets?page=2" {
+		t.Errorf("the first page of Budgets is not the first 25 people: %+v", first.Pages)
+	}
+	var second budgetsJSON
+	here.data(t, "/admin/budgets?page=2", &second)
+	if !strings.Contains(emails(second), "person26@acme.com") || strings.Contains(emails(second), "person25@acme.com") {
 		t.Error("the second page of Budgets does not start at the 26th person")
 	}
-	usage, budgetsAt, peopleAt := strings.Index(first, `href="/admin/usage"`), strings.Index(first, `href="/admin/budgets"`), strings.Index(first, `href="/admin/people"`)
+	menu := strings.Join(consoleList(t, here), "\n")
+	usage, budgetsAt, peopleAt := strings.Index(menu, "/admin/usage"), strings.Index(menu, "/admin/budgets"), strings.Index(menu, "/admin/people")
 	if usage < 0 || budgetsAt < usage || peopleAt < budgetsAt {
-		t.Error("the menu does not list Budgets between Usage and People")
-	}
-	people := here.ask(t, "GET", "/admin/people", nil).Body.String()
-	for _, gone := range []string{`action="/admin/budget"`, `action="/admin/member-budget"`, `data-open="budgets"`, "Each person:"} {
-		if strings.Contains(people, gone) {
-			t.Errorf("People still has %s", gone)
-		}
+		t.Errorf("the menu does not list Budgets between Usage and People:\n%s", menu)
 	}
 }
 

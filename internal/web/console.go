@@ -71,6 +71,7 @@ func (s *Server) drawConsole(w http.ResponseWriter, name, key string, page map[s
 }
 
 func (s *Server) consoleRoutes(mux *http.ServeMux) {
+	s.mountApp(mux)
 	mux.HandleFunc("GET "+recordsPath, s.console(s.recordsPage))
 	mux.HandleFunc("GET "+appsPath, s.console(offering(s.hasAppsOrSkills, s.appsPage)))
 	mux.HandleFunc("GET /admin/ui-kit", s.console(s.uiKitPage))
@@ -79,8 +80,7 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/activity.jsonl", changes(s.changesFile))
 
 	tokens := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasTokens, next)) }
-	mux.HandleFunc("GET /admin/tokens", tokens(s.tokensPage))
-	mux.HandleFunc("POST /admin/tokens", tokens(s.makeToken))
+	mux.HandleFunc("POST "+tokensPath, tokens(s.makeToken))
 	mux.HandleFunc("POST /admin/tokens/{id}/revoke", tokens(s.revokeToken))
 
 	retention := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasRetention, next)) }
@@ -100,7 +100,6 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST "+setupsPath+"/{name}/enable", setups(s.turnSetup(false)))
 	mux.HandleFunc("POST "+setupsPath+"/{name}/disable", setups(s.turnSetup(true)))
 
-	mux.HandleFunc("GET "+budgetsPath, s.console(offering(s.hasOrgSettings, s.budgetsPage)))
 	mux.HandleFunc("POST /admin/budget", s.console(offering(s.hasOrgSettings, s.setBudget)))
 	mux.HandleFunc("POST /admin/member-budget", s.console(offering(s.hasOrgSettings, s.setMemberBudget)))
 	mux.HandleFunc("POST /admin/chat-default", s.console(offering(s.hasOrgSettings, s.setChatDefault)))

@@ -41,18 +41,20 @@ export async function getJSON<T>(
   return (await answer.json()) as T
 }
 
-// useData fetches a path, and fetches again when it changes; what was shown stays on screen while the next one loads.
-export function useData<T>(path: string): Loaded<T> {
-  const [answer, setAnswer] = useState<{ path: string; loaded: Loaded<T> }>()
+// useData fetches a path, and fetches again when it changes or when round does, as after the page changed what it shows;
+// what was shown stays on screen while the next one loads.
+export function useData<T>(path: string, round = 0): Loaded<T> {
+  const asked = `${round} ${path}`
+  const [answer, setAnswer] = useState<{ asked: string; loaded: Loaded<T> }>()
   useEffect(() => {
     const stop = new AbortController()
     getJSON<T>(path, stop.signal).then(
-      (data) => setAnswer({ path, loaded: { state: "ready", data } }),
+      (data) => setAnswer({ asked, loaded: { state: "ready", data } }),
       (err: unknown) => {
         if (stop.signal.aborted) return
         const status = err instanceof Failure ? err.status : 0
         setAnswer({
-          path,
+          asked,
           loaded: {
             state: "failed",
             status,
@@ -62,8 +64,8 @@ export function useData<T>(path: string): Loaded<T> {
       }
     )
     return () => stop.abort()
-  }, [path])
-  if (answer?.path === path) return answer.loaded
+  }, [path, asked])
+  if (answer?.asked === asked) return answer.loaded
   return {
     state: "loading",
     data: answer?.loaded.state === "ready" ? answer.loaded.data : undefined,
@@ -71,7 +73,29 @@ export function useData<T>(path: string): Loaded<T> {
 }
 
 // usePageData is the data of the page the address names.
-export function usePageData<T>(): Loaded<T> {
+export function usePageData<T>(round = 0): Loaded<T> {
   const where = useLocation()
-  return useData<T>("/app/api" + where.pathname + where.search)
+  return useData<T>("/app/api" + where.pathname + where.search, round)
+}
+
+// postForm sends a form to the server as the browser would, for a page that reads the answer itself, and gives the answer
+// as JSON, or the server's reason when it refused.
+export async function postForm<T>(path: string, form: FormData): Promise<T> {
+  const fields = new URLSearchParams()
+  for (const [key, value] of form) {
+    if (typeof value === "string") fields.append(key, value)
+  }
+  const answer = await fetch(path, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { Accept: "application/json" },
+    body: fields,
+  })
+  if (!answer.ok) {
+    throw new Failure(
+      answer.status,
+      (await answer.text()).trim() || answer.statusText
+    )
+  }
+  return (await answer.json()) as T
 }

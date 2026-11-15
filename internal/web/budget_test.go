@@ -32,13 +32,32 @@ func setBudget(t *testing.T, here *site, typed string) *http.Response {
 	return here.ask(t, "POST", "/admin/budget", url.Values{"usd": {typed}}).Result()
 }
 
-func budgets(t *testing.T, here *site) string {
+// budgetsJSON is the Budgets page's data.
+type budgetsJSON struct {
+	Budget                               budgetState
+	People                               []budgetRow
+	Pages                                pager
+	Listed                               bool
+	Refused, Unreadable, SpendUnreadable string
+}
+
+func budgets(t *testing.T, here *site) budgetsJSON {
 	t.Helper()
-	answer := here.ask(t, "GET", budgetsPath, nil)
-	if answer.Code != http.StatusOK {
-		t.Fatalf("Budgets answered %d", answer.Code)
+	var page budgetsJSON
+	here.data(t, budgetsPath, &page)
+	return page
+}
+
+// budgetRowOf is one person's row of Budgets, by their address.
+func budgetRowOf(t *testing.T, page budgetsJSON, email string) budgetRow {
+	t.Helper()
+	for _, each := range page.People {
+		if each.Email == email {
+			return each
+		}
 	}
-	return answer.Body.String()
+	t.Fatalf("Budgets has no row for %s: %+v", email, page.People)
+	return budgetRow{}
 }
 
 func damage(t *testing.T, path string) {
@@ -50,25 +69,15 @@ func damage(t *testing.T, path string) {
 
 func TestBudgetsSaysBothBudgetsAndOneFormSavesBothAndRecordsEachChange(t *testing.T) {
 	here, log, _ := budgeted(t)
-	page := budgets(t, here)
-	for _, want := range []string{"No budget for each person, so their agents do not stop.", "The organization has no budget to warn at.", `data-open="budgets"`, `<dialog class=`} {
-		if !strings.Contains(page, want) {
-			t.Errorf("with no budgets, Budgets lacks %q", want)
-		}
-	}
-	if n := strings.Count(page, `action="/admin/budget"`); n != 1 {
-		t.Fatalf("Budgets has %d budget forms, and one sets both", n)
+	if page := budgets(t, here); page.Budget.Set || page.Budget.MemberSet || !page.Budget.Editable {
+		t.Errorf("with no budgets, Budgets says %+v", page.Budget)
 	}
 	got := here.ask(t, "POST", "/admin/budget", url.Values{"usd": {"50"}, "each": {"10"}}).Result()
 	if got.StatusCode != http.StatusSeeOther || got.Header.Get("Location") != budgetsPath {
 		t.Fatalf("saving both: %d %v", got.StatusCode, got.Header)
 	}
-	page = budgets(t, here)
-	if !strings.Contains(page, "Each person: $10.00 a month; their agents stop there. Organization: $50.00 a month, which only warns.") {
-		t.Errorf("both budgets are not said:\n%s", page)
-	}
-	if !strings.Contains(page, `name="usd" type="number" min="0" step="0.01" placeholder="No budget" value="50.00"`) || !strings.Contains(page, `name="each" type="number" min="0" step="0.01" placeholder="No budget" value="10.00"`) {
-		t.Errorf("the form does not hold what is kept:\n%s", page)
+	if page := budgets(t, here); !page.Budget.Set || page.Budget.Limit != 50 || !page.Budget.MemberSet || page.Budget.Member != 10 {
+		t.Errorf("both budgets are not said: %+v", page.Budget)
 	}
 	if kept, err := here.server.orgSettings.Read(); err != nil || kept.MonthlyBudgetUSD != 50 || kept.MemberBudgetUSD != 10 {
 		t.Errorf("kept %+v %v", kept, err)
@@ -90,8 +99,8 @@ func TestBudgetsSaysBothBudgetsAndOneFormSavesBothAndRecordsEachChange(t *testin
 func TestABudgetIsSetChangedAndClearedAndEachChangeIsRecorded(t *testing.T) {
 	here, log, path := budgeted(t)
 	setBudget(t, here, "100")
-	if page := budgets(t, here); !strings.Contains(page, "Organization: $100.00 a month, which only warns.") {
-		t.Errorf("the budget is not shown:\n%s", page)
+	if page := budgets(t, here); !page.Budget.Set || page.Budget.Limit != 100 {
+		t.Errorf("the budget is not shown: %+v", page.Budget)
 	}
 	if page := overview(t, here); !page.Budget.Set || page.Budget.Limit != 100 {
 		t.Errorf("the overview does not measure the month against the budget: %+v", page.Budget)
@@ -99,8 +108,8 @@ func TestABudgetIsSetChangedAndClearedAndEachChangeIsRecorded(t *testing.T) {
 	setBudget(t, here, "100")
 	setBudget(t, here, "250.5")
 	setBudget(t, here, "")
-	if page := budgets(t, here); !strings.Contains(page, "The organization has no budget to warn at.") {
-		t.Errorf("a budget left empty is not cleared:\n%s", page)
+	if page := budgets(t, here); page.Budget.Set {
+		t.Errorf("a budget left empty is not cleared: %+v", page.Budget)
 	}
 	var said []string
 	for _, event := range ofKind(written(t, log), changelog.BudgetSet) {
@@ -144,9 +153,10 @@ func TestABudgetIsRoundedToTheCentAndAnythingElseIsRefusedAndChangesNothing(t *t
 	if kept, _ := here.server.orgSettings.Read(); kept.MonthlyBudgetUSD != 2 || kept.MemberBudgetUSD != 0 {
 		t.Errorf("a refused budget changed the budgets: %+v", kept)
 	}
-	refused := here.ask(t, "GET", here.server.withMessage(budgetsPath, "refused", "the budget is a number"), nil).Body.String()
-	if !strings.Contains(refused, `role="alert">the budget is a number</p>`) {
-		t.Errorf("a refusal is not shown:\n%s", refused)
+	var refused budgetsJSON
+	here.data(t, here.server.withMessage(budgetsPath, "refused", "the budget is a number"), &refused)
+	if refused.Refused != "the budget is a number" {
+		t.Errorf("a refusal is not given: %q", refused.Refused)
 	}
 	if n := len(ofKind(written(t, log), changelog.BudgetSet)); n != 1 {
 		t.Errorf("%d changes were recorded, and one was made", n)
@@ -156,8 +166,8 @@ func TestABudgetIsRoundedToTheCentAndAnythingElseIsRefusedAndChangesNothing(t *t
 func TestABudgetThatCannotBeReadIsSaidAndNotWrittenOver(t *testing.T) {
 	here, _, path := budgeted(t)
 	damage(t, path)
-	if page := budgets(t, here); !strings.Contains(page, "The budgets could not be read.") {
-		t.Errorf("Budgets does not say the budgets cannot be read:\n%s", page)
+	if page := budgets(t, here); page.Budget.Err == "" {
+		t.Errorf("Budgets does not say the budgets cannot be read: %+v", page.Budget)
 	}
 	got := setBudget(t, here, "1")
 	if !strings.Contains(got.Header.Get("Location"), "refused=") {

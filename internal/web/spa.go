@@ -38,12 +38,35 @@ func answerFailure(w http.ResponseWriter, r *http.Request, err error) {
 	}
 }
 
-// mountApp gives the console's pages that have moved to the React app, and the data they read.
-func (s *Server) mountApp(mux *http.ServeMux) {
-	for _, page := range []string{"/admin", "/admin/spending", "/admin/usage", "/admin/usage/{session}"} {
-		mux.HandleFunc("GET "+page, s.console(s.appPage))
+// appView is one console page the React app draws: its address, whether this server has it to show, and the data it reads.
+type appView struct {
+	path   string
+	has    func() bool
+	gather func(*http.Request) (map[string]any, error)
+}
+
+func always() bool { return true }
+
+// appViews are the console's pages that have moved to the React app.
+func (s *Server) appViews() []appView {
+	return []appView{
+		{"/admin", always, s.overviewData},
+		{"/admin/spending", always, func(r *http.Request) (map[string]any, error) { return s.spendData(r, "/admin/spending") }},
+		{"/admin/usage", always, func(r *http.Request) (map[string]any, error) { return s.usageData(r, "/admin/usage", true) }},
+		{"/admin/usage/{session}", always, func(r *http.Request) (map[string]any, error) { return s.sessionData(r, "/admin/usage") }},
+		{peoplePath, s.hasRoster, s.peopleData},
+		{budgetsPath, s.hasOrgSettings, s.budgetsData},
+		{tokensPath, s.hasTokens, s.tokensData},
 	}
-	mux.HandleFunc("GET "+peoplePath, s.console(offering(s.hasRoster, s.appPage)))
+}
+
+// mountApp serves each of the app's pages at its own address and its data under /app/api, behind the console's sign-in.
+func (s *Server) mountApp(mux *http.ServeMux) {
+	for _, view := range s.appViews() {
+		mux.HandleFunc("GET "+view.path, s.console(offering(view.has, s.appPage)))
+		mux.HandleFunc("GET /app/api"+view.path, s.console(offering(view.has, s.appData(view.gather))))
+	}
+	mux.HandleFunc("GET /app/api/console", s.console(s.consoleJSON))
 	assets, err := fs.Sub(spaFiles, "spa/dist/assets")
 	if err != nil {
 		panic(err)
@@ -54,19 +77,6 @@ func (s *Server) mountApp(mux *http.ServeMux) {
 		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		files.ServeHTTP(w, r)
 	})
-
-	mux.HandleFunc("GET /app/api/console", s.console(s.consoleJSON))
-	mux.HandleFunc("GET /app/api/admin", s.console(s.appData(s.overviewData)))
-	mux.HandleFunc("GET /app/api/admin/spending", s.console(s.appData(func(r *http.Request) (map[string]any, error) {
-		return s.spendData(r, "/admin/spending")
-	})))
-	mux.HandleFunc("GET /app/api/admin/usage", s.console(s.appData(func(r *http.Request) (map[string]any, error) {
-		return s.usageData(r, "/admin/usage", true)
-	})))
-	mux.HandleFunc("GET /app/api/admin/usage/{session}", s.console(s.appData(func(r *http.Request) (map[string]any, error) {
-		return s.sessionData(r, "/admin/usage")
-	})))
-	mux.HandleFunc("GET /app/api/admin/people", s.console(offering(s.hasRoster, s.appData(s.peopleData))))
 }
 
 // appHead is what the app's page loads from /static before its own files: the tokens, the faces and the theme, and the script
@@ -108,6 +118,8 @@ func (s *Server) appData(gather func(*http.Request) (map[string]any, error)) htt
 			return
 		}
 		delete(page, "Title")
+		// A page's data is read fresh each time: it can hold what only one answer may show, as a new token's secret.
+		w.Header().Set("Cache-Control", "no-store")
 		s.asJSON(w, page)
 	}
 }
