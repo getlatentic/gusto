@@ -1,112 +1,167 @@
-import { PersonForm, Section } from "@/cloud/pages/org/org-parts"
+import { useState } from "react"
+
+import {
+  Row,
+  RowMenu,
+  Section,
+  type RowAction,
+} from "@/cloud/pages/org/org-parts"
 import type { CloudPage, CloudSpace } from "@/cloud/types"
+import { Field, FormDialog } from "@/components/form-dialog"
 import { FormSelect } from "@/components/form-select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-// OrgWorkspaces is the organization's workspaces and who is in each, which an admin renames, fills and empties.
+// OrgWorkspaces is the organization's workspaces and who is in each. An admin makes them, and renames, fills and empties each
+// from its ⋯.
 export function OrgWorkspaces({ page }: { page: CloudPage }) {
   return (
-    <Section title="Workspaces" id="workspaces">
+    <Section
+      title="Workspaces"
+      id="workspaces"
+      action={page.IsAdmin && <NewWorkspace />}
+    >
       <p className="m-0 text-sm text-muted-foreground">
         Each workspace has its own tasks, records, agents, connectors and
         computers, which only its members reach. A person has a computer in each
         workspace they are in.
       </p>
-      <div data-testid="workspaces">
+      <div className="grid gap-4" data-testid="workspaces">
         {(page.Workspaces ?? []).map((space) => (
           <Space key={space.ID} space={space} admin={page.IsAdmin} />
         ))}
       </div>
-      {page.IsAdmin && (
-        <form method="post" action="/org/workspaces" className="flex gap-2">
-          <Input
-            className="min-w-0 flex-1"
-            name="name"
-            placeholder="Engineering"
-            aria-label="Name of a new workspace"
-            maxLength={60}
-            required
-            data-testid="new-workspace"
-          />
-          <Button variant="outline" type="submit" data-testid="make-workspace">
-            Make a workspace
-          </Button>
-        </form>
-      )}
     </Section>
   )
 }
 
-function Space({ space, admin }: { space: CloudSpace; admin: boolean }) {
-  const others = space.Others ?? []
+function NewWorkspace() {
   return (
-    <div className="border-b py-3 last:border-b-0">
-      {admin ? (
-        <form
-          method="post"
-          action="/org/workspaces/rename"
-          className="flex gap-2"
-        >
-          <input type="hidden" name="workspace" value={space.ID} />
-          <Input
-            className="min-w-0 flex-1 font-medium"
-            name="name"
-            defaultValue={space.Name}
-            aria-label={`Name of the workspace ${space.Name}`}
-            maxLength={60}
-            required
-          />
-          <Button variant="outline" size="sm" type="submit">
-            Rename
-          </Button>
-        </form>
-      ) : (
-        <p className="m-0 text-sm font-medium">{space.Name}</p>
-      )}
-      <ul className="m-0 mt-2 grid list-none p-0 text-sm">
-        {(space.People ?? []).map((person) => (
-          <li key={person.Email} className="flex min-h-10 items-center gap-3">
-            <span className="flex-1 wrap-anywhere text-muted-foreground">
-              {person.Email}
-            </span>
-            {admin && person.Removable && (
-              <PersonForm
-                action="/org/workspaces/remove"
-                fields={{ workspace: space.ID, email: person.Email }}
-              >
-                Remove from workspace
-              </PersonForm>
-            )}
-          </li>
+    <FormDialog
+      trigger={
+        <Button variant="outline" size="sm" data-testid="make-workspace" />
+      }
+      label="New workspace"
+      title="New workspace"
+      words="Its tasks, records, agents and computers are its own. You are its first member."
+      action="/org/workspaces"
+      submit="Make the workspace"
+    >
+      <Field id="workspace-name" label="Name">
+        <Input
+          id="workspace-name"
+          name="name"
+          placeholder="Engineering"
+          maxLength={60}
+          required
+          data-testid="new-workspace"
+        />
+      </Field>
+    </FormDialog>
+  )
+}
+
+function Space({ space, admin }: { space: CloudSpace; admin: boolean }) {
+  const [renaming, setRenaming] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const others = space.Others ?? []
+  const people = space.People ?? []
+  const actions: RowAction[] = admin
+    ? [
+        { label: "Rename", onSelect: () => setRenaming(true) },
+        ...(others.length > 0
+          ? [{ label: "Add a person", onSelect: () => setAdding(true) }]
+          : []),
+      ]
+    : []
+  return (
+    <section className="grid gap-1" aria-label={space.Name}>
+      <div className="flex min-h-8 items-center gap-3">
+        <h3 className="m-0 min-w-0 flex-1 truncate font-sans text-sm font-medium">
+          {space.Name}
+        </h3>
+        <span className="text-sm text-muted-foreground">
+          {people.length} {people.length === 1 ? "person" : "people"}
+        </span>
+        <span className="flex w-7 justify-end">
+          <RowMenu label={space.Name} actions={actions} />
+        </span>
+      </div>
+      <ul className="m-0 grid list-none border-t p-0 text-sm">
+        {people.map((person) => (
+          <Row
+            key={person.Email}
+            menu={
+              admin &&
+              person.Removable && (
+                <RowMenu
+                  label={person.Email}
+                  actions={[
+                    {
+                      label: "Remove from workspace",
+                      action: "/org/workspaces/remove",
+                      fields: { workspace: space.ID, email: person.Email },
+                      destructive: true,
+                    },
+                  ]}
+                />
+              )
+            }
+          >
+            <span className="text-muted-foreground">{person.Email}</span>
+          </Row>
         ))}
       </ul>
-      {admin && others.length > 0 && (
-        <form
-          method="post"
-          action="/org/workspaces/add"
-          className="mt-2 flex gap-2"
-        >
-          <input type="hidden" name="workspace" value={space.ID} />
-          <FormSelect
-            className="min-w-0 flex-1"
-            name="email"
-            label={`Person to add to ${space.Name}`}
-            groups={[
-              {
-                choices: others.map((email) => ({
-                  value: email,
-                  label: email,
-                })),
-              },
-            ]}
-            value={others[0]}
-          />
-          <Button variant="outline" size="sm" type="submit">
-            Add
-          </Button>
-        </form>
+      {admin && (
+        <>
+          <FormDialog
+            open={renaming}
+            onOpenChange={setRenaming}
+            title={`Rename ${space.Name}`}
+            words="Its people, tasks and computers stay as they are."
+            action="/org/workspaces/rename"
+            submit="Rename"
+          >
+            <input type="hidden" name="workspace" value={space.ID} />
+            <Field id={`rename-${space.ID}`} label="Name">
+              <Input
+                id={`rename-${space.ID}`}
+                name="name"
+                defaultValue={space.Name}
+                maxLength={60}
+                required
+              />
+            </Field>
+          </FormDialog>
+          {others.length > 0 && (
+            <FormDialog
+              open={adding}
+              onOpenChange={setAdding}
+              title={`Add a person to ${space.Name}`}
+              words="They get a computer in this workspace too."
+              action="/org/workspaces/add"
+              submit="Add"
+            >
+              <input type="hidden" name="workspace" value={space.ID} />
+              <Field id={`add-${space.ID}`} label="Person">
+                <FormSelect
+                  id={`add-${space.ID}`}
+                  name="email"
+                  groups={[
+                    {
+                      choices: others.map((email) => ({
+                        value: email,
+                        label: email,
+                      })),
+                    },
+                  ]}
+                  value={others[0]}
+                />
+              </Field>
+            </FormDialog>
+          )}
+        </>
       )}
-    </div>
+    </section>
   )
 }

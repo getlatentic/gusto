@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { FormDialog } from "./form-dialog"
+import { FormDialog } from "@/components/form-dialog"
 import { PriceFields } from "./price-fields"
 import { providerAction } from "./provider-dialogs"
 import type { Provider, ProviderModel } from "./types"

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ChoiceSelect } from "./choice-select"
-import { Field, FormDialog } from "./form-dialog"
+import { Field, FormDialog } from "@/components/form-dialog"
 import { PostButton } from "./post-button"
 import { Steps } from "./steps"
 import type { DefaultChoice, ModelsData, RunTokens } from "./types"

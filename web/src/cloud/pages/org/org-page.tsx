@@ -213,14 +213,19 @@ function OrgFoot({ page }: { page: CloudPage }) {
   if (!page.Person.Trial) return null
   return (
     <Card className="py-5">
-      <CardContent className="grid gap-3 px-5">
-        <p className="m-0 text-sm text-muted-foreground">
+      <CardContent className="flex flex-row flex-wrap items-center gap-3 px-5">
+        <p className="m-0 min-w-0 flex-1 basis-80 text-sm text-muted-foreground">
           Confirm your email address to raise this to {page.Verified.Tasks}{" "}
           tasks a month and to invite colleagues. We mailed a link to{" "}
           {page.Person.Email}.
         </p>
         <form method="post" action="/org/verify">
-          <Button variant="outline" type="submit" data-testid="send-link-again">
+          <Button
+            variant="outline"
+            size="sm"
+            type="submit"
+            data-testid="send-link-again"
+          >
             Send the link again
           </Button>
         </form>

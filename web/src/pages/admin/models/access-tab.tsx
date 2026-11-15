@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Field, FormDialog } from "./form-dialog"
+import { Field, FormDialog } from "@/components/form-dialog"
 import { PostButton } from "./post-button"
 import { TablePager } from "./table-pager"
 import type { Limit, ModelsData } from "./types"

@@ -1,5 +1,5 @@
-import { render, screen, within } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { fireEvent, render, screen, within } from "@testing-library/react"
+import { describe, expect, it, vi } from "vitest"
 
 import { cloudPage } from "@/cloud/fixture"
 import { OrgPage } from "@/cloud/pages/org/org-page"
@@ -65,27 +65,50 @@ describe("an organization's page", () => {
     ).toBe("/org/verify")
   })
 
-  it("offers an admin the other role, and does not offer the last admin runner", () => {
+  it("offers an admin the other role behind each person's menu, and the last admin no runner", async () => {
     render(<OrgPage page={adminView()} />)
-    const people = screen.getByTestId("people")
-    const row = (email: string) =>
-      within(people).getByText(email).closest("li")!
-    expect(within(row("ada@acme.com")).queryByRole("button")).toBeNull()
     expect(
-      within(row("bob@acme.com")).getByRole("button", { name: "Make admin" })
-    ).toBeTruthy()
+      screen.queryByRole("button", { name: "More for ada@acme.com" })
+    ).toBeNull()
+    expect(screen.getByText("runner, computer i-1")).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole("button", { name: "More for bob@acme.com" })
+    )
+    const items = (await screen.findAllByRole("menuitem")).map(
+      (item) => item.textContent
+    )
+    expect(items).toEqual(["Make admin", "Remove"])
+  })
+
+  it("sends a person's change as its own form", async () => {
+    render(<OrgPage page={adminView()} />)
+    fireEvent.click(
+      screen.getByRole("button", { name: "More for bob@acme.com" })
+    )
+    const submitted = vi.fn((event: Event) => event.preventDefault())
+    document.addEventListener("submit", submitted)
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Make admin" }))
+    document.removeEventListener("submit", submitted)
+    const form = submitted.mock.calls[0][0].target as HTMLFormElement
+    expect(form.getAttribute("action")).toBe("/org/people/role")
+    expect(new FormData(form).get("role")).toBe("admin")
+  })
+
+  it("invites from a dialog, and cancels an invitation from its menu", async () => {
+    render(<OrgPage page={adminView()} />)
+    fireEvent.click(screen.getByTestId("invite"))
     expect(
-      within(row("bob@acme.com")).getByRole("button", { name: "Remove" })
-    ).toBeTruthy()
-    expect(
-      within(row("bob@acme.com")).getByText("runner, computer i-1")
-    ).toBeTruthy()
-    expect(
-      within(row("cy@acme.com")).getByRole("button", { name: "Cancel" })
-    ).toBeTruthy()
-    expect(
-      screen.getByTestId("invite-email").closest("form")?.getAttribute("action")
+      (await screen.findByTestId("invite-email"))
+        .closest("form")
+        ?.getAttribute("action")
     ).toBe("/org/invite")
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
+    fireEvent.click(
+      screen.getByRole("button", { name: "More for cy@acme.com" })
+    )
+    expect(
+      await screen.findByRole("menuitem", { name: "Cancel the invitation" })
+    ).toBeTruthy()
   })
 
   it("shows a runner the people and nothing to change", () => {
@@ -93,16 +116,20 @@ describe("an organization's page", () => {
     expect(
       within(screen.getByTestId("people")).queryAllByRole("button")
     ).toHaveLength(0)
-    expect(screen.queryByTestId("invite-email")).toBeNull()
+    expect(screen.queryByTestId("invite")).toBeNull()
     expect(screen.queryByTestId("workspaces")).toBeNull()
   })
 
-  it("lets an admin fill and rename a workspace and make another", () => {
+  it("lets an admin make a workspace, and rename and fill one from its menu", async () => {
     render(<OrgPage page={adminView()} />)
-    const spaces = screen.getByTestId("workspaces")
-    expect(within(spaces).getByRole("button", { name: "Rename" })).toBeTruthy()
-    expect(within(spaces).getByRole("button", { name: "Add" })).toBeTruthy()
-    expect(screen.getByTestId("make-workspace")).toBeTruthy()
+    expect(screen.getByTestId("make-workspace").textContent).toBe(
+      "New workspace"
+    )
+    fireEvent.click(screen.getByRole("button", { name: "More for Acme" }))
+    const items = (await screen.findAllByRole("menuitem")).map(
+      (item) => item.textContent
+    )
+    expect(items).toEqual(["Rename", "Add a person"])
   })
 
   it("offers to open gusto once its server is ready", () => {

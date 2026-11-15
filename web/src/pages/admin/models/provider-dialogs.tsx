@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AddressKind } from "./address-kind"
-import { Field, FormDialog } from "./form-dialog"
+import { Field, FormDialog } from "@/components/form-dialog"
 import { PriceFields } from "./price-fields"
 import type { Provider } from "./types"
 
