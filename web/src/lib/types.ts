@@ -1,5 +1,7 @@
 // The views the server answers at /app/api, as internal/web builds them. Field names are the Go struct fields'.
 
+import type { MemberBudget } from "@/domain/usage-budget"
+
 export interface ConsoleShell {
   sections: { key: string; href: string; label: string }[]
   orgName?: string
@@ -133,6 +135,8 @@ export interface UsageView {
 export interface UsageData {
   Base: string
   Tabs: UsageTabs
+  // Mine is a person's own month against their budget, on their own usage only.
+  Mine?: MemberBudget
   Usage?: UsageView
 }
 

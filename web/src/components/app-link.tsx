@@ -26,6 +26,10 @@ const appPages = [
   /^\/templates\/[^/]+$/,
   /^\/new\/blank$/,
   /^\/instances\/new$/,
+  /^\/usage(?:\/[^/]+)?$/,
+  /^\/spend$/,
+  /^\/connections$/,
+  /^\/device$/,
 ]
 
 export function isAppPage(href: string): boolean {

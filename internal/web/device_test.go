@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -42,9 +41,8 @@ func signInADevice(t *testing.T, here *tokened, person string) string {
 	if device == "" || user == "" {
 		t.Fatalf("no codes were given: %+v", started)
 	}
-	approved := here.as(t, person).ask(t, "POST", "/device", url.Values{"code": {user}})
-	if approved.Code != http.StatusOK || !strings.Contains(approved.Body.String(), "Approved") {
-		t.Fatalf("the person's approval gave %d:\n%s", approved.Code, approved.Body)
+	if approved := sendCode(t, here.as(t, person), user); approved.Approved == "" {
+		t.Fatalf("the person's approval was not said: %+v", approved)
 	}
 	got := here.post("/api/device/token", `{"device_code":"`+device+`"}`, "")
 	if got.Code != http.StatusOK {
@@ -93,18 +91,18 @@ func TestACodeIsGivenToOnePersonOnceAndTheSharedSignInIsNobody(t *testing.T) {
 	started := jsonOf(t, here.post("/api/device", `{}`, ""))
 	device, user := started["device_code"].(string), started["user_code"].(string)
 
-	if wrong := here.as(t, alice).ask(t, "POST", "/device", url.Values{"code": {"BCDF-GHJK"}}); !strings.Contains(wrong.Body.String(), "not waiting") {
-		t.Errorf("a code nobody was given was not refused:\n%s", wrong.Body)
+	if wrong := sendCode(t, here.as(t, alice), "BCDF-GHJK"); !strings.Contains(wrong.Refused, "not waiting") {
+		t.Errorf("a code nobody was given was not refused: %+v", wrong)
 	}
 	here.signIn(t)
-	if shared := here.ask(t, "POST", "/device", url.Values{"code": {user}}); !strings.Contains(shared.Body.String(), "not one person") {
-		t.Errorf("the shared sign-in approved a computer:\n%s", shared.Body)
+	if shared := sendCode(t, here.site, user); !strings.Contains(shared.Refused, "not one person") || shared.Approved != "" {
+		t.Errorf("the shared sign-in approved a computer: %+v", shared)
 	}
-	if first := here.as(t, alice).ask(t, "POST", "/device", url.Values{"code": {strings.ToLower(user)}}); !strings.Contains(first.Body.String(), "Approved") {
-		t.Fatalf("alice could not approve, in lower case:\n%s", first.Body)
+	if first := sendCode(t, here.as(t, alice), strings.ToLower(user)); first.Approved != "computer" {
+		t.Fatalf("alice could not approve, in lower case: %+v", first)
 	}
-	if second := here.as(t, bob).ask(t, "POST", "/device", url.Values{"code": {user}}); !strings.Contains(second.Body.String(), "not waiting") {
-		t.Errorf("bob approved what alice had:\n%s", second.Body)
+	if second := sendCode(t, here.as(t, bob), user); !strings.Contains(second.Refused, "not waiting") {
+		t.Errorf("bob approved what alice had: %+v", second)
 	}
 	if got := here.post("/api/device/token", `{"device_code":"`+device+`"}`, ""); got.Code != http.StatusOK {
 		t.Fatalf("%d %s", got.Code, got.Body)
@@ -117,12 +115,12 @@ func TestACodeIsGivenToOnePersonOnceAndTheSharedSignInIsNobody(t *testing.T) {
 func TestAPersonSeesAndEndsOnlyTheirOwnComputers(t *testing.T) {
 	here := withTokens(t)
 	hers, his := signInADevice(t, here, alice), signInADevice(t, here, bob)
-	page := here.as(t, alice).ask(t, "GET", "/device", nil).Body.String()
-	if !strings.Contains(page, "laptop-alice") || strings.Contains(page, "laptop-bob") {
-		t.Fatalf("alice's page:\n%s", page)
+	page := devices(t, here.as(t, alice), "/device")
+	if len(page.Tokens) != 1 || !strings.HasPrefix(page.Tokens[0].Name, "laptop-alice") || !page.Tokens[0].Live || page.Tokens[0].Made == "" {
+		t.Fatalf("alice's page: %+v", page)
 	}
-	id := regexpFirst(t, page, `/device/([0-9a-f]+)/revoke`)
-	bobsID := regexpFirst(t, here.as(t, bob).ask(t, "GET", "/device", nil).Body.String(), `/device/([0-9a-f]+)/revoke`)
+	id := page.Tokens[0].ID
+	bobsID := devices(t, here.as(t, bob), "/device").Tokens[0].ID
 	if got := here.as(t, alice).ask(t, "POST", "/device/"+bobsID+"/revoke", nil); got.Code != http.StatusNotFound {
 		t.Errorf("alice ended bob's computer: %d", got.Code)
 	}
@@ -134,6 +132,9 @@ func TestAPersonSeesAndEndsOnlyTheirOwnComputers(t *testing.T) {
 	}
 	if got := here.call("GET", "/api/me", hers); got.Code != http.StatusUnauthorized {
 		t.Errorf("an ended token still worked: %d", got.Code)
+	}
+	if ended := devices(t, here.as(t, alice), "/device").Tokens[0]; ended.Live || !strings.Contains(ended.Ended, "by "+alice) {
+		t.Errorf("an ended computer is not said to be ended, and by whom: %+v", ended)
 	}
 	if revoked := ofKind(written(t, here.log), changelog.TokenRevoked); len(revoked) != 1 || revoked[0].Who != alice {
 		t.Errorf("ending a token was not recorded against alice: %+v", revoked)
@@ -158,18 +159,39 @@ func TestAServerWithNoTokensHasNoDeviceFlow(t *testing.T) {
 	if got := here.post("/api/device", `{}`, ""); got.Code != http.StatusNotFound {
 		t.Errorf("a server with no token file answered %d", got.Code)
 	}
-	if got := here.as(t, alice).ask(t, "GET", "/device", nil); got.Code != http.StatusNotFound {
-		t.Errorf("the approval page answered %d", got.Code)
+	for _, path := range []string{"/device", "/app/api/device"} {
+		if got := here.as(t, alice).ask(t, "GET", path, nil); got.Code != http.StatusNotFound {
+			t.Errorf("%s answered %d", path, got.Code)
+		}
 	}
 }
 
-func regexpFirst(t *testing.T, text, pattern string) string {
-	t.Helper()
-	found := regexp.MustCompile(pattern).FindStringSubmatch(text)
-	if len(found) < 2 {
-		t.Fatalf("%s is not in:\n%s", pattern, text)
+// devicePageJSON is the device page's data.
+type devicePageJSON struct {
+	Code, Refused, Approved string
+	Shared, Owner           bool
+	Tokens                  []struct {
+		ID, Name, Made, LastUsed, Ended string
+		Live                            bool
 	}
-	return found[1]
+}
+
+// devices is the device page's data as who reads it, at the address given.
+func devices(t *testing.T, who *site, path string) devicePageJSON {
+	t.Helper()
+	var page devicePageJSON
+	who.data(t, path, &page)
+	return page
+}
+
+// sendCode sends a code from the device page as who, and gives the page the server sent them back to, which says what became of it.
+func sendCode(t *testing.T, who *site, code string) devicePageJSON {
+	t.Helper()
+	got := who.ask(t, "POST", "/device", url.Values{"code": {code}})
+	if got.Code != http.StatusSeeOther {
+		t.Fatalf("sending a code answered %d: %s", got.Code, got.Body)
+	}
+	return devices(t, who, got.Header().Get("Location"))
 }
 
 // With no identity provider the shared password is the one owner of the server, which is a developer's own: it approves a computer,
@@ -179,11 +201,11 @@ func TestWithNoIdentityProviderTheSharedPasswordIsTheOneOwnerAndItsComputerSeesT
 	here.signIn(t)
 	started := jsonOf(t, here.post("/api/device", `{"label":"Laptop"}`, ""))
 	device, user := started["device_code"].(string), started["user_code"].(string)
-	if page := here.ask(t, "GET", "/device", nil).Body.String(); !strings.Contains(page, "one owner") {
-		t.Errorf("the page does not say who the owner is:\n%s", page)
+	if page := devices(t, here.site, "/device"); !page.Owner || page.Shared {
+		t.Errorf("the page does not say who the owner is: %+v", page)
 	}
-	if approved := here.ask(t, "POST", "/device", url.Values{"code": {user}}); !strings.Contains(approved.Body.String(), "Approved") {
-		t.Fatalf("the owner could not approve a computer:\n%s", approved.Body)
+	if approved := sendCode(t, here.site, user); approved.Approved == "" {
+		t.Fatalf("the owner could not approve a computer: %+v", approved)
 	}
 	got := here.post("/api/device/token", `{"device_code":"`+device+`"}`, "")
 	if got.Code != http.StatusOK {
@@ -198,7 +220,7 @@ func TestWithNoIdentityProviderTheSharedPasswordIsTheOneOwnerAndItsComputerSeesT
 	if listed.Code != http.StatusOK || !strings.Contains(listed.Body.String(), "fixture") {
 		t.Errorf("the owner's computer does not see the instance the owner started in the pages: %d %s", listed.Code, listed.Body)
 	}
-	if page := here.ask(t, "GET", "/device", nil).Body.String(); !strings.Contains(strings.ToLower(page), "laptop") {
-		t.Errorf("the owner does not see their computer listed:\n%s", page)
+	if page := devices(t, here.site, "/device"); len(page.Tokens) != 1 || !strings.HasPrefix(page.Tokens[0].Name, "laptop") {
+		t.Errorf("the owner does not see their computer listed: %+v", page)
 	}
 }

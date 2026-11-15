@@ -7,7 +7,7 @@ const placeOf: [RegExp, Place][] = [
   [/^\/(files|instances\/[^/]+\/files?)(\/|$)/, "files"],
   [/^\/(members|presets|harnesses)(\/|$)/, "members"],
   [/^\/(setups|templates|new\/blank|instances\/new)(\/|$)/, "members"],
-  [/^\/usage(\/|$)/, "usage"],
+  [/^\/(usage|spend)(\/|$)/, "usage"],
   [/^\/connections(\/|$)/, "connections"],
 ]
 

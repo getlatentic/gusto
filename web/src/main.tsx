@@ -116,6 +116,27 @@ const HandoffPage = lazy(() =>
     default: m.HandoffPage,
   }))
 )
+const MyUsagePage = lazy(() =>
+  import("@/pages/usage/usage-pages").then((m) => ({ default: m.MyUsagePage }))
+)
+const MySessionPage = lazy(() =>
+  import("@/pages/usage/usage-pages").then((m) => ({
+    default: m.MySessionPage,
+  }))
+)
+const MySpendPage = lazy(() =>
+  import("@/pages/usage/usage-pages").then((m) => ({ default: m.MySpendPage }))
+)
+const ConnectionsPage = lazy(() =>
+  import("@/pages/account/connections-page").then((m) => ({
+    default: m.ConnectionsPage,
+  }))
+)
+const DevicePage = lazy(() =>
+  import("@/pages/account/device-page").then((m) => ({
+    default: m.DevicePage,
+  }))
+)
 
 // The pages the gusto server hands to this app. Each address is also a route on the server, which serves this app for it
 // behind the same sign-in; any other address is a page the server draws.
@@ -144,6 +165,11 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/templates/:name" element={<TemplatePage />} />
                 <Route path="/new/blank" element={<BlankPage />} />
                 <Route path="/instances/new" element={<SetUpPage />} />
+                <Route path="/usage" element={<MyUsagePage />} />
+                <Route path="/usage/:session" element={<MySessionPage />} />
+                <Route path="/spend" element={<MySpendPage />} />
+                <Route path="/connections" element={<ConnectionsPage />} />
+                <Route path="/device" element={<DevicePage />} />
               </Route>
               <Route path="/login" element={<SignInPage />} />
               <Route path="/auth/desktop/handoff" element={<HandoffPage />} />

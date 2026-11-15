@@ -12,7 +12,7 @@ const mostCodes = 1_000
 
 const base64url = (data) => Buffer.from(data).toString("base64url")
 
-const escapeHTML = (text) =>
+export const escapeHTML = (text) =>
   String(text).replace(
     /[&<>"']/g,
     (c) =>
@@ -21,7 +21,7 @@ const escapeHTML = (text) =>
       ]
   )
 
-function readBody(req) {
+export function readBody(req) {
   return new Promise((resolve, reject) => {
     let body = ""
     req.setEncoding("utf8")
@@ -34,7 +34,7 @@ function readBody(req) {
   })
 }
 
-function answer(res, status, type, body, headers = {}) {
+export function answer(res, status, type, body, headers = {}) {
   res.writeHead(status, { "content-type": type, ...headers })
   res.end(body)
 }

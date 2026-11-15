@@ -78,8 +78,8 @@ func TestARoomTurnUsesEachOfItsAskersAppsAsTheyChoseOrTheirDefault(t *testing.T)
 	}
 
 	byDefault("on")
-	if page := ada.ask(t, "GET", "/connections", nil).Body.String(); !strings.Contains(page, `<option value="on" selected>On</option>`) {
-		t.Error("Connections does not show the default as on")
+	if row, _ := connections(t, ada, "/connections").app("tasks"); !row.ForAgents {
+		t.Errorf("Connections does not show the default as on: %+v", row)
 	}
 	if got := turn("inherited", alice); !slices.Equal(got, []string{"tasks"}) {
 		t.Fatalf("an agent left on inherit was not given the app the person's default allows: %v", got)

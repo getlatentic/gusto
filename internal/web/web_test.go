@@ -352,7 +352,7 @@ func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
 func TestEveryPageOffersTheWayToTheMembers(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	for _, page := range []string{"/jobs", "/spend"} {
+	for _, page := range []string{"/jobs"} {
 		body := site.ask(t, "GET", page, nil).Body.String()
 		if !strings.Contains(body, `href="/members"`) || !strings.Contains(body, "Members") {
 			t.Errorf("%s does not offer the way to the members", page)

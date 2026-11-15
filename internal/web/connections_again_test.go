@@ -24,15 +24,9 @@ func TestASignInThatNeedsMakingAgainSaysSoWhereverAppsAreShown(t *testing.T) {
 	signInAt(t, ada, app)
 	time.Sleep(1100 * time.Millisecond)
 
-	page := ada.ask(t, "GET", "/connections", nil).Body.String()
-	if !strings.Contains(page, ">sign in again<") || !strings.Contains(page, `href="/connections/tasks/connect">Sign in again<`) {
-		t.Errorf("Connections does not ask the person to sign in again:\n%s", page)
-	}
-	if strings.Contains(page, `action="/connections/tasks/agents"`) {
-		t.Error("Connections offers a default for agents to an app that does not work")
-	}
-	if !strings.Contains(page, `action="/connections/tasks/disconnect"`) {
-		t.Error("the person cannot end a sign-in that needs making again")
+	// A sign-in that needs making again is listed, offered to make again and to end, and not as one the agents may use.
+	if row, listed := connections(t, ada, "/connections").app("tasks"); !listed || !row.SignInAgain || row.Connected || !row.Offered || row.ForAgents {
+		t.Errorf("Connections does not ask the person to sign in again: %+v", row)
 	}
 	if tasks := appsPageOf(t, here, "?tab=apps").app(t, "tasks"); tasks.NeedSignIn != 1 {
 		t.Errorf("the admin's page does not say who needs to sign in again: %+v", tasks)
@@ -70,13 +64,12 @@ func TestAPersonEndsTheirSignInToAnAppAnAdminTurnedOff(t *testing.T) {
 	signInAt(t, ada, app)
 	here.ask(t, "POST", "/admin/connectors/tasks/off", nil)
 
-	page := ada.ask(t, "GET", "/connections", nil).Body.String()
-	if !strings.Contains(page, ">turned off<") || !strings.Contains(page, `action="/connections/tasks/disconnect"`) ||
-		strings.Contains(page, `action="/connections/tasks/agents"`) || strings.Contains(page, `href="/connections/tasks/connect"`) {
-		t.Errorf("a turned-off app the person is signed in to is not shown with only Disconnect:\n%s", page)
+	// A turned-off app is listed while the person holds a sign-in to it, so they may end it, and offered for nothing else.
+	if row, listed := connections(t, ada, "/connections").app("tasks"); !listed || row.Offered || !row.Connected {
+		t.Errorf("a turned-off app the person is signed in to is not shown with only Disconnect: %+v", row)
 	}
-	if page := bea.ask(t, "GET", "/connections", nil).Body.String(); strings.Contains(page, "Tasks") {
-		t.Errorf("a turned-off app is listed for somebody who never signed in to it:\n%s", page)
+	if _, listed := connections(t, bea, "/connections").app("tasks"); listed {
+		t.Error("a turned-off app is listed for somebody who never signed in to it")
 	}
 	if got := ada.ask(t, "GET", "/connections/tasks/connect", nil).Code; got != http.StatusNotFound {
 		t.Errorf("connecting an app that is off answered %d", got)
@@ -84,8 +77,8 @@ func TestAPersonEndsTheirSignInToAnAppAnAdminTurnedOff(t *testing.T) {
 	if got := ada.ask(t, "POST", "/connections/tasks/disconnect", nil).Code; got != http.StatusSeeOther {
 		t.Fatalf("ending a sign-in to an app that is off answered %d", got)
 	}
-	if page := ada.ask(t, "GET", "/connections", nil).Body.String(); strings.Contains(page, "Tasks") {
-		t.Errorf("the app is still listed after the sign-in ended:\n%s", page)
+	if _, listed := connections(t, ada, "/connections").app("tasks"); listed {
+		t.Error("the app is still listed after the sign-in ended")
 	}
 	if ended := ofKind(written(t, log), changelog.ConnectorDisconnected); len(ended) != 1 || ended[0].Who != alice {
 		t.Errorf("the change record holds %+v", ended)
