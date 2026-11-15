@@ -30,8 +30,8 @@ func TestTwoEventsInOneSecondKeepTheSubscriptionAsStripeHasIt(t *testing.T) {
 		if b, _, _ := f.store.Billing(t.Context(), "acme-com"); b.Status != "active" {
 			t.Errorf("the older of two events in one second was kept: %+v", b)
 		}
-		if _, page := admin.get("/org"); !strings.Contains(page, "Paid: 1 seat") {
-			t.Errorf("\n%s", page)
+		if paid := shownAt(t, admin, "/org").Plan; paid == nil || !strings.HasPrefix(paid.Words, "Paid: 1 seat") {
+			t.Errorf("%+v", paid)
 		}
 	})
 }
@@ -45,8 +45,8 @@ func TestAnAdminIsNotOfferedASecondSubscriptionWhileTheFirstAwaitsPayment(t *tes
 		if status, text := f.postEvent(body, signStripe(body, testWebhookSecret, time.Now())); status != http.StatusOK {
 			t.Fatalf("%d %s", status, text)
 		}
-		if _, page := admin.get("/org"); !strings.Contains(page, "Payment pending") || strings.Contains(page, "/org/billing/subscribe") {
-			t.Errorf("an incomplete subscription offers a second:\n%s", page)
+		if pending := shownAt(t, admin, "/org").Plan; pending == nil || !strings.HasPrefix(pending.Words, "Payment pending") || pending.Subscribe {
+			t.Errorf("an incomplete subscription offers a second: %+v", pending)
 		}
 	})
 }

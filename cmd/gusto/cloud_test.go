@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"maps"
 	"net/http/httptest"
@@ -61,8 +62,17 @@ func TestGustoCloudIsMadeFromItsSettings(t *testing.T) {
 	get := httptest.NewRequest("GET", "/org", nil)
 	get.AddCookie(cookie)
 	front.Handler().ServeHTTP(page, get)
-	if !strings.Contains(page.Body.String(), "acme.example.com") || !strings.Contains(page.Body.String(), ">7</span>") || !strings.Contains(page.Body.String(), "tasks in all") {
-		t.Errorf("the page should show the organization's address and the trial from the settings:\n%s", page.Body)
+	var shown struct {
+		Address string
+		Quota   struct {
+			Tasks   int
+			Monthly bool
+		}
+	}
+	_, data, _ := strings.Cut(page.Body.String(), `<script id="gusto-data" type="application/json">`)
+	data, _, _ = strings.Cut(data, "</script>")
+	if err := json.Unmarshal([]byte(data), &shown); err != nil || shown.Address != "acme.example.com" || shown.Quota.Tasks != 7 || shown.Quota.Monthly {
+		t.Errorf("the page should show the organization's address and the trial from the settings: %+v %v", shown, err)
 	}
 }
 

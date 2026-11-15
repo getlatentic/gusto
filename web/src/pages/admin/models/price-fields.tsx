@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input"
-import { Field } from "./form-dialog"
+import { Field } from "@/components/form-dialog"
 import type { Price } from "./types"
 
 // perMillion is a price as the server wrote it: the number of dollars, as typed.

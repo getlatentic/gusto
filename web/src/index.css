@@ -3,7 +3,7 @@
 @import "shadcn/tailwind.css";
 @plugin "@tailwindcss/typography";
 /* Markdown reads the same here as in the pages the server draws. */
-@import "../../internal/web/tailwind/prose.css";
+@import "./prose.css";
 /* The lease bar and the demo tour that gusto cloud adds to every page draw with this stylesheet's names. */
 @source "../../internal/web/static/lease.js";
 @source "../../internal/web/static/guide.js";
@@ -135,5 +135,17 @@
   h3,
   h4 {
     @apply font-heading;
+  }
+  /* A person who asks for less motion gets none. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0s !important;
+      transition-delay: 0s !important;
+      animation-duration: 0s !important;
+      animation-iteration-count: 1 !important;
+    }
   }
 }

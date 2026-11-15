@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -22,11 +23,23 @@ func app(t *testing.T) (*App, *cloud.Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a, err := New(store, hosts{{ID: "i-0123456789abcdef0", Launched: time.Now().Add(-5 * time.Minute)}})
-	if err != nil {
+	return New(store, hosts{{ID: "i-0123456789abcdef0", Launched: time.Now().Add(-5 * time.Minute)}}), store
+}
+
+// shown is the operator's page as the server wrote it into the HTML for the web app to draw.
+func shown(t *testing.T, a *App) page {
+	t.Helper()
+	body := ask(a, "GET", "/", "localhost:8090", nil, nil).Body.String()
+	start := strings.Index(body, `<script id="gusto-data" type="application/json">`)
+	if start < 0 {
+		t.Fatalf("the page carries no data:\n%s", body)
+	}
+	data := body[start+len(`<script id="gusto-data" type="application/json">`):]
+	var view page
+	if err := json.Unmarshal([]byte(data[:strings.Index(data, "</script>")]), &view); err != nil {
 		t.Fatal(err)
 	}
-	return a, store
+	return view
 }
 
 func ask(a *App, method, path, host string, header map[string]string, form url.Values) *httptest.ResponseRecorder {
@@ -44,7 +57,7 @@ func ask(a *App, method, path, host string, header map[string]string, form url.V
 
 func TestTheOperatorsPageIsServedOnlyToRequestsToTheLoopback(t *testing.T) {
 	a, _ := app(t)
-	if got := ask(a, "GET", "/", "127.0.0.1:8090", nil, nil); got.Code != http.StatusOK || !strings.Contains(got.Body.String(), "gusto operator") {
+	if got := ask(a, "GET", "/", "127.0.0.1:8090", nil, nil); got.Code != http.StatusOK || !strings.Contains(got.Body.String(), "<title>gusto operator</title>") {
 		t.Fatalf("%d", got.Code)
 	}
 	for name, c := range map[string]struct {
@@ -67,11 +80,12 @@ func TestTheOperatorSeesWhoAskedForADemoAndTheHostsThatAreUp(t *testing.T) {
 	if _, _, err := store.StartDemo(t.Context(), "Ada Lovelace", "ada@acme.com", "Acme Research"); err != nil {
 		t.Fatal(err)
 	}
-	body := ask(a, "GET", "/", "localhost:8090", nil, nil).Body.String()
-	for _, want := range []string{"Ada Lovelace", "ada@acme.com", "Acme Research", "i-0123456789abcdef0", "5 min ago", "1 so far"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("the page does not say %q:\n%s", want, body)
-		}
+	view := shown(t, a)
+	if len(view.Leads) != 1 || view.Leads[0].Name != "Ada Lovelace" || view.Leads[0].Email != "ada@acme.com" || view.Leads[0].Company != "Acme Research" || view.Leads[0].Outcome != "starting" {
+		t.Errorf("the leads: %+v", view.Leads)
+	}
+	if !view.Hosts.Known || len(view.Hosts.Rows) != 1 || view.Hosts.Rows[0] != (hostRow{ID: "i-0123456789abcdef0", Up: "5 min ago"}) {
+		t.Errorf("the hosts: %+v", view.Hosts)
 	}
 }
 
@@ -83,8 +97,8 @@ func TestDemosArePausedAndResumedFromThePageAndOnlyFromThisSite(t *testing.T) {
 	if got := ask(a, "POST", "/demos/pause", "localhost:8090", map[string]string{"Sec-Fetch-Site": "same-origin"}, url.Values{"paused": {"on"}}); got.Code != http.StatusSeeOther || !store.DemosPaused(t.Context()) {
 		t.Fatalf("demos were not paused: %d", got.Code)
 	}
-	if body := ask(a, "GET", "/", "localhost:8090", nil, nil).Body.String(); !strings.Contains(body, "New demos are paused") || !strings.Contains(body, "Accept new demos") {
-		t.Errorf("the page does not say so:\n%s", body)
+	if view := shown(t, a); !view.Paused {
+		t.Errorf("the page does not say demos are paused: %+v", view)
 	}
 	ask(a, "POST", "/demos/pause", "localhost:8090", nil, url.Values{"paused": {"off"}})
 	if store.DemosPaused(t.Context()) {
@@ -121,11 +135,8 @@ func TestTheOperatorChangesTheDemoLimitsFromThePageAndTheyHoldAtOnce(t *testing.
 	if got := store.DemoLimits(t.Context()); got != (cloud.DemoLimits{PerDay: 25, PerPerson: 1, PerCompany: 4, MaxOrgs: 3}) {
 		t.Errorf("%+v", got)
 	}
-	body := ask(a, "GET", "/", "localhost:8090", nil, nil).Body.String()
-	for _, want := range []string{`name="perPerson" min="0" max="1000" value="1"`, `name="maxOrgs" min="1" max="50" value="3"`, "limits you set", "Go back to the starting limits"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("the page does not say %q", want)
-		}
+	if view := shown(t, a); !view.LimitsSet || view.Limits != (cloud.DemoLimits{PerDay: 25, PerPerson: 1, PerCompany: 4, MaxOrgs: 3}) {
+		t.Errorf("the page does not show the limits set: %+v", view)
 	}
 	// It holds on the very next demo, with no restart.
 	if _, _, err := store.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme"); err != nil {

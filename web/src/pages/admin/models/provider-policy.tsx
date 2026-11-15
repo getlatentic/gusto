@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { FormDialog } from "./form-dialog"
+import { FormDialog } from "@/components/form-dialog"
 import type { KeySource, ModelsView } from "./types"
 
 // ProviderPolicy says how far a provider may reach. An installation that is the admin's own lets them change it; otherwise

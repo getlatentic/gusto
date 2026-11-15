@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AddressKind } from "./address-kind"
 import { ChoiceSelect } from "./choice-select"
-import { Field, FormDialog } from "./form-dialog"
+import { Field, FormDialog } from "@/components/form-dialog"
 import type { ModelsView } from "./types"
 
 // AddProvider adds a provider: where its models answer, and where its key comes from.

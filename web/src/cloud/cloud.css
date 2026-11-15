@@ -1,0 +1,48 @@
+@import "../index.css";
+
+/* gusto cloud's pages scroll as documents do, where the product's pages each fill the window. */
+@layer base {
+  body {
+    @apply h-auto min-h-dvh overflow-visible;
+  }
+  #root {
+    @apply h-auto;
+  }
+}
+
+/* The landing page's names, each a gusto token read where it is used, so a band that re-points the tokens (carbon, below) moves
+   them too. */
+@theme inline {
+  --color-canvas: var(--gu-bg);
+  --color-ink: var(--gu-text);
+  --color-quiet: var(--gu-text-muted);
+  --color-wash: var(--gu-bg-subtle);
+  --color-line: var(--gu-border);
+  --color-line-strong: var(--gu-border-strong);
+  --color-solid: var(--gu-accent-solid);
+  --color-solid-hover: var(--gu-accent-solid-hover);
+  --color-on-solid: var(--gu-on-accent-solid);
+  --color-accent-ink: var(--gu-accent-text);
+}
+
+@theme {
+  --text-md: 0.9375rem;
+  --text-copy: 1rem;
+  --text-lead: 1.1875rem;
+}
+
+/* A band that is dark in both themes: it re-points the tokens its utilities read. */
+@utility carbon {
+  --gu-bg: #0e1511;
+  --gu-text: #f5fbf6;
+  --gu-text-muted: #a9b9ae;
+  --gu-surface: #16201a;
+  --gu-border: #26342b;
+  --gu-border-strong: #34463a;
+  --gu-accent: #00a85a;
+  --gu-on-accent: #0e1511;
+  --gu-accent-solid: #00844a;
+  --gu-accent-solid-hover: #00743f;
+  --gu-on-accent-solid: #ffffff;
+  --gu-focus: #d8ff36;
+}

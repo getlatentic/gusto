@@ -23,12 +23,16 @@ import { startApp } from "./oauth-app.mjs"
 import {
   admin,
   appPort,
+  bookURL,
   client,
+  cloudPort,
+  cloudURL,
   connectedApp,
   gustoPort,
   gustoURL,
   identityPort,
   modelPort,
+  operatorPort,
   proxyPort,
   runner,
   sharedPassword,
@@ -69,7 +73,15 @@ function taken(port) {
   })
 }
 
-for (const port of [gustoPort, identityPort, modelPort, proxyPort, appPort]) {
+for (const port of [
+  gustoPort,
+  identityPort,
+  modelPort,
+  proxyPort,
+  appPort,
+  cloudPort,
+  operatorPort,
+]) {
   if (await taken(port)) {
     console.error(
       `e2e: port ${port} is taken; stop what listens on it (lsof -i :${port}) and run again`
@@ -191,6 +203,41 @@ writeFileSync(
 )
 start("the stub model", "python3", [join(root, "deploy/stubmodel/stub.py")], {
   STUB_PORT: String(modelPort),
+})
+// gusto cloud keeps its accounts and its mail under e2e/.run/cloud, which starts empty, so a test reads the mail it caused. It
+// offers demos and a call, so its front page is the landing page.
+const cloudRoot = join(run, "cloud")
+rmSync(cloudRoot, { recursive: true, force: true })
+mkdirSync(cloudRoot, { recursive: true })
+const cloudEnv = {
+  HOME: work,
+  GUSTO_CLOUD_ROOT: cloudRoot,
+  GUSTO_CLOUD_ADDR: `127.0.0.1:${cloudPort}`,
+  GUSTO_CLOUD_URL: cloudURL,
+  GUSTO_CLOUD_DOMAIN: "localhost",
+  GUSTO_CLOUD_MAIL: "outbox",
+  GUSTO_CLOUD_BOOK_URL: bookURL,
+  GUSTO_CLOUD_DEMO_MINUTES: "30",
+}
+start("gusto cloud", bin, ["cloud"], cloudEnv)
+// The operator's page reads the accounts gusto cloud makes when it starts, so it starts once gusto cloud answers.
+for (let tries = 0; ; tries++) {
+  const up = await fetch(`${cloudURL}/healthz`).then(
+    (answer) => answer.ok,
+    () => false
+  )
+  if (up) break
+  if (tries === 100) {
+    console.error(
+      "e2e: gusto cloud did not start; its output is in e2e/.run/server.log"
+    )
+    finish(1)
+  }
+  await new Promise((wait) => setTimeout(wait, 100))
+}
+start("gusto operator", bin, ["operator"], {
+  ...cloudEnv,
+  GUSTO_OPERATOR_ADDR: `127.0.0.1:${operatorPort}`,
 })
 start("gusto", bin, ["serve"], {
   HOME: work,

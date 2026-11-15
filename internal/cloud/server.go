@@ -2,7 +2,6 @@ package cloud
 
 import (
 	"embed"
-	"html/template"
 	"log/slog"
 	"net"
 	"net/http"
@@ -14,7 +13,7 @@ import (
 	"github.com/getlatentic/gusto/internal/web"
 )
 
-//go:embed templates/*.html static/cloud.css static/hero-light.webp static/hero-dark.webp static/shots/*.webp static/landing-theme.js static/demo-warm.js static/og.png
+//go:embed static/hero-light.webp static/hero-dark.webp static/shots/*.webp static/og.png
 var files embed.FS
 
 // Config is what a gusto cloud server is made from.
@@ -58,7 +57,6 @@ type Config struct {
 // Server is gusto cloud's pages.
 type Server struct {
 	Config
-	pages   *template.Template
 	signups *Limiter
 	mails   *Limiter
 	all     *Limiter
@@ -80,10 +78,6 @@ func New(c Config) (*Server, error) {
 	if c.InAll <= 0 {
 		c.InAll = 200
 	}
-	pages, err := template.New("").Funcs(template.FuncMap{"asset": web.Asset, "own": fingerprinted, "minutes": minutes, "minuteLong": minuteLong, "clock": clock, "picture": picture, "agentMark": agentMark, "darkScreen": darkScreen}).ParseFS(files, "templates/*.html")
-	if err != nil {
-		return nil, err
-	}
 	if err := c.Turnstile.Complete(); err != nil {
 		return nil, err
 	}
@@ -97,7 +91,7 @@ func New(c Config) (*Server, error) {
 		c.Controller.Metrics = c.Metrics
 		c.Metrics.watch(c.Controller)
 	}
-	return &Server{Config: c, pages: pages,
+	return &Server{Config: c,
 		signups: c.limiter("signups", c.PerAddress), mails: c.limiter("mails", c.PerMailbox), all: c.limiter("all", c.InAll),
 		invites: c.limiter("invites", 20), codes: c.limiter("codes", codeTries)}, nil
 }
@@ -183,12 +177,16 @@ func (s *Server) serveOrg(w http.ResponseWriter, r *http.Request, pages http.Han
 		return
 	}
 	slug, _ := s.orgSlug(r.Host)
-	// The page of a demo that has ended is made of gusto cloud's own styles, which the gone server cannot send.
-	if _, found := s.Store.LeadOf(r.Context(), slug); found && strings.HasPrefix(r.URL.Path, "/static/") && !s.orgExists(r.Context(), slug) {
+	// The page of a demo that has ended is drawn by gusto cloud's own files and the app's, which the gone server cannot send.
+	if _, found := s.Store.LeadOf(r.Context(), slug); found && servedByCloud(r.URL.Path) && !s.orgExists(r.Context(), slug) {
 		pages.ServeHTTP(w, r)
 		return
 	}
 	s.route(w, r, slug)
+}
+
+func servedByCloud(path string) bool {
+	return strings.HasPrefix(path, "/static/") || strings.HasPrefix(path, "/app/assets/")
 }
 
 func (s *Server) routes() http.Handler {
@@ -232,13 +230,11 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /signout", s.signOut)
 	mux.HandleFunc("GET /signout", s.signedOutThere)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok\n")) })
-	mux.Handle("GET /static/cloud.css", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/shots/", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/hero-light.webp", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/hero-dark.webp", cached(http.FileServerFS(files)))
-	mux.Handle("GET /static/landing-theme.js", cached(http.FileServerFS(files)))
-	mux.Handle("GET /static/demo-warm.js", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/og.png", cached(http.FileServerFS(files)))
+	mux.Handle("GET /app/assets/", web.AppAssets())
 	mux.HandleFunc("GET /robots.txt", s.robots)
 	mux.HandleFunc("GET /sitemap.xml", s.sitemap)
 	mux.Handle("GET /static/", web.Static())

@@ -20,7 +20,6 @@ COPY web/package.json web/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY web ./
 COPY internal/web/static ../internal/web/static
-COPY internal/web/tailwind ../internal/web/tailwind
 RUN npm run build
 
 FROM docker.io/library/golang:1.26@sha256:6c2a5538f964f1c82f97ad14988bf05de100d922d159d0e398b54c7b0ca0c6c9 AS build

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/collapsible"
 import { Label } from "@/components/ui/label"
 import { ChoiceSelect } from "./choice-select"
-import { Field } from "./form-dialog"
+import { Field } from "@/components/form-dialog"
 
 const kinds = [
   { value: "openai", label: "OpenAI-compatible" },
