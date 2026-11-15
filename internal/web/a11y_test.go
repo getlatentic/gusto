@@ -15,11 +15,10 @@ func a11yPages(t *testing.T) map[string]*html.Node {
 	t.Helper()
 	site := open(t)
 	site.signIn(t)
-	conversation := startedThread(t, site)
-	instance := conversation[:strings.Index(conversation, "/threads/")]
+	startedThread(t, site)
 	pages := map[string]*html.Node{}
-	// A conversation is drawn by the React app, whose pages are checked where they are built.
-	for _, path := range []string{"/jobs", "/files", "/spend", "/presets", instance} {
+	// A conversation, Activity and a project are drawn by the React app, whose pages are checked where they are built.
+	for _, path := range []string{"/files", "/spend", "/presets", "/setups"} {
 		answer := site.ask(t, "GET", path, nil)
 		if answer.Code != http.StatusOK {
 			t.Fatalf("%s answered %d", path, answer.Code)

@@ -27,7 +27,7 @@ func aRoutine(t *testing.T, site *site, form url.Values) (instanceID string, whe
 func TestADueRoutineStartsATurnInItsOwnConversationOnceAPerSlot(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	id, where := aRoutine(t, site, url.Values{"title": {"Morning"}, "prompt": {"what changed?"}, "every": {"6"}})
+	id, _ := aRoutine(t, site, url.Values{"title": {"Morning"}, "prompt": {"what changed?"}, "every": {"6"}})
 	routine := routinesOf(t, site, id)[0]
 
 	site.server.StartDueRoutines(time.Now())
@@ -47,8 +47,9 @@ func TestADueRoutineStartsATurnInItsOwnConversationOnceAPerSlot(t *testing.T) {
 	if again, _ := site.server.instances.Thread(id, routine.Thread); len(again.Turns) != 1 {
 		t.Errorf("six hours had not passed, and a second turn started: %d", len(again.Turns))
 	}
-	if body := site.ask(t, "GET", where, nil).Body.String(); !strings.Contains(body, "Morning") || !strings.Contains(body, "every 6 hours") {
-		t.Error("the agent's page does not list its routine and when it runs")
+	if listed := site.project(t, id).Routines; len(listed) != 1 || listed[0].Title != "Morning" || listed[0].When != "every 6 hours" ||
+		listed[0].Last != "ran" || listed[0].Thread != routine.Thread || listed[0].Prompt != "what changed?" {
+		t.Errorf("the agent's page does not list its routine and when it runs: %+v", listed)
 	}
 }
 

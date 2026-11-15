@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 
@@ -46,6 +47,7 @@ func TestSomebodyElsesAgentIsNotFoundOnAnyPage(t *testing.T) {
 
 	for _, page := range []struct{ method, path string }{
 		{"GET", where},
+		{"GET", "/app/api" + where},
 		{"GET", where + "/files"},
 		{"GET", where + "/file?path=notes.txt"},
 		{"GET", thread},
@@ -61,6 +63,9 @@ func TestSomebodyElsesAgentIsNotFoundOnAnyPage(t *testing.T) {
 	}
 	if got := mine.ask(t, "GET", where, nil); got.Code != http.StatusOK {
 		t.Errorf("the owner's own agent answered %d", got.Code)
+	}
+	if page := mine.project(t, strings.TrimPrefix(where, "/instances/")); len(page.Conversations) != 1 || page.Conversations[0].Path != thread {
+		t.Errorf("the owner's own agent does not list its conversation: %+v", page.Conversations)
 	}
 	if _, found := site.server.instances.Get(strings.TrimPrefix(where, "/instances/")); !found {
 		t.Error("somebody else removed the agent")
@@ -90,12 +95,16 @@ func TestAnAdminAndTheSharedSignInSeeEverybodysAgents(t *testing.T) {
 
 	here.signIn(t)
 	for name, seen := range map[string]*site{"the shared sign-in": here, "a named admin": here.as(t, "carol@example.com")} {
-		if got := seen.ask(t, "GET", where, nil); got.Code != http.StatusOK {
-			t.Errorf("%s got %d for somebody's agent", name, got.Code)
+		for _, path := range []string{where, "/app/api" + where} {
+			if got := seen.ask(t, "GET", path, nil); got.Code != http.StatusOK {
+				t.Errorf("%s got %d for somebody's agent at %s", name, got.Code, path)
+			}
 		}
 	}
-	if got := here.as(t, bob).ask(t, "GET", where, nil); got.Code != http.StatusNotFound {
-		t.Errorf("a person who is not an admin got %d", got.Code)
+	for _, path := range []string{where, "/app/api" + where} {
+		if got := here.as(t, bob).ask(t, "GET", path, nil); got.Code != http.StatusNotFound {
+			t.Errorf("a person who is not an admin got %d at %s", got.Code, path)
+		}
 	}
 }
 
@@ -112,7 +121,7 @@ func TestSomebodyElsesTaskIsNotFoundOnAnyPage(t *testing.T) {
 		t.Fatalf("the task did not open a job: %d %q", sent.Code, task)
 	}
 
-	for _, path := range []string{task, task + "/files/transcript.log", task + "/bundle", "/watch/" + id} {
+	for _, path := range []string{task, "/app/api" + task, task + "/files/transcript.log", task + "/bundle", "/watch/" + id} {
 		if got := theirs.ask(t, "GET", path, nil); got.Code != http.StatusNotFound {
 			t.Errorf("GET %s answered %d to somebody else", path, got.Code)
 		}
@@ -120,10 +129,13 @@ func TestSomebodyElsesTaskIsNotFoundOnAnyPage(t *testing.T) {
 	if got := mine.ask(t, "GET", task, nil); got.Code != http.StatusOK {
 		t.Errorf("the asker's own job answered %d", got.Code)
 	}
-	if list := theirs.ask(t, "GET", "/jobs", nil).Body.String(); strings.Contains(list, id) {
+	if page := mine.task(t, id); page.Job.ID != id || page.Job.Brief != "count the files" {
+		t.Errorf("the asker's own job reads as %+v", page.Job)
+	}
+	if list := theirs.dataText(t, "/jobs"); strings.Contains(list, id) {
 		t.Error("somebody else's job is on the jobs list")
 	}
-	if list := mine.ask(t, "GET", "/jobs", nil).Body.String(); !strings.Contains(list, id) {
+	if list := mine.activity(t, "").ids(); !slices.Contains(list, id) {
 		t.Error("your own job is missing from the jobs list")
 	}
 }
@@ -137,8 +149,10 @@ func TestWorkWithNoOwnerIsAnAdminsAlone(t *testing.T) {
 		if err := site.index.Add(tasks.Record{ID: id, State: tasks.Passed, Brief: "old", Harness: "fixture", Asked: asked}); err != nil {
 			t.Fatal(err)
 		}
-		if got := site.as(t, alice).ask(t, "GET", "/jobs/"+id, nil); got.Code != http.StatusNotFound {
-			t.Errorf("a job asked by %q answered %d to a person", asked, got.Code)
+		for _, path := range []string{"/jobs/" + id, "/app/api/jobs/" + id} {
+			if got := site.as(t, alice).ask(t, "GET", path, nil); got.Code != http.StatusNotFound {
+				t.Errorf("a job asked by %q answered %d to a person at %s", asked, got.Code, path)
+			}
 		}
 		site.signIn(t)
 		if got := site.ask(t, "GET", "/jobs/"+id, nil); got.Code != http.StatusOK {
@@ -158,14 +172,21 @@ func TestSomebodyElsesComparisonIsNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got := site.as(t, bob).ask(t, "GET", "/compare/one-lineup", nil); got.Code != http.StatusNotFound {
-		t.Errorf("somebody else's comparison answered %d", got.Code)
+	for _, path := range []string{"/compare/one-lineup", "/app/api/compare/one-lineup"} {
+		if got := site.as(t, bob).ask(t, "GET", path, nil); got.Code != http.StatusNotFound {
+			t.Errorf("somebody else's comparison answered %d at %s", got.Code, path)
+		}
+		if got := site.as(t, alice).ask(t, "GET", path, nil); got.Code != http.StatusOK {
+			t.Errorf("the owner's own comparison answered %d at %s", got.Code, path)
+		}
 	}
-	if list := site.as(t, bob).ask(t, "GET", "/compare", nil).Body.String(); strings.Contains(list, "fix the parser") {
+	if list := site.as(t, bob).dataText(t, "/compare"); strings.Contains(list, "fix the parser") {
 		t.Error("somebody else's comparison is on the compare page")
 	}
-	if got := site.as(t, alice).ask(t, "GET", "/compare/one-lineup", nil); got.Code != http.StatusOK {
-		t.Errorf("the owner's own comparison answered %d", got.Code)
+	var hers compareJSON
+	site.as(t, alice).data(t, "/compare", &hers)
+	if len(hers.Lineups) != 1 || hers.Lineups[0].Brief != "fix the parser" {
+		t.Errorf("the owner's comparison is not on the compare page: %+v", hers.Lineups)
 	}
 }
 

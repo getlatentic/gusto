@@ -153,13 +153,10 @@ func New(index *tasks.Index, instances *instance.Store, queue *tasks.Queue, pass
 	s := &Server{index: index, instances: instances, queue: queue, keeper: keeper, identity: identity, catalog: offered, models: models}
 	keeper.now = s.memberNow
 	s.templates, err = template.New("").Funcs(helpers).Funcs(template.FuncMap{
-		"waiting":    s.waiting,
 		"personName": s.personName,
 		"initials":   s.initials,
-		"askedBy":    askerOf,
 		// Where a host that has a lease is extended, which is at gusto cloud.
 		"leaseExtend": s.leaseExtend,
-		"appLink":     s.appLink,
 		"costOf":      s.costOf,
 		"replyIn":     s.replyIn,
 	}).ParseFS(pages, "templates/*.html")
@@ -211,14 +208,10 @@ func (s *Server) Handler() http.Handler {
 		http.Redirect(w, r, "/presets", http.StatusMovedPermanently)
 	})
 	mux.HandleFunc("GET /new/blank", s.guard(s.blankPage))
-	mux.HandleFunc("GET /engines", s.guard(s.enginesPage))
-	mux.HandleFunc("GET /compare", s.guard(s.comparePage))
 	mux.HandleFunc("POST /compare", s.guard(s.startComparison))
-	mux.HandleFunc("GET /compare/{id}", s.guard(s.lineupPage))
 	mux.HandleFunc("GET /setups", s.guard(s.setupsPage))
 	mux.HandleFunc("GET /instances/new", s.guard(s.setUp))
 	mux.HandleFunc("POST /instances", s.guard(s.startInstance))
-	mux.HandleFunc("GET /instances/{id}", s.guard(s.instancePage))
 	mux.HandleFunc("POST /instances/{id}/remove", s.guard(s.removeInstance))
 	mux.HandleFunc("GET /instances/{id}/file", s.guard(s.folderFile))
 	mux.HandleFunc("POST /instances/{id}/file", s.guard(s.saveFile))
@@ -243,14 +236,13 @@ func (s *Server) Handler() http.Handler {
 		mux.Handle("GET "+livePath, s.sockets.Handler())
 	}
 	s.memberRoutes(mux)
+	s.workRoutes(mux)
 	s.connectorRoutes(mux)
-	mux.HandleFunc("GET /jobs", s.guard(s.list))
 	s.mountProtocol(mux)
 	mux.HandleFunc("GET /device", s.guard(s.devicePage))
 	mux.HandleFunc("POST /device", s.guard(s.approveDevice))
 	mux.HandleFunc("POST /device/{id}/revoke", s.guard(s.endDeviceToken))
 	mux.HandleFunc("POST /device/sign-out-everywhere", s.guard(s.signOutEverywhere))
-	mux.HandleFunc("GET /jobs/{id}", s.guard(s.task))
 	mux.HandleFunc("POST /jobs/{id}/stop", s.guard(s.stopPage))
 	mux.HandleFunc("GET /jobs/{id}/files/{name}", s.guard(s.file))
 	mux.HandleFunc("GET /jobs/{id}/bundle", s.guard(s.bundle))

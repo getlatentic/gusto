@@ -146,8 +146,8 @@ func TestAChatWithARoleStartsAnAgentThatHasItsSkills(t *testing.T) {
 		t.Fatalf("starting a chat with a role answered %d to %q", started.Code, where)
 	}
 	instance := where[:strings.Index(where, "/threads/")]
-	if page := site.ask(t, "GET", instance, nil).Body.String(); !strings.Contains(page, "Software engineer") {
-		t.Errorf("the agent is not the role's:\n%s", page)
+	if page := site.project(t, strings.TrimPrefix(instance, "/instances/")); page.Agent.Name != "Software engineer" || page.Instance.Setup != "engineering" {
+		t.Errorf("the agent is not the role's: %+v %+v", page.Agent, page.Instance)
 	}
 	again := site.ask(t, "POST", "/chat", url.Values{"said": {"and again"}, "harness": {"fixture"}, "role": {"engineering"}})
 	if got := again.Header().Get("Location"); !strings.HasPrefix(got, instance+"/threads/") {

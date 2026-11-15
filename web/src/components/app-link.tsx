@@ -19,6 +19,11 @@ const appPages = [
   /^\/admin\/apps$/,
   /^\/admin\/skill-sets\/[^/]+$/,
   /^\/admin\/integrations\/[^/]+$/,
+  // The work pages.
+  /^\/jobs(?:\/[^/]+)?$/,
+  /^\/instances\/(?!new$)[^/]+$/,
+  /^\/engines$/,
+  /^\/compare(?:\/[^/]+)?$/,
 ]
 
 export function isAppPage(href: string): boolean {

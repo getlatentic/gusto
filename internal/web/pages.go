@@ -63,29 +63,9 @@ var helpers = template.FuncMap{
 		return model
 	},
 	// span is a number of seconds as a person says it.
-	"size":   measure,
-	"span":   func(seconds int64) string { return (time.Duration(seconds) * time.Second).String() },
-	"hourOf": func(unix int64) string { return time.Unix(unix, 0).Format("15:04") },
-	// outcome is how a run ended, in the words of a log: a turn replied, a
-	// task passed or failed its check, and one still going says so.
-	"outcome": func(shown run) string {
-		switch {
-		case shown.State == tasks.Queued:
-			return "waiting"
-		case shown.State == tasks.Running:
-			return "working"
-		case shown.State == tasks.Interrupted:
-			return "interrupted"
-		case shown.Thread != "" && shown.State == tasks.Passed:
-			return "replied"
-		case shown.Thread != "":
-			return "failed"
-		case shown.State == tasks.Passed:
-			return "check passed"
-		}
-		return "check failed"
-	},
-	"has": func(list []string, item string) bool { return slices.Contains(list, item) },
+	"size": measure,
+	"span": func(seconds int64) string { return (time.Duration(seconds) * time.Second).String() },
+	"has":  func(list []string, item string) bool { return slices.Contains(list, item) },
 	"seconds": func(wall *float64) string {
 		if wall == nil {
 			return ""

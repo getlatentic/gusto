@@ -1,11 +1,8 @@
 package web
 
 import (
-	"errors"
-	"net/http"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/taskindex"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/spend"
 )
@@ -54,27 +51,6 @@ func (s *Server) origin(record tasks.Record) origin {
 		shown.Named, shown.Link = named+" · "+s.nameOf(thread), threadPath(thread)
 	}
 	return shown
-}
-
-// list is the record: every run this server knows, whatever started it, with
-// what needs a person counted across the top. It starts nothing itself; a run
-// happens on an instance.
-func (s *Server) list(w http.ResponseWriter, r *http.Request) {
-	shown, err := s.boardFor(r)
-	var bad badQuery
-	switch {
-	case errors.As(err, &bad):
-		http.Error(w, bad.Error(), http.StatusBadRequest)
-		return
-	case err != nil:
-		http.Error(w, "the tasks could not be read: "+taskindex.Scrub(err), http.StatusInternalServerError)
-		return
-	}
-	s.render(w, "list.html", map[string]any{
-		"Title": productName + " — tasks",
-		"Nav":   "jobs",
-		"Board": shown,
-	})
 }
 
 // recorded is a task as the record shows it.

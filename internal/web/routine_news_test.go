@@ -110,8 +110,8 @@ func TestADamagedRoutinesFileIsSaidOnThePage(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(site.server.instances.Dir(id), "routines.json"), []byte(`[{"id":"r1",`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	body := site.ask(t, "GET", where, nil).Body.String()
-	if !strings.Contains(body, "routines.json") {
-		t.Error("the page does not say its routines cannot be read")
+	isTheApp(t, site, where)
+	if unread := site.project(t, id).Unread; !strings.Contains(unread, "routines.json") {
+		t.Errorf("the page does not say its routines cannot be read: %q", unread)
 	}
 }

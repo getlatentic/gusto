@@ -74,28 +74,6 @@ func shellWord(word string) string {
 	return "'" + strings.ReplaceAll(word, "'", `'\''`) + "'"
 }
 
-// drawRecord adds to the task page what the run left behind. The transcript
-// and the check wait for the task to finish, because until then the live stream
-// is the transcript and the check has not answered.
-func drawRecord(page map[string]any, entry tasks.Record, dir task.Dir, manifest *record.Manifest) {
-	if manifest != nil {
-		page["Manifest"] = manifest
-		page["Build"] = manifest.HarnessVersion
-	}
-	if patch, found := readPatch(dir, entry.ID); found {
-		page["Patch"] = patch
-	}
-	if !entry.State.Done() {
-		page["Live"] = true
-		return
-	}
-	if transcript, found := readExcerpt(dir, entry.ID, "transcript.log", drawn); found {
-		page["Transcript"] = transcript
-	}
-	page["Home"] = homeFullOf(dir)
-	page["Check"] = readCheck(entry, dir, manifest)
-}
-
 // readManifest is the run's manifest, or nil for a task that has not written
 // one: queued, running, or stopped before it got that far.
 func readManifest(dir task.Dir) *record.Manifest {

@@ -81,6 +81,13 @@ func (s *Server) personViews() []appView {
 		{"/members", always, s.membersData},
 		{agentRoute, always, s.agentData},
 		{personRoute, always, s.personData},
+		// The work pages: Activity, a project, how each agent type did, and comparing agents. A task's page is served by
+		// workRoutes, as it sends a turn to its conversation.
+		{jobsRoute, always, s.jobsData},
+		{projectRoute, always, s.projectData},
+		{"/engines", always, s.enginesData},
+		{"/compare", always, s.compareData},
+		{lineupRoute, always, s.lineupData},
 	}
 }
 
@@ -91,6 +98,8 @@ func (s *Server) pageFound(route string) func(*http.Request) bool {
 		conversationRoute: s.hasConversation,
 		agentRoute:        s.hasAgent,
 		personRoute:       s.hasPerson,
+		projectRoute:      s.hasProject,
+		lineupRoute:       s.hasLineup,
 	}[route]
 }
 

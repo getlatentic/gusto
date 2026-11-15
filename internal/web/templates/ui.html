@@ -4,9 +4,6 @@
 {{/* Forms. */}}
 {{define "ui-flash"}}{{if .Refused}}<p class="mb-5 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad" role="alert">{{.Refused}}</p>{{end}}{{end}}
 
-{{/* Why a turn ended when the kept home was full: .H is the home's note and .Mine whether the person reading is the one who asked. */}}
-{{define "home-full"}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad" role="alert">{{if .Mine}}Your agents' home is full{{else}}The home their agents keep is full{{end}}: it takes {{.H.Used}} of the {{.H.Limit}} it may, so this turn was {{or .H.Outcome "ended"}}. {{if .Mine}}Reset it on <a class="font-medium text-bad underline" href="/connections">Connections</a> to start again.{{else}}The person who asked can reset it on Connections.{{end}}</p>{{end}}
-
 {{define "ui-dialog-head"}}<div><h2 class="dialog-title" id="{{.ID}}">{{.Title}}</h2><p class="dialog-words">{{.Words}}</p><button type="button" class="dialog-close" data-close aria-label="Close">{{template "icon-x"}}</button></div>{{end}}
 
 {{/* A page's bar: across the top of the pane, between head and body. bar-where

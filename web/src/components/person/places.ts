@@ -8,6 +8,8 @@ const placeOf: [RegExp, Place][] = [
   [/^\/(members|presets|harnesses)(\/|$)/, "members"],
   [/^\/usage(\/|$)/, "usage"],
   [/^\/connections(\/|$)/, "connections"],
+  // A project and how each agent type did are among the members, as the pages that make an agent are.
+  [/^\/(instances\/[^/]+|engines)$/, "members"],
 ]
 
 export function placeFor(path: string): Place | undefined {

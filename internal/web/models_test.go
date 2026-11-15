@@ -69,8 +69,8 @@ func TestAPersonChangesTheModelOfTheirAgentAmongThoseOffered(t *testing.T) {
 	if model() != "a/one" {
 		t.Fatalf("started on %q", model())
 	}
-	if page := mine.ask(t, "GET", where, nil).Body.String(); !strings.Contains(page, `action="/instances/`+id+`/model"`) || !strings.Contains(page, `value="a/two"`) {
-		t.Errorf("the page offers the models offered:\n%s", page)
+	if page := mine.project(t, id); len(page.Models) != 2 || page.Models[1].Value != "a/two" || page.Instance.Model != "a/one" {
+		t.Errorf("the page offers the models offered: %+v", page.Models)
 	}
 
 	if got := mine.ask(t, "POST", where+"/model", url.Values{"model": {"a/two"}}); got.Code != http.StatusSeeOther || strings.Contains(got.Header().Get("Location"), "refused") || model() != "a/two" {
@@ -98,7 +98,8 @@ func TestAPersonChangesTheModelOfTheirAgentAmongThoseOffered(t *testing.T) {
 func TestAnAgentWithOneModelToUseIsShownItAndNoChooser(t *testing.T) {
 	site := modelSite(t, Models{"a/one"})
 	where := startedInstance(t, site)
-	if page := site.ask(t, "GET", where, nil).Body.String(); strings.Contains(page, "/model\"") {
-		t.Errorf("a chooser with nothing to choose:\n%s", page)
+	// The page draws a chooser only for more than one (web/src/pages/work/project-page.test.tsx).
+	if page := site.project(t, strings.TrimPrefix(where, "/instances/")); len(page.Models) != 1 || page.Agent.Brain != modelName("a/one") {
+		t.Errorf("a chooser with nothing to choose: %+v", page.Models)
 	}
 }

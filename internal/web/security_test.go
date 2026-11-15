@@ -246,7 +246,7 @@ func TestALinkInARecordIsNeverShownOrServed(t *testing.T) {
 			t.Errorf("a link to a file outside the job was served as %s: %d", name, got.Code)
 		}
 	}
-	if page := here.ask(t, "GET", "/jobs/linked", nil).Body.String(); strings.Contains(page, "private key") {
+	if page := here.dataText(t, "/jobs/linked"); strings.Contains(page, "private key") {
 		t.Error("the job page shows what a link points at")
 	}
 	if wrong, _ := record.Check(dir); !strings.Contains(strings.Join(wrong, "; "), "loot.txt is not a plain file") {

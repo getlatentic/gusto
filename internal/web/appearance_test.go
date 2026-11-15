@@ -9,7 +9,7 @@ import (
 func TestThePageOffersTheThemeAndTheAccentToChoose(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	page := site.ask(t, "GET", "/jobs", nil).Body.String()
+	page := site.ask(t, "GET", "/spend", nil).Body.String()
 	for _, want := range []string{`id="look"`, `data-mode="dark"`, `data-accent="blue"`, `data-zoom="1"`, `/static/theme.css`, `/static/appearance.js`, `/static/look.js`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the page does not carry %s", want)

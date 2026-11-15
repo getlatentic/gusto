@@ -147,6 +147,7 @@ func TestWhatTheAgentWroteIsServedSealed(t *testing.T) {
 }
 
 // Files is one of the places the rail leads to, and the list of chats is beside chats alone: the other pages carry the rail and not the list.
+// Activity's rail is the app's (web/src/components/person/places.test.ts).
 func TestTheListOfChatsIsBesideChatsAndTheRailLeadsToFiles(t *testing.T) {
 	site, id, _ := viewerSite(t)
 	site.ask(t, "POST", "/instances/"+id+"/threads/1/say", url.Values{"said": {"hello"}})
@@ -157,7 +158,7 @@ func TestTheListOfChatsIsBesideChatsAndTheRailLeadsToFiles(t *testing.T) {
 	if _, listed := shellOf(t, site).Rail.project(id); !listed {
 		t.Errorf("the side list beside chats does not carry %s", id)
 	}
-	for _, page := range []string{"/files", "/jobs", "/spend"} {
+	for _, page := range []string{"/files", "/spend"} {
 		body := site.ask(t, "GET", page, nil).Body.String()
 		if !strings.Contains(body, `href="/files"`) {
 			t.Errorf("%s does not carry the rail with Files in it", page)
