@@ -15,6 +15,11 @@ export function compact(count: number): string {
   return String(count)
 }
 
+// plural is the word for one thing, or with an s for any other count, as the templates' plural writes it.
+export function plural(count: number, one: string): string {
+  return count === 1 ? one : `${one}s`
+}
+
 export function percent(part: number, whole: number): string {
   return whole === 0 ? "0%" : `${Math.round((100 * part) / whole)}%`
 }
