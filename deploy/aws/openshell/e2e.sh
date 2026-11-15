@@ -6,6 +6,7 @@
 source "$(dirname "$0")/env.sh"
 address="$(terraform output -raw address)"
 root="$(git rev-parse --show-toplevel)"
+"$root/web/build.sh"
 (cd "$root" && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$PWD/deploy/aws/openshell/$state/gusto" ./cmd/gusto)
 ssh "${ssh_options[@]}" "ubuntu@$address" 'mkdir -p ~/e2e; pkill -f "[e]2e/gusto serve" || true; pkill -f "[f]ake_model.py" || true; sleep 1; rm -f ~/e2e/gusto'
 scp -q "${ssh_options[@]}" "$state/gusto" e2e/fake_model.py e2e/inside-harness.sh "ubuntu@$address:e2e/"

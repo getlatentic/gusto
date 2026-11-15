@@ -14,6 +14,7 @@ runtime="$(command -v docker || command -v podman)"
   "$runtime" export "$cid" | gzip -1 > "$state/node-rootfs.tar.gz"
   "$runtime" rm "$cid" >/dev/null
 }
+"$root/web/build.sh"
 (cd "$root" && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$PWD/deploy/aws/openshell/$state/gusto" ./cmd/gusto)
 ssh "${ssh_options[@]}" "ubuntu@$address" 'mkdir -p ~/e2e; pkill -f "[e]2e/gusto serve" || true; pkill -f "[f]ake_model.py" || true; sleep 1; rm -f ~/e2e/gusto'
 scp -q "${ssh_options[@]}" "$state/gusto" "$state/node-rootfs.tar.gz" e2e/fake_model.py "ubuntu@$address:e2e/"

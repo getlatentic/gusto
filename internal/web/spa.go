@@ -11,11 +11,11 @@ import (
 	"sync"
 )
 
-// The React app in web/ is built into spa/dist and carried in the binary, so a page that has moved to it is still one artifact.
-// Its pages are served at their own addresses, behind the same sign-in as the pages drawn here, and read their data from
-// /app/api/, which answers the same views the templates were given, as JSON.
+// The React app in web/ is built into spa/dist by web/build.sh and carried in the binary, so the server is still one artifact.
+// Its pages are served at their own addresses, behind the server's sign-in, and read their data from /app/api/ as JSON. The
+// built files are not committed: spa/README.md is, so a checkout that has not built the app still compiles.
 //
-//go:embed all:spa/dist
+//go:embed all:spa
 var spaFiles embed.FS
 
 // appDataPrefix is where every page of the app reads its data.
@@ -206,7 +206,7 @@ func (s *Server) publicPage(w http.ResponseWriter, _ *http.Request) { writeApp(w
 func writeApp(w http.ResponseWriter, head string) {
 	page, err := appIndex()
 	if err != nil {
-		http.Error(w, "the app was not built into this server", http.StatusInternalServerError)
+		http.Error(w, "this gusto was built without its web app: run web/build.sh, then build gusto again", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

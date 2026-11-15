@@ -46,6 +46,10 @@ if [ -n "$go_files" ] || [ "${GUSTO_PREPUSH:-}" = all ]; then
         done | sort -u)
   fi
   if [ -n "$packages" ]; then
+    # internal/web's tests serve the web app the binary embeds, which is built, not committed.
+    if [ "$packages" = ./... ] || printf '%s\n' "$packages" | grep -q '^./internal/web$'; then
+      web/build.sh >/dev/null || fail "the web app did not build"
+    fi
     echo "pre-push: go vet and go test on $(echo "$packages" | wc -l | tr -d ' ') package(s)"
     # shellcheck disable=SC2086
     go vet $packages || fail "go vet failed"

@@ -18,6 +18,7 @@ root=$(git rev-parse --show-toplevel)
 
 cp "$root/LICENSE" "$root/NOTICE" "$work/"
 
+"$root/web/build.sh"
 (cd "$root" && CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags "-s -w -X main.release=$tag" -o "$work/$exe" ./cmd/gusto)
 
 mkdir -p "$out"

@@ -26,6 +26,9 @@ jobs:
           # The runner is a machine of ours whose Go caches stay between runs. Restoring and saving GitHub's copy of them has
           # hung for an hour on a stalled download or upload.
           cache: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
       # The macOS helper and its tests link the system's own libraries through cgo. A C compiler that is not Apple's, such as
       # Homebrew's, cannot read the SDK's current text stubs, so the link fails.
       - name: Use the platform's C compiler
@@ -33,13 +36,14 @@ jobs:
         run: echo "CC=/usr/bin/clang" >> "$GITHUB_ENV"
       - name: Formatted
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - name: The web app the binary embeds
+        run: web/build.sh
       - name: go vet
         run: go vet ./...
       - name: go test
         run: go test -race ./...
 
-  # The console's pages are a React app in web/, built into internal/web/spa/dist, which the binary embeds. The built files are
-  # committed beside their source, so they must be what the source builds.
+  # The pages are a React app in web/, which web/build.sh builds into internal/web/spa/dist for the binary to embed.
   web:
     runs-on: [self-hosted, gusto]
     timeout-minutes: 15
@@ -56,8 +60,6 @@ jobs:
       - run: npx prettier --check "src/**/*.{ts,tsx}" "e2e/**/*.{ts,mjs}" playwright.config.ts
       - run: npm test
       - run: npm run build
-      - name: The committed build is the source's
-        run: git diff --exit-code -- ../internal/web/spa/dist || { echo "internal/web/spa/dist is not what web/ builds: run npm run build in web/ and commit it"; exit 1; }
 
   # The web app's end-to-end tests drive a real gusto in Chromium: web/e2e/server.mjs builds the app and ./cmd/gusto, and starts
   # them with a stub model (Python) and a stub identity provider.
