@@ -124,7 +124,7 @@
     @apply mb-4 grid grid-cols-[repeat(auto-fit,minmax(min(9rem,100%),1fr))] gap-3;
   }
   .figure-value {
-    @apply font-display text-2xl font-semibold tracking-tight tabular-nums;
+    @apply font-numeric text-2xl font-semibold tabular-nums;
   }
   .figure-label {
     @apply text-xs font-medium text-subtle;
@@ -167,7 +167,7 @@
     @apply flex-none text-faint @max-[40rem]:hidden;
   }
   .bar-title {
-    @apply m-0 min-w-0 truncate font-sans text-sm font-semibold tracking-tight text-ink;
+    @apply m-0 min-w-0 truncate font-sans text-sm font-semibold text-ink;
   }
   /* The line at the top of a page saying what it is for. */
   .page-sub {

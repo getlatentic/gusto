@@ -149,7 +149,7 @@ function Spending({ ledger }: { ledger: SpendingData["Ledger"] }) {
                 <span className="text-xs font-medium text-muted-foreground">
                   {top.Title}
                 </span>
-                <span className="font-heading text-xl font-semibold tracking-tight wrap-anywhere">
+                <span className="font-heading text-xl font-semibold wrap-anywhere">
                   {top.Name}
                 </span>
                 <span className="text-sm text-muted-foreground">
@@ -186,7 +186,7 @@ function Figure({
         </span>
         <span
           className={cn(
-            "font-heading text-2xl font-semibold tracking-tight tabular-nums",
+            "font-numeric text-2xl font-semibold tabular-nums",
             headline && "text-brand-ink",
             bad && "text-bad"
           )}

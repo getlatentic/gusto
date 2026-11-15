@@ -52,10 +52,10 @@ function Overview({ page }: { page: OverviewData }) {
       <Card className="mb-9">
         <CardContent className="grid gap-1">
           <p className="m-0 text-sm text-muted-foreground">Spent this month</p>
-          <p className="m-0 font-heading text-3xl font-semibold tracking-tight tabular-nums">
+          <p className="m-0 font-numeric text-3xl font-semibold tabular-nums">
             {usd(spent.USD)}
             {budget.Set && (
-              <span className="text-base font-normal tracking-normal text-muted-foreground">
+              <span className="font-sans text-base font-normal text-muted-foreground">
                 {" "}
                 of {usd(budget.Limit)}
               </span>

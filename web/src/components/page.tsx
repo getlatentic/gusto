@@ -50,7 +50,7 @@ export function PageBar({
             ))}
           </nav>
         )}
-        <h1 className="m-0 min-w-0 truncate font-sans text-sm font-semibold tracking-tight">
+        <h1 className="m-0 min-w-0 truncate font-sans text-sm font-semibold">
           {title}
         </h1>
       </div>

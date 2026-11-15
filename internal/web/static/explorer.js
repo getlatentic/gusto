@@ -167,7 +167,7 @@
       });
       where.appendChild(trail);
       var name = last === 0 ? "Files" : state.here.crumbs[last].name;
-      where.appendChild(el("h1", "m-0 min-w-0 truncate font-sans text-sm font-semibold tracking-tight text-ink", name, name));
+      where.appendChild(el("h1", "m-0 min-w-0 truncate font-sans text-sm font-semibold text-ink", name, name));
       head.appendChild(where);
       var tools = el("div", "flex flex-none items-center gap-2");
       tools.appendChild(filterBox("h-8 w-40 text-xs @max-[40rem]:hidden"));

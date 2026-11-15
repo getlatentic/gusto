@@ -10,6 +10,7 @@
 @theme inline {
   --font-sans: var(--gu-font-text);
   --font-heading: var(--gu-font-display);
+  --font-numeric: var(--gu-font-numeric);
   --font-mono: var(--gu-font-mono);
 
   --color-background: var(--background);
@@ -110,6 +111,6 @@
   h2,
   h3,
   h4 {
-    @apply font-heading tracking-tight;
+    @apply font-heading;
   }
 }
