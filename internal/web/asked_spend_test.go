@@ -49,9 +49,9 @@ func TestSpendShownAgainstABudgetIsWhatThePersonAskedForAsTheProxyCountsIt(t *te
 		t.Errorf("People counts bob's asks against ada:\n%s", ada)
 	}
 
-	split := regexp.MustCompile(`(?s)By person, what they asked for</h2>.*?</section>`).FindString(overview(t, here))
+	split := regexp.MustCompile(`(?s)>By person <a.*?</section>`).FindString(overview(t, here))
 	bob, ada := strings.Index(split, ">Bob</span>"), strings.Index(split, ">Ada</span>")
-	if bob < 0 || ada < bob || !strings.Contains(split[bob:ada], "$5.00") || !strings.Contains(split[ada:], "nothing yet") {
+	if bob < 0 || ada < bob || !strings.Contains(split[bob:ada], "$5.00") || !strings.Contains(split[ada:], "Nothing yet") {
 		t.Errorf("the overview does not split the month by who asked:\n%s", split)
 	}
 }

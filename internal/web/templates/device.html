@@ -1,48 +1,50 @@
 {{template "head" .}}
 
-{{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
+{{template "ui-bar-open"}}
+  <div class="bar-where"><h1 class="bar-title">Your computers</h1></div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
 
-<div class="mb-6 grid gap-1">
-  <h1>Your computers</h1>
-  <p class="max-w-prose text-sm text-muted">A computer you approve acts as you, on your own work only. You can end it here at any time.</p>
-</div>
+{{if .Refused}}<p class="notice" role="alert">{{.Refused}}</p>{{end}}
+
+<p class="page-sub">A computer you approve acts as you, on your own work only. You can end it here at any time.</p>
 
 <div class="grid max-w-prose gap-4">
 {{if .Approved}}<p class="rounded-sm bg-ok-wash px-4 py-3 text-sm text-ok">Approved <strong>{{.Approved}}</strong>. Go back to the computer: it signs in on its own.</p>{{end}}
 
-{{if .Owner}}<p class="{{template "ui-note"}}">This server has no sign-in provider, so the shared password is its one owner. A computer you approve acts as that owner.</p>{{end}}
+{{if .Owner}}<p class="note">This server has no sign-in provider, so the shared password is its one owner. A computer you approve acts as that owner.</p>{{end}}
 
 {{if .Shared}}
-<p class="{{template "ui-note"}}">The shared sign-in is not one person, so it has no computers. Sign in with your own account.</p>
+<p class="note">The shared sign-in is not one person, so it has no computers. Sign in with your own account.</p>
 {{else}}
-<form method="post" action="/device" class="{{template "ui-card"}} flex flex-wrap items-end gap-3">
-  <label class="{{template "ui-field"}} min-w-48 flex-1" for="code">The code your computer shows
+<form method="post" action="/device" class="card flex flex-wrap items-end gap-3">
+  <label class="field min-w-48 flex-1" for="code">The code your computer shows
     <input class="input font-mono uppercase tracking-widest" id="code" name="code" value="{{.Code}}" placeholder="BCDF-GHJK" autocomplete="off" required>
   </label>
-  <button type="submit" class="{{template "ui-btn"}}">Approve</button>
+  <button type="submit" class="btn">Approve</button>
 </form>
 
 <h2 class="mt-4">Approved</h2>
 {{if .Tokens}}
-<div class="{{template "ui-card"}} overflow-x-auto">
-  <table class="{{template "ui-table"}}">
+<div class="data-table-wrap">
+  <table class="data-table">
     <thead><tr><th>Computer</th><th>Approved</th><th>Last used</th><th></th></tr></thead>
     <tbody>
     {{range .Tokens}}
       <tr>
         <td class="font-medium">{{.Name}}</td><td class="whitespace-nowrap text-muted">{{.Made}}</td><td class="whitespace-nowrap text-muted">{{if .LastUsed}}{{.LastUsed}}{{else}}never{{end}}</td>
-        <td class="text-right">{{if .Live}}<form method="post" action="/device/{{.ID}}/revoke"><button type="submit" class="{{template "ui-btn-sm-danger"}}">End</button></form>{{else}}<span class="whitespace-nowrap text-muted">ended {{.Ended}}</span>{{end}}</td>
+        <td class="text-right">{{if .Live}}<form method="post" action="/device/{{.ID}}/revoke"><button type="submit" class="btn-sm-danger">End</button></form>{{else}}<span class="whitespace-nowrap text-muted">ended {{.Ended}}</span>{{end}}</td>
       </tr>
     {{end}}
     </tbody>
   </table>
 </div>
-{{else}}<p class="{{template "ui-note"}}">None yet.</p>{{end}}
+{{else}}<p class="note">None yet.</p>{{end}}
 
 <h2 class="mt-4">Sign out everywhere</h2>
 <form method="post" action="/device/sign-out-everywhere" class="grid gap-2" data-confirm="Sign out everywhere? Every browser and the app sign in again, and every computer you approved is ended.">
   <p class="text-sm text-muted">Ends your sign-in in every browser and in the app, and every computer above. Use it when a computer is lost.</p>
-  <div><button type="submit" class="{{template "ui-btn-sm-danger"}}">Sign out everywhere</button></div>
+  <div><button type="submit" class="btn-sm-danger">Sign out everywhere</button></div>
 </form>
 {{end}}
 </div>

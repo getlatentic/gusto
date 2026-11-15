@@ -202,7 +202,7 @@ func TestTheCheckShowsItsCommandItsExitAndWhatItPrinted(t *testing.T) {
 	for _, want := range []string{
 		">sh -c &#39;go test ./... &amp;&amp; exit 3&#39;</code>",
 		`<span class="text-muted">exited 3</span>`,
-		`bg-bad-wash text-bad">failed</span>`,
+		`class="badge-bad">failed</span>`,
 		"What the check said", "3 tests failed",
 	} {
 		if !strings.Contains(page, want) {

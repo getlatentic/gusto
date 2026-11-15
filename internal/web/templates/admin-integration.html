@@ -1,45 +1,42 @@
 {{template "head" .}}
 
-{{if .Refused}}<p class="{{template "ui-notice"}}" role="alert">{{.Refused}}</p>{{end}}
+{{template "ui-bar-open"}}
+  <div class="bar-where"><nav class="contents" aria-label="Where this is"><a class="bar-crumb" href="/admin/apps?tab=skills">Skills</a><span class="bar-sep" aria-hidden="true">/</span></nav><h1 class="bar-title" title="{{.Held.Name}}">{{.Held.Name}}</h1> <span class="{{if .Held.On}}badge-ok{{else}}badge{{end}} flex-none">{{if .Held.On}}on{{else}}off{{end}}</span></div>
+  {{if .Held.On}}<form method="post" action="/admin/integrations/{{.Held.Name}}/disable"><button type="submit" class="btn-sm">Turn off</button></form>{{end}}
+  {{if .Held.Before}}<form method="post" action="/admin/integrations/{{.Held.Name}}/restore"><button type="submit" class="btn-sm">Put the earlier version back</button></form>{{end}}
+{{template "ui-bar-close"}}
+{{template "body" .}}
 
-<nav class="mb-2 flex items-center gap-2 text-sm text-muted" aria-label="Where this is"><a class="hover:text-ink" href="/admin/apps?tab=skills">Skills</a><span aria-hidden="true">/</span><span>{{.Held.Name}}</span></nav>
-<div class="{{template "ui-title"}}">
-  <h1>{{.Held.Name}} <span class="text-base font-normal text-muted">{{if .Held.On}}on{{else}}off{{end}}</span></h1>
-  <span class="flex-1"></span>
-  {{if .Held.On}}<form method="post" action="/admin/integrations/{{.Held.Name}}/disable"><button type="submit" class="{{template "ui-btn-sm"}}">Turn off</button></form>{{end}}
-  {{if .Held.Before}}<form method="post" action="/admin/integrations/{{.Held.Name}}/restore"><button type="submit" class="{{template "ui-btn-sm"}}">Put the earlier version back</button></form>{{end}}
-</div>
+{{if .Refused}}<p class="notice" role="alert">{{.Refused}}</p>{{end}}
 
 <div class="grid gap-4">
-<section class="{{template "ui-card"}} grid gap-3">
+<section class="card grid gap-3">
   <h2 class="text-sm font-semibold">Who it is on for</h2>
-  <p class="{{template "ui-note"}} max-w-prose">Addresses people sign in with, one to a line: <code>ada@example.com</code>, or <code>*@example.com</code> for everybody at a company. Leave it empty for everybody. A team is a label a person chooses, and does not decide who may have what.</p>
+  <p class="note max-w-prose">Addresses people sign in with, one to a line: <code>ada@example.com</code>, or <code>*@example.com</code> for everybody at a company. Leave it empty for everybody. A team is a label a person chooses, and does not decide who may have what.</p>
   <form class="grid max-w-prose gap-3" method="post" action="/admin/integrations/{{.Held.Name}}/for">
     <textarea class="textarea" name="for" rows="3" aria-label="Addresses">{{range .Held.For}}{{.}}
 {{end}}</textarea>
-    <div><button type="submit" class="{{template "ui-btn"}}">Save</button></div>
+    <div><button type="submit" class="btn">Save</button></div>
   </form>
 </section>
 
-<section class="{{template "ui-card"}} overflow-x-auto">
-  <h2 class="{{template "ui-card-title"}}">Versions <span class="font-normal text-muted">{{len .Held.Versions}}</span></h2>
-  <table class="{{template "ui-table"}}">
+<section class="section"><h2 class="section-title">Versions <span class="font-normal text-muted">{{len .Held.Versions}}</span></h2><section class="data-table-wrap">  <table class="data-table">
     <thead><tr><th>Version</th><th>From</th><th>Imported</th><th></th></tr></thead>
     <tbody>
       {{range .Held.Versions}}
       <tr>
-        <td><a class="font-medium hover:underline" href="/admin/integrations/{{$.Held.Name}}?version={{.ID}}">{{if .Label}}{{.Label}}{{else}}{{.ID}}{{end}}</a> <span class="font-mono text-xs text-muted">{{.ID}}</span>{{if eq .ID $.Held.On}} <span class="rounded-full bg-ok-wash px-2 py-0.5 text-xs font-medium text-ok">on</span>{{end}}</td>
+        <td><a class="font-medium hover:underline" href="/admin/integrations/{{$.Held.Name}}?version={{.ID}}">{{if .Label}}{{.Label}}{{else}}{{.ID}}{{end}}</a> <span class="font-mono text-xs text-muted">{{.ID}}</span>{{if eq .ID $.Held.On}} <span class="badge-ok">on</span>{{end}}</td>
         <td class="text-muted">{{.Source.Kind}}{{with .Source.Address}} {{.}}{{end}}{{with .Source.Commit}} @ {{.}}{{end}}</td>
         <td class="whitespace-nowrap text-muted">{{when .Imported}} by {{.By}}</td>
-        <td class="text-right">{{if ne .ID $.Held.On}}<form method="post" action="/admin/integrations/{{$.Held.Name}}/enable"><input type="hidden" name="version" value="{{.ID}}"><button type="submit" class="{{template "ui-btn-sm"}}">Turn on</button></form>{{end}}</td>
+        <td class="text-right">{{if ne .ID $.Held.On}}<form method="post" action="/admin/integrations/{{$.Held.Name}}/enable"><input type="hidden" name="version" value="{{.ID}}"><button type="submit" class="btn-sm">Turn on</button></form>{{end}}</td>
       </tr>
       {{end}}
     </tbody>
   </table>
-</section>
+</section></section>
 
 {{with .Shown}}
-<section class="{{template "ui-card"}} grid gap-3">
+<section class="card grid gap-3">
   <h2>{{if .Label}}{{.Label}}{{else}}{{.ID}}{{end}}</h2>
   {{with .Plugin.Description}}<p>{{.}}</p>{{end}}
   <h3 class="mt-2">Skills <span class="font-normal text-muted">{{len .Plugin.Skills}}</span></h3>
@@ -49,16 +46,16 @@
   {{if .Plugin.Servers}}{{$programs := false}}{{range .Plugin.Servers}}{{if eq (printf "%s" .Transport) "stdio"}}{{$programs = true}}{{end}}{{end}}
   {{if $programs}}
   <h3 class="mt-2">Programs</h3>
-  <p class="{{template "ui-note"}} max-w-prose">These servers are programs the plugin brought. They run only when you allow it, for this version only, each in a box of its own: no network unless this server was set up to give one, no access to the task or to any credential, and nothing it can write but a folder of the task's.</p>
+  <p class="note max-w-prose">These servers are programs the plugin brought. They run only when you allow it, for this version only, each in a box of its own: no network unless this server was set up to give one, no access to the task or to any credential, and nothing it can write but a folder of the task's.</p>
   <ul class="grid gap-1.5 text-sm">{{range .Plugin.Servers}}{{if eq (printf "%s" .Transport) "stdio"}}<li><code>{{.Command}}{{range .Args}} {{.}}{{end}}</code> <span class="text-muted">({{.Name}})</span></li>{{end}}{{end}}</ul>
   {{if eq $.Held.Programs .ID}}
   <p><strong>Allowed.</strong></p>
-  <form method="post" action="/admin/integrations/{{$.Held.Name}}/programs/refuse"><button type="submit" class="{{template "ui-btn-sm"}}">Stop allowing them</button></form>
+  <form method="post" action="/admin/integrations/{{$.Held.Name}}/programs/refuse"><button type="submit" class="btn-sm">Stop allowing them</button></form>
   {{else}}
   <form class="grid max-w-prose gap-3" method="post" action="/admin/integrations/{{$.Held.Name}}/programs/allow">
     <input type="hidden" name="version" value="{{.ID}}">
     <label class="flex items-start gap-2 text-sm"><input class="input mt-1" type="checkbox" name="understood" value="yes"> I have read what these programs are and I allow this version's to run.</label>
-    <div><button type="submit" class="{{template "ui-btn"}}">Allow the programs</button></div>
+    <div><button type="submit" class="btn">Allow the programs</button></div>
   </form>
   {{end}}
   {{end}}
@@ -69,9 +66,9 @@
   {{end}}
 </section>
 {{with $.Changes}}
-<section class="{{template "ui-card"}} grid gap-3">
+<section class="card grid gap-3">
   <h2>What turning this on changes <span class="text-sm font-normal text-muted">against the version that is on</span></h2>
-  {{if .None}}<p class="{{template "ui-note"}}">Nothing differs in skills, servers or manifest.</p>{{else}}
+  {{if .None}}<p class="note">Nothing differs in skills, servers or manifest.</p>{{else}}
   <ul class="grid gap-1.5 text-sm">
     {{with .SkillsAdded}}<li>Skills added: {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</li>{{end}}
     {{with .SkillsRemoved}}<li>Skills removed: {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</li>{{end}}
@@ -86,10 +83,8 @@
 {{end}}
 {{end}}
 
-<section class="{{template "ui-card"}}">
-  <h2 class="{{template "ui-card-title"}}">History</h2>
-  <ul class="grid gap-1.5 text-sm text-muted">{{range .Held.History}}<li>{{when .At}} · {{.By}} {{.Action}}{{with .Version}} {{.}}{{end}}</li>{{end}}</ul>
-</section>
+<section class="section"><h2 class="section-title">History</h2><section class="card">  <ul class="grid gap-1.5 text-sm text-muted">{{range .Held.History}}<li>{{when .At}} · {{.By}} {{.Action}}{{with .Version}} {{.}}{{end}}</li>{{end}}</ul>
+</section></section>
 </div>
 
 {{template "foot" .}}

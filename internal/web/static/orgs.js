@@ -12,7 +12,7 @@
 
   function line(text, href, current, inset) {
     var item = document.createElement(current ? "span" : "a");
-    item.className = "flex h-10 items-center gap-3 rounded-sm px-3 text-sm font-medium text-ink no-underline hover:bg-hover [&_svg.i]:size-4" + (current ? " bg-hover" : "") + (inset ? " pl-6" : "");
+    item.className = "dropdown-item [&_svg.i]:size-4" + (current ? " bg-hover" : "") + (inset ? " pl-6" : "");
     if (!current) { item.href = href; }
     var name = document.createElement("span");
     name.className = "min-w-0 flex-1 truncate";
@@ -27,7 +27,7 @@
     var spaces = Array.isArray(org.workspaces) ? org.workspaces : [];
     if (spaces.length < 2) { return [line(org.name, org.open, here, false)]; }
     var heading = document.createElement("p");
-    heading.className = "truncate px-3 pt-2 pb-1 text-xs font-medium text-muted";
+    heading.className = "dropdown-label truncate";
     heading.textContent = org.name;
     return [heading].concat(spaces.map(function (space) {
       var current = here && space.id === panel.dataset.workspace;

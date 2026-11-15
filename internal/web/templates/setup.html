@@ -1,35 +1,39 @@
 {{template "head" .}}
 
+{{template "ui-bar-open"}}
+  <div class="bar-where"><nav class="contents" aria-label="Where this is"><a class="bar-crumb" href="/presets">Start an agent</a><span class="bar-sep" aria-hidden="true">/</span></nav><h1 class="bar-title" title="{{.Harness.Title}}">{{.Harness.Title}}</h1></div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
+
 {{template "ui-flash" .}}
 
-<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/presets">Start an agent</a><span>/</span><span>{{.Harness.Title}}</span></nav>
-<header class="mb-6 flex items-center gap-4">
+<div class="mb-6 flex items-center gap-4">
   {{template "mark" (dict "Harness" .Harness.Name "Field" "" "Name" .Harness.Title "Size" "lg")}}
   <div class="min-w-0 flex-1">
-    <h1>{{.Harness.Title}}</h1>
-    <p class="mt-1 text-sm text-muted">{{.Harness.What}}</p>
+    <p class="m-0 text-base font-semibold text-ink">{{.Harness.Title}}</p>
+    <p class="m-0 text-sm text-subtle">{{.Harness.What}}</p>
   </div>
-</header>
+</div>
 
-<form class="grid max-w-xl gap-4 {{template "ui-card"}}" method="post" action="/instances">
+<form class="grid max-w-xl gap-4 card" method="post" action="/instances">
   <input type="hidden" name="harness" value="{{.Harness.Name}}">
   {{with .Then}}<input type="hidden" name="then" value="{{.}}">{{end}}
-  <label class="{{template "ui-field"}}">Model
+  <label class="field">Model
     {{if .Models}}{{$unfinished := .Harness.Unfinished}}<select class="select w-full" name="model">{{range .Models}}<option value="{{.}}">{{.}}{{with costOf .}} · {{.}}{{end}}{{if has $unfinished .}} · did not finish the one-line fix{{end}}</option>{{end}}</select>
     {{else}}<input class="input" name="model" placeholder="the model this deployment reaches">{{end}}
   </label>
-  <label class="{{template "ui-field"}}"><span>Repository <span class="font-normal">optional; without one it starts in an empty folder</span></span>
+  <label class="field"><span>Repository <span class="font-normal">optional; without one it starts in an empty folder</span></span>
     <input class="input" name="repo" placeholder="git@github.com:you/repo.git">
   </label>
   {{if .Setups}}
-  <label class="{{template "ui-field"}}"><span>Setup <span class="font-normal">skills and MCP servers to give it</span></span>
+  <label class="field"><span>Setup <span class="font-normal">skills and MCP servers to give it</span></span>
     <select class="select w-full" name="setup">
       <option value="">none</option>
       {{$chosen := .Chosen}}{{range .Setups}}<option value="{{.Name}}"{{if eq .Name $chosen}} selected{{end}}>{{.Name}} · {{len .Skills}} skill{{if ne (len .Skills) 1}}s{{end}}{{with .Servers}}, {{len .}} MCP{{end}}</option>{{end}}
     </select>
   </label>
   {{end}}
-  <div><button type="submit" class="{{template "ui-btn"}}">Start</button></div>
+  <div><button type="submit" class="btn">Start</button></div>
 </form>
 
 {{template "foot" .}}

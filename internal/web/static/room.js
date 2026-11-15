@@ -46,7 +46,7 @@
     item.id = "mention-" + index;
     item.setAttribute("role", "option");
     item.setAttribute("aria-selected", index === active ? "true" : "false");
-    item.className = "flex h-9 min-w-0 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm aria-selected:bg-sunken";
+    item.className = "dropdown-item min-w-0 aria-selected:bg-hover";
     item.appendChild(avatar(person));
     var name = document.createElement("span");
     name.className = "flex-none font-medium text-ink";
@@ -73,7 +73,7 @@
   function heading(text) {
     var item = document.createElement("li");
     item.setAttribute("role", "presentation");
-    item.className = "px-2 pt-1.5 pb-1 text-xs font-medium text-subtle";
+    item.className = "dropdown-label";
     item.textContent = text;
     return item;
   }

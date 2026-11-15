@@ -56,7 +56,7 @@ document.addEventListener("DOMContentLoaded", function () {
     name.title = name.textContent;
     var x = document.createElement("button");
     x.type = "button";
-    x.className = "mx-1 grid size-6 flex-none cursor-pointer place-items-center rounded-xs border-0 bg-transparent p-0 text-inherit hover:bg-hover";
+    x.className = "mx-1 grid size-6 flex-none cursor-pointer place-items-center rounded-sm border-0 bg-transparent p-0 text-inherit hover:bg-hover";
     x.setAttribute("aria-label", "Close " + name.textContent);
     x.innerHTML = '<svg class="size-3 fill-none stroke-current stroke-2 [stroke-linecap:round]" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
     tab.appendChild(name);

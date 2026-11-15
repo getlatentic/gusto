@@ -19,6 +19,9 @@ func TestATemplateStartsAHarnessReadyForItsWork(t *testing.T) {
 	if page := site.ask(t, "GET", "/presets", nil).Body.String(); !strings.Contains(page, `href="/templates/health"`) {
 		t.Fatal("the catalog does not offer the health template")
 	}
+	if page := site.ask(t, "GET", "/templates/health", nil).Body.String(); !strings.Contains(page, `action="/templates/health"`) || !strings.HasSuffix(strings.TrimSpace(page), "</html>") {
+		t.Fatal("the health template's page is not drawn whole, with its start button")
+	}
 	started := site.ask(t, "POST", "/templates/health", url.Values{"harness": {"fixture"}})
 	where := started.Header().Get("Location")
 	if started.Code != http.StatusSeeOther || !strings.Contains(where, "/threads/") {

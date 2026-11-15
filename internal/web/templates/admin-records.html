@@ -1,32 +1,20 @@
 {{template "head" .}}
 
-<div class="{{template "ui-title"}} mb-4!">
-  <h1>Records</h1>
-  <span class="text-sm text-muted">A signed record of everything that happened, and how long work is kept</span>
-  <span class="flex-1"></span>
-  {{if .Logged}}<a class="{{template "ui-btn-quiet"}}" href="/admin/activity.jsonl">{{template "icon-download"}} Download</a>{{end}}
-</div>
+{{template "ui-bar-open"}}
+  <div class="bar-where"><h1 class="bar-title">Records</h1></div>
+  {{if .Logged}}{{template "ui-more-open"}}<a class="dropdown-item" role="menuitem" href="/admin/activity.jsonl">{{template "icon-download"}}<span>Download the record</span></a>{{template "ui-more-close"}}{{end}}
+{{template "ui-bar-close"}}
+{{template "body" $}}
+<p class="page-sub">A signed record of everything that happened, and how long work is kept</p>
 {{if gt (len .Tabs) 1}}{{template "ui-tabs" .Tabs}}{{end}}
 
 {{template "ui-flash" .}}
 {{with .Health}}
-<section class="{{template "ui-card"}} mb-4 flex flex-wrap items-center gap-x-4 gap-y-3" aria-label="Whether the record is intact">
-  <p class="min-w-0 flex-1 text-sm">
-    <span class="mr-2 inline-block size-2 rounded-full align-middle {{if .Broken}}bg-bad{{else}}bg-ok{{end}}" aria-hidden="true"></span><strong class="{{if .Broken}}text-bad{{end}}">{{if .Broken}}Broken{{else}}Intact{{end}}</strong>
-    {{if .Logged}}<span class="{{if .LogBad}}text-bad{{else}}text-muted{{end}}"> · {{.Log}}</span>{{end}}
-    <span class="{{if .RunsBad}}text-bad{{else}}text-muted{{end}}"> · {{.Runs}}</span>
-  </p>
-  {{if and (eq $.Tab "activity") (not .LogBad)}}
-  <details class="group basis-full">
-    <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} How to check it yourself</summary>
-    <div class="mt-3 grid max-w-prose gap-2 text-sm text-muted">
-      <p>Each line names the one before it, so an edit shows, and the chain holds. The server can only add to this record.</p>
-      {{if .Head}}<p>Download it, and keep this head to learn later whether lines were cut off the end:</p>
-      <pre class="overflow-x-auto rounded-sm bg-sunken px-3 py-2 text-ink">gusto changes verify -head {{.Head}} changes.jsonl</pre>{{end}}
-    </div>
-  </details>
-  {{end}}
-</section>
+{{if or .Broken .LogBad .RunsBad}}
+<p class="notice" role="alert"><strong>{{if .Broken}}The record is broken.{{else}}Something does not check out.{{end}}</strong>{{if .Logged}} {{.Log}}.{{end}} {{.Runs}}.</p>
+{{else}}
+<p class="status-ok mb-3">Intact{{if .Logged}} · {{.Log}}{{end}} · {{.Runs}}</p>
+{{end}}
 {{end}}
 
 {{if eq .Tab "activity"}}{{template "records-activity" .}}{{else if eq .Tab "checks"}}{{template "records-checks" .Checks}}{{else}}{{template "records-keeping" .}}{{end}}
@@ -34,41 +22,46 @@
 {{template "foot" .}}
 
 {{define "records-activity"}}
-{{if or .LeftOut .WithServer}}<p class="mb-3 text-sm text-muted">{{if .WithServer}}Showing the server starting too. <a class="text-accent-ink no-underline hover:underline" href="/admin/records?tab=activity">Show only what people did</a>{{else}}{{.LeftOut}} time{{if ne .LeftOut 1}}s{{end}} the server started {{if ne .LeftOut 1}}are{{else}}is{{end}} left out. <a class="text-accent-ink no-underline hover:underline" href="/admin/records?tab=activity&amp;server=1">Show {{if ne .LeftOut 1}}them{{else}}it{{end}}</a>{{end}}</p>{{end}}
 {{if .Rows}}
-<div class="{{template "ui-card"}} overflow-x-auto">
-  <table class="{{template "ui-table"}}">
-    <thead><tr><th class="w-40">When</th><th>Who</th><th>What happened</th><th>From</th></tr></thead>
-    <tbody>
-      {{range .Rows}}
-      <tr>
-        <td class="whitespace-nowrap text-muted" title="{{.Full}}">{{.At}}</td>
-        <td class="whitespace-nowrap">{{.Who}}</td>
-        <td>{{.Said}}{{if gt .Times 1}} <span class="{{template "ui-badge"}}" title="since {{.Since}}">&times;{{.Times}}</span>{{end}}</td>
-        <td class="whitespace-nowrap font-mono text-xs text-muted">{{.From}}</td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
+<div class="list">
+  {{range .Rows}}
+  <div class="row">
+    <div class="min-w-0 flex-1">
+      <p class="row-main">{{.Said}}{{if gt .Times 1}} <span class="badge" title="since {{.Since}}">&times;{{.Times}}</span>{{end}}</p>
+      <p class="row-sub"><time title="{{.Full}}">{{.At}}</time>{{if ne .Who "the shared sign-in"}} · {{.Who}}{{end}}{{with .From}} · <span class="font-mono">{{.}}</span>{{end}}</p>
+    </div>
+  </div>
+  {{end}}
 </div>
 {{else}}
 <p class="text-muted">Nothing has been recorded yet.</p>
 {{end}}
+{{if or .LeftOut .WithServer}}<p class="mt-3 text-sm text-muted">{{if .WithServer}}Showing the server starting too. <a class="font-medium text-ink underline decoration-line-strong underline-offset-2 hover:decoration-current" href="/admin/records?tab=activity">Show only what people did</a>{{else}}{{.LeftOut}} time{{if ne .LeftOut 1}}s{{end}} the server started {{if ne .LeftOut 1}}are{{else}}is{{end}} left out. <a class="font-medium text-ink underline decoration-line-strong underline-offset-2 hover:decoration-current" href="/admin/records?tab=activity&amp;server=1">Show {{if ne .LeftOut 1}}them{{else}}it{{end}}</a>{{end}}</p>{{end}}
+{{with .Health}}{{if not .LogBad}}
+<details class="group mt-6">
+  <summary class="summary">{{template "ui-chev"}} How to check it yourself</summary>
+  <div class="mt-3 grid max-w-prose gap-2 text-sm text-muted">
+    <p>Each line names the one before it, so an edit shows, and the chain holds. The server can only add to this record.</p>
+    {{if .Head}}<p>Download it, and keep this head to learn later whether lines were cut off the end:</p>
+    <pre class="overflow-x-auto rounded-sm bg-sunken px-3 py-2 text-ink">gusto changes verify -head {{.Head}} changes.jsonl</pre>{{end}}
+  </div>
+</details>
+{{end}}{{end}}
 {{end}}
 
 {{define "records-checks"}}
-{{if .Failing}}<p class="{{template "ui-notice"}}">{{.Failing}} run{{if ne .Failing 1}}s{{end}} no longer match what was recorded. Open one to see which file changed.</p>{{end}}
+{{if .Failing}}<p class="notice">{{.Failing}} run{{if ne .Failing 1}}s{{end}} no longer match what was recorded. Open one to see which file changed.</p>{{end}}
 
-<div class="{{template "ui-figures"}}">
-  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Verified}}</span><span class="{{template "ui-figure-label"}}">verified</span></div>
-  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Unsigned}}</span><span class="{{template "ui-figure-label"}}">not signed</span></div>
-  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}{{if .Failing}} text-bad{{end}}">{{.Failing}}</span><span class="{{template "ui-figure-label"}}">failed the check</span></div>
+<div class="figures">
+  <div class="figure"><span class="figure-value">{{.Verified}}</span><span class="figure-label">verified</span></div>
+  <div class="figure"><span class="figure-value">{{.Unsigned}}</span><span class="figure-label">not signed</span></div>
+  <div class="figure"><span class="figure-value{{if .Failing}} text-bad{{end}}">{{.Failing}}</span><span class="figure-label">failed the check</span></div>
 </div>
 
 {{if .Rows}}
 <h2 class="mb-3 text-sm font-semibold">Needs a look</h2>
-<div class="{{template "ui-card"}} overflow-x-auto">
-  <table class="{{template "ui-table"}}">
+<div class="data-table-wrap">
+  <table class="data-table">
     <thead><tr><th class="w-32">When</th><th>Run</th><th>Who</th><th>Result</th></tr></thead>
     <tbody>
       {{range .Rows}}
@@ -88,17 +81,15 @@
 {{end}}
 
 {{define "records-keeping"}}
-<section class="{{template "ui-figures"}}">
-  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.Used}}</span><span class="{{template "ui-figure-label"}}">used by {{.Jobs}} task{{if ne .Jobs 1}}s{{end}}</span></div>
-  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{.WorkingFolders}}</span><span class="{{template "ui-figure-label"}}">of it in working folders</span></div>
-  <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">{{with .OldestAt}}{{.}}{{else}}none{{end}}</span><span class="{{template "ui-figure-label"}}">{{with .Oldest}}oldest task kept, <a class="underline" href="/jobs/{{.}}">{{.}}</a>{{else}}no task has finished{{end}}</span></div>
+<section class="figures">
+  <div class="figure"><span class="figure-value">{{.Used}}</span><span class="figure-label">used by {{.Jobs}} task{{if ne .Jobs 1}}s{{end}}</span></div>
+  <div class="figure"><span class="figure-value">{{.WorkingFolders}}</span><span class="figure-label">of it in working folders</span></div>
+  <div class="figure"><span class="figure-value">{{with .OldestAt}}{{.}}{{else}}none{{end}}</span><span class="figure-label">{{with .Oldest}}oldest task kept, <a class="underline" href="/jobs/{{.}}">{{.}}</a>{{else}}no task has finished{{end}}</span></div>
 </section>
 
 <div class="grid gap-4">
-<section class="{{template "ui-card"}} overflow-x-auto">
-  <h2 class="{{template "ui-card-title"}}">Policy</h2>
-  {{if .Removes}}
-  <table class="{{template "ui-table"}}">
+<section class="section"><h2 class="section-title">Policy</h2><section class="card overflow-x-auto">  {{if .Removes}}
+  <table class="data-table data-table-flush">
     <thead><tr><th>A task that</th><th>loses its working folder after</th><th>loses its record after</th></tr></thead>
     <tbody>
       {{range .Policy}}<tr><td>{{.State}}</td><td>{{if .WorkingFolder}}{{.WorkingFolder}} days{{else}}<span class="text-muted">kept</span>{{end}}</td><td>{{if .Record}}{{.Record}} days{{else}}<span class="text-muted">kept</span>{{end}}</td></tr>{{end}}
@@ -107,50 +98,46 @@
   {{else}}
   <p>The policy removes nothing. Set <code>workspaceDays</code> and <code>recordDays</code> by state in <code>policy.json</code> in <code>GUSTO_RETENTION</code>.</p>
   {{end}}
-</section>
+</section></section>
 
-<div class="{{template "ui-masonry"}}">
-<section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">
-  <h2 class="text-sm font-semibold">Next sweep</h2>
-  {{if .Upcoming}}
+<div class="grid gap-9">
+<section class="section"><h2 class="section-title">Next sweep</h2><section class="card grid gap-3 overflow-x-auto">  {{if .Upcoming}}
   <p>A sweep now would remove {{len .Upcoming}} item{{if ne (len .Upcoming) 1}}s{{end}}, freeing {{.UpcomingFreed}}.</p>
-  <table class="{{template "ui-table"}}">
+  <table class="data-table data-table-flush">
     <thead><tr><th>Task</th><th>Removes</th><th>Ended</th><th class="text-right">Frees</th></tr></thead>
     <tbody>
       {{range .Upcoming}}<tr><td><a class="underline" href="/jobs/{{.Task}}">{{.Brief}}</a></td><td>{{.Kind}}</td><td class="whitespace-nowrap">{{.Days}} days ago</td><td class="text-right whitespace-nowrap tabular-nums">{{.Bytes}} bytes</td></tr>{{end}}
     </tbody>
   </table>
   {{else}}
-  <p class="{{template "ui-note"}}">Nothing is due.</p>
+  <p class="note">Nothing is due.</p>
   {{end}}
-  <form method="post" action="/admin/retention/sweep"><button class="{{template "ui-btn-sm"}}" type="submit">Sweep now</button></form>
-  {{with .Last}}<p class="{{template "ui-note"}}">The last sweep was {{$.LastAt}}: {{len .Actions}} removed, {{$.LastFreed}} freed.</p>{{end}}
-</section>
+  <form method="post" action="/admin/retention/sweep"><button class="btn-sm" type="submit">Sweep now</button></form>
+  {{with .Last}}<p class="note">The last sweep was {{$.LastAt}}: {{len .Actions}} removed, {{$.LastFreed}} freed.</p>{{end}}
+</section></section>
 
-<section class="{{template "ui-card"}} grid gap-3 overflow-x-auto">
-  <h2 class="text-sm font-semibold">Holds</h2>
-  {{if or .HeldTasks .HeldPeople}}
-  <table class="{{template "ui-table"}}">
+<section class="section"><h2 class="section-title">Holds</h2><section class="card grid gap-3 overflow-x-auto">  {{if or .HeldTasks .HeldPeople}}
+  <table class="data-table data-table-flush">
     <thead><tr><th>What</th><th>Held by</th><th>Why</th><th></th></tr></thead>
     <tbody>
       {{range $id, $h := .HeldTasks}}<tr><td>task <a class="underline" href="/jobs/{{$id}}">{{$id}}</a></td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
-        <td class="text-right"><form method="post" action="/admin/retention/jobs/release"><input type="hidden" name="job" value="{{$id}}"><button type="submit" class="{{template "ui-btn-sm"}}">Release</button></form></td></tr>{{end}}
+        <td class="text-right"><form method="post" action="/admin/retention/jobs/release"><input type="hidden" name="job" value="{{$id}}"><button type="submit" class="btn-sm">Release</button></form></td></tr>{{end}}
       {{range $who, $h := .HeldPeople}}<tr><td>everything asked for by {{$who}}</td><td>{{$h.By}}</td><td>{{$h.Why}}</td>
-        <td class="text-right"><form method="post" action="/admin/retention/holds/release"><input type="hidden" name="who" value="{{$who}}"><button type="submit" class="{{template "ui-btn-sm"}}">Release</button></form></td></tr>{{end}}
+        <td class="text-right"><form method="post" action="/admin/retention/holds/release"><input type="hidden" name="who" value="{{$who}}"><button type="submit" class="btn-sm">Release</button></form></td></tr>{{end}}
     </tbody>
   </table>
   {{end}}
   <form method="post" action="/admin/retention/jobs/hold" class="flex flex-wrap items-end gap-3">
-    <label class="{{template "ui-field"}} min-w-40 flex-1">Task <input class="input" name="job" placeholder="the task's id, as in its address" required></label>
-    <label class="{{template "ui-field"}} min-w-40 flex-1">Why <input class="input" name="why" placeholder="for the record"></label>
-    <button class="{{template "ui-btn-sm"}}" type="submit">Keep the task</button>
+    <label class="field min-w-40 flex-1">Task <input class="input" name="job" placeholder="the task's id, as in its address" required></label>
+    <label class="field min-w-40 flex-1">Why <input class="input" name="why" placeholder="for the record"></label>
+    <button class="btn-sm" type="submit">Keep the task</button>
   </form>
   <form method="post" action="/admin/retention/holds" class="flex flex-wrap items-end gap-3">
-    <label class="{{template "ui-field"}} min-w-40 flex-1">Person <input class="input" name="who" placeholder="amy@acme.test" required></label>
-    <label class="{{template "ui-field"}} min-w-40 flex-1">Why <input class="input" name="why" placeholder="for the record"></label>
-    <button class="{{template "ui-btn-sm"}}" type="submit">Keep their work</button>
+    <label class="field min-w-40 flex-1">Person <input class="input" name="who" placeholder="amy@acme.test" required></label>
+    <label class="field min-w-40 flex-1">Why <input class="input" name="why" placeholder="for the record"></label>
+    <button class="btn-sm" type="submit">Keep their work</button>
   </form>
-</section>
+</section></section>
 </div>
 </div>
 {{end}}

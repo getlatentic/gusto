@@ -52,5 +52,5 @@
     window.addEventListener("resize", function () { apply(read(), false); });
   };
 
-  window.gustoResize(document.getElementById("panel-resize"), { name: "--panel-w", key: "gusto-panel-w", min: 14, max: 28, def: 16, edge: "right", share: function () { return 0.4; } });
+  window.gustoResize(document.getElementById("panel-resize"), { name: "--panel-w", key: "gusto-panel-w", min: 16, max: 28, def: 20, edge: "right", share: function () { return 0.4; } });
 })();

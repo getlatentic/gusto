@@ -1,36 +1,37 @@
 {{template "head" .}}
 
-<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/compare">Compare</a><span>/</span><span>this task</span></nav>
+{{template "ui-bar-open"}}
+  <div class="bar-where"><nav class="contents" aria-label="Where this is"><a class="bar-crumb" href="/compare">Compare</a><span class="bar-sep" aria-hidden="true">/</span></nav><h1 class="bar-title" title="{{with .Lineup}}{{.Brief}}{{end}}">{{with .Lineup}}{{.Brief}}{{else}}This task{{end}}</h1></div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
 
 {{with .Lineup}}
-<div class="{{template "ui-head"}}">
-  <h1>{{.Brief}}</h1>
-  <p class="{{template "ui-lede"}}">Same code, same model ({{.Model}}), same skills, same check. Only the agent differs.</p>
-</div>
+<p class="m-0 mb-1 text-lg font-semibold text-ink wrap-anywhere">{{.Brief}}</p>
+<p class="page-sub">Same code, same model ({{.Model}}), same skills, same check. Only the agent differs.</p>
 {{end}}
 
-<p class="mb-3 flex items-baseline gap-2"><span class="{{template "ui-figure-value"}} text-accent-ink">{{.Passed}} of {{len .Sides}}</span>
+<p class="mb-3 flex items-baseline gap-2"><span class="figure-value text-accent-ink">{{.Passed}} of {{len .Sides}}</span>
   <span class="text-sm text-muted">{{if .Running}}passed so far, the rest still working{{else}}passed the tests{{end}}</span></p>
 {{with .Reading}}<p class="mb-5 text-base">{{.Headline}}</p>{{end}}
 
-<div class="{{template "ui-table-wrap"}}">
-  <table>
-    <thead><tr><th class="{{template "ui-th"}}">Agent</th><th class="{{template "ui-th"}}">Result</th><th class="{{template "ui-th"}}">Time</th><th class="{{template "ui-th"}}">Cost</th><th class="{{template "ui-th"}}">Model calls</th><th class="{{template "ui-th"}}">Changed</th><th class="{{template "ui-th"}}"></th></tr></thead>
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Agent</th><th>Result</th><th>Time</th><th>Cost</th><th>Model calls</th><th>Changed</th><th></th></tr></thead>
     <tbody>
     {{range .Sides}}
-    <tr class="group/row">
-      <td class="{{template "ui-td"}} font-semibold"><span class="flex items-center gap-3">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}<span>{{.Engine}}<span class="block text-xs font-normal text-subtle">{{.Model}}</span></span></span></td>
-      <td class="{{template "ui-td"}}"><span class="flex flex-wrap items-center gap-2">{{if .Holding}}<span class="text-muted">{{.Holding}}</span>
+    <tr>
+      <td class="font-semibold"><span class="flex items-center gap-3">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}<span>{{.Engine}}<span class="block text-xs font-normal text-subtle">{{.Model}}</span></span></span></td>
+      <td><span class="flex flex-wrap items-center gap-2">{{if .Holding}}<span class="text-muted">{{.Holding}}</span>
         {{else if not .Record.State.Done}}<span class="text-muted">Working…</span>
         {{else if and .Checked .Passed}}<span class="inline-flex items-center gap-1 font-medium text-ok">{{template "icon-seal"}} Tests pass</span>
         {{else if .Checked}}<span class="font-medium text-bad">Tests fail</span>
         {{else}}<span class="font-medium text-bad">Stopped before the tests</span>{{end}}
-        {{if .Fastest}}<span class="{{template "ui-badge"}}">Fastest</span>{{end}}{{if .Cheapest}}<span class="{{template "ui-badge"}}">Cheapest</span>{{end}}</span></td>
-      <td class="{{template "ui-td"}} tabular-nums">{{with .Seconds}}{{.}} s{{end}}</td>
-      <td class="{{template "ui-td"}} tabular-nums">{{if .Metered}}{{.Spent.Money}}{{end}}</td>
-      <td class="{{template "ui-td"}} tabular-nums">{{if .Metered}}{{.Spent.Calls}}{{end}}</td>
-      <td class="{{template "ui-td"}} tabular-nums">{{if .Files}}{{.Files}} file{{if ne .Files 1}}s{{end}} <span class="text-ok">+{{.Added}}</span> <span class="text-bad">−{{.Removed}}</span>{{end}}</td>
-      <td class="{{template "ui-td"}}"><a href="/jobs/{{.Record.ID}}">Details</a></td>
+        {{if .Fastest}}<span class="badge">Fastest</span>{{end}}{{if .Cheapest}}<span class="badge">Cheapest</span>{{end}}</span></td>
+      <td class="tabular-nums">{{with .Seconds}}{{.}} s{{end}}</td>
+      <td class="tabular-nums">{{if .Metered}}{{.Spent.Money}}{{end}}</td>
+      <td class="tabular-nums">{{if .Metered}}{{.Spent.Calls}}{{end}}</td>
+      <td class="tabular-nums">{{if .Files}}{{.Files}} file{{if ne .Files 1}}s{{end}} <span class="text-ok">+{{.Added}}</span> <span class="text-bad">−{{.Removed}}</span>{{end}}</td>
+      <td><a href="/jobs/{{.Record.ID}}">Details</a></td>
     </tr>
     {{end}}
     </tbody>

@@ -1,26 +1,28 @@
 {{template "head" .}}
 
+{{template "ui-bar-open"}}
+  <div class="bar-where"><h1 class="bar-title">Compare agents</h1></div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
+
 {{template "ui-flash" .}}
 
-<div class="{{template "ui-head"}}">
-  <h1>Compare agents</h1>
-  <p class="{{template "ui-lede"}}">Give several agents the same task on the same code. The project's own tests decide which of them did it.</p>
-</div>
+<p class="page-sub">Give several agents the same task on the same code. The project's own tests decide which of them did it.</p>
 
 {{with .Template}}
-<form class="grid max-w-xl gap-4 {{template "ui-card"}}" method="post" action="/compare">
-  <label class="{{template "ui-field"}}">The task
+<form class="grid max-w-xl gap-4 card" method="post" action="/compare">
+  <label class="field">The task
     <textarea class="textarea" name="brief" rows="2" required>{{index .Starters 0}}</textarea>
   </label>
   <p class="text-xs text-muted">On the {{.Title}} sample project, checked by running <code>{{range $i, $word := .Check}}{{if $i}} {{end}}{{$word}}{{end}}</code> after each agent.</p>
   <fieldset class="grid gap-2">
-    <legend class="mb-2 text-xs font-medium text-subtle">Agents</legend>
+    <legend class="legend">Agents</legend>
     {{range $.Engines}}<label class="flex cursor-pointer items-center gap-3 rounded-sm border border-line-strong px-4 py-3 hover:border-ink has-[:checked]:border-accent has-[:checked]:bg-accent-wash" data-engine><input class="input" type="checkbox" name="harness" value="{{.Name}}" checked> {{template "mark" (dict "Harness" .Name "Name" .Title "Size" "sm")}}{{.Title}}</label>{{end}}
   </fieldset>
-  {{with $.Models}}<label class="{{template "ui-field"}}">Model
+  {{with $.Models}}<label class="field">Model
     <select class="select w-full" name="model">{{range .}}<option>{{.}}</option>{{end}}</select>
   </label>{{end}}
-  <div><button type="submit" class="{{template "ui-btn"}}">Compare</button></div>
+  <div><button type="submit" class="btn">Compare</button></div>
 </form>
 {{else}}
 <div class="flex max-w-xl items-start gap-3 rounded-md bg-warn-wash px-5 py-4">
@@ -31,12 +33,12 @@
 
 {{with .Lineups}}
 <h2 class="mt-10 mb-3">Earlier comparisons</h2>
-<div class="{{template "ui-table-wrap"}}">
-  <table>
-    <thead><tr><th class="{{template "ui-th"}}">Task</th><th class="{{template "ui-th"}}">Model</th><th class="{{template "ui-th"}}">Agents</th><th class="{{template "ui-th"}}">When</th></tr></thead>
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Task</th><th>Model</th><th>Agents</th><th>When</th></tr></thead>
     <tbody>
     {{range .}}
-    <tr class="group/row"><td class="{{template "ui-td"}}"><a class="font-medium" href="/compare/{{.ID}}">{{.Brief}}</a></td><td class="{{template "ui-td"}} text-muted">{{.Model}}</td><td class="{{template "ui-td"}} text-muted">{{len .Runs}}</td><td class="{{template "ui-td"}} text-muted" title="{{when .At}}">{{ago .At}}</td></tr>
+    <tr><td><a class="font-medium" href="/compare/{{.ID}}">{{.Brief}}</a></td><td class="text-muted">{{.Model}}</td><td class="text-muted">{{len .Runs}}</td><td class="text-muted" title="{{when .At}}">{{ago .At}}</td></tr>
     {{end}}
     </tbody>
   </table>

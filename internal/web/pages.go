@@ -136,9 +136,9 @@ var helpers = template.FuncMap{
 }
 
 // headlineUSD is an amount of money as a headline shows it: cents once there are
-// dollars, and the fractions of a cent an agent's calls cost until then.
+// dollars or there is nothing, and the fractions of a cent an agent's calls cost until then.
 func headlineUSD(amount float64) string {
-	if amount >= 1 {
+	if amount >= 1 || amount == 0 {
 		return fmt.Sprintf("$%.2f", amount)
 	}
 	return fmt.Sprintf("$%.4f", amount)

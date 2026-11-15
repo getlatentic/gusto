@@ -53,7 +53,7 @@ func TestAnAdminSeesEveryonesSessionsAddedUp(t *testing.T) {
 		t.Fatalf("%d %s", page.Code, page.Body)
 	}
 	for _, want := range []string{"alice-session", "bob-session", alice, bob, `href="/usage/alice-session"`,
-		"$0.7500", ">3<", "3.0k", "40%", "Notes", "Claude Code", "bedrock", "claude-sonnet"} {
+		"$0.7500", "3 model calls", "3.0k", "40%", "Notes", "Claude Code", "bedrock", "claude-sonnet"} {
 		if !strings.Contains(page.Body.String(), want) {
 			t.Errorf("the page does not show %q", want)
 		}
@@ -304,7 +304,7 @@ func TestASessionListsItsCallsLatestFirst(t *testing.T) {
 func TestTheUsagePageSaysWhenThereIsNothingYet(t *testing.T) {
 	here, _ := withUsage(t)
 	body := here.ask(t, "GET", "/usage", nil).Body.String()
-	if !strings.Contains(body, "No model call has been recorded yet") || strings.Contains(body, "<table") {
+	if !strings.Contains(body, "No model calls yet") || strings.Contains(body, "<table") {
 		t.Errorf("the empty state is not shown:\n%s", body)
 	}
 	bare := open(t)

@@ -6,8 +6,9 @@
   window.gustoFileEdit = true;
 
   function parts(within) {
-    var file = within.closest("[data-file]");
-    return file && { file: file, form: file.querySelector("[data-file-edit]"), view: file.querySelector("[data-file-view]"), edit: file.querySelector("[data-edit]") };
+    // A file page keeps its Edit button in the bar above the file, which holds the one file of the page.
+    var file = within.closest("[data-file]") || (within.closest(".bar") && document.querySelector("main [data-file]"));
+    return file && { file: file, form: file.querySelector("[data-file-edit]"), view: file.querySelector("[data-file-view]"), edit: file.querySelector("[data-edit]") || document.querySelector(".bar [data-edit]") };
   }
 
   function editing(each, on) {

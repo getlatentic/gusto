@@ -61,7 +61,7 @@
       var href = step.href();
       if (step.key === "ask" && location.pathname === "/chat" && !done) { href = ""; }
       if (!done && href && (active || step.key === "talk")) {
-        var go = make("a", "mt-1 inline-flex w-fit items-center rounded-sm bg-solid px-3 py-1.5 text-xs font-semibold text-on-solid no-underline hover:bg-solid-hover", step.label);
+        var go = make("a", "btn mt-1 h-8 w-fit px-3 text-xs", step.label);
         go.href = href;
         if (step.external) { go.target = "_blank"; go.rel = "noopener"; go.addEventListener("click", function () { state.done.talk = true; save(); draw(); }); }
         body.appendChild(go);
@@ -71,8 +71,8 @@
     });
   }
 
-  var docked = "mt-auto grid gap-3 rounded-md border border-line bg-surface p-3";
-  var floating = "fixed bottom-[calc(var(--lease-h,0rem)+0.75rem)] left-3 z-[900] grid w-[min(21rem,calc(100vw-1.5rem))] gap-3 rounded-md border border-line bg-surface p-3 shadow-3";
+  var docked = "popover mt-auto grid gap-3 p-3 shadow-none";
+  var floating = "popover fixed bottom-[calc(var(--lease-h,0rem)+0.75rem)] left-3 z-[900] grid w-[min(21rem,calc(100vw-1.5rem))] gap-3 p-3";
 
   // Beside the conversations when they are on screen, so it never sits over what a person is typing; a small card
   // that starts closed when they are not.
@@ -98,7 +98,7 @@
     toggle = make("button", "flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-3 border-0 bg-transparent p-0 text-left");
     toggle.type = "button";
     toggle.setAttribute("aria-controls", "demo-guide-steps");
-    toggle.innerHTML = '<span class="text-sm font-semibold text-ink">Take the tour</span><span class="count rounded-full bg-wash px-2 py-0.5 text-xs font-medium text-muted"></span>';
+    toggle.innerHTML = '<span class="text-sm font-semibold text-ink">Take the tour</span><span class="count badge"></span>';
     toggle.addEventListener("click", function () { state.closed = !state.closed; state.chose = true; save(); draw(); });
     var shut = make("button", "grid size-8 flex-none cursor-pointer place-items-center rounded-sm border-0 bg-transparent p-0 text-muted hover:bg-wash hover:text-ink");
     shut.type = "button";

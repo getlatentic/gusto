@@ -4,6 +4,7 @@
   if (!container) { return; }
   new window.Explorer(container, {
     mode: "browse",
+    bar: document.getElementById("files-bar"),
     start: new URLSearchParams(location.search).get("at") || "",
     onMove: function (at) { history.replaceState(null, "", at ? "/files?at=" + encodeURIComponent(at) : "/files"); }
   });

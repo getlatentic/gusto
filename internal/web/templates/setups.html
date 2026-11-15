@@ -1,22 +1,24 @@
 {{template "head" .}}
 
+{{template "ui-bar-open"}}
+  <div class="bar-where"><nav class="contents" aria-label="Where this is"><a class="bar-crumb" href="/presets">New agent</a><span class="bar-sep" aria-hidden="true">/</span></nav><h1 class="bar-title">Skill sets</h1></div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
+
 {{template "ui-flash" .}}
 
-<nav class="{{template "ui-crumb"}}" aria-label="Where this is"><a class="{{template "ui-crumb-link"}}" href="/presets">New agent</a><span>/</span><span>Skill sets</span></nav>
-<div class="{{template "ui-head"}}">
-  <h1>Skill sets</h1>
-  <p class="{{template "ui-lede"}}">Instructions and tools you can give any agent.</p>
-</div>
+<p class="page-sub">Instructions and tools you can give any agent.</p>
 
-{{if .Keeps}}
+{{if .Keeps}}{{with .Setups}}
 <section class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-4">
-  {{range .Setups}}
-  <a class="grid content-start gap-1 rounded-md bg-surface p-5 text-ink no-underline shadow-1 transition-shadow hover:shadow-2 dark:border dark:border-line" href="{{$.Base}}/{{.Name}}">
-    <span class="font-display font-semibold">{{.Name}}</span>
+  {{range .}}
+  <a class="card grid content-start gap-1 text-ink no-underline transition-colors hover:border-line-strong" href="{{$.Base}}/{{.Name}}">
+    <span class="font-display text-sm font-semibold">{{.Name}}</span>
     <span class="text-sm text-muted">{{len .Skills}} skill{{if ne (len .Skills) 1}}s{{end}}{{with .Servers}} · tools: {{range $i, $s := .}}{{if $i}}, {{end}}{{$s}}{{end}}{{end}}</span>
   </a>
   {{end}}
 </section>
-{{end}}
+{{else}}<p class="empty"><strong class="empty-title">No skill sets yet</strong>Admins add them in Admin, under Apps &amp; skills.</p>
+{{end}}{{end}}
 
 {{template "foot" .}}

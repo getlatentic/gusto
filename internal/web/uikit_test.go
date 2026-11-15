@@ -7,7 +7,8 @@ import (
 	"testing"
 )
 
-// The kit is the one place every shared piece is seen, so a piece added to ui.html without a place on the kit page fails here.
+// The kit is the one place every shared piece is seen, so a component class or a markup piece without a place on the kit page
+// fails here.
 func TestTheUIKitShowsEveryPiece(t *testing.T) {
 	source, err := os.ReadFile("templates/ui.html")
 	if err != nil {
@@ -20,6 +21,15 @@ func TestTheUIKitShowsEveryPiece(t *testing.T) {
 	for _, piece := range regexp.MustCompile(`\{\{define "(ui-[a-z-]+)"`).FindAllStringSubmatch(string(source), -1) {
 		if !strings.Contains(string(kit), `template "`+piece[1]+`"`) {
 			t.Errorf("the kit page does not show %s", piece[1])
+		}
+	}
+	components, err := os.ReadFile("tailwind/components.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, class := range regexp.MustCompile(`(?m)^  \.([a-z][a-z0-9-]*) \{`).FindAllStringSubmatch(string(components), -1) {
+		if !regexp.MustCompile(`class="(?:[^"]*\s)?` + class[1] + `(?:\s[^"]*)?"`).Match(kit) {
+			t.Errorf("the kit page does not show the class %s", class[1])
 		}
 	}
 	layout, err := os.ReadFile("templates/layout.html")

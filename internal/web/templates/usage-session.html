@@ -1,20 +1,20 @@
 {{template "head" .}}
+{{template "ui-bar-open"}}
+  <div class="bar-where"><nav class="contents" aria-label="Where this is"><a class="bar-crumb" href="{{.Base}}">Usage</a><span class="bar-sep" aria-hidden="true">/</span></nav><h1 class="bar-title">{{with .Session}}Session <code class="font-mono text-xs font-medium">{{.ID}}</code>{{else}}Session{{end}}</h1></div>
+{{template "ui-bar-close"}}
+{{template "body" .}}
 {{with .Session}}
-<div class="mb-2 flex items-center gap-3">
-  <h1>Session <code class="text-xl">{{.ID}}</code></h1>
-  <a class="ml-auto text-sm text-muted no-underline underline-offset-4 hover:text-ink hover:underline" href="{{$.Base}}">All usage</a>
-</div>
-<p class="mb-6 text-muted">{{.Person}}{{with .Agent}}, agent {{.}}{{end}}{{with .Engine}}, agent type {{.}}{{end}}. The latest call first.</p>
+<p class="page-sub">{{.Person}}{{with .Agent}}, agent {{.}}{{end}}{{with .Engine}}, agent type {{.}}{{end}}. The latest call first.</p>
 
 <form class="mb-4 flex flex-wrap items-center gap-3 text-sm" method="get" action="{{$.Base}}/{{.ID}}" role="search">
-  <label class="min-w-48 flex-1"><span class="sr-only">Search this session's calls</span><input class="h-9 w-full rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink" type="search" name="q" value="{{.Search}}" placeholder="Search"></label>
-  <button class="inline-flex h-9 cursor-pointer items-center justify-center rounded-sm bg-solid px-4 text-sm font-semibold text-on-solid transition-colors hover:bg-solid-hover" type="submit">Search</button>
+  <label class="min-w-48 flex-1"><span class="sr-only">Search this session's calls</span><input class="input" type="search" name="q" value="{{.Search}}" placeholder="Search"></label>
+  <button class="btn" type="submit">Search</button>
   {{if .Search}}<a class="text-muted no-underline underline-offset-4 hover:text-ink hover:underline" href="{{$.Base}}/{{.ID}}">Clear</a>{{end}}
 </form>
 
-<div class="overflow-hidden rounded-md bg-surface shadow-1 dark:border dark:border-line">
-  <div class="overflow-x-auto">
-  <table class="text-sm [&_th]:bg-wash [&_th]:px-3 [&_th]:py-2.5 [&_th]:whitespace-nowrap [&_td]:border-t [&_td]:border-line [&_td]:px-3 [&_td]:py-2.5 [&_td]:whitespace-nowrap">
+<div class="data-table-wrap">
+  <div>
+  <table class="data-table [&_td]:whitespace-nowrap">
     <thead><tr>
       <th scope="col">Time (UTC)</th><th scope="col">Task</th><th scope="col">Model</th><th scope="col">Provider</th><th scope="col">Key</th>
       <th scope="col" class="text-right">Tokens</th><th scope="col" class="text-right">Cache</th><th scope="col" class="text-right">Cost</th><th scope="col">Status</th>
@@ -31,7 +31,7 @@
         <td class="text-right tabular-nums">{{.In}} in, {{.Out}} out</td>
         <td class="text-right tabular-nums">{{.Cache}}</td>
         <td class="text-right tabular-nums">{{if .Unpriced}}<span class="text-muted">no price</span>{{else}}{{.Cost}}{{end}}</td>
-        <td>{{if .Refused}}<span class="inline-flex items-center rounded-full bg-bad-wash px-2 py-0.5 text-xs font-medium text-bad">{{or .Status "refused"}}</span>{{else}}{{or .Status "—"}}{{end}}</td>
+        <td>{{if .Refused}}<span class="badge-bad">{{or .Status "refused"}}</span>{{else}}{{or .Status "—"}}{{end}}</td>
         <td>{{or .Refused "—"}}</td>
         <td>{{or .Translated "—"}}</td>
       </tr>

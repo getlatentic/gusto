@@ -17,14 +17,14 @@ func TestActivityLeavesOutTheServerStartingUntilAskedFor(t *testing.T) {
 	here.server.UseSettings(map[string]string{"GUSTO_ADMINS": "admin@example.com"})
 
 	page := admin.ask(t, "GET", "/admin/records?tab=activity", nil).Body.String()
-	if strings.Contains(page, "<td>the server started") {
+	if strings.Contains(page, `">the server started`) {
 		t.Errorf("the server starting is shown among what people did:\n%s", page)
 	}
 	if !strings.Contains(page, "2 times the server started are left out") || !strings.Contains(page, "reviewer") {
 		t.Errorf("the page does not count what it left out, or lost what people did:\n%s", page)
 	}
 	all := admin.ask(t, "GET", "/admin/records?tab=activity&server=1", nil).Body.String()
-	if !strings.Contains(all, "<td>the server started") || !strings.Contains(all, "Show only what people did") {
+	if !strings.Contains(all, `">the server started`) || !strings.Contains(all, "Show only what people did") {
 		t.Errorf("asking for the server starting does not show it:\n%s", all)
 	}
 }

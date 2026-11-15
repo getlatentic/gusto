@@ -149,17 +149,19 @@ func groupBySender(turns []turn) {
 	}
 }
 
-// quiet is how long a room goes without anything said before it shows the time again, as a chat does after a pause.
+// quiet is how long a room goes without anything said before the next turn names its sender again, as a chat does after a pause.
 const quiet = 20 * 60
 
-// divideByTime puts the time above the first turn and above each turn said after a pause, and starts the grouping by sender again
-// there, since a name under a time reads as a new start.
+// divideByTime puts the day above the first turn and above the first turn of each later day, and starts the grouping by sender
+// again after a pause, since each sender's line carries the time.
 func divideByTime(turns []turn, now time.Time) {
 	var last int64
 	for i := range turns {
 		at := turns[i].Queued
+		if i == 0 || !sameDay(time.Unix(at, 0), time.Unix(last, 0)) {
+			turns[i].Divider = dayOf(time.Unix(at, 0), now)
+		}
 		if i == 0 || at-last > quiet {
-			turns[i].Divider = dividerAt(time.Unix(at, 0), now)
 			turns[i].SaidJoins = false
 			if turns[i].Note || turns[i].From != "" || turns[i].Echo {
 				turns[i].ReplyJoins = false
@@ -169,11 +171,21 @@ func divideByTime(turns []turn, now time.Time) {
 	}
 }
 
-func dividerAt(at, now time.Time) string {
-	if y, d := at.YearDay(), now.YearDay(); at.Year() == now.Year() && y == d {
-		return at.Format("15:04")
+func sameDay(a, b time.Time) bool {
+	return a.Year() == b.Year() && a.YearDay() == b.YearDay()
+}
+
+// dayOf names a day as a room's divider does: today, yesterday, or the date.
+func dayOf(at, now time.Time) string {
+	switch {
+	case sameDay(at, now):
+		return "Today"
+	case sameDay(at, now.AddDate(0, 0, -1)):
+		return "Yesterday"
+	case at.Year() == now.Year():
+		return at.Format("Mon 2 Jan")
 	}
-	return at.Format("Mon 2 Jan, 15:04")
+	return at.Format("2 Jan 2006")
 }
 
 // clock is the time of day something was said.
