@@ -1,7 +1,7 @@
 {{template "head" .}}
 
 {{template "ui-bar-open"}}
-  <div class="{{template "ui-bar-where"}}"><h1 class="{{template "ui-bar-title"}}">UI kit</h1></div>
+  <div class="bar-where"><h1 class="bar-title">UI kit</h1></div>
   <div class="flex flex-none items-center gap-2 @max-[56rem]:hidden">
     <span class="flex gap-0.5 rounded-sm bg-wash p-0.5" role="group" aria-label="Theme">
       <button class="h-8 cursor-pointer rounded-sm px-3 text-sm font-medium text-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-1" type="button" data-kit-theme="light">Light</button>
@@ -19,40 +19,40 @@
   </div>
 {{template "ui-bar-close"}}
 {{template "body" .}}
-<p class="{{template "ui-page-sub"}}">The shared pieces in templates/ui.html, as they look now</p>
+<p class="page-sub">The shared pieces in templates/ui.html, as they look now</p>
 
 <div class="grid gap-10">
 
 <section class="grid gap-3" aria-labelledby="kit-page-head">
   <h2 class="text-base font-semibold" id="kit-page-head">Page header, menu, list and status</h2>
-  <p class="{{template "ui-note"}}">A page's bar runs across the top of the pane: the pages above it, its title, and its few actions. Actions it needs now and then go in the menu behind "…". Under the bar, a line says what the page is for. Rows carry one main line and a quieter line under it.</p>
-  <div class="{{template "ui-card"}} grid gap-5">
+  <p class="note">A page's bar runs across the top of the pane: the pages above it, its title, and its few actions. Actions it needs now and then go in the menu behind "…". Under the bar, a line says what the page is for. Rows carry one main line and a quieter line under it.</p>
+  <div class="card grid gap-5">
     <div class="overflow-hidden rounded-md border border-line [&>.bar]:static">
     {{template "ui-bar-open"}}
-      <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Example trail"><a class="{{template "ui-bar-crumb"}}" href="#kit-page-head">Admin</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span></nav><h3 class="{{template "ui-bar-title"}}">Records</h3></div>
-      {{template "ui-more-open"}}<a class="{{template "ui-menu-item"}}" role="menuitem" href="#kit-page-head">{{template "icon-download"}}<span>Download the record</span></a>{{template "ui-more-close"}}
+      <div class="bar-where"><nav class="contents" aria-label="Example trail"><a class="bar-crumb" href="#kit-page-head">Admin</a><span class="bar-sep" aria-hidden="true">/</span></nav><h3 class="bar-title">Records</h3></div>
+      {{template "ui-more-open"}}<a class="dropdown-item" role="menuitem" href="#kit-page-head">{{template "icon-download"}}<span>Download the record</span></a>{{template "ui-more-close"}}
     {{template "ui-bar-close"}}
     </div>
-    <p class="{{template "ui-page-sub"}} mb-0!">A signed record of everything that happened</p>
-    <p class="{{template "ui-empty"}}"><strong class="{{template "ui-empty-title"}}">No model calls yet</strong>Every call an agent makes goes through the proxy and is listed here.</p>
-    <p class="{{template "ui-status-ok"}}">Intact · 2 events, all signed · the last 3 tasks check out</p>
-    <div class="{{template "ui-list"}}">
-      <div class="{{template "ui-row"}}"><div class="min-w-0 flex-1"><p class="{{template "ui-row-main"}}">Signed in as admin, with the shared password</p><p class="{{template "ui-row-sub"}}">Today 19:18</p></div></div>
-      <div class="{{template "ui-row"}}"><div class="min-w-0 flex-1"><p class="{{template "ui-row-main"}}">Ada</p><p class="{{template "ui-row-sub"}}">ada@example.com</p></div><span class="{{template "ui-row-end"}}">Admin</span></div>
+    <p class="page-sub mb-0!">A signed record of everything that happened</p>
+    <p class="empty"><strong class="empty-title">No model calls yet</strong>Every call an agent makes goes through the proxy and is listed here.</p>
+    <p class="status-ok">Intact · 2 events, all signed · the last 3 tasks check out</p>
+    <div class="list">
+      <div class="row"><div class="min-w-0 flex-1"><p class="row-main">Signed in as admin, with the shared password</p><p class="row-sub">Today 19:18</p></div></div>
+      <div class="row"><div class="min-w-0 flex-1"><p class="row-main">Ada</p><p class="row-sub">ada@example.com</p></div><span class="row-end">Admin</span></div>
     </div>
-    <section class="{{template "ui-section"}}">
-      <h4 class="{{template "ui-section-title"}}">Profile</h4>
-      <p class="{{template "ui-section-note"}}">A section: its heading outside, then a list of rows with a label column.</p>
-      <div class="{{template "ui-list"}}">
-        <label class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Name</span><input class="input flex-1" value="Scout" aria-label="Name"></label>
-        <div class="{{template "ui-row"}}"><span class="{{template "ui-row-label"}}">Made by</span><span class="text-sm">Ada</span></div>
+    <section class="section">
+      <h4 class="section-title">Profile</h4>
+      <p class="section-note">A section: its heading outside, then a list of rows with a label column.</p>
+      <div class="list">
+        <label class="row"><span class="row-label">Name</span><input class="input flex-1" value="Scout" aria-label="Name"></label>
+        <div class="row"><span class="row-label">Made by</span><span class="text-sm">Ada</span></div>
       </div>
     </section>
-    <section class="{{template "ui-facts-card"}}">
-      <h4 class="{{template "ui-facts-label"}}">Facts</h4>
-      <dl class="{{template "ui-facts"}}">
-        <dt class="{{template "ui-fact-key"}}">{{template "icon-mail"}}Email</dt><dd class="{{template "ui-fact-value"}}">ada@example.com</dd>
-        <dt class="{{template "ui-fact-key"}}">{{template "icon-user"}}Role</dt><dd class="{{template "ui-fact-value"}}">Admin</dd>
+    <section class="facts-card">
+      <h4 class="facts-label">Facts</h4>
+      <dl class="facts">
+        <dt class="fact-key">{{template "icon-mail"}}Email</dt><dd class="fact-value">ada@example.com</dd>
+        <dt class="fact-key">{{template "icon-user"}}Role</dt><dd class="fact-value">Admin</dd>
       </dl>
     </section>
   </div>
@@ -60,8 +60,8 @@
 
 <section class="grid gap-3" aria-labelledby="kit-colour">
   <h2 class="text-base font-semibold" id="kit-colour">Colour</h2>
-  <p class="{{template "ui-note"}}">Every colour is a token that follows the theme and the accent. Pages name the Tailwind colour, never a value.</p>
-  <div class="{{template "ui-card"}} grid gap-5">
+  <p class="note">Every colour is a token that follows the theme and the accent. Pages name the Tailwind colour, never a value.</p>
+  <div class="card grid gap-5">
     <div>
       <h3 class="mb-2 text-xs font-semibold text-subtle">Surfaces</h3>
       <div class="grid grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-3">
@@ -99,10 +99,10 @@
 
 <section class="grid gap-3" aria-labelledby="kit-type">
   <h2 class="text-base font-semibold" id="kit-type">Type, shape and depth</h2>
-  <div class="{{template "ui-card"}} grid gap-5">
+  <div class="card grid gap-5">
     <div class="grid gap-2">
       <p class="font-display text-2xl font-semibold">Page title, 24/32 semibold</p>
-      <p class="{{template "ui-figure-value"}}">Figure, 20 semibold</p>
+      <p class="figure-value">Figure, 20 semibold</p>
       <p class="text-lg font-semibold">Dialog title, 18/26 semibold</p>
       <p class="text-base">Lede, 16/24</p>
       <p class="text-sm font-semibold">Section heading, 14/20 semibold</p>
@@ -127,27 +127,27 @@
 
 <section class="grid gap-3" aria-labelledby="kit-buttons">
   <h2 class="text-base font-semibold" id="kit-buttons">Buttons</h2>
-  <div class="{{template "ui-card"}} grid gap-5">
+  <div class="card grid gap-5">
     <div class="grid gap-2">
-      <h3 class="text-xs font-semibold text-subtle"><code>ui-btn</code> and <code>ui-btn-quiet</code>, the page's one action and the others</h3>
+      <h3 class="text-xs font-semibold text-subtle"><code>btn</code> and <code>btn-quiet</code>, the page's one action and the others</h3>
       <div class="flex flex-wrap items-center gap-3">
-        <button class="{{template "ui-btn"}}" type="button">Make token</button>
-        <button class="{{template "ui-btn"}}" type="button">{{template "icon-add"}} New token</button>
-        <button class="{{template "ui-btn"}}" type="button" disabled>Disabled</button>
-        <button class="{{template "ui-btn-quiet"}}" type="button">Cancel</button>
-        <button class="{{template "ui-btn-quiet"}}" type="button" disabled>Disabled</button>
-        <button class="{{template "ui-btn-danger"}}" type="button">Revoke</button>
-        <a class="{{template "ui-btn-quiet"}}" href="#kit-buttons">A link as a button</a>
+        <button class="btn" type="button">Make token</button>
+        <button class="btn" type="button">{{template "icon-add"}} New token</button>
+        <button class="btn" type="button" disabled>Disabled</button>
+        <button class="btn-quiet" type="button">Cancel</button>
+        <button class="btn-quiet" type="button" disabled>Disabled</button>
+        <button class="btn-danger" type="button">Revoke</button>
+        <a class="btn-quiet" href="#kit-buttons">A link as a button</a>
       </div>
     </div>
     <div class="grid gap-2">
-      <h3 class="text-xs font-semibold text-subtle"><code>ui-btn-sm</code> and <code>ui-btn-sm-danger</code>, in rows and tables</h3>
+      <h3 class="text-xs font-semibold text-subtle"><code>btn-sm</code> and <code>btn-sm-danger</code>, in rows and tables</h3>
       <div class="flex flex-wrap items-center gap-3">
-        <button class="{{template "ui-btn-ghost"}}" type="button">Copy</button>
-        <button class="{{template "ui-btn-sm"}}" type="button">Copy</button>
-        <button class="{{template "ui-btn-sm"}}" type="button" disabled>Disabled</button>
-        <button class="{{template "ui-btn-sm-danger"}}" type="button">Remove</button>
-        <a class="{{template "ui-link-quiet"}}" href="#kit-buttons">ui-link-quiet</a>
+        <button class="btn-ghost" type="button">Copy</button>
+        <button class="btn-sm" type="button">Copy</button>
+        <button class="btn-sm" type="button" disabled>Disabled</button>
+        <button class="btn-sm-danger" type="button">Remove</button>
+        <a class="link-quiet" href="#kit-buttons">ui-link-quiet</a>
       </div>
     </div>
   </div>
@@ -155,96 +155,102 @@
 
 <section class="grid gap-3" aria-labelledby="kit-forms">
   <h2 class="text-base font-semibold" id="kit-forms">Form controls</h2>
-  <p class="{{template "ui-note"}}">Basecoat's <code>input</code>, <code>select</code> and <code>textarea</code> inside a <code>ui-field</code> label.</p>
-  <div class="{{template "ui-card"}} grid gap-6">
+  <p class="note">Basecoat's <code>input</code>, <code>select</code> and <code>textarea</code> inside a <code>field</code> label.</p>
+  <div class="card grid gap-6">
     <form class="grid max-w-prose gap-4" action="#kit-forms">
-      <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="ci-nightly"></label>
-      <label class="{{template "ui-field"}}">Model
+      <label class="field">Name <input class="input" name="name" placeholder="ci-nightly"></label>
+      <label class="field">Model
         <select class="select w-full" name="model"><option>Claude Sonnet 5.5</option><option>Gemma 4 26B</option><option>GPT 5</option></select>
       </label>
-      <label class="{{template "ui-field"}}">Instructions <textarea class="textarea" name="text" rows="3" placeholder="What the agent should do"></textarea></label>
-      <label class="{{template "ui-field"}}">Invalid <input class="input" value="not a name" aria-invalid="true"><span class="text-xs text-bad">Use lower case letters, digits and hyphens.</span></label>
-      <label class="{{template "ui-field"}}">Disabled <input class="input" value="Not editable" disabled></label>
-      <fieldset class="grid gap-2"><legend class="{{template "ui-legend"}}">It may</legend>
-        <label class="{{template "ui-check"}}"><input class="input" type="checkbox" checked> Submit tasks</label>
-        <label class="{{template "ui-check"}}"><input class="input" type="checkbox"> Read usage</label>
-        <label class="{{template "ui-check"}}"><input class="input" type="checkbox" disabled> Not offered</label>
+      <label class="field">Instructions <textarea class="textarea" name="text" rows="3" placeholder="What the agent should do"></textarea></label>
+      <label class="field">Invalid <input class="input" value="not a name" aria-invalid="true"><span class="text-xs text-bad">Use lower case letters, digits and hyphens.</span></label>
+      <label class="field">Disabled <input class="input" value="Not editable" disabled></label>
+      <fieldset class="grid gap-2"><legend class="legend">It may</legend>
+        <label class="check"><input class="input" type="checkbox" checked> Submit tasks</label>
+        <label class="check"><input class="input" type="checkbox"> Read usage</label>
+        <label class="check"><input class="input" type="checkbox" disabled> Not offered</label>
       </fieldset>
-      <fieldset class="grid gap-2"><legend class="{{template "ui-legend"}}">Keep for</legend>
-        <label class="{{template "ui-check"}}"><input class="input" type="radio" name="keep" checked> 30 days</label>
-        <label class="{{template "ui-check"}}"><input class="input" type="radio" name="keep"> 90 days</label>
+      <fieldset class="grid gap-2"><legend class="legend">Keep for</legend>
+        <label class="check"><input class="input" type="radio" name="keep" checked> 30 days</label>
+        <label class="check"><input class="input" type="radio" name="keep"> 90 days</label>
       </fieldset>
-      <div class="flex gap-3"><button class="{{template "ui-btn"}}" type="button">Save</button><button class="{{template "ui-btn-quiet"}}" type="button">Cancel</button></div>
+      <div class="flex gap-3"><button class="btn" type="button">Save</button><button class="btn-quiet" type="button">Cancel</button></div>
     </form>
   </div>
 </section>
 
 <section class="grid gap-3" aria-labelledby="kit-feedback">
   <h2 class="text-base font-semibold" id="kit-feedback">Badges, notices and notes</h2>
-  <div class="{{template "ui-card"}} grid gap-5">
+  <div class="card grid gap-5">
     <div class="flex flex-wrap items-center gap-2">
-      <span class="{{template "ui-badge"}}">ui-badge</span><span class="{{template "ui-badge-ok"}}">ok</span><span class="{{template "ui-badge-warn"}}">warn</span><span class="{{template "ui-badge-bad"}}">bad</span>
+      <span class="badge">ui-badge</span><span class="badge-ok">ok</span><span class="badge-warn">warn</span><span class="badge-bad">bad</span>
     </div>
     <div class="flex flex-wrap items-center gap-2"><span class="text-xs text-subtle"><code>ui-state</code></span>{{range .States}}{{template "ui-state" .}}{{end}}</div>
-    <div>{{template "ui-flash" (dict "Refused" "ui-flash and ui-notice: what a refused request says, in plain words.")}}<p class="{{template "ui-notice"}}" role="alert">ui-notice, a refusal above a form.</p><p class="{{template "ui-note"}}">ui-note, a quiet line under a heading or a control.</p><p class="{{template "ui-notice-chat"}}" role="alert">ui-notice-chat, a refusal in the chat's column.</p></div>
+    <div>{{template "ui-flash" (dict "Refused" "ui-flash and ui-notice: what a refused request says, in plain words.")}}<p class="notice" role="alert">ui-notice, a refusal above a form.</p><p class="note">ui-note, a quiet line under a heading or a control.</p><p class="notice-chat" role="alert">ui-notice-chat, a refusal in the chat's column.</p></div>
   </div>
 </section>
 
 <section class="grid gap-3" aria-labelledby="kit-surfaces">
   <h2 class="text-base font-semibold" id="kit-surfaces">Cards, figures and layout</h2>
-  <div class="{{template "ui-figures"}}">
-    <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}} text-accent-ink">$48.20</span><span class="{{template "ui-figure-label"}}">spent this month</span></div>
-    <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">1,240</span><span class="{{template "ui-figure-label"}}">model calls</span></div>
-    <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">9.8M</span><span class="{{template "ui-figure-label"}}">tokens in, 41% cached</span></div>
-    <div class="{{template "ui-figure"}}"><span class="{{template "ui-figure-value"}}">1.1M</span><span class="{{template "ui-figure-label"}}">tokens out</span></div>
+  <div class="figures">
+    <div class="figure"><span class="figure-value text-accent-ink">$48.20</span><span class="figure-label">spent this month</span></div>
+    <div class="figure"><span class="figure-value">1,240</span><span class="figure-label">model calls</span></div>
+    <div class="figure"><span class="figure-value">9.8M</span><span class="figure-label">tokens in, 41% cached</span></div>
+    <div class="figure"><span class="figure-value">1.1M</span><span class="figure-label">tokens out</span></div>
   </div>
-  <div class="{{template "ui-stack"}}"><section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-stack</h3><p class="{{template "ui-note"}}">Cards one under another with a gap.</p></section></div>
-  <div class="{{template "ui-panels"}}">
-    <section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-card</h3><p class="{{template "ui-note"}}">A surface that holds one thing, with a title.</p></section>
-    <section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-panels</h3><p class="{{template "ui-note"}}">Cards in a grid that fills the width and wraps.</p></section>
+  <div class="stack"><section class="card"><h3 class="card-title">ui-stack</h3><p class="note">Cards one under another with a gap.</p></section></div>
+  <div class="panels">
+    <section class="card"><h3 class="card-title">ui-card</h3><p class="note">A surface that holds one thing, with a title.</p></section>
+    <section class="card"><h3 class="card-title">ui-panels</h3><p class="note">Cards in a grid that fills the width and wraps.</p></section>
   </div>
-  <div class="{{template "ui-two-col"}}">
-    <div class="{{template "ui-col"}}"><section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">ui-two-col</h3><p class="{{template "ui-note"}}">A main column and a 20rem side column. They stack below 56rem.</p></section></div>
-    <div class="{{template "ui-col"}}"><section class="{{template "ui-card"}}"><h3 class="{{template "ui-card-title"}}">Side</h3></section></div>
+  <div class="two-col">
+    <div class="col"><section class="card"><h3 class="card-title">ui-two-col</h3><p class="note">A main column and a 20rem side column. They stack below 56rem.</p></section></div>
+    <div class="col"><section class="card"><h3 class="card-title">Side</h3></section></div>
   </div>
   {{template "ui-tabs" .Tabs}}
-  <nav class="{{template "ui-tab-list"}}" aria-label="ui-tab-list and ui-tab, by hand"><a class="{{template "ui-tab"}}" href="#kit-tables" aria-current="page">Overview</a><a class="{{template "ui-tab"}}" href="#kit-tables">People <span class="font-normal text-subtle">3</span></a></nav>
-  <div><button type="button" class="{{template "ui-btn-quiet"}}" data-open="kit-dialog">Open ui-dialog</button></div>
-  <dialog class="{{template "ui-dialog"}}" id="kit-dialog" aria-labelledby="kit-dialog-title">
+  <nav class="tab-list" aria-label="ui-tab-list and ui-tab, by hand"><a class="tab" href="#kit-tables" aria-current="page">Overview</a><a class="tab" href="#kit-tables">People <span class="font-normal text-subtle">3</span></a></nav>
+  <div><button type="button" class="btn-quiet" data-open="kit-dialog">Open ui-dialog</button></div>
+  <dialog class="dialog" id="kit-dialog" aria-labelledby="kit-dialog-title">
     <form class="grid gap-4 p-6" method="dialog">
       {{template "ui-dialog-head" (dict "ID" "kit-dialog-title" "Title" "ui-dialog" "Words" "A form over the page, with ui-dialog-head for its title and close button.")}}
-      <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}}" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}}">Save</button></div>
+      <div class="flex justify-end gap-2"><button type="button" class="btn-quiet" data-close>Cancel</button><button type="submit" class="btn">Save</button></div>
     </form>
   </dialog>
   <div class="flex flex-wrap items-start gap-6">
-    <div class="{{template "ui-menu"}} w-56" role="menu" aria-label="ui-menu, held open">
-      <a class="{{template "ui-menu-item"}}" role="menuitem" href="#kit-surfaces">{{template "icon-settings"}}<span>Settings</span></a>
-      <a class="{{template "ui-menu-item"}}" role="menuitem" href="#kit-surfaces">{{template "icon-copy"}}<span>Copy link</span></a>
-      <span class="{{template "ui-menu-sep"}}" role="separator"></span>
-      <a class="{{template "ui-menu-item"}}" role="menuitem" href="#kit-surfaces">{{template "icon-out"}}<span>Sign out</span></a>
-      <a class="{{template "ui-menu-item-danger"}}" role="menuitem" href="#kit-surfaces">{{template "icon-x"}}<span>Delete</span></a>
+    <div class="dropdown w-56" role="menu" aria-label="ui-menu, held open">
+      <span class="dropdown-label">dropdown-label</span>
+      <a class="dropdown-item" role="menuitem" href="#kit-surfaces">{{template "icon-settings"}}<span>Settings</span></a>
+      <a class="dropdown-item" role="menuitem" href="#kit-surfaces">{{template "icon-copy"}}<span>Copy link</span></a>
+      <span class="dropdown-sep" role="separator"></span>
+      <a class="dropdown-item" role="menuitem" href="#kit-surfaces">{{template "icon-out"}}<span>Sign out</span></a>
+      <a class="dropdown-item-danger" role="menuitem" href="#kit-surfaces">{{template "icon-x"}}<span>Delete</span></a>
     </div>
-    <button type="button" class="{{template "ui-btn-send"}}" title="ui-btn-send">{{template "icon-send"}}<span class="sr-only">ui-btn-send</span></button>
-    <div class="{{template "ui-card"}} w-72"><table class="{{template "ui-table"}} {{template "ui-table-flush"}}"><thead><tr><th>ui-table-flush</th><th class="text-right">Cost</th></tr></thead><tbody><tr><td>In a card</td><td class="text-right tabular-nums">$1.20</td></tr></tbody></table></div>
-    <div class="grid w-64 gap-2 {{template "ui-popover"}} p-4"><strong class="text-sm font-semibold">ui-popover</strong><p class="{{template "ui-note"}}">What floats over the page and is not a list: a few settings, a short form.</p></div>
-    <div class="relative grid w-[26rem] max-w-full gap-4 rounded-lg border border-line-strong bg-surface p-6 shadow-dialog">
-      <div><h3 class="{{template "ui-dialog-title"}}">ui-dialog, held open</h3><p class="{{template "ui-dialog-words"}}">ui-dialog-title, ui-dialog-words and ui-dialog-close, as a dialog draws them.</p><button type="button" class="{{template "ui-dialog-close"}}" aria-label="Close the example">{{template "icon-x"}}</button></div>
-      <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}}">Cancel</button><button type="button" class="{{template "ui-btn"}}">Save</button></div>
+    <div class="grid w-64 gap-3">
+      <label class="input-group">{{template "icon-search"}}<input class="input-bare h-full flex-1" type="search" placeholder="input-group with input-bare" aria-label="input-group with input-bare"></label>
+      <select class="select-inline" aria-label="select-inline"><option>Member</option><option>Admin</option></select>
+      <nav class="grid gap-0.5 rounded-lg bg-side p-2" aria-label="nav-item"><a class="nav-item" href="#kit-surfaces" aria-current="page">{{template "icon-chat"}}<span>nav-item, here</span></a><a class="nav-item" href="#kit-surfaces">{{template "icon-folder"}}<span>nav-item</span></a></nav>
+    </div>
+    <button type="button" class="btn-send" title="ui-btn-send">{{template "icon-send"}}<span class="sr-only">ui-btn-send</span></button>
+    <div class="card w-72"><table class="data-table data-table-flush"><thead><tr><th>ui-table-flush</th><th class="text-right">Cost</th></tr></thead><tbody><tr><td>In a card</td><td class="text-right tabular-nums">$1.20</td></tr></tbody></table></div>
+    <div class="grid w-64 gap-2 popover p-4"><strong class="text-sm font-semibold">ui-popover</strong><p class="note">What floats over the page and is not a list: a few settings, a short form.</p></div>
+    <div class="dialog relative m-0 grid w-[26rem] max-w-full gap-4 p-6">
+      <div><h3 class="dialog-title">ui-dialog, held open</h3><p class="dialog-words">ui-dialog-title, ui-dialog-words and ui-dialog-close, as a dialog draws them.</p><button type="button" class="dialog-close" aria-label="Close the example">{{template "icon-x"}}</button></div>
+      <div class="flex justify-end gap-2"><button type="button" class="btn-quiet">Cancel</button><button type="button" class="btn">Save</button></div>
     </div>
   </div>
-  <div class="flex items-center gap-3 text-sm"><button class="{{template "ui-switch"}}" type="button" role="switch" aria-checked="true" aria-label="ui-switch, on"></button><button class="{{template "ui-switch"}}" type="button" role="switch" aria-checked="false" aria-label="ui-switch, off"></button><span class="text-muted">ui-switch, on and off</span></div>
+  <div class="flex items-center gap-3 text-sm"><button class="switch" type="button" role="switch" aria-checked="true" aria-label="ui-switch, on"></button><button class="switch" type="button" role="switch" aria-checked="false" aria-label="ui-switch, off"></button><span class="text-muted">ui-switch, on and off</span></div>
   <div>
     <details class="group">
-      <summary class="{{template "ui-summary"}}">{{template "ui-chev"}} More filters (ui-summary and ui-chev)</summary>
-      <p class="{{template "ui-note"}} mt-2">The words beside a chevron that turns when the section opens.</p>
+      <summary class="summary">{{template "ui-chev"}} More filters (ui-summary and ui-chev)</summary>
+      <p class="note mt-2">The words beside a chevron that turns when the section opens.</p>
     </details>
   </div>
 </section>
 
 <section class="grid gap-3" aria-labelledby="kit-tables">
   <h2 class="text-base font-semibold" id="kit-tables">Tables</h2>
-  <div class="{{template "ui-table-wrap"}}">
-    <table class="{{template "ui-table"}}">
+  <div class="data-table-wrap">
+    <table class="data-table">
       <thead><tr><th class="text-left">Task</th><th class="text-left">Agent</th><th class="text-left">State</th><th class="text-right">Cost</th></tr></thead>
       <tbody>
         <tr><td class="font-medium">Fix the failing parser test</td><td><span class="flex items-center gap-2">{{template "mark" (dict "Harness" "claude" "Name" "Claude Code" "Size" "xs")}} Claude Code</span></td><td>{{template "ui-state" "passed"}}</td><td class="text-right tabular-nums">$0.42</td></tr>
@@ -253,20 +259,20 @@
       </tbody>
     </table>
   </div>
-  <div class="{{template "ui-table-wrap"}}">
-    <table class="{{template "ui-table"}}">
+  <div class="data-table-wrap">
+    <table class="data-table">
       <thead><tr><th class="text-left">Name</th><th class="text-left">Can</th><th class="text-left">Last used</th></tr></thead>
-      <tbody><tr><td class="font-medium">ci-nightly</td><td><span class="{{template "ui-badge"}}">submit</span></td><td class="text-muted">Never</td></tr><tr><td class="font-medium">reports</td><td><span class="{{template "ui-badge"}}">usage</span></td><td class="text-muted">2 days ago</td></tr></tbody>
+      <tbody><tr><td class="font-medium">ci-nightly</td><td><span class="badge">submit</span></td><td class="text-muted">Never</td></tr><tr><td class="font-medium">reports</td><td><span class="badge">usage</span></td><td class="text-muted">2 days ago</td></tr></tbody>
     </table>
     {{template "ui-pager" (dict "Shown" "26–30 of 30" "Previous" "#kit-tables")}}
   </div>
-  <p class="{{template "ui-note"}}">Every table is <code>ui-table</code>. Standing alone it sits in <code>ui-table-wrap</code>; sharing a card, it takes <code>ui-table-flush</code>.</p>
+  <p class="note">Every table is <code>data-table</code>. Standing alone it sits in <code>data-table-wrap</code>; sharing a card, it takes <code>data-table-flush</code>.</p>
 </section>
 
 <section class="grid gap-3" aria-labelledby="kit-icons">
   <h2 class="text-base font-semibold" id="kit-icons">Icons</h2>
-  <p class="{{template "ui-note"}}">One 24 unit grid, a line 1.75 units wide on that grid, so it grows and shrinks with the icon, round ends and joins, and the colour of the text. Each is drawn at 16px and 24px.</p>
-  <div class="{{template "ui-card"}} grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-2">
+  <p class="note">One 24 unit grid, a line 1.75 units wide on that grid, so it grows and shrinks with the icon, round ends and joins, and the colour of the text. Each is drawn at 16px and 24px.</p>
+  <div class="card grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-2">
       <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-log"}}<span class="[&_svg]:size-6 contents">{{template "icon-log"}}</span></span><code class="text-xs text-muted">log</code></div>
       <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-menu"}}<span class="[&_svg]:size-6 contents">{{template "icon-menu"}}</span></span><code class="text-xs text-muted">menu</code></div>
       <div class="grid justify-items-center gap-2 rounded-sm p-3 text-ink"><span class="flex items-center gap-4">{{template "icon-add"}}<span class="[&_svg]:size-6 contents">{{template "icon-add"}}</span></span><code class="text-xs text-muted">add</code></div>
@@ -317,7 +323,7 @@
 
 <section class="grid gap-3" aria-labelledby="kit-marks">
   <h2 class="text-base font-semibold" id="kit-marks">Agent marks</h2>
-  <div class="{{template "ui-card"}} flex flex-wrap items-end gap-6">
+  <div class="card flex flex-wrap items-end gap-6">
     {{range .Agents}}
     <div class="grid justify-items-center gap-2">
       <div class="flex items-end gap-2">{{template "mark" (dict "Harness" . "Name" . "Size" "lg")}}{{template "mark" (dict "Harness" . "Name" . "Size" "default")}}{{template "mark" (dict "Harness" . "Name" . "Size" "sm")}}{{template "mark" (dict "Harness" . "Name" . "Size" "xs")}}</div>

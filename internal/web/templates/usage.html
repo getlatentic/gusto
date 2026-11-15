@@ -1,14 +1,14 @@
 {{template "head" .}}
 
 {{template "ui-bar-open"}}
-  <div class="{{template "ui-bar-where"}}"><h1 class="{{template "ui-bar-title"}}">Usage</h1></div>
-  {{with .Usage}}{{template "ui-more-open"}}<a class="{{template "ui-menu-item"}}" role="menuitem" href="{{.Export}}">{{template "icon-download"}}<span>Download CSV</span></a>{{template "ui-more-close"}}{{end}}
+  <div class="bar-where"><h1 class="bar-title">Usage</h1></div>
+  {{with .Usage}}{{template "ui-more-open"}}<a class="dropdown-item" role="menuitem" href="{{.Export}}">{{template "icon-download"}}<span>Download CSV</span></a>{{template "ui-more-close"}}{{end}}
 {{template "ui-bar-close"}}
 {{template "body" $}}
-<p class="{{template "ui-page-sub"}}">Every conversation, what it cost, and whether it worked</p>
+<p class="page-sub">Every conversation, what it cost, and whether it worked</p>
 {{template "usage-tabs" .Tabs}}
 
-{{with .Mine}}<p class="{{if .Passed}}{{template "ui-notice"}}{{else}}mb-4 rounded-sm bg-wash px-4 py-3 text-sm{{end}}" role="status">{{if .Passed}}You have reached your budget for this month: {{usd .Spent}} of {{usd .Limit}}. Your agents are stopped until next month, or until an admin raises it.{{else}}You have spent {{usd .Spent}} of your {{usd .Limit}} budget this month.{{end}}</p>{{end}}
+{{with .Mine}}<p class="{{if .Passed}}notice{{else}}mb-4 rounded-sm bg-wash px-4 py-3 text-sm{{end}}" role="status">{{if .Passed}}You have reached your budget for this month: {{usd .Spent}} of {{usd .Limit}}. Your agents are stopped until next month, or until an admin raises it.{{else}}You have spent {{usd .Spent}} of your {{usd .Limit}} budget this month.{{end}}</p>{{end}}
 {{with .Usage}}
 {{with .Building}}{{if .Building}}<p class="mb-4 rounded-sm bg-warn-wash px-4 py-3 text-sm" role="status">The index is still being built, {{.Done}} of {{.Total}} tasks. What is below is not yet everything.</p>{{end}}{{end}}
 
@@ -44,9 +44,9 @@
 {{end}}
 
 {{if .Rows}}
-<div class="{{template "ui-table-wrap"}}">
+<div class="data-table-wrap">
   <div>
-  <table class="{{template "ui-table"}} [&_td]:whitespace-nowrap [&_th[aria-sort]]:text-ink">
+  <table class="data-table [&_td]:whitespace-nowrap [&_th[aria-sort]]:text-ink">
     <thead><tr>
       {{range .Columns}}<th scope="col"{{with .Sorted}} aria-sort="{{.}}"{{end}}{{if .Num}} class="text-right"{{end}}>{{if .Href}}<a class="text-inherit no-underline hover:text-ink" href="{{.Href}}">{{.Label}}</a>{{else}}{{.Label}}{{end}}</th>
       {{end}}
@@ -75,24 +75,24 @@
 </div>
 {{with .Figures.Unpriced}}<p class="mt-3 text-sm text-muted">{{.}}</p>{{end}}
 {{else if .Filtered}}
-<p class="{{template "ui-empty"}}">No session matches these filters. <a class="underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{.Clear}}">Clear them</a>.</p>
+<p class="empty">No session matches these filters. <a class="underline decoration-line-strong underline-offset-4 hover:text-ink" href="{{.Clear}}">Clear them</a>.</p>
 {{else if .Values.Get "state"}}
-<p class="{{template "ui-empty"}}">No conversation has failed. One is listed here when its latest turn fails.</p>
+<p class="empty">No conversation has failed. One is listed here when its latest turn fails.</p>
 {{else if .Building.Building}}
-<p class="{{template "ui-empty"}}">Nothing is listed yet: the index is still being built.</p>
+<p class="empty">Nothing is listed yet: the index is still being built.</p>
 {{else}}
-<p class="{{template "ui-empty"}}"><strong class="{{template "ui-empty-title"}}">No model calls yet</strong>Every call an agent makes goes through the proxy and is listed here, whoever made it.</p>
+<p class="empty"><strong class="empty-title">No model calls yet</strong>Every call an agent makes goes through the proxy and is listed here, whoever made it.</p>
 {{end}}
 
 {{else}}
-<p class="{{template "ui-empty"}}">This server keeps no usage index.</p>
+<p class="empty">This server keeps no usage index.</p>
 {{end}}
 
 {{template "foot" .}}
 
-{{define "usage-tabs"}}<nav class="page-wide {{template "ui-tab-list"}}" aria-label="Usage views">
-  <a class="{{template "ui-tab"}}" href="{{.Summary}}"{{if eq .Current "summary"}} aria-current="page"{{end}}>Summary</a>
-  <a class="{{template "ui-tab"}}" href="{{.Tasks}}"{{if eq .Current "tasks"}} aria-current="page"{{end}}>Conversations</a>
+{{define "usage-tabs"}}<nav class="page-wide tab-list" aria-label="Usage views">
+  <a class="tab" href="{{.Summary}}"{{if eq .Current "summary"}} aria-current="page"{{end}}>Summary</a>
+  <a class="tab" href="{{.Tasks}}"{{if eq .Current "tasks"}} aria-current="page"{{end}}>Conversations</a>
 </nav>{{end}}
 
 {{define "usage-select"}}<label><span class="sr-only">{{.Label}}</span>
@@ -103,7 +103,7 @@
 </label>{{end}}
 
 {{/* figure is one number of a row of them, with what it counts under it; the first is the one that is asked for. */}}
-{{define "figure"}}<div class="{{template "ui-figure"}}">
-  <span class="{{template "ui-figure-value"}}{{if .Headline}} text-accent-ink{{else if .Bad}} text-bad{{end}}">{{.Value}}</span>
-  <span class="{{template "ui-figure-label"}}">{{.Label}}</span>
+{{define "figure"}}<div class="figure">
+  <span class="figure-value{{if .Headline}} text-accent-ink{{else if .Bad}} text-bad{{end}}">{{.Value}}</span>
+  <span class="figure-label">{{.Label}}</span>
 </div>{{end}}

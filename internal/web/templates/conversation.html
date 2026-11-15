@@ -12,23 +12,23 @@
     </div>
     {{end}}
     {{if not .Instance.Room}}<span class="relative inline-grid size-7 flex-none cursor-default place-items-center rounded-full text-subtle hover:bg-wash hover:text-ink focus-visible:bg-wash focus-visible:text-ink after:pointer-events-none after:absolute after:top-[calc(100%+0.5rem)] after:right-0 after:z-40 after:w-max after:max-w-80 after:rounded-sm after:bg-ink after:px-3 after:py-2 after:text-left after:text-xs after:leading-snug after:font-medium after:whitespace-normal after:text-inverse after:opacity-0 after:content-[attr(aria-label)] hover:after:opacity-100 focus-visible:after:opacity-100 [&>svg]:size-4" tabindex="0" role="img" aria-label="Runs in its own sandbox. The model's key never reaches the agent.{{if eq .Instance.Sensitivity "restricted"}} It stays in your network.{{end}}">{{template "icon-shield"}}</span>{{end}}
-    {{range .Apps}}<a class="flex-none {{template "ui-btn-ghost"}}" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
+    {{range .Apps}}<a class="flex-none btn-ghost" href="{{appLink .}}" target="_blank" rel="noopener">Open the app</a>{{end}}
     {{if .Starting}}<span class="text-xs text-muted">Starting the preview…</span><script nonce="{{.Nonce}}">setTimeout(function () { location.reload(); }, 3000);</script>{{end}}
-    <a class="flex-none {{template "ui-btn-ghost"}}" href="{{if .Instance.Room}}/rooms/{{.Instance.ID}}/files{{else}}/instances/{{.Instance.ID}}/files?from={{.Path}}{{end}}"{{if .Instance.Room}} data-files-panel data-tab-name="Files"{{end}}>{{template "icon-file"}}<span>Files</span></a>
-    {{if .Instance.Room}}<a class="flex-none {{template "ui-btn-ghost"}} tabular-nums" href="{{.Path}}?members=1" data-open="room-members" title="Room members" aria-label="Room members, {{.Headcount}}">{{template "icon-users"}}<span>{{.Headcount}}</span></a>
+    <a class="flex-none btn-ghost" href="{{if .Instance.Room}}/rooms/{{.Instance.ID}}/files{{else}}/instances/{{.Instance.ID}}/files?from={{.Path}}{{end}}"{{if .Instance.Room}} data-files-panel data-tab-name="Files"{{end}}>{{template "icon-file"}}<span>Files</span></a>
+    {{if .Instance.Room}}<a class="flex-none btn-ghost tabular-nums" href="{{.Path}}?members=1" data-open="room-members" title="Room members" aria-label="Room members, {{.Headcount}}">{{template "icon-users"}}<span>{{.Headcount}}</span></a>
     <details class="relative flex-none" data-menu>
       <summary class="grid size-8 cursor-pointer list-none place-items-center rounded-sm text-muted hover:bg-hover hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="More for this room" title="More">{{template "icon-more"}}</summary>
-      <div class="absolute top-full right-0 z-40 mt-1 {{template "ui-menu"}} w-64" role="menu">
-        <button class="{{template "ui-menu-item"}}" type="button" role="menuitem" data-copy-link>{{template "icon-link"}}<span>Copy link</span></button>
-        <button class="{{template "ui-menu-item"}}" type="button" role="menuitem" data-open="room-guidelines">{{template "icon-file"}}<span>Room guidelines</span></button>
-        <button class="{{template "ui-menu-item"}}" type="button" role="menuitem" data-open="room-members">{{template "icon-users"}}<span>Room members</span></button>
-        {{if .Settings.In}}<form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/mute"><input type="hidden" name="mute" value="{{if .Settings.Muted}}off{{else}}on{{end}}"><button class="{{template "ui-menu-item"}}" type="submit" role="menuitem">{{if .Settings.Muted}}{{template "icon-bell"}}<span>Unmute room</span>{{else}}{{template "icon-bell-off"}}<span>Mute room</span>{{end}}</button></form>{{end}}
-        {{if and .Settings.Runs (not .Instance.Direct)}}<form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/archive"{{if not .Settings.Archived}} data-confirm="Archive {{.Instance.Title}}? It leaves everybody's list and nobody can say anything in it until an admin brings it back."{{end}}><input type="hidden" name="archive" value="{{if .Settings.Archived}}off{{else}}on{{end}}"><button class="{{template "ui-menu-item"}}" type="submit" role="menuitem">{{template "icon-archive"}}<span>{{if .Settings.Archived}}Unarchive room{{else}}Archive room{{end}}</span></button></form>{{end}}
-        <span class="{{template "ui-menu-sep"}}" role="separator"></span>
+      <div class="absolute top-full right-0 z-40 mt-1 dropdown w-64" role="menu">
+        <button class="dropdown-item" type="button" role="menuitem" data-copy-link>{{template "icon-link"}}<span>Copy link</span></button>
+        <button class="dropdown-item" type="button" role="menuitem" data-open="room-guidelines">{{template "icon-file"}}<span>Room guidelines</span></button>
+        <button class="dropdown-item" type="button" role="menuitem" data-open="room-members">{{template "icon-users"}}<span>Room members</span></button>
+        {{if .Settings.In}}<form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/mute"><input type="hidden" name="mute" value="{{if .Settings.Muted}}off{{else}}on{{end}}"><button class="dropdown-item" type="submit" role="menuitem">{{if .Settings.Muted}}{{template "icon-bell"}}<span>Unmute room</span>{{else}}{{template "icon-bell-off"}}<span>Mute room</span>{{end}}</button></form>{{end}}
+        {{if and .Settings.Runs (not .Instance.Direct)}}<form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/archive"{{if not .Settings.Archived}} data-confirm="Archive {{.Instance.Title}}? It leaves everybody's list and nobody can say anything in it until an admin brings it back."{{end}}><input type="hidden" name="archive" value="{{if .Settings.Archived}}off{{else}}on{{end}}"><button class="dropdown-item" type="submit" role="menuitem">{{template "icon-archive"}}<span>{{if .Settings.Archived}}Unarchive room{{else}}Archive room{{end}}</span></button></form>{{end}}
+        <span class="dropdown-sep" role="separator"></span>
         <p class="m-0 flex items-start gap-2 px-3 py-2 text-xs leading-5 text-subtle [&>svg]:mt-0.5 [&>svg]:size-4 [&>svg]:flex-none">{{template "icon-shield"}}<span>Runs in its own sandbox. The model's key never reaches the agent.{{if eq .Instance.Sensitivity "restricted"}} It stays in your network.{{end}}</span></p>
-        <span class="{{template "ui-menu-sep"}}" role="separator"></span>
-        <form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/members/remove" data-confirm="Leave {{.Instance.Title}}? You can be added again by its admin."><input type="hidden" name="who" value="{{.Me}}"><button class="{{template "ui-menu-item"}}" type="submit" role="menuitem">{{template "icon-out"}}<span>Leave room</span></button></form>
-        {{if .Owns}}<form class="m-0" method="post" action="/instances/{{.Instance.ID}}/remove" data-confirm="Delete {{.Instance.Title}} for everybody in it, with its conversation and its files? This cannot be undone."><button class="{{template "ui-menu-item-danger"}}" type="submit" role="menuitem">{{template "icon-trash"}}<span>Delete room</span></button></form>{{end}}
+        <span class="dropdown-sep" role="separator"></span>
+        <form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/members/remove" data-confirm="Leave {{.Instance.Title}}? You can be added again by its admin."><input type="hidden" name="who" value="{{.Me}}"><button class="dropdown-item" type="submit" role="menuitem">{{template "icon-out"}}<span>Leave room</span></button></form>
+        {{if .Owns}}<form class="m-0" method="post" action="/instances/{{.Instance.ID}}/remove" data-confirm="Delete {{.Instance.Title}} for everybody in it, with its conversation and its files? This cannot be undone."><button class="dropdown-item-danger" type="submit" role="menuitem">{{template "icon-trash"}}<span>Delete room</span></button></form>{{end}}
       </div>
     </details>{{end}}
   </header>
@@ -66,26 +66,26 @@
   <form id="model-form" method="post" action="/instances/{{.Instance.ID}}/model"><input type="hidden" name="back" value="{{.Path}}"></form>
   {{if and .Waiting (not .Instance.Room)}}<form id="stop-form" method="post" action="/jobs/{{.Latest}}/stop"><input type="hidden" name="back" value="{{.Path}}"></form>{{end}}
   <div class="composer px-6 pt-2 pb-3 @max-[56rem]:px-3">
-    {{if .Settings.Archived}}<div class="mx-auto flex max-w-[52rem] items-center gap-3 rounded-md border border-line bg-sunken py-3 pr-3 pl-5 text-sm text-muted @max-[56rem]:flex-wrap"><span class="min-w-0 flex-1">This room is archived. Nobody can say anything in it until an admin brings it back.</span>{{if .Settings.Runs}}<form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/archive"><input type="hidden" name="archive" value="off"><button type="submit" class="{{template "ui-btn-quiet"}}">Unarchive</button></form>{{end}}</div>{{end}}
+    {{if .Settings.Archived}}<div class="mx-auto flex max-w-[52rem] items-center gap-3 rounded-md border border-line bg-sunken py-3 pr-3 pl-5 text-sm text-muted @max-[56rem]:flex-wrap"><span class="min-w-0 flex-1">This room is archived. Nobody can say anything in it until an admin brings it back.</span>{{if .Settings.Runs}}<form class="m-0" method="post" action="/rooms/{{.Instance.ID}}/archive"><input type="hidden" name="archive" value="off"><button type="submit" class="btn-quiet">Unarchive</button></form>{{end}}</div>{{end}}
     <form class="relative mx-auto max-w-[52rem]" method="post" action="{{.Path}}/say" id="say-form"{{if .Instance.Room}} enctype="multipart/form-data"{{end}}{{if .Settings.Archived}} hidden{{end}}>
-      <p class="{{template "ui-notice-chat"}} mb-2" id="unsent"{{if .Unsent}} role="alert"{{else}} hidden{{end}}>{{.Unsent}}</p>
-      {{if .Instance.Room}}<ul class="absolute bottom-full left-0 z-30 mb-2 {{template "ui-menu"}} w-80 max-w-full list-none" id="mention-menu" role="listbox" aria-label="Mention" data-people="{{.Mentions}}" hidden></ul>{{end}}
+      <p class="notice-chat mb-2" id="unsent"{{if .Unsent}} role="alert"{{else}} hidden{{end}}>{{.Unsent}}</p>
+      {{if .Instance.Room}}<ul class="absolute bottom-full left-0 z-30 mb-2 dropdown w-80 max-w-full list-none" id="mention-menu" role="listbox" aria-label="Mention" data-people="{{.Mentions}}" hidden></ul>{{end}}
       <div class="grid grid-cols-[minmax(0,1fr)] gap-1 rounded-lg border border-line-strong bg-surface p-2 shadow-field transition-[border-color,box-shadow] has-[textarea:focus-visible]:border-ink/20 has-[textarea:focus-visible]:shadow-field-active">
         {{if .Instance.Room}}
         <ul class="m-0 flex list-none flex-wrap gap-1.5 p-0 [&[hidden]]:hidden" id="attached" aria-label="Files attached to this message" hidden></ul>
         <div class="relative">
           <div class="pointer-events-none absolute inset-0 overflow-hidden px-2 py-px leading-[1.375rem] whitespace-pre-wrap wrap-anywhere text-ink" id="composer-marks" aria-hidden="true"></div>
-          <textarea class="relative block max-h-56 min-h-6 w-full resize-none border-0 bg-transparent px-2 py-px leading-[1.375rem] whitespace-pre-wrap wrap-anywhere text-transparent caret-ink focus-visible:outline-none" name="said" rows="1" placeholder="{{.Hint}}" aria-label="Message the room" role="combobox" aria-autocomplete="list" aria-controls="mention-menu" aria-expanded="false" aria-describedby="unsent" autofocus required></textarea>
+          <textarea class="input-bare relative block max-h-56 min-h-6 w-full resize-none px-2 py-px leading-[1.375rem] whitespace-pre-wrap wrap-anywhere text-transparent caret-ink focus-visible:outline-none" name="said" rows="1" placeholder="{{.Hint}}" aria-label="Message the room" role="combobox" aria-autocomplete="list" aria-controls="mention-menu" aria-expanded="false" aria-describedby="unsent" autofocus required></textarea>
         </div>
         {{else}}
-        <textarea class="block max-h-56 min-h-6 w-full resize-none border-0 bg-transparent px-2 py-px leading-[1.375rem] focus-visible:outline-none" name="said" rows="1" placeholder="Message {{.Agent.Name}}" aria-label="Message {{.Agent.Name}}" aria-describedby="unsent" autofocus required></textarea>
+        <textarea class="input-bare block max-h-56 min-h-6 w-full resize-none px-2 py-px leading-[1.375rem]" name="said" rows="1" placeholder="Message {{.Agent.Name}}" aria-label="Message {{.Agent.Name}}" aria-describedby="unsent" autofocus required></textarea>
         {{end}}
         <div class="flex items-center gap-1">
           {{if .Instance.Room}}<label class="grid size-8 flex-none cursor-pointer place-items-center rounded-full text-muted hover:bg-hover hover:text-ink has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-focus [&>svg]:size-[1.125rem]" title="Attach files">{{template "icon-add"}}<span class="sr-only">Attach files</span><input class="sr-only" type="file" name="file" multiple data-attach {{with attachLimits}}data-most="{{.Files}}" data-bytes="{{.Bytes}}"{{end}}></label>{{end}}
           {{if not .Instance.Room}}{{if not .Several}}<span class="text-xs text-muted">{{.Agent.Brain}}</span>{{end}}{{end}}
           <span class="flex-1"></span>
           {{if and .Several (not .Instance.Room)}}{{template "picker" (dict "ID" "model-pick" "Label" "Model" "Name" "model" "Value" .Instance.Model "Options" .Models "Form" "model-form")}}{{end}}
-          <button type="submit" class="{{template "ui-btn-send"}}" id="send" title="Send"{{if and .Waiting (not .Instance.Room)}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
+          <button type="submit" class="btn-send" id="send" title="Send"{{if and .Waiting (not .Instance.Room)}} hidden{{end}}>{{template "icon-send"}}<span class="sr-only">Send</span></button>
           {{if and .Waiting (not .Instance.Room)}}<button type="submit" class="ml-1 inline-flex h-8 flex-none cursor-pointer items-center gap-2 rounded-full border border-line-strong bg-surface pr-4 pl-3 text-sm font-semibold text-ink hover:bg-wash [&>svg]:size-4" id="stop" form="stop-form" title="Stop">{{template "icon-stop"}}<span>Stop</span></button>{{end}}
         </div>
       </div>
@@ -239,9 +239,9 @@
 {{template "foot" .}}
 
 {{define "room-dialogs"}}{{template "room-guidelines" .}}{{$room := .Instance}}{{with .Members}}
-<dialog class="{{template "ui-dialog"}} w-[27rem]!" id="room-members" aria-labelledby="room-members-title" data-asked="members">
+<dialog class="dialog w-[27rem]!" id="room-members" aria-labelledby="room-members-title" data-asked="members">
   <div class="grid grid-cols-[minmax(0,1fr)] gap-1 p-6 pb-5">
-    <div class="mb-3 flex items-center justify-between"><h2 class="{{template "ui-dialog-title"}}" id="room-members-title">Room members</h2><button type="button" class="{{template "ui-dialog-close"}}" data-close aria-label="Close">{{template "icon-x"}}</button></div>
+    <div class="mb-3 flex items-center justify-between"><h2 class="dialog-title" id="room-members-title">Room members</h2><button type="button" class="dialog-close" data-close aria-label="Close">{{template "icon-x"}}</button></div>
     {{with $.Refused}}<p class="m-0 mb-2 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad" role="alert">{{.}}</p>{{end}}
     <button type="button" class="flex h-10 w-full cursor-pointer items-center gap-3 rounded-lg border-0 bg-transparent px-1 text-left text-sm font-medium text-ink hover:bg-sunken [&>svg]:size-4" data-open="room-add">{{template "icon-add"}}{{if .Runs}}Add member{{else}}Propose an agent{{end}}</button>
     {{range .People}}
@@ -250,7 +250,7 @@
       <span class="min-w-0 flex-1 truncate text-sm" title="{{.Who}}">{{personName .Who}}{{if .You}} <span class="text-subtle">you</span>{{end}}</span>
       {{if $.Members.Runs}}
       <form class="m-0" method="post" action="/rooms/{{$room.ID}}/members/role"><input type="hidden" name="who" value="{{.Who}}">
-        <select class="h-7 cursor-pointer appearance-none rounded-sm border-0 bg-transparent bg-[image:var(--chevron-down-icon-50)] bg-size-[0.875rem] bg-position-[center_right_0.5rem] bg-no-repeat pr-7 pl-2 text-sm text-muted [field-sizing:content] hover:bg-sunken" name="role" aria-label="Role of {{personName .Who}}" data-autosubmit>
+        <select class="select-inline" name="role" aria-label="Role of {{personName .Who}}" data-autosubmit>
           <option value="admin"{{if eq .Role "admin"}} selected{{end}}>Admin</option><option value="member"{{if eq .Role "member"}} selected{{end}}>Member</option><option value="remove">{{if .You}}Leave the room{{else}}Remove from room{{end}}</option>
         </select>
       </form>
@@ -262,11 +262,11 @@
       <span class="grid size-7 flex-none place-items-center overflow-hidden rounded-full bg-sunken [&_.mark]:size-4" aria-hidden="true">{{template "mark" (dict "Harness" .Harness "Name" .Engine "Size" "sm")}}</span>
       <span class="flex min-w-0 flex-1 items-center gap-1.5 text-sm"><span class="flex-none">{{.Name}}</span><span class="truncate text-subtle" title="{{.Engine}}{{with .Brain}} · {{.}}{{end}}{{with .Allowance}} · {{.}}{{end}}">{{or .Job .Engine}}</span>{{with .Owner}}<span class="flex-none text-subtle">· {{.}}</span>{{end}}<span class="flex-none text-subtle [&>svg]:size-3.5" title="Agent">{{template "icon-bot"}}</span></span>
       {{if and .Pending $.Members.Runs}}
-      <form class="m-0" method="post" action="/rooms/{{$room.ID}}/agents/{{.ID}}/accept"><button type="submit" class="{{template "ui-btn-sm"}}">Accept</button></form>
+      <form class="m-0" method="post" action="/rooms/{{$room.ID}}/agents/{{.ID}}/accept"><button type="submit" class="btn-sm">Accept</button></form>
       <form class="m-0" method="post" action="/rooms/{{$room.ID}}/agents/{{.ID}}/remove"><button type="submit" class="cursor-pointer border-0 bg-transparent p-0 text-sm text-subtle hover:text-ink">Decline</button></form>
       {{else if or $.Members.Runs .Yours}}
       <form class="m-0" method="post" action="/rooms/{{$room.ID}}/agents/{{.ID}}/remove">
-        <select class="h-7 cursor-pointer rounded-md border-0 bg-transparent pr-1 text-sm text-muted [field-sizing:content] hover:bg-sunken" name="keep" aria-label="{{.Name}}" data-autosubmit>
+        <select class="select-inline" name="keep" aria-label="{{.Name}}" data-autosubmit>
           <option value="">{{if .Pending}}Waiting for an admin{{else}}Agent{{end}}</option><option value="remove">{{if .Pending}}Withdraw{{else}}Remove from room{{end}}</option>
         </select>
       </form>
@@ -274,17 +274,17 @@
     </div>
     {{if or $.Members.Runs .Yours}}<form class="m-0 flex items-center gap-2 pb-2 pl-11" method="post" action="/rooms/{{$room.ID}}/agents/{{.ID}}/allowance">
       <label class="flex items-center gap-2 text-xs text-subtle">Allowance a month <input class="input h-7 w-24" name="allowance" inputmode="decimal" placeholder="no limit" autocomplete="off" value="{{.AllowanceField}}" aria-label="{{.Name}}'s allowance a month"></label>
-      <button class="{{template "ui-btn-sm"}}" type="submit">Save</button>
+      <button class="btn-sm" type="submit">Save</button>
     </form>{{end}}
     {{end}}
   </div>
 </dialog>
-<dialog class="{{template "ui-dialog"}} w-[30rem]!" id="room-add" aria-labelledby="room-add-title" data-asked="add">
+<dialog class="dialog w-[30rem]!" id="room-add" aria-labelledby="room-add-title" data-asked="add">
   <form class="grid gap-4 p-6" method="post" action="/rooms/{{$room.ID}}/members/add">
-    <div class="flex items-start justify-between gap-3"><div><h2 class="{{template "ui-dialog-title"}}" id="room-add-title">{{if .Runs}}Add members{{else}}Propose an agent{{end}}</h2><p class="{{template "ui-dialog-words"}}">{{if .Runs}}Pick the agents you work with, or add people by their email address.{{else}}Pick an agent of yours. It joins when an admin of the room accepts it.{{end}}</p></div><button type="button" class="{{template "ui-dialog-close"}}" data-close aria-label="Close">{{template "icon-x"}}</button></div>
+    <div class="flex items-start justify-between gap-3"><div><h2 class="dialog-title" id="room-add-title">{{if .Runs}}Add members{{else}}Propose an agent{{end}}</h2><p class="dialog-words">{{if .Runs}}Pick the agents you work with, or add people by their email address.{{else}}Pick an agent of yours. It joins when an admin of the room accepts it.{{end}}</p></div><button type="button" class="dialog-close" data-close aria-label="Close">{{template "icon-x"}}</button></div>
     {{with $.AddRefused}}<p class="m-0 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad" role="alert">{{.}}</p>{{end}}
     {{if .Addable}}
-    <label class="flex h-9 items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 text-sm focus-within:border-focus [&>svg]:size-4 [&>svg]:text-subtle">{{template "icon-search"}}<input class="h-full min-w-0 flex-1 border-0 bg-transparent p-0 focus:outline-none" type="search" placeholder="Search agents" aria-label="Search agents" data-filter="room-add-list" autocomplete="off"></label>
+    <label class="input-group">{{template "icon-search"}}<input class="input-bare h-full flex-1" type="search" placeholder="Search agents" aria-label="Search agents" data-filter="room-add-list" autocomplete="off"></label>
     <div class="grid max-h-64 gap-1.5 overflow-y-auto" id="room-add-list">
       {{range .Addable}}
       <label class="flex h-11 cursor-pointer items-center gap-3 rounded-lg border border-line px-3 text-sm hover:border-line-strong has-[:checked]:border-accent has-[:checked]:bg-accent-wash" data-name="{{.Name}}">
@@ -295,22 +295,22 @@
       </label>
       {{end}}
     </div>
-    <label class="{{template "ui-field"}}"><span>Allowance <span class="font-normal">dollars each agent may spend in this room a month; empty for no limit</span></span><input class="input" name="allowance" inputmode="decimal" placeholder="no limit" autocomplete="off"></label>
+    <label class="field"><span>Allowance <span class="font-normal">dollars each agent may spend in this room a month; empty for no limit</span></span><input class="input" name="allowance" inputmode="decimal" placeholder="no limit" autocomplete="off"></label>
     {{else}}<p class="m-0 text-sm text-muted">{{if not $room.Agents}}You have no agents yet. Make one with New agent, then add it here.{{else if .Runs}}Every agent you work with is in this room already.{{else}}Every agent of yours is in this room already.{{end}}</p>{{end}}
-    {{if .Runs}}<label class="{{template "ui-field"}}"><span>People <span class="font-normal">email addresses, separated by commas</span></span><input class="input" name="who" placeholder="name@example.com" autocomplete="off"></label>{{end}}
-    <div class="flex items-center gap-2"><a class="{{template "ui-link-quiet"}} mr-auto [&>svg]:size-4" href="/members?new=1">{{template "icon-add"}} New agent</a><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}} h-9">{{if .Runs}}Add{{else}}Propose{{end}}</button></div>
+    {{if .Runs}}<label class="field"><span>People <span class="font-normal">email addresses, separated by commas</span></span><input class="input" name="who" placeholder="name@example.com" autocomplete="off"></label>{{end}}
+    <div class="flex items-center gap-2"><a class="link-quiet mr-auto [&>svg]:size-4" href="/members?new=1">{{template "icon-add"}} New agent</a><button type="button" class="btn-quiet h-9" data-close>Cancel</button><button type="submit" class="btn h-9">{{if .Runs}}Add{{else}}Propose{{end}}</button></div>
   </form>
 </dialog>
 {{end}}{{end}}
 
 {{define "room-guidelines"}}{{$room := .Instance}}
-<dialog class="{{template "ui-dialog"}} w-[30rem]!" id="room-guidelines" aria-labelledby="room-guidelines-title" data-asked="guidelines">
+<dialog class="dialog w-[30rem]!" id="room-guidelines" aria-labelledby="room-guidelines-title" data-asked="guidelines">
   {{if .Settings.Runs}}<form class="grid gap-4 p-6" method="post" action="/rooms/{{$room.ID}}/guidelines">{{else}}<div class="grid gap-4 p-6">{{end}}
-    <div class="flex items-start justify-between gap-3"><div><h2 class="{{template "ui-dialog-title"}}" id="room-guidelines-title">Room guidelines</h2><p class="{{template "ui-dialog-words"}}">What every agent in this room is told at the start of each turn. Everybody in the room can read them{{if .Settings.Runs}}; admins change them{{end}}.</p></div><button type="button" class="{{template "ui-dialog-close"}}" data-close aria-label="Close">{{template "icon-x"}}</button></div>
+    <div class="flex items-start justify-between gap-3"><div><h2 class="dialog-title" id="room-guidelines-title">Room guidelines</h2><p class="dialog-words">What every agent in this room is told at the start of each turn. Everybody in the room can read them{{if .Settings.Runs}}; admins change them{{end}}.</p></div><button type="button" class="dialog-close" data-close aria-label="Close">{{template "icon-x"}}</button></div>
     {{with .Settings.Refused}}<p class="m-0 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad" role="alert">{{.}}</p>{{end}}
     {{if .Settings.Runs}}
-    <textarea class="input min-h-32 resize-y leading-relaxed" name="guidelines" maxlength="{{maxGuidelines}}" placeholder="For example: answer in French, and ask before deleting files." aria-label="Guidelines">{{$room.Guidelines}}</textarea>
-    <div class="flex items-center gap-2"><span class="mr-auto text-xs text-subtle">Up to {{maxGuidelines}} characters</span><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}} h-9">Save</button></div>
+    <textarea class="textarea min-h-32 resize-y leading-relaxed" name="guidelines" maxlength="{{maxGuidelines}}" placeholder="For example: answer in French, and ask before deleting files." aria-label="Guidelines">{{$room.Guidelines}}</textarea>
+    <div class="flex items-center gap-2"><span class="mr-auto text-xs text-subtle">Up to {{maxGuidelines}} characters</span><button type="button" class="btn-quiet h-9" data-close>Cancel</button><button type="submit" class="btn h-9">Save</button></div>
     {{else}}
     {{with $room.Guidelines}}<p class="m-0 text-sm leading-relaxed whitespace-pre-wrap wrap-anywhere">{{.}}</p>{{else}}<p class="m-0 text-sm text-muted">This room has no guidelines.</p>{{end}}
     {{end}}
@@ -364,7 +364,7 @@
     {{if or $.P.Sharing $.P.ShareHidden}}{{range .Previews}}
     <form class="m-0" method="post" action="/instances/{{$.P.Instance.ID}}/apps"{{if not $.P.Sharing}} data-owner-only hidden{{end}}>
       <input type="hidden" name="preview" value="{{.}}"><input type="hidden" name="back" value="{{$.P.Path}}">
-      <button type="submit" class="h-8 {{template "ui-btn-quiet"}}">Preview {{if ne . "."}}{{.}}{{else}}this page{{end}}</button>
+      <button type="submit" class="h-8 btn-quiet">Preview {{if ne . "."}}{{.}}{{else}}this page{{end}}</button>
     </form>
     {{end}}{{end}}
   </div>
@@ -436,7 +436,7 @@ message tall; the duration and cost of a reply are in its title. */}}
   <div class="flex min-w-0 flex-wrap gap-2">{{range .Shown}}{{template "file-chip" (dict "C" . "P" $.P)}}{{end}}</div>
   {{with .More}}
   <details class="group">
-    <summary class="{{template "ui-summary"}} text-xs">{{template "ui-chev"}}<span>Show {{len .}} more file{{if ne (len .) 1}}s{{end}}</span></summary>
+    <summary class="summary text-xs">{{template "ui-chev"}}<span>Show {{len .}} more file{{if ne (len .) 1}}s{{end}}</span></summary>
     <div class="mt-2 flex min-w-0 flex-wrap gap-2">{{range .}}{{template "file-chip" (dict "C" . "P" $.P)}}{{end}}</div>
   </details>
   {{end}}

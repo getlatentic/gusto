@@ -16,9 +16,9 @@
 
   function open() {
     backdrop = document.createElement("div");
-    backdrop.className = "fixed inset-0 z-60 grid place-items-center bg-scrim p-4";
+    backdrop.className = "fixed inset-0 z-60 grid place-items-center bg-backdrop p-4";
     var dialog = document.createElement("div");
-    dialog.className = "grid h-[min(34rem,100%)] w-[min(48rem,100%)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-lg bg-surface shadow-3";
+    dialog.className = "dialog m-0 grid h-[min(34rem,100%)] w-[min(48rem,100%)] max-w-none grid-rows-[auto_minmax(0,1fr)] overflow-hidden";
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
     dialog.setAttribute("aria-labeledby", "d-title");

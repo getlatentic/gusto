@@ -1,24 +1,24 @@
 {{template "head" .}}
 
 {{template "ui-bar-open"}}
-  <div class="{{template "ui-bar-where"}}"><h1 class="{{template "ui-bar-title"}}">People</h1></div>
-  {{with .Manage}}<a class="{{template "ui-btn"}}" href="{{.}}">Invite people</a>{{end}}
+  <div class="bar-where"><h1 class="bar-title">People</h1></div>
+  {{with .Manage}}<a class="btn" href="{{.}}">Invite people</a>{{end}}
 {{template "ui-bar-close"}}
 {{template "body" $}}
-<p class="{{template "ui-page-sub"}}">Who is in {{or .OrgName "this organization"}}, and what they may do</p>
+<p class="page-sub">Who is in {{or .OrgName "this organization"}}, and what they may do</p>
 {{with .Tabs}}{{if gt (len .) 1}}{{template "ui-tabs" .}}{{end}}{{end}}
 
 {{template "ui-flash" .}}
 
 {{if .Unreadable}}
-<p class="{{template "ui-notice"}}">The list of people could not be read, so none is shown. {{.Unreadable}}</p>
+<p class="notice">The list of people could not be read, so none is shown. {{.Unreadable}}</p>
 {{else}}
 
-{{if .SpendUnreadable}}<p class="{{template "ui-notice"}}">Spending could not be read, so none is shown. {{.SpendUnreadable}}</p>{{end}}
+{{if .SpendUnreadable}}<p class="notice">Spending could not be read, so none is shown. {{.SpendUnreadable}}</p>{{end}}
 
 {{if eq .Tab "invited"}}
-<div class="{{template "ui-table-wrap"}} relative">
-  <table class="{{template "ui-table"}}">
+<div class="data-table-wrap relative">
+  <table class="data-table">
     <thead><tr><th>Invited</th><th>By</th><th class="text-right">Link works until</th></tr></thead>
     <tbody>
       {{range .Invited}}<tr><td>{{.Email}}</td><td class="text-muted">{{.By}}</td><td class="text-right whitespace-nowrap text-subtle">{{if .Expired}}Expired {{when .Expires}}{{else}}{{when .Expires}}{{end}}</td></tr>{{end}}
@@ -26,8 +26,8 @@
   </table>
 </div>
 {{else}}
-<div class="{{template "ui-table-wrap"}} relative">
-  <table class="{{template "ui-table"}}">
+<div class="data-table-wrap relative">
+  <table class="data-table">
     <thead><tr><th>Person</th><th>Role</th><th class="text-right">{{if .Budgets}}<a class="text-inherit no-underline hover:underline" href="/admin/budgets">Spent this month</a>{{else}}Spent this month{{end}}</th><th class="text-right">Last in</th></tr></thead>
     <tbody>
       {{range .People}}

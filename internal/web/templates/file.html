@@ -1,12 +1,12 @@
 {{template "head" .}}
 
 {{template "ui-bar-open"}}
-  <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Where this is">{{if .TaskID}}<a class="{{template "ui-bar-crumb"}}" href="/jobs">Activity</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span><a class="{{template "ui-bar-crumb"}}" href="/jobs/{{.TaskID}}">Details</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span>{{else}}<a class="{{template "ui-bar-crumb"}}" href="/files">Files</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span>{{range .Crumbs}}<a class="{{template "ui-bar-crumb"}}" href="/files?at={{.At}}">{{.Name}}</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span>{{end}}{{end}}</nav><h1 class="{{template "ui-bar-title"}}" title="{{.File.Name}}">{{.File.Name}}</h1></div>
+  <div class="bar-where"><nav class="contents" aria-label="Where this is">{{if .TaskID}}<a class="bar-crumb" href="/jobs">Activity</a><span class="bar-sep" aria-hidden="true">/</span><a class="bar-crumb" href="/jobs/{{.TaskID}}">Details</a><span class="bar-sep" aria-hidden="true">/</span>{{else}}<a class="bar-crumb" href="/files">Files</a><span class="bar-sep" aria-hidden="true">/</span>{{range .Crumbs}}<a class="bar-crumb" href="/files?at={{.At}}">{{.Name}}</a><span class="bar-sep" aria-hidden="true">/</span>{{end}}{{end}}</nav><h1 class="bar-title" title="{{.File.Name}}">{{.File.Name}}</h1></div>
   <div class="flex flex-none items-center gap-2">
-      {{if .Back}}<a class="{{template "ui-btn-sm"}} [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" href="{{.Back}}">{{template "icon-compose"}}<span>{{or .BackWord "Back to the chat"}}</span></a>{{end}}
-      {{if eq .File.Kind "html"}}<a class="{{template "ui-btn-sm"}} [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" href="/instances/{{.Instance.ID}}/file?path={{.File.Path}}&amp;source=1">View source</a>{{end}}
-      {{if .File.Editable}}<button type="button" class="{{template "ui-btn-sm"}} [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" data-edit>Edit</button>{{end}}
-      <a class="{{template "ui-btn-sm"}} [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download</span></a>
+      {{if .Back}}<a class="btn-sm [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" href="{{.Back}}">{{template "icon-compose"}}<span>{{or .BackWord "Back to the chat"}}</span></a>{{end}}
+      {{if eq .File.Kind "html"}}<a class="btn-sm [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" href="/instances/{{.Instance.ID}}/file?path={{.File.Path}}&amp;source=1">View source</a>{{end}}
+      {{if .File.Editable}}<button type="button" class="btn-sm [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" data-edit>Edit</button>{{end}}
+      <a class="btn-sm [&>svg]:size-4 @max-[40rem]:[&>span]:sr-only" href="{{.File.Download}}" download>{{template "icon-download"}}<span>Download</span></a>
   </div>
 {{template "ui-bar-close"}}
 {{template "body" .}}
@@ -50,7 +50,7 @@
   {{else if eq .File.Kind "office"}}
   <p class="rounded-sm bg-wash px-4 py-3 text-xs text-muted">This is the text of the file, not how it looks. Download it to open it in its own program.</p>
   {{range .File.Parts}}
-  <section class="grid gap-3 {{template "ui-card"}}">
+  <section class="grid gap-3 card">
     {{with .Title}}<h2 class="text-xs font-semibold text-subtle">{{.}}</h2>{{end}}
     {{range .Lines}}{{if eq .Heading 0}}<p class="leading-relaxed whitespace-pre-wrap">{{.Text}}</p>{{else if eq .Heading 1}}<h3 class="mt-2 text-sm">{{.Text}}</h3>{{else}}<h4 class="text-sm">{{.Text}}</h4>{{end}}{{end}}
     {{with .Rows}}<div class="overflow-x-auto"><table class="w-auto min-w-full text-xs [&_td]:max-w-96 [&_td]:truncate [&_td]:border [&_td]:border-line [&_td]:px-4 [&_td]:py-2">{{range .}}<tr>{{range .}}<td>{{.}}</td>{{end}}</tr>{{end}}</table></div>{{end}}
@@ -90,7 +90,7 @@
   <textarea class="min-h-[60vh] w-full resize-y rounded-md border border-line-strong bg-surface px-4 py-3 font-mono text-sm leading-relaxed [tab-size:4] focus-visible:border-focus focus-visible:outline-none" name="text" spellcheck="false" aria-label="The text of {{.File.Name}}">
 {{.File.Source}}</textarea>
   <p class="m-0 text-sm text-bad" role="alert" data-edit-said hidden></p>
-  <div class="flex items-center gap-2"><button type="submit" class="{{template "ui-btn"}} h-9">Save</button><button type="button" class="{{template "ui-btn-quiet"}} h-9" data-edit-cancel>Cancel</button></div>
+  <div class="flex items-center gap-2"><button type="submit" class="btn h-9">Save</button><button type="button" class="btn-quiet h-9" data-edit-cancel>Cancel</button></div>
 </form>
 <script src="{{asset "/static/fileedit.js"}}"></script>
 {{end}}{{end}}

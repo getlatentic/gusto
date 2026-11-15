@@ -24,6 +24,8 @@
   --gu-text-inverse: #FAFAF9;
   --gu-hover: color-mix(in srgb, var(--gu-text) 6%, transparent);
   --gu-scrim: rgb(20 20 18 / .32);
+  /* Behind a dialog the page dims by half, as Kylon's does. */
+  --gu-backdrop: rgb(0 0 0 / .5);
   --gu-shadow-1: 0 0.0625rem 0.125rem rgb(0 0 0 / .06);
   --gu-shadow-2: 0 0.25rem 1rem rgb(0 0 0 / .08);
   --gu-shadow-3: 0 0.75rem 2rem rgb(0 0 0 / .12);
@@ -54,6 +56,7 @@
   --gu-text-placeholder: #9A9A94;
   --gu-text-inverse: #141412;
   --gu-scrim: rgb(0 0 0 / .6);
+  --gu-backdrop: rgb(0 0 0 / .6);
   --gu-shadow-1: none;
   --gu-shadow-2: none;
   --gu-shadow-3: 0 0.75rem 2rem rgb(0 0 0 / .5);

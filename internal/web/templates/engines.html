@@ -1,17 +1,17 @@
 {{template "head" .}}
 
 {{template "ui-bar-open"}}
-  <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Where this is"><a class="{{template "ui-bar-crumb"}}" href="/presets">New agent</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span><a class="{{template "ui-bar-crumb"}}" href="/new/blank">Your own agent</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span></nav><h1 class="{{template "ui-bar-title"}}">How each agent type did</h1></div>
+  <div class="bar-where"><nav class="contents" aria-label="Where this is"><a class="bar-crumb" href="/presets">New agent</a><span class="bar-sep" aria-hidden="true">/</span><a class="bar-crumb" href="/new/blank">Your own agent</a><span class="bar-sep" aria-hidden="true">/</span></nav><h1 class="bar-title">How each agent type did</h1></div>
 {{template "ui-bar-close"}}
 {{template "body" .}}
 
-<p class="{{template "ui-page-sub"}}">Each agent type was given the same small bug to fix on each model, in its own sealed box. A test decides whether it finished.</p>
+<p class="page-sub">Each agent type was given the same small bug to fix on each model, in its own sealed box. A test decides whether it finished.</p>
 
 {{with .Measured}}
 {{if .Rows}}
-<p class="mb-5 flex items-baseline gap-2"><span class="{{template "ui-figure-value"}} text-accent-ink">{{.Finished}} of {{.Tried}}</span><span class="text-sm text-muted">finished the fix</span></p>
-<div class="{{template "ui-table-wrap"}}">
-  <table class="{{template "ui-table"}}">
+<p class="mb-5 flex items-baseline gap-2"><span class="figure-value text-accent-ink">{{.Finished}} of {{.Tried}}</span><span class="text-sm text-muted">finished the fix</span></p>
+<div class="data-table-wrap">
+  <table class="data-table">
     <thead><tr><th>Agent type</th>{{range .Models}}<th>{{.}}</th>{{end}}</tr></thead>
     <tbody>
     {{range .Rows}}

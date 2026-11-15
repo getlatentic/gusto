@@ -2,7 +2,7 @@
 {{with .Ledger}}
 
 {{template "ui-bar-open"}}
-  <div class="{{template "ui-bar-where"}}"><h1 class="{{template "ui-bar-title"}}">Usage</h1></div>
+  <div class="bar-where"><h1 class="bar-title">Usage</h1></div>
   <form class="m-0" method="get" action="{{$.Base}}">
     <label><span class="sr-only">Month</span>
       <select class="select" name="month" data-autosubmit>
@@ -10,14 +10,14 @@
         {{if not .Months}}<option selected>{{.Month}}</option>{{end}}
       </select>
     </label>
-    <noscript><button class="{{template "ui-btn"}}" type="submit">Show</button></noscript>
+    <noscript><button class="btn" type="submit">Show</button></noscript>
   </form>
 {{template "ui-bar-close"}}
 {{template "body" $}}
-<p class="{{template "ui-page-sub"}}">What agents cost this month, day by day</p>
+<p class="page-sub">What agents cost this month, day by day</p>
 {{template "usage-tabs" $.Tabs}}
 
-<section class="{{template "ui-figures"}} mb-9">
+<section class="figures mb-9">
   {{$spent := usd .Total.USD}}{{if and (eq .Total.USD 0.0) .Total.Unmeasured}}{{$spent = "—"}}{{end}}
   {{$caption := "spent this month, at least"}}{{if eq .Total.Unmeasured 0}}{{$caption = "spent this month"}}{{else if eq .Total.Calls .Total.Unmeasured}}{{$caption = "no price set for these models"}}{{end}}
   {{template "figure" (dict "Headline" true "Value" $spent "Label" $caption)}}
@@ -28,7 +28,7 @@
   {{template "figure" (dict "Value" .Total.Refused "Label" "refused by a cap" "Bad" .Total.Refused)}}
 </section>
 
-<section class="mb-4 {{template "ui-card"}}">
+<section class="mb-4 card">
   <h2 class="mb-4 flex items-baseline gap-2 text-sm font-semibold">Spend by day <span class="font-normal text-muted">{{if eq .Measure "money"}}dollars{{else}}tokens{{end}}</span></h2>
   {{if .Daily}}
   <div class="group/bars flex h-40 items-end gap-1.5" role="img" aria-label="Spending on each day of {{.Month}}">
@@ -43,8 +43,8 @@
 {{with .Tops}}
 <div class="mb-4 grid grid-cols-3 gap-3 @max-[56rem]:grid-cols-1">
   {{range .}}
-  <div class="grid content-start gap-1.5 {{template "ui-card"}}">
-    <span class="{{template "ui-figure-label"}}">{{.Title}}</span>
+  <div class="grid content-start gap-1.5 card">
+    <span class="figure-label">{{.Title}}</span>
     <span class="font-display text-xl font-semibold tracking-tight wrap-anywhere">{{.Name}}</span>
     <span class="text-sm text-subtle">{{.Says}}</span>
   </div>
@@ -58,10 +58,10 @@
 {{template "foot" .}}
 
 {{define "shares"}}
-<section class="min-w-0 {{template "ui-card"}}">
+<section class="min-w-0 card">
   <h2 class="mb-3 text-sm font-semibold">{{.Title}}</h2>
   {{if .Lines}}
-  <table class="{{template "ui-table"}} {{template "ui-table-flush"}}">
+  <table class="data-table data-table-flush">
     <thead><tr><th>Name</th><th class="pl-4 text-right">Spent</th><th class="pl-4 text-right">Tokens</th></tr></thead>
     <tbody>
     {{range .Lines}}

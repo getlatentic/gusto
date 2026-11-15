@@ -1,20 +1,20 @@
 {{template "head" .}}
 {{template "ui-bar-open"}}
-  <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Where this is"><a class="{{template "ui-bar-crumb"}}" href="{{.Base}}">Usage</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span></nav><h1 class="{{template "ui-bar-title"}}">{{with .Session}}Session <code class="font-mono text-xs font-medium">{{.ID}}</code>{{else}}Session{{end}}</h1></div>
+  <div class="bar-where"><nav class="contents" aria-label="Where this is"><a class="bar-crumb" href="{{.Base}}">Usage</a><span class="bar-sep" aria-hidden="true">/</span></nav><h1 class="bar-title">{{with .Session}}Session <code class="font-mono text-xs font-medium">{{.ID}}</code>{{else}}Session{{end}}</h1></div>
 {{template "ui-bar-close"}}
 {{template "body" .}}
 {{with .Session}}
-<p class="{{template "ui-page-sub"}}">{{.Person}}{{with .Agent}}, agent {{.}}{{end}}{{with .Engine}}, agent type {{.}}{{end}}. The latest call first.</p>
+<p class="page-sub">{{.Person}}{{with .Agent}}, agent {{.}}{{end}}{{with .Engine}}, agent type {{.}}{{end}}. The latest call first.</p>
 
 <form class="mb-4 flex flex-wrap items-center gap-3 text-sm" method="get" action="{{$.Base}}/{{.ID}}" role="search">
   <label class="min-w-48 flex-1"><span class="sr-only">Search this session's calls</span><input class="input" type="search" name="q" value="{{.Search}}" placeholder="Search"></label>
-  <button class="{{template "ui-btn"}}" type="submit">Search</button>
+  <button class="btn" type="submit">Search</button>
   {{if .Search}}<a class="text-muted no-underline underline-offset-4 hover:text-ink hover:underline" href="{{$.Base}}/{{.ID}}">Clear</a>{{end}}
 </form>
 
-<div class="{{template "ui-table-wrap"}}">
+<div class="data-table-wrap">
   <div>
-  <table class="{{template "ui-table"}} [&_td]:whitespace-nowrap">
+  <table class="data-table [&_td]:whitespace-nowrap">
     <thead><tr>
       <th scope="col">Time (UTC)</th><th scope="col">Task</th><th scope="col">Model</th><th scope="col">Provider</th><th scope="col">Key</th>
       <th scope="col" class="text-right">Tokens</th><th scope="col" class="text-right">Cache</th><th scope="col" class="text-right">Cost</th><th scope="col">Status</th>
@@ -31,7 +31,7 @@
         <td class="text-right tabular-nums">{{.In}} in, {{.Out}} out</td>
         <td class="text-right tabular-nums">{{.Cache}}</td>
         <td class="text-right tabular-nums">{{if .Unpriced}}<span class="text-muted">no price</span>{{else}}{{.Cost}}{{end}}</td>
-        <td>{{if .Refused}}<span class="inline-flex items-center rounded-full bg-bad-wash px-2 py-0.5 text-xs font-medium text-bad">{{or .Status "refused"}}</span>{{else}}{{or .Status "—"}}{{end}}</td>
+        <td>{{if .Refused}}<span class="badge-bad">{{or .Status "refused"}}</span>{{else}}{{or .Status "—"}}{{end}}</td>
         <td>{{or .Refused "—"}}</td>
         <td>{{or .Translated "—"}}</td>
       </tr>

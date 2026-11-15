@@ -28,16 +28,16 @@
     </div>
     <div class="grid gap-2">
       <label class="text-sm font-medium text-muted" for="models">Models</label>
-      <div class="flex gap-2"><input class="h-10 min-w-0 flex-1 input" name="models" id="models" required placeholder="One or more, separated by commas" list="found-models"><button type="button" id="list-models" class="h-10 flex-none px-4 {{template "ui-btn-quiet"}}">List my models</button></div>
+      <div class="flex gap-2"><input class="h-10 min-w-0 flex-1 input" name="models" id="models" required placeholder="One or more, separated by commas" list="found-models"><button type="button" id="list-models" class="h-10 flex-none px-4 btn-quiet">List my models</button></div>
       <span class="text-xs text-subtle empty:hidden" id="list-said" role="status"></span>
     </div>
     <datalist id="found-models"></datalist>
   </div>
-  <button type="submit" class="h-10 px-6 {{template "ui-btn"}}">Add</button>
+  <button type="submit" class="h-10 px-6 btn">Add</button>
   {{with .Missing}}
   <div class="grid gap-2 border-t border-line pt-4">
     <span class="text-sm font-medium text-muted">Not on this computer yet</span>
-    <dl class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-center gap-x-4 gap-y-2 text-sm">{{range .}}<dt class="text-ink">{{.Title}}</dt><dd class="m-0">{{if installable .Name}}<button type="submit" form="install-{{.Name}}" class="h-8 cursor-pointer {{template "ui-btn-quiet"}}" data-busy="Installing…">Install</button>{{else}}<code class="rounded-xs bg-wash px-1 font-mono text-xs wrap-anywhere">{{.Why}}</code>{{end}}</dd>{{end}}</dl>
+    <dl class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-center gap-x-4 gap-y-2 text-sm">{{range .}}<dt class="text-ink">{{.Title}}</dt><dd class="m-0">{{if installable .Name}}<button type="submit" form="install-{{.Name}}" class="h-8 cursor-pointer btn-quiet" data-busy="Installing…">Install</button>{{else}}<code class="rounded-xs bg-wash px-1 font-mono text-xs wrap-anywhere">{{.Why}}</code>{{end}}</dd>{{end}}</dl>
     {{if $.HandInstall}}<p class="text-sm text-muted">After running a command above, run <code class="rounded-xs bg-wash px-1 font-mono text-xs wrap-anywhere">gusto open</code> in the same terminal, so gusto looks where that terminal does.</p>{{end}}
   </div>
   {{end}}

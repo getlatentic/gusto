@@ -1,10 +1,10 @@
 {{template "head" .}}
 
 {{template "ui-bar-open"}}
-  <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Where this is">{{if .Agent}}<a class="{{template "ui-bar-crumb"}}" href="/files">Files</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span><a class="{{template "ui-bar-crumb"}}" href="/instances/{{.Agent.ID}}">{{.Agent.Name}}</a>{{else}}<a class="{{template "ui-bar-crumb"}}" href="/jobs">Activity</a>{{end}}<span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span>{{with .Talk}}<a class="{{template "ui-bar-crumb"}}" href="{{$.ThreadPath}}">{{.Name}}</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span>{{end}}</nav><h1 class="{{template "ui-bar-title"}}">Run details</h1></div>
+  <div class="bar-where"><nav class="contents" aria-label="Where this is">{{if .Agent}}<a class="bar-crumb" href="/files">Files</a><span class="bar-sep" aria-hidden="true">/</span><a class="bar-crumb" href="/instances/{{.Agent.ID}}">{{.Agent.Name}}</a>{{else}}<a class="bar-crumb" href="/jobs">Activity</a>{{end}}<span class="bar-sep" aria-hidden="true">/</span>{{with .Talk}}<a class="bar-crumb" href="{{$.ThreadPath}}">{{.Name}}</a><span class="bar-sep" aria-hidden="true">/</span>{{end}}</nav><h1 class="bar-title">Run details</h1></div>
   <div class="flex flex-none items-center gap-2">
-    {{with .Talk}}{{if .Before}}<a class="{{template "ui-btn-sm"}} [&>svg]:size-4" href="/jobs/{{.Before}}">{{template "icon-back"}} Previous</a>{{end}}{{if .After}}<a class="{{template "ui-btn-sm"}} [&>svg]:size-4" href="/jobs/{{.After}}">Next {{template "icon-go"}}</a>{{end}}{{end}}
-    {{if .ThreadPath}}<a class="{{template "ui-btn"}}" href="{{.ThreadPath}}">Open the conversation</a>{{end}}
+    {{with .Talk}}{{if .Before}}<a class="btn-sm [&>svg]:size-4" href="/jobs/{{.Before}}">{{template "icon-back"}} Previous</a>{{end}}{{if .After}}<a class="btn-sm [&>svg]:size-4" href="/jobs/{{.After}}">Next {{template "icon-go"}}</a>{{end}}{{end}}
+    {{if .ThreadPath}}<a class="btn" href="{{.ThreadPath}}">Open the conversation</a>{{end}}
   </div>
 {{template "ui-bar-close"}}
 {{template "body" .}}
@@ -16,14 +16,14 @@
 </div>
 
 <p class="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm" aria-label="Summary">{{template "state" (dict "State" .Job.State "Text" (outcome .Run) "ID" "state")}}<span class="text-muted">{{with took .Job.Started .Job.Ended}}{{.}}{{else}}—{{end}}{{if .Run.Metered}} · {{template "cost" .Run}}{{end}}</span></p>
-<dl class="{{template "ui-list"}} m-0 mb-5 max-w-4xl" aria-label="Details">
-  {{with .Calls}}<div class="{{template "ui-row"}}"><dt class="w-32 flex-none text-sm text-muted">Tokens</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="truncate text-sm font-semibold">{{tokens .Tally.InputTokens}} in · {{tokens .Tally.OutputTokens}} out</span></dd></div>{{end}}
-  {{with .Check}}<div class="{{template "ui-row"}}"><dt class="w-32 flex-none text-sm text-muted">Check</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="text-sm font-semibold">{{with .Verdict}}{{template "state" (dict "State" (printf "%s" (or (and .Passed "passed") "failed")) "Text" (or (and .Passed "passed") "failed"))}}{{else}}no answer{{end}}</span></dd></div>{{end}}
-  <div class="{{template "ui-row"}}"><dt class="w-32 flex-none text-sm text-muted">Agent</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="truncate text-sm font-semibold">{{with .Agent}}<a class="text-inherit no-underline hover:underline" href="/instances/{{.ID}}">{{.Name}}</a>{{else}}{{.Job.Harness}}{{end}}</span></dd></div>
-  {{with .Build}}<div class="{{template "ui-row"}}"><dt class="w-32 flex-none text-sm text-muted">Build</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="truncate text-sm font-semibold">{{.}}</span></dd></div>{{end}}
-  {{if not .Agent}}<div class="{{template "ui-row"}}"><dt class="w-32 flex-none text-sm text-muted">Came from</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="text-sm font-semibold">{{with .On}}{{if .Link}}<a class="text-inherit no-underline hover:underline" href="{{.Link}}" title="{{.Why}}">{{.Named}}</a>{{else}}<span class="text-muted" title="{{.Why}}">{{.Named}}</span>{{end}}{{end}}</span></dd></div>{{end}}
-  <div class="{{template "ui-row"}}"><dt class="w-32 flex-none text-sm text-muted">Model</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="truncate text-sm font-semibold">{{with .Agent}}{{.Brain}}{{else}}{{with .Job.Model}}{{brain .}}{{else}}—{{end}}{{end}}</span></dd></div>
-  {{with .Proof}}{{if not .Holds}}<div class="{{template "ui-row"}}"><dt class="w-32 flex-none text-sm text-muted">Integrity</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><a class="text-sm font-semibold text-bad no-underline hover:underline" href="#proof">does not check out</a></dd></div>{{end}}{{end}}
+<dl class="list m-0 mb-5 max-w-4xl" aria-label="Details">
+  {{with .Calls}}<div class="row"><dt class="w-32 flex-none text-sm text-muted">Tokens</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="truncate text-sm font-semibold">{{tokens .Tally.InputTokens}} in · {{tokens .Tally.OutputTokens}} out</span></dd></div>{{end}}
+  {{with .Check}}<div class="row"><dt class="w-32 flex-none text-sm text-muted">Check</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="text-sm font-semibold">{{with .Verdict}}{{template "state" (dict "State" (printf "%s" (or (and .Passed "passed") "failed")) "Text" (or (and .Passed "passed") "failed"))}}{{else}}no answer{{end}}</span></dd></div>{{end}}
+  <div class="row"><dt class="w-32 flex-none text-sm text-muted">Agent</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="truncate text-sm font-semibold">{{with .Agent}}<a class="text-inherit no-underline hover:underline" href="/instances/{{.ID}}">{{.Name}}</a>{{else}}{{.Job.Harness}}{{end}}</span></dd></div>
+  {{with .Build}}<div class="row"><dt class="w-32 flex-none text-sm text-muted">Build</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="truncate text-sm font-semibold">{{.}}</span></dd></div>{{end}}
+  {{if not .Agent}}<div class="row"><dt class="w-32 flex-none text-sm text-muted">Came from</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="text-sm font-semibold">{{with .On}}{{if .Link}}<a class="text-inherit no-underline hover:underline" href="{{.Link}}" title="{{.Why}}">{{.Named}}</a>{{else}}<span class="text-muted" title="{{.Why}}">{{.Named}}</span>{{end}}{{end}}</span></dd></div>{{end}}
+  <div class="row"><dt class="w-32 flex-none text-sm text-muted">Model</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><span class="truncate text-sm font-semibold">{{with .Agent}}{{.Brain}}{{else}}{{with .Job.Model}}{{brain .}}{{else}}—{{end}}{{end}}</span></dd></div>
+  {{with .Proof}}{{if not .Holds}}<div class="row"><dt class="w-32 flex-none text-sm text-muted">Integrity</dt><dd class="m-0 min-w-0 flex-1 text-sm font-medium"><a class="text-sm font-semibold text-bad no-underline hover:underline" href="#proof">does not check out</a></dd></div>{{end}}{{end}}
 </dl>
 
 {{with .Manifest}}{{with .StoppedByCap}}<p class="mb-4 flex flex-wrap items-center gap-2 text-sm">{{template "state" (dict "State" "failed" "Text" (printf "stopped by the %s cap" .Cap))}} <span class="text-muted">{{.Reason}}</span></p>{{end}}{{end}}
@@ -33,12 +33,12 @@
 <div class="grid max-w-4xl gap-4">
 
   {{if .Live}}
-  <section class="{{template "ui-card"}}">
+  <section class="card">
     <h2 class="mb-3 text-sm font-semibold">Running now</h2>
     <pre id="stream" class="max-h-[28rem] overflow-auto rounded-sm bg-wash p-4 whitespace-pre-wrap text-muted">waiting…</pre>
   </section>
   {{else if not .Talk}}
-  <section class="{{template "ui-card"}}">
+  <section class="card">
     <h2 class="mb-3 text-sm font-semibold">What it said</h2>
     {{with .Transcript}}
     {{if .Empty}}<p class="text-muted">It said nothing.</p>{{else}}
@@ -49,7 +49,7 @@
   {{end}}
 
   {{with .Patch}}{{if not .Empty}}
-  <section class="{{template "ui-card"}}">
+  <section class="card">
     <h2 class="mb-3 text-sm font-semibold">What changed</h2>
     <p class="mb-2 text-xs text-muted">{{len .Files}} file{{if ne (len .Files) 1}}s{{end}}.</p>
     <div class="divide-y divide-line">
@@ -74,7 +74,7 @@
   </section>
 
   {{with .Steps}}
-  <section class="{{template "ui-card"}}">
+  <section class="card">
     <h2 class="mb-3 text-sm font-semibold">What it did</h2>
     <details class="group" open><summary class="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted hover:text-ink [&::-webkit-details-marker]:hidden">{{template "chevron"}}{{len .}} step{{if ne (len .) 1}}s{{end}}</summary>
       <ol class="mt-3 grid list-none gap-3 text-sm">{{range .}}<li class="flex min-w-0 items-start gap-3 wrap-anywhere"><span class="mt-0.5 grid size-5 flex-none place-items-center rounded-full bg-ok-wash text-ok [&_svg]:size-3">{{template "icon-check"}}</span><span class="min-w-0"><span class="mr-1 font-semibold">{{.What}}</span>{{with .Detail}}<span class="block text-xs text-muted">{{.}}</span>{{end}}</span></li>{{end}}</ol>
@@ -83,10 +83,10 @@
   {{end}}
 
 {{with .Calls}}{{with .Denied}}
-  <section class="{{template "ui-card"}}">
+  <section class="card">
     <h2 class="mb-3 text-sm font-semibold">Network</h2>
     <p class="mb-2 text-xs text-muted">The agent asked for {{len .}} address{{if ne (len .) 1}}es{{end}} outside the model, and each was refused.</p>
-    <table class="{{template "ui-table"}} {{template "ui-table-flush"}}">
+    <table class="data-table data-table-flush">
       <thead><tr><th>Site</th><th class="w-20 text-right">Times</th></tr></thead><tbody>
       {{range $.Calls.Sites}}<tr><td><code class="text-xs">{{.Host}}</code></td><td class="text-right tabular-nums">{{.Times}}</td></tr>{{end}}
     </tbody></table>
@@ -94,7 +94,7 @@
   {{end}}{{end}}
 
   {{with .Check}}
-  <section class="{{template "ui-card"}}">
+  <section class="card">
     <h2 class="mb-3 text-sm font-semibold">The check</h2>
     {{with .Verdict}}
     <p class="mb-3 flex flex-wrap items-center gap-3 text-sm">{{template "state" (dict "State" (or (and .Passed "passed") "failed") "Text" (or (and .Passed "passed") "failed"))}}
@@ -113,7 +113,7 @@
   {{with .Job.Repo}}<p class="text-xs text-muted">Repository: <span class="wrap-anywhere">{{.}}</span></p>{{end}}
 
   {{with .Proof}}{{if or $.Admin (not .Holds)}}
-  <section class="{{template "ui-card"}}" id="proof">
+  <section class="card" id="proof">
     <details class="group"{{if not .Holds}} open{{end}}><summary class="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted hover:text-ink [&::-webkit-details-marker]:hidden">{{template "chevron"}}Verify this run{{if not .Holds}} <span class="text-bad">(does not check out)</span>{{end}}</summary><div class="mt-3">
     {{if not .Holds}}
     <p class="mb-2 flex items-start gap-2 font-medium text-bad [&_svg]:mt-0.5 [&_svg]:size-[1.125rem]">{{template "icon-shield"}} This record does not check out.</p>
@@ -126,7 +126,7 @@
     <p class="mb-2 font-medium">All {{.Files}} files match. Not signed: this server had no signing key when it ran.</p>
     {{end}}
     <p class="mb-3 text-xs text-muted">Check it on your own machine, without gusto.</p>
-    <p class="mb-3 flex flex-wrap gap-2"><a class="{{template "ui-btn"}}" href="{{.Bundle}}" download>The record</a>{{with .Key}}<a class="{{template "ui-btn-quiet"}}" href="{{.}}" download>The signing key</a>{{end}}</p>
+    <p class="mb-3 flex flex-wrap gap-2"><a class="btn" href="{{.Bundle}}" download>The record</a>{{with .Key}}<a class="btn-quiet" href="{{.}}" download>The signing key</a>{{end}}</p>
     <div class="mb-3 flex items-center gap-2 rounded-sm bg-wash py-2 pr-2 pl-3"><code class="min-w-0 flex-1 text-xs wrap-anywhere" id="verify">{{.Command}}</code><button type="button" id="copy-verify" class="cursor-pointer rounded-sm border border-line-strong px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface hover:text-ink">Copy</button></div>
     <details class="group"><summary class="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted hover:text-ink [&::-webkit-details-marker]:hidden">{{template "chevron"}}Each file and its fingerprint</summary>
       <ul class="mt-3 grid list-none gap-2 text-sm">
@@ -181,7 +181,7 @@
 <a class="underline decoration-line-strong underline-offset-4 hover:decoration-current" href="{{.Raw}}">Read the whole file</a>.</p>{{end}}{{end}}
 
 {{/* state is a short word for how something ended, in the color of its meaning. */}}
-{{define "state"}}{{$tone := "bg-wash text-subtle"}}{{if or (eq .State "passed") (eq .State "finished")}}{{$tone = "bg-ok-wash text-ok"}}{{else if or (eq .State "failed") (eq .State "interrupted")}}{{$tone = "bg-bad-wash text-bad"}}{{else if or (eq .State "running") (eq .State "queued")}}{{$tone = "bg-warn-wash text-warn"}}{{end -}}
-<span{{with .ID}} id="{{.}}"{{end}} class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap {{$tone}}">{{.Text}}</span>{{end}}
+{{define "state"}}{{$tone := "badge"}}{{if or (eq .State "passed") (eq .State "finished")}}{{$tone = "badge-ok"}}{{else if or (eq .State "failed") (eq .State "interrupted")}}{{$tone = "badge-bad"}}{{else if or (eq .State "running") (eq .State "queued")}}{{$tone = "badge-warn"}}{{end -}}
+<span{{with .ID}} id="{{.}}"{{end}} class="{{$tone}}">{{.Text}}</span>{{end}}
 
 {{define "chevron"}}<svg class="i size-4 flex-none transition-transform group-open:rotate-90" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>{{end}}

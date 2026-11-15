@@ -42,6 +42,7 @@
   --color-focus: var(--gu-focus);
   --color-hover: var(--gu-hover);
   --color-scrim: var(--gu-scrim);
+  --color-backdrop: var(--gu-backdrop);
   --color-transparent: transparent;
   --color-current: currentColor;
 

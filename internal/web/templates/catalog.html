@@ -1,14 +1,14 @@
 {{template "head" .}}
 
 {{template "ui-bar-open"}}
-  <div class="{{template "ui-bar-where"}}"><h1 class="{{template "ui-bar-title"}}">Presets</h1></div>
+  <div class="bar-where"><h1 class="bar-title">Presets</h1></div>
 {{template "ui-bar-close"}}
 {{template "body" .}}
 
 {{template "ui-flash" .}}
 
 {{if .Presets}}<section class="mb-8 grid gap-3" aria-label="Your presets">
-  <h2 class="{{template "ui-section-title"}}">Your presets</h2>
+  <h2 class="section-title">Your presets</h2>
   <div class="divide-y divide-line overflow-hidden rounded-lg bg-surface border border-line">
     {{range .Presets}}
     <div class="grid min-h-16 grid-cols-[minmax(0,1fr)_auto_2rem] items-center gap-3 py-2 pr-3 pl-5">
@@ -16,20 +16,20 @@
         <strong>{{.Name}}</strong>
         <span class="truncate text-xs text-subtle">{{.Line}}</span>
       </span>
-      <a class="{{template "ui-btn-sm"}}" href="/chat?preset={{.ID}}">New chat</a>
+      <a class="btn-sm" href="/chat?preset={{.ID}}">New chat</a>
       <form method="post" action="/presets/{{.ID}}/delete"><button class="grid size-8 cursor-pointer place-items-center rounded-sm border-0 bg-transparent p-0 text-muted transition-colors hover:bg-hover hover:text-ink" type="submit" aria-label="Remove {{.Name}}" title="Remove">{{template "icon-trash"}}</button></form>
     </div>
     {{end}}
   </div>
 </section>{{end}}
 
-<h2 class="{{template "ui-section-title"}} mb-3">Built-in presets</h2>
+<h2 class="section-title mb-3">Built-in presets</h2>
 <div class="mb-8 flex flex-wrap items-start gap-6 @max-[56rem]:flex-col @max-[56rem]:items-stretch @max-[56rem]:gap-4" id="roles">
   <div class="grid max-w-[26rem] flex-[1_1_21rem] gap-3 @max-[56rem]:max-w-none @max-[56rem]:flex-none">
     <label class="hidden gap-2 text-xs text-muted @max-[56rem]:grid"><span>Built-in preset</span>
       <select class="select w-full max-w-[28rem]" id="role-select" aria-label="Built-in preset">{{range .Roles}}<option value="{{.Name}}">{{.Title}} · {{.Industry}}</option>{{end}}</select>
     </label>
-    <label class="flex h-10 items-center gap-2 rounded-sm border border-line-strong bg-surface px-3 text-subtle focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus @max-[56rem]:hidden">{{template "icon-search"}}<input class="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-ink outline-none" type="search" id="role-search" placeholder="Search built-in presets" aria-label="Search presets"></label>
+    <label class="input-group h-10 @max-[56rem]:hidden">{{template "icon-search"}}<input class="input-bare flex-1" type="search" id="role-search" placeholder="Search built-in presets" aria-label="Search presets"></label>
     <div class="flex flex-wrap gap-2 @max-[56rem]:hidden" role="group" aria-label="Field of work">
       <button type="button" class="chip h-[1.875rem] cursor-pointer rounded-full border border-line-strong bg-surface px-3 text-xs font-medium text-muted aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-inverse" data-field="" aria-pressed="true">All</button>
       {{range .Fields}}<button type="button" class="chip h-[1.875rem] cursor-pointer rounded-full border border-line-strong bg-surface px-3 text-xs font-medium text-muted aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-inverse" data-field="{{.}}" aria-pressed="false">{{.}}</button>{{end}}
@@ -55,8 +55,8 @@
           <p class="max-w-[35rem] text-base text-muted">{{$r.Summary}}</p>
         </div>
         <div class="flex flex-none items-center gap-4">
-          <a class="{{template "ui-link-quiet"}}" href="/templates/{{$r.Name}}">Details</a>
-          {{if $r.Blocked}}<span class="{{template "ui-btn"}} opacity-50" aria-disabled="true">Use in a new chat</span>{{else}}<a class="{{template "ui-btn"}}" href="/chat?role={{$r.Name}}">Use in a new chat</a>{{end}}
+          <a class="link-quiet" href="/templates/{{$r.Name}}">Details</a>
+          {{if $r.Blocked}}<span class="btn opacity-50" aria-disabled="true">Use in a new chat</span>{{else}}<a class="btn" href="/chat?role={{$r.Name}}">Use in a new chat</a>{{end}}
         </div>
       </div>
       {{if $r.Blocked}}<p class="rounded-sm bg-warn-wash px-4 py-3 text-sm">{{$r.Blocked}}</p>{{end}}
@@ -75,7 +75,7 @@
   </div>
 </div>
 
-<p class="text-sm"><a class="{{template "ui-link-quiet"}}" href="/setups">Build your own skill set</a></p>
+<p class="text-sm"><a class="link-quiet" href="/setups">Build your own skill set</a></p>
 
 <script src="{{asset "/static/roles.js"}}"></script>
 

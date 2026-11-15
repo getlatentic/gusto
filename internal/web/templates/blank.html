@@ -1,19 +1,19 @@
 {{template "head" .}}
 
 {{template "ui-bar-open"}}
-  <div class="{{template "ui-bar-where"}}"><nav class="contents" aria-label="Where this is"><a class="{{template "ui-bar-crumb"}}" href="/presets">New agent</a><span class="{{template "ui-bar-sep"}}" aria-hidden="true">/</span></nav><h1 class="{{template "ui-bar-title"}}">Your own agent</h1></div>
+  <div class="bar-where"><nav class="contents" aria-label="Where this is"><a class="bar-crumb" href="/presets">New agent</a><span class="bar-sep" aria-hidden="true">/</span></nav><h1 class="bar-title">Your own agent</h1></div>
 {{template "ui-bar-close"}}
 {{template "body" .}}
 
 {{template "ui-flash" .}}
 
-<p class="{{template "ui-page-sub"}}">Pick its agent type, give it a skill set if you have one, and name it.</p>
+<p class="page-sub">Pick its agent type, give it a skill set if you have one, and name it.</p>
 
 {{if .Engines}}
-<form class="grid max-w-xl gap-4 {{template "ui-card"}}" method="post" action="/instances">
-  <label class="{{template "ui-field"}}">Name it <input class="input" name="title" placeholder="Agent" maxlength="60"></label>
+<form class="grid max-w-xl gap-4 card" method="post" action="/instances">
+  <label class="field">Name it <input class="input" name="title" placeholder="Agent" maxlength="60"></label>
   <fieldset class="grid gap-2">
-    <legend class="{{template "ui-legend"}}">Agent type</legend>
+    <legend class="legend">Agent type</legend>
     {{range $i, $each := .Engines}}
     <label class="grid cursor-pointer grid-cols-[auto_1fr] items-baseline gap-x-3 rounded-sm border border-line-strong px-4 py-3 hover:border-ink has-[:checked]:border-accent has-[:checked]:bg-accent-wash">
       <input class="input row-span-2 self-center" type="radio" name="harness" value="{{$each.Name}}"{{if eq $i 0}} checked{{end}}>
@@ -21,16 +21,16 @@
       <span class="col-start-2 text-sm text-muted">{{$each.What}}</span>
     </label>
     {{end}}
-    <a class="{{template "ui-link-quiet"}} mt-1" href="/engines">How each agent type did {{template "icon-go"}}</a>
+    <a class="link-quiet mt-1" href="/engines">How each agent type did {{template "icon-go"}}</a>
   </fieldset>
   {{if .Setups}}
-  <label class="{{template "ui-field"}}">Skill set
+  <label class="field">Skill set
     <select class="select w-full" name="setup"><option value="">none</option>{{range .Setups}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select>
   </label>
   {{end}}
-  <label class="{{template "ui-field"}}"><span>Start from a repository <span class="font-normal">optional</span></span>
+  <label class="field"><span>Start from a repository <span class="font-normal">optional</span></span>
     <input class="input" name="repo" placeholder="git@github.com:you/repo.git"></label>
-  <div><button type="submit" class="{{template "ui-btn"}}">Start</button></div>
+  <div><button type="submit" class="btn">Start</button></div>
 </form>
 {{else}}
 <div class="flex max-w-xl items-start gap-3 rounded-md bg-warn-wash px-5 py-4">

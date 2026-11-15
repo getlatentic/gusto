@@ -1,121 +1,31 @@
-{{/* The one set of pieces every page is built from. A name that ends in a noun for a class is a pile of utilities for a class
-     attribute; the others are small fragments of markup. The text controls, selects and checkboxes are Basecoat's own classes
-     (input, select, textarea), written in the markup, so their look and keyboard behaviour come from one place. */}}
-
-{{/* Buttons: ui-btn is the one action a page offers, the quiet ones are the others, and the small ones sit in rows and tables. */}}
-{{define "ui-btn"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md bg-solid px-4 text-sm font-semibold whitespace-nowrap text-on-solid no-underline transition-colors hover:bg-solid-hover disabled:cursor-default disabled:opacity-50{{end}}
-{{/* The round button that sends what is in the message box. */}}
-{{define "ui-btn-send"}}ml-1 grid size-8 flex-none cursor-pointer place-items-center rounded-full border-0 bg-solid p-0 text-on-solid hover:bg-solid-hover disabled:cursor-default disabled:bg-transparent disabled:text-faint disabled:hover:bg-transparent [&>svg]:size-[1.125rem]{{end}}
-{{define "ui-btn-quiet"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold whitespace-nowrap text-ink no-underline transition-colors hover:bg-wash disabled:cursor-default disabled:opacity-50{{end}}
-{{define "ui-btn-danger"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md border border-bad/40 bg-transparent px-4 text-sm font-medium whitespace-nowrap text-bad no-underline transition-colors hover:bg-bad-wash{{end}}
-{{define "ui-btn-ghost"}}inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-sm border-0 bg-transparent px-2.5 text-xs whitespace-nowrap text-muted no-underline transition-colors hover:bg-hover hover:text-ink [&>svg]:size-4{{end}}
-{{define "ui-btn-sm"}}inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-line-strong bg-surface px-3 text-xs font-semibold whitespace-nowrap text-ink no-underline transition-colors hover:bg-wash disabled:cursor-default disabled:opacity-50{{end}}
-{{define "ui-btn-sm-danger"}}inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-md border-0 bg-transparent px-3 text-xs font-semibold whitespace-nowrap text-bad no-underline transition-colors hover:bg-bad-wash{{end}}
-{{define "ui-link-quiet"}}inline-flex items-center gap-1.5 text-sm font-medium text-subtle no-underline hover:text-ink{{end}}
+{{/* The pieces of markup every page shares: a flash, a dialog's head, a page's bar, a pager, a chevron, a state, tabs and the
+     "…" menu. Their look comes from the component classes in tailwind/components.css, as every page's does. */}}
 
 {{/* Forms. */}}
-{{/* A field's label is in small capitals, as Kylon's are. A hint inside it (font-normal), an error, and a button keep their own case. */}}
-{{define "ui-field"}}grid gap-2 text-xs font-semibold tracking-[0.14em] text-subtle uppercase [&_.font-normal]:tracking-normal [&_.font-normal]:normal-case [&_.text-bad]:tracking-normal [&_.text-bad]:normal-case [&_button]:tracking-normal [&_button]:normal-case{{end}}
-{{define "ui-legend"}}mb-2 text-xs font-semibold tracking-[0.14em] text-subtle uppercase{{end}}
-{{define "ui-check"}}flex items-center gap-2 text-sm font-normal text-ink{{end}}
-{{define "ui-note"}}text-sm text-muted{{end}}
-{{define "ui-notice"}}mb-4 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad{{end}}
-{{define "ui-notice-chat"}}m-0 w-full max-w-[52rem] rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad{{end}}
 {{define "ui-flash"}}{{if .Refused}}<p class="mb-5 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad" role="alert">{{.Refused}}</p>{{end}}{{end}}
 
 {{/* Why a turn ended when the kept home was full: .H is the home's note and .Mine whether the person reading is the one who asked. */}}
 {{define "home-full"}}<p class="m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad" role="alert">{{if .Mine}}Your agents' home is full{{else}}The home their agents keep is full{{end}}: it takes {{.H.Used}} of the {{.H.Limit}} it may, so this turn was {{or .H.Outcome "ended"}}. {{if .Mine}}Reset it on <a class="font-medium text-bad underline" href="/connections">Connections</a> to start again.{{else}}The person who asked can reset it on Connections.{{end}}</p>{{end}}
 
-{{/* Sections: a heading, sentence case and outside the box, then what it holds, often a ui-list of rows. */}}
-{{define "ui-section"}}grid gap-3{{end}}
-{{define "ui-section-title"}}m-0 px-1 text-sm font-semibold text-ink{{end}}
-{{define "ui-section-note"}}m-0 -mt-1 px-1 text-sm text-subtle{{end}}
+{{define "ui-dialog-head"}}<div><h2 class="dialog-title" id="{{.ID}}">{{.Title}}</h2><p class="dialog-words">{{.Words}}</p><button type="button" class="dialog-close" data-close aria-label="Close">{{template "icon-x"}}</button></div>{{end}}
 
-{{/* Surfaces. Containers are rounded-lg with a hairline; what is clicked or typed in is rounded-md. */}}
-{{define "ui-card"}}rounded-lg border border-line bg-card p-5{{end}}
-{{define "ui-card-title"}}mb-3 text-sm font-semibold text-ink{{end}}
-{{define "ui-figures"}}mb-4 grid grid-cols-[repeat(auto-fit,minmax(min(9rem,100%),1fr))] gap-3{{end}}
-{{define "ui-figure-value"}}font-display text-2xl font-semibold tracking-tight tabular-nums{{end}}
-{{define "ui-figure-label"}}text-xs font-medium text-subtle{{end}}
-{{define "ui-figure"}}flex flex-col-reverse justify-between gap-2 rounded-lg border border-line bg-card p-4 text-inherit no-underline{{end}}
-{{define "ui-panels"}}grid grid-cols-[repeat(auto-fit,minmax(min(22rem,100%),1fr))] items-start gap-4{{end}}
-{{define "ui-two-col"}}two-col grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-4 @max-[56rem]:grid-cols-[minmax(0,1fr)]{{end}}
-{{define "ui-col"}}grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4{{end}}
-{{define "ui-stack"}}grid gap-4{{end}}
-{{define "ui-dialog"}}m-auto w-[32rem] max-w-[calc(100vw-2rem)] rounded-lg border border-line-strong bg-surface p-0 text-ink shadow-dialog backdrop:bg-black/50{{end}}
-{{define "ui-dialog-title"}}m-0 pr-6 text-lg leading-none font-semibold{{end}}
-{{define "ui-dialog-words"}}m-0 mt-2 text-sm text-subtle{{end}}
-{{/* The close button sits in the dialog's corner, out of the flow of its form. */}}
-{{define "ui-dialog-close"}}absolute top-3 right-3 grid size-6 cursor-pointer place-items-center rounded-xs border-0 bg-transparent p-0 text-ink opacity-70 hover:opacity-100 [&>svg]:size-4{{end}}
-{{define "ui-dialog-head"}}<div><h2 class="{{template "ui-dialog-title"}}" id="{{.ID}}">{{.Title}}</h2><p class="{{template "ui-dialog-words"}}">{{.Words}}</p><button type="button" class="{{template "ui-dialog-close"}}" data-close aria-label="Close">{{template "icon-x"}}</button></div>{{end}}
-
-{{/* A page's bar: across the top of the pane, between head and body. ui-bar-where
+{{/* A page's bar: across the top of the pane, between head and body. bar-where
      holds the page's title, after the pages above it when there are any; the
      page's few actions follow it at the right. On a narrow window it carries
      the button that opens the side list. */}}
 {{define "ui-bar-open"}}<header class="bar sticky top-0 z-20 flex h-16 flex-none items-center gap-3 bg-canvas/92 px-4 backdrop-blur-xl @max-[56rem]:px-3"><button class="hidden size-8 flex-none cursor-pointer place-items-center rounded-md text-ink hover:bg-hover @max-[56rem]:grid [&>svg]:size-4" type="button" data-side-toggle aria-label="Menu" aria-expanded="false" aria-controls="side">{{template "icon-menu"}}</button>{{end}}
 {{define "ui-bar-close"}}</header>{{end}}
-{{define "ui-bar-where"}}flex min-w-0 flex-1 items-center gap-1.5 text-sm{{end}}
-{{define "ui-bar-crumb"}}min-w-0 max-w-48 flex-none truncate text-subtle no-underline hover:text-ink @max-[40rem]:hidden{{end}}
-{{define "ui-bar-sep"}}flex-none text-faint @max-[40rem]:hidden{{end}}
-{{define "ui-bar-title"}}m-0 min-w-0 truncate font-sans text-sm font-semibold tracking-tight text-ink{{end}}
-{{/* The line at the top of a page saying what it is for. */}}
-{{define "ui-page-sub"}}m-0 mb-6 max-w-[68ch] text-sm text-subtle text-pretty{{end}}
 
-{{/* Tables: ui-table is every table; ui-table-wrap is its frame when it stands alone, and ui-table-flush lines it up inside a card. */}}
-{{define "ui-table-wrap"}}overflow-x-auto rounded-lg border border-line bg-card{{end}}
 {{/* A table longer than a page shows one page and the links to the pages either side. It takes a pager. */}}
 {{define "ui-pager"}}{{if .Shown}}<nav class="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-t border-line pt-3 text-sm [&_a]:rounded-sm [&_a]:border [&_a]:border-line-strong [&_a]:px-3 [&_a]:py-1 [&_a]:text-ink [&_a]:no-underline [&_a]:hover:border-accent" aria-label="Pages"><span>{{with .Previous}}<a href="{{.}}" rel="prev">Previous</a>{{end}}</span><span class="text-subtle tabular-nums">{{.Shown}}</span><span class="justify-self-end">{{with .Next}}<a href="{{.}}" rel="next">Next</a>{{end}}</span></nav>{{end}}{{end}}
-{{define "ui-table"}}w-full text-sm [&_td]:border-b [&_td]:border-line [&_td]:px-4 [&_td]:py-3 [&_td]:align-middle [&_th]:border-b [&_th]:border-line [&_th]:px-4 [&_th]:py-2.5 [&_th]:text-xs [&_th]:font-medium [&_th]:whitespace-nowrap [&_th]:text-subtle [&_tbody_tr:last-child_td]:border-b-0{{end}}
-{{/* A table that shares a card with other things lines its first and last columns up with the card's own edge. */}}
-{{define "ui-table-flush"}}[&_:is(th,td):first-child]:pl-0 [&_:is(th,td):last-child]:pr-0{{end}}
 
-{{/* Disclosure: the words beside a chevron that turns. */}}
-{{define "ui-summary"}}flex w-fit cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted hover:text-ink [&::-webkit-details-marker]:hidden{{end}}
 {{define "ui-chev"}}<svg class="i size-4 flex-none transition-transform group-open:rotate-90" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>{{end}}
 
-{{/* Badges and states. */}}
-{{define "ui-badge"}}inline-flex items-center whitespace-nowrap rounded-full bg-wash px-2 py-0.5 text-xs leading-4 font-semibold text-subtle{{end}}
-{{define "ui-badge-ok"}}inline-flex items-center whitespace-nowrap rounded-full bg-ok-wash px-2 py-0.5 text-xs leading-4 font-semibold text-ok{{end}}
-{{define "ui-badge-warn"}}inline-flex items-center whitespace-nowrap rounded-full bg-warn-wash px-2 py-0.5 text-xs leading-4 font-semibold text-warn{{end}}
-{{define "ui-badge-bad"}}inline-flex items-center whitespace-nowrap rounded-full bg-bad-wash px-2 py-0.5 text-xs leading-4 font-semibold text-bad{{end}}
-{{define "ui-state"}}<span class="{{if or (eq . "passed") (eq . "finished") (eq . "signed") (eq . "live")}}{{template "ui-badge-ok"}}{{else if or (eq . "failed") (eq . "interrupted")}}{{template "ui-badge-bad"}}{{else if or (eq . "running") (eq . "queued")}}{{template "ui-badge-warn"}}{{else}}{{template "ui-badge"}}{{end}}">{{.}}</span>{{end}}
+{{define "ui-state"}}<span class="{{if or (eq . "passed") (eq . "finished") (eq . "signed") (eq . "live")}}badge-ok{{else if or (eq . "failed") (eq . "interrupted")}}badge-bad{{else if or (eq . "running") (eq . "queued")}}badge-warn{{else}}badge{{end}}">{{.}}</span>{{end}}
 
-{{/* Tabs: the views of one page, as links, with the one shown marked. It takes the page's tabs. */}}
-{{define "ui-tab-list"}}mb-5 flex gap-1 overflow-x-auto border-b border-line{{end}}
-{{define "ui-tab"}}relative inline-flex h-9 flex-none items-center gap-1.5 px-3 text-xs font-medium whitespace-nowrap text-subtle no-underline hover:text-ink aria-[current]:text-ink aria-[current]:after:absolute aria-[current]:after:inset-x-0 aria-[current]:after:bottom-0 aria-[current]:after:h-0.5 aria-[current]:after:rounded-full aria-[current]:after:bg-ink{{end}}
-{{define "ui-tabs"}}<nav class="{{template "ui-tab-list"}}" aria-label="Views">{{range .}}<a class="{{template "ui-tab"}}" href="{{.Href}}"{{if .On}} aria-current="page"{{end}}>{{.Label}}{{with .Count}} <span class="font-normal text-subtle">{{.}}</span>{{end}}</a>{{end}}</nav>{{end}}
-
-{{/* A switch is a button in a form that turns one thing on or off; aria-checked says which it is now. */}}
-{{define "ui-switch"}}relative inline-flex h-5 w-[2.125rem] flex-none cursor-pointer rounded-full bg-line-strong align-middle transition-colors after:absolute after:top-[0.1875rem] after:left-[0.1875rem] after:size-3.5 after:rounded-full after:bg-plate after:shadow-1 after:transition-[left] after:content-[''] aria-checked:bg-solid aria-checked:after:left-[1.0625rem] hover:bg-faint aria-checked:hover:bg-solid-hover{{end}}
-
+{{define "ui-tabs"}}<nav class="tab-list" aria-label="Views">{{range .}}<a class="tab" href="{{.Href}}"{{if .On}} aria-current="page"{{end}}>{{.Label}}{{with .Count}} <span class="font-normal text-subtle">{{.}}</span>{{end}}</a>{{end}}</nav>{{end}}
 
 {{/* A menu behind a "…" button, for what a page needs only now and then. menus.js closes it on a click outside or Escape. */}}
-{{/* A popover is anything that floats over the page; a menu is a popover holding a list of ui-menu-item, split by ui-menu-sep. */}}
-{{define "ui-popover"}}rounded-lg border border-line-strong bg-surface shadow-menu{{end}}
-{{define "ui-menu"}}grid min-w-56 rounded-lg border border-line-strong bg-surface p-2 shadow-menu{{end}}
-{{define "ui-more-open"}}<details class="relative flex-none" data-menu><summary class="grid size-9 cursor-pointer list-none place-items-center rounded-md border border-line-strong text-muted hover:bg-wash hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="More" title="More">{{template "icon-more"}}</summary><div class="absolute top-full right-0 z-40 mt-1 {{template "ui-menu"}}" role="menu">{{end}}
+{{define "ui-more-open"}}<details class="relative flex-none" data-menu><summary class="grid size-9 cursor-pointer list-none place-items-center rounded-md border border-line-strong text-muted hover:bg-wash hover:text-ink [&::-webkit-details-marker]:hidden [&>svg]:size-4" aria-label="More" title="More">{{template "icon-more"}}</summary><div class="absolute top-full right-0 z-40 mt-1 dropdown" role="menu">{{end}}
 {{define "ui-more-close"}}</div></details>{{end}}
-{{define "ui-menu-item"}}flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent px-3 text-left text-sm font-medium text-ink no-underline hover:bg-hover [&>svg]:size-4 [&>svg]:flex-none [&>svg]:text-subtle{{end}}
-{{define "ui-menu-item-danger"}}flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent px-3 text-left text-sm font-medium text-bad no-underline hover:bg-bad-wash [&>svg]:size-4 [&>svg]:flex-none{{end}}
-{{define "ui-menu-sep"}}my-1 h-px bg-line-strong{{end}}
 
-{{/* A list of rows in one card: each row a main line, a quieter line under it, and an optional value at the right. */}}
-{{define "ui-list"}}grid overflow-hidden rounded-lg border border-line bg-card [&>*+*]:border-t [&>*+*]:border-line{{end}}
-{{define "ui-row"}}flex min-h-16 min-w-0 items-center gap-3 px-5 py-3 @max-[56rem]:px-4{{end}}
-{{define "ui-row-main"}}m-0 text-sm font-medium text-ink wrap-anywhere{{end}}
-{{define "ui-row-sub"}}m-0 mt-0.5 text-xs leading-5 text-subtle{{end}}
-{{define "ui-row-label"}}w-36 flex-none text-sm text-muted @max-[40rem]:w-24{{end}}
-{{define "ui-facts-card"}}rounded-lg border border-line-strong bg-surface px-4 py-3{{end}}
-{{define "ui-facts-label"}}m-0 text-xs font-semibold text-subtle uppercase{{end}}
-{{define "ui-facts"}}m-0 mt-3 grid grid-cols-[minmax(8rem,max-content)_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm{{end}}
-{{define "ui-fact-key"}}flex items-center gap-1.5 whitespace-nowrap text-subtle [&>svg]:size-4{{end}}
-{{define "ui-fact-value"}}m-0 min-w-0 text-ink wrap-anywhere{{end}}
-{{define "ui-row-end"}}flex-none text-sm text-muted tabular-nums{{end}}
-
-{{/* A state in one quiet line, a dot before it, for when all is well. When it is not, a page shows ui-notice instead. */}}
-{{define "ui-status-ok"}}m-0 flex items-start gap-2 text-sm text-muted before:mt-1.5 before:size-2 before:flex-none before:rounded-full before:bg-ok{{end}}
-
-{{/* A page with nothing to show yet: what will be here, as a title and one line. */}}
-{{define "ui-empty"}}m-0 rounded-lg border border-dashed border-line px-6 py-10 text-center text-sm text-muted{{end}}
-{{define "ui-empty-title"}}mb-1 block text-sm font-semibold text-ink{{end}}
