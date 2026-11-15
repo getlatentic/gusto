@@ -9,6 +9,7 @@ here="$root/deploy/aws/openshell"
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 mkdir -p "$out" "$stage/.state" "$stage/probe" "$stage/e2e"
+"$root/web/build.sh"
 (cd "$root" && for program in gusto:./cmd/gusto gusto-dns:./deploy/aws/openshell/demo/dns; do
   GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$stage/.state/${program%%:*}" "${program#*:}"
 done)

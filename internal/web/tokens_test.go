@@ -106,9 +106,8 @@ func TestATaskSentWithATokenIsAskedForByThatToken(t *testing.T) {
 		t.Fatalf("the job was asked for by %q", record.Asked)
 	}
 	here.signIn(t)
-	page := here.ask(t, "GET", "/jobs/"+answer.ID, nil).Body.String()
-	if !strings.Contains(page, "sent to POST /api/jobs") {
-		t.Fatalf("the record does not say the job came over the API:\n%s", page)
+	if on := here.task(t, answer.ID).On; !strings.Contains(on.Why, "sent to POST /api/jobs") {
+		t.Fatalf("the record does not say the job came over the API: %+v", on)
 	}
 	stranger := here.as(t, "amy@acme.test")
 	if got := stranger.ask(t, "GET", "/jobs/"+answer.ID, nil); got.Code != http.StatusNotFound {
@@ -148,12 +147,12 @@ func TestMakingAndRevokingATokenAreRecordedAndNoSecretIs(t *testing.T) {
 	made := here.ask(t, "POST", "/admin/tokens", url.Values{"name": {"nightly"}, "scope": {"submit", "spend"}})
 	secret := regexp.MustCompile(`gusto_[0-9a-f]{16}_[A-Za-z0-9_-]{43}`).FindString(made.Body.String())
 	if secret == "" {
-		t.Fatalf("the page did not show the secret:\n%s", made.Body.String())
+		t.Fatalf("the answer did not give the secret:\n%s", made.Body.String())
 	}
 	if made.Header().Get("Cache-Control") != "no-store" {
 		t.Errorf("the secret's page may be cached: %q", made.Header().Get("Cache-Control"))
 	}
-	if again := here.ask(t, "GET", "/admin/tokens", nil).Body.String(); strings.Contains(again, secret) || !strings.Contains(again, "nightly") {
+	if again := here.dataText(t, "/admin/tokens"); strings.Contains(again, secret) || !strings.Contains(again, "nightly") {
 		t.Fatalf("the secret is shown again, or the token is not listed")
 	}
 	if got := here.call("GET", "/api/spend", secret); got.Code != http.StatusOK {
@@ -203,7 +202,7 @@ func TestTheTokensPageIsAnAdminsAndOnlyOnAServerThatTakesTokens(t *testing.T) {
 	if got := plain.ask(t, "GET", "/admin/tokens", nil); got.Code != http.StatusNotFound {
 		t.Fatalf("a server with no tokens gave %d at /tokens", got.Code)
 	}
-	if page := plain.ask(t, "GET", "/admin", nil).Body.String(); strings.Contains(page, `href="/admin/tokens"`) {
+	if page := plain.dataText(t, "/admin"); strings.Contains(page, "/admin/tokens") {
 		t.Fatal("a server with no tokens links to its tokens page")
 	}
 	here.signIn(t)
@@ -221,9 +220,9 @@ func TestATokenNeedsAValidNameAndAScopeAndKeepsNoSecret(t *testing.T) {
 		"a made-up scope":    {"name": {"nightly"}, "scope": {"root"}},
 		"a name in use":      {"name": {"ci"}, "scope": {"submit"}},
 	} {
-		page := here.ask(t, "POST", "/admin/tokens", form).Body.String()
-		if !strings.Contains(page, `role="alert"`) || strings.Contains(page, "gusto_") {
-			t.Errorf("%s was not refused, or showed a secret:\n%s", name, page)
+		answer := here.ask(t, "POST", "/admin/tokens", form)
+		if answer.Code != http.StatusBadRequest || strings.Contains(answer.Body.String(), "gusto_") {
+			t.Errorf("%s was not refused, or gave a secret: %d %s", name, answer.Code, answer.Body.String())
 		}
 	}
 	saved, err := os.ReadFile(here.file)

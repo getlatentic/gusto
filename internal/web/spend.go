@@ -44,36 +44,18 @@ func reportOf(ledger *spend.Ledger, r *http.Request) (spend.Report, []string) {
 	return ledger.Report(month), ledger.Months()
 }
 
-// spendPage shows what the agents cost by team, project and task.
-func (s *Server) spendPage(w http.ResponseWriter, r *http.Request) {
-	if page, ok := s.spendData(w, r, "/spend"); ok {
-		s.render(w, "spend.html", page)
-	}
-}
-
-// consoleSpend is the same report in the console, for the whole organization.
-func (s *Server) consoleSpend(w http.ResponseWriter, r *http.Request) {
-	if page, ok := s.spendData(w, r, "/admin/spending"); ok {
-		s.drawConsole(w, "spend.html", "usage", page)
-	}
-}
-
-// spendData is what the spend report is drawn from. It answers 500 itself when
-// the ledger cannot be read.
-func (s *Server) spendData(w http.ResponseWriter, r *http.Request, base string) (map[string]any, bool) {
+// spendData is the month's spend report: a person's own at /spend, and the whole organization's at /admin/spending.
+func (s *Server) spendData(r *http.Request, base string) (map[string]any, error) {
 	ledger, err := s.spendOf(r)
 	if err != nil {
-		http.Error(w, "the spend could not be read: "+err.Error(), http.StatusInternalServerError)
-		return nil, false
+		return nil, failed{http.StatusInternalServerError, "the spend could not be read: " + err.Error()}
 	}
 	report, months := reportOf(ledger, r)
 	return map[string]any{
-		"Title":  productName + " — usage",
-		"Nav":    "usage",
 		"Base":   base,
 		"Tabs":   tabsFor(base != "/spend", "summary"),
 		"Ledger": s.viewLedger(report, months, time.Now()),
-	}, true
+	}, nil
 }
 
 // spendJSON is the same report for a script, behind the same password the API

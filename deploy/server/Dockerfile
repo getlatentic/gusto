@@ -13,6 +13,15 @@
 #   docker buildx imagetools inspect docker.io/library/<name>:<tag>
 # and change the tag and the digest together.
 
+# The web app the binary embeds, built from source. What it builds is the same on every processor, so it builds on the builder's.
+FROM --platform=$BUILDPLATFORM docker.io/library/node:24-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS web
+WORKDIR /src/web
+COPY web/package.json web/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY web ./
+COPY internal/web/static ../internal/web/static
+RUN npm run build
+
 FROM docker.io/library/golang:1.26@sha256:6c2a5538f964f1c82f97ad14988bf05de100d922d159d0e398b54c7b0ca0c6c9 AS build
 WORKDIR /src
 COPY go.mod go.sum ./
@@ -20,6 +29,7 @@ RUN go mod download
 COPY cmd cmd
 COPY internal internal
 COPY pkg pkg
+COPY --from=web /src/internal/web/spa/dist internal/web/spa/dist
 ARG RELEASE=
 RUN CGO_ENABLED=0 go build -trimpath -ldflags "-X main.release=${RELEASE}" -o /gusto ./cmd/gusto
 

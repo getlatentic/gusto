@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs on `git push`, on this computer, so that what CI does not run is run before a branch leaves it:
-# gofmt, go vet and go test for the Go packages the push changes, and a check that the committed stylesheets match their sources.
+# gofmt, go vet and go test for the Go packages the push changes.
 # The pull request checks build for six systems and skip the tests, and the deploy runs on one computer, so a failure found here costs nothing queued.
 #   GUSTO_PREPUSH=all   test every package
 #   GUSTO_PREPUSH=skip  push without checking (git push --no-verify does the same)
@@ -46,26 +46,14 @@ if [ -n "$go_files" ] || [ "${GUSTO_PREPUSH:-}" = all ]; then
         done | sort -u)
   fi
   if [ -n "$packages" ]; then
+    # internal/web's tests serve the web app the binary embeds, which is built, not committed.
+    if [ "$packages" = ./... ] || printf '%s\n' "$packages" | grep -q '^./internal/web$'; then
+      web/build.sh >/dev/null || fail "the web app did not build"
+    fi
     echo "pre-push: go vet and go test on $(echo "$packages" | wc -l | tr -d ' ') package(s)"
     # shellcheck disable=SC2086
     go vet $packages || fail "go vet failed"
     # shellcheck disable=SC2086
     go test $packages || fail "go test failed (GUSTO_PREPUSH=skip to push anyway)"
   fi
-fi
-
-check_css() {
-  local build=$1 out=$2
-  if ! command -v tailwindcss >/dev/null; then
-    echo "pre-push: tailwindcss is not installed, so $out was not checked (brew install tailwindcss)"
-    return
-  fi
-  "$build" >/dev/null
-  git diff --quiet -- "$out" || fail "$out is not what its sources build; run $build and commit it"
-}
-if printf '%s\n' "$changed" | grep -qE '^internal/web/(tailwind/|templates/|static/(theme|tokens)\.css|static/.*\.js)'; then
-  check_css internal/web/tailwind/build.sh internal/web/static/app.css
-fi
-if printf '%s\n' "$changed" | grep -qE '^internal/cloud/(tailwind/|templates/)'; then
-  check_css internal/cloud/tailwind/build.sh internal/cloud/static/cloud.css
 fi

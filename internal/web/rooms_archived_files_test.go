@@ -8,11 +8,10 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
-// An archived room is kept as it was: nobody adds a file to it or changes one, its Files panel says so, and a file opens to be read
+// An archived room is kept as it was: nobody adds a file to it or changes one, its files say so, and a file opens to be read
 // and not to be changed. Bringing the room back lifts all of it.
 func TestAnArchivedRoomTakesNoUploadAndNoEditAndSaysSoOnItsFiles(t *testing.T) {
 	here, id, _ := aRoomWithBob(t, &roomWork{})
@@ -38,13 +37,13 @@ func TestAnArchivedRoomTakesNoUploadAndNoEditAndSaysSoOnItsFiles(t *testing.T) {
 		return who.ask(t, "POST", "/instances/"+id+"/file?path=plan.md", url.Values{"text": {"final"}, "seen": {hashOf("draft")}}).Code
 	}
 
-	if page := his.ask(t, "GET", "/rooms/"+id+"/files?panel=1", nil).Body.String(); !strings.Contains(page, "data-room-upload") || strings.Contains(page, "This room is archived") {
-		t.Fatal("a room that is not archived does not offer to add files")
+	if files := his.roomFilesOf(t, id); files.Archived {
+		t.Fatal("a room that is not archived says its files are")
 	}
-	opened := func() string {
-		return his.ask(t, "GET", "/instances/"+id+"/file?path=plan.md&panel=1", nil).Body.String()
+	opened := func() bool {
+		return viewed(t, his, id, "plan.md").File.Editable
 	}
-	if !strings.Contains(opened(), "data-file-edit") {
+	if !opened() {
 		t.Fatal("a file of a room that is not archived does not open to be changed")
 	}
 	mine.ask(t, "POST", "/rooms/"+id+"/archive", url.Values{"archive": {"on"}})
@@ -64,11 +63,10 @@ func TestAnArchivedRoomTakesNoUploadAndNoEditAndSaysSoOnItsFiles(t *testing.T) {
 	if held := here.server.instances.Latest(id); len(held.Notes) != 0 {
 		t.Errorf("an archived room gained %d notices", len(held.Notes))
 	}
-	panel := his.ask(t, "GET", "/rooms/"+id+"/files?panel=1", nil).Body.String()
-	if strings.Contains(panel, "data-room-upload") || !strings.Contains(panel, "This room is archived, so its files cannot be added to or changed") {
-		t.Errorf("the Files panel does not say the room is archived:\n%s", panel)
+	if files := his.roomFilesOf(t, id); !files.Archived {
+		t.Error("the room's files do not say the room is archived")
 	}
-	if strings.Contains(opened(), "data-file-edit") {
+	if opened() {
 		t.Error("a file of an archived room opens to be changed")
 	}
 

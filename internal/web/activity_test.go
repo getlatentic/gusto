@@ -4,6 +4,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/getlatentic/gusto/internal/changelog"
 )
 
 // People's actions come first on the Activity page: the server starting, which every deploy does, is left out and counted, and
@@ -16,15 +18,24 @@ func TestActivityLeavesOutTheServerStartingUntilAskedFor(t *testing.T) {
 	here.server.UseSettings(map[string]string{"GUSTO_ADMINS": "admin@example.com"})
 	here.server.UseSettings(map[string]string{"GUSTO_ADMINS": "admin@example.com"})
 
-	page := admin.ask(t, "GET", "/admin/records?tab=activity", nil).Body.String()
-	if strings.Contains(page, "<td>the server started") {
-		t.Errorf("the server starting is shown among what people did:\n%s", page)
+	starts := func(a *activityJSON) int {
+		n := 0
+		for _, each := range a.Rows {
+			if each.Kind == changelog.ServerStarted {
+				n += each.Times
+			}
+		}
+		return n
 	}
-	if !strings.Contains(page, "2 times the server started are left out") || !strings.Contains(page, "reviewer") {
-		t.Errorf("the page does not count what it left out, or lost what people did:\n%s", page)
+	page := recordsPage(t, admin, "?tab=activity").Activity
+	if page == nil || starts(page) != 0 {
+		t.Fatalf("the server starting is shown among what people did: %+v", page)
 	}
-	all := admin.ask(t, "GET", "/admin/records?tab=activity&server=1", nil).Body.String()
-	if !strings.Contains(all, "<td>the server started") || !strings.Contains(all, "Show only what people did") {
-		t.Errorf("asking for the server starting does not show it:\n%s", all)
+	if page.LeftOut != 2 || page.WithServer || !strings.Contains(page.said(), "reviewer") {
+		t.Errorf("the page does not count what it left out, or lost what people did: %+v", page)
+	}
+	all := recordsPage(t, admin, "?tab=activity&server=1").Activity
+	if all == nil || starts(all) == 0 || !all.WithServer {
+		t.Errorf("asking for the server starting does not show it: %+v", all)
 	}
 }

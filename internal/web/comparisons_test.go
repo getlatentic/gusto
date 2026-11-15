@@ -74,11 +74,11 @@ func TestAComparisonGivesEveryAgentTheSameTask(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(first.Repo, "invoice.test.js")); err != nil {
 		t.Errorf("the sample does not hold the template's files: %v", err)
 	}
-	page := site.ask(t, "GET", where, nil).Body.String()
-	for _, want := range []string{"First", "Second", "Only the agent differs"} {
-		if !strings.Contains(page, want) {
-			t.Errorf("want %q on the page:\n%s", want, page)
-		}
+	isTheApp(t, site, where)
+	var page lineupJSON
+	site.data(t, where, &page)
+	if page.Lineup.Brief != "Run the tests and fix what fails" || len(page.Sides) != 2 || page.Sides[0].Engine != "First" || page.Sides[1].Engine != "Second" {
+		t.Errorf("the comparison does not show each agent: %+v", page)
 	}
 }
 
@@ -165,11 +165,16 @@ func TestTheComparisonPageSaysWhichDidBetter(t *testing.T) {
 		t.Fatal(err)
 	}
 	site.signIn(t)
-	page := site.ask(t, "GET", "/compare/two-runs", nil).Body.String()
-	for _, want := range []string{"First was the only one to pass the check.", ">Model calls</th>", ">3</td>", "$0.7500", "40 s"} {
-		if !strings.Contains(page, want) {
-			t.Errorf("want %q on the page:\n%s", want, page)
-		}
+	var page lineupJSON
+	site.data(t, "/compare/two-runs", &page)
+	if page.Reading == nil || page.Reading.Headline != "First was the only one to pass the check." {
+		t.Errorf("the comparison does not say which did better: %+v", page.Reading)
+	}
+	if first := page.Sides[0]; first.Calls != 3 || first.Money != "$0.7500" || first.Seconds != 40 || !first.Metered || !first.Checked || !first.Passed {
+		t.Errorf("the first run is given as %+v", first)
+	}
+	if page.Passed != 1 || page.Running {
+		t.Errorf("%d passed, running %v", page.Passed, page.Running)
 	}
 
 	if err := task.Dir(filepath.Join(site.index.Root(), "run-2")).Make(); err != nil {
@@ -183,8 +188,10 @@ func TestTheComparisonPageSaysWhichDidBetter(t *testing.T) {
 	if err := board.Save(unfinished); err != nil {
 		t.Fatal(err)
 	}
-	if page := site.ask(t, "GET", "/compare/still-going", nil).Body.String(); strings.Contains(page, "only one to pass") {
-		t.Errorf("a verdict was given while a run was still working:\n%s", page)
+	var going lineupJSON
+	site.data(t, "/compare/still-going", &going)
+	if going.Reading != nil || !going.Running {
+		t.Errorf("a verdict was given while a run was still working: %+v", going.Reading)
 	}
 }
 
@@ -198,13 +205,17 @@ func waitFor(t *testing.T, index *tasks.Index, id string) {
 	t.Fatalf("%s never finished", id)
 }
 
-// The engine choices are their own control. Under the catalog's card class
-// they drew as tall pills of every width, with the checkbox above the name.
-func TestEngineChoicesDoNotWearTheCatalogCardClass(t *testing.T) {
+// The page offers each agent that can take the sample as its own choice, drawn as one (web/src/pages/work/compare-page.test.tsx).
+func TestThePageOffersEachAgentThatCanBeCompared(t *testing.T) {
 	site := twoEngines(t)
 	site.signIn(t)
-	page := site.ask(t, "GET", "/compare", nil).Body.String()
-	if strings.Count(page, ` data-engine>`) != 2 || strings.Contains(page, `<label class="pick"`) {
-		t.Fatalf("the engine choices are not their own control:\n%s", page)
+	isTheApp(t, site, "/compare")
+	var page compareJSON
+	site.data(t, "/compare", &page)
+	if len(page.Engines) != 2 || page.Engines[0].Name != "first" || page.Engines[1].Title != "Second" {
+		t.Fatalf("the engine choices are %+v", page.Engines)
+	}
+	if page.Template == nil || page.Template.Check != "node --test" || page.Template.Starter == "" || len(page.Models) == 0 {
+		t.Errorf("the page does not say what the agents are given: %+v", page.Template)
 	}
 }

@@ -75,7 +75,6 @@ func registryWords(err error) string {
 func (s *Server) modelRoutes(mux *http.ServeMux) {
 	guard := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasRegistry, next)) }
 	providers, access, settings := toModelsTab("providers"), toModelsTab("access"), toModelsTab("settings")
-	mux.HandleFunc("GET "+modelsPath, guard(s.modelsPage))
 	mux.HandleFunc("POST /admin/models/providers", guard(s.registryAction(changelog.ProviderAdded, providers, s.addProvider)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/discover", guard(s.registryAction(changelog.ModelAdded, toProvider, s.importModels)))
 	mux.HandleFunc("POST /admin/models/providers/{name}/key", guard(s.registryAction(changelog.KeyReplaced, toProvider, s.replaceKey)))

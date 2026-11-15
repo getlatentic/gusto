@@ -25,6 +25,7 @@ root="$(git rev-parse --show-toplevel)"
 harnesses="$(./harnesses.sh)"
 image_key="$(./image-key.sh)"
 
+"$root/web/build.sh"
 (cd "$root" && for program in gusto:./cmd/gusto gusto-dns:./deploy/aws/openshell/demo/dns; do
   GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$PWD/deploy/aws/openshell/$state/${program%%:*}" "${program#*:}"
 done)

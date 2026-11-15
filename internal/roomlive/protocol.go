@@ -6,8 +6,8 @@
 // replay after a reconnect, a restart or a slow client's disconnect comes from the log; and the commands people send over the
 // socket are carried out by the same code as the page's own routes.
 //
-// A room has two channels. The stream, room:<id>, is durable and positioned: it carries what happened, rendered once as HTML
-// from the same templates as the page, in the order it was logged. The other, live:<id>, is ephemeral: who is here and who is
+// A room has two channels. The stream, room:<id>, is durable and positioned: it carries what happened, each turn or note as the
+// same JSON the page's snapshot of the conversation gives, built once for everybody, in the order it was logged. The other, live:<id>, is ephemeral: who is here and who is
 // typing. Nothing on it is ever logged.
 package roomlive
 
@@ -50,7 +50,8 @@ const (
 
 // The types of frame on a room's stream.
 const (
-	// FrameTurn and FrameNote carry the HTML of one turn or note, which the page replaces by its id, or adds at the end.
+	// FrameTurn and FrameNote carry one turn or note as the page's snapshot gives it, which the page replaces by its id, or adds
+	// at the end.
 	FrameTurn = "turn"
 	FrameNote = "note"
 	// FramePeople says who is in the room, or its agents, changed.
@@ -74,13 +75,18 @@ type Frame struct {
 	Thread string `json:"thread,omitempty"`
 	Seq    uint64 `json:"seq"`
 	ID     string `json:"id,omitempty"`
-	HTML   string `json:"html,omitempty"`
-	Ver    string `json:"ver,omitempty"`
+	// Turn is the turn or note of a turn or note frame, as JSON.
+	Turn json.RawMessage `json:"turn,omitempty"`
+	Ver  string          `json:"ver,omitempty"`
 }
 
+// encode is the frame as JSON. Only a turn that is not valid JSON fails to encode, and then the frame says to take a snapshot.
 func (f Frame) encode() []byte {
-	// A Frame holds only strings and numbers, so it always encodes.
-	data, _ := json.Marshal(f)
+	data, err := json.Marshal(f)
+	if err != nil {
+		// A frame without a turn holds only strings and numbers, so it always encodes.
+		data, _ = json.Marshal(Frame{V: f.V, Type: FrameRefresh, Room: f.Room, Thread: f.Thread, Seq: f.Seq})
+	}
 	return data
 }
 

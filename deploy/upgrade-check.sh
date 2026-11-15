@@ -24,6 +24,7 @@ trap cleanup EXIT
 port=$((20000 + $$ % 20000))
 address="127.0.0.1:$port"
 new="$work/gusto-new"
+"$root/web/build.sh"
 (cd "$root" && go build -o "$new" ./cmd/gusto)
 
 # start runs the binary given as a server on the data in $data, and waits for it. A published release reads its tasks from
@@ -52,7 +53,9 @@ start() {
 reads() {
   curl -fsS -c "$data/jar" -o /dev/null -d password=upgrade-check "http://$address/login" -w '' || true
   page=$(curl -fsS -b "$data/jar" "http://$address/jobs/$id") || { echo "$1: the task page did not load" >&2; exit 1; }
-  echo "$page" | grep -q "make add add" || { echo "$1: the task page does not show the task" >&2; exit 1; }
+  # A release that draws the page in the browser serves what it shows from /app/api; one that draws it on the server has no such address.
+  shown=$(curl -fsS -b "$data/jar" "http://$address/app/api/jobs/$id" 2>/dev/null || true)
+  printf '%s\n%s\n' "$page" "$shown" | grep -q "make add add" || { echo "$1: the task page does not show the task" >&2; exit 1; }
   GUSTO_KEYRING="$data/keyring" "$2" verify "$data/jobs/$id" > /dev/null || { echo "$1: verify does not hold" >&2; exit 1; }
   echo "  $1: the task page loads and its record verifies"
 }
@@ -62,6 +65,8 @@ for ref in "$@"; do
   git -C "$root" rev-parse --verify --quiet "$ref^{commit}" >/dev/null || { echo "no release $ref in this checkout: fetch tags" >&2; exit 1; }
   git -C "$root" worktree add --detach --quiet "$work/src-$ref" "$ref"
   old="$work/gusto-$ref"
+  # A release whose web app is not committed builds it, as this checkout does.
+  [ -x "$work/src-$ref/web/build.sh" ] && "$work/src-$ref/web/build.sh"
   (cd "$work/src-$ref" && go build -o "$old" ./cmd/gusto)
   data="$work/data-$ref"
   mkdir -p "$data/signing" "$data/keyring" "$data/repo" "$data/harnesses"

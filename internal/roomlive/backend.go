@@ -2,6 +2,7 @@ package roomlive
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -19,12 +20,12 @@ type Log interface {
 	RoomHead(room string) (roomlog.Position, error)
 }
 
-// Drawn is an event as viewers are shown it: the HTML of a turn or note, drawn once and sent to everybody.
+// Drawn is an event as viewers are shown it: a turn or note as JSON, built once and sent to everybody.
 type Drawn struct {
 	Type   string
 	Thread string
 	ID     string
-	HTML   string
+	Turn   json.RawMessage
 	// Version says where the conversation stood when the event was drawn, in the words the page's version route uses, so a page
 	// can tell that what it was last shown is not what the server has now.
 	Version string

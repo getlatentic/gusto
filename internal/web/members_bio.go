@@ -12,20 +12,19 @@ import (
 // A person writes a bio of themselves: what they do, what they are working on, how they like to work. The agents in the rooms they
 // are in read it with who else is there, so they can answer to the person asking.
 
-func init() { helpers["maxBio"] = func() int { return instance.MaxBio } }
-
 // briefBios is how many characters of bios one turn's brief holds. People past it are left out, so a big room does not crowd out
 // what was said.
 const briefBios = 6000
 
-// personBio is a person's bio as their page shows it, and whether the person looking may change it.
+// personBio is a person's bio as their page shows it, whether the person looking may change it, and how long it may be.
 type personBio struct {
 	Text string
 	Mine bool
+	Max  int
 }
 
 func (s *Server) bioOf(r *http.Request, who string) personBio {
-	return personBio{Text: s.instances.Bio(who), Mine: strings.EqualFold(who, s.askerName(r))}
+	return personBio{Text: s.instances.Bio(who), Mine: strings.EqualFold(who, s.askerName(r)), Max: instance.MaxBio}
 }
 
 // setPersonBio keeps what the person asking wrote of themselves. Nobody writes another person's.

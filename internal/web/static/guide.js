@@ -52,16 +52,16 @@
       var done = state.done[step.key] === true;
       var active = current === step;
       var row = make("li", "grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3 py-3 first:pt-0 last:pb-0");
-      var mark = make("span", "mt-0.5 grid size-5 place-items-center rounded-full text-xs font-semibold " + (done ? "bg-ok-wash text-ok" : active ? "bg-solid text-on-solid" : "bg-wash text-subtle"));
+      var mark = make("span", "mt-0.5 grid size-5 place-items-center rounded-full text-xs font-semibold " + (done ? "bg-ok-wash text-ok" : active ? "bg-primary text-primary-foreground" : "bg-muted text-subtle"));
       if (done) { mark.innerHTML = tick; } else { mark.textContent = String(steps.indexOf(step) + 1); }
       var body = make("div", "grid min-w-0 gap-1");
-      body.appendChild(make("span", "text-sm font-semibold " + (done ? "text-muted" : "text-ink"), step.title));
+      body.appendChild(make("span", "text-sm font-semibold " + (done ? "text-muted-foreground" : "text-foreground"), step.title));
       var hint = step.key === "ask" && location.pathname === "/chat" ? "The question is ready in the box. Press send and the agent starts." : step.hint;
-      if (active || (!done && step.key === "talk")) { body.appendChild(make("span", "text-xs leading-relaxed text-muted", hint)); }
+      if (active || (!done && step.key === "talk")) { body.appendChild(make("span", "text-xs leading-relaxed text-muted-foreground", hint)); }
       var href = step.href();
       if (step.key === "ask" && location.pathname === "/chat" && !done) { href = ""; }
       if (!done && href && (active || step.key === "talk")) {
-        var go = make("a", "mt-1 inline-flex w-fit items-center rounded-sm bg-solid px-3 py-1.5 text-xs font-semibold text-on-solid no-underline hover:bg-solid-hover", step.label);
+        var go = make("a", "mt-1 inline-flex h-8 w-fit items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground no-underline hover:bg-primary-hover", step.label);
         go.href = href;
         if (step.external) { go.target = "_blank"; go.rel = "noopener"; go.addEventListener("click", function () { state.done.talk = true; save(); draw(); }); }
         body.appendChild(go);
@@ -71,17 +71,11 @@
     });
   }
 
-  var docked = "mt-auto grid gap-3 rounded-md border border-line bg-surface p-3";
-  var floating = "fixed bottom-[calc(var(--lease-h,0rem)+0.75rem)] left-3 z-[900] grid w-[min(21rem,calc(100vw-1.5rem))] gap-3 rounded-md border border-line bg-surface p-3 shadow-3";
-
-  // Beside the conversations when they are on screen, so it never sits over what a person is typing; a small card
-  // that starts closed when they are not.
+  // A card at the foot of the side list, beside the rail, where it never sits over what a person is typing. On a narrow screen it would
+  // cover the page, so there it starts closed.
   function mount() {
-    var side = document.getElementById("sidepanel");
-    var shown = Boolean(side) && (side.checkVisibility ? side.checkVisibility({ visibilityProperty: true }) : side.offsetParent !== null);
-    panel.className = shown ? docked : floating;
-    if (shown && panel.parentNode !== side) { side.appendChild(panel); }
-    if (!shown && panel.parentNode !== document.body) { document.body.appendChild(panel); if (!state.chose) { state.closed = true; } }
+    if (!state.chose && !matchMedia("(min-width: 56rem)").matches) { state.closed = true; }
+    document.body.appendChild(panel);
     draw();
   }
 
@@ -92,25 +86,24 @@
   }
 
   function build() {
-    panel = make("aside", docked);
+    panel = make("aside", "fixed bottom-[calc(var(--lease-h,0rem)+0.75rem)] left-3 nav:left-16 z-[900] grid w-[min(21rem,calc(100vw-1.5rem))] gap-3 rounded-lg border bg-popover p-3 text-popover-foreground shadow-md");
     panel.setAttribute("aria-label", "Demo guide");
+    panel.dataset.testid = "demo-tour";
     var header = make("div", "flex items-center gap-1");
     toggle = make("button", "flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-3 border-0 bg-transparent p-0 text-left");
     toggle.type = "button";
     toggle.setAttribute("aria-controls", "demo-guide-steps");
-    toggle.innerHTML = '<span class="text-sm font-semibold text-ink">Take the tour</span><span class="count rounded-full bg-wash px-2 py-0.5 text-xs font-medium text-muted"></span>';
+    toggle.innerHTML = '<span class="text-sm font-semibold text-foreground">Take the tour</span><span class="count rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"></span>';
     toggle.addEventListener("click", function () { state.closed = !state.closed; state.chose = true; save(); draw(); });
-    var shut = make("button", "grid size-8 flex-none cursor-pointer place-items-center rounded-sm border-0 bg-transparent p-0 text-muted hover:bg-wash hover:text-ink");
+    var shut = make("button", "grid size-8 flex-none cursor-pointer place-items-center rounded-sm border-0 bg-transparent p-0 text-muted-foreground hover:bg-muted hover:text-foreground");
     shut.type = "button";
     shut.setAttribute("aria-label", "Close the tour");
     shut.innerHTML = '<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
     shut.addEventListener("click", dismiss);
     header.append(toggle, shut);
-    list = make("ol", "m-0 grid list-none divide-y divide-line p-0");
+    list = make("ol", "m-0 grid list-none divide-y divide-border p-0");
     list.id = "demo-guide-steps";
     panel.append(header, list);
-    var resizing = null;
-    window.addEventListener("resize", function () { clearTimeout(resizing); resizing = setTimeout(mount, 150); });
   }
 
   function start(detail) {

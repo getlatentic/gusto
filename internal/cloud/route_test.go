@@ -43,8 +43,8 @@ func TestSigningUpStartsTheOrganizationsServerAndThePageOffersToOpenIt(t *testin
 		f := withServers(t)
 		b := f.signedUp("ada@acme.com")
 		_, page := b.get("/org")
-		if !strings.Contains(page, "Ready") || !strings.Contains(page, `href="/open?org=acme-com"`) || strings.Contains(page, "http-equiv") {
-			t.Errorf("the server is ready and can be opened:\n%s", page)
+		if got := shown(t, page); got.Server != string(Ready) || !got.CanOpen || got.Org == nil || got.Org.Slug != "acme-com" || strings.Contains(page, "http-equiv") {
+			t.Errorf("the server is ready and can be opened: %+v", got)
 		}
 	})
 }
@@ -55,19 +55,20 @@ func TestWhileTheServerIsStartingThePageSaysSoAndLooksAgain(t *testing.T) {
 		b := f.browser()
 		b.post("/signup", url.Values{"email": {"ada@acme.com"}})
 		_, page := b.get("/org")
-		if !strings.Contains(page, "Starting") || !strings.Contains(page, `http-equiv="refresh"`) || strings.Contains(page, `href="/open"`) {
-			t.Errorf("%s", page)
+		if got := shown(t, page); got.Server == string(Ready) || got.Server == "" || got.CanOpen || !strings.Contains(page, `http-equiv="refresh"`) {
+			t.Errorf("a server that is starting says so and the page looks again: %+v", got)
 		}
 		status, page, _ := b.get2("/open")
-		if status != http.StatusOK || !strings.Contains(page, `http-equiv="refresh"`) || !strings.Contains(page, "is being set up") && !strings.Contains(page, "is starting") || !strings.Contains(page, `href="/org"`) {
-			t.Errorf("going in waits on a page that looks again, with the settings a click away: %d\n%s", status, page)
+		got := shown(t, page)
+		if status != http.StatusOK || got.Page != "starting" || !strings.Contains(page, `http-equiv="refresh"`) || !strings.Contains(got.Notice, "is being set up") && !strings.Contains(got.Notice, "is starting") {
+			t.Errorf("going in waits on a page that looks again, with the settings a click away: %d %+v", status, got)
 		}
 		f.server.Wait()
 		if status, _, header := b.get2("/open"); status != http.StatusSeeOther || !strings.Contains(header.Get("Location"), "/auth/entry?t=") {
 			t.Errorf("once it is ready, the same address goes in: %d %v", status, header)
 		}
-		if _, page := b.get("/org"); !strings.Contains(page, "Ready") {
-			t.Errorf("%s", page)
+		if got := shownAt(t, b, "/org"); got.Server != string(Ready) {
+			t.Errorf("%+v", got)
 		}
 	})
 }
@@ -108,7 +109,7 @@ func TestEachHostNameIsOneOrganizationAndGustoCloudIsTheDomainItself(t *testing.
 		if status, _, _ := b.at("nobody.cloud.test", "GET", "/whoami", nil); status != http.StatusNotFound {
 			t.Errorf("no organization of that name: %d", status)
 		}
-		if status, page, _ := b.at("cloud.test", "GET", "/signin", nil); status != 200 || !strings.Contains(page, "Email me a sign-in code") {
+		if status, page, _ := b.at("cloud.test", "GET", "/signin", nil); status != 200 || shown(t, page).Page != "signin" || shown(t, page).Sent {
 			t.Errorf("the domain itself is gusto cloud: %d", status)
 		}
 		if status, body, _ := b.at("a.acme-com.cloud.test", "GET", "/whoami", nil); status == 200 && strings.Contains(body, "acme-com") {
@@ -214,23 +215,21 @@ func TestWithNoControllerGustoCloudRoutesNothing(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		status, page, _ := f.browser().at("acme-com.cloud.test", "GET", "/", nil)
-		if status != 200 || !strings.Contains(page, "Get started") {
+		if status != 200 || shown(t, page).Page != "signup" {
 			t.Errorf("%d", status)
 		}
 	})
 }
 
-// A stylesheet is kept by a browser for an hour, so its address changes when it does.
+// A stylesheet is kept by a browser, so its address changes when it does.
 func TestGustoCloudsStylesheetIsNamedByItsDigestSoANewReleaseIsFetched(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		_, page := f.browser().get("/")
-		if !strings.Contains(page, `href="/static/cloud.css?v=`) {
-			t.Fatalf("the stylesheet's address has no digest:\n%s", page)
-		}
-		address := fingerprinted("/static/cloud.css")
-		if len(address) != len("/static/cloud.css?v=")+10 || !strings.Contains(page, address) {
-			t.Errorf("%q is not in the page", address)
+		styled(t, f.browser(), "cloud.test", page)
+		address := fingerprinted("/static/hero-light.webp")
+		if len(address) != len("/static/hero-light.webp?v=")+10 {
+			t.Errorf("%q has no digest", address)
 		}
 		if fingerprinted("/static/nothing.css") != "/static/nothing.css" {
 			t.Error("a file that is not there has no digest")

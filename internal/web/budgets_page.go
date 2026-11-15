@@ -16,10 +16,9 @@ type budgetRow struct {
 	Percent     int
 }
 
-// budgetsPage is everyone's budget and the organization's, then each person's own and what they have spent of it.
-func (s *Server) budgetsPage(w http.ResponseWriter, r *http.Request) {
-	page := map[string]any{"Title": productName + " — budgets", "Refused": s.refusal(r), "Budget": s.budgetOf(0),
-		"Listed": s.hasRoster()}
+// budgetsData is everyone's budget and the organization's, then each person's own and what they have spent of it.
+func (s *Server) budgetsData(r *http.Request) (map[string]any, error) {
+	page := map[string]any{"Refused": s.refusal(r), "Budget": s.budgetOf(0), "Listed": s.hasRoster()}
 	if s.hasRoster() {
 		list, err := roster.Read(s.rosterPath)
 		if err != nil {
@@ -32,7 +31,7 @@ func (s *Server) budgetsPage(w http.ResponseWriter, r *http.Request) {
 			page["People"], page["Pages"] = onePage(r, budgetsPath, s.budgetRows(list, asked))
 		}
 	}
-	s.drawConsole(w, "admin-budgets.html", "budgets", page)
+	return page, nil
 }
 
 func (s *Server) budgetRows(list roster.Roster, asked askedSpend) []budgetRow {

@@ -26,6 +26,9 @@ jobs:
           # The runner is a machine of ours whose Go caches stay between runs. Restoring and saving GitHub's copy of them has
           # hung for an hour on a stalled download or upload.
           cache: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
       # The macOS helper and its tests link the system's own libraries through cgo. A C compiler that is not Apple's, such as
       # Homebrew's, cannot read the SDK's current text stubs, so the link fails.
       - name: Use the platform's C compiler
@@ -33,7 +36,66 @@ jobs:
         run: echo "CC=/usr/bin/clang" >> "$GITHUB_ENV"
       - name: Formatted
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - name: The web app the binary embeds
+        run: web/build.sh
       - name: go vet
         run: go vet ./...
       - name: go test
         run: go test -race ./...
+
+  # The pages are a React app in web/, which web/build.sh builds into internal/web/spa/dist for the binary to embed.
+  web:
+    runs-on: [self-hosted, gusto]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npm run lint
+      - run: npx prettier --check "src/**/*.{ts,tsx}" "e2e/**/*.{ts,mjs}" playwright.config.ts
+      - run: npm test
+      - run: npm run build
+
+  # The web app's end-to-end tests drive a real gusto in Chromium: web/e2e/server.mjs builds the app and ./cmd/gusto, and starts
+  # them with a stub model (Python) and a stub identity provider.
+  e2e:
+    runs-on: [self-hosted, gusto]
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Use the platform's C compiler
+        if: runner.os == 'macOS'
+        run: echo "CC=/usr/bin/clang" >> "$GITHUB_ENV"
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+        env:
+          CI: "true"
+      - name: Keep the report and the server's log
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: |
+            web/playwright-report/
+            web/test-results/
+            web/e2e/.run/server.log
+          retention-days: 14

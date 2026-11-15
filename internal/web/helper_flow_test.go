@@ -3,7 +3,6 @@ package web
 import (
 	"context"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -24,8 +23,8 @@ func TestTheHelperSignsInAsAPersonAndSignsOutAgainstTheRealServer(t *testing.T) 
 			if !strings.Contains(address, "/device?code="+code) {
 				t.Errorf("the address %q does not carry the code %q", address, code)
 			}
-			if got := here.as(t, alice).ask(t, "POST", "/device", url.Values{"code": {code}}); !strings.Contains(got.Body.String(), "Approved") {
-				t.Errorf("the person could not approve:\n%s", got.Body)
+			if got := sendCode(t, here.as(t, alice), code); got.Approved == "" {
+				t.Errorf("the person could not approve: %+v", got)
 			}
 		},
 	}.Run(context.Background())

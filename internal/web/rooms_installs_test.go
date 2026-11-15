@@ -69,12 +69,21 @@ func TestAMembersOwnAgentWaitsForTheRoomsAdminAndIsNotAskedUntilThen(t *testing.
 		t.Errorf("the room was told %+v", notes)
 	}
 	adminSees := mine.ask(t, "GET", "/rooms/"+id+"/members", nil).Header().Get("Location")
-	page := mine.ask(t, "GET", adminSees, nil).Body.String()
-	if !strings.Contains(page, `action="/rooms/`+id+`/agents/`+agent.ID+`/accept"`) || !strings.Contains(page, "$5.00 a month here") {
-		t.Error("the room's admin is not offered the proposal to accept, with its allowance")
+	proposal := func(who string) (memberAgentView, bool) {
+		members := site.as(t, who).conversation(t, adminSees).Members
+		for _, each := range members.Agents {
+			if each.ID == agent.ID {
+				return each, members.Runs
+			}
+		}
+		t.Fatalf("the members dialog does not list the proposal: %+v", members.Agents)
+		return memberAgentView{}, false
 	}
-	if page := his.ask(t, "GET", adminSees, nil).Body.String(); !strings.Contains(page, "Waiting for an admin") || strings.Contains(page, "/accept") {
-		t.Error("the member who proposed it is not told it waits, or is offered to accept it")
+	if shown, runs := proposal(alice); !runs || !shown.Pending || shown.Allowance != "$5.00 a month here" || shown.AllowanceField != "5.00" {
+		t.Errorf("the room's admin is not offered the proposal to accept, with its allowance: %+v", shown)
+	}
+	if shown, runs := proposal(bob); runs || !shown.Pending || !shown.Mine || shown.Owner != "" {
+		t.Errorf("the member who proposed it is not told it waits, or is offered to accept it: %+v", shown)
 	}
 	if got := his.ask(t, "POST", "/rooms/"+id+"/agents/"+agent.ID+"/accept", nil); got.Code != 403 {
 		t.Errorf("a member accepted an agent: %d", got.Code)

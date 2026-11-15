@@ -18,8 +18,6 @@ func (s *Server) roomSettingRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /rooms/{id}/archive", s.guard(s.archiveRoom))
 }
 
-func init() { helpers["maxGuidelines"] = func() int { return instance.MaxGuidelines } }
-
 // roomArchivedWords is why nothing is said in an archived room.
 const roomArchivedWords = "this room is archived, so nothing can be said in it until an admin brings it back"
 
@@ -107,14 +105,14 @@ type roomSettings struct {
 	// Archived says nothing can be said in the room. Runs says the person may change its guidelines and archive it, In that they are
 	// in it, and Muted that they muted it.
 	Archived, Runs, In, Muted bool
-	// Mark changes when the guidelines or the archive do, and Refused is why the last change to the guidelines was refused.
-	Mark, Refused string
+	// Mark changes when the guidelines or the archive do.
+	Mark string
 }
 
 func (s *Server) roomSettingsOf(r *http.Request, held instance.Instance) roomSettings {
 	me := s.askerName(r)
 	return roomSettings{Archived: held.Archived != 0, Runs: s.runsRoom(r, held), In: held.RoleOf(me) != "", Muted: held.MutedBy(me),
-		Mark: roomSettingsMark(held), Refused: s.refusedIn(r, "guidelines")}
+		Mark: roomSettingsMark(held)}
 }
 
 // roomSettingsMark stands for the parts of a room that a page draws once, its guidelines and whether it is archived, so a page that

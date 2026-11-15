@@ -56,14 +56,6 @@ func (b *rosterBook) spacesOf(path, who string) ([]roster.Workspace, bool) {
 	return roster.Roster{Workspaces: b.spaces}.SpacesOf(who), true
 }
 
-// workspaces is every workspace of the organization, as the newest roster that could be read says.
-func (b *rosterBook) workspaces(path string) []roster.Workspace {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.lookAgain(path)
-	return b.spaces
-}
-
 // of is the name the roster gives a person, when it gives one.
 func (b *rosterBook) of(path, who string) (string, bool) {
 	if path == "" {

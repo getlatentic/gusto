@@ -67,9 +67,10 @@
   --gu-focus: var(--gu-signal-500);
 
   /* Type */
-  --gu-font-display: "Inter", system-ui, sans-serif;
-  --gu-font-text: "Inter", system-ui, sans-serif;
-  --gu-font-mono: "Noto Sans Mono", ui-monospace, monospace;
+  --gu-font-display: "IBM Plex Sans", system-ui, sans-serif;
+  --gu-font-text: "IBM Plex Sans", system-ui, sans-serif;
+  --gu-font-numeric: "IBM Plex Serif", Georgia, serif; /* the figures that matter: what was spent, what is left */
+  --gu-font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   /* Space (4pt) */
   --gu-space-1: 4px;  --gu-space-2: 8px;   --gu-space-3: 12px;

@@ -1,10 +1,13 @@
 package cloud
 
 import (
+	"encoding/json"
 	"html/template"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/web"
 
 	"github.com/getlatentic/gusto/internal/quota"
 )
@@ -117,14 +120,17 @@ type view struct {
 	Name string
 }
 
+// render answers with a page of the web app's cloud entry, drawn from the view as JSON inside it, so a refused form is answered
+// with what was typed and no second request.
 func (s *Server) render(w http.ResponseWriter, status int, page string, v view) {
 	v.Lease = s.Lease != nil
 	v.WorkOnly = s.Store != nil && !s.Store.FreeMailAllowed()
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(status)
-	if err := s.pages.ExecuteTemplate(w, page, v); err != nil {
-		w.Write([]byte("that page could not be drawn"))
+	data, err := json.Marshal(pageOf(page, v))
+	if err != nil {
+		http.Error(w, "that page could not be drawn", http.StatusInternalServerError)
+		return
 	}
+	web.WriteAppPage(w, status, web.CloudEntry, pageHead(v), string(data))
 }
 
 // link is the address a mailed link points at.

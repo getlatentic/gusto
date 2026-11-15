@@ -110,8 +110,10 @@ func TestABusinessMemberIsRefusedEngineeringsTasksRecordsAndConversations(t *tes
 	if err != nil || record.Workspace != "business" || spec.Workspace != "business" {
 		t.Fatalf("a task in Business is kept in it: record %q, spec %q, %v", record.Workspace, spec.Workspace, err)
 	}
-	if got := engineer.ask(t, "GET", "/jobs/"+theirs, nil).Code; got != http.StatusNotFound {
-		t.Errorf("an Engineering member reached Business's task: %d", got)
+	for _, path := range []string{"/jobs/" + theirs, "/app/api/jobs/" + theirs} {
+		if got := engineer.ask(t, "GET", path, nil).Code; got != http.StatusNotFound {
+			t.Errorf("an Engineering member reached Business's task at %s: %d", path, got)
+		}
 	}
 }
 
@@ -128,7 +130,7 @@ func TestAConnectionIsMadeInOneWorkspaceAndReachesNothingInAnother(t *testing.T)
 	if _, connected := here.server.connectors.Connected(alice, "main", "tasks"); connected {
 		t.Fatal("a sign-in made in Business is used in Engineering")
 	}
-	if page := admin.ask(t, "GET", "/connections", nil).Body.String(); !strings.Contains(page, `href="/connections/tasks/connect"`) {
+	if page := connections(t, admin, "/connections"); !page.offersToConnect("tasks") {
 		t.Error("in Engineering the app is not offered to connect, as if Business's sign-in were Engineering's")
 	}
 	spec, err := task.Read(placed(t, here, "engineering", tasks.Record{Asked: alice}, "opencode"))
@@ -158,7 +160,7 @@ func TestAgentsAndRoomsStayInTheirWorkspace(t *testing.T) {
 	if got := engineer.ask(t, "GET", agent, nil).Code; got != http.StatusNotFound {
 		t.Errorf("an Engineering member opened Business's agent: %d", got)
 	}
-	if page := engineer.ask(t, "GET", "/members", nil).Body.String(); strings.Contains(page, "Closer") {
+	if engineer.members(t, "/members").listsAgent("Closer") {
 		t.Error("Business's agent is listed in Engineering")
 	}
 	if again := here.as(t, bob).ask(t, "POST", "/members/agents", url.Values{"name": {"Closer"}, "harness": {"fixture"}}); !strings.HasPrefix(again.Header().Get("Location"), "/members/agents/") {
@@ -182,14 +184,14 @@ func TestAgentsAndRoomsStayInTheirWorkspace(t *testing.T) {
 func TestAPersonInOneWorkspaceIsShownNoWorkspacesAndCannotChooseAnother(t *testing.T) {
 	here, _ := twoWorkspaces(t)
 	engineer, admin := here.as(t, bob), here.as(t, alice)
-	if page := engineer.ask(t, "GET", "/chat", nil).Body.String(); strings.Contains(page, "· Engineering") || strings.Contains(page, `data-workspace="business"`) {
-		t.Error("a person in one workspace is shown its name")
+	if shown := shellOf(t, engineer).Workspaces; shown != nil {
+		t.Errorf("a person in one workspace is shown its name: %+v", shown)
 	}
-	if page := admin.ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, "· Engineering") || !strings.Contains(page, `data-workspace="main"`) {
-		t.Error("a person in two workspaces is not shown which one they are in")
+	if shown := shellOf(t, admin).Workspaces; shown == nil || shown.Here.Name != "Engineering" || len(shown.Other) != 1 || shown.Other[0].ID != "business" {
+		t.Errorf("a person in two workspaces is not shown which one they are in: %+v", shown)
 	}
-	if page := admin.inWorkspace(t, "business").ask(t, "GET", "/chat", nil).Body.String(); !strings.Contains(page, "· Business") {
-		t.Error("choosing Business did not put the admin in it")
+	if shell := shellOf(t, admin.inWorkspace(t, "business")); shell.Workspace != "business" || shell.Workspaces == nil || shell.Workspaces.Here.Name != "Business" {
+		t.Errorf("choosing Business did not put the admin in it: %+v", shell.Workspaces)
 	}
 	tried := engineer.ask(t, "GET", "/workspace/business", nil)
 	for _, cookie := range tried.Result().Cookies() {

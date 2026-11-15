@@ -28,21 +28,21 @@ func TestAPageCanTellFromTheVersionOfWhatItWasShownThatTheRoomMovedOn(t *testing
 
 	// The turn is drawn queued, then running; the frame that matches the room as it is now is the running one.
 	var running roomlive.Frame
-	for running.Ver == "" || running.Ver != versionNow() || !strings.Contains(running.HTML, "data-pending") {
+	for running.Ver == "" || running.Ver != versionNow() || running.Type != roomlive.FrameTurn || turnOf(t, running).Done {
 		running = frames(t, ada, 1)[0]
 	}
 
 	letGo()
 	var done roomlive.Frame
-	for !(done.ID == said.Ref && !strings.Contains(done.HTML, "data-pending") && strings.Contains(done.HTML, "the reply")) {
+	for !(done.ID == said.Ref && turnOf(t, done).Done && strings.Contains(turnOf(t, done).ReplyHTML, "the reply")) {
 		done = frames(t, ada, 1)[0]
 	}
 	if done.Ver == running.Ver {
 		t.Fatalf("a turn that ended left the room's version as it was: %q", done.Ver)
 	}
 	eventually(t, 5*time.Second, "the room to be quiet", func() bool { return l.site.allDone() })
-	asked := l.site.as(t, alice).ask(t, "GET", l.thread+"/turns", nil)
-	if got := asked.Header().Get("X-Room-Version"); got != versionNow() {
+	_, header := l.site.as(t, alice).turnsAt(t, l.thread)
+	if got := header.Get("X-Room-Version"); got != versionNow() {
 		t.Fatalf("the conversation says it was read at %q and the room's version is %q", got, versionNow())
 	}
 }

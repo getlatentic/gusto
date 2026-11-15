@@ -22,9 +22,13 @@ import (
 
 // roomFile is one file as the room's files panel lists it.
 type roomFile struct {
-	syncedFile
-	Name   string
-	Folder string
+	Path     string
+	Name     string
+	Folder   string
+	Size     int64
+	Modified int64
+	// modifiedNs orders files changed within the same second.
+	modifiedNs int64
 }
 
 // roomFileDay is the files changed on one day, newest first.
@@ -44,29 +48,36 @@ func (s *Server) sharedForWriting(w http.ResponseWriter, r *http.Request) (insta
 	return held, found
 }
 
-func (s *Server) roomFilesPanel(w http.ResponseWriter, r *http.Request) {
+// roomFiles opens the room's folder as a page.
+func (s *Server) roomFiles(w http.ResponseWriter, r *http.Request) {
+	held, found := s.roomOf(w, r)
+	if !found {
+		return
+	}
+	http.Redirect(w, r, "/instances/"+held.ID+"/files?from="+threadPath(s.instances.Latest(held.ID)), http.StatusSeeOther)
+}
+
+// roomFilesData is a room's files for the panel beside its conversation, by who made them, newest day first.
+func (s *Server) roomFilesData(w http.ResponseWriter, r *http.Request) {
 	held, found := s.roomOf(w, r)
 	if !found {
 		return
 	}
 	thread := s.instances.Latest(held.ID)
-	if r.URL.Query().Get("panel") == "" {
-		http.Redirect(w, r, "/instances/"+held.ID+"/files?from="+threadPath(thread), http.StatusSeeOther)
-		return
-	}
 	files, cut := folderFiles(s.instances.AgentFolder(held.ID))
 	made := s.madeByAgents(thread)
-	var byAgents, byPeople []roomFile
+	byAgents, byPeople := []roomFile{}, []roomFile{}
 	for _, file := range files {
-		shown := roomFile{syncedFile: file, Name: path.Base(file.Path), Folder: path.Dir(file.Path)}
+		shown := roomFile{Path: file.Path, Name: path.Base(file.Path), Folder: path.Dir(file.Path), Size: file.Size, Modified: file.Modified, modifiedNs: file.ModifiedNs}
 		if made[file.Path] {
 			byAgents = append(byAgents, shown)
 		} else {
 			byPeople = append(byPeople, shown)
 		}
 	}
-	s.render(w, "room-files", map[string]any{
-		"Room":     held,
+	w.Header().Set("Cache-Control", "no-store")
+	s.asJSON(w, map[string]any{
+		"Room":     map[string]string{"ID": held.ID, "Title": held.Title},
 		"From":     threadPath(thread),
 		"ByAgents": filesByDay(byAgents, time.Now()),
 		"ByPeople": filesByDay(byPeople, time.Now()),
@@ -91,7 +102,7 @@ func (s *Server) madeByAgents(thread instance.Thread) map[string]bool {
 }
 
 func filesByDay(files []roomFile, now time.Time) []roomFileDay {
-	slices.SortFunc(files, func(a, b roomFile) int { return cmp.Compare(b.ModifiedNs, a.ModifiedNs) })
+	slices.SortFunc(files, func(a, b roomFile) int { return cmp.Compare(b.modifiedNs, a.modifiedNs) })
 	var days []roomFileDay
 	for _, file := range files {
 		day := dayName(time.Unix(file.Modified, 0), now)

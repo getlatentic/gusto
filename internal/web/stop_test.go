@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -102,7 +103,7 @@ func TestAStopTheTurnRefusesLeavesNoStopNote(t *testing.T) {
 	_, thread := started2(t, here, alice)
 	ada.ask(t, "POST", thread+"/say", url.Values{"said": {"work that gets kept"}})
 	<-running
-	id := regexpFirst(t, ada.ask(t, "GET", thread, nil).Body.String(), `/jobs/([0-9a-z-]+)/stop`)
+	id := ada.conversation(t, thread).Latest
 	if err := here.index.Commit(id); err != nil {
 		t.Fatal(err)
 	}
@@ -124,11 +125,11 @@ func TestThePageStopsATurnAndShowsWhoStoppedIt(t *testing.T) {
 	_, thread := started2(t, here, alice)
 	ada.ask(t, "POST", thread+"/say", url.Values{"said": {"a long piece of work"}})
 	<-started
-	page := ada.ask(t, "GET", thread, nil).Body.String()
-	if !strings.Contains(page, `/stop"`) || !strings.Contains(page, ">Stop<") {
-		t.Fatalf("a running turn has no stop button:\n%s", page)
+	page := ada.conversation(t, thread)
+	if !page.Waiting || page.Latest == "" {
+		t.Fatalf("a running turn is not named to be stopped: %+v", page)
 	}
-	id := regexpFirst(t, page, `/jobs/([0-9a-z-]+)/stop`)
+	id := page.Latest
 	if got := here.as(t, bob).ask(t, "POST", "/jobs/"+id+"/stop", nil); got.Code != http.StatusNotFound {
 		t.Errorf("bob stopped alice's turn from the page: %d", got.Code)
 	}
@@ -137,8 +138,8 @@ func TestThePageStopsATurnAndShowsWhoStoppedIt(t *testing.T) {
 		t.Fatalf("the button answered %d to %q", got.Code, got.Header().Get("Location"))
 	}
 	turnDone(t, here, id)
-	if after := ada.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(after, "Stopped by "+alice) {
-		t.Errorf("the page does not say who stopped it:\n%s", after)
+	if after := ada.lastTurn(t, thread); after.StoppedBy != alice || after.Stopped != "" {
+		t.Errorf("the turn does not say who stopped it, and only that: %+v", after)
 	}
 	if got := ada.ask(t, "POST", "/jobs/"+id+"/stop", url.Values{"back": {"//evil.example"}}); got.Header().Get("Location") != "/jobs/"+id {
 		t.Errorf("the button went to %q", got.Header().Get("Location"))
@@ -166,10 +167,8 @@ func TestATurnTheCreditStoppedSaysHowToCarryOn(t *testing.T) {
 	_, thread := started2(t, here, alice)
 	_, said := here.say("/api"+thread+"/say", signInADevice(t, here, alice), "one more", "go")
 	turnDone(t, here, said["job"].(string))
-	page := ada.ask(t, "GET", thread, nil).Body.String()
-	if !strings.Contains(page, "The free credit for the models gusto provides is used: $5.01 of $5.00.") ||
-		!(strings.Contains(page, `href="/admin/models">Add your organization&#39;s own model key</a>`) || strings.Contains(page, "Ask an admin of your organization")) {
-		t.Errorf("the turn does not say the credit stopped it and what to do:\n%s", page)
+	if capped := ada.lastTurn(t, thread).Capped; capped == nil || !capped.Credit || capped.SpentUSD != 5.01 || capped.LimitUSD != 5 {
+		t.Errorf("the turn does not say the credit stopped it: %+v", capped)
 	}
 }
 
@@ -189,12 +188,12 @@ func TestATurnRefusedForAnUnpricedModelSaysWhyAndNotThatTheCreditIsUsed(t *testi
 	_, thread := started2(t, here, alice)
 	_, said := here.say("/api"+thread+"/say", signInADevice(t, here, alice), "one more", "go")
 	turnDone(t, here, said["job"].(string))
-	page := ada.ask(t, "GET", thread, nil).Body.String()
-	if strings.Contains(page, "free credit for the models gusto provides is used") || !strings.Contains(page, "The model was not asked: m has no price in the spend policy") {
-		t.Errorf("the turn does not give the real reason its model was refused")
+	shown := ada.lastTurn(t, thread)
+	if shown.Capped == nil || shown.Capped.Credit || !strings.HasPrefix(shown.Capped.Words, "The model was not asked: m has no price in the spend policy") {
+		t.Errorf("the turn does not give the real reason its model was refused: %+v", shown.Capped)
 	}
-	if strings.Contains(page, "It stopped before it finished") || strings.Contains(page, "-32603") {
-		t.Errorf("a turn a spending limit stopped also shows the agent's own error:\n%s", page)
+	if shown.Stopped != "" || strings.Contains(shown.ReplyHTML, "-32603") {
+		t.Errorf("a turn a spending limit stopped also carries the agent's own error: %q %q", shown.Stopped, shown.ReplyHTML)
 	}
 }
 
@@ -216,10 +215,9 @@ func TestATurnListsTheSitesItsAgentWasRefused(t *testing.T) {
 	_, thread := started2(t, here, alice)
 	_, said := here.say("/api"+thread+"/say", signInADevice(t, here, alice), "fetch something", "go")
 	turnDone(t, here, said["job"].(string))
-	page := ada.ask(t, "GET", thread, nil).Body.String()
-	if !strings.Contains(page, "<span>3 requests blocked</span>") || !strings.Contains(page, ">pypi.org</code> <span>× 2</span>") ||
-		!strings.Contains(page, ">evil.example</code></li>") {
-		t.Errorf("the turn does not list the sites its agent was refused:\n%s", page)
+	shown := ada.lastTurn(t, thread)
+	if want := []blocked{{Host: "pypi.org", Times: 2}, {Host: "evil.example", Times: 1}}; shown.Blocked != 3 || fmt.Sprint(shown.Refused) != fmt.Sprint(want) {
+		t.Errorf("the turn does not list the sites its agent was refused: %d %+v", shown.Blocked, shown.Refused)
 	}
 }
 
@@ -240,13 +238,13 @@ func TestATurnStoppedByAPersonsBudgetSaysSoPlainly(t *testing.T) {
 	_, thread := started2(t, here, alice)
 	_, said := here.say("/api"+thread+"/say", signInADevice(t, here, alice), "one more", "go")
 	turnDone(t, here, said["job"].(string))
-	page := ada.ask(t, "GET", thread, nil).Body.String()
+	shown := ada.lastTurn(t, thread)
 	month := time.Now().UTC().Format("January")
-	if want := "Stopped before asking the model: " + nameFromAddress(alice) + "&#39;s budget for " + month + " is used up, $0.09 of $0.01."; !strings.Contains(page, want) {
-		t.Errorf("the turn does not say plainly whose budget stopped it; want %q", want)
+	if want := "Stopped before asking the model: " + nameFromAddress(alice) + "'s budget for " + month + " is used up, $0.09 of $0.01."; shown.Capped == nil || shown.Capped.Words != want {
+		t.Errorf("the turn does not say plainly whose budget stopped it; want %q, got %+v", want, shown.Capped)
 	}
-	if strings.Contains(page, "API Error") || strings.Contains(page, "The model was not asked") {
-		t.Error("the turn repeats the agent's error or the proxy's own words")
+	if strings.Contains(shown.ReplyHTML, "API Error") || shown.Stopped != "" {
+		t.Error("the turn repeats the agent's error")
 	}
 }
 
@@ -268,11 +266,11 @@ func TestATurnStoppedPartWayKeepsTheReplyWithoutTheRefusalRepeated(t *testing.T)
 	_, thread := started2(t, here, alice)
 	_, said := here.say("/api"+thread+"/say", signInADevice(t, here, alice), "one more", "go")
 	turnDone(t, here, said["job"].(string))
-	page := ada.ask(t, "GET", thread, nil).Body.String()
-	if !strings.Contains(page, "Drafting the reminder email now.") {
+	shown := ada.lastTurn(t, thread)
+	if !strings.Contains(shown.ReplyHTML, "Drafting the reminder email now.") {
 		t.Error("the turn drops what the agent said before the budget stopped it")
 	}
-	if strings.Contains(page, "API Error") || !strings.Contains(page, "is used up, $0.02 of $0.02.") {
-		t.Errorf("the turn repeats the agent's error, or does not say the budget stopped it:\n%s", page)
+	if strings.Contains(shown.ReplyHTML, "API Error") || shown.Capped == nil || !strings.Contains(shown.Capped.Words, "is used up, $0.02 of $0.02.") {
+		t.Errorf("the turn repeats the agent's error, or does not say the budget stopped it: %+v", shown)
 	}
 }

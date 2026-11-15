@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -33,15 +32,19 @@ func TestEveryTurnOnAnInstanceCarriesItsSetup(t *testing.T) {
 	if started := site.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}, "setup": {"reviewer"}}); !strings.Contains(started.Header().Get("Location"), "refused=") {
 		t.Fatalf("an agent was started with a skill set that is off: %q", started.Header().Get("Location"))
 	}
-	if list := site.ask(t, "GET", "/new/blank", nil).Body.String(); strings.Contains(list, "reviewer") {
+	if list := blankOf(t, site); slices.Contains(list.Setups, "reviewer") || slices.ContainsFunc(setUpOf(t, site, "?harness=fixture").Setups, func(each option) bool { return each.Value == "reviewer" }) {
 		t.Error("a skill set that is off is offered to people")
 	}
-	if console := site.ask(t, "GET", "/admin/apps?tab=skills", nil).Body.String(); !strings.Contains(console, "reviewer") || !strings.Contains(console, "off") {
-		t.Error("the console does not show the skill set that is off")
+	if row := appsPageOf(t, site, "?tab=skills").skill(t, "reviewer"); row.On || row.Kind != "Skill set" {
+		t.Errorf("the console does not show the skill set that is off: %+v", row)
 	}
 	site.ask(t, "POST", "/admin/skill-sets/reviewer/enable", nil)
-	if page := site.ask(t, "GET", "/setups/reviewer", nil).Body.String(); !strings.Contains(page, "Use when asked to review.") {
-		t.Fatal("the setup's page does not show its skill")
+	var page setupJSON
+	if site.data(t, "/setups/reviewer", &page); len(page.Set.Skills) != 1 || page.Set.Skills[0].Description != "Use when asked to review." {
+		t.Fatalf("the setup's page does not show its skill: %+v", page.Set)
+	}
+	if list := blankOf(t, site); !slices.Contains(list.Setups, "reviewer") {
+		t.Error("a skill set that is on is not offered to people")
 	}
 	started := site.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}, "setup": {"reviewer"}})
 	where := started.Header().Get("Location")
@@ -92,15 +95,11 @@ func TestASkillIsPutBackThroughThePageAndTheRecordSaysWhatItWasAndBecame(t *test
 	}
 	write("first words")
 	write("second words")
-	page := admin.ask(t, "GET", "/admin/skill-sets/reviewer", nil).Body.String()
-	if !strings.Contains(page, "Earlier versions") || !strings.Contains(page, "Put it back") {
-		t.Fatalf("the page does not offer the earlier version:\n%s", page)
+	earlier := skillSetPageOf(t, admin, "reviewer").Earlier
+	if len(earlier) != 1 || earlier[0].Skill != "review" || !earlier[0].Present {
+		t.Fatalf("the page does not offer the earlier version: %+v", earlier)
 	}
-	at := regexp.MustCompile(`name="at" value="(\d+)"`).FindStringSubmatch(page)
-	if at == nil {
-		t.Fatal("no version to put back")
-	}
-	admin.ask(t, "POST", "/admin/skill-sets/reviewer/skills/review/restore", url.Values{"at": {at[1]}})
+	admin.ask(t, "POST", "/admin/skill-sets/reviewer/skills/review/restore", url.Values{"at": {earlier[0].At}})
 	held, _ := admin.server.setups.Get("reviewer")
 	if len(held.Skills) != 1 || held.Skills[0].Body != "first words" {
 		t.Fatalf("after putting it back: %+v", held.Skills)

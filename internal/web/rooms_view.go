@@ -2,13 +2,14 @@ package web
 
 import (
 	"cmp"
-	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"slices"
 	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/getlatentic/gusto/internal/workspace"
 
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/tasks"
@@ -122,6 +123,7 @@ func (s *Server) roomRows(r *http.Request, archived bool) []railChat {
 		if held.Direct && len(held.Agents) == 1 {
 			live := s.liveRoom(held).Agents[0]
 			room.Name, room.Harness = live.Name, live.Harness
+			room.Mark, room.MarkDark = logo(live.Harness), logoDark(live.Harness)
 		}
 		rooms = append(rooms, room)
 	}
@@ -149,17 +151,19 @@ func groupBySender(turns []turn) {
 	}
 }
 
-// quiet is how long a room goes without anything said before it shows the time again, as a chat does after a pause.
+// quiet is how long a room goes without anything said before the next turn names its sender again, as a chat does after a pause.
 const quiet = 20 * 60
 
-// divideByTime puts the time above the first turn and above each turn said after a pause, and starts the grouping by sender again
-// there, since a name under a time reads as a new start.
+// divideByTime puts the day above the first turn and above the first turn of each later day, and starts the grouping by sender
+// again after a pause, since each sender's line carries the time.
 func divideByTime(turns []turn, now time.Time) {
 	var last int64
 	for i := range turns {
 		at := turns[i].Queued
+		if i == 0 || !sameDay(time.Unix(at, 0), time.Unix(last, 0)) {
+			turns[i].Divider = dayOf(time.Unix(at, 0), now)
+		}
 		if i == 0 || at-last > quiet {
-			turns[i].Divider = dividerAt(time.Unix(at, 0), now)
 			turns[i].SaidJoins = false
 			if turns[i].Note || turns[i].From != "" || turns[i].Echo {
 				turns[i].ReplyJoins = false
@@ -169,15 +173,22 @@ func divideByTime(turns []turn, now time.Time) {
 	}
 }
 
-func dividerAt(at, now time.Time) string {
-	if y, d := at.YearDay(), now.YearDay(); at.Year() == now.Year() && y == d {
-		return at.Format("15:04")
-	}
-	return at.Format("Mon 2 Jan, 15:04")
+func sameDay(a, b time.Time) bool {
+	return a.Year() == b.Year() && a.YearDay() == b.YearDay()
 }
 
-// clock is the time of day something was said.
-func clock(unix int64) string { return time.Unix(unix, 0).Format("15:04") }
+// dayOf names a day as a room's divider does: today, yesterday, or the date.
+func dayOf(at, now time.Time) string {
+	switch {
+	case sameDay(at, now):
+		return "Today"
+	case sameDay(at, now.AddDate(0, 0, -1)):
+		return "Yesterday"
+	case at.Year() == now.Year():
+		return at.Format("Mon 2 Jan")
+	}
+	return at.Format("2 Jan 2006")
+}
 
 // nameFromAddress is what a person's address says they are called: ada.lovelace+work@acme.com is Ada Lovelace. A tag after a +
 // is a mailbox's, not the person's, and dots, dashes and underscores part words. The shared sign-in is Owner.
@@ -220,11 +231,11 @@ func initialsOf(name string) string {
 // mentionable is someone a room's message box offers after an @: its agents, which answer, and its people.
 type mentionable struct {
 	Name  string `json:"name"`
-	Role  string `json:"role,omitempty"`
-	Owner string `json:"owner,omitempty"`
-	Agent bool   `json:"agent,omitempty"`
-	Icon  string `json:"icon,omitempty"`
-	Short string `json:"short,omitempty"`
+	Role  string `json:"role"`
+	Owner string `json:"owner"`
+	Agent bool   `json:"agent"`
+	Icon  string `json:"icon"`
+	Short string `json:"short"`
 }
 
 func (s *Server) mentionables(held instance.Instance, you string) []mentionable {

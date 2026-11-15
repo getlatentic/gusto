@@ -1,11 +1,9 @@
 package web
 
 import (
-	"html"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -60,15 +58,6 @@ func sign(t *testing.T, dir task.Dir, check record.Verdict) {
 	}
 }
 
-func (s *site) page(t *testing.T, id string) string {
-	t.Helper()
-	got := s.ask(t, "GET", "/jobs/"+id, nil)
-	if got.Code != 200 {
-		t.Fatalf("the page gave %d", got.Code)
-	}
-	return got.Body.String()
-}
-
 var passed = &record.Verdict{Command: []string{"true"}, Code: 0, Passed: true}
 
 func TestTheDiffIsDrawnFileByFileWithItsHunks(t *testing.T) {
@@ -76,26 +65,28 @@ func TestTheDiffIsDrawnFileByFileWithItsHunks(t *testing.T) {
 	site.signIn(t)
 	site.leave(t, "diffed", leftBehind{state: tasks.Passed, out: map[string]string{"diff.patch": twoFiles}, check: passed})
 
-	page := site.page(t, "diffed")
-	for _, want := range []string{
-		">answer.txt</code>", ">notes.md</code>",
-		`<td class="code">@@ -1,2 &#43;1,2 @@ the answer</td>`,
-		`<tr class="bg-bad-wash"><td class="n">1</td><td class="n"></td><td class="code">no</td></tr>`,
-		`<tr class="bg-ok-wash"><td class="n"></td><td class="n">1</td><td class="code">yes</td></tr>`,
-		`<tr><td class="n">2</td><td class="n">2</td><td class="code">unchanged</td></tr>`,
-	} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the page is missing %s", want)
+	page := site.task(t, "diffed")
+	answer := page.patchFile(t, "answer.txt")
+	page.patchFile(t, "notes.md")
+	if len(answer.Hunks) != 1 || answer.Hunks[0].Header != "@@ -1,2 +1,2 @@ the answer" {
+		t.Fatalf("answer.txt's hunks are %+v", answer.Hunks)
+	}
+	want := []diffLine{{Kind: "removed", Old: 1, Text: "no"}, {Kind: "added", New: 1, Text: "yes"}, {Kind: "context", Old: 2, New: 2, Text: "unchanged"}}
+	for i, line := range want {
+		if got := answer.Hunks[0].Lines[i]; got != line {
+			t.Errorf("line %d is %+v, want %+v", i, got, line)
 		}
 	}
-	if strings.Contains(page, "diff --git") {
-		t.Error("the file headers are drawn as names, not dumped")
+	for _, file := range page.Patch.Files {
+		if strings.Contains(file.Name, "diff --git") {
+			t.Error("the file headers are given as names, not dumped")
+		}
 	}
 }
 
-// The transcript, the patch and the check's output are written by a harness
-// nobody trusts, and a page that ran a script from one would hand the harness
-// the reviewer's session.
+// The transcript, the patch and the check's output are written by a harness nobody trusts, and a page that ran a script from
+// one would hand the harness the reviewer's session. The transcript is the one drawn as HTML here, so it is escaped here; the
+// rest is text the page draws as text.
 func TestMarkupFromTheHarnessIsDrawnAsText(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
@@ -106,20 +97,15 @@ func TestMarkupFromTheHarnessIsDrawnAsText(t *testing.T) {
 		"gate.log": "<img src=x onerror=alert('gate')>\n",
 	}, check: &record.Verdict{Command: []string{"sh", "-c", "<script>alert('gate')</script>"}, Code: 1}})
 
-	page := site.page(t, "hostile")
-	for _, live := range []string{"<script>alert(", "<img src=x", "<b>x</b>", "<p>old</p>"} {
-		if strings.Contains(page, live) {
-			t.Errorf("%s reached the page as markup", live)
-		}
+	page := site.task(t, "hostile")
+	if page.Transcript == nil || strings.Contains(page.Transcript.HTML, "<script>") {
+		t.Fatalf("the transcript reached the page as markup: %+v", page.Transcript)
 	}
-	for _, inert := range []string{
-		"&lt;script&gt;alert(&#39;transcript&#39;)&lt;/script&gt;",
-		"&lt;script&gt;alert(&#39;diff&#39;)&lt;/script&gt;",
-		"&lt;img src=x onerror=alert(&#39;gate&#39;)&gt;",
-	} {
-		if !strings.Contains(page, inert) {
-			t.Errorf("the page should show %s as text", inert)
-		}
+	if !strings.Contains(page.Transcript.HTML, "&lt;script&gt;alert(&#39;transcript&#39;)&lt;/script&gt;") {
+		t.Errorf("the transcript should show its script as text: %s", page.Transcript.HTML)
+	}
+	if page.Check == nil || page.Check.Log == nil || page.Check.Log.Text != "<img src=x onerror=alert('gate')>\n" {
+		t.Errorf("the check's output should be given as the text it is: %+v", page.Check)
 	}
 }
 
@@ -128,8 +114,8 @@ func TestAnEmptyPatchHasNoSection(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	site.leave(t, "idle", leftBehind{state: tasks.Failed, out: map[string]string{"diff.patch": ""}, check: passed})
-	if page := site.page(t, "idle"); strings.Contains(page, "What changed") || strings.Contains(page, "No files changed") {
-		t.Error("an empty patch should add nothing to the page")
+	if page := site.task(t, "idle"); page.Patch == nil || !page.Patch.Empty || len(page.Patch.Files) > 0 {
+		t.Errorf("an empty patch should be said to be empty: %+v", page.Patch)
 	}
 }
 
@@ -140,14 +126,12 @@ func TestABinaryFileIsNamedAndNotDrawn(t *testing.T) {
 		"diff.patch": "diff --git a/logo.png b/logo.png\nnew file mode 100644\nindex 0000000..8c3f1a2\n" +
 			"Binary files /dev/null and b/logo.png differ\n",
 	}, check: passed})
-	page := site.page(t, "binary")
-	if !strings.Contains(page, ">logo.png</code>") || !strings.Contains(page, "A binary file") {
-		t.Error("a binary file should be named and said to be binary")
+	if logo := site.task(t, "binary").patchFile(t, "logo.png"); !logo.Binary || len(logo.Hunks) > 0 {
+		t.Errorf("a binary file should be named and said to be binary: %+v", logo)
 	}
 }
 
-// A harness can write any amount, and the page draws the start of it and
-// links the rest rather than inlining megabytes.
+// A harness can write any amount, and the page draws the start of it and links the rest rather than inlining megabytes.
 func TestAHugeTranscriptAndPatchAreCutAndLinked(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
@@ -159,21 +143,18 @@ func TestAHugeTranscriptAndPatchAreCutAndLinked(t *testing.T) {
 		"transcript.log": long, "diff.patch": patch,
 	}, check: passed})
 
-	page := site.page(t, "huge")
-	if strings.Contains(page, "THE LAST LINE") {
+	text := site.dataText(t, "/jobs/huge")
+	if strings.Contains(text, "THE LAST LINE") {
 		t.Error("the page drew past its limit")
 	}
-	for _, name := range []string{"transcript.log", "diff.patch"} {
-		link := `href="/jobs/huge/files/` + name + `">Read the whole file</a>`
-		if !strings.Contains(page, link) {
-			t.Errorf("a cut %s should link the whole file", name)
+	if len(text) > 8*drawn {
+		t.Errorf("the page's data is %d bytes", len(text))
+	}
+	page := site.task(t, "huge")
+	for name, cut := range map[string]cutView{"transcript.log": page.Transcript.cutView, "diff.patch": page.Patch.cutView} {
+		if !cut.Cut || cut.Raw != "/jobs/huge/files/"+name || cut.Name != name || cut.Shown == "" || cut.Whole == "" {
+			t.Errorf("a cut %s should say so and link the whole file: %+v", name, cut)
 		}
-	}
-	if !strings.Contains(page, "the page draws the first") {
-		t.Error("a cut file should say it was cut")
-	}
-	if len(page) > 8*drawn {
-		t.Errorf("the page is %d bytes", len(page))
 	}
 }
 
@@ -183,11 +164,11 @@ func TestAShortTranscriptIsDrawnWholeWithItsLineBreaks(t *testing.T) {
 	site.leave(t, "short", leftBehind{state: tasks.Passed, out: map[string]string{
 		"transcript.log": "I read the tests.\nI changed answer.txt.\n",
 	}, check: passed})
-	page := site.page(t, "short")
-	if !strings.Contains(page, "I read the tests.<br>\nI changed answer.txt.") {
-		t.Error("the transcript should be drawn with its line breaks")
+	transcript := site.task(t, "short").Transcript
+	if transcript == nil || !strings.Contains(transcript.HTML, "I read the tests.<br>\nI changed answer.txt.") {
+		t.Errorf("the transcript should be drawn with its line breaks: %+v", transcript)
 	}
-	if strings.Contains(page, "Read the whole file") {
+	if transcript != nil && transcript.Cut {
 		t.Error("a file drawn whole has nothing more to link")
 	}
 }
@@ -198,16 +179,10 @@ func TestTheCheckShowsItsCommandItsExitAndWhatItPrinted(t *testing.T) {
 	site.leave(t, "refused", leftBehind{state: tasks.Failed, out: map[string]string{"gate.log": "3 tests failed\n"},
 		check: &record.Verdict{Command: []string{"sh", "-c", "go test ./... && exit 3"}, Code: 3}})
 
-	page := site.page(t, "refused")
-	for _, want := range []string{
-		">sh -c &#39;go test ./... &amp;&amp; exit 3&#39;</code>",
-		`<span class="text-muted">exited 3</span>`,
-		`bg-bad-wash text-bad">failed</span>`,
-		"What the check said", "3 tests failed",
-	} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the check is missing %s", want)
-		}
+	check := site.task(t, "refused").Check
+	if check == nil || check.Command != "sh -c 'go test ./... && exit 3'" || check.Verdict == nil || check.Verdict.Code != 3 ||
+		check.Verdict.Passed || !check.Explains || check.Log == nil || check.Log.Text != "3 tests failed\n" {
+		t.Errorf("the check should give its command, its exit, its verdict and what it said: %+v", check)
 	}
 }
 
@@ -216,11 +191,11 @@ func TestARunningTaskIsLeftToTheStream(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	site.leave(t, "busy", leftBehind{state: tasks.Running, out: map[string]string{"transcript.log": "working\n"}})
-	page := site.page(t, "busy")
-	if !strings.Contains(page, `id="stream"`) || strings.Contains(page, `class="transcript"`) {
-		t.Error("a running job should draw the stream, not the transcript so far")
+	page := site.task(t, "busy")
+	if !page.Live || page.Transcript != nil {
+		t.Error("a running job should be left to the stream, not given the transcript so far")
 	}
-	if strings.Contains(page, ">The check</h2>") || strings.Contains(page, `id="verify"`) {
+	if page.Check != nil || page.Proof != nil {
 		t.Error("a job with no answer yet has no check and nothing to verify")
 	}
 }
@@ -238,8 +213,6 @@ func TestACheckIsWrittenSoAShellRunsTheSameArgv(t *testing.T) {
 	}
 }
 
-var shownCommand = regexp.MustCompile(`<code [^>]*id="verify">([^<]*)</code>`)
-
 // The command on the page is only worth showing if it works on what the page
 // hands over, so this downloads the bundle and runs the command as written,
 // with a gusto built from this tree.
@@ -248,11 +221,11 @@ func TestTheVerifyCommandOnThePageVerifiesTheBundle(t *testing.T) {
 	site.signIn(t)
 	id, _ := site.ranTask(t, wroteTheAnswer)
 
-	found := shownCommand.FindStringSubmatch(site.page(t, id))
-	if found == nil {
+	proof := site.task(t, id).Proof
+	if proof == nil || proof.Command == "" {
 		t.Fatal("the page gives no command to verify with")
 	}
-	command := html.UnescapeString(found[1])
+	command := proof.Command
 
 	downloads := t.TempDir()
 	bundle := site.ask(t, "GET", "/jobs/"+id+"/bundle", nil)

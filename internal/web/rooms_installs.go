@@ -2,11 +2,12 @@ package web
 
 import (
 	"fmt"
-	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/workspace"
 
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/runner"

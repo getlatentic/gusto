@@ -3,7 +3,6 @@ package web
 import (
 	"bufio"
 	"encoding/json"
-	"net/http"
 	"os"
 	"strings"
 
@@ -12,55 +11,6 @@ import (
 	"github.com/getlatentic/gusto/pkg/spend"
 	"github.com/getlatentic/gusto/pkg/task"
 )
-
-// task is one run and everything it left: what it said, what it ran, what it
-// changed, whether its check passed, what its calls to a model cost, and the
-// record that vouches for all of it.
-func (s *Server) task(w http.ResponseWriter, r *http.Request) {
-	record, dir, found := s.find(r)
-	if !found {
-		http.NotFound(w, r)
-		return
-	}
-	if record.Thread != "" && !s.admin(r) {
-		if thread, found := s.instances.Thread(record.Instance, record.Thread); found {
-			http.Redirect(w, r, threadPath(thread)+"#"+record.ID, http.StatusSeeOther)
-			return
-		}
-	}
-	ledger, _ := s.spending()
-	page := map[string]any{
-		"Job": record, "On": s.origin(record), "Run": s.recorded(record, ledger),
-		"Title": productName + " — " + record.Brief, "Nav": "jobs",
-	}
-	spec, err := task.Read(dir)
-	if err == nil {
-		page["Spec"] = spec
-	}
-	if held, found := s.instances.Get(record.Instance); found {
-		page["Agent"] = s.agentOf(held)
-	}
-	if record.Thread != "" {
-		if thread, found := s.instances.Thread(record.Instance, record.Thread); found {
-			page["Thread"] = thread
-			page["ThreadPath"] = threadPath(thread)
-			page["Talk"] = s.talkAround(thread, record.ID, ledger)
-		}
-	}
-	page["Steps"] = stepsOf(dir)
-	manifest := readManifest(dir)
-	drawRecord(page, record, dir, manifest)
-	// A turn in a conversation names no check, so it has no verdict to be
-	// missing; saying the check never answered would call a finished turn broken.
-	if err == nil && len(spec.Check) == 0 {
-		delete(page, "Check")
-	}
-	page["Ran"] = ranBy(dir)
-	page["Calls"] = callsOf(dir)
-	page["Files"] = hashed(listing(dir), manifest)
-	page["Proof"] = s.proofOf(record.ID, dir, manifest)
-	s.render(w, "task.html", page)
-}
 
 // ran is one thing the harness did, as out/commands.jsonl keeps it.
 type ran struct {
@@ -205,52 +155,19 @@ func listing(dir task.Dir) []string {
 	return names
 }
 
-// talk is the conversation a turn belongs to, as its page places it: which
-// message it was, the ones either side, and what the whole conversation has
-// taken, cost and changed so far.
-type talk struct {
-	Name    string
-	Place   int
-	Of      int
-	Before  string
-	After   string
-	Seconds int64
-	Spent   spend.Tally
-	Metered bool
-	Changed []string
-}
-
-func (s *Server) talkAround(thread instance.Thread, id string, ledger *spend.Ledger) talk {
-	around := talk{Name: s.nameOf(thread), Of: len(thread.Turns)}
-	seen := map[string]bool{}
+// talkAround places a turn in its conversation: which message it was, and the ones either side.
+func (s *Server) talkAround(thread instance.Thread, id string) talkView {
+	around := talkView{Name: s.nameOf(thread), Of: len(thread.Turns)}
 	for i, turn := range thread.Turns {
-		if turn == id {
-			around.Place = i + 1
-			if i > 0 {
-				around.Before = thread.Turns[i-1]
-			}
-			if i+1 < len(thread.Turns) {
-				around.After = thread.Turns[i+1]
-			}
-		}
-		record, found := s.index.Get(turn)
-		if !found {
+		if turn != id {
 			continue
 		}
-		if record.Started != 0 && record.Ended != 0 {
-			around.Seconds += record.Ended - record.Started
+		around.Place = i + 1
+		if i > 0 {
+			around.Before = thread.Turns[i-1]
 		}
-		if spent, metered := spentBy(ledger, turn); metered {
-			around.Metered = true
-			around.Spent.USD += spent.USD
-			around.Spent.Unmeasured += spent.Unmeasured
-			around.Spent.Calls += spent.Calls
-		}
-		for _, file := range changed(record.Dir(s.index.Root())) {
-			if !seen[file] {
-				seen[file] = true
-				around.Changed = append(around.Changed, file)
-			}
+		if i+1 < len(thread.Turns) {
+			around.After = thread.Turns[i+1]
 		}
 	}
 	return around
