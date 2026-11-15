@@ -96,7 +96,7 @@
     {{template "ui-dialog-head" (dict "ID" "provider-policy-title" "Title" "What providers may be" "Words" "This installation is yours, so you decide how far a provider may reach.")}}
     <p class="m-0 text-sm text-muted">Each of these lets whoever adds a provider point this machine, or the keys it can read, at an address or a file of their choosing. Leave them off unless you run a model inside your own network or keep keys in a store this machine can read.</p>
     <label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="private" value="on"{{if .View.Private}} checked{{end}}> A provider may be at a private address, this machine, or plain http</label>
-    <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">A key may be named as a reference to</legend>
+    <fieldset class="grid gap-2"><legend class="{{template "ui-legend"}}">A key may be named as a reference to</legend>
       {{range $kind := .Sources}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="keys" value="{{$kind.Kind}}"{{if $kind.On}} checked{{end}}> {{$kind.Words}}</label>{{end}}
     </fieldset>
     <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}}" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}}">Save</button></div>
@@ -238,7 +238,7 @@
     {{template "ui-dialog-head" (dict "ID" "limit-person-title" "Title" "Limit a person" "Words" "They are offered only the models you tick.")}}
     <label class="{{template "ui-field"}}">Person <input class="input" name="email" type="email" list="people" placeholder="ada@example.com" required></label>
     <datalist id="people">{{range .People}}<option value="{{.}}">{{end}}</datalist>
-    <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">May use</legend>
+    <fieldset class="grid gap-2"><legend class="{{template "ui-legend"}}">May use</legend>
       {{range .View.Available}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="model" value="{{.}}"> {{.}}</label>{{end}}
     </fieldset>
     <div class="flex justify-end gap-2"><button type="button" class="{{template "ui-btn-quiet"}}" data-close>Cancel</button><button type="submit" class="{{template "ui-btn"}}">Limit this person</button></div>

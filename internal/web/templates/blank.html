@@ -13,7 +13,7 @@
 <form class="grid max-w-xl gap-4 {{template "ui-card"}}" method="post" action="/instances">
   <label class="{{template "ui-field"}}">Name it <input class="input" name="title" placeholder="Agent" maxlength="60"></label>
   <fieldset class="grid gap-2">
-    <legend class="mb-2 text-xs font-medium text-subtle">Agent type</legend>
+    <legend class="{{template "ui-legend"}}">Agent type</legend>
     {{range $i, $each := .Engines}}
     <label class="grid cursor-pointer grid-cols-[auto_1fr] items-baseline gap-x-3 rounded-sm border border-line-strong px-4 py-3 hover:border-ink has-[:checked]:border-accent has-[:checked]:bg-accent-wash">
       <input class="input row-span-2 self-center" type="radio" name="harness" value="{{$each.Name}}"{{if eq $i 0}} checked{{end}}>

@@ -201,7 +201,7 @@
     <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="Atlas" maxlength="32" required autocomplete="off"></label>
     <label class="{{template "ui-field"}}"><span>Specialty <span class="font-normal">helps teammates know what to ask it for</span></span><input class="input" name="specialty" placeholder="Research and synthesis" maxlength="80"></label>
     <fieldset class="m-0 grid gap-1.5 border-0 p-0">
-      <legend class="mb-1 text-xs font-medium text-subtle">How it runs <span class="font-normal">chosen once; it keeps its conversations in this agent type</span></legend>
+      <legend class="{{template "ui-legend"}}">How it runs <span class="font-normal">chosen once; it keeps its conversations in this agent type</span></legend>
       {{range $each := .Kinds}}
       <label class="flex items-center gap-3 rounded-lg border border-line px-3 py-2.5 {{if $each.Ready}}cursor-pointer hover:border-line-strong has-[:checked]:border-accent has-[:checked]:bg-accent-wash{{else}}cursor-not-allowed bg-sunken{{end}}">
         <input class="sr-only" type="radio" name="harness" value="{{$each.Name}}"{{if eq $each.Name $.FirstReady}} checked{{end}}{{if not $each.Ready}} disabled{{end}}>

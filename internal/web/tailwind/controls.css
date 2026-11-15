@@ -1,0 +1,10 @@
+/* gusto's finish on Basecoat's fields, as Kylon draws them. A field sits inside its label, so it would take the label's small,
+   heavy, grey type, and Basecoat's placeholder would be as dark as an answer: what is typed is the person's own, in the body type, and the field lifts off its card by a soft shadow. */
+@layer components {
+  :is(.input:not([type="checkbox"], [type="radio"]), .textarea, select.select) {
+    @apply font-normal tracking-normal text-ink normal-case shadow-[0_0.0625rem_1rem_rgb(0_0_0/0.04)] placeholder:font-normal placeholder:text-placeholder;
+  }
+  :is(.input:not([type="checkbox"], [type="radio"], [type="file"]), .textarea) {
+    @apply px-3;
+  }
+}

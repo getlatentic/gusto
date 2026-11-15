@@ -92,8 +92,9 @@
 {{end}}
 
 {{/* body opens the page's own column. A page with a bar puts it between head
-     and body, so the bar spans the whole pane while the column stays narrow. */}}
-{{define "body"}}<div class="wrap{{if .Chat}} flex min-h-0{{else}} mx-auto max-w-page has-[.two-col]:max-w-page-wide px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16 [.bar~&]:pt-4{{end}}">{{end}}
+     and body, so the bar spans the whole pane while the column stays narrow.
+     The admin's pages are tables and lists of everybody, and take the pane. */}}
+{{define "body"}}<div class="wrap{{if .Chat}} flex min-h-0{{else}} mx-auto {{if .Console}}max-w-page-wide{{else}}max-w-page has-[.two-col]:max-w-page-wide{{end}} px-8 pt-8 pb-20 @max-[56rem]:px-4 @max-[56rem]:pt-5 @max-[56rem]:pb-16 [.bar~&]:pt-4{{end}}">{{end}}
 
 {{/* The console is the admin's own place: its sections down the side, one way
      back to the pages everybody uses, and no other link between the two. */}}

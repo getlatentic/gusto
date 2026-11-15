@@ -165,12 +165,12 @@
       <label class="{{template "ui-field"}}">Instructions <textarea class="textarea" name="text" rows="3" placeholder="What the agent should do"></textarea></label>
       <label class="{{template "ui-field"}}">Invalid <input class="input" value="not a name" aria-invalid="true"><span class="text-xs text-bad">Use lower case letters, digits and hyphens.</span></label>
       <label class="{{template "ui-field"}}">Disabled <input class="input" value="Not editable" disabled></label>
-      <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">It may</legend>
+      <fieldset class="grid gap-2"><legend class="{{template "ui-legend"}}">It may</legend>
         <label class="{{template "ui-check"}}"><input class="input" type="checkbox" checked> Submit tasks</label>
         <label class="{{template "ui-check"}}"><input class="input" type="checkbox"> Read usage</label>
         <label class="{{template "ui-check"}}"><input class="input" type="checkbox" disabled> Not offered</label>
       </fieldset>
-      <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">Keep for</legend>
+      <fieldset class="grid gap-2"><legend class="{{template "ui-legend"}}">Keep for</legend>
         <label class="{{template "ui-check"}}"><input class="input" type="radio" name="keep" checked> 30 days</label>
         <label class="{{template "ui-check"}}"><input class="input" type="radio" name="keep"> 90 days</label>
       </fieldset>

@@ -3,8 +3,8 @@
      (input, select, textarea), written in the markup, so their look and keyboard behaviour come from one place. */}}
 
 {{/* Buttons: ui-btn is the one action a page offers, the quiet ones are the others, and the small ones sit in rows and tables. */}}
-{{define "ui-btn"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md bg-solid px-4 text-sm font-medium whitespace-nowrap text-on-solid no-underline transition-colors hover:bg-solid-hover disabled:cursor-default disabled:opacity-50{{end}}
-{{define "ui-btn-quiet"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md border border-line-strong bg-transparent px-4 text-sm font-medium whitespace-nowrap text-muted no-underline transition-colors hover:bg-wash hover:text-ink disabled:cursor-default disabled:opacity-50{{end}}
+{{define "ui-btn"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md bg-solid px-4 text-sm font-semibold whitespace-nowrap text-on-solid no-underline transition-colors hover:bg-solid-hover disabled:cursor-default disabled:opacity-50{{end}}
+{{define "ui-btn-quiet"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold whitespace-nowrap text-ink no-underline transition-colors hover:bg-wash disabled:cursor-default disabled:opacity-50{{end}}
 {{define "ui-btn-danger"}}inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md border border-bad/40 bg-transparent px-4 text-sm font-medium whitespace-nowrap text-bad no-underline transition-colors hover:bg-bad-wash{{end}}
 {{define "ui-btn-ghost"}}inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-sm border-0 bg-transparent px-2.5 text-xs whitespace-nowrap text-muted no-underline transition-colors hover:bg-hover hover:text-ink [&>svg]:size-4{{end}}
 {{define "ui-btn-sm"}}inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-line-strong bg-surface px-3 text-xs font-semibold whitespace-nowrap text-ink no-underline transition-colors hover:bg-wash disabled:cursor-default disabled:opacity-50{{end}}
@@ -12,7 +12,8 @@
 {{define "ui-link-quiet"}}inline-flex items-center gap-1.5 text-sm font-medium text-subtle no-underline hover:text-ink{{end}}
 
 {{/* Forms. */}}
-{{define "ui-field"}}grid gap-1.5 text-xs font-medium text-subtle{{end}}
+{{define "ui-field"}}grid gap-2 text-xs font-semibold text-subtle{{end}}
+{{define "ui-legend"}}mb-2 text-xs font-semibold text-subtle{{end}}
 {{define "ui-check"}}flex items-center gap-2 text-sm font-normal text-ink{{end}}
 {{define "ui-note"}}text-sm text-muted{{end}}
 {{define "ui-notice"}}mb-4 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad{{end}}

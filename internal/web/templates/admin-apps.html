@@ -51,12 +51,12 @@
     <form class="hidden max-w-xl gap-4 group-has-[#add-new:checked]/add:grid" method="post" action="/admin/skill-sets">
       <label class="{{template "ui-field"}}">Name <input class="input" name="name" placeholder="code-reviewer" pattern="[a-z0-9][a-z0-9-]*" required></label>
       {{with .Offered}}
-      <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">Tools</legend>
+      <fieldset class="grid gap-2"><legend class="{{template "ui-legend"}}">Tools</legend>
         {{range $name, $server := .}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="server" value="{{$name}}"> {{$name}}</label>{{end}}
       </fieldset>
       {{end}}
       {{with .Imported}}
-      <fieldset class="grid gap-2"><legend class="mb-1 text-xs font-medium text-subtle">Imported plugins</legend>
+      <fieldset class="grid gap-2"><legend class="{{template "ui-legend"}}">Imported plugins</legend>
         {{range .}}<label class="{{template "ui-check"}}"><input class="input" type="checkbox" name="integration" value="{{.Name}}"> {{.Name}}{{if not .On}} <span class="text-muted">off</span>{{end}}</label>{{end}}
       </fieldset>
       {{end}}
