@@ -59,9 +59,8 @@ func TestAPersonConnectsAnAppTheAdminTurnedOnAndTheirTaskReachesIt(t *testing.T)
 	if turnedOn != here.server.withMessage("/admin/apps?tab=apps", "on", "Tasks") {
 		t.Fatalf("turning it on went to %q", turnedOn)
 	}
-	if page := here.ask(t, "GET", turnedOn, nil).Body.String(); !strings.Contains(page, `action="/admin/connectors/tasks/off"`) ||
-		!strings.Contains(page, "Tasks is on. Each person connects their own account") {
-		t.Errorf("the admin's page does not show it on and that people connect it:\n%s", page)
+	if page := appsPageOf(t, here, strings.TrimPrefix(turnedOn, appsPath)); !page.app(t, "tasks").On || page.TurnedOn != "Tasks" {
+		t.Errorf("the admin's page does not show it on and that people connect it: %+v", page)
 	}
 	if page := ada.ask(t, "GET", "/chat", nil).Body.String(); strings.Contains(page, "/connections/tasks/connect") {
 		t.Errorf("the chat page asks the person to connect an app; they connect it from Connections")
@@ -149,8 +148,8 @@ func TestTheSharedSignInConnectsNothingAndAnAppWithoutItsClientStaysOff(t *testi
 	if got := here.ask(t, "POST", "/admin/connectors/crm/on", nil).Header().Get("Location"); !strings.Contains(got, "refused=") {
 		t.Errorf("an app with no client was turned on: %q", got)
 	}
-	if page := here.ask(t, "GET", "/admin/apps", nil).Body.String(); !strings.Contains(page, "needs setup") {
-		t.Errorf("the admin is not told it needs setting up:\n%s", page)
+	if crm := appsPageOf(t, here, "").app(t, "crm"); crm.Usable || crm.On {
+		t.Errorf("the admin is not told it needs setting up: %+v", crm)
 	}
 }
 

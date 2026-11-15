@@ -101,5 +101,10 @@ function sectionOf(path: string): string {
   if (path === "/admin") return "overview"
   if (path.startsWith("/admin/usage") || path.startsWith("/admin/spending"))
     return "usage"
+  if (
+    path.startsWith("/admin/skill-sets/") ||
+    path.startsWith("/admin/integrations/")
+  )
+    return "apps"
   return path.split("/")[2] ?? ""
 }

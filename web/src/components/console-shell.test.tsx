@@ -41,3 +41,46 @@ describe("the console", () => {
     expect(screen.getByRole("link", { name: "Back to gusto" })).toBeTruthy()
   })
 })
+
+describe("a page under a section", () => {
+  it("marks Apps & skills for a skill set's page and a plugin's", async () => {
+    for (const at of [
+      "/admin/skill-sets/reviewer",
+      "/admin/integrations/reports",
+    ]) {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(
+          async () =>
+            new Response(
+              JSON.stringify({
+                sections: [
+                  { key: "overview", href: "/admin", label: "Overview" },
+                  { key: "apps", href: "/admin/apps", label: "Apps & skills" },
+                ],
+              })
+            )
+        )
+      )
+      const drawn = render(
+        <TooltipProvider>
+          <MemoryRouter initialEntries={[at]}>
+            <Routes>
+              <Route path="/admin" element={<ConsoleShell />}>
+                <Route path="*" element={<p>page</p>} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </TooltipProvider>
+      )
+      const apps = await screen.findByRole("link", { name: "Apps & skills" })
+      expect(apps.getAttribute("aria-current")).toBe("page")
+      expect(
+        screen
+          .getByRole("link", { name: "Overview" })
+          .getAttribute("aria-current")
+      ).toBeNull()
+      drawn.unmount()
+    }
+  })
+})

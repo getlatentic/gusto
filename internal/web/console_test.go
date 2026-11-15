@@ -153,14 +153,11 @@ func TestAFullConsoleListsItsSectionsInOrder(t *testing.T) {
 	}
 }
 
-// A page under a section marks that section, so a skill set's page is in Apps & skills and a tab of Records is in Records.
+// A page under a section marks that section, so a tab of Records is in Records.
 func TestTheConsoleMarksTheSectionAPageBelongsTo(t *testing.T) {
 	admin := everything(t).as(t, boss)
-	admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"reviewer"}})
 	current := regexp.MustCompile(`href="([^"]+)" aria-current="page"`)
 	for path, want := range map[string]string{
-		"/admin/apps?tab=skills":     "/admin/apps",
-		"/admin/skill-sets/reviewer": "/admin/apps",
 		"/admin/records?tab=checks":  "/admin/records",
 		"/admin/records?tab=keeping": "/admin/records",
 	} {
@@ -197,7 +194,6 @@ func TestTheOldConsolePagesGoToTheirTabs(t *testing.T) {
 func TestEachTabOfAppsAndRecordsShowsItsOwnPart(t *testing.T) {
 	admin := everything(t).as(t, boss)
 	for path, want := range map[string][]string{
-		"/admin/apps":                {"Apps &amp; skills", "What agents may use, for everyone in", "Add a skill", "Write a skill set", "Import from git", "Import an upload", `action="/admin/integrations/import"`},
 		"/admin/records":             {"Records", "A signed record of everything", "Intact", " signed", "How to check it yourself", `href="/admin/activity.jsonl"`},
 		"/admin/records?tab=checks":  {"Task checks", "Intact", "verified", "failed the check"},
 		"/admin/records?tab=keeping": {"Keeping", "Intact", "Sweep now", `action="/admin/retention/holds"`, `action="/admin/retention/jobs/hold"`},
@@ -215,24 +211,23 @@ func TestEachTabOfAppsAndRecordsShowsItsOwnPart(t *testing.T) {
 	if page := admin.ask(t, "GET", "/admin/records?tab=checks", nil).Body.String(); strings.Contains(page, "How to check it yourself") || strings.Contains(page, "Sweep now") {
 		t.Error("the task checks tab carries another tab's part")
 	}
+	if page := appsPageOf(t, admin, ""); page.Tab != "skills" || !page.Writes || !page.Imports || page.Skills == nil {
+		t.Errorf("Apps & skills does not give the skills and both ways to add one: %+v", page)
+	}
 }
 
-func TestAnAppIsASwitchAndOneThatNeedsSetupSaysSo(t *testing.T) {
+func TestAnAppIsTurnedOnAndOffForEveryone(t *testing.T) {
 	here, _, _ := connected(t)
-	page := here.ask(t, "GET", "/admin/apps", nil).Body.String()
-	if !strings.Contains(page, `action="/admin/connectors/tasks/on"`) || !strings.Contains(page, `role="switch" aria-checked="false"`) {
-		t.Fatalf("an app that is off is not a switch that turns it on:\n%s", page)
-	}
-	if strings.Contains(page, "Turn on</button>") {
-		t.Error("the app is turned on with a button of words, not the switch")
+	if tasks := appsPageOf(t, here, "").app(t, "tasks"); tasks.On || !tasks.Usable {
+		t.Fatalf("an app that can be turned on is not given as off: %+v", tasks)
 	}
 	here.ask(t, "POST", "/admin/connectors/tasks/on", nil)
-	page = here.ask(t, "GET", "/admin/apps", nil).Body.String()
-	if !strings.Contains(page, `action="/admin/connectors/tasks/off"`) || !strings.Contains(page, `role="switch" aria-checked="true"`) {
-		t.Errorf("an app that is on is not a switch that turns it off:\n%s", page)
+	if tasks := appsPageOf(t, here, "").app(t, "tasks"); !tasks.On {
+		t.Errorf("an app turned on is not given as on: %+v", tasks)
 	}
-	if !strings.Contains(page, "Agents use it only as that person, and only for what they ask.") {
-		t.Error("the page does not say how agents use an app")
+	here.ask(t, "POST", "/admin/connectors/tasks/off", nil)
+	if tasks := appsPageOf(t, here, "").app(t, "tasks"); tasks.On {
+		t.Errorf("an app turned off is still given as on: %+v", tasks)
 	}
 }
 
@@ -260,7 +255,7 @@ func TestOnlyAnAdminSeesTheLinkToTheConsoleAndItIsTheOnlyOne(t *testing.T) {
 
 func TestTheConsoleHasOneLinkBack(t *testing.T) {
 	admin := everything(t).as(t, boss)
-	for _, path := range []string{"/admin/records", "/admin/records?tab=keeping", "/admin/apps?tab=skills"} {
+	for _, path := range []string{"/admin/records", "/admin/records?tab=keeping"} {
 		page := admin.ask(t, "GET", path, nil).Body.String()
 		if got := strings.Count(page, `href="/"`); got != 1 || !strings.Contains(page, "Back to gusto") {
 			t.Errorf("%s has %d links to the employee's pages", path, got)

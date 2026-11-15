@@ -135,11 +135,25 @@ func (s *Server) saveSetup(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, setupsPath+"/"+name, http.StatusSeeOther)
 }
 
-// setupPage is one setup: its skills and its servers, for anybody to read.
+// setupPage is one setup that is on: its skills and its servers, for anybody to read.
 func (s *Server) setupPage(w http.ResponseWriter, r *http.Request) {
-	if page, ok := s.setupData(w, r, "/setups"); ok {
-		s.render(w, "setup-detail.html", page)
+	if s.setups == nil {
+		http.NotFound(w, r)
+		return
 	}
+	held, found := s.setups.Get(r.PathValue("name"))
+	if !found || held.Off {
+		http.NotFound(w, r)
+		return
+	}
+	s.render(w, "setup-detail.html", map[string]any{
+		"Title":   productName + " — " + held.Name,
+		"Nav":     "presets",
+		"Setup":   held,
+		"Offered": s.servers,
+		"Catalog": s.engines(),
+		"Refused": s.refusal(r),
+	})
 }
 
 // exportSetup is a skill set as an Agent Plugin, for another deployment to import, or this one.
@@ -153,38 +167,6 @@ func (s *Server) exportSetup(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`-plugin.zip"`)
 	w.Write(data)
-}
-
-// skillSetPage is one setup, and the way to change its skills and servers.
-func (s *Server) skillSetPage(w http.ResponseWriter, r *http.Request) {
-	if page, ok := s.setupData(w, r, setupsPath); ok {
-		s.drawConsole(w, "setup-detail.html", "apps", page)
-	}
-}
-
-// setupData is what a page of the setup the path names is drawn from, and
-// answers 404 itself when there is none.
-func (s *Server) setupData(w http.ResponseWriter, r *http.Request, base string) (map[string]any, bool) {
-	if s.setups == nil {
-		http.NotFound(w, r)
-		return nil, false
-	}
-	held, found := s.setups.Get(r.PathValue("name"))
-	if !found || (held.Off && base != setupsPath) {
-		http.NotFound(w, r)
-		return nil, false
-	}
-	return map[string]any{
-		"Earlier":  s.setups.Earlier(held.Name),
-		"Title":    productName + " — " + held.Name,
-		"Nav":      "presets",
-		"Base":     base,
-		"Setup":    held,
-		"Offered":  s.servers,
-		"Imported": s.importedIntegrations(),
-		"Catalog":  s.engines(),
-		"Refused":  s.refusal(r),
-	}, true
 }
 
 func (s *Server) writeSkill(w http.ResponseWriter, r *http.Request) {
