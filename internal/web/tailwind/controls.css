@@ -7,4 +7,12 @@
   :is(.input:not([type="checkbox"], [type="radio"], [type="file"]), .textarea) {
     @apply px-3;
   }
+  /* Basecoat's radio, as vendored, leaves the browser's own drawing on and has no dot: the ring is drawn here, and a chosen one
+     is the accent with a dot in its middle. */
+  .input[type="radio"] {
+    @apply flex-none cursor-pointer appearance-none bg-surface shadow-[0_0.0625rem_0.125rem_rgb(0_0_0/0.05)] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .input[type="radio"]:checked {
+    background-image: radial-gradient(circle, var(--gu-on-accent-solid) 0 0.1875rem, transparent 0.2rem);
+  }
 }

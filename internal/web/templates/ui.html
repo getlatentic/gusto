@@ -12,8 +12,9 @@
 {{define "ui-link-quiet"}}inline-flex items-center gap-1.5 text-sm font-medium text-subtle no-underline hover:text-ink{{end}}
 
 {{/* Forms. */}}
-{{define "ui-field"}}grid gap-2 text-xs font-semibold text-subtle{{end}}
-{{define "ui-legend"}}mb-2 text-xs font-semibold text-subtle{{end}}
+{{/* A field's label is in small capitals, as Kylon's are. A hint inside it (font-normal), an error, and a button keep their own case. */}}
+{{define "ui-field"}}grid gap-2 text-xs font-semibold tracking-[0.14em] text-subtle uppercase [&_.font-normal]:tracking-normal [&_.font-normal]:normal-case [&_.text-bad]:tracking-normal [&_.text-bad]:normal-case [&_button]:tracking-normal [&_button]:normal-case{{end}}
+{{define "ui-legend"}}mb-2 text-xs font-semibold tracking-[0.14em] text-subtle uppercase{{end}}
 {{define "ui-check"}}flex items-center gap-2 text-sm font-normal text-ink{{end}}
 {{define "ui-note"}}text-sm text-muted{{end}}
 {{define "ui-notice"}}mb-4 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad{{end}}
