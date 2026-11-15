@@ -27,8 +27,8 @@ var kitRules = []kitRule{
 // kitExceptions are the tags that look like a kit control and are not one, each with why.
 var kitExceptions = map[string]string{
 	"file.html:<table class=\"w-auto min-w-full text-xs": "a CSV file shown as its grid of cells, not a table of records",
-	"task.html:<table class=\"w-full font-mono":           "a diff, numbered line by line",
-	"admin-ui-kit.html:<span class=\"grid h-12":           "a swatch of the solid colour",
+	"task.html:<table class=\"w-full font-mono":          "a diff, numbered line by line",
+	"admin-ui-kit.html:<span class=\"grid h-12":          "a swatch of the solid colour",
 }
 
 // Every page draws a shared control with its kit piece in ui.html, so no page can drift from the others: a copy of a menu,
