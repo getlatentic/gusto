@@ -1,11 +1,6 @@
 import { useMemo, useState } from "react"
 import { Outlet, useLocation } from "react-router"
-import {
-  ArrowLeftIcon,
-  LogOutIcon,
-  SettingsIcon,
-  SlidersHorizontalIcon,
-} from "lucide-react"
+import { ArrowLeftIcon, LogOutIcon, SettingsIcon } from "lucide-react"
 
 import { AppLink } from "@/components/app-link"
 import { NavigationContext } from "@/components/navigation"
@@ -52,9 +47,7 @@ function ConsoleNav({ shell, onGo }: { shell?: Shell; onGo?: () => void }) {
   return (
     <nav className="flex min-h-0 flex-1 flex-col gap-1" aria-label="Admin">
       <div className="flex min-h-12 items-center gap-3 px-3">
-        <span className="grid size-8 flex-none place-items-center rounded-md bg-foreground text-background [&>svg]:size-[1.125rem]">
-          <SlidersHorizontalIcon />
-        </span>
+        <img className="size-8 flex-none" src="/static/mark.svg" alt="" />
         <span className="grid leading-tight">
           <strong className="font-heading text-sm font-semibold">Admin</strong>
           {shell?.orgName && (
