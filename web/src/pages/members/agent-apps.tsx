@@ -3,7 +3,7 @@ import { LinkIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { appChoices } from "@/domain/members"
-import { FormSelect } from "@/pages/members/form-select"
+import { FormSelect } from "@/components/form-select"
 import { emptyNote } from "@/pages/members/member-parts"
 import type {
   AgentApp,

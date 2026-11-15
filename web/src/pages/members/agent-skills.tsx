@@ -1,6 +1,6 @@
 import { Label } from "@/components/ui/label"
 import { skillGroups } from "@/domain/members"
-import { FormSelect, type ChoiceGroup } from "@/pages/members/form-select"
+import { FormSelect, type ChoiceGroup } from "@/components/form-select"
 import { emptyNote } from "@/pages/members/member-parts"
 import type { AgentPage, AgentSkills as Skills } from "@/pages/members/types"
 import { useMembersForm } from "@/pages/members/use-members-form"

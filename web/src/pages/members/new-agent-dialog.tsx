@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { kindNotes } from "@/domain/members"
 import { cn } from "@/lib/utils"
 import { AgentFace } from "@/pages/members/faces"
-import { FormSelect } from "@/pages/members/form-select"
+import { FormSelect } from "@/components/form-select"
 import type { Kind, MembersData } from "@/pages/members/types"
 import { useMembersForm } from "@/pages/members/use-members-form"
 
