@@ -39,8 +39,8 @@ type inviteRow struct {
 	Expired bool
 }
 
-// peoplePage is who is in the organization, with what each has spent this month.
-func (s *Server) peoplePage(w http.ResponseWriter, r *http.Request) {
+// peopleData is who is in the organization, with what each has spent this month.
+func (s *Server) peopleData(r *http.Request) (map[string]any, error) {
 	page := map[string]any{"Title": productName + " — people", "Refused": s.refusal(r)}
 	if s.front != nil && s.front.URL != "" {
 		page["Manage"] = s.front.page("/org", nil)
@@ -49,8 +49,7 @@ func (s *Server) peoplePage(w http.ResponseWriter, r *http.Request) {
 	list, err := roster.Read(s.rosterPath)
 	if err != nil {
 		page["Unreadable"] = err.Error()
-		s.drawConsole(w, "admin-people.html", "people", page)
-		return
+		return page, nil
 	}
 	asked, err := s.askedThisMonth()
 	if err != nil {
@@ -71,7 +70,7 @@ func (s *Server) peoplePage(w http.ResponseWriter, r *http.Request) {
 	page["Admins"] = adminsIn(list)
 	page["Tokens"] = s.hasTokens()
 	page["Budgets"] = s.hasOrgSettings()
-	s.drawConsole(w, "admin-people.html", "people", page)
+	return page, nil
 }
 
 // pageAddress is the page a request is for, as a browser outside reads its address, for a page elsewhere to send the
@@ -81,7 +80,8 @@ func pageAddress(r *http.Request) string {
 	if overTLS(r) {
 		scheme = "https"
 	}
-	return scheme + "://" + r.Host + r.URL.Path
+	// The app reads a page's data at /app/api followed by the page's address; the person goes back to the page.
+	return scheme + "://" + r.Host + strings.TrimPrefix(r.URL.Path, "/app/api")
 }
 
 func adminsIn(list roster.Roster) int {

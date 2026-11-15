@@ -98,11 +98,23 @@ func sectionsOf(t *testing.T, page string) string {
 	return found[1]
 }
 
+// consoleList is the console's sections as the app's side list reads them, a "Label href" to a line.
+func consoleList(t *testing.T, here *site) []string {
+	t.Helper()
+	var shell consoleShell
+	here.data(t, "/console", &shell)
+	var lines []string
+	for _, each := range shell.Sections {
+		lines = append(lines, each.Label+" "+each.Href)
+	}
+	return lines
+}
+
 func TestTheConsoleListsASectionOnlyWhereTheServerHasIt(t *testing.T) {
 	plain := open(t)
 	plain.signIn(t)
-	seen := sectionsOf(t, plain.ask(t, "GET", "/admin", nil).Body.String())
-	for _, want := range []string{`href="/admin"`, `href="/admin/usage"`, `href="/admin/apps"`, `href="/admin/records"`} {
+	seen := strings.Join(consoleList(t, plain), "\n") + "\n" + sectionsOf(t, plain.ask(t, "GET", uiKitPath, nil).Body.String())
+	for _, want := range []string{"Overview /admin\n", "Usage /admin/usage\n", "/admin/apps", "/admin/records"} {
 		if !strings.Contains(seen, want) {
 			t.Errorf("a plain server does not list %s: %s", want, seen)
 		}
@@ -119,7 +131,10 @@ var sectionLink = regexp.MustCompile(`<a [^>]*href="(/admin[^"]*)"[^>]*>([^<]*)<
 func TestAFullConsoleListsItsSectionsInOrder(t *testing.T) {
 	full, _, _ := registered(t, registry.Rules{})
 	admin := full.as(t, boss)
-	seen := sectionsOf(t, admin.ask(t, "GET", "/admin", nil).Body.String())
+	if got, want := strings.Join(consoleList(t, admin), ", "), "Overview /admin, Usage /admin/usage, Budgets /admin/budgets, People /admin/people, Models /admin/models, Apps & skills /admin/apps, Records /admin/records"; got != want {
+		t.Errorf("the app's console lists\n%s\nand not\n%s", got, want)
+	}
+	seen := sectionsOf(t, admin.ask(t, "GET", uiKitPath, nil).Body.String())
 	var got []string
 	for _, link := range sectionLink.FindAllStringSubmatch(seen, -1) {
 		got = append(got, link[2]+" "+link[1])
@@ -135,25 +150,6 @@ func TestAFullConsoleListsItsSectionsInOrder(t *testing.T) {
 	}
 	if strings.Contains(seen, "Organization and billing") {
 		t.Error("a console with no gusto cloud links to an organization page")
-	}
-}
-
-// A page under a section marks that section, so a skill set's page is in Apps & skills and a tab of Records is in Records.
-func TestTheConsoleMarksTheSectionAPageBelongsTo(t *testing.T) {
-	admin := everything(t).as(t, boss)
-	admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"reviewer"}})
-	current := regexp.MustCompile(`href="([^"]+)" aria-current="page"`)
-	for path, want := range map[string]string{
-		"/admin/apps?tab=skills":     "/admin/apps",
-		"/admin/skill-sets/reviewer": "/admin/apps",
-		"/admin/records?tab=checks":  "/admin/records",
-		"/admin/records?tab=keeping": "/admin/records",
-		"/admin/people":              "/admin/people",
-	} {
-		marked := current.FindStringSubmatch(sectionsOf(t, admin.ask(t, "GET", path, nil).Body.String()))
-		if marked == nil || marked[1] != want {
-			t.Errorf("%s marks %v, not %s", path, marked, want)
-		}
 	}
 }
 
@@ -180,45 +176,25 @@ func TestTheOldConsolePagesGoToTheirTabs(t *testing.T) {
 	}
 }
 
-func TestEachTabOfAppsAndRecordsShowsItsOwnPart(t *testing.T) {
+func TestAppsAndSkillsGivesTheSkillsAndBothWaysToAddOne(t *testing.T) {
 	admin := everything(t).as(t, boss)
-	for path, want := range map[string][]string{
-		"/admin/apps":                {"Apps &amp; skills", "What agents may use, for everyone in", "Add a skill", "Write a skill set", "Import from git", "Import an upload", `action="/admin/integrations/import"`},
-		"/admin/records":             {"Records", "A signed record of everything", "Intact", " signed", "How to check it yourself", `href="/admin/activity.jsonl"`},
-		"/admin/records?tab=checks":  {"Task checks", "Intact", "verified", "failed the check"},
-		"/admin/records?tab=keeping": {"Keeping", "Intact", "Sweep now", `action="/admin/retention/holds"`, `action="/admin/retention/jobs/hold"`},
-	} {
-		page := admin.ask(t, "GET", path, nil)
-		if page.Code != http.StatusOK {
-			t.Fatalf("%s answered %d", path, page.Code)
-		}
-		for _, each := range want {
-			if !strings.Contains(page.Body.String(), each) {
-				t.Errorf("%s does not say %q", path, each)
-			}
-		}
-	}
-	if page := admin.ask(t, "GET", "/admin/records?tab=checks", nil).Body.String(); strings.Contains(page, "How to check it yourself") || strings.Contains(page, "Sweep now") {
-		t.Error("the task checks tab carries another tab's part")
+	if page := appsPageOf(t, admin, ""); page.Tab != "skills" || !page.Writes || !page.Imports || page.Skills == nil {
+		t.Errorf("Apps & skills does not give the skills and both ways to add one: %+v", page)
 	}
 }
 
-func TestAnAppIsASwitchAndOneThatNeedsSetupSaysSo(t *testing.T) {
+func TestAnAppIsTurnedOnAndOffForEveryone(t *testing.T) {
 	here, _, _ := connected(t)
-	page := here.ask(t, "GET", "/admin/apps", nil).Body.String()
-	if !strings.Contains(page, `action="/admin/connectors/tasks/on"`) || !strings.Contains(page, `role="switch" aria-checked="false"`) {
-		t.Fatalf("an app that is off is not a switch that turns it on:\n%s", page)
-	}
-	if strings.Contains(page, "Turn on</button>") {
-		t.Error("the app is turned on with a button of words, not the switch")
+	if tasks := appsPageOf(t, here, "").app(t, "tasks"); tasks.On || !tasks.Usable {
+		t.Fatalf("an app that can be turned on is not given as off: %+v", tasks)
 	}
 	here.ask(t, "POST", "/admin/connectors/tasks/on", nil)
-	page = here.ask(t, "GET", "/admin/apps", nil).Body.String()
-	if !strings.Contains(page, `action="/admin/connectors/tasks/off"`) || !strings.Contains(page, `role="switch" aria-checked="true"`) {
-		t.Errorf("an app that is on is not a switch that turns it off:\n%s", page)
+	if tasks := appsPageOf(t, here, "").app(t, "tasks"); !tasks.On {
+		t.Errorf("an app turned on is not given as on: %+v", tasks)
 	}
-	if !strings.Contains(page, "Agents use it only as that person, and only for what they ask.") {
-		t.Error("the page does not say how agents use an app")
+	here.ask(t, "POST", "/admin/connectors/tasks/off", nil)
+	if tasks := appsPageOf(t, here, "").app(t, "tasks"); tasks.On {
+		t.Errorf("an app turned off is still given as on: %+v", tasks)
 	}
 }
 
@@ -246,7 +222,7 @@ func TestOnlyAnAdminSeesTheLinkToTheConsoleAndItIsTheOnlyOne(t *testing.T) {
 
 func TestTheConsoleHasOneLinkBack(t *testing.T) {
 	admin := everything(t).as(t, boss)
-	for _, path := range []string{"/admin", "/admin/spending", "/admin/tokens", "/admin/records", "/admin/records?tab=keeping", "/admin/apps?tab=skills", "/admin/people"} {
+	for _, path := range []string{uiKitPath} {
 		page := admin.ask(t, "GET", path, nil).Body.String()
 		if got := strings.Count(page, `href="/"`); got != 1 || !strings.Contains(page, "Back to gusto") {
 			t.Errorf("%s has %d links to the employee's pages", path, got)
@@ -308,12 +284,16 @@ func TestTheConsoleNamesTheOrganizationAndAnotherOrganizationsTokenDoesNotOpenIt
 		t.Errorf("without a sign-in of this organization the console answered %d", got.Code)
 	}
 	here.cookie = cookieOf(t, here.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
-	page := here.ask(t, "GET", "/admin", nil)
-	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), ">acme-com</span>") {
-		t.Errorf("the console does not say whose it is: %d\n%s", page.Code, page.Body.String())
+	var shell consoleShell
+	here.data(t, "/console", &shell)
+	if shell.OrgName != "acme-com" {
+		t.Errorf("the console does not say whose it is: %+v", shell)
 	}
-	org := here.server.front.page("/org", nil)
-	if !strings.Contains(page.Body.String(), `href="`+html.EscapeString(org)+`">`) || !strings.Contains(page.Body.String(), "Organization and billing") {
-		t.Errorf("the console does not link to the organization page %s", org)
+	if org := here.server.front.page("/org", nil); shell.OrgPage != org {
+		t.Errorf("the console links to the organization page %q, not %s", shell.OrgPage, org)
+	}
+	page := here.ask(t, "GET", uiKitPath, nil).Body.String()
+	if !strings.Contains(page, ">acme-com</span>") || !strings.Contains(page, `href="`+html.EscapeString(here.server.front.page("/org", nil))+`">`) {
+		t.Errorf("the console drawn here does not say whose it is, or link to its organization page:\n%s", page)
 	}
 }

@@ -75,70 +75,63 @@ func TestThePeoplePageListsMembersWithRoleLastSignInAndWhatTheySpent(t *testing.
 	spentNow(t, here, "cy-1", "cy@acme.com", 2)
 	spentNow(t, here, "token-1", "token:ci", 9)
 
-	answer := here.ask(t, "GET", "/admin/people", nil)
-	if answer.Code != http.StatusOK {
-		t.Fatalf("%d", answer.Code)
+	page := people(t, here, "")
+	ada, bob, cy := personIn(t, page, "ada@acme.com"), personIn(t, page, "bob@acme.com"), personIn(t, page, "cy@acme.com")
+	if ada.Role != "admin" || ada.LastSignIn != now.Add(-2*time.Hour).Unix() || ada.spentOf() != 0.75 {
+		t.Errorf("ada's row is %+v", ada)
 	}
-	page := answer.Body.String()
-	for email, wants := range map[string][]string{
-		"ada@acme.com": {"admin", "2h ago", "$0.7500"},
-		"bob@acme.com": {"runner", "never", "nothing"},
-		"cy@acme.com":  {"runner", "$2.00"},
-	} {
-		row := rowOf(t, page, email)
-		for _, want := range wants {
-			if !strings.Contains(row, want) {
-				t.Errorf("the row of %s lacks %q: %s", email, want, row)
-			}
+	if bob.Role != "runner" || bob.LastSignIn != 0 || bob.Spent != nil {
+		t.Errorf("bob, who never signed in and spent nothing, is %+v", bob)
+	}
+	if cy.Role != "runner" || cy.spentOf() != 2 {
+		t.Errorf("cy's row is %+v", cy)
+	}
+	if strings.Contains(here.dataText(t, "/admin/people"), "token:ci") {
+		t.Error("what a token spent was put against a person")
+	}
+	if len(page.Tabs) != 2 || page.Tabs[1].Href != "/admin/people?tab=invited" || page.Tabs[1].Count != 1 {
+		t.Errorf("People has no Invited tab with one invitation: %+v", page.Tabs)
+	}
+	if page.Manage != "https://cloud.test/org?org=acme-com" {
+		t.Errorf("People invites people at %q", page.Manage)
+	}
+	for _, each := range page.People {
+		if each.Email == "dee@acme.com" {
+			t.Error("the People tab lists who is only invited")
 		}
 	}
-	if strings.Contains(rowOf(t, page, "bob@acme.com"), "$") || strings.Contains(page, "$9") {
-		t.Errorf("what a token spent was put against a person:\n%s", page)
-	}
-	for _, want := range []string{`href="/admin/people?tab=invited">Invited <span class="font-normal text-subtle">1</span>`, `href="https://cloud.test/org?org=acme-com"`} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the page lacks %q:\n%s", want, page)
-		}
-	}
-	if strings.Contains(page, "dee@acme.com") {
-		t.Error("the People tab lists who is only invited")
-	}
-	invited := here.ask(t, "GET", "/admin/people?tab=invited", nil).Body.String()
-	if !strings.Contains(invited, "dee@acme.com") || strings.Contains(invited, "bob@acme.com") {
-		t.Errorf("the Invited tab does not list only who is invited:\n%s", invited)
+	invited := people(t, here, "?tab=invited")
+	if invited.Tab != "invited" || len(invited.Invited) != 1 || invited.Invited[0].Email != "dee@acme.com" || len(invited.People) != 0 {
+		t.Errorf("the Invited tab does not list only who is invited: %+v", invited)
 	}
 }
 
 func TestAPersonsSpendIsFoundWhateverTheCaseTheirAddressWasRecordedIn(t *testing.T) {
 	here, _ := withPeople(t, roster.Roster{Members: []roster.Member{{Email: "ada@acme.com", Role: "admin"}}})
 	spentNow(t, here, "ada-1", "Ada@Acme.com", 1)
-	if row := rowOf(t, here.ask(t, "GET", "/admin/people", nil).Body.String(), "ada@acme.com"); !strings.Contains(row, "$1.00") {
-		t.Errorf("the spend of an address in another case is missing: %s", row)
+	if ada := personIn(t, people(t, here, ""), "ada@acme.com"); ada.spentOf() != 1 {
+		t.Errorf("the spend of an address in another case is missing: %+v", ada)
 	}
 }
 
 func TestWhenTheListOfPeopleCannotBeReadThePageSaysSoAndShowsNobody(t *testing.T) {
 	here, path := withPeople(t, roster.Roster{Members: []roster.Member{{Email: "ada@acme.com", Role: "admin"}}})
 	// The list was read once, as every request reads it, so ada stays signed in on what it said.
-	here.ask(t, "GET", "/admin/people", nil)
+	people(t, here, "")
 	for name, damage := range map[string]func(){
 		"it is not there":  func() { os.Remove(path) },
 		"it is not a list": func() { os.WriteFile(path, []byte("{this is not json"), 0o600) },
 	} {
 		damage()
-		page := here.ask(t, "GET", "/admin/people", nil)
-		body := page.Body.String()
-		if page.Code != http.StatusOK || !strings.Contains(body, "could not be read") {
-			t.Errorf("%s: the page does not say so: %d\n%s", name, page.Code, body)
-		}
-		if strings.Contains(body, "ada@acme.com") || strings.Contains(body, "<table") {
-			t.Errorf("%s: the page shows people it has no list of:\n%s", name, body)
+		page := people(t, here, "")
+		if page.Unreadable == "" || len(page.People) != 0 {
+			t.Errorf("%s: the page does not say so, or shows people it has no list of: %+v", name, page)
 		}
 	}
 	if err := roster.Write(path, roster.Roster{Members: []roster.Member{{Email: "ada@acme.com", Role: "admin"}}}); err != nil {
 		t.Fatal(err)
 	}
-	if body := here.ask(t, "GET", "/admin/people", nil).Body.String(); !strings.Contains(body, "ada@acme.com") {
+	if page := people(t, here, ""); len(page.People) != 1 {
 		t.Error("a list that was written again is not shown")
 	}
 }
@@ -146,10 +139,12 @@ func TestWhenTheListOfPeopleCannotBeReadThePageSaysSoAndShowsNobody(t *testing.T
 func TestThereIsNoPeoplePageWhereNoGustoCloudKeepsThePeople(t *testing.T) {
 	here := open(t)
 	here.signIn(t)
-	if got := here.ask(t, "GET", "/admin/people", nil); got.Code != http.StatusNotFound {
-		t.Errorf("a server with no list of people answered %d", got.Code)
+	for _, path := range []string{"/admin/people", "/app/api/admin/people"} {
+		if got := here.ask(t, "GET", path, nil); got.Code != http.StatusNotFound {
+			t.Errorf("a server with no list of people answered %d at %s", got.Code, path)
+		}
 	}
-	if strings.Contains(here.ask(t, "GET", "/admin", nil).Body.String(), "/admin/people") {
+	if strings.Contains(here.ask(t, "GET", "/app/api/console", nil).Body.String(), "/admin/people") {
 		t.Error("the console lists people where there are none to list")
 	}
 }
@@ -159,36 +154,22 @@ func TestARoleIsChangedAtGustoCloudAndComesBackToPeople(t *testing.T) {
 	here, _ := withPeople(t, roster.Roster{Members: []roster.Member{
 		{Email: "ada@acme.com", Role: "admin"}, {Email: "bea@acme.com", Role: "admin"}, {Email: "bob@acme.com", Role: "runner"},
 	}})
-	page := here.ask(t, "GET", "/admin/people", nil).Body.String()
-	for _, email := range []string{"ada@acme.com", "bea@acme.com", "bob@acme.com"} {
-		row := rowOf(t, page, email)
-		for _, want := range []string{`action="https://cloud.test/org/people/role?org=acme-com"`, `name="email" value="` + email + `"`,
-			`name="back" value="http://example.com/admin/people"`, `name="role"`, "data-autosubmit"} {
-			if !strings.Contains(row, want) {
-				t.Errorf("the role of %s lacks %q:\n%s", email, want, row)
-			}
-		}
+	page := people(t, here, "")
+	if page.RoleAction != "https://cloud.test/org/people/role?org=acme-com" || page.Back != "http://example.com/admin/people" {
+		t.Errorf("a role is not sent to gusto cloud and back: %q %q", page.RoleAction, page.Back)
 	}
-	if row := rowOf(t, page, "bea@acme.com"); !strings.Contains(row, `data-confirm-when="runner"`) || !strings.Contains(row, `<option value="admin" selected>`) {
-		t.Errorf("making an admin a runner does not ask first:\n%s", row)
-	}
-	if row := rowOf(t, page, "bob@acme.com"); strings.Contains(row, "data-confirm") || !strings.Contains(row, `<option value="runner" selected>`) {
-		t.Errorf("making a runner an admin asks, or the runner is not shown as one:\n%s", row)
+	if page.Admins != 2 || personIn(t, page, "bea@acme.com").Role != "admin" || personIn(t, page, "bob@acme.com").Role != "runner" {
+		t.Errorf("the roles are not what the list says: %+v", page)
 	}
 }
 
 func TestTheOnlyAdminAndAServerWithNoGustoCloudShowTheRoleInWords(t *testing.T) {
 	here, _ := withPeople(t, roster.Roster{Members: []roster.Member{{Email: "ada@acme.com", Role: "admin"}, {Email: "bob@acme.com", Role: "runner"}}})
-	page := here.ask(t, "GET", "/admin/people", nil).Body.String()
-	if row := rowOf(t, page, "ada@acme.com"); strings.Contains(row, "<select") || !strings.Contains(row, ">admin</span>") {
-		t.Errorf("the only admin is offered to stop being one:\n%s", row)
+	if page := people(t, here, ""); page.Admins != 1 || page.RoleAction == "" {
+		t.Errorf("the page does not say there is one admin to keep: %+v", page)
 	}
-	if row := rowOf(t, page, "bob@acme.com"); !strings.Contains(row, "<select") {
-		t.Errorf("a runner is not offered to be made an admin:\n%s", row)
-	}
-
 	alone, _, _ := budgeted(t)
-	if page := alone.ask(t, "GET", "/admin/people", nil).Body.String(); strings.Contains(page, "<select") || strings.Contains(page, "/org/people/role") || !strings.Contains(page, ">runner</span>") {
-		t.Errorf("a server with no gusto cloud offers to change a role:\n%s", page)
+	if page := people(t, alone, ""); page.RoleAction != "" || page.Back != "" {
+		t.Errorf("a server with no gusto cloud offers to change a role: %+v", page)
 	}
 }

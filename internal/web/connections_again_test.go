@@ -34,8 +34,8 @@ func TestASignInThatNeedsMakingAgainSaysSoWhereverAppsAreShown(t *testing.T) {
 	if !strings.Contains(page, `action="/connections/tasks/disconnect"`) {
 		t.Error("the person cannot end a sign-in that needs making again")
 	}
-	if admin := here.ask(t, "GET", "/admin/apps?tab=apps", nil).Body.String(); !strings.Contains(admin, "1 person needs to sign in again") {
-		t.Errorf("the admin's page does not say who needs to sign in again:\n%s", admin)
+	if tasks := appsPageOf(t, here, "?tab=apps").app(t, "tasks"); tasks.NeedSignIn != 1 {
+		t.Errorf("the admin's page does not say who needs to sign in again: %+v", tasks)
 	}
 	if spec, _ := task.Read(placed(t, here, "own", tasks.Record{Asked: alice}, "opencode")); spec.Setup != nil {
 		t.Errorf("a task was given an app whose sign-in no longer works: %+v", spec.Setup)

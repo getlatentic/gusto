@@ -1,0 +1,75 @@
+import { screen } from "@testing-library/react"
+import { describe, expect, it } from "vitest"
+
+import { draw, records } from "@/pages/admin/records/fixture"
+import type { RunChecks } from "@/pages/admin/records/types"
+
+const checks = (change: Partial<RunChecks>): RunChecks => ({
+  Rows: null,
+  Verified: 0,
+  Unsigned: 0,
+  Unchecked: 0,
+  Failing: 0,
+  ...change,
+})
+
+const run = (ID: string, State: string) => ({
+  ID,
+  Brief: `brief ${ID}`,
+  Who: "amy@acme.test",
+  When: "27 Sep 01:00",
+  State,
+  Href: `/jobs/${ID}`,
+})
+
+describe("the task checks tab", () => {
+  it("counts the runs and lists only the ones that need a look", async () => {
+    draw(
+      records("checks", (page) => {
+        page.Checks = checks({
+          Verified: 1,
+          Unsigned: 1,
+          Failing: 1,
+          Rows: [
+            run("unsigned-1", "unsigned"),
+            run("bad-1", "does not check out"),
+          ],
+        })
+      })
+    )
+    expect(await screen.findByText("Needs a look")).toBeTruthy()
+    for (const label of ["Verified", "Not signed", "Failed"]) {
+      expect(screen.getByText(label)).toBeTruthy()
+    }
+    expect(screen.getByText("Failed").nextSibling!.textContent).toBe("1")
+    expect(
+      (screen.getByText("Failed").nextSibling as HTMLElement).className
+    ).toContain("text-bad")
+    expect(
+      screen
+        .getByRole("link", { name: "brief unsigned-1" })
+        .getAttribute("href")
+    ).toBe("/jobs/unsigned-1#proof")
+    const bad = screen.getByRole("link", { name: "brief bad-1" }).closest("tr")!
+    expect(bad.textContent).toContain("failed")
+    expect(bad.textContent).not.toContain("does not check out")
+    expect(
+      screen.getByText(
+        "1 run no longer match what was recorded. Open one to see which file changed."
+      )
+    ).toBeTruthy()
+    expect(screen.queryByText("Sweep now")).toBeNull()
+    expect(screen.queryByText("How to check it yourself")).toBeNull()
+  })
+
+  it("says nothing needs a look, or that no run has finished", async () => {
+    const { unmount } = draw(
+      records("checks", (page) => (page.Checks = checks({ Verified: 2 })))
+    )
+    expect(await screen.findByText("Nothing needs a look.")).toBeTruthy()
+    expect(screen.queryByText("Needs a look")).toBeNull()
+    unmount()
+    draw(records("checks", (page) => (page.Checks = checks({}))))
+    expect(await screen.findByText("No run has finished yet.")).toBeTruthy()
+  })
+})

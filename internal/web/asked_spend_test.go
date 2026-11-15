@@ -1,8 +1,8 @@
 package web
 
 import (
+	"fmt"
 	"net/url"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -34,24 +34,26 @@ func TestSpendShownAgainstABudgetIsWhatThePersonAskedForAsTheProxyCountsIt(t *te
 	}
 
 	page := budgets(t, here)
-	if bob := rowOf(t, page, "bob@acme.com"); !strings.Contains(bob, "$5.00") || !strings.Contains(bob, "reached") {
-		t.Errorf("Budgets does not show bob's $5.00 against his budget, reached:\n%s", bob)
+	if bob := budgetRowOf(t, page, "bob@acme.com").Budget; bob.Spent != 5 || !bob.Passed {
+		t.Errorf("Budgets does not show bob's $5.00 against his budget, reached: %+v", bob)
 	}
-	if ada := rowOf(t, page, "ada@acme.com"); strings.Contains(ada, "$5.00") || strings.Contains(ada, "reached") {
-		t.Errorf("Budgets counts what bob asked of ada's agent against ada:\n%s", ada)
-	}
-
-	people := here.ask(t, "GET", "/admin/people", nil).Body.String()
-	if bob := rowOf(t, people, "bob@acme.com"); !strings.Contains(bob, "$5.00") || !strings.Contains(bob, "reached") {
-		t.Errorf("People does not show bob's $5.00, reached:\n%s", bob)
-	}
-	if ada := rowOf(t, people, "ada@acme.com"); strings.Contains(ada, "$5.00") {
-		t.Errorf("People counts bob's asks against ada:\n%s", ada)
+	if ada := budgetRowOf(t, page, "ada@acme.com").Budget; ada.Spent == 5 || ada.Passed {
+		t.Errorf("Budgets counts what bob asked of ada's agent against ada: %+v", ada)
 	}
 
-	split := regexp.MustCompile(`(?s)>By person <a.*?</section>`).FindString(overview(t, here))
-	bob, ada := strings.Index(split, ">Bob</span>"), strings.Index(split, ">Ada</span>")
-	if bob < 0 || ada < bob || !strings.Contains(split[bob:ada], "$5.00") || !strings.Contains(split[ada:], "Nothing yet") {
-		t.Errorf("the overview does not split the month by who asked:\n%s", split)
+	page2 := people(t, here, "")
+	if bob := personIn(t, page2, "bob@acme.com"); bob.spentOf() != 5 || !bob.Budget.Passed {
+		t.Errorf("People does not show bob's $5.00, reached: %+v", bob)
+	}
+	if ada := personIn(t, page2, "ada@acme.com"); ada.spentOf() == 5 {
+		t.Errorf("People counts bob's asks against ada: %+v", ada)
+	}
+
+	var split []string
+	for _, line := range overview(t, here).Spent.People {
+		split = append(split, fmt.Sprintf("%s %.2f %d", line.Label, line.USD, line.Calls))
+	}
+	if len(split) < 2 || !strings.HasPrefix(split[0], "Bob 5.00") || !strings.HasPrefix(split[1], "Ada 0.00 0") {
+		t.Errorf("the overview does not split the month by who asked: %v", split)
 	}
 }

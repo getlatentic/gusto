@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -17,18 +16,32 @@ import (
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// overview is the Overview as an admin reads it.
-func overview(t *testing.T, here *site) string {
+// overview is the Overview's data as the console's page reads it.
+func overview(t *testing.T, here *site) overviewJSON {
 	t.Helper()
-	answer := here.ask(t, "GET", "/admin", nil)
-	if answer.Code != http.StatusOK {
-		t.Fatalf("the overview answered %d", answer.Code)
-	}
-	return answer.Body.String()
+	var page overviewJSON
+	here.data(t, "/admin", &page)
+	return page
 }
 
-// mainOf is the page without the console's own side, which has the form that signs out.
-func mainOf(page string) string { return page[strings.Index(page, `<main`):] }
+type overviewJSON struct {
+	MonthName   string
+	PeopleAll   string
+	BudgetsPage bool
+	Budget      struct {
+		Set         bool
+		Limit, Over float64
+		Passed      bool
+		Err         string
+	}
+	Spent struct {
+		USD             float64
+		Unmeasured      int64
+		Split, Building bool
+		People, Engines []spendLine
+		AllUsage        string
+	}
+}
 
 func addTask(t *testing.T, here *site, id string, state tasks.State, age time.Duration) {
 	t.Helper()
@@ -63,20 +76,20 @@ func withMonth(t *testing.T, members []roster.Member, rows ...usage.Row) *site {
 	return here
 }
 
-func TestTheOverviewOnlyReadsAndHasNoForm(t *testing.T) {
+func TestTheOverviewIsTheMonthsSpendAgainstTheBudgetAndNothingElse(t *testing.T) {
 	here, _, _ := budgeted(t)
 	addTask(t, here, "bad-a", tasks.Failed, time.Hour)
-	page := mainOf(overview(t, here))
-	if strings.Contains(page, "<form") {
-		t.Errorf("the overview has a form:\n%s", page)
-	}
+	text := here.dataText(t, "/admin")
 	for _, gone := range []string{"failed this week", "Limits", "New chats", "Model access in sandboxes", "Each member"} {
-		if strings.Contains(page, gone) {
+		if strings.Contains(text, gone) {
 			t.Errorf("the overview still has %q", gone)
 		}
 	}
-	if !strings.Contains(page, "Spent this month") || !strings.Contains(page, "No budget set.") {
-		t.Errorf("the overview does not say what was spent against what:\n%s", page)
+	if page := overview(t, here); page.Budget.Set || page.Spent.USD != 0 {
+		t.Errorf("the overview of a month with no budget and no spending says %+v", page)
+	}
+	if got := here.ask(t, "POST", "/admin", nil); got.Code != http.StatusMethodNotAllowed {
+		t.Errorf("the overview takes a form: %d", got.Code)
 	}
 }
 
@@ -101,37 +114,35 @@ func TestTheOverviewSplitsTheMonthByPersonAndByAgentTypeAndEachSplitAddsUp(t *te
 	page := overview(t, here)
 	from := "from=" + monthStart(time.Now()).Format("2006-01-02")
 
-	if !strings.Contains(page, ">$3.00 <span") || !strings.Contains(page, "of $50.00") {
-		t.Errorf("the month's total is not the sum of its calls against the budget:\n%s", page)
+	if page.Spent.USD != 3 || page.Budget.Limit != 50 {
+		t.Errorf("the month's total is not the sum of its calls against the budget: %+v", page)
 	}
-	if strings.Contains(page, "$40") {
-		t.Error("last month's calls are counted in this month")
+	var people []string
+	for _, line := range page.Spent.People {
+		people = append(people, fmt.Sprintf("%s %.2f/%.2f", line.Label, line.USD, line.Budget))
 	}
-	person := regexp.MustCompile(`(?s)>By person <a.*?</section>`).FindString(page)
-	for _, want := range []string{
-		">Ada</span>", "$2.00", "of $10.00", ">Bob</span>", "$1.00", ">No one named</span>", "$0.25",
-		">Cy</span>", "Nothing yet", `href="/admin/budgets">View all`,
-	} {
-		if !strings.Contains(person, want) {
-			t.Errorf("By person lacks %q:\n%s", want, person)
-		}
+	if want := "Ada 2.00/10.00, Bob 1.00/10.00, No one named 0.25/0.00, Cy 0.00/10.00"; strings.Join(people, ", ") != want {
+		t.Errorf("By person is\n%s\nand not, in order of what each asked for, then nobody, then those who asked for nothing,\n%s", strings.Join(people, ", "), want)
 	}
-	if strings.Index(person, ">Ada<") > strings.Index(person, ">Bob<") || strings.Index(person, ">Bob<") > strings.Index(person, ">No one named<") ||
-		strings.Index(person, ">No one named<") > strings.Index(person, "Nothing yet") {
-		t.Errorf("the people are not in order of what they asked for, then nobody, then those who asked for nothing:\n%s", person)
+	if page.PeopleAll != "/admin/budgets" {
+		t.Errorf("By person's View all goes to %q", page.PeopleAll)
 	}
-	engines := regexp.MustCompile(`(?s)>By agent type <a.*?</section>`).FindString(page)
-	for _, want := range []string{
-		`href="/admin/usage?agent_type=Claude&#43;Code&amp;` + from + `"`, "Claude Code <span class=\"text-subtle\">· 2 agents</span>", "$2.00",
-		`href="/admin/usage?agent_type=Codex&amp;` + from + `"`, "Codex <span class=\"text-subtle\">· 1 agent</span>", "$1.00",
-		`href="/admin/usage?` + from + `">View all`,
-	} {
-		if !strings.Contains(engines, want) {
-			t.Errorf("By agent type lacks %q:\n%s", want, engines)
-		}
+	var engines []string
+	for _, line := range page.Spent.Engines {
+		engines = append(engines, fmt.Sprintf("%s · %s %.2f %s", line.Label, line.Sub, line.USD, line.Href))
 	}
-	if !strings.Contains(page, "1 call has no price") {
-		t.Errorf("a call with no price is not said:\n%s", page)
+	want := []string{
+		"Claude Code · 2 agents 2.00 /admin/usage?agent_type=Claude+Code&" + from,
+		"Codex · 1 agent 1.00 /admin/usage?agent_type=Codex&" + from,
+	}
+	if strings.Join(engines, "\n") != strings.Join(want, "\n") {
+		t.Errorf("By agent type is\n%s\nand not\n%s", strings.Join(engines, "\n"), strings.Join(want, "\n"))
+	}
+	if page.Spent.AllUsage != "/admin/usage?"+from {
+		t.Errorf("By agent type's View all goes to %q", page.Spent.AllUsage)
+	}
+	if page.Spent.Unmeasured != 1 {
+		t.Errorf("the call with no price is counted as %d", page.Spent.Unmeasured)
 	}
 }
 
@@ -161,31 +172,24 @@ func TestTheOverviewSaysWhenTheMonthsSpendingHasPassedTheBudget(t *testing.T) {
 	here, _, _ := budgeted(t)
 	setBudget(t, here, "100")
 	spentNow(t, here, "first", "ada@acme.com", 60)
-	if page := overview(t, here); strings.Contains(page, `role="alert"`) {
-		t.Errorf("60 of 100 is not passed:\n%s", page)
+	if page := overview(t, here); page.Budget.Passed {
+		t.Errorf("60 of 100 is passed: %+v", page.Budget)
 	}
 	spentNow(t, here, "second", "bob@acme.com", 40)
-	if page := overview(t, here); !strings.Contains(page, "so the budget is reached.") {
-		t.Errorf("spending what the budget is does not reach it:\n%s", page)
+	if page := overview(t, here); !page.Budget.Passed || page.Budget.Over != 0 {
+		t.Errorf("spending what the budget is does not reach it: %+v", page.Budget)
 	}
 	spentNow(t, here, "third", "ada@acme.com", 30.5)
-	page := overview(t, here)
-	alert := regexp.MustCompile(`(?s)<p class="[^"]*" role="alert">(.*?)</p>`).FindStringSubmatch(page)
-	if alert == nil {
-		t.Fatalf("130.50 of 100 is passed and the page does not say:\n%s", page)
-	}
-	for _, want := range []string{"budget for", "is $100.00", "$130.50 has been spent", "passed by $30.50"} {
-		if !strings.Contains(alert[1], want) {
-			t.Errorf("the alert lacks %q: %s", want, alert[1])
-		}
+	if page := overview(t, here); !page.Budget.Passed || page.Budget.Limit != 100 || page.Spent.USD != 130.5 || page.Budget.Over != 30.5 {
+		t.Errorf("130.50 of 100 is not passed by 30.50: %+v %+v", page.Budget, page.Spent.USD)
 	}
 	setBudget(t, here, "200")
-	if page := overview(t, here); strings.Contains(page, `role="alert"`) {
-		t.Errorf("a budget that was raised is still passed:\n%s", page)
+	if page := overview(t, here); page.Budget.Passed {
+		t.Errorf("a budget that was raised is still passed: %+v", page.Budget)
 	}
 	setBudget(t, here, "")
-	if page := overview(t, here); strings.Contains(page, `role="alert"`) {
-		t.Errorf("no budget is never passed:\n%s", page)
+	if page := overview(t, here); page.Budget.Passed {
+		t.Errorf("no budget is never passed: %+v", page.Budget)
 	}
 }
 
@@ -194,10 +198,8 @@ func TestSpendingThatHasNoPriceMakesTheBudgetPassedByAtLeast(t *testing.T) {
 	setBudget(t, here, "10")
 	spentNow(t, here, "priced", "ada@acme.com", 12)
 	spentTask(t, here.index.Root(), "unpriced", "", unmeasuredNow())
-	page := overview(t, here)
-	alert := regexp.MustCompile(`(?s)<p class="[^"]*" role="alert">(.*?)</p>`).FindStringSubmatch(page)
-	if alert == nil || !strings.Contains(alert[1], "more that has no price") || !strings.Contains(alert[1], "at least") {
-		t.Errorf("what could not be priced is not said:\n%s", page)
+	if page := overview(t, here); !page.Budget.Passed || page.Spent.Unmeasured == 0 {
+		t.Errorf("what could not be priced is not said: %+v %+v", page.Budget, page.Spent)
 	}
 }
 
@@ -205,8 +207,7 @@ func TestTheOverviewSaysWhenTheBudgetCannotBeRead(t *testing.T) {
 	here, _, path := budgeted(t)
 	spentNow(t, here, "big", "ada@acme.com", 500)
 	damage(t, path)
-	page := overview(t, here)
-	if !strings.Contains(page, "The budget could not be read, so it is not checked.") || strings.Contains(page, `role="alert"`) {
-		t.Errorf("a budget that cannot be read:\n%s", page)
+	if page := overview(t, here); page.Budget.Err == "" || page.Budget.Passed {
+		t.Errorf("a budget that cannot be read: %+v", page.Budget)
 	}
 }

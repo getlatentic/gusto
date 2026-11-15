@@ -11,32 +11,13 @@
 <link rel="stylesheet" href="{{asset "/static/fonts.css"}}">
 <link rel="stylesheet" href="{{asset "/static/theme.css"}}">
 <link rel="stylesheet" href="{{asset "/static/app.css"}}">
+<script src="{{asset "/static/look.js"}}"></script>
 {{if .Refresh}}<meta http-equiv="refresh" content="3">{{end}}
 <script src="{{asset "/static/htmx.min.js"}}" defer></script>
 <script src="{{asset "/static/keyboard.js"}}" defer></script>
 <script src="{{asset "/static/menus.js"}}" defer></script>
 {{with leaseExtend}}<script src="{{asset "/static/lease.js"}}" defer data-extend="{{.}}"></script><script src="{{asset "/static/guide.js"}}" defer></script>{{end}}
   <script nonce="{{.Nonce}}">
-    // The theme and the accent are the person's, kept on this device and set before the page is drawn so that it does not flash.
-    (function () {
-      var root = document.documentElement, theme = "system", accent = "green", zoom = 100, dark = matchMedia("(prefers-color-scheme: dark)");
-      var steps = [80, 90, 100, 110, 125, 150, 175, 200];
-      try { theme = localStorage.getItem("gusto-theme") || theme; accent = localStorage.getItem("gusto-accent") || accent; zoom = +localStorage.getItem("gusto-zoom") || zoom; } catch (e) {}
-      function apply() { root.dataset.theme = theme === "dark" || (theme === "system" && dark.matches) ? "dark" : "light"; root.dataset.accent = accent; root.style.fontSize = zoom + "%"; }
-      function keep(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
-      dark.addEventListener("change", apply);
-      apply();
-      window.gustoLook = {
-        theme: function () { return theme; }, accent: function () { return accent; }, zoom: function () { return zoom; },
-        stepZoom: function (by) {
-          var at = steps.indexOf(zoom); if (at < 0) { at = 2; }
-          zoom = by === 0 ? 100 : steps[Math.max(0, Math.min(steps.length - 1, at + by))];
-          keep("gusto-zoom", String(zoom)); apply();
-        },
-        setTheme: function (value) { theme = value; keep("gusto-theme", value); apply(); },
-        setAccent: function (value) { accent = value; keep("gusto-accent", value); apply(); }
-      };
-    })();
     // The widths the person dragged the side list and the files panel to.
     try {
       var drawn = document.documentElement.style;
@@ -101,7 +82,7 @@
      back to the pages everybody uses, and no other link between the two. */}}
 {{define "console-bar"}}<div class="shell grid h-full min-h-0 grid-cols-[15.5rem_minmax(0,1fr)] @max-[56rem]:grid-cols-[minmax(0,1fr)]">
 <nav id="side" class="side flex min-h-0 min-w-0 flex-col gap-1 overflow-y-auto bg-side px-3 py-4 @max-[56rem]:invisible @max-[56rem]:fixed @max-[56rem]:inset-y-0 @max-[56rem]:left-0 @max-[56rem]:z-20 @max-[56rem]:w-64 @max-[56rem]:-translate-x-full @max-[56rem]:transition-[transform,visibility] @max-[56rem]:duration-[var(--gu-dur-base)] side-open:@max-[56rem]:visible side-open:@max-[56rem]:translate-x-0 side-open:@max-[56rem]:shadow-3" aria-label="Admin">
-  <div class="flex min-h-12 items-center gap-3 px-3"><span class="grid size-8 flex-none place-items-center rounded-sm bg-ink text-canvas [&_svg.i]:size-[1.125rem]">{{template "icon-sliders"}}</span><span class="grid leading-tight"><strong class="font-display text-sm font-semibold">Admin</strong>{{with .OrgName}}<span class="text-xs text-subtle">{{.}}</span>{{end}}</span></div>
+  <div class="flex min-h-12 items-center gap-3 px-3"><img class="size-8 flex-none" src="{{asset "/static/mark.svg"}}" alt=""><span class="grid leading-tight"><strong class="font-display text-sm font-semibold">Admin</strong>{{with .OrgName}}<span class="text-xs text-subtle">{{.}}</span>{{end}}</span></div>
   {{range .Sections}}<a class="nav-item" href="{{.Href}}"{{if eq .Key $.Nav}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}
   <span class="flex-1"></span>
   {{with .OrgPage}}<a class="nav-item" href="{{.}}">{{template "icon-settings"}} Organization and billing</a>{{end}}

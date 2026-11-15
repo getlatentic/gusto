@@ -1,7 +1,8 @@
 package web
 
 import (
-	"strings"
+	"net/http"
+	"slices"
 	"testing"
 )
 
@@ -13,18 +14,24 @@ func TestTheConsoleHasAVerificationSectionThatListsOnlyWhatNeedsALook(t *testing
 	sealWith(t, claiming(t, root, "acme-20260927-0100"), trusted, "acme")
 	site := openKeyed(t, root, keyringAt(t, trusted))
 	site.signIn(t)
-	page := site.ask(t, "GET", "/admin/records?tab=checks", nil)
-	body := page.Body.String()
-	if page.Code != 200 || !strings.Contains(body, `href="/admin/records"`) || !strings.Contains(body, "Needs a look") {
-		t.Fatalf("the section is missing: %d\n%s", page.Code, body)
+	if got := site.ask(t, "GET", "/admin/records?tab=checks", nil); got.Code != http.StatusOK {
+		t.Fatalf("the section is missing: %d", got.Code)
 	}
-	if !strings.Contains(body, "unsigned-20260927-0100") && !strings.Contains(body, "/jobs/unsigned-20260927-0100") {
-		t.Errorf("the unsigned run is not listed:\n%s", body)
+	page := recordsPage(t, site, "?tab=checks")
+	if page.Checks == nil || page.Tab != "checks" {
+		t.Fatalf("the task checks are not given: %+v", page)
 	}
-	if strings.Contains(body, "/jobs/acme-20260927-0100") {
-		t.Errorf("a verified run is listed among those needing a look:\n%s", body)
+	var listed []string
+	for _, each := range page.Checks.Rows {
+		listed = append(listed, each.Href)
 	}
-	if !strings.Contains(body, "Intact") || !strings.Contains(body, "the last 2 tasks check out") {
-		t.Errorf("the top line does not say the runs check out:\n%s", body)
+	if !slices.Contains(listed, "/jobs/unsigned-20260927-0100") {
+		t.Errorf("the unsigned run is not listed: %v", listed)
+	}
+	if slices.Contains(listed, "/jobs/acme-20260927-0100") {
+		t.Errorf("a verified run is listed among those needing a look: %v", listed)
+	}
+	if page.Health.Broken || page.Health.Runs != "the last 2 tasks check out" {
+		t.Errorf("the top line does not say the runs check out: %+v", page.Health)
 	}
 }

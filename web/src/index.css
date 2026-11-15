@@ -1,0 +1,116 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* shadcn's components read the variables below. Each one is a gusto token from /static/tokens.css and /static/theme.css, which the
+   page loads first, so the theme and the accent a person chose in the app move these pages too. */
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  --font-sans: var(--gu-font-text);
+  --font-heading: var(--gu-font-display);
+  --font-numeric: var(--gu-font-numeric);
+  --font-mono: var(--gu-font-mono);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  /* A solid button darkens when pointed at; fading it would put its white text under 4.5 : 1. */
+  --color-primary-hover: var(--gu-accent-solid-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+
+  /* gusto's own names for what shadcn has no name for: the states, and the quieter greys of text. */
+  --color-subtle: var(--gu-text-subtle);
+  --color-faint: var(--gu-text-nontext);
+  --color-ok: var(--gu-success);
+  --color-ok-wash: var(--gu-success-surface);
+  --color-warn: var(--gu-warning);
+  --color-warn-wash: var(--gu-warning-surface);
+  --color-bad: var(--gu-danger);
+  --color-bad-wash: var(--gu-danger-surface);
+  --color-brand: var(--gu-accent);
+  --color-brand-ink: var(--gu-accent-text);
+
+  --radius-xs: var(--gu-radius-xs);
+  --radius-sm: var(--gu-radius-sm);
+  --radius-md: var(--gu-radius-md);
+  --radius-lg: var(--gu-radius-lg);
+  --radius-xl: var(--gu-radius-xl);
+  --radius-2xl: var(--gu-radius-2xl);
+
+  --shadow-xs: var(--gu-shadow-field);
+  --shadow-sm: var(--gu-shadow-1);
+  --shadow-md: var(--gu-shadow-menu);
+  --shadow-lg: var(--gu-shadow-dialog);
+
+  /* Borders are a hairline, which a screen of one pixel per point draws as one pixel. */
+  --default-border-width: var(--gu-hairline);
+}
+
+:root {
+  --radius: var(--gu-radius-lg);
+  --background: var(--gu-bg);
+  --foreground: var(--gu-text);
+  --card: var(--gu-card);
+  --card-foreground: var(--gu-text);
+  --popover: var(--gu-surface);
+  --popover-foreground: var(--gu-text);
+  --primary: var(--gu-accent-solid);
+  --primary-foreground: var(--gu-on-accent-solid);
+  --secondary: var(--gu-bg-subtle);
+  --secondary-foreground: var(--gu-text);
+  --muted: var(--gu-surface-sunken);
+  --muted-foreground: var(--gu-text-subtle);
+  --accent: var(--gu-hover);
+  --accent-foreground: var(--gu-text);
+  --destructive: var(--gu-danger);
+  --border: var(--gu-border);
+  --input: var(--gu-border-strong);
+  --ring: var(--gu-focus);
+  --sidebar: var(--gu-side);
+  --sidebar-foreground: var(--gu-text-muted);
+  --sidebar-accent: var(--gu-surface);
+  --sidebar-accent-foreground: var(--gu-text);
+  --sidebar-border: var(--gu-border);
+  --sidebar-ring: var(--gu-focus);
+  --sidebar-primary: var(--gu-accent-solid);
+  --sidebar-primary-foreground: var(--gu-on-accent-solid);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading;
+  }
+}

@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -59,18 +60,23 @@ func TestTheRetentionPageIsAnAdminsAndOnlyWhereWorkIsRemoved(t *testing.T) {
 		t.Error("a person who runs work swept a workspace")
 	}
 	here.signIn(t)
-	page := here.ask(t, "GET", "/admin/records?tab=keeping", nil)
-	if page.Code != http.StatusOK {
-		t.Fatalf("an admin got %d", page.Code)
+	if got := here.ask(t, "GET", "/admin/records?tab=keeping", nil); got.Code != http.StatusOK {
+		t.Fatalf("an admin got %d", got.Code)
 	}
-	for _, want := range []string{"2.0 KB", "a-week-old", "workspace", "7 days", "90 days", `href="/admin/records?tab=keeping"`} {
-		if !strings.Contains(page.Body.String(), want) {
-			t.Errorf("the page lacks %q:\n%s", want, page.Body.String())
-		}
+	page := recordsPage(t, here, "?tab=keeping")
+	kept := page.Keeping
+	if kept == nil || !strings.Contains(page.tabHrefs(), keepingTab) {
+		t.Fatalf("the keeping tab is not given: %+v", page)
+	}
+	if kept.WorkingFolders != "2.0 KB" || kept.Oldest != "a-week-old" || len(kept.Upcoming) != 1 || kept.Upcoming[0].Task != "a-week-old" || kept.Upcoming[0].Kind != "workspace" {
+		t.Errorf("the keeping tab does not give the disk and the next sweep: %+v", kept)
+	}
+	if !kept.Removes || !slices.Contains(kept.Policy, retention.Row{State: "passed", WorkingFolder: 7, Record: 90}) {
+		t.Errorf("the keeping tab does not give the policy: %+v", kept.Policy)
 	}
 	plain := open(t)
 	plain.signIn(t)
-	if got := plain.ask(t, "GET", "/admin/records?tab=keeping", nil).Body.String(); strings.Contains(got, "tab=keeping") || strings.Contains(got, "Sweep now") {
+	if got := plain.dataText(t, "/admin/records?tab=keeping"); strings.Contains(got, "tab=keeping") || strings.Contains(got, `"Keeping"`) {
 		t.Errorf("a server that removes nothing offers keeping:\n%s", got)
 	}
 }
@@ -101,8 +107,8 @@ func TestSweepingRemovesWhatIsDueAndTheChangeRecordSaysSo(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, lastSweepFile)); err != nil {
 		t.Error("the last sweep was not kept")
 	}
-	if page := here.ask(t, "GET", "/admin/records?tab=keeping", nil).Body.String(); !strings.Contains(page, "The last sweep was") {
-		t.Errorf("the page does not show the last sweep:\n%s", page)
+	if kept := recordsPage(t, here, "?tab=keeping").Keeping; kept.Last == nil || len(kept.Last.Actions) != 2 || kept.LastAt == "" {
+		t.Errorf("the page does not give the last sweep: %+v", kept)
 	}
 }
 
@@ -121,8 +127,8 @@ func TestAHoldKeepsATaskAndIsRecordedAndReleased(t *testing.T) {
 	if got := here.ask(t, "POST", "/admin/retention/jobs/hold", url.Values{"job": {"held"}, "why": {"the audit"}}); got.Code != http.StatusSeeOther {
 		t.Fatalf("holding gave %d", got.Code)
 	}
-	if page := here.ask(t, "GET", "/admin/records?tab=keeping", nil).Body.String(); !strings.Contains(page, "the audit") || !strings.Contains(page, `action="/admin/retention/jobs/release"`) {
-		t.Errorf("the retention page does not say the job is held:\n%s", page)
+	if held := recordsPage(t, here, "?tab=keeping").Keeping.HeldTasks; held["held"].Why != "the audit" || held["held"].By == "" {
+		t.Errorf("the retention page does not say the job is held: %+v", held)
 	}
 	here.ask(t, "POST", "/admin/retention/sweep", nil)
 	root := here.index.Root()
@@ -156,8 +162,8 @@ func TestAHoldOnAPersonKeepsEverythingTheyAskedFor(t *testing.T) {
 	if _, found := here.index.Get("amys"); !found {
 		t.Fatal("work of a held person was removed")
 	}
-	if page := here.ask(t, "GET", "/admin/records?tab=keeping", nil).Body.String(); !strings.Contains(page, "everything asked for by amy@acme.test") {
-		t.Errorf("the hold is not listed:\n%s", page)
+	if held := recordsPage(t, here, "?tab=keeping").Keeping.HeldPeople; held["amy@acme.test"].Why != "legal" {
+		t.Errorf("the hold is not listed: %+v", held)
 	}
 	here.ask(t, "POST", "/admin/retention/holds/release", url.Values{"who": {"amy@acme.test"}})
 	here.ask(t, "POST", "/admin/retention/sweep", nil)

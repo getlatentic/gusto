@@ -26,15 +26,35 @@ type providerRow struct {
 	Operator     bool
 }
 
-func (s *Server) modelsPage(w http.ResponseWriter, r *http.Request) {
-	view := s.registry.View()
-	steps := s.registry.Steps()
+// modelsView is what every tab of the models page reads of the registry: how a provider may be added, and the models a person
+// may be limited to. The providers themselves are in the tab that lists them.
+type modelsView struct {
+	Kinds     []string
+	Available []string
+	Private   bool
+	Editable  bool
+	Unnamed   bool
+}
+
+func modelsViewOf(view registry.View) modelsView {
+	return modelsView{Kinds: view.Kinds, Available: view.Available, Private: view.Private, Editable: view.Editable, Unnamed: view.Unnamed}
+}
+
+// modelsTabs are the tabs of the models page. Settings is there when the organization has settings or the registry has a past.
+func (s *Server) modelsTabs(r *http.Request, steps []registry.Step) ([]tab, string) {
 	tabs := []tab{{Key: "models", Label: "Models"}, {Key: "providers", Label: "Providers"}, {Key: "access", Label: "Who may use"}}
 	if s.hasOrgSettings() || len(steps) > 0 {
 		tabs = append(tabs, tab{Key: "settings", Label: "Settings"})
 	}
-	tabs, chosen := chooseTab(r, modelsPath, tabs)
-	page := map[string]any{"Title": productName + " — models", "View": view, "Refused": s.refusal(r), "Tabs": tabs, "Tab": chosen}
+	return chooseTab(r, modelsPath, tabs)
+}
+
+// modelsData is the tab the request names: the organization's models, its providers or one of them, who may use what, or its settings.
+func (s *Server) modelsData(r *http.Request) (map[string]any, error) {
+	view := s.registry.View()
+	steps := s.registry.Steps()
+	tabs, chosen := s.modelsTabs(r, steps)
+	page := map[string]any{"View": modelsViewOf(view), "Refused": s.refusal(r), "Tabs": tabs, "Tab": chosen}
 	switch chosen {
 	case "models":
 		page["Rows"], page["Pages"] = onePage(r, modelsTab("models"), s.modelRows(view))
@@ -50,7 +70,7 @@ func (s *Server) modelsPage(w http.ResponseWriter, r *http.Request) {
 			page["Defaults"], page["DefaultNow"], page["RunTokens"] = choices, chatDefaultWords(choices), s.runTokensOf()
 		}
 	}
-	s.drawConsole(w, "admin-models.html", "models", page)
+	return page, nil
 }
 
 // providersInto fills the Providers tab: the provider the request names, with its models, or the table of them all.
