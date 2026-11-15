@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -38,16 +39,20 @@ func (s *Server) UseInBuilding(reachable bool) { s.inBuilding.Store(reachable) }
 // setupsPath is where the console keeps the skill sets, for whoever changes them.
 const setupsPath = "/admin/skill-sets"
 
-// setupsPage is every skill set, for anybody to read.
-func (s *Server) setupsPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "setups.html", map[string]any{
-		"Title":   productName + " — skill sets",
-		"Nav":     "presets",
-		"Base":    "/setups",
-		"Setups":  s.setupsList(),
-		"Keeps":   s.setups != nil,
-		"Refused": s.refusal(r),
-	})
+// setupRow is a skill set as a person's list of them says it: its name, how many skills it holds and the servers it names.
+type setupRow struct {
+	Name    string
+	Skills  int
+	Servers []string
+}
+
+// setupsData is every skill set that is on, for anybody to read. Keeps is whether this server keeps skill sets at all.
+func (s *Server) setupsData(r *http.Request) (map[string]any, error) {
+	rows := []setupRow{}
+	for _, held := range s.setupsList() {
+		rows = append(rows, setupRow{Name: held.Name, Skills: len(held.Skills), Servers: orNone(held.Servers)})
+	}
+	return map[string]any{"Setups": rows, "Keeps": s.setups != nil, "Refused": s.refusal(r)}, nil
 }
 
 // setupOf is what a task on this instance is given, named for job.json.
@@ -135,25 +140,54 @@ func (s *Server) saveSetup(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, setupsPath+"/"+name, http.StatusSeeOther)
 }
 
-// setupPage is one setup that is on: its skills and its servers, for anybody to read.
-func (s *Server) setupPage(w http.ResponseWriter, r *http.Request) {
+// hasSetup is whether the address names a skill set that is on, which is all a person may read.
+func (s *Server) hasSetup(r *http.Request) bool {
 	if s.setups == nil {
-		http.NotFound(w, r)
-		return
+		return false
 	}
 	held, found := s.setups.Get(r.PathValue("name"))
+	return found && !held.Off
+}
+
+// setupStarter is an agent type a skill set may be started with, from its page: where to start it, or why it cannot take the set.
+type setupStarter struct {
+	Name, Href, Unfit string
+}
+
+// setupData is one skill set that is on: its skills and its servers, for anybody to read, and the agents that can start with it.
+// Offers is whether this deployment offers MCP servers at all.
+func (s *Server) setupData(r *http.Request) (map[string]any, error) {
+	held, found := s.setups.Get(r.PathValue("name"))
 	if !found || held.Off {
-		http.NotFound(w, r)
-		return
+		return nil, failed{http.StatusNotFound, "there is no such skill set"}
 	}
-	s.render(w, "setup-detail.html", map[string]any{
-		"Title":   productName + " — " + held.Name,
-		"Nav":     "presets",
-		"Setup":   held,
-		"Offered": s.servers,
-		"Catalog": s.engines(),
-		"Refused": s.refusal(r),
-	})
+	starters := []setupStarter{}
+	for _, entry := range s.engines() {
+		if !entry.Ready {
+			continue
+		}
+		each := setupStarter{Name: entry.Name, Unfit: held.Fits(entry.Skills, entry.MCP)}
+		if each.Unfit == "" {
+			each.Href = "/instances/new?" + url.Values{"harness": {entry.Name}, "setup": {held.Name}}.Encode()
+		}
+		starters = append(starters, each)
+	}
+	return map[string]any{
+		"Set":       viewOfSkillSet(held),
+		"Servers":   orNone(held.Servers),
+		"Offers":    len(s.servers) > 0,
+		"Uses":      orNone(held.Uses),
+		"StartWith": starters,
+		"Refused":   s.refusal(r),
+	}, nil
+}
+
+// orNone is a list as JSON says it: empty, and not null, when there is nothing in it.
+func orNone[T any](list []T) []T {
+	if list == nil {
+		return []T{}
+	}
+	return list
 }
 
 // exportSetup is a skill set as an Agent Plugin, for another deployment to import, or this one.

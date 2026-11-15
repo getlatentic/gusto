@@ -1,23 +1,16 @@
 import { Button } from "@/components/ui/button"
 import { PluginName } from "@/pages/admin/apps/add-skill-forms"
 import { Choices } from "@/pages/admin/apps/field"
-import { Section } from "@/pages/admin/apps/section"
-import type { SkillSetData, SkillSetUse } from "@/pages/admin/apps/types"
+import { Section } from "@/components/section"
+import type { SkillSetData } from "@/pages/admin/apps/types"
+import { NoServers, UseLine } from "@/components/skill-set/set-gives"
 
 // SkillSetSide is what the set is given besides its skills: the deployment's MCP servers, and imported plugins.
 export function SkillSetSide({ page }: { page: SkillSetData }) {
   return (
     <aside className="grid min-w-0 gap-6" aria-label="About this skill set">
       <Section title="MCP servers">
-        {page.Servers.length > 0 ? (
-          <ServersForm page={page} />
-        ) : (
-          <p className="m-0 text-sm text-muted-foreground">
-            This deployment offers no MCP servers. Its operator declares them,
-            because each one runs inside the box or is an address the box may
-            reach.
-          </p>
-        )}
+        {page.Servers.length > 0 ? <ServersForm page={page} /> : <NoServers />}
       </Section>
       {(page.Imported.length > 0 || page.Uses.length > 0) && (
         <Section title="Integrations">
@@ -86,20 +79,5 @@ function IntegrationsForm({ page }: { page: SkillSetData }) {
         </Button>
       </div>
     </form>
-  )
-}
-
-const counted = (n: number, what: string) => `${n} ${what}${n === 1 ? "" : "s"}`
-
-// UseLine is what one plugin the set names gives it now, or why a task with the set would not start.
-function UseLine({ use }: { use: SkillSetUse }) {
-  return (
-    <p className="m-0 text-sm text-muted-foreground">
-      {use.Name}:{" "}
-      {use.On
-        ? `${counted(use.Skills, "skill")}, ${counted(use.Servers, "server")}` +
-          (use.Held ?? []).map((held) => ` · not used: ${held}`).join("")
-        : "off, so a task with this setup does not start until an administrator turns it on"}
-    </p>
   )
 }

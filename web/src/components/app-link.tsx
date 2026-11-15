@@ -21,6 +21,11 @@ const appPages = [
   /^\/admin\/integrations\/[^/]+$/,
   /^\/files$/,
   /^\/instances\/[^/]+\/file$/,
+  /^\/setups(?:\/[^/]+)?$/,
+  /^\/presets$/,
+  /^\/templates\/[^/]+$/,
+  /^\/new\/blank$/,
+  /^\/instances\/new$/,
 ]
 
 export function isAppPage(href: string): boolean {

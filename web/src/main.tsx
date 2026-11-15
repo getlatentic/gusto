@@ -83,6 +83,40 @@ const FilePage = lazy(() =>
   import("@/pages/files/file-page").then((m) => ({ default: m.FilePage }))
 )
 
+const SetupsPage = lazy(() =>
+  import("@/pages/setups/setups-page").then((m) => ({ default: m.SetupsPage }))
+)
+const SetupPage = lazy(() =>
+  import("@/pages/setups/setup-page").then((m) => ({ default: m.SetupPage }))
+)
+const PresetsPage = lazy(() =>
+  import("@/pages/setups/presets-page").then((m) => ({
+    default: m.PresetsPage,
+  }))
+)
+const TemplatePage = lazy(() =>
+  import("@/pages/setups/template-page").then((m) => ({
+    default: m.TemplatePage,
+  }))
+)
+const BlankPage = lazy(() =>
+  import("@/pages/setups/blank-page").then((m) => ({ default: m.BlankPage }))
+)
+const SetUpPage = lazy(() =>
+  import("@/pages/setups/set-up-page").then((m) => ({ default: m.SetUpPage }))
+)
+// The pages served before anybody is signed in, which are drawn outside a person's shell, so they ask for nothing a session gives.
+const SignInPage = lazy(() =>
+  import("@/pages/sign-in/sign-in-page").then((m) => ({
+    default: m.SignInPage,
+  }))
+)
+const HandoffPage = lazy(() =>
+  import("@/pages/sign-in/handoff-page").then((m) => ({
+    default: m.HandoffPage,
+  }))
+)
+
 // The pages the gusto server hands to this app. Each address is also a route on the server, which serves this app for it
 // behind the same sign-in; any other address is a page the server draws.
 createRoot(document.getElementById("root")!).render(
@@ -104,7 +138,15 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/files" element={<FilesPage />} />
                 <Route path="/instances/:id/file" element={<FilePage />} />
                 <Route path="/jobs/:id/files/:name" element={<FilePage />} />
+                <Route path="/setups" element={<SetupsPage />} />
+                <Route path="/setups/:name" element={<SetupPage />} />
+                <Route path="/presets" element={<PresetsPage />} />
+                <Route path="/templates/:name" element={<TemplatePage />} />
+                <Route path="/new/blank" element={<BlankPage />} />
+                <Route path="/instances/new" element={<SetUpPage />} />
               </Route>
+              <Route path="/login" element={<SignInPage />} />
+              <Route path="/auth/desktop/handoff" element={<HandoffPage />} />
               <Route path="/admin" element={<ConsoleShell />}>
                 <Route index element={<OverviewPage />} />
                 <Route path="spending" element={<SpendingPage />} />

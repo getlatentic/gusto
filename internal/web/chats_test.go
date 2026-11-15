@@ -122,7 +122,7 @@ func TestTheOldAddressOfThePresetsPageLeadsToThePresetsPage(t *testing.T) {
 	if old.Code != http.StatusMovedPermanently || old.Header().Get("Location") != "/presets" {
 		t.Fatalf("/new answered %d to %q", old.Code, old.Header().Get("Location"))
 	}
-	if page := site.ask(t, "GET", "/presets", nil); page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "Presets") {
+	if page := site.ask(t, "GET", "/presets", nil); page.Code != http.StatusOK || len(presetsOf(t, site).Roles) == 0 {
 		t.Errorf("/presets answered %d", page.Code)
 	}
 }

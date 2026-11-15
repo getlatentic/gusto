@@ -59,6 +59,8 @@
   --color-warn-wash: var(--gu-warning-surface);
   --color-bad: var(--gu-danger);
   --color-bad-wash: var(--gu-danger-surface);
+  --color-info: var(--gu-info);
+  --color-info-wash: var(--gu-info-surface);
   --color-brand: var(--gu-accent);
   --color-brand-ink: var(--gu-accent-text);
   --color-rail: var(--gu-rail);

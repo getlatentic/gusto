@@ -12,7 +12,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { when } from "@/lib/format"
 import { OnBadge } from "@/pages/admin/apps/on-badge"
-import { Section } from "@/pages/admin/apps/section"
+import { Section } from "@/components/section"
 import type {
   Integration,
   IntegrationEvent,
