@@ -17,7 +17,7 @@ describe("records", () => {
         "A signed record of everything that happened, and how long work is kept"
       )
     ).toBeTruthy()
-    const tabs = screen.getAllByRole("tab")
+    const tabs = await screen.findAllByRole("tab")
     expect(tabs.map((tab) => tab.textContent)).toEqual([
       "Activity",
       "Task checks",

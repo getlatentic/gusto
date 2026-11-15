@@ -2,13 +2,14 @@ package web
 
 import (
 	"cmp"
-	"github.com/getlatentic/gusto/internal/workspace"
 	"net/http"
 	"slices"
 	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/getlatentic/gusto/internal/workspace"
 
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/tasks"
@@ -122,6 +123,7 @@ func (s *Server) roomRows(r *http.Request, archived bool) []railChat {
 		if held.Direct && len(held.Agents) == 1 {
 			live := s.liveRoom(held).Agents[0]
 			room.Name, room.Harness = live.Name, live.Harness
+			room.Mark, room.MarkDark = logo(live.Harness), logoDark(live.Harness)
 		}
 		rooms = append(rooms, room)
 	}
@@ -188,9 +190,6 @@ func dayOf(at, now time.Time) string {
 	return at.Format("2 Jan 2006")
 }
 
-// clock is the time of day something was said.
-func clock(unix int64) string { return time.Unix(unix, 0).Format("15:04") }
-
 // nameFromAddress is what a person's address says they are called: ada.lovelace+work@acme.com is Ada Lovelace. A tag after a +
 // is a mailbox's, not the person's, and dots, dashes and underscores part words. The shared sign-in is Owner.
 func nameFromAddress(who string) string {
@@ -232,11 +231,11 @@ func initialsOf(name string) string {
 // mentionable is someone a room's message box offers after an @: its agents, which answer, and its people.
 type mentionable struct {
 	Name  string `json:"name"`
-	Role  string `json:"role,omitempty"`
-	Owner string `json:"owner,omitempty"`
-	Agent bool   `json:"agent,omitempty"`
-	Icon  string `json:"icon,omitempty"`
-	Short string `json:"short,omitempty"`
+	Role  string `json:"role"`
+	Owner string `json:"owner"`
+	Agent bool   `json:"agent"`
+	Icon  string `json:"icon"`
+	Short string `json:"short"`
 }
 
 func (s *Server) mentionables(held instance.Instance, you string) []mentionable {

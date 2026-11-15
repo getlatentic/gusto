@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -48,15 +47,6 @@ func spentNowIn(t *testing.T, here *site, id, asked, team string, usd float64) {
 // call on a fixed date is in this month only until the month ends.
 func unmeasuredNow() string {
 	return fmt.Sprintf(`{"path":"/v1/chat/completions","status":200,"atUnix":%d,"model":"m","inputTokens":null,"outputTokens":null,"usd":null}`, time.Now().Unix())
-}
-
-func rowOf(t *testing.T, page, email string) string {
-	t.Helper()
-	found := regexp.MustCompile(`(?s)<tr>\s*<td>(?:<span class="[^"]*">.*?<span class="text-xs text-muted">)?` + regexp.QuoteMeta(email) + `(?:</span></span></span>)?</td>(.*?)</tr>`).FindStringSubmatch(page)
-	if found == nil {
-		t.Fatalf("%s is not in the table:\n%s", email, page)
-	}
-	return found[1]
 }
 
 func TestThePeoplePageListsMembersWithRoleLastSignInAndWhatTheySpent(t *testing.T) {

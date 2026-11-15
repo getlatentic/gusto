@@ -4,6 +4,10 @@ import { Link } from "react-router"
 // The pages this app draws. A link to one of them moves within the app; a link anywhere else is a page the server still
 // draws, and loads it.
 const appPages = [
+  /^\/chat$/,
+  /^\/rooms\/new$/,
+  /^\/instances\/[^/]+\/threads\/[^/]+$/,
+  /^\/members(?:\/agents\/[^/]+|\/people\/[^/]+)?$/,
   /^\/admin$/,
   /^\/admin\/spending$/,
   /^\/admin\/usage(?:\/[^/]+)?$/,
@@ -15,6 +19,23 @@ const appPages = [
   /^\/admin\/apps$/,
   /^\/admin\/skill-sets\/[^/]+$/,
   /^\/admin\/integrations\/[^/]+$/,
+  /^\/files$/,
+  /^\/instances\/[^/]+\/file$/,
+  /^\/jobs\/[^/]+\/files\/[^/]+$/,
+  /^\/setups(?:\/[^/]+)?$/,
+  /^\/presets$/,
+  /^\/templates\/[^/]+$/,
+  /^\/new\/blank$/,
+  /^\/instances\/new$/,
+  /^\/usage(?:\/[^/]+)?$/,
+  /^\/spend$/,
+  /^\/connections$/,
+  /^\/device$/,
+  // The work pages.
+  /^\/jobs(?:\/[^/]+)?$/,
+  /^\/instances\/(?!new$)[^/]+$/,
+  /^\/engines$/,
+  /^\/compare(?:\/[^/]+)?$/,
 ]
 
 export function isAppPage(href: string): boolean {

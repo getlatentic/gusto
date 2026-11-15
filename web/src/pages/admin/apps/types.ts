@@ -1,3 +1,5 @@
+import type { SkillOfSet, SkillSetUse } from "@/components/skill-set/types"
+
 // The views of Apps & skills the server answers at /app/api, as internal/web builds them. Field names are the Go fields', and a
 // type the server keeps as it is (an event, a source, a problem) keeps its own JSON names.
 
@@ -122,22 +124,6 @@ export interface IntegrationData {
   Changes?: VersionChanges
   Against?: string
   Refused: string
-}
-
-export interface SkillOfSet {
-  Name: string
-  Description: string
-  // Instructions is the skill's body as the server draws it from Markdown, with nothing in it that runs.
-  Instructions: string
-}
-
-// What one integration a skill set names gives it now.
-export interface SkillSetUse {
-  Name: string
-  Skills: number
-  Servers: number
-  Held: string[] | null
-  On: boolean
 }
 
 export interface ServerChoice {

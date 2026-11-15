@@ -84,7 +84,11 @@ export function BudgetsPage() {
     <>
       <PageBar title="Budgets">
         {budget && !budget.Err && (
-          <Button variant="outline" onClick={() => setChanging(true)}>
+          <Button
+            variant="outline"
+            data-testid="change-budgets"
+            onClick={() => setChanging(true)}
+          >
             Change
           </Button>
         )}
@@ -167,6 +171,7 @@ function BudgetFigures({ budget }: { budget: OrgBudget }) {
       <Figure
         value={budget.MemberSet ? usd(budget.Member) : "None"}
         label="Each person"
+        testId="each-person-budget"
         detail={
           budget.MemberSet
             ? "a month; their agents stop there"
@@ -176,6 +181,7 @@ function BudgetFigures({ budget }: { budget: OrgBudget }) {
       <Figure
         value={budget.Set ? usd(budget.Limit) : "None"}
         label="Organization"
+        testId="organization-budget"
         detail={
           budget.Set ? "a month, which only warns" : "no budget to warn at"
         }
@@ -326,7 +332,7 @@ function BudgetsDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent data-testid="budgets-dialog">
         <form method="post" action="/admin/budget" className="grid gap-4">
           <DialogHeader>
             <DialogTitle>Budgets</DialogTitle>
@@ -339,6 +345,7 @@ function BudgetsDialog({
               <Label htmlFor="budget-each">Each person, a month</Label>
               <Input
                 id="budget-each"
+                data-testid="budget-each"
                 name="each"
                 type="number"
                 min="0"
@@ -353,6 +360,7 @@ function BudgetsDialog({
               <Label htmlFor="budget-org">Organization, a month</Label>
               <Input
                 id="budget-org"
+                data-testid="budget-org"
                 name="usd"
                 type="number"
                 min="0"
@@ -372,7 +380,9 @@ function BudgetsDialog({
             <DialogClose render={<Button variant="outline" type="button" />}>
               Cancel
             </DialogClose>
-            <Button type="submit">Save</Button>
+            <Button type="submit" data-testid="save-budgets">
+              Save
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

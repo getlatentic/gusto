@@ -1,12 +1,13 @@
 package web
 
 import (
-	"github.com/getlatentic/gusto/internal/workspace"
 	"html/template"
 	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/getlatentic/gusto/internal/workspace"
 
 	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/instance"
@@ -109,17 +110,18 @@ func lastRune(text string) rune { r, _ := utf8.DecodeLastRuneInString(text); ret
 
 func firstRune(text string) rune { r, _ := utf8.DecodeRuneInString(text); return r }
 
-// mentionsIn is a message as a room shows it, each mention of somebody in the room set apart.
-func mentionsIn(text string, names []string) template.HTML {
+// mentionsIn is a message as HTML: each mention of somebody in the room is <span class="mention">@Name</span>, and the rest is
+// escaped, so nothing a person wrote is ever markup.
+func mentionsIn(text string, names []string) string {
 	var shown strings.Builder
 	last := 0
 	for _, each := range mentionSpans(text, names) {
 		shown.WriteString(template.HTMLEscapeString(text[last:each.start]))
-		shown.WriteString(`<span class="text-accent">` + template.HTMLEscapeString(text[each.start:each.end]) + `</span>`)
+		shown.WriteString(`<span class="mention">` + template.HTMLEscapeString(text[each.start:each.end]) + `</span>`)
 		last = each.end
 	}
 	shown.WriteString(template.HTMLEscapeString(text[last:]))
-	return template.HTML(shown.String())
+	return shown.String()
 }
 
 // roomNames is everybody a message in the room can mention: its agents and its people.

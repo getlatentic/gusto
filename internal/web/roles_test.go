@@ -146,21 +146,16 @@ func TestSkillSetPagesCarryNoControlsAndTheConsoleDoes(t *testing.T) {
 	admin.ask(t, "POST", "/admin/skill-sets/reviewer/enable", nil)
 	admin.ask(t, "POST", "/admin/skill-sets/reviewer/skills", url.Values{"skill": {"review"}, "description": {"when"}, "body": {"do"}})
 
-	controls := map[string][]string{
-		"/setups":          {"Write a skill set"},
-		"/setups/reviewer": {"Add a skill", "/skills/review/drop"},
-	}
-	for path, wanted := range controls {
+	// The pages draw no control to change a skill set, which web/src/pages/setups/setup-page.test.tsx checks; their data is the
+	// same for everybody, so it offers an admin nothing a runner is not offered.
+	for _, path := range []string{"/setups", "/setups/reviewer"} {
 		for name, who := range map[string]*site{"a runner": runner, "an admin": admin} {
-			got := who.ask(t, "GET", path, nil)
-			if got.Code != http.StatusOK {
+			if got := who.ask(t, "GET", path, nil); got.Code != http.StatusOK {
 				t.Fatalf("%s reading %s got %d", name, path, got.Code)
 			}
-			for _, control := range wanted {
-				if strings.Contains(got.Body.String(), control) {
-					t.Errorf("%s offers %s %q", path, name, control)
-				}
-			}
+		}
+		if ran, administered := runner.dataText(t, path), admin.dataText(t, path); ran != administered {
+			t.Errorf("%s gives an admin other data than a runner:\n%s\n%s", path, administered, ran)
 		}
 	}
 	for _, console := range []string{"/admin/apps?tab=skills", "/admin/skill-sets/reviewer"} {

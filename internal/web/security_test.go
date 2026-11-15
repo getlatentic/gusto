@@ -19,7 +19,7 @@ import (
 func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
 	here := open(t)
 	here.signIn(t)
-	for _, path := range []string{"/login", "/", "/jobs", "/spend", "/compare", "/nothing-here", "/healthz", "/static/app.css"} {
+	for _, path := range []string{"/login", "/", "/jobs", "/spend", "/compare", "/nothing-here", "/healthz", "/static/operator.css"} {
 		got := here.ask(t, "GET", path, nil)
 		for name, want := range map[string]string{
 			"X-Frame-Options": "DENY", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "same-origin",
@@ -68,7 +68,8 @@ func TestEveryInlineScriptCarriesTheResponsesNonceAndNoElementHasAHandler(t *tes
 		t.Fatalf("starting an agent did not open a conversation: %q", where)
 	}
 	instance := where[:strings.Index(where, "/threads/")]
-	pages := []string{"/chat", "/jobs", "/spend", "/compare", "/presets", "/setups", "/engines", instance, where}
+	// The conversation at where is the React app's page, which is checked where the app is built.
+	pages := []string{"/jobs", "/spend", "/compare", "/presets", "/setups", "/engines", instance}
 	seen := map[string]bool{}
 	for _, path := range pages {
 		got := site.ask(t, "GET", path, nil)
@@ -245,7 +246,7 @@ func TestALinkInARecordIsNeverShownOrServed(t *testing.T) {
 			t.Errorf("a link to a file outside the job was served as %s: %d", name, got.Code)
 		}
 	}
-	if page := here.ask(t, "GET", "/jobs/linked", nil).Body.String(); strings.Contains(page, "private key") {
+	if page := here.dataText(t, "/jobs/linked"); strings.Contains(page, "private key") {
 		t.Error("the job page shows what a link points at")
 	}
 	if wrong, _ := record.Check(dir); !strings.Contains(strings.Join(wrong, "; "), "loot.txt is not a plain file") {

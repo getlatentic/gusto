@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -48,20 +49,15 @@ func TestTheSpendPageNamesTheBiggestTeamWhenThereIsMoreThanOne(t *testing.T) {
 	spentTask(t, site.index.Root(), "write-it", "finance", priced)
 	spentTask(t, site.index.Root(), "said-nothing", "", unmeasured)
 	site.signIn(t)
-	answer := site.ask(t, "GET", "/spend?month=2026-09", nil)
-	if answer.Code != http.StatusOK {
-		t.Fatalf("code %d", answer.Code)
+	if answer := site.ask(t, "GET", "/spend?month=2026-09", nil); answer.Code != http.StatusOK || !strings.Contains(answer.Body.String(), `<div id="root">`) {
+		t.Fatalf("the spend page is not the app: %d", answer.Code)
 	}
-	page := answer.Body.String()
-	for _, want := range []string{"Biggest team", ">platform<", "$0.7500", `title="at least: some calls have no price"`} {
-		if !strings.Contains(page, want) {
-			t.Fatalf("want %q on the page:\n%s", want, page)
-		}
+	ledger := spendAt(t, site, "/spend?month=2026-09").Ledger
+	if ledger.Month != "2026-09" || ledger.Total.USD != 0.75 || ledger.Total.Unmeasured == 0 || ledger.Measure != "money" {
+		t.Errorf("the month does not say what was spent, and that some calls have no price: %+v", ledger)
 	}
-	for _, not := range []string{"By team", "By agent", "Most expensive messages"} {
-		if strings.Contains(page, not) {
-			t.Errorf("the page still has the %q table", not)
-		}
+	if !slices.ContainsFunc(ledger.Tops, func(top topJSON) bool { return top.Title == "Biggest team" && top.Name == "platform" }) {
+		t.Errorf("the biggest team is not named: %+v", ledger.Tops)
 	}
 }
 
@@ -104,10 +100,36 @@ func TestTheSpendPageHasNoBoxForSomethingWithNothingToCompareItWith(t *testing.T
 	if err := os.WriteFile(dir.OutFile("proxy.jsonl"), []byte(priced+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	page := site.ask(t, "GET", "/spend?month=2026-09", nil).Body.String()
-	for _, not := range []string{"Most used agent", "Most used model", "Biggest team"} {
-		if strings.Contains(page, not) {
-			t.Errorf("a month with one of each should have no %q box", not)
-		}
+	if tops := spendAt(t, site, "/spend?month=2026-09").Ledger.Tops; len(tops) != 0 {
+		t.Errorf("a month with one of each should have no box: %+v", tops)
 	}
+}
+
+// spendJSON is a spend report page's data.
+type spendJSON struct {
+	Base   string
+	Ledger struct {
+		Month string `json:"month"`
+		Total struct {
+			USD               float64 `json:"usd"`
+			Calls, Unmeasured int64
+		} `json:"total"`
+		Months  []string
+		Measure string
+		Daily   []struct {
+			Date, Says string
+			Height     float64
+		}
+		Tops []topJSON
+	}
+}
+
+type topJSON struct{ Title, Name, Says string }
+
+// spendAt is the data of the spend report at path.
+func spendAt(t *testing.T, who dataReader, path string) spendJSON {
+	t.Helper()
+	var page spendJSON
+	who.data(t, path, &page)
+	return page
 }

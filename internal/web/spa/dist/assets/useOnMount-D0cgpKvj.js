@@ -1,1 +1,0 @@
-import{r as e}from"./rolldown-runtime-XKyaHtl9.js";import{At as t,Xt as n}from"./DirectionContext-7WM5PgI4.js";var r=e(n(),1);function i(e){r.useEffect(e,t)}export{i as t};

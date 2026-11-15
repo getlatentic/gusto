@@ -3,7 +3,10 @@ import { MemoryRouter, Route, Routes } from "react-router"
 import { describe, expect, it, vi } from "vitest"
 
 import { ConsoleShell } from "@/components/console-shell"
+import { Provider } from "react-redux"
+
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { makeStore } from "@/store"
 
 describe("the console", () => {
   it("has its sections and one way back to the pages everybody uses, and no other", async () => {
@@ -22,22 +25,26 @@ describe("the console", () => {
       )
     )
     render(
-      <TooltipProvider>
-        <MemoryRouter initialEntries={["/admin/budgets"]}>
-          <Routes>
-            <Route path="/admin" element={<ConsoleShell />}>
-              <Route path="budgets" element={<p>budgets</p>} />
-            </Route>
-          </Routes>
-        </MemoryRouter>
-      </TooltipProvider>
+      <Provider store={makeStore()}>
+        <TooltipProvider>
+          <MemoryRouter initialEntries={["/admin/budgets"]}>
+            <Routes>
+              <Route path="/admin" element={<ConsoleShell />}>
+                <Route path="budgets" element={<p>budgets</p>} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </TooltipProvider>
+      </Provider>
     )
     const current = await screen.findByRole("link", { name: "Budgets" })
     expect(current.getAttribute("aria-current")).toBe("page")
     const links = screen
       .getAllByRole("link")
       .map((link) => link.getAttribute("href"))
-    expect(links.filter((href) => !href?.startsWith("/admin"))).toEqual(["/"])
+    expect(
+      links.filter((href) => !href?.startsWith("/admin") && href !== "#main")
+    ).toEqual(["/"])
     expect(screen.getByRole("link", { name: "Back to gusto" })).toBeTruthy()
   })
 
@@ -57,15 +64,17 @@ describe("the console", () => {
       )
     )
     render(
-      <TooltipProvider>
-        <MemoryRouter initialEntries={["/admin/records?tab=keeping"]}>
-          <Routes>
-            <Route path="/admin" element={<ConsoleShell />}>
-              <Route path="records" element={<p>records</p>} />
-            </Route>
-          </Routes>
-        </MemoryRouter>
-      </TooltipProvider>
+      <Provider store={makeStore()}>
+        <TooltipProvider>
+          <MemoryRouter initialEntries={["/admin/records?tab=keeping"]}>
+            <Routes>
+              <Route path="/admin" element={<ConsoleShell />}>
+                <Route path="records" element={<p>records</p>} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </TooltipProvider>
+      </Provider>
     )
     const current = await screen.findByRole("link", { name: "Records" })
     expect(current.getAttribute("aria-current")).toBe("page")
@@ -98,15 +107,17 @@ describe("a page under a section", () => {
         )
       )
       const drawn = render(
-        <TooltipProvider>
-          <MemoryRouter initialEntries={[at]}>
-            <Routes>
-              <Route path="/admin" element={<ConsoleShell />}>
-                <Route path="*" element={<p>page</p>} />
-              </Route>
-            </Routes>
-          </MemoryRouter>
-        </TooltipProvider>
+        <Provider store={makeStore()}>
+          <TooltipProvider>
+            <MemoryRouter initialEntries={[at]}>
+              <Routes>
+                <Route path="/admin" element={<ConsoleShell />}>
+                  <Route path="*" element={<p>page</p>} />
+                </Route>
+              </Routes>
+            </MemoryRouter>
+          </TooltipProvider>
+        </Provider>
       )
       const apps = await screen.findByRole("link", { name: "Apps & skills" })
       expect(apps.getAttribute("aria-current")).toBe("page")

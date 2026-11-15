@@ -5,17 +5,21 @@ import (
 	"cmp"
 	"embed"
 	"errors"
+	"html"
 	"io/fs"
 	"net/http"
 	"sync"
 )
 
-// The React app in web/ is built into spa/dist and carried in the binary, so a page that has moved to it is still one artifact.
-// Its pages are served at their own addresses, behind the same sign-in as the pages drawn here, and read their data from
-// /app/api/, which answers the same views the templates were given, as JSON.
+// The React app in web/ is built into spa/dist by web/build.sh and carried in the binary, so the server is still one artifact.
+// Its pages are served at their own addresses, behind the server's sign-in, and read their data from /app/api/ as JSON. The
+// built files are not committed: spa/README.md is, so a checkout that has not built the app still compiles.
 //
-//go:embed all:spa/dist
+//go:embed all:spa
 var spaFiles embed.FS
+
+// appDataPrefix is where every page of the app reads its data.
+const appDataPrefix = "/app/api/"
 
 // failed is why a page's data could not be given, with the status that says so.
 type failed struct {
@@ -65,13 +69,98 @@ func (s *Server) appViews() []appView {
 	}
 }
 
-// mountApp serves each of the app's pages at its own address and its data under /app/api, behind the console's sign-in.
+// conversationRoute is a conversation's page.
+const conversationRoute = "/instances/{id}/threads/{thread}"
+
+// personViews are a person's own pages that have moved to the React app.
+func (s *Server) personViews() []appView {
+	return []appView{
+		{"/chat", always, s.chatData},
+		{"/rooms/new", always, s.newRoomData},
+		{conversationRoute, always, s.conversationData},
+		{"/members", always, s.membersData},
+		{agentRoute, always, s.agentData},
+		{personRoute, always, s.personData},
+		// The work pages: Activity, a project, how each agent type did, and comparing agents. A task's page is served by
+		// workRoutes, as it sends a turn to its conversation.
+		{jobsRoute, always, s.jobsData},
+		{projectRoute, always, s.projectData},
+		{"/engines", always, s.enginesData},
+		{"/compare", always, s.compareData},
+		{lineupRoute, always, s.lineupData},
+		{filesRoute, always, s.filesData},
+		{fileRoute, always, s.fileData},
+		{"/setups", always, s.setupsData},
+		{"/setups/{name}", s.hasSetups, s.setupData},
+		{"/presets", always, s.presetsData},
+		{"/templates/{name}", always, s.templateData},
+		{"/new/blank", always, s.blankData},
+		{"/usage", always, func(r *http.Request) (map[string]any, error) { return s.usageData(r, "/usage", false) }},
+		{"/usage/{session}", always, func(r *http.Request) (map[string]any, error) { return s.sessionData(r, "/usage") }},
+		{"/spend", always, func(r *http.Request) (map[string]any, error) { return s.spendData(r, "/spend") }},
+		{connectionsPath, s.hasConnectors, s.connectionsData},
+		{devicePath, s.hasTokens, s.deviceData},
+	}
+}
+
+// publicViews are the app's pages that are served before anybody is signed in. Each page's own handler decides whether to draw
+// it (see publicPage), and its data is open to whoever asks.
+func (s *Server) publicViews() []appView {
+	return []appView{
+		{"/login", always, s.loginData},
+	}
+}
+
+// pageFound is, for a page whose address names something that may not be there, whether it is, so such a page answers 404 and
+// not the app. It is nil for a page that is always there.
+func (s *Server) pageFound(route string) func(*http.Request) bool {
+	return map[string]func(*http.Request) bool{
+		conversationRoute:   s.hasConversation,
+		agentRoute:          s.hasAgent,
+		personRoute:         s.hasPerson,
+		filesRoute:          s.hasPlace,
+		fileRoute:           s.hasFile,
+		"/setups/{name}":    s.hasSetup,
+		"/templates/{name}": s.hasTemplate,
+		projectRoute:        s.hasProject,
+		lineupRoute:         s.hasLineup,
+	}[route]
+}
+
+// whenThere serves next when the address names something that is there, and answers 404 when it does not.
+func whenThere(there func(*http.Request) bool, next http.HandlerFunc) http.HandlerFunc {
+	if there == nil {
+		return next
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !there(r) {
+			http.NotFound(w, r)
+			return
+		}
+		next(w, r)
+	}
+}
+
+// mountApp serves each of the app's pages at its own address and its data under /app/api: the console's behind the console's
+// sign-in, and a person's own behind theirs.
 func (s *Server) mountApp(mux *http.ServeMux) {
-	for _, view := range s.appViews() {
-		mux.HandleFunc("GET "+view.path, s.console(offering(view.has, s.appPage)))
-		mux.HandleFunc("GET /app/api"+view.path, s.console(offering(view.has, s.appData(view.gather))))
+	mount := func(views []appView, admit func(http.HandlerFunc) http.HandlerFunc) {
+		for _, view := range views {
+			mux.HandleFunc("GET "+view.path, admit(offering(view.has, whenThere(s.pageFound(view.path), s.appPage))))
+			mux.HandleFunc("GET /app/api"+view.path, admit(offering(view.has, s.appData(view.gather))))
+		}
+	}
+	mount(s.appViews(), s.console)
+	mount(s.personViews(), s.guard)
+	for _, view := range s.publicViews() {
+		mux.HandleFunc("GET /app/api"+view.path, offering(view.has, s.appData(view.gather)))
 	}
 	mux.HandleFunc("GET /app/api/console", s.console(s.consoleJSON))
+	mux.HandleFunc("GET /app/api/shell", s.guard(s.personShellJSON))
+	mux.HandleFunc("GET /app/api"+conversationRoute+"/turns", s.guard(s.turnsData))
+	mux.HandleFunc("GET /app/api/rooms/{id}/files", s.guard(s.roomFilesData))
+	// A run's file is a page for a browser and its bytes for anybody else, so its page is served where its bytes are.
+	mux.HandleFunc("GET /app/api"+recordFileRoute, s.guard(s.appData(s.recordFileData)))
 	assets, err := fs.Sub(spaFiles, "spa/dist/assets")
 	if err != nil {
 		panic(err)
@@ -84,34 +173,44 @@ func (s *Server) mountApp(mux *http.ServeMux) {
 	})
 }
 
-// appHead is what the app's page loads from /static before its own files: the tokens, the faces and the theme, and the script
-// that sets the person's theme before anything is drawn. Each is named with its fingerprint, as the templates name them.
-func appHead() string {
-	return `<link rel="icon" type="image/svg+xml" href="` + asset("/static/mark.svg") + `">` +
+// appHead is what the app's page loads from /static before its own files: the tokens, the faces and the theme, the script that
+// sets the person's theme before anything is drawn, and the one that keeps the page above a phone's keyboard. Behind gusto cloud
+// it also loads the lease banner, which extends the host the organization runs on, and its guide. Each is named with its
+// fingerprint, as the templates name them.
+func appHead(lease string) string {
+	head := `<link rel="icon" type="image/svg+xml" href="` + asset("/static/mark.svg") + `">` +
 		`<link rel="stylesheet" href="` + asset("/static/tokens.css") + `">` +
 		`<link rel="stylesheet" href="` + asset("/static/fonts.css") + `">` +
 		`<link rel="stylesheet" href="` + asset("/static/theme.css") + `">` +
-		`<script src="` + asset("/static/look.js") + `"></script>`
+		`<script src="` + asset("/static/look.js") + `"></script>` +
+		`<script src="` + asset("/static/keyboard.js") + `" defer></script>`
+	if lease != "" {
+		head += `<script src="` + asset("/static/lease.js") + `" defer data-extend="` + html.EscapeString(lease) + `"></script>` +
+			`<script src="` + asset("/static/guide.js") + `" defer></script>`
+	}
+	return head
 }
 
-// appIndex is the app's one page as built, with its head filled in, made once.
-var appIndex = sync.OnceValues(func() ([]byte, error) {
-	page, err := spaFiles.ReadFile("spa/dist/index.html")
-	if err != nil {
-		return nil, err
-	}
-	return bytes.Replace(page, []byte("<!--gusto-head-->"), []byte(appHead()), 1), nil
-})
+// appIndex is the app's one page as built, read once.
+var appIndex = sync.OnceValues(func() ([]byte, error) { return spaFiles.ReadFile("spa/dist/index.html") })
 
 // appPage is the React app's one page, which draws whichever of its pages the address names.
 func (s *Server) appPage(w http.ResponseWriter, _ *http.Request) {
+	writeApp(w, appHead(s.leaseExtend()))
+}
+
+// publicPage is the app's page for a page served before anybody is signed in. It loads nothing that a session gives, so not the
+// lease banner, which asks for the host the organization runs on.
+func (s *Server) publicPage(w http.ResponseWriter, _ *http.Request) { writeApp(w, appHead("")) }
+
+func writeApp(w http.ResponseWriter, head string) {
 	page, err := appIndex()
 	if err != nil {
-		http.Error(w, "the app was not built into this server", http.StatusInternalServerError)
+		http.Error(w, "this gusto was built without its web app: run web/build.sh, then build gusto again", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write(page)
+	_, _ = w.Write(bytes.Replace(page, []byte("<!--gusto-head-->"), []byte(head), 1))
 }
 
 // appData answers a page's data as JSON.

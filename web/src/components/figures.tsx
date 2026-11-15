@@ -31,6 +31,7 @@ export function Figure({
   detail,
   headline,
   bad,
+  testId,
   children,
 }: {
   value: ReactNode
@@ -38,15 +39,17 @@ export function Figure({
   detail?: string
   headline?: boolean
   bad?: boolean
+  testId?: string
   children?: ReactNode
 }) {
   return (
-    <Card className="py-4" title={detail}>
+    <Card className="py-4" title={detail} data-testid={testId}>
       <CardContent className="grid gap-1 px-4">
         <span className="truncate text-xs font-medium text-muted-foreground">
           {label}
         </span>
         <span
+          data-testid="figure-value"
           className={cn(
             "font-numeric text-xl font-semibold whitespace-nowrap tabular-nums sm:text-2xl",
             headline && "text-brand-ink",

@@ -23,11 +23,11 @@ func TestAPersonWritesTheirOwnBioAndAgentsReadItInTheirRooms(t *testing.T) {
 		t.Fatalf("writing one's own bio answered %d to %s", got.Code, got.Header().Get("Location"))
 	}
 
-	if page := his.ask(t, "GET", "/members/people/"+url.PathEscape(bob), nil).Body.String(); !strings.Contains(page, `name="bio"`) || !strings.Contains(page, "Month-end is my busy week.") {
-		t.Error("the person's own page has no form with their bio")
+	if bio := his.members(t, "/members/people/"+url.PathEscape(bob)).Bio; bio == nil || !bio.Mine || !strings.Contains(bio.Text, "Month-end is my busy week.") || bio.Max != instance.MaxBio {
+		t.Errorf("the person's own page does not offer their bio to change: %+v", bio)
 	}
-	if page := mine.ask(t, "GET", "/members/people/"+url.PathEscape(bob), nil).Body.String(); strings.Contains(page, `name="bio"`) || !strings.Contains(page, "Month-end is my busy week.") {
-		t.Error("another person sees a form, or does not see the bio")
+	if bio := mine.members(t, "/members/people/"+url.PathEscape(bob)).Bio; bio == nil || bio.Mine || !strings.Contains(bio.Text, "Month-end is my busy week.") {
+		t.Errorf("another person is offered the bio to change, or does not see it: %+v", bio)
 	}
 
 	mine.ask(t, "POST", thread+"/say", url.Values{"said": {"@Scout who runs finance?"}})

@@ -1,11 +1,22 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@plugin "@tailwindcss/typography";
+/* Markdown reads the same here as in the pages the server draws. */
+@import "../../internal/web/tailwind/prose.css";
+/* The lease bar and the demo tour that gusto cloud adds to every page draw with this stylesheet's names. */
+@source "../../internal/web/static/lease.js";
+@source "../../internal/web/static/guide.js";
 
 /* shadcn's components read the variables below. Each one is a gusto token from /static/tokens.css and /static/theme.css, which the
    page loads first, so the theme and the accent a person chose in the app move these pages too. */
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* nav is where a side list folds away into a menu, in the console and on a person's own pages alike. */
+@theme {
+  --breakpoint-nav: 56rem;
+}
 
 @theme inline {
   --font-sans: var(--gu-font-text);
@@ -51,8 +62,15 @@
   --color-warn-wash: var(--gu-warning-surface);
   --color-bad: var(--gu-danger);
   --color-bad-wash: var(--gu-danger-surface);
+  --color-info: var(--gu-info);
+  --color-info-wash: var(--gu-info-surface);
   --color-brand: var(--gu-accent);
   --color-brand-ink: var(--gu-accent-text);
+  --color-rail: var(--gu-rail);
+  --color-side: var(--gu-side);
+  --color-hover: var(--gu-hover);
+  --color-sunken: var(--gu-surface-sunken);
+  --color-surface: var(--gu-surface);
 
   --radius-xs: var(--gu-radius-xs);
   --radius-sm: var(--gu-radius-sm);
@@ -104,8 +122,13 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* The page is as tall as the window less the lease banner gusto cloud may show; keyboard.js shortens it while a phone's
+     keyboard is open, and the shells fill it. */
   body {
-    @apply bg-background font-sans text-foreground antialiased;
+    @apply h-[calc(100dvh-var(--lease-h,0rem))] overflow-hidden bg-background font-sans text-foreground antialiased;
+  }
+  #root {
+    @apply h-full;
   }
   h1,
   h2,

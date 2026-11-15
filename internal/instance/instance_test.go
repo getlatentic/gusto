@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 func opened(t *testing.T) *Store {
@@ -259,8 +260,19 @@ func TestARemovedInstanceIsGoneButItsFilesAreKept(t *testing.T) {
 	}
 }
 
+func TestALongFirstLineIsCutAtAWordAfterTwoHundredCharacters(t *testing.T) {
+	said := strings.Repeat("word ", 60)
+	got := TitleOf(said)
+	if !strings.HasSuffix(got, "word…") || utf8.RuneCountInString(got) > titleMost+1 {
+		t.Errorf("a long first line was titled %q", got)
+	}
+	if got := TitleOf(strings.Repeat("é", titleMost+10)); utf8.RuneCountInString(got) != titleMost+1 || !strings.HasSuffix(got, "…") {
+		t.Errorf("one long word was titled %q", got)
+	}
+}
+
 func TestAThreadIsNamedByWhatWasFirstSaidInIt(t *testing.T) {
-	if got := TitleOf("Draft a SOAP note from visit-notes.txt and keep it short, please, because it is long\nmore"); got != "Draft a SOAP note from visit-notes.txt and keep…" {
+	if got := TitleOf("  Draft a SOAP note from visit-notes.txt and keep it short, please, because it is long\nmore"); got != "Draft a SOAP note from visit-notes.txt and keep it short, please, because it is long" {
 		t.Errorf("title %q", got)
 	}
 	store, _ := Open(t.TempDir())

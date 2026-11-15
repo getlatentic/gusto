@@ -4,7 +4,7 @@ import { Notice } from "@/components/page"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
-import { HowThisWorks } from "@/pages/admin/apps/disclosure"
+import { HowThisWorks } from "@/components/disclosure"
 import type { AppRow } from "@/pages/admin/apps/types"
 
 // The apps an admin turns on for everyone. Each person then connects their own account to one, and their agents use it as them.

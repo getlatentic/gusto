@@ -1,8 +1,8 @@
-/// <reference types="vitest/config" />
 import { resolve } from "node:path"
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig, type Plugin } from "vite"
+import { configDefaults } from "vitest/config"
 
 // The gusto server serves this app: it builds into the Go package that embeds it, under /app/, and the server fills the
 // <!--gusto-head--> mark with its own tokens, faces and theme script. `npm run dev` runs against a gusto server on :8700,
@@ -39,8 +39,12 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
+    // e2e/ is Playwright's: those tests drive a real server in a real browser, and run with npm run e2e.
+    exclude: [...configDefaults.exclude, "e2e/**"],
   },
   server: {
+    // The page scripts the server serves are read by the tests that run them.
+    fs: { allow: [".", "../internal/web/static"] },
     proxy: {
       "/app/api": gusto,
       "/static": gusto,

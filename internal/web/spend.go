@@ -44,18 +44,7 @@ func reportOf(ledger *spend.Ledger, r *http.Request) (spend.Report, []string) {
 	return ledger.Report(month), ledger.Months()
 }
 
-// spendPage shows what the agents cost by team, project and task.
-func (s *Server) spendPage(w http.ResponseWriter, r *http.Request) {
-	page, err := s.spendData(r, "/spend")
-	if err != nil {
-		answerFailure(w, r, err)
-		return
-	}
-	s.render(w, "spend.html", page)
-}
-
-// spendData is what the spend report is drawn from, in the app's template and as the console's JSON, where base
-// /admin/spending is the whole organization's.
+// spendData is the month's spend report: a person's own at /spend, and the whole organization's at /admin/spending.
 func (s *Server) spendData(r *http.Request, base string) (map[string]any, error) {
 	ledger, err := s.spendOf(r)
 	if err != nil {
@@ -63,8 +52,6 @@ func (s *Server) spendData(r *http.Request, base string) (map[string]any, error)
 	}
 	report, months := reportOf(ledger, r)
 	return map[string]any{
-		"Title":  productName + " — usage",
-		"Nav":    "usage",
 		"Base":   base,
 		"Tabs":   tabsFor(base != "/spend", "summary"),
 		"Ledger": s.viewLedger(report, months, time.Now()),

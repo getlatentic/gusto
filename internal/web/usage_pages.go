@@ -11,22 +11,6 @@ import (
 	"github.com/getlatentic/gusto/internal/usage"
 )
 
-// mountUsage makes the pages of the usage index, in the app and in the console, and the calls of the API that read it.
-func (s *Server) mountUsage(mux *http.ServeMux) {
-	mux.HandleFunc("GET /usage", s.guard(s.usagePage("/usage", false)))
-	mux.HandleFunc("GET /usage/{session}", s.guard(s.usageSessionPage("/usage", false)))
-}
-
-// drawUsage draws a page of the usage in the app or, for an admin, in the console.
-func (s *Server) drawUsage(w http.ResponseWriter, name string, console bool, page map[string]any) {
-	if console {
-		s.drawConsole(w, name, "usage", page)
-		return
-	}
-	page["Nav"] = "usage"
-	s.render(w, name, page)
-}
-
 // usageView is the sessions page: the figures above the table, the table, and the controls that narrow it.
 type usageView struct {
 	Query    usageQuery
@@ -73,20 +57,9 @@ type usageRow struct {
 	Turns int
 }
 
-func (s *Server) usagePage(base string, console bool) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		page, err := s.usageData(r, base, console)
-		if err != nil {
-			answerFailure(w, r, err)
-			return
-		}
-		s.drawUsage(w, "usage.html", console, page)
-	}
-}
-
-// usageData is the sessions page, for the app's template and the console's JSON alike.
+// usageData is the sessions page: a person's own at /usage, and everyone's in the console.
 func (s *Server) usageData(r *http.Request, base string, console bool) (map[string]any, error) {
-	page := map[string]any{"Title": productName + " — usage", "Base": base, "Tabs": tabsFor(console, "tasks")}
+	page := map[string]any{"Base": base, "Tabs": tabsFor(console, "tasks")}
 	// A person sees their own month against their budget before they reach it.
 	if mine := s.memberBudgetOf(s.askerName(r)); !console && mine.Set {
 		page["Mine"] = mine
@@ -216,18 +189,7 @@ type sessionView struct {
 	Next, Newest                      string
 }
 
-func (s *Server) usageSessionPage(base string, console bool) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		page, err := s.sessionData(r, base)
-		if err != nil {
-			answerFailure(w, r, err)
-			return
-		}
-		s.drawUsage(w, "usage-session.html", console, page)
-	}
-}
-
-// sessionData is one session's calls, for the app's template and the console's JSON alike.
+// sessionData is one session's calls, under the usage page at base.
 func (s *Server) sessionData(r *http.Request, base string) (map[string]any, error) {
 	if s.usage.store == nil {
 		return nil, failed{http.StatusNotFound, "not found"}
@@ -258,7 +220,7 @@ func (s *Server) sessionData(r *http.Request, base string) (map[string]any, erro
 	if next != "" {
 		view.Next = query.link(here, map[string]string{"after": string(next)})
 	}
-	return map[string]any{"Title": productName + " — usage of " + id, "Base": base, "Session": view}, nil
+	return map[string]any{"Base": base, "Session": view}, nil
 }
 
 // sessionCalls is a session's calls that match the filter, which for a person is also theirs alone. A session

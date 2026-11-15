@@ -49,30 +49,47 @@ func bothPeople() []usage.Row {
 
 func TestAnAdminSeesEveryonesSessionsAddedUp(t *testing.T) {
 	here, _ := withUsage(t, bothPeople()...)
-	page := here.ask(t, "GET", "/usage", nil)
-	if page.Code != http.StatusOK {
-		t.Fatalf("%d %s", page.Code, page.Body)
+	if page := here.ask(t, "GET", "/usage", nil); page.Code != http.StatusOK || !strings.Contains(page.Body.String(), `<div id="root">`) {
+		t.Fatalf("the usage page is not the app: %d", page.Code)
 	}
-	for _, want := range []string{"alice-session", "bob-session", alice, bob, `href="/usage/alice-session"`,
-		"$0.7500", "3 model calls", "3.0k", "40%", "Notes", "Claude Code", "bedrock", "claude-sonnet"} {
-		if !strings.Contains(page.Body.String(), want) {
-			t.Errorf("the page does not show %q", want)
+	view := usageAt(t, here, "/usage").Usage
+	if got := view.Figures; got.Spent != "$0.7500" || got.Calls != 3 || got.In != "3.0k" || got.Cache != "40%" {
+		t.Errorf("the figures do not add everyone's calls up: %+v", got)
+	}
+	if !view.Everyone || !view.ShowWho || !slices.Equal(view.Facets.People, []string{alice, bob}) {
+		t.Errorf("an admin's own usage is not everyone's: %+v", view)
+	}
+	asked := map[string]string{}
+	for _, row := range view.Rows {
+		asked[row.ID] = row.Asked
+		if row.Agent != "Notes" || row.Engine != "Claude Code" || row.Providers != "bedrock" || row.Models != "claude-sonnet" {
+			t.Errorf("a row does not say which agent and model: %+v", row)
+		}
+		if row.Href != "/usage/"+row.ID {
+			t.Errorf("a row does not open its session under /usage: %q", row.Href)
 		}
 	}
-	if body := here.ask(t, "GET", "/usage/alice-session", nil).Body.String(); !strings.Contains(body, `href="/jobs/task-a"`) {
-		t.Error("the session page does not link to its task")
+	if asked["alice-session"] == "" || asked["bob-session"] == "" || asked["alice-session"] == asked["bob-session"] {
+		t.Errorf("the rows do not say who asked: %v", asked)
+	}
+	if calls := sessionAt(t, here, "/usage/alice-session").Session.Calls; len(calls) == 0 || calls[0].Record != "/jobs/task-a" {
+		t.Errorf("the session page does not link to its task: %+v", calls)
 	}
 }
 
 // A conversation's row adds up every turn in it, and says how many, so its cost reads as a total and not as one reply's.
 func TestAConversationsRowSaysHowManyTurnsItAddsUp(t *testing.T) {
 	here, _ := withUsage(t, aCall("turn-1", 0, "room", alice, 0), aCall("turn-2", 0, "room", alice, 1), aCall("only", 0, "chat", bob, 2))
-	page := here.ask(t, "GET", "/usage", nil).Body.String()
-	if !strings.Contains(page, ">Conversation<") || !strings.Contains(page, ">Conversations</a>") {
-		t.Errorf("the rows are not named conversations:\n%s", page)
+	page := usageAt(t, here, "/usage")
+	if page.Usage.Columns[1].Label != "Conversation" || page.Tabs.Tasks != "/usage" || page.Tabs.Current != "tasks" {
+		t.Errorf("the rows are not named conversations: %+v %+v", page.Usage.Columns, page.Tabs)
 	}
-	if !strings.Contains(page, "· 2 turns") || strings.Contains(page, "· 1 turns") {
-		t.Errorf("a conversation does not say how many turns its cost adds up:\n%s", page)
+	turns := map[string]int{}
+	for _, row := range page.Usage.Rows {
+		turns[row.ID] = row.Turns
+	}
+	if turns["room"] != 2 || turns["chat"] != 1 {
+		t.Errorf("a conversation does not say how many turns its cost adds up: %v", turns)
 	}
 }
 
@@ -82,21 +99,20 @@ func TestACallWithNoPriceIsShownAsNoPriceAndNeverAsFree(t *testing.T) {
 	unpriced.InputTokens, unpriced.CachedTokens = nil, nil
 	mixed := aCall("task-d", 0, "mixed", alice, 4)
 	here, _ := withUsage(t, unpriced, mixed, aCall("task-d", 1, "mixed", alice, 5))
-	body := here.ask(t, "GET", "/usage", nil).Body.String()
-	if !strings.Contains(body, "no price set for these models") == strings.Contains(body, "$0.0000") {
-		t.Error("the headline should not be a sum that looks complete")
+	if figures := usageAt(t, here, "/usage").Usage.Figures; figures.Spent == "$0.0000" {
+		t.Errorf("the headline should not be a sum that looks complete: %+v", figures)
 	}
-	only := here.ask(t, "GET", "/usage?q=free-looking", nil).Body.String()
-	if !strings.Contains(only, `<span class="text-muted">no price</span>`) || strings.Contains(only, "$0.0000") || !strings.Contains(only, "no price set for these models") {
-		t.Errorf("an unpriced session was shown as a cost:\n%s", only)
+	only := usageAt(t, here, "/usage?q=free-looking").Usage
+	if len(only.Rows) != 1 || only.Rows[0].Cost != "no price" || only.Figures.Spent != "no price" || !strings.Contains(only.Figures.SpentCaption, "no price set for these models") {
+		t.Errorf("an unpriced session was shown as a cost: %+v", only)
 	}
-	calls := here.ask(t, "GET", "/usage/free-looking", nil).Body.String()
-	if !strings.Contains(calls, `<span class="text-muted">no price</span>`) || strings.Contains(calls, "$0") {
-		t.Errorf("an unpriced call was shown as a cost:\n%s", calls)
+	calls := sessionAt(t, here, "/usage/free-looking").Session.Calls
+	if len(calls) != 1 || !calls[0].Unpriced || calls[0].Cost != "no price" {
+		t.Errorf("an unpriced call was shown as a cost: %+v", calls)
 	}
-	partly := here.ask(t, "GET", "/usage", nil).Body.String()
-	if !strings.Contains(partly, "1 call has no price on file, so it is not in these totals.") || strings.Contains(partly, "spent;") {
-		t.Errorf("a total that leaves calls out should say so in one line under the table, not in the headline")
+	partly := usageAt(t, here, "/usage").Usage.Figures
+	if partly.Unpriced != "1 call has no price on file, so it is not in these totals." || strings.Contains(partly.SpentCaption, "spent;") {
+		t.Errorf("a total that leaves calls out should say so in one line under the table, not in the headline: %+v", partly)
 	}
 }
 
@@ -122,33 +138,36 @@ func TestTheSessionsCanBeFilteredAndSearched(t *testing.T) {
 		{"from=2026-10-14&to=2026-10-14", []string{"alice-session", "codex-session"}, []string{"old-session"}},
 		{"from=" + url.QueryEscape("2026-10-14T13:30:00Z"), []string{"codex-session"}, []string{"alice-session"}},
 	} {
-		body := here.ask(t, "GET", "/usage?"+c.query, nil).Body.String()
+		listed := usageAt(t, here, "/usage?"+c.query).sessionsOf()
 		for _, want := range c.shows {
-			if !strings.Contains(body, "/usage/"+want) {
+			if !slices.Contains(listed, want) {
 				t.Errorf("%s does not show %s", c.query, want)
 			}
 		}
 		for _, hidden := range c.hides {
-			if strings.Contains(body, "/usage/"+hidden) {
+			if slices.Contains(listed, hidden) {
 				t.Errorf("%s shows %s", c.query, hidden)
 			}
 		}
 	}
-	if got := here.ask(t, "GET", "/usage?from=yesterday", nil); got.Code != http.StatusBadRequest {
+	if got := here.ask(t, "GET", "/app/api/usage?from=yesterday", nil); got.Code != http.StatusBadRequest {
 		t.Errorf("a date that is not one answered %d", got.Code)
 	}
-	if got := here.ask(t, "GET", "/usage?q=nothing-is-called-this", nil).Body.String(); !strings.Contains(got, "No session matches these filters") {
-		t.Error("a search that finds nothing should say so")
+	if got := usageAt(t, here, "/usage?q=nothing-is-called-this").Usage; len(got.Rows) != 0 || !got.Filtered || got.Clear != "/usage" {
+		t.Errorf("a search that finds nothing should say so, with the way to clear it: %+v", got)
 	}
 }
 
 func TestTheSelectsOfTheFilterListWhatTheCallsHold(t *testing.T) {
 	here, _ := withUsage(t, bothPeople()...)
-	body := here.ask(t, "GET", "/usage?agent=Notes", nil).Body.String()
-	for _, want := range []string{`name="person" data-autosubmit`, `name="agent_type" data-autosubmit`, `name="provider" data-autosubmit`, `name="model" data-autosubmit`, "<option selected>Notes</option>", "<option>bedrock</option>"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("the filter lacks %q", want)
-		}
+	view := usageAt(t, here, "/usage?agent=Notes").Usage
+	facets := view.Facets
+	if !view.Everyone || len(facets.People) != 2 || !slices.Equal(facets.Engines, []string{"Claude Code"}) || !slices.Equal(facets.Providers, []string{"bedrock"}) ||
+		!slices.Equal(facets.Models, []string{"claude-sonnet"}) || !slices.Equal(facets.Agents, []string{"Notes"}) {
+		t.Errorf("the filter does not offer what the calls hold: %+v", facets)
+	}
+	if !slices.Equal(view.Values["agent"], []string{"Notes"}) {
+		t.Errorf("the filter does not keep what was chosen: %v", view.Values)
 	}
 }
 
@@ -161,15 +180,14 @@ func TestTheSessionsPageThroughACursor(t *testing.T) {
 	seen := map[string]int{}
 	path := "/usage?limit=2"
 	for pages := 0; path != "" && pages < 10; pages++ {
-		body := here.ask(t, "GET", path, nil).Body.String()
-		for _, id := range []string{"s-one", "s-two", "s-three", "s-four", "s-five"} {
-			seen[id] += strings.Count(body, `href="/usage/`+id+`"`)
+		page := usageAt(t, here, path).Usage
+		for _, id := range page.sessionIDs() {
+			seen[id]++
 		}
-		path = ""
-		if i := strings.Index(body, `rel="next"`); i >= 0 {
-			start := strings.LastIndex(body[:i], `href="`) + len(`href="`)
-			path = strings.ReplaceAll(body[start:i-2], "&amp;", "&")
+		if pages > 0 && page.Newest != "/usage?limit=2" {
+			t.Errorf("a later page does not lead back to the newest: %q", page.Newest)
 		}
+		path = page.Next
 	}
 	for id, n := range seen {
 		if n != 1 {
@@ -192,17 +210,9 @@ func TestTheSessionsAreSortedAcrossPagesByTheColumnChosen(t *testing.T) {
 	order := func(path string) []string {
 		var ids []string
 		for pages := 0; path != "" && pages < 10; pages++ {
-			body := here.ask(t, "GET", path, nil).Body.String()
-			for _, id := range []string{"s-a", "s-b", "s-c", "s-d"} {
-				if strings.Contains(body, `href="/usage/`+id+`"`) {
-					ids = append(ids, id)
-				}
-			}
-			path = ""
-			if i := strings.Index(body, `rel="next"`); i >= 0 {
-				start := strings.LastIndex(body[:i], `href="`) + len(`href="`)
-				path = strings.ReplaceAll(body[start:i-2], "&amp;", "&")
-			}
+			page := usageAt(t, here, path).Usage
+			ids = append(ids, page.sessionIDs()...)
+			path = page.Next
 		}
 		return ids
 	}
@@ -212,12 +222,18 @@ func TestTheSessionsAreSortedAcrossPagesByTheColumnChosen(t *testing.T) {
 	if got := strings.Join(order("/usage?limit=3"), ""); got != "s-as-bs-cs-d" {
 		t.Errorf("by last use: %s", got)
 	}
-	body := here.ask(t, "GET", "/usage?sort=cost&q=s-", nil).Body.String()
-	if !strings.Contains(body, `aria-sort="descending" class="text-right"><a class="text-inherit no-underline hover:text-ink" href="/usage?q=s-&amp;sort=cost"`) || strings.Contains(body, "this page") {
-		t.Errorf("the sorted column is not marked, or the filter is lost from its link:\n%s", body)
+	columns := map[string]string{}
+	for _, column := range usageAt(t, here, "/usage?sort=cost&q=s-").Usage.Columns {
+		columns[column.Label] = column.Sorted + " " + column.Href
+		if column.Label == "Cost" && !column.Num {
+			t.Error("the cost column is not a number's")
+		}
 	}
-	if !strings.Contains(body, `href="/usage?q=s-&amp;sort=last">Last request</a>`) {
-		t.Error("the other headings should set the sort and keep the filter")
+	if columns["Cost"] != "descending /usage?q=s-&sort=cost" {
+		t.Errorf("the sorted column is not marked, or the filter is lost from its link: %v", columns)
+	}
+	if columns["Last request"] != " /usage?q=s-&sort=last" {
+		t.Errorf("the other headings should set the sort and keep the filter: %v", columns)
 	}
 	api := jsonList(t, here.call("GET", "/api/usage/sessions?sort=calls&limit=2", here.secrets["finance"]), "sessions")
 	if len(api) != 2 {
@@ -227,9 +243,9 @@ func TestTheSessionsAreSortedAcrossPagesByTheColumnChosen(t *testing.T) {
 
 func TestAnUnknownSortIsRefusedAndNamesTheFour(t *testing.T) {
 	here, _ := withUsage(t, bothPeople()...)
-	for _, path := range []string{"/usage?sort=color", "/api/usage/sessions?sort=color"} {
+	for _, path := range []string{"/app/api/usage?sort=color", "/api/usage/sessions?sort=color"} {
 		got := here.call("GET", path, here.secrets["finance"])
-		if path[0:4] == "/usa" {
+		if strings.HasPrefix(path, "/app/") {
 			got = here.ask(t, "GET", path, nil)
 		}
 		if got.Code != http.StatusBadRequest || !strings.Contains(got.Body.String(), "last, cost, calls or tokens") {
@@ -257,15 +273,15 @@ func TestASessionsCallsAreNarrowedByTheSearchInTheStore(t *testing.T) {
 	if body := here.call("GET", "/api/usage/calls?session=alice-session&model=none", here.secrets["finance"]).Body.String(); !strings.Contains(body, `"calls":[]`) {
 		t.Errorf("no calls should be []: %s", body)
 	}
-	page := here.ask(t, "GET", "/usage/alice-session?q=rare", nil).Body.String()
-	if !strings.Contains(page, "rare-model") || strings.Contains(page, "task-a</a>") == false || strings.Count(page, "<tr>") != 2 {
-		t.Errorf("the session page was not narrowed:\n%s", page)
+	page := sessionAt(t, here, "/usage/alice-session?q=rare").Session
+	if len(page.Calls) != 1 || page.Calls[0].Model != "rare-model" || page.Calls[0].Task != "task-a" || page.Search != "rare" {
+		t.Errorf("the session page was not narrowed: %+v", page)
 	}
-	if page := here.ask(t, "GET", "/usage/alice-session?q=zzz", nil); page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "No call of this session matches") {
-		t.Errorf("a search with no match answered %d", page.Code)
+	if page := sessionAt(t, here, "/usage/alice-session?q=zzz").Session; len(page.Calls) != 0 || page.ID != "alice-session" {
+		t.Errorf("a search with no match is not an empty session: %+v", page)
 	}
-	if page := here.as(t, alice).ask(t, "GET", "/usage/alice-session?q=zzz", nil); page.Code != http.StatusOK {
-		t.Errorf("a person's own session with no match answered %d", page.Code)
+	if page := sessionAt(t, here.as(t, alice), "/usage/alice-session?q=zzz").Session; len(page.Calls) != 0 {
+		t.Errorf("a person's own session with no match is not an empty session: %+v", page)
 	}
 }
 
@@ -292,30 +308,31 @@ func TestASessionListsItsCallsLatestFirst(t *testing.T) {
 	refused := aCall("task-a", 1, "alice-session", alice, 1)
 	refused.Refused, refused.Status, refused.USD, refused.Translated = "the team's daily cap", 429, nil, "anthropic to openai"
 	here, _ := withUsage(t, aCall("task-a", 0, "alice-session", alice, 0), refused, aCall("task-z", 0, "alice-session", alice, 3))
-	body := here.ask(t, "GET", "/usage/alice-session", nil).Body.String()
-	for _, want := range []string{"team-key", "claude-sonnet", "bedrock", `href="/jobs/task-z"`, "the team&#39;s daily cap", "429", "anthropic to openai", "no price", "40%"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("the session page lacks %q", want)
-		}
+	calls := sessionAt(t, here, "/usage/alice-session").Session.Calls
+	if len(calls) != 3 || calls[0].Task != "task-z" || calls[0].Record != "/jobs/task-z" || calls[2].Task != "task-a" {
+		t.Fatalf("the latest call should be first: %+v", calls)
 	}
-	if strings.Index(body, "task-z") > strings.Index(body, "task-a") {
-		t.Error("the latest call should be first")
+	first, refusal := calls[0], calls[1]
+	if first.Key != "team-key" || first.Model != "claude-sonnet" || first.Provider != "bedrock" || first.Cache != "40%" {
+		t.Errorf("a call does not say its key, model, provider and cache: %+v", first)
 	}
-	if got := here.ask(t, "GET", "/usage/nobody-made-this", nil); got.Code != http.StatusNotFound {
+	if refusal.Refused != "the team's daily cap" || refusal.Status != 429 || refusal.Translated != "anthropic to openai" || !refusal.Unpriced {
+		t.Errorf("a refused call does not say why: %+v", refusal)
+	}
+	if got := here.ask(t, "GET", "/app/api/usage/nobody-made-this", nil); got.Code != http.StatusNotFound {
 		t.Errorf("a session the index lacks answered %d", got.Code)
 	}
 }
 
 func TestTheUsagePageSaysWhenThereIsNothingYet(t *testing.T) {
 	here, _ := withUsage(t)
-	body := here.ask(t, "GET", "/usage", nil).Body.String()
-	if !strings.Contains(body, "No model calls yet") || strings.Contains(body, "<table") {
-		t.Errorf("the empty state is not shown:\n%s", body)
+	if view := usageAt(t, here, "/usage").Usage; view == nil || len(view.Rows) != 0 || view.Filtered || view.Building.Building {
+		t.Errorf("the empty state is not shown: %+v", view)
 	}
 	bare := open(t)
 	bare.signIn(t)
-	if body := bare.ask(t, "GET", "/usage", nil).Body.String(); !strings.Contains(body, "keeps no usage index") {
-		t.Error("a server with no index should say so")
+	if page := usageAt(t, bare, "/usage"); page.Usage != nil {
+		t.Errorf("a server with no index should say so: %+v", page)
 	}
 }
 
@@ -323,32 +340,36 @@ func TestAnIndexStillBeingBuiltSaysHowFarItIs(t *testing.T) {
 	here, _ := withUsage(t, bothPeople()...)
 	building := true
 	here.server.SetUsageStatus(func() usage.Status { return usage.Status{Building: building, Done: 3, Total: 12} })
-	body := here.ask(t, "GET", "/usage", nil).Body.String()
-	if !strings.Contains(body, "The index is still being built, 3 of 12 tasks") {
-		t.Error("the page does not say the index is being built")
+	if got := usageAt(t, here, "/usage").Usage.Building; !got.Building || got.Done != 3 || got.Total != 12 {
+		t.Errorf("the page does not say the index is being built: %+v", got)
 	}
 	if got := here.call("GET", "/api/usage/totals", here.secrets["finance"]); got.Header().Get("Usage-Index-Building") != "3 of 12 tasks" {
 		t.Errorf("the API does not say the index is being built: %v", got.Header())
 	}
 	building = false
-	if body := here.ask(t, "GET", "/usage", nil).Body.String(); strings.Contains(body, "still being built") {
+	if usageAt(t, here, "/usage").Usage.Building.Building {
 		t.Error("a finished index still says it is being built")
 	}
 	empty, _ := withUsage(t)
 	empty.server.SetUsageStatus(func() usage.Status { return usage.Status{Building: true, Done: 0, Total: 4} })
-	if body := empty.ask(t, "GET", "/usage", nil).Body.String(); !strings.Contains(body, "0 of 4 tasks") || strings.Contains(body, "No model call has been recorded yet") {
-		t.Error("an empty index that is being built is not an empty month")
+	if got := usageAt(t, empty, "/usage").Usage.Building; !got.Building || got.Done != 0 || got.Total != 4 {
+		t.Errorf("an empty index that is being built is not an empty month: %+v", got)
 	}
 }
 
 func TestUsageAndSpendingLinkToEachOther(t *testing.T) {
 	here := open(t)
 	here.signIn(t)
-	if body := here.ask(t, "GET", "/usage", nil).Body.String(); !strings.Contains(body, `href="/spend"`) {
-		t.Error("the usage page does not link to spending")
+	if tabs := usageAt(t, here, "/usage").Tabs; tabs.Summary != "/spend" || tabs.Tasks != "/usage" || tabs.Current != "tasks" {
+		t.Errorf("the usage page does not link to spending: %+v", tabs)
 	}
-	if body := here.ask(t, "GET", "/spend", nil).Body.String(); !strings.Contains(body, `href="/usage"`) {
-		t.Error("the spending page does not link to usage")
+	var spend struct {
+		Base string
+		Tabs struct{ Summary, Tasks, Current string }
+	}
+	here.data(t, "/spend", &spend)
+	if spend.Base != "/spend" || spend.Tabs.Tasks != "/usage" || spend.Tabs.Summary != "/spend" || spend.Tabs.Current != "summary" {
+		t.Errorf("the spending page does not link to usage: %+v", spend)
 	}
 }
 

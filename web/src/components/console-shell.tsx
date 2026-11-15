@@ -4,6 +4,7 @@ import { ArrowLeftIcon, LogOutIcon, SettingsIcon } from "lucide-react"
 
 import { AppLink } from "@/components/app-link"
 import { NavigationContext } from "@/components/navigation"
+import { SkipLink } from "@/components/skip-link"
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { useData } from "@/lib/api"
 import type { ConsoleShell as Shell } from "@/lib/types"
@@ -18,8 +19,9 @@ export function ConsoleShell() {
   const sections = shell.state === "ready" ? shell.data : undefined
   return (
     <NavigationContext.Provider value={navigation}>
-      <div className="grid h-dvh grid-cols-[15.5rem_minmax(0,1fr)] max-md:grid-cols-[minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col overflow-y-auto bg-sidebar px-3 py-4 max-md:hidden">
+      <SkipLink />
+      <div className="grid h-full grid-cols-[15.5rem_minmax(0,1fr)] max-nav:grid-cols-[minmax(0,1fr)]">
+        <aside className="flex min-h-0 flex-col overflow-y-auto bg-sidebar px-3 py-4 max-nav:hidden">
           <ConsoleNav shell={sections} />
         </aside>
         <Sheet open={open} onOpenChange={setOpen}>

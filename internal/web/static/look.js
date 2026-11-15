@@ -1,5 +1,5 @@
 // The theme, the accent and the text size are the person's, kept on this device and set before the page is drawn so that it does not
-// flash. It is loaded in the head of every page, the templates' and the React app's alike; the appearance panel changes them through
+// flash. It is loaded in the head of every page, and the account menu changes them through
 // window.gustoLook.
 (function () {
   var root = document.documentElement, theme = "system", accent = "green", zoom = 100, dark = matchMedia("(prefers-color-scheme: dark)");

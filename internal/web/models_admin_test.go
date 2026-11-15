@@ -258,11 +258,11 @@ func TestALimitedPersonIsOfferedAndMayStartOnlyTheModelsTheyAreLimitedTo(t *test
 		t.Fatalf("%+v", limits)
 	}
 
-	setUp := ada.ask(t, "GET", "/instances/new?harness=fixture", nil).Body.String()
-	if !strings.Contains(setUp, "acme/big") || strings.Contains(setUp, "platform/qwen") {
-		t.Errorf("a limited person is offered what they may use and no more:\n%s", setUp)
+	setUp := setUpOf(t, ada, "?harness=fixture")
+	if !setUp.offers("acme/big") || setUp.offers("platform/qwen") {
+		t.Errorf("a limited person is offered what they may use and no more: %+v", setUp.Models)
 	}
-	if bobs := bob.ask(t, "GET", "/instances/new?harness=fixture", nil).Body.String(); !strings.Contains(bobs, "platform/qwen") || !strings.Contains(bobs, "acme/big") {
+	if bobs := setUpOf(t, bob, "?harness=fixture"); !bobs.offers("platform/qwen") || !bobs.offers("acme/big") {
 		t.Error("somebody who is not limited is offered everything")
 	}
 	refused := ada.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}, "model": {"platform/qwen"}})
@@ -322,16 +322,16 @@ func TestAPersonChoosingAModelSeesWhatEachCosts(t *testing.T) {
 	admin.ask(t, "POST", "/admin/models/providers/acme/enable", nil)
 	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"big"}})
 	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"free-ish"}})
-	page := here.as(t, alice).ask(t, "GET", "/instances/new?harness=fixture", nil).Body.String()
+	page := setUpOf(t, here.as(t, alice), "?harness=fixture")
 	for _, want := range []string{"platform/qwen · $1 in, $2 out per million tokens", "acme/big · $0.25 in, $1.5 out per million tokens", "acme/free-ish · no price"} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the chooser does not say %q:\n%s", want, page)
+		if !page.says(want) {
+			t.Errorf("the chooser does not say %q: %+v", want, page.Models)
 		}
 	}
 	none := open(t)
 	none.server.UseLedger(spend.NewLedger(spend.Policy{}))
 	none.signIn(t)
-	if strings.Contains(none.ask(t, "GET", "/instances/new?harness=fixture", nil).Body.String(), "no price") {
+	if page := setUpOf(t, none, "?harness=fixture"); len(page.Models) == 0 || slices.ContainsFunc(page.Models, func(each option) bool { return strings.Contains(each.Label, "no price") }) {
 		t.Error("a deployment with no prices at all says so against every model")
 	}
 }

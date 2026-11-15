@@ -7,7 +7,7 @@ the gusto binary embeds.
 - A page reads its data at `/app/api` followed by its own address: `/admin/usage?state=failed` reads `/app/api/admin/usage?state=failed`.
 - The server fills `<!--gusto-head-->` in `index.html` with gusto's tokens, faces and theme script, so a person's theme and accent
   apply here as on every other page. `src/index.css` maps shadcn's variables to those tokens.
-- A page the app does not draw yet is a link to the server's own page (`src/components/app-link.tsx` lists the app's pages).
+- An address the app does not draw, such as a task's bundle, is a link to the server (`src/components/app-link.tsx` lists the app's pages).
 
 ## Work on it
 
@@ -17,7 +17,7 @@ npm ci
 npm run dev        # http://localhost:5173/app/admin, against a gusto server on :8700
 npm test           # vitest, the pages drawn from fixed data
 npm run lint
-npm run build      # writes internal/web/spa/dist; commit it with the source
+./build.sh         # writes internal/web/spa/dist, which the binary embeds; it is not committed
 ```
 
 Add a shadcn component with `npx shadcn@latest add <name>`; `components.json` names the Base UI style.

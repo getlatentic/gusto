@@ -14,78 +14,93 @@ import (
 // A room's members are shown and changed in two dialogs over its conversation, as Kylon does: who is in it, and adding people and
 // the workspace's agents.
 
-// roomPerson is a member as the members dialog lists them.
-type roomPerson struct {
-	instance.Member
-	You bool
+// memberView is a person of a room as its members dialog lists them.
+type memberView struct {
+	Who, Name, Role string
+	Me              bool
 }
 
-// roomAgent is an agent as the members dialog and a conversation show it.
-type roomAgent struct {
-	instance.Agent
-	Engine string
-	Brain  string
-	Owner  string
-	// Yours says the person looking owns it, and may take it out of the room.
-	Yours bool
+// memberAgentView is an agent of a room as its members dialog lists it. Engine is its type, Brain its model and Job what it is
+// for; Owner is whose agent it is in the dialog's words, and nothing for the viewer's own, which Mine marks.
+type memberAgentView struct {
+	ID, Name, Harness, Mark, MarkDark string
+	Engine, Brain, Job                string
+	Owner                             string
+	Pending                           bool
+	// Allowance is what the agent may spend in the room a month, in words, and AllowanceField the same as its field holds it;
+	// both are empty for no limit.
+	Allowance, AllowanceField string
+	Mine                      bool
 }
 
-// Allowance is what the agent may spend in the room a month, in words, or nothing for no limit.
-func (a roomAgent) Allowance() string {
-	if a.AllowanceUSD == nil {
-		return ""
+// addableView is an agent of the workspace the add dialog offers.
+type addableView struct {
+	ID, Name, Harness, Mark, MarkDark string
+	Engine, Specialty                 string
+}
+
+// membersView is what a room's two members dialogs show: who is in it, and who can be added. RoomAgents is how many agents the
+// room has, pending ones included.
+type membersView struct {
+	People     []memberView
+	Agents     []memberAgentView
+	Runs       bool
+	Addable    []addableView
+	RoomAgents int
+}
+
+// roomMembersOf is what the members dialogs show, or nothing outside a room.
+func (s *Server) roomMembersOf(r *http.Request, held instance.Instance) *membersView {
+	if !held.Room {
+		return nil
 	}
-	return fmt.Sprintf("$%.2f a month here", *a.AllowanceUSD)
-}
-
-// AllowanceField is the allowance as its field shows it, and empty for no limit.
-func (a roomAgent) AllowanceField() string {
-	if a.AllowanceUSD == nil {
-		return ""
+	you := s.askerName(r)
+	shown := &membersView{People: []memberView{}, Agents: s.memberAgents(held, you), Runs: s.runsRoom(r, held), Addable: []addableView{},
+		RoomAgents: len(held.Agents)}
+	for _, member := range held.Members {
+		shown.People = append(shown.People, memberView{Who: member.Who, Name: s.personName(member.Who), Role: member.Role, Me: strings.EqualFold(member.Who, you)})
 	}
-	return fmt.Sprintf("%.2f", *a.AllowanceUSD)
-}
-
-func (s *Server) roomAgents(held instance.Instance, you string) []roomAgent {
-	shown := make([]roomAgent, 0, len(held.Agents))
-	for _, agent := range held.Agents {
-		owner := s.ownerOf(agent)
-		shown = append(shown, roomAgent{Agent: agent, Engine: s.engineName(agent.Harness), Brain: modelName(agent.Model),
-			Owner: s.ownerLabel(owner, you), Yours: owner != "" && strings.EqualFold(owner, you)})
+	for _, member := range s.crewFor(you, held.Workspace) {
+		in := slices.ContainsFunc(held.Agents, func(agent instance.Agent) bool { return agent.Member == member.ID })
+		// A member proposes only an agent of their own.
+		if !in && (shown.Runs || strings.EqualFold(member.Owner, you)) {
+			shown.Addable = append(shown.Addable, addableView{ID: member.ID, Name: member.Name, Harness: member.Harness,
+				Mark: logo(member.Harness), MarkDark: logoDark(member.Harness), Engine: s.engineName(member.Harness), Specialty: member.Specialty})
+		}
 	}
 	return shown
 }
 
-// roomMembers is what a room's two members dialogs show, for the conversation page.
-func (s *Server) roomMembers(r *http.Request, held instance.Instance) map[string]any {
-	you := s.askerName(r)
-	people := make([]roomPerson, 0, len(held.Members))
-	for _, member := range held.Members {
-		people = append(people, roomPerson{Member: member, You: strings.EqualFold(member.Who, you)})
-	}
-	runs := s.runsRoom(r, held)
-	var addable []listedAgent
-	for _, member := range s.crewFor(you, held.Workspace) {
-		in := slices.ContainsFunc(held.Agents, func(agent instance.Agent) bool { return agent.Member == member.ID })
-		// A member proposes only an agent of their own.
-		if !in && (runs || strings.EqualFold(member.Owner, you)) {
-			addable = append(addable, s.listedAgent(r, member))
+func (s *Server) memberAgents(held instance.Instance, you string) []memberAgentView {
+	shown := make([]memberAgentView, 0, len(held.Agents))
+	for _, agent := range held.Agents {
+		owner := s.ownerOf(agent)
+		mine := owner != "" && strings.EqualFold(owner, you)
+		view := memberAgentView{ID: agent.ID, Name: agent.Name, Harness: agent.Harness, Mark: logo(agent.Harness), MarkDark: logoDark(agent.Harness),
+			Engine: s.engineName(agent.Harness), Brain: modelName(agent.Model), Job: agent.Job, Pending: agent.Pending,
+			Allowance: allowanceWords(agent.AllowanceUSD), AllowanceField: allowanceField(agent.AllowanceUSD), Mine: mine}
+		if !mine {
+			view.Owner = s.ownerLabel(owner, you)
 		}
+		shown = append(shown, view)
 	}
-	return map[string]any{
-		"People":  people,
-		"Agents":  s.roomAgents(held, you),
-		"Runs":    runs,
-		"Addable": addable,
-	}
+	return shown
 }
 
-// roomMembersOf is what the members dialogs show, or nothing outside a room.
-func (s *Server) roomMembersOf(r *http.Request, held instance.Instance) map[string]any {
-	if !held.Room {
-		return nil
+// allowanceWords is a monthly allowance in words, or nothing for no limit.
+func allowanceWords(allowance *float64) string {
+	if allowance == nil {
+		return ""
 	}
-	return s.roomMembers(r, held)
+	return fmt.Sprintf("$%.2f a month here", *allowance)
+}
+
+// allowanceField is a monthly allowance as its field holds it, or nothing for no limit.
+func allowanceField(allowance *float64) string {
+	if allowance == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", *allowance)
 }
 
 // roomMembersPage opens the room with its members dialog showing.

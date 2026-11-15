@@ -1,8 +1,6 @@
 package web
 
 import (
-	"net/http"
-
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/spend"
@@ -36,31 +34,6 @@ func (s side) Seconds() int64 {
 		return 0
 	}
 	return s.Record.Ended - s.Record.Started
-}
-
-func (s *Server) lineupPage(w http.ResponseWriter, r *http.Request) {
-	if s.lineups == nil {
-		http.NotFound(w, r)
-		return
-	}
-	lineup, found := s.lineups.Get(r.PathValue("id"))
-	if !found || !s.inWorkspace(r, lineup.Workspace) || !s.mayUse(r, lineup.Who) {
-		http.NotFound(w, r)
-		return
-	}
-	ledger, _ := s.spending()
-	sides, running := s.sidesOf(lineup, ledger)
-	page := map[string]any{
-		"Title": productName + " — " + lineup.Brief, "Nav": "compare",
-		"Lineup": lineup, "Sides": sides, "Running": running,
-		"Passed": passedCount(sides),
-	}
-	// A verdict on runs that are still working would name a winner that a run
-	// still to finish could overturn.
-	if !running && len(sides) > 1 {
-		page["Reading"] = weigh(sides)
-	}
-	s.render(w, "lineup.html", page)
 }
 
 func (s *Server) sidesOf(lineup compare.Lineup, ledger *spend.Ledger) ([]side, bool) {

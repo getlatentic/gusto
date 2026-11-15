@@ -7,23 +7,29 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 // A page's bar runs across the top of the pane: the pages above it, its title, and its few actions. On a narrow window it
-// carries the button that opens the side list.
+// carries the button that opens the side list. A title in words is also the window's.
 export function PageBar({
   title,
+  lead,
   crumbs = [],
+  titleTestId = "page-title",
   children,
 }: {
   title: ReactNode
+  // lead is drawn before the title, as the agent's mark is for a conversation with one agent.
+  lead?: ReactNode
   crumbs?: { label: string; href: string }[]
+  titleTestId?: string
   children?: ReactNode
 }) {
   const navigation = useNavigation()
   return (
     <header className="sticky top-0 z-20 flex h-16 flex-none items-center gap-3 bg-background/92 px-4 backdrop-blur-xl max-md:px-3">
+      {typeof title === "string" && <title>{`${title} — gusto`}</title>}
       <Button
         variant="ghost"
         size="icon-sm"
-        className="md:hidden"
+        className="nav:hidden"
         aria-label="Menu"
         onClick={navigation.open}
       >
@@ -50,7 +56,12 @@ export function PageBar({
             ))}
           </nav>
         )}
-        <h1 className="m-0 min-w-0 truncate font-sans text-sm font-semibold">
+        {lead}
+        <h1
+          data-testid={titleTestId}
+          className="m-0 min-w-0 truncate font-sans text-sm font-semibold"
+          title={typeof title === "string" ? title : undefined}
+        >
           {title}
         </h1>
       </div>

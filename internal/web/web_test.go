@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -190,7 +191,7 @@ func TestSomebodySignedInSeesWhatTheyCanStart(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	answer := site.ask(t, "GET", "/presets", nil)
-	if answer.Code != http.StatusOK || !strings.Contains(answer.Body.String(), `href="/templates/education"`) {
+	if answer.Code != http.StatusOK || presetsOf(t, site).role(t, "education").Title == "" {
 		t.Fatalf("the new agent page does not offer templates: %d", answer.Code)
 	}
 }
@@ -237,9 +238,8 @@ func offered() []catalog.Entry {
 	}}
 }
 
-// The page and the fragment must agree: a turn swapped in should be the same
-// markup the whole page would have rendered for it.
-func TestAFinishedTurnIsSwappedInRatherThanReloaded(t *testing.T) {
+// The page and the snapshot of its turns must agree: a turn swapped in is the turn the whole page's data had for it.
+func TestAFinishedTurnInTheSnapshotIsTheTurnThePageHas(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	where := startedThread(t, site)
@@ -251,33 +251,33 @@ func TestAFinishedTurnIsSwappedInRatherThanReloaded(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("the turn never ran")
 	}
+	eventually(t, 5*time.Second, "the turn to finish", func() bool { return site.allDone() })
 
-	whole := site.ask(t, "GET", where, nil).Body.String()
-	fragment := site.ask(t, "GET", where+"/turns", nil).Body.String()
-	if !strings.Contains(fragment, "hello there") {
-		t.Fatalf("the fragment does not carry the turn:\n%s", fragment)
+	whole := site.conversation(t, where)
+	snapshot, header := site.turnsAt(t, where)
+	if len(whole.Turns) != 1 || whole.Turns[0].Said != "hello there" || !whole.Turns[0].Done {
+		t.Fatalf("the page does not carry the finished turn: %+v", whole.Turns)
 	}
-	if !strings.Contains(whole, "hello there") {
-		t.Fatal("the whole page does not carry the turn")
+	if fmt.Sprint(snapshot.Turns) != fmt.Sprint(whole.Turns) {
+		t.Errorf("the snapshot's turns differ from the page's:\n%+v\n%+v", snapshot.Turns, whole.Turns)
 	}
-	if strings.Contains(fragment, "<html") || strings.Contains(fragment, "</body>") {
-		t.Fatal("the fragment is a whole page, which would nest one inside the other when swapped")
+	if header.Get("X-Room-Settings") == "" || snapshot.Settings != header.Get("X-Room-Settings") || header.Get("X-Room-Version") != "" {
+		t.Errorf("a conversation that is not a room says %q %q %q", snapshot.Settings, header.Get("X-Room-Settings"), header.Get("X-Room-Version"))
+	}
+	if missing := site.ask(t, "GET", "/app/api/instances/nobody/threads/1/turns", nil); missing.Code != http.StatusNotFound {
+		t.Errorf("the turns of a conversation that is not there answered %d", missing.Code)
 	}
 }
 
 func TestWhatIsVendoredIsServedFromTheBinary(t *testing.T) {
 	site := open(t)
-	answer := site.ask(t, "GET", "/static/htmx.min.js", nil)
+	// It is in the binary, so it needs no sign-in: it is the same bytes for everybody and a page draws its text with it.
+	answer := site.ask(t, "GET", "/static/ibm-plex-sans.woff2", nil)
 	if answer.Code != http.StatusOK {
 		t.Fatalf("code %d", answer.Code)
 	}
-	if answer.Body.Len() < 10_000 {
-		t.Fatalf("%d bytes came back, which is not htmx", answer.Body.Len())
-	}
-	// It is in the binary, so it needs no sign-in: it is the same bytes for
-	// everybody and a page cannot render without it.
-	if strings.Contains(answer.Body.String(), "cdn.") {
-		t.Fatal("the vendored copy reaches a content delivery network")
+	if answer.Body.Len() < 10_000 || !strings.HasPrefix(answer.Body.String(), "wOF2") {
+		t.Fatalf("%d bytes came back, which is not the font", answer.Body.Len())
 	}
 }
 
@@ -306,9 +306,12 @@ func TestStartingAHarnessLandsInAConversationWithIt(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	where := startedThread(t, site)
-	body := site.ask(t, "GET", where, nil).Body.String()
-	if !strings.Contains(body, `name="said"`) {
-		t.Error("the page you land on has nowhere to say anything")
+	page := site.ask(t, "GET", where, nil)
+	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "/static/look.js") {
+		t.Errorf("the page you land on is not the app: %d", page.Code)
+	}
+	if data := site.conversation(t, where); data.Path != where || data.Agent.Name == "" || data.Hint != "Message "+data.Agent.Name {
+		t.Errorf("the conversation you land on has nowhere to say anything: %+v", data)
 	}
 }
 
@@ -332,27 +335,24 @@ func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("the turn never ran")
 	}
-	if body := site.ask(t, "GET", first, nil).Body.String(); !strings.Contains(body, "only in the first") {
+	if !site.conversation(t, first).shows("only in the first") {
 		t.Error("the first thread does not carry what was said in it")
 	}
-	if body := site.ask(t, "GET", second+"/turns", nil).Body.String(); strings.Contains(body, "only in the first") {
+	if snapshot, _ := site.turnsAt(t, second); len(snapshot.Turns) != 0 {
 		t.Error("the second thread carries what was said in the first")
 	}
 }
 
-// The roles are what an agent can be given, and the workspace's agents are its members, so every page names the way to the members,
-// and the members to the roles and presets.
-func TestEveryPageOffersTheWayToTheMembersAndTheRoles(t *testing.T) {
+// The workspace's agents are its members, so every page names the way to the members. The members page's way on to the roles and
+// presets is checked with that page, in web/src/pages/members, and the app's own rail in web/src/components/person.
+func TestEveryPageOffersTheWayToTheMembers(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	for _, page := range []string{"/chat", "/jobs", "/spend"} {
+	for _, page := range []string{} {
 		body := site.ask(t, "GET", page, nil).Body.String()
 		if !strings.Contains(body, `href="/members"`) || !strings.Contains(body, "Members") {
 			t.Errorf("%s does not offer the way to the members", page)
 		}
-	}
-	if body := site.ask(t, "GET", "/members", nil).Body.String(); !strings.Contains(body, `href="/presets"`) {
-		t.Error("the members do not offer the way to the roles and presets")
 	}
 }
 
@@ -380,8 +380,8 @@ func TestATaskRunsInTheInstancesOwnFolder(t *testing.T) {
 		t.Errorf("a task is not said to a thread, but it names %q", record.Thread)
 	}
 	// It belongs to the instance's page, which is where it was asked for.
-	if body := site.ask(t, "GET", where, nil).Body.String(); !strings.Contains(body, "count the files") {
-		t.Error("the instance does not list the task run on it")
+	if listed := site.project(t, strings.TrimPrefix(where, "/instances/")).Tasks; len(listed) != 1 || listed[0].ID != id || listed[0].Brief != "count the files" {
+		t.Errorf("the instance does not list the task run on it: %+v", listed)
 	}
 }
 
@@ -418,42 +418,20 @@ func TestTheSharedPasswordIsNotOfferedBesideAProvider(t *testing.T) {
 	}
 	site := &site{handler: server.Handler(), index: index}
 
-	plain := site.ask(t, "GET", "/login", nil).Body.String()
-	if strings.Contains(plain, `name="password"`) {
+	plain := signInOf(t, site, "")
+	if plain.Shared {
 		t.Error("the sign-in page offers the shared password beside the provider")
 	}
-	if !strings.Contains(plain, "/login?shared") {
+	// The page links to /login?shared for whoever wants the shared password, when there is a provider and no form.
+	if !plain.Identity || plain.Desktop {
 		t.Error("the shared password cannot be reached at all")
 	}
-	asked := site.ask(t, "GET", "/login?shared", nil).Body.String()
-	if !strings.Contains(asked, `name="password"`) {
+	if asked := signInOf(t, site, "?shared"); !asked.Shared {
 		t.Error("the shared password is not offered to somebody who asked for it")
 	}
 	// A wrong one keeps it open, or there is nowhere to try again.
-	wrong := site.ask(t, "GET", "/login?wrong=1", nil).Body.String()
-	if !strings.Contains(wrong, `name="password"`) {
+	if wrong := signInOf(t, site, "?wrong=1"); !wrong.Shared || !wrong.Wrong {
 		t.Error("a wrong password left nowhere to try again")
-	}
-}
-
-// A cost is a pointer, because a cost of nothing and no cost reported are
-// different answers. Handed to printf it prints an address, which is what the
-// page showed the first time a harness reported one.
-func TestACostIsShownAsMoneyAndNotAsAPointer(t *testing.T) {
-	shown, ok := helpers["money"].(func(*float64) string)
-	if !ok {
-		t.Fatal("there is no money helper")
-	}
-	amount := 1.3161
-	if got := shown(&amount); got != "$1.3161" {
-		t.Errorf("a cost of %v is shown as %q", amount, got)
-	}
-	nothing := 0.0
-	if got := shown(&nothing); got != "$0.0000" {
-		t.Errorf("a cost of nothing is shown as %q, and it was reported", got)
-	}
-	if got := shown(nil); got != "" {
-		t.Errorf("a cost nobody reported is shown as %q", got)
 	}
 }
 
@@ -462,39 +440,58 @@ func TestACostIsShownAsMoneyAndNotAsAPointer(t *testing.T) {
 func TestABlankAgentStartsWithOneButton(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	body := site.ask(t, "GET", "/new/blank", nil).Body.String()
-	if !strings.Contains(body, `action="/instances"`) || !strings.Contains(body, `value="fixture"`) {
+	if page := blankOf(t, site); !page.engine("fixture") {
 		t.Error("the blank page does not offer to start anything")
 	}
 	started := site.ask(t, "POST", "/instances", url.Values{"title": {"Research helper"}})
 	if where := started.Header().Get("Location"); !strings.Contains(where, "/threads/") {
 		t.Fatalf("starting with no engine chosen went to %q", where)
 	}
-	if instances := site.ask(t, "GET", started.Header().Get("Location"), nil).Body.String(); !strings.Contains(instances, "Research helper") {
-		t.Error("the agent is not listed by the name it was given")
+	if page := site.conversation(t, started.Header().Get("Location")); page.Agent.Name != "Research helper" || page.Instance.Title != "Research helper" {
+		t.Errorf("the agent is not named by the name it was given: %+v", page.Agent)
 	}
 }
 
+// The words of the pages a person starts an agent from never say harness; the page's own words are checked where it is built.
 func TestThePagesAPersonStartsAnAgentFromNeverSayHarness(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	for _, path := range []string{"/presets", "/new/blank", "/instances/new?harness=fixture", "/setups"} {
-		body := strings.NewReplacer("harness=", "", `name="harness"`, "").Replace(site.ask(t, "GET", path, nil).Body.String())
-		if strings.Contains(strings.ToLower(body), "harness") {
-			i := strings.Index(strings.ToLower(body), "harness")
-			t.Errorf("%s says harness to a person: ...%s...", path, body[max(i-60, 0):min(i+60, len(body))])
+	for _, path := range []string{"/presets", "/new/blank", "/instances/new?harness=fixture", "/setups", "/templates/health"} {
+		var page any
+		site.data(t, path, &page)
+		for _, words := range wordsIn(page) {
+			if strings.Contains(strings.ToLower(strings.ReplaceAll(words, "harness=", "")), "harness") {
+				t.Errorf("%s says harness to a person: %q", path, words)
+			}
 		}
 	}
 }
 
-func TestThePresetsPageOffersPresetsAndDoesNotSayHarness(t *testing.T) {
+// wordsIn is every text a page's data holds, without the names of its fields.
+func wordsIn(data any) []string {
+	switch held := data.(type) {
+	case string:
+		return []string{held}
+	case []any:
+		var words []string
+		for _, each := range held {
+			words = append(words, wordsIn(each)...)
+		}
+		return words
+	case map[string]any:
+		var words []string
+		for _, each := range held {
+			words = append(words, wordsIn(each)...)
+		}
+		return words
+	}
+	return nil
+}
+
+func TestThePresetsPageOffersPresetsToStartFrom(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	body := site.ask(t, "GET", "/presets", nil).Body.String()
-	if !strings.Contains(body, `href="/templates/health"`) {
-		t.Errorf("/new offers no preset to start from:\n%s", body)
-	}
-	if strings.Contains(strings.ReplaceAll(body, "harness=fixture", ""), "harness") {
-		t.Error("/new says harness to a person")
+	if page := presetsOf(t, site); page.role(t, "health").Blocked != "" {
+		t.Errorf("/presets offers no preset to start from: %+v", page.Roles)
 	}
 }

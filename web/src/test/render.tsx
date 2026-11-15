@@ -1,9 +1,11 @@
 import type { ReactNode } from "react"
 import { render } from "@testing-library/react"
+import { Provider } from "react-redux"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { vi } from "vitest"
 
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { makeStore } from "@/store"
 
 // renderPage draws a page at an address, with the server answering /app/api from the data given, keyed by the page address.
 export function renderPage(
@@ -26,13 +28,15 @@ export function renderPage(
     })
   )
   const drawn = render(
-    <TooltipProvider>
-      <MemoryRouter initialEntries={[at]}>
-        <Routes>
-          <Route path={route} element={page} />
-        </Routes>
-      </MemoryRouter>
-    </TooltipProvider>
+    <Provider store={makeStore()}>
+      <TooltipProvider>
+        <MemoryRouter initialEntries={[at]}>
+          <Routes>
+            <Route path={route} element={page} />
+          </Routes>
+        </MemoryRouter>
+      </TooltipProvider>
+    </Provider>
   )
   return { ...drawn, asked }
 }

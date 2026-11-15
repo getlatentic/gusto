@@ -140,8 +140,9 @@ func TestAnAppAnAgentBuiltIsSharedOnceItAnswersAndOnlyTheOrganizationsMembersOpe
 	if app.State != apps.Live || app.Command != "node server.js" || app.Port != 8080 || len(runner.started) != 1 {
 		t.Fatalf("%+v", app)
 	}
-	if page := site.ask(t, "GET", where, nil).Body.String(); !strings.Contains(page, `href="/apps/`+id+`/"`) || !strings.Contains(page, "node server.js") {
-		t.Errorf("the agent's page links the app:\n%s", page)
+	if shown := site.project(t, strings.TrimPrefix(where, "/instances/")).Apps; len(shown) != 1 || shown[0].Link != "/apps/"+id+"/" ||
+		shown[0].Command != "node server.js" || shown[0].State != "live" || shown[0].Port != 8080 {
+		t.Errorf("the agent's page links the app: %+v", shown)
 	}
 
 	answer := site.ask(t, "GET", "/apps/"+id+"/some/page?x=1&y=2", nil)
@@ -195,8 +196,10 @@ func TestAnAppThatDoesNotAnswerIsFailedWithWhatItSaidAndIsNotShared(t *testing.T
 	if app.State != apps.Failed || !strings.Contains(app.Note, "Cannot find module 'express'") {
 		t.Fatalf("%+v", app)
 	}
-	if page := site.ask(t, "GET", where, nil).Body.String(); !strings.Contains(page, "It did not start") || !strings.Contains(page, "Cannot find module") || strings.Contains(page, `href="/apps/`+id) {
-		t.Errorf("the page says what the app wrote and offers no link:\n%s", page)
+	// The page says it did not start and links only an app that is live (web/src/pages/work/project-page.test.tsx).
+	if shown := site.project(t, strings.TrimPrefix(where, "/instances/")).Apps; len(shown) != 1 || shown[0].State != "failed" ||
+		!strings.Contains(shown[0].Note, "Cannot find module") {
+		t.Errorf("the page says what the app wrote: %+v", shown)
 	}
 	if got := site.ask(t, "GET", "/apps/"+id+"/", nil); got.Code != http.StatusNotFound {
 		t.Errorf("an app that never answered was opened: %d", got.Code)
@@ -289,8 +292,8 @@ func TestRemovingAnAgentStopsTheAppsItShared(t *testing.T) {
 func TestAServerWhoseAgentsAreNotInComputersRunsNoApps(t *testing.T) {
 	site := pagesSite(t)
 	where := startedInstance(t, site)
-	if page := site.ask(t, "GET", where, nil).Body.String(); strings.Contains(page, "Share an app") {
-		t.Error("it offers what it cannot do")
+	if page := site.project(t, strings.TrimPrefix(where, "/instances/")); !page.Sharing || page.Runs {
+		t.Errorf("it offers what it cannot do: sharing %v, running %v", page.Sharing, page.Runs)
 	}
 	if got := site.ask(t, "POST", where+"/apps", url.Values{"command": {"node a.js"}, "port": {"8080"}}); got.Code != http.StatusNotFound {
 		t.Errorf("%d", got.Code)
@@ -367,8 +370,8 @@ func TestAnAppHasAHostNameOfItsOwnSoWhatItWroteWorksAsItWroteIt(t *testing.T) {
 	id := sharedApp(t, site, where)
 	app, _ := site.server.apps.Get(id)
 
-	if page := site.ask(t, "GET", where, nil).Body.String(); !strings.Contains(page, `href="https://acme-com--`+id+`.cloud.test/"`) {
-		t.Errorf("the agent's page links the app at its own host name:\n%s", page)
+	if shown := site.project(t, strings.TrimPrefix(where, "/instances/")).Apps; len(shown) != 1 || shown[0].Link != "https://acme-com--"+id+".cloud.test/" {
+		t.Errorf("the agent's page links the app at its own host name: %+v", shown)
 	}
 	if got := site.ask(t, "GET", "/apps/"+id+"/x", nil); got.Header().Get("Location") != "https://acme-com--"+id+".cloud.test/" {
 		t.Errorf("a path link somebody kept goes to the app's host: %d %q", got.Code, got.Header().Get("Location"))
@@ -447,7 +450,7 @@ func TestOnAnAppsHostNameEveryPathIsTheAppsAndNoneIsAPageOfTheOrganization(t *te
 	site, _, gateway := behindCloudSharing(t)
 	id := sharedApp(t, site, startedInstance(t, site))
 	cookie := site.signedInTo(t, id)
-	for _, path := range []string{"/spend", "/instances/anything", "/jobs", "/tokens", "/logout", "/apps/" + id + "/", "/static/app.css"} {
+	for _, path := range []string{"/spend", "/instances/anything", "/jobs", "/tokens", "/logout", "/apps/" + id + "/", "/static/operator.css"} {
 		got := site.appRequest(t, id, "GET", path, cookie)
 		if !strings.Contains(got.Body.String(), "<h1>the app</h1> "+path) {
 			t.Errorf("%s was not the app's: %d %.100s", path, got.Code, got.Body)

@@ -118,7 +118,7 @@ func TestAHoldKeepsATaskAndIsRecordedAndReleased(t *testing.T) {
 	oldTask(t, here, "free", 200)
 	here.signIn(t)
 
-	if page := here.ask(t, "GET", "/jobs/held", nil).Body.String(); strings.Contains(page, "/hold") || strings.Contains(page, "Keep this job whole") {
+	if page := here.dataText(t, "/jobs/held"); strings.Contains(page, "/hold") || strings.Contains(page, "Keep this job whole") {
 		t.Fatalf("the job page carries a control that is the console's:\n%s", page)
 	}
 	if got := here.ask(t, "POST", "/admin/retention/jobs/hold", url.Values{"job": {"nothing-by-this-id"}}); !strings.Contains(got.Header().Get("Location"), "refused=") {

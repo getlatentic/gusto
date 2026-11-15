@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react"
 import { useLocation } from "react-router"
+
+import { api, type ApiError } from "@/store/api"
+import { useAppDispatch } from "@/store"
 
 // A page's data is the same view the server gave its template, as JSON at /app/api followed by the page's own address. The
 // server keeps the query in the links it gives, so changing a filter is changing the address, and the address alone says what
@@ -10,92 +12,53 @@ export type Loaded<T> =
   | { state: "ready"; data: T }
   | { state: "failed"; status: number; message: string }
 
-export class Failure extends Error {
-  readonly status: number
-  constructor(status: number, message: string) {
-    super(message)
-    this.status = status
-  }
+export interface Reading {
+  // pollingInterval reads the data again every so many milliseconds while the page is in view.
+  pollingInterval?: number
+  // skip leaves the data unread, as for a part of a page that is not shown.
+  skip?: boolean
 }
 
-export async function getJSON<T>(
-  path: string,
-  signal?: AbortSignal
-): Promise<T> {
-  const answer = await fetch(path, {
-    credentials: "same-origin",
-    headers: { Accept: "application/json" },
-    signal,
+// useData is the data at a path, read again when the path changes or the data is marked stale; what was shown stays on screen
+// while the next one loads.
+export function useData<T>(path: string, reading: Reading = {}): Loaded<T> {
+  const read = api.endpoints.page.useQuery(path, {
+    ...reading,
+    skipPollingIfUnfocused: true,
   })
-  // A session that ended is sent to the sign-in page, which is a page and not JSON.
-  if (answer.redirected && new URL(answer.url).pathname === "/login") {
-    window.location.assign("/login")
-    throw new Failure(401, "signed out")
+  if (read.isError) {
+    const error = read.error as ApiError
+    return { state: "failed", status: error.status, message: error.message }
   }
-  if (!answer.ok) {
-    throw new Failure(
-      answer.status,
-      (await answer.text()).trim() || answer.statusText
-    )
-  }
-  return (await answer.json()) as T
+  if (read.currentData !== undefined)
+    return { state: "ready", data: read.currentData as T }
+  return { state: "loading", data: read.data as T | undefined }
 }
 
-// useData fetches a path, and fetches again when it changes or when round does, as after the page changed what it shows;
-// what was shown stays on screen while the next one loads.
-export function useData<T>(path: string, round = 0): Loaded<T> {
-  const asked = `${round} ${path}`
-  const [answer, setAnswer] = useState<{ asked: string; loaded: Loaded<T> }>()
-  useEffect(() => {
-    const stop = new AbortController()
-    getJSON<T>(path, stop.signal).then(
-      (data) => setAnswer({ asked, loaded: { state: "ready", data } }),
-      (err: unknown) => {
-        if (stop.signal.aborted) return
-        const status = err instanceof Failure ? err.status : 0
-        setAnswer({
-          asked,
-          loaded: {
-            state: "failed",
-            status,
-            message: err instanceof Error ? err.message : String(err),
-          },
-        })
-      }
-    )
-    return () => stop.abort()
-  }, [path, asked])
-  if (answer?.asked === asked) return answer.loaded
-  return {
-    state: "loading",
-    data: answer?.loaded.state === "ready" ? answer.loaded.data : undefined,
-  }
+// pagePath is where the data of the page the address names is.
+export function pagePath(where: { pathname: string; search: string }): string {
+  return "/app/api" + where.pathname + where.search
 }
 
 // usePageData is the data of the page the address names.
-export function usePageData<T>(round = 0): Loaded<T> {
-  const where = useLocation()
-  return useData<T>("/app/api" + where.pathname + where.search, round)
+export function usePageData<T>(reading: Reading = {}): Loaded<T> {
+  return useData<T>(pagePath(useLocation()), reading)
 }
 
-// postForm sends a form to the server as the browser would, for a page that reads the answer itself, and gives the answer
-// as JSON, or the server's reason when it refused.
-export async function postForm<T>(path: string, form: FormData): Promise<T> {
-  const fields = new URLSearchParams()
-  for (const [key, value] of form) {
-    if (typeof value === "string") fields.append(key, value)
-  }
-  const answer = await fetch(path, {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { Accept: "application/json" },
-    body: fields,
-  })
-  if (!answer.ok) {
-    throw new Failure(
-      answer.status,
-      (await answer.text()).trim() || answer.statusText
-    )
-  }
-  return (await answer.json()) as T
+// useRefreshPage marks the page's data stale, so it is read again, as after the page changed something the server keeps.
+export function useRefreshPage(): () => void {
+  const dispatch = useAppDispatch()
+  const path = pagePath(useLocation())
+  return () => dispatch(api.util.invalidateTags([{ type: "Page", id: path }]))
+}
+
+// useRefreshAll marks every page's data stale, as after a form whose change may show anywhere.
+export function useRefreshAll(): () => void {
+  const dispatch = useAppDispatch()
+  return () => dispatch(api.util.invalidateTags(["Page"]))
+}
+
+// dataOf is what data there is to show: the data read, the data still shown while the next is read, or none.
+export function dataOf<T>(loaded: Loaded<T>): T | undefined {
+  return loaded.state === "failed" ? undefined : loaded.data
 }

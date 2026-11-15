@@ -39,7 +39,7 @@ func (s *Server) secure(next http.Handler) http.Handler {
 		if r.Body != nil && r.Method != http.MethodGet && r.Method != http.MethodHead {
 			r.Body = http.MaxBytesReader(w, r.Body, bodyLimit(r))
 		}
-		next.ServeHTTP(&marked{ResponseWriter: w, nonce: nonce, admin: s.admin(r), req: r, page: r.Method == http.MethodGet && strings.Contains(r.Header.Get("Accept"), "text/html")}, r)
+		next.ServeHTTP(&marked{ResponseWriter: w, nonce: nonce, page: r.Method == http.MethodGet && strings.Contains(r.Header.Get("Accept"), "text/html")}, r)
 	})
 }
 
@@ -52,15 +52,10 @@ func (s *Server) cloudSource() string {
 	return " " + s.front.URL
 }
 
-// marked carries what a page needs to know of its request: the nonce its inline
-// scripts run with, and whether an admin asked, which is what shows the link to
-// the console on every page.
+// marked carries what a page drawn for a fault needs to know of its request: the nonce its inline script runs with.
 type marked struct {
 	http.ResponseWriter
 	nonce string
-	admin bool
-	// req is the request the response answers, which a page uses to draw what is the person's own, such as the side list.
-	req *http.Request
 	// page is whether a person's browser asked, and so would rather be shown a page than a line of text for a thing that is not there.
 	page bool
 	// swallow is set once a page was written in place of the line of text a handler went on to write.
@@ -147,24 +142,6 @@ func (m *marked) Flush() {
 		flusher.Flush()
 	}
 }
-
-// markOf is what the response w was marked with, or nothing.
-func markOf(w http.ResponseWriter) marked {
-	for w != nil {
-		switch held := w.(type) {
-		case *marked:
-			return marked{nonce: held.nonce, admin: held.admin, req: held.req}
-		case interface{ Unwrap() http.ResponseWriter }:
-			w = held.Unwrap()
-		default:
-			return marked{}
-		}
-	}
-	return marked{}
-}
-
-// nonceOf is the nonce of the response w belongs to, or nothing.
-func nonceOf(w http.ResponseWriter) string { return markOf(w).nonce }
 
 const (
 	// failuresAllowed is how many wrong credentials one source may present

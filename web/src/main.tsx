@@ -3,7 +3,11 @@ import { createRoot } from "react-dom/client"
 import { BrowserRouter, Route, Routes } from "react-router"
 
 import "./index.css"
+import { Provider } from "react-redux"
+
 import { ConsoleShell } from "@/components/console-shell"
+import { PersonShell } from "@/components/person/person-shell"
+import { makeStore } from "@/store"
 import { TooltipProvider } from "@/components/ui/tooltip"
 
 // Each page is fetched when it is first opened, so the first page drawn does not wait for the others' code.
@@ -54,31 +58,169 @@ const IntegrationPage = lazy(() =>
   }))
 )
 
+const ChatPage = lazy(() =>
+  import("@/pages/chat/chat-page").then((m) => ({ default: m.ChatPage }))
+)
+const NewRoomPage = lazy(() =>
+  import("@/pages/rooms/new-room-page").then((m) => ({
+    default: m.NewRoomPage,
+  }))
+)
+const MembersPage = lazy(() =>
+  import("@/pages/members/members-page").then((m) => ({
+    default: m.MembersPage,
+  }))
+)
+const ConversationPage = lazy(() =>
+  import("@/pages/conversation/conversation-page").then((m) => ({
+    default: m.ConversationPage,
+  }))
+)
+const FilesPage = lazy(() =>
+  import("@/pages/files/files-page").then((m) => ({ default: m.FilesPage }))
+)
+const FilePage = lazy(() =>
+  import("@/pages/files/file-page").then((m) => ({ default: m.FilePage }))
+)
+
+const SetupsPage = lazy(() =>
+  import("@/pages/setups/setups-page").then((m) => ({ default: m.SetupsPage }))
+)
+const SetupPage = lazy(() =>
+  import("@/pages/setups/setup-page").then((m) => ({ default: m.SetupPage }))
+)
+const PresetsPage = lazy(() =>
+  import("@/pages/setups/presets-page").then((m) => ({
+    default: m.PresetsPage,
+  }))
+)
+const TemplatePage = lazy(() =>
+  import("@/pages/setups/template-page").then((m) => ({
+    default: m.TemplatePage,
+  }))
+)
+const BlankPage = lazy(() =>
+  import("@/pages/setups/blank-page").then((m) => ({ default: m.BlankPage }))
+)
+const SetUpPage = lazy(() =>
+  import("@/pages/setups/set-up-page").then((m) => ({ default: m.SetUpPage }))
+)
+// The pages served before anybody is signed in, which are drawn outside a person's shell, so they ask for nothing a session gives.
+const SignInPage = lazy(() =>
+  import("@/pages/sign-in/sign-in-page").then((m) => ({
+    default: m.SignInPage,
+  }))
+)
+const HandoffPage = lazy(() =>
+  import("@/pages/sign-in/handoff-page").then((m) => ({
+    default: m.HandoffPage,
+  }))
+)
+const MyUsagePage = lazy(() =>
+  import("@/pages/usage/usage-pages").then((m) => ({ default: m.MyUsagePage }))
+)
+const MySessionPage = lazy(() =>
+  import("@/pages/usage/usage-pages").then((m) => ({
+    default: m.MySessionPage,
+  }))
+)
+const MySpendPage = lazy(() =>
+  import("@/pages/usage/usage-pages").then((m) => ({ default: m.MySpendPage }))
+)
+const ConnectionsPage = lazy(() =>
+  import("@/pages/account/connections-page").then((m) => ({
+    default: m.ConnectionsPage,
+  }))
+)
+const DevicePage = lazy(() =>
+  import("@/pages/account/device-page").then((m) => ({
+    default: m.DevicePage,
+  }))
+)
+const ActivityPage = lazy(() =>
+  import("@/pages/work/activity-page").then((m) => ({
+    default: m.ActivityPage,
+  }))
+)
+const TaskPage = lazy(() =>
+  import("@/pages/work/task-page").then((m) => ({ default: m.TaskPage }))
+)
+const ProjectPage = lazy(() =>
+  import("@/pages/work/project-page").then((m) => ({ default: m.ProjectPage }))
+)
+const EnginesPage = lazy(() =>
+  import("@/pages/work/engines-page").then((m) => ({ default: m.EnginesPage }))
+)
+const ComparePage = lazy(() =>
+  import("@/pages/work/compare-page").then((m) => ({ default: m.ComparePage }))
+)
+const LineupPage = lazy(() =>
+  import("@/pages/work/lineup-page").then((m) => ({ default: m.LineupPage }))
+)
+
 // The pages the gusto server hands to this app. Each address is also a route on the server, which serves this app for it
 // behind the same sign-in; any other address is a page the server draws.
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <TooltipProvider>
-      <BrowserRouter>
-        <Suspense>
-          <Routes>
-            <Route path="/admin" element={<ConsoleShell />}>
-              <Route index element={<OverviewPage />} />
-              <Route path="spending" element={<SpendingPage />} />
-              <Route path="usage" element={<UsagePage />} />
-              <Route path="usage/:session" element={<UsageSessionPage />} />
-              <Route path="people" element={<PeoplePage />} />
-              <Route path="budgets" element={<BudgetsPage />} />
-              <Route path="tokens" element={<TokensPage />} />
-              <Route path="records" element={<RecordsPage />} />
-              <Route path="models" element={<ModelsPage />} />
-              <Route path="apps" element={<AppsPage />} />
-              <Route path="skill-sets/:name" element={<SkillSetPage />} />
-              <Route path="integrations/:name" element={<IntegrationPage />} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </TooltipProvider>
+    <Provider store={makeStore()}>
+      <TooltipProvider>
+        <BrowserRouter>
+          <Suspense>
+            <Routes>
+              <Route element={<PersonShell />}>
+                <Route path="/chat" element={<ChatPage />} />
+                <Route path="/rooms/new" element={<NewRoomPage />} />
+                <Route
+                  path="/instances/:id/threads/:thread"
+                  element={<ConversationPage />}
+                />
+                {/* The members pages are one route, so the list stays drawn while whoever is open changes. */}
+                <Route path="/members/*" element={<MembersPage />} />
+                <Route path="/files" element={<FilesPage />} />
+                <Route path="/instances/:id/file" element={<FilePage />} />
+                <Route path="/jobs/:id/files/:name" element={<FilePage />} />
+                <Route path="/setups" element={<SetupsPage />} />
+                <Route path="/setups/:name" element={<SetupPage />} />
+                <Route path="/presets" element={<PresetsPage />} />
+                <Route path="/templates/:name" element={<TemplatePage />} />
+                <Route path="/new/blank" element={<BlankPage />} />
+                <Route path="/instances/new" element={<SetUpPage />} />
+                <Route path="/usage" element={<MyUsagePage />} />
+                <Route path="/usage/:session" element={<MySessionPage />} />
+                <Route path="/spend" element={<MySpendPage />} />
+                <Route path="/connections" element={<ConnectionsPage />} />
+                <Route path="/device" element={<DevicePage />} />
+                {/* The work pages: Activity, a task, a project, how each agent type did, and comparing agents. */}
+                <Route path="/jobs" element={<ActivityPage />} />
+                <Route path="/jobs/:id" element={<TaskPage />} />
+                <Route path="/instances/:id" element={<ProjectPage />} />
+                <Route path="/engines" element={<EnginesPage />} />
+                <Route path="/compare" element={<ComparePage />} />
+                <Route path="/compare/:id" element={<LineupPage />} />
+              </Route>
+              <Route path="/login" element={<SignInPage />} />
+              <Route path="/auth/desktop/handoff" element={<HandoffPage />} />
+              <Route path="/admin" element={<ConsoleShell />}>
+                <Route index element={<OverviewPage />} />
+                <Route path="spending" element={<SpendingPage />} />
+                <Route path="usage" element={<UsagePage />} />
+                <Route path="usage/:session" element={<UsageSessionPage />} />
+                <Route path="people" element={<PeoplePage />} />
+                <Route path="budgets" element={<BudgetsPage />} />
+                <Route path="tokens" element={<TokensPage />} />
+                <Route path="records" element={<RecordsPage />} />
+                <Route path="models" element={<ModelsPage />} />
+                <Route path="apps" element={<AppsPage />} />
+                <Route path="skill-sets/:name" element={<SkillSetPage />} />
+                <Route
+                  path="integrations/:name"
+                  element={<IntegrationPage />}
+                />
+              </Route>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </TooltipProvider>
+    </Provider>
   </StrictMode>
 )
