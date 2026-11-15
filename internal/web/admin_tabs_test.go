@@ -221,21 +221,28 @@ func TestPeopleIsPagedAt25AndInvitationsHaveATabOfTheirOwn(t *testing.T) {
 		list.Members = append(list.Members, roster.Member{Email: fmt.Sprintf("person%02d@acme.com", i), Role: "runner"})
 	}
 	here, _ := withPeople(t, list)
-	first := here.ask(t, "GET", "/admin/people", nil).Body.String()
-	if !strings.Contains(first, "person25@acme.com") || strings.Contains(first, "person26@acme.com") || !strings.Contains(first, "1–25 of 30") {
-		t.Error("the first page of People is not the first 25 people")
+	emails := func(page peopleJSON) string {
+		var all []string
+		for _, each := range page.People {
+			all = append(all, each.Email)
+		}
+		return strings.Join(all, " ")
 	}
-	if strings.Contains(first, "tab=invited") || strings.Contains(first, `aria-label="Views"`) {
+	first := people(t, here, "")
+	if len(first.People) != 25 || !strings.Contains(emails(first), "person25@acme.com") || first.Pages.Shown != "1–25 of 30" {
+		t.Errorf("the first page of People is not the first 25 people: %d, %q", len(first.People), first.Pages.Shown)
+	}
+	if len(first.Tabs) > 1 {
 		t.Error("People has tabs with nobody invited")
 	}
-	second := here.ask(t, "GET", "/admin/people?tab=people&page=2", nil).Body.String()
-	if !strings.Contains(second, "person26@acme.com") || strings.Contains(second, "person25@acme.com") {
-		t.Error("the second page of People does not start at the 26th person")
+	second := people(t, here, "?tab=people&page=2")
+	if !strings.HasPrefix(emails(second), "person26@acme.com") || strings.Contains(emails(second), "person25@acme.com") {
+		t.Errorf("the second page of People does not start at the 26th person: %s", emails(second))
 	}
 
 	list.Invited = []roster.Invited{{Email: "dee@acme.com", By: "ada@acme.com", Created: time.Now(), Expires: time.Now().Add(time.Hour)}}
 	invited, _ := withPeople(t, list)
-	if page := invited.ask(t, "GET", "/admin/people", nil).Body.String(); !strings.Contains(page, `href="/admin/people?tab=invited">Invited <span class="font-normal text-subtle">1</span>`) {
-		t.Error("People has no Invited tab with one invitation")
+	if page := people(t, invited, ""); len(page.Tabs) != 2 || page.Tabs[1].Label != "Invited" || page.Tabs[1].Count != 1 || page.Tabs[1].Href != "/admin/people?tab=invited" {
+		t.Errorf("People has no Invited tab with one invitation: %+v", page.Tabs)
 	}
 }

@@ -37,3 +37,24 @@ jobs:
         run: go vet ./...
       - name: go test
         run: go test -race ./...
+
+  # The console's pages are a React app in web/, built into internal/web/spa/dist, which the binary embeds. The built files are
+  # committed beside their source, so they must be what the source builds.
+  web:
+    runs-on: [self-hosted, gusto]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npm run lint
+      - run: npx prettier --check "src/**/*.{ts,tsx}"
+      - run: npm test
+      - run: npm run build
+      - name: The committed build is the source's
+        run: git diff --exit-code -- ../internal/web/spa/dist || { echo "internal/web/spa/dist is not what web/ builds: run npm run build in web/ and commit it"; exit 1; }

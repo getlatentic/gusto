@@ -93,8 +93,8 @@ func TestABudgetIsSetChangedAndClearedAndEachChangeIsRecorded(t *testing.T) {
 	if page := budgets(t, here); !strings.Contains(page, "Organization: $100.00 a month, which only warns.") {
 		t.Errorf("the budget is not shown:\n%s", page)
 	}
-	if page := overview(t, here); !strings.Contains(page, "of $100.00") {
-		t.Errorf("the overview does not measure the month against the budget:\n%s", page)
+	if page := overview(t, here); !page.Budget.Set || page.Budget.Limit != 100 {
+		t.Errorf("the overview does not measure the month against the budget: %+v", page.Budget)
 	}
 	setBudget(t, here, "100")
 	setBudget(t, here, "250.5")
@@ -174,15 +174,15 @@ func TestABudgetIsKeptAcrossARestart(t *testing.T) {
 	again := open(t)
 	again.server.UseOrgSettings(path)
 	again.signIn(t)
-	if page := overview(t, again); !strings.Contains(page, "of $75.00") {
-		t.Errorf("a server that started after the budget was set does not have it:\n%s", page)
+	if page := overview(t, again); page.Budget.Limit != 75 {
+		t.Errorf("a server that started after the budget was set does not have it: %+v", page.Budget)
 	}
 }
 
 func TestThereIsNoBudgetWhereTheServerKeepsNoSettings(t *testing.T) {
 	here, _ := withPeople(t, roster.Roster{Members: []roster.Member{{Email: "ada@acme.com", Role: "admin"}}})
-	if page := here.ask(t, "GET", "/admin/people", nil).Body.String(); strings.Contains(page, "Budgets") || strings.Contains(page, "/admin/budget") {
-		t.Errorf("a server that cannot keep a budget offers one:\n%s", page)
+	if page := people(t, here, ""); page.Budgets {
+		t.Errorf("a server that cannot keep a budget offers one: %+v", page)
 	}
 	if got := here.ask(t, "GET", budgetsPath, nil); got.Code != http.StatusNotFound {
 		t.Errorf("Budgets where none is kept: %d", got.Code)

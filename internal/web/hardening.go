@@ -32,8 +32,8 @@ func (s *Server) secure(next http.Handler) http.Handler {
 			h.Set("Strict-Transport-Security", "max-age=31536000")
 		}
 		// What is behind the sign-in is not kept by a browser or a proxy. Only
-		// the vendored assets are, and they set their own.
-		if !strings.HasPrefix(r.URL.Path, "/static/") {
+		// the vendored assets and the app's built files, named by their content, are.
+		if !strings.HasPrefix(r.URL.Path, "/static/") && !strings.HasPrefix(r.URL.Path, "/app/assets/") {
 			h.Set("Cache-Control", "no-store")
 		}
 		if r.Body != nil && r.Method != http.MethodGet && r.Method != http.MethodHead {

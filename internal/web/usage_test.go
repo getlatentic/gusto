@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -270,11 +271,15 @@ func TestASessionsCallsAreNarrowedByTheSearchInTheStore(t *testing.T) {
 
 func TestTheConsoleHasAUsagePageNextToSpending(t *testing.T) {
 	here, _ := withUsage(t, bothPeople()...)
-	page := here.ask(t, "GET", "/admin/usage", nil)
-	body := page.Body.String()
-	if page.Code != http.StatusOK || !strings.Contains(body, `href="/admin/usage" aria-current="page">Usage</a>`) || !strings.Contains(body, `href="/admin/spending"`) || !strings.Contains(body, `href="/admin/usage/alice-session"`) {
-		t.Errorf("the console page was %d:\n%s", page.Code, body)
+	if got := here.ask(t, "GET", "/admin/usage", nil); got.Code != http.StatusOK || !strings.Contains(got.Body.String(), `<div id="root">`) {
+		t.Errorf("the console usage page is not the app: %d", got.Code)
 	}
+	page := usagePageOf(t, here, "")
+	if page.Tabs.Summary != "/admin/spending" || page.Tabs.Current != "tasks" || !slices.Contains(page.sessionsOf(), "alice-session") {
+		t.Errorf("the console usage is not next to spending, or leaves out alice's session: %+v", page)
+	}
+	var session map[string]any
+	here.data(t, "/admin/usage/alice-session", &session)
 	if got := here.ask(t, "GET", "/admin/usage/alice-session", nil); got.Code != http.StatusOK {
 		t.Errorf("the console session page answered %d", got.Code)
 	}

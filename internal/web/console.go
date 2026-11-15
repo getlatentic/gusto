@@ -71,8 +71,6 @@ func (s *Server) drawConsole(w http.ResponseWriter, name, key string, page map[s
 }
 
 func (s *Server) consoleRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /admin", s.console(s.overviewPage))
-	mux.HandleFunc("GET /admin/spending", s.console(s.consoleSpend))
 	mux.HandleFunc("GET "+recordsPath, s.console(s.recordsPage))
 	mux.HandleFunc("GET "+appsPath, s.console(offering(s.hasAppsOrSkills, s.appsPage)))
 	mux.HandleFunc("GET /admin/ui-kit", s.console(s.uiKitPage))
@@ -102,7 +100,6 @@ func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST "+setupsPath+"/{name}/enable", setups(s.turnSetup(false)))
 	mux.HandleFunc("POST "+setupsPath+"/{name}/disable", setups(s.turnSetup(true)))
 
-	mux.HandleFunc("GET /admin/people", s.console(offering(s.hasRoster, s.peoplePage)))
 	mux.HandleFunc("GET "+budgetsPath, s.console(offering(s.hasOrgSettings, s.budgetsPage)))
 	mux.HandleFunc("POST /admin/budget", s.console(offering(s.hasOrgSettings, s.setBudget)))
 	mux.HandleFunc("POST /admin/member-budget", s.console(offering(s.hasOrgSettings, s.setMemberBudget)))

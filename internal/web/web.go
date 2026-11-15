@@ -1,9 +1,9 @@
 // Package web is the pages a person uses: start a harness, run work on it,
 // watch it happen, and read what every run left behind.
 //
-// Server-rendered, with the templates compiled into the binary, because a
-// customer installs one artifact and a second origin with its own build step is
-// not one artifact.
+// Drawn by the server from templates, and the console's pages by a React app
+// built from web/, both compiled into the binary, because a customer installs one
+// artifact and a second origin with its own build step is not one artifact.
 package web
 
 import (
@@ -263,6 +263,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /spend", s.guard(s.spendPage))
 	s.mountUsage(mux)
 	s.consoleRoutes(mux)
+	s.mountApp(mux)
 	mux.HandleFunc("GET /readyz", s.ready)
 	mux.HandleFunc("GET /metrics", s.sent(apitoken.Metrics, s.metrics))
 	// Conversations were held at /talk before an instance could hold more than
