@@ -218,7 +218,7 @@ func landingAt(t *testing.T, set Settings) (int, string, http.Header) {
 func TestWhereADemoIsOfferedTheFrontPageIsTheLandingPageAndSignUpMovesToItsOwnAddress(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		status, page, header := landingAt(t, demoSet)
-		for _, want := range []string{"One workspace for every AI agent your team uses.", "gusto", `href="/demo"`, "Try it now", `href="https://cal.example/gusto"`, "One workspace. One set of controls.", "How it works", "Tested across multiple agents.", "Pricing", "A person a month.", `rel="stylesheet" href="/static/cloud.css`} {
+		for _, want := range []string{"One workspace for every AI agent your team uses.", "gusto", `href="/demo"`, "Try it now", `href="https://cal.example/gusto"`, "Choose how to run gusto", "Start in two steps", "What you get from day one", "Works with your agents", "Tested across multiple agents.", "Simple pricing", "A person a month.", "Help and support", `data-copy="install"`, `id="f-agent"`, `rel="stylesheet" href="/static/cloud.css`} {
 			if !strings.Contains(strings.ToLower(page), strings.ToLower(want)) {
 				t.Errorf("the landing page does not say %q", want)
 			}
