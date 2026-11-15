@@ -30,6 +30,11 @@ const BudgetsPage = lazy(() =>
 const TokensPage = lazy(() =>
   import("@/pages/admin/tokens").then((m) => ({ default: m.TokensPage }))
 )
+const RecordsPage = lazy(() =>
+  import("@/pages/admin/records/records-page").then((m) => ({
+    default: m.RecordsPage,
+  }))
+)
 
 // The pages the gusto server hands to this app. Each address is also a route on the server, which serves this app for it
 // behind the same sign-in; any other address is a page the server draws.
@@ -47,6 +52,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="people" element={<PeoplePage />} />
               <Route path="budgets" element={<BudgetsPage />} />
               <Route path="tokens" element={<TokensPage />} />
+              <Route path="records" element={<RecordsPage />} />
             </Route>
           </Routes>
         </Suspense>

@@ -113,7 +113,7 @@ func consoleList(t *testing.T, here *site) []string {
 func TestTheConsoleListsASectionOnlyWhereTheServerHasIt(t *testing.T) {
 	plain := open(t)
 	plain.signIn(t)
-	seen := strings.Join(consoleList(t, plain), "\n") + "\n" + sectionsOf(t, plain.ask(t, "GET", "/admin/records", nil).Body.String())
+	seen := strings.Join(consoleList(t, plain), "\n") + "\n" + sectionsOf(t, plain.ask(t, "GET", uiKitPath, nil).Body.String())
 	for _, want := range []string{"Overview /admin\n", "Usage /admin/usage\n", "/admin/apps", "/admin/records"} {
 		if !strings.Contains(seen, want) {
 			t.Errorf("a plain server does not list %s: %s", want, seen)
@@ -134,7 +134,7 @@ func TestAFullConsoleListsItsSectionsInOrder(t *testing.T) {
 	if got, want := strings.Join(consoleList(t, admin), ", "), "Overview /admin, Usage /admin/usage, Budgets /admin/budgets, People /admin/people, Models /admin/models, Apps & skills /admin/apps, Records /admin/records"; got != want {
 		t.Errorf("the app's console lists\n%s\nand not\n%s", got, want)
 	}
-	seen := sectionsOf(t, admin.ask(t, "GET", "/admin/records", nil).Body.String())
+	seen := sectionsOf(t, admin.ask(t, "GET", uiKitPath, nil).Body.String())
 	var got []string
 	for _, link := range sectionLink.FindAllStringSubmatch(seen, -1) {
 		got = append(got, link[2]+" "+link[1])
@@ -153,7 +153,7 @@ func TestAFullConsoleListsItsSectionsInOrder(t *testing.T) {
 	}
 }
 
-// A page under a section marks that section, so a skill set's page is in Apps & skills and a tab of Records is in Records.
+// A page under a section marks that section, so a skill set's page is in Apps & skills.
 func TestTheConsoleMarksTheSectionAPageBelongsTo(t *testing.T) {
 	admin := everything(t).as(t, boss)
 	admin.ask(t, "POST", "/admin/skill-sets", url.Values{"name": {"reviewer"}})
@@ -161,8 +161,6 @@ func TestTheConsoleMarksTheSectionAPageBelongsTo(t *testing.T) {
 	for path, want := range map[string]string{
 		"/admin/apps?tab=skills":     "/admin/apps",
 		"/admin/skill-sets/reviewer": "/admin/apps",
-		"/admin/records?tab=checks":  "/admin/records",
-		"/admin/records?tab=keeping": "/admin/records",
 	} {
 		marked := current.FindStringSubmatch(sectionsOf(t, admin.ask(t, "GET", path, nil).Body.String()))
 		if marked == nil || marked[1] != want {
@@ -194,13 +192,10 @@ func TestTheOldConsolePagesGoToTheirTabs(t *testing.T) {
 	}
 }
 
-func TestEachTabOfAppsAndRecordsShowsItsOwnPart(t *testing.T) {
+func TestEachTabOfAppsShowsItsOwnPart(t *testing.T) {
 	admin := everything(t).as(t, boss)
 	for path, want := range map[string][]string{
-		"/admin/apps":                {"Apps &amp; skills", "What agents may use, for everyone in", "Add a skill", "Write a skill set", "Import from git", "Import an upload", `action="/admin/integrations/import"`},
-		"/admin/records":             {"Records", "A signed record of everything", "Intact", " signed", "How to check it yourself", `href="/admin/activity.jsonl"`},
-		"/admin/records?tab=checks":  {"Task checks", "Intact", "verified", "failed the check"},
-		"/admin/records?tab=keeping": {"Keeping", "Intact", "Sweep now", `action="/admin/retention/holds"`, `action="/admin/retention/jobs/hold"`},
+		"/admin/apps": {"Apps &amp; skills", "What agents may use, for everyone in", "Add a skill", "Write a skill set", "Import from git", "Import an upload", `action="/admin/integrations/import"`},
 	} {
 		page := admin.ask(t, "GET", path, nil)
 		if page.Code != http.StatusOK {
@@ -211,9 +206,6 @@ func TestEachTabOfAppsAndRecordsShowsItsOwnPart(t *testing.T) {
 				t.Errorf("%s does not say %q", path, each)
 			}
 		}
-	}
-	if page := admin.ask(t, "GET", "/admin/records?tab=checks", nil).Body.String(); strings.Contains(page, "How to check it yourself") || strings.Contains(page, "Sweep now") {
-		t.Error("the task checks tab carries another tab's part")
 	}
 }
 
@@ -260,7 +252,7 @@ func TestOnlyAnAdminSeesTheLinkToTheConsoleAndItIsTheOnlyOne(t *testing.T) {
 
 func TestTheConsoleHasOneLinkBack(t *testing.T) {
 	admin := everything(t).as(t, boss)
-	for _, path := range []string{"/admin/records", "/admin/records?tab=keeping", "/admin/apps?tab=skills"} {
+	for _, path := range []string{"/admin/apps?tab=skills"} {
 		page := admin.ask(t, "GET", path, nil).Body.String()
 		if got := strings.Count(page, `href="/"`); got != 1 || !strings.Contains(page, "Back to gusto") {
 			t.Errorf("%s has %d links to the employee's pages", path, got)
@@ -330,7 +322,7 @@ func TestTheConsoleNamesTheOrganizationAndAnotherOrganizationsTokenDoesNotOpenIt
 	if org := here.server.front.page("/org", nil); shell.OrgPage != org {
 		t.Errorf("the console links to the organization page %q, not %s", shell.OrgPage, org)
 	}
-	page := here.ask(t, "GET", "/admin/records", nil).Body.String()
+	page := here.ask(t, "GET", uiKitPath, nil).Body.String()
 	if !strings.Contains(page, ">acme-com</span>") || !strings.Contains(page, `href="`+html.EscapeString(here.server.front.page("/org", nil))+`">`) {
 		t.Errorf("the console drawn here does not say whose it is, or link to its organization page:\n%s", page)
 	}

@@ -14,7 +14,9 @@ const (
 	keepingTab  = recordsPath + "?tab=keeping"
 )
 
-func (s *Server) recordsPage(w http.ResponseWriter, r *http.Request) {
+// recordsTabs are the views of Records this server has: the activity log where it keeps one, the task checks, and keeping where
+// it removes work.
+func (s *Server) recordsTabs() []tab {
 	var tabs []tab
 	if s.hasChanges() {
 		tabs = append(tabs, tab{Key: "activity", Label: "Activity"})
@@ -23,27 +25,36 @@ func (s *Server) recordsPage(w http.ResponseWriter, r *http.Request) {
 	if s.hasRetention() {
 		tabs = append(tabs, tab{Key: "keeping", Label: "Keeping"})
 	}
-	tabs, chosen := chooseTab(r, recordsPath, tabs)
+	return tabs
+}
+
+// recordsData is the record's health on every tab, and the chosen tab's own part.
+func (s *Server) recordsData(r *http.Request) (map[string]any, error) {
+	tabs, chosen := chooseTab(r, recordsPath, s.recordsTabs())
 	checks := s.checkRuns()
-	health := s.recordHealth(checks)
 	page := map[string]any{
-		"Title": productName + " — records", "Tabs": tabs, "Tab": chosen, "Refused": s.refusal(r),
-		"Health": health, "Logged": s.hasChanges(),
+		"Tabs": tabs, "Tab": chosen, "Refused": s.refusal(r), "Health": s.recordHealth(checks), "Logged": s.hasChanges(),
 	}
 	switch chosen {
 	case "activity":
-		withServer := r.URL.Query().Has("server")
-		page["Rows"], page["LeftOut"] = s.recentChanges(withServer)
-		page["WithServer"] = withServer
+		page["Activity"] = s.activityOf(r)
 	case "checks":
 		page["Checks"] = checks
 	case "keeping":
-		if err := s.keepingInto(page); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		keeping, err := s.keepingOf()
+		if err != nil {
+			return nil, err
 		}
+		page["Keeping"] = keeping
 	}
-	s.drawConsole(w, "admin-records.html", "records", page)
+	return page, nil
+}
+
+// activityOf is the newest events, with the server starting left out unless the address asks for it.
+func (s *Server) activityOf(r *http.Request) map[string]any {
+	withServer := r.URL.Query().Has("server")
+	rows, leftOut := s.recentChanges(withServer)
+	return map[string]any{"Rows": rows, "LeftOut": leftOut, "WithServer": withServer}
 }
 
 // health is the record in one line: whether the activity log's chain holds and is signed, and whether the newest finished runs

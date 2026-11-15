@@ -150,12 +150,15 @@ func TestTheActivityPageShowsWhatGustoCloudReportedInWords(t *testing.T) {
 		adminDid(changelog.MemberRole, time.Now(), map[string]string{"email": "bob@acme.com", "was": "runner", "now": "admin"}),
 		adminDid(changelog.MemberRemoved, time.Now(), map[string]string{"email": "bob@acme.com", "role": "admin"}),
 	)
-	page := admin.ask(t, "GET", "/admin/records", nil).Body.String()
+	page := admin.dataText(t, recordsPath)
+	if health := recordsPage(t, admin, "").Health; health.LogBad {
+		t.Errorf("what gusto cloud reported breaks the chain: %+v", health)
+	}
 	for _, want := range []string{
 		"invited bob@acme.com to join as a runner",
 		"changed the role of bob@acme.com from runner to admin",
 		"removed bob@acme.com, who was admin",
-		"ada@acme.com", "203.0.113.9", "the chain holds",
+		"ada@acme.com", "203.0.113.9",
 	} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the page does not say %q:\n%s", want, page)

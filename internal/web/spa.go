@@ -57,6 +57,7 @@ func (s *Server) appViews() []appView {
 		{peoplePath, s.hasRoster, s.peopleData},
 		{budgetsPath, s.hasOrgSettings, s.budgetsData},
 		{tokensPath, s.hasTokens, s.tokensData},
+		{recordsPath, always, s.recordsData},
 	}
 }
 

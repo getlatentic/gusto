@@ -231,10 +231,14 @@ func TestOnlyAnAdminSeesTheChangesAndCanDownloadThem(t *testing.T) {
 	if page.Code != http.StatusOK {
 		t.Fatalf("an admin got %d", page.Code)
 	}
-	for _, want := range []string{"created skill set reviewer", "admin@example.com", "the chain holds", "gusto changes verify"} {
-		if !strings.Contains(page.Body.String(), want) {
-			t.Errorf("the page does not say %q:\n%s", want, page.Body.String())
+	shown, text := recordsPage(t, admin, ""), admin.dataText(t, recordsPath)
+	for _, want := range []string{"created skill set reviewer", "admin@example.com"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("the page does not say %q:\n%s", want, text)
 		}
+	}
+	if shown.Health.LogBad || shown.Health.Head == "" {
+		t.Errorf("the page does not give the head to check the chain with: %+v", shown.Health)
 	}
 	download := admin.ask(t, "GET", "/admin/activity.jsonl", nil)
 	if download.Code != http.StatusOK || !strings.Contains(download.Header().Get("Content-Disposition"), "changes.jsonl") {
@@ -244,7 +248,7 @@ func TestOnlyAnAdminSeesTheChangesAndCanDownloadThem(t *testing.T) {
 	if err != nil || report.Events < 1 || report.Signers["acme"] != report.Events {
 		t.Errorf("what was downloaded does not verify: %+v %v", report, err)
 	}
-	if signed := eventsSaid(report.Events, report.Signed); report.Signed != report.Events || !strings.Contains(page.Body.String(), signed) {
+	if signed := eventsSaid(report.Events, report.Signed); report.Signed != report.Events || shown.Health.Log != signed {
 		t.Errorf("the page does not count the signed lines as %q", signed)
 	}
 
@@ -282,8 +286,8 @@ func TestAScriptWithThePasswordReadsTheSameRecord(t *testing.T) {
 func TestWithNoLogNothingIsRecordedAndNobodyIsShownAPage(t *testing.T) {
 	here := open(t)
 	here.signIn(t)
-	page := here.ask(t, "GET", "/admin/records", nil).Body.String()
-	if strings.Contains(page, "tab=activity") || strings.Contains(page, "/admin/activity.jsonl") {
+	page := here.dataText(t, recordsPath)
+	if strings.Contains(page, "tab=activity") || strings.Contains(page, "/admin/activity.jsonl") || recordsPage(t, here, "").Logged {
 		t.Errorf("with no log the records offer its activity:\n%s", page)
 	}
 	if got := here.ask(t, "GET", "/admin/activity.jsonl", nil); got.Code != http.StatusNotFound {

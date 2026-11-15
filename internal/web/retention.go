@@ -147,13 +147,14 @@ func (r *retained) measure(s *Server) retention.Usage {
 	return r.usage
 }
 
-// keepingInto puts on a page what the disk holds, the policy, the holds, and what the last and the next sweep remove.
-func (s *Server) keepingInto(page map[string]any) error {
+// keepingOf is what the disk holds, the policy, the holds, and what the last and the next sweep remove.
+func (s *Server) keepingOf() (map[string]any, error) {
 	held, err := s.retention.holds.Read()
 	if err != nil {
-		return fmt.Errorf("the holds could not be read: %w", err)
+		return nil, fmt.Errorf("the holds could not be read: %w", err)
 	}
 	used := s.retention.measure(s)
+	page := map[string]any{}
 	page["Used"], page["WorkingFolders"], page["Jobs"] = size(used.Bytes), size(used.WorkingFolders), used.Tasks
 	page["Policy"], page["Removes"] = s.retention.policy.Rows(), s.retention.policy.Any()
 	page["HeldTasks"], page["HeldPeople"] = held.Tasks, held.People
@@ -167,7 +168,7 @@ func (s *Server) keepingInto(page map[string]any) error {
 	}
 	upcoming := retention.Sweep(s.index, s.index.Root(), s.retention.policy, held, s.roomKept, time.Now(), true)
 	page["Upcoming"], page["UpcomingFreed"] = upcoming.Actions, size(sumBytes(upcoming))
-	return nil
+	return page, nil
 }
 
 func sumBytes(report retention.Report) int64 {

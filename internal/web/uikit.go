@@ -2,6 +2,9 @@ package web
 
 import "net/http"
 
+// uiKitPath is the console's page of the shared pieces, drawn from the server's templates.
+const uiKitPath = "/admin/ui-kit"
+
 // uiKitPage draws every shared piece in every state beside the colours and type they are made of, so that a change to one is seen on all of them.
 func (s *Server) uiKitPage(w http.ResponseWriter, r *http.Request) {
 	s.drawConsole(w, "admin-ui-kit.html", "ui-kit", map[string]any{

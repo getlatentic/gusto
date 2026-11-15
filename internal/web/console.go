@@ -72,9 +72,8 @@ func (s *Server) drawConsole(w http.ResponseWriter, name, key string, page map[s
 
 func (s *Server) consoleRoutes(mux *http.ServeMux) {
 	s.mountApp(mux)
-	mux.HandleFunc("GET "+recordsPath, s.console(s.recordsPage))
 	mux.HandleFunc("GET "+appsPath, s.console(offering(s.hasAppsOrSkills, s.appsPage)))
-	mux.HandleFunc("GET /admin/ui-kit", s.console(s.uiKitPage))
+	mux.HandleFunc("GET "+uiKitPath, s.console(s.uiKitPage))
 
 	changes := func(next http.HandlerFunc) http.HandlerFunc { return s.console(offering(s.hasChanges, next)) }
 	mux.HandleFunc("GET /admin/activity.jsonl", changes(s.changesFile))

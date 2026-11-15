@@ -40,4 +40,39 @@ describe("the console", () => {
     expect(links.filter((href) => !href?.startsWith("/admin"))).toEqual(["/"])
     expect(screen.getByRole("link", { name: "Back to gusto" })).toBeTruthy()
   })
+
+  it("marks the section a tab of a page belongs to", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              sections: [
+                { key: "overview", href: "/admin", label: "Overview" },
+                { key: "records", href: "/admin/records", label: "Records" },
+              ],
+            })
+          )
+      )
+    )
+    render(
+      <TooltipProvider>
+        <MemoryRouter initialEntries={["/admin/records?tab=keeping"]}>
+          <Routes>
+            <Route path="/admin" element={<ConsoleShell />}>
+              <Route path="records" element={<p>records</p>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </TooltipProvider>
+    )
+    const current = await screen.findByRole("link", { name: "Records" })
+    expect(current.getAttribute("aria-current")).toBe("page")
+    expect(
+      screen
+        .getByRole("link", { name: "Overview" })
+        .getAttribute("aria-current")
+    ).toBeNull()
+  })
 })
