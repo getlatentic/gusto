@@ -38,15 +38,12 @@ describe("the task checks tab", () => {
       })
     )
     expect(await screen.findByText("Needs a look")).toBeTruthy()
-    for (const label of ["verified", "not signed", "failed the check"]) {
+    for (const label of ["Verified", "Not signed", "Failed"]) {
       expect(screen.getByText(label)).toBeTruthy()
     }
-    expect(screen.getByText("failed the check").nextSibling!.textContent).toBe(
-      "1"
-    )
+    expect(screen.getByText("Failed").nextSibling!.textContent).toBe("1")
     expect(
-      (screen.getByText("failed the check").nextSibling as HTMLElement)
-        .className
+      (screen.getByText("Failed").nextSibling as HTMLElement).className
     ).toContain("text-bad")
     expect(
       screen

@@ -8,7 +8,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { plural } from "@/lib/format"
-import { Figure, Figures, Section } from "@/pages/admin/records/figures"
+import { Figure, Figures } from "@/components/figures"
+import { Section } from "@/pages/admin/records/section"
 import { Holds } from "@/pages/admin/records/holds"
 import type { Keeping, PolicyRow } from "@/pages/admin/records/types"
 
@@ -19,26 +20,25 @@ export function KeepingTab({ keeping }: { keeping: Keeping }) {
       <Figures>
         <Figure
           value={keeping.Used}
-          label={`used by ${keeping.Jobs} ${plural(keeping.Jobs, "task")}`}
+          label="Stored"
+          detail={`by ${keeping.Jobs} ${plural(keeping.Jobs, "task")}`}
         />
+        <Figure value={keeping.WorkingFolders} label="Working folders" />
         <Figure
-          value={keeping.WorkingFolders}
-          label="of it in working folders"
-        />
-        <Figure
-          value={keeping.OldestAt || "none"}
-          label={
+          value={
             keeping.Oldest ? (
-              <>
-                oldest task kept,{" "}
-                <a className="underline" href={`/jobs/${keeping.Oldest}`}>
-                  {keeping.Oldest}
-                </a>
-              </>
+              <a
+                className="text-inherit no-underline underline-offset-4 hover:underline"
+                href={`/jobs/${keeping.Oldest}`}
+                title={keeping.Oldest}
+              >
+                {keeping.OldestAt}
+              </a>
             ) : (
-              "no task has finished"
+              "—"
             )
           }
+          label="Oldest task"
         />
       </Figures>
       <div className="grid gap-9">
@@ -56,8 +56,13 @@ export function KeepingTab({ keeping }: { keeping: Keeping }) {
   )
 }
 
+// days is how long a policy keeps something; nothing set keeps it for good.
 const days = (count: number) =>
-  count ? `${count} days` : <span className="text-muted-foreground">kept</span>
+  count ? (
+    `${count} days`
+  ) : (
+    <span className="text-muted-foreground">Forever</span>
+  )
 
 function Policy({ keeping }: { keeping: Keeping }) {
   if (!keeping.Removes) {
@@ -73,19 +78,15 @@ function Policy({ keeping }: { keeping: Keeping }) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="whitespace-normal">A task that</TableHead>
-          <TableHead className="whitespace-normal">
-            loses its working folder after
-          </TableHead>
-          <TableHead className="whitespace-normal">
-            loses its record after
-          </TableHead>
+          <TableHead>Task</TableHead>
+          <TableHead>Folder kept</TableHead>
+          <TableHead>Record kept</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {(keeping.Policy ?? []).map((row: PolicyRow) => (
           <TableRow key={row.State}>
-            <TableCell>{row.State}</TableCell>
+            <TableCell className="capitalize">{row.State}</TableCell>
             <TableCell>{days(row.WorkingFolder)}</TableCell>
             <TableCell>{days(row.Record)}</TableCell>
           </TableRow>

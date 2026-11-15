@@ -28,8 +28,12 @@ describe("records", () => {
       "/admin/records?tab=checks",
       "/admin/records?tab=keeping",
     ])
-    expect(screen.getByRole("status").textContent).toBe(
-      "Intact · 3 events, all signed · the last task checks out"
+    const health = screen.getByRole("status")
+    expect(health.textContent).toBe(
+      "Intact: 3 events, all signed, the last task checks out"
+    )
+    expect(health.querySelector("[title]")!.getAttribute("title")).toBe(
+      "3 events, all signed, the last task checks out"
     )
     everyControlIsNamed()
   })
@@ -59,7 +63,7 @@ describe("records", () => {
       })
     )
     expect((await screen.findByRole("status")).textContent).toBe(
-      "Intact · the last task checks out"
+      "Intact: the last task checks out"
     )
     expect(screen.queryByRole("button", { name: "More" })).toBeNull()
     expect(screen.queryByRole("tab")).toBeNull()

@@ -44,15 +44,16 @@ const formOf = (button: string) =>
 describe("the keeping tab", () => {
   it("says what the disk holds and the policy that removes it", async () => {
     drawKeeping()
-    expect(await screen.findByText("used by 1 task")).toBeTruthy()
-    expect(screen.getByText("of it in working folders")).toBeTruthy()
-    expect(
-      screen.getByRole("link", { name: "a-week-old" }).getAttribute("href")
-    ).toBe("/jobs/a-week-old")
+    for (const label of ["Stored", "Working folders", "Oldest task"]) {
+      expect(await screen.findByText(label)).toBeTruthy()
+    }
+    expect(screen.getByTitle("by 1 task")).toBeTruthy()
+    const oldest = screen.getByTitle("a-week-old")
+    expect(oldest.getAttribute("href")).toBe("/jobs/a-week-old")
     const passed = screen.getByText("passed").closest("tr")!
     expect(passed.textContent).toBe("passed7 days90 days")
     expect(screen.getByText("failed").closest("tr")!.textContent).toBe(
-      "failedkeptkept"
+      "failedForeverForever"
     )
     everyControlIsNamed()
   })
@@ -70,8 +71,7 @@ describe("the keeping tab", () => {
       "The policy removes nothing. Set workspaceDays and recordDays by state in policy.json in GUSTO_RETENTION."
     )
     expect(screen.getByText("Nothing is due.")).toBeTruthy()
-    expect(screen.getByText("no task has finished")).toBeTruthy()
-    expect(screen.getByText("none")).toBeTruthy()
+    expect(screen.getByText("Oldest task").nextSibling!.textContent).toBe("—")
   })
 
   it("lists what a sweep now would remove, makes one, and says what the last did", async () => {

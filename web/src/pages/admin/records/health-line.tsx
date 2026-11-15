@@ -1,7 +1,8 @@
 import { Notice } from "@/components/page"
 import type { Health } from "@/pages/admin/records/types"
 
-// HealthLine is the record in one line at the top of every tab: a quiet line with a dot when all holds, and a notice when not.
+// HealthLine is the record's verdict at the top of every tab: one quiet word when all holds, with what was checked for a
+// screen reader and on hover, and a notice saying what is wrong when not.
 export function HealthLine({ health }: { health: Health }) {
   if (health.Broken || health.LogBad || health.RunsBad) {
     return (
@@ -15,6 +16,9 @@ export function HealthLine({ health }: { health: Health }) {
       </Notice>
     )
   }
+  const detail = [health.Logged && health.Log, health.Runs]
+    .filter(Boolean)
+    .join(", ")
   return (
     <p
       role="status"
@@ -24,8 +28,8 @@ export function HealthLine({ health }: { health: Health }) {
         className="mt-1.5 size-2 flex-none rounded-full bg-ok"
         aria-hidden="true"
       />
-      <span>
-        Intact{health.Logged && ` · ${health.Log}`} · {health.Runs}
+      <span title={detail}>
+        Intact<span className="sr-only">: {detail}</span>
       </span>
     </p>
   )

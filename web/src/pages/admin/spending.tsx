@@ -3,6 +3,7 @@ import { useNavigate } from "react-router"
 import { Loading } from "@/components/controls"
 import { PageBar, PageBody, PageSub } from "@/components/page"
 import { UsageTabsFor } from "@/pages/admin/usage-tabs"
+import { Figure, Figures } from "@/components/figures"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Select,
@@ -19,7 +20,6 @@ import {
 import { usePageData } from "@/lib/api"
 import { compact, percent, usd } from "@/lib/format"
 import type { SpendingData } from "@/lib/types"
-import { cn } from "@/lib/utils"
 
 // The summary of the usage: what agents cost this month, day by day, and what was used most.
 export function SpendingPage() {
@@ -70,35 +70,41 @@ export function SpendingPage() {
 function Spending({ ledger }: { ledger: SpendingData["Ledger"] }) {
   const total = ledger.total
   const spent = total.usd === 0 && total.unmeasured > 0 ? "—" : usd(total.usd)
-  const caption =
-    total.unmeasured === 0
-      ? "spent this month"
-      : total.calls === total.unmeasured
-        ? "no price set for these models"
-        : "spent this month, at least"
+  const priced = total.unmeasured === 0
+  const noPrice = total.calls > 0 && total.calls === total.unmeasured
   return (
     <>
-      <section className="mb-9 grid grid-cols-[repeat(auto-fit,minmax(min(9rem,100%),1fr))] gap-3">
-        <Figure value={spent} label={caption} headline />
+      <Figures className="mb-9">
+        <Figure
+          value={spent}
+          label="Spent"
+          detail={
+            noPrice
+              ? "no price is set for these models"
+              : priced
+                ? undefined
+                : "at least: some calls have no price"
+          }
+          headline
+        />
         <Figure
           value={String(total.calls)}
-          label={
-            total.uncounted
-              ? `model calls, ${total.uncounted} uncounted`
-              : "model calls"
-          }
+          label="Model calls"
+          detail={total.uncounted ? `${total.uncounted} uncounted` : undefined}
         />
+        <Figure value={compact(total.inputTokens)} label="Tokens in" />
         <Figure
-          value={compact(total.inputTokens)}
-          label={`tokens in, ${percent(total.cachedTokens, total.inputTokens)} cached`}
+          value={percent(total.cachedTokens, total.inputTokens)}
+          label="Cached"
         />
-        <Figure value={compact(total.outputTokens)} label="tokens out" />
+        <Figure value={compact(total.outputTokens)} label="Tokens out" />
         <Figure
           value={String(total.refused)}
-          label="refused by a cap"
+          label="Refused"
+          detail="refused by a cap"
           bad={total.refused > 0}
         />
-      </section>
+      </Figures>
 
       <Card className="mb-4">
         <CardContent>
@@ -164,36 +170,5 @@ function Spending({ ledger }: { ledger: SpendingData["Ledger"] }) {
         Priced from this deployment's price list, not reconciled with invoices.
       </p>
     </>
-  )
-}
-
-function Figure({
-  value,
-  label,
-  headline,
-  bad,
-}: {
-  value: string
-  label: string
-  headline?: boolean
-  bad?: boolean
-}) {
-  return (
-    <Card className="py-4">
-      <CardContent className="flex flex-col-reverse justify-between gap-2 px-4">
-        <span className="text-xs font-medium text-muted-foreground">
-          {label}
-        </span>
-        <span
-          className={cn(
-            "font-numeric text-2xl font-semibold tabular-nums",
-            headline && "text-brand-ink",
-            bad && "text-bad"
-          )}
-        >
-          {value}
-        </span>
-      </CardContent>
-    </Card>
   )
 }

@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { plural } from "@/lib/format"
-import { Figure, Figures } from "@/pages/admin/records/figures"
+import { Figure, Figures } from "@/components/figures"
 import type { CheckedRun, RunChecks } from "@/pages/admin/records/types"
 
 // The server's word for a run whose files no longer match; the page says it in one word.
@@ -28,11 +28,11 @@ export function ChecksTab({ checks }: { checks: RunChecks }) {
         </Notice>
       )}
       <Figures>
-        <Figure value={checks.Verified} label="verified" />
-        <Figure value={checks.Unsigned} label="not signed" />
+        <Figure value={checks.Verified} label="Verified" />
+        <Figure value={checks.Unsigned} label="Not signed" />
         <Figure
           value={checks.Failing}
-          label="failed the check"
+          label="Failed"
           bad={checks.Failing > 0}
         />
       </Figures>
