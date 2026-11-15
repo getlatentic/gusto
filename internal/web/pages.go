@@ -145,24 +145,40 @@ func headlineUSD(amount float64) string {
 	return fmt.Sprintf("$%.4f", amount)
 }
 
+// loginPage is the sign-in page, for whoever is not signed in yet.
 func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 	if s.keeper.knows(r) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
-	wrong := r.URL.Query().Get("wrong") != ""
-	s.render(w, "login.html", map[string]any{
-		"Wrong":    wrong,
-		"Local":    s.local != nil,
-		"Refused":  s.refusal(r),
-		"Identity": s.identity.Configured(),
-		"Provider": s.identity.Configured(),
-		"Desktop":  r.URL.Query().Has("desktop"),
-		// With a provider the shared password is the way in when the provider
-		// is not, so it stays reachable and stops being the second thing on
-		// the page. A wrong one keeps it open, or there is nowhere to try again.
-		"Shared": !s.identity.Configured() || wrong || r.URL.Query().Has("shared"),
-	})
+	s.publicPage(w, r)
+}
+
+// signInView is what the sign-in page offers. Wrong is a shared password that was not right, and Local a server on a person's own
+// computer, which opens with a link and not a password. Identity is the provider to sign in with, and Provider that there is one,
+// which in the desktop app is a browser to continue in. Shared is whether the shared password's form is open.
+type signInView struct {
+	Wrong, Local, Identity, Provider, Desktop, Shared bool
+	Refused                                           string
+}
+
+// loginData is what the sign-in page offers. Behind gusto cloud the page is only the desktop app's, which continues in the
+// person's browser, since gusto cloud is where people sign in.
+func (s *Server) loginData(r *http.Request) (map[string]any, error) {
+	query := r.URL.Query()
+	view := signInView{Desktop: true, Provider: true}
+	if s.front == nil {
+		wrong := query.Get("wrong") != ""
+		view = signInView{
+			Wrong: wrong, Local: s.local != nil,
+			Identity: s.identity.Configured(), Provider: s.identity.Configured(), Desktop: query.Has("desktop"),
+			// With a provider the shared password is the way in when the provider is not, so it stays reachable and stops being the
+			// second thing on the page. A wrong one keeps it open, or there is nowhere to try again.
+			Shared: !s.identity.Configured() || wrong || query.Has("shared"),
+		}
+	}
+	view.Refused = s.refusal(r)
+	return map[string]any{"SignIn": view}, nil
 }
 
 func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {

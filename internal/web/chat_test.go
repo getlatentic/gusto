@@ -118,21 +118,23 @@ func TestAPresetIsSavedFromTheChatAndOffered(t *testing.T) {
 	if offered, found := chat.roleOf(chat.Role); !found || !strings.HasPrefix(chat.Role, "p:") || offered.Label != "Reviewer" {
 		t.Errorf("the chat does not offer the preset and open on it: %q of %+v", chat.Role, chat.Roles)
 	}
-	if roles := mine.ask(t, "GET", "/presets", nil).Body.String(); !strings.Contains(roles, "Reviewer") || !strings.Contains(roles, "Use in a new chat") {
-		t.Error("the roles page does not list the preset")
+	id := strings.TrimPrefix(where, "/chat?preset=")
+	if roles := presetsOf(t, mine); !roles.saved("Reviewer") || roles.Presets[0].ID != id || roles.Presets[0].Line != "Software engineer on fixture with Test Model" {
+		t.Errorf("the presets page does not list the preset in words: %+v", roles.Presets)
 	}
-	if other := theirs.ask(t, "GET", "/presets", nil).Body.String(); strings.Contains(other, "Reviewer") {
+	if other := presetsOf(t, theirs); other.saved("Reviewer") {
 		t.Error("somebody else sees the preset")
 	}
-	id := strings.TrimPrefix(where, "/chat?preset=")
 	if gone := theirs.ask(t, "POST", "/presets/"+id+"/delete", nil); gone.Code != http.StatusSeeOther {
 		t.Fatalf("deleting answered %d", gone.Code)
 	}
-	if page := mine.ask(t, "GET", "/presets", nil).Body.String(); !strings.Contains(page, "Reviewer") {
+	if page := presetsOf(t, mine); !page.saved("Reviewer") {
 		t.Error("somebody else removed the preset")
 	}
-	mine.ask(t, "POST", "/presets/"+id+"/delete", nil)
-	if page := mine.ask(t, "GET", "/presets", nil).Body.String(); strings.Contains(page, "Reviewer") {
+	if removed := mine.ask(t, "POST", "/presets/"+id+"/delete", nil); removed.Header().Get("Location") != "/presets" {
+		t.Errorf("removing a preset went to %q", removed.Header().Get("Location"))
+	}
+	if page := presetsOf(t, mine); page.saved("Reviewer") {
 		t.Error("the preset was not removed")
 	}
 }

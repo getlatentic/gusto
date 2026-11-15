@@ -6,6 +6,7 @@ const placeOf: [RegExp, Place][] = [
   [/^\/(chat|instances\/[^/]+\/threads|rooms)(\/|$)/, "chat"],
   [/^\/files(\/|$)/, "files"],
   [/^\/(members|presets|harnesses)(\/|$)/, "members"],
+  [/^\/(setups|templates|new\/blank|instances\/new)(\/|$)/, "members"],
   [/^\/usage(\/|$)/, "usage"],
   [/^\/connections(\/|$)/, "connections"],
 ]

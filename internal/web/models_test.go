@@ -38,8 +38,8 @@ func TestEveryEngineStartsOnEveryModelOfferedAndOnNoOther(t *testing.T) {
 			}
 		}
 	}
-	if page := site.ask(t, "GET", "/new/blank", nil).Body.String(); !strings.Contains(page, `value="claude"`) || !strings.Contains(page, `value="fixture"`) {
-		t.Errorf("the form offers every engine:\n%s", page)
+	if page := blankOf(t, site); !page.engine("claude") || !page.engine("fixture") {
+		t.Errorf("the form offers every engine: %+v", page.Engines)
 	}
 	before := len(site.server.instances.List())
 	if got := site.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}, "model": {"platform/nothing"}}); !strings.Contains(got.Header().Get("Location"), "refused=") {

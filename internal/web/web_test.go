@@ -191,7 +191,7 @@ func TestSomebodySignedInSeesWhatTheyCanStart(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	answer := site.ask(t, "GET", "/presets", nil)
-	if answer.Code != http.StatusOK || !strings.Contains(answer.Body.String(), `href="/templates/education"`) {
+	if answer.Code != http.StatusOK || presetsOf(t, site).role(t, "education").Title == "" {
 		t.Fatalf("the new agent page does not offer templates: %d", answer.Code)
 	}
 }
@@ -422,20 +422,19 @@ func TestTheSharedPasswordIsNotOfferedBesideAProvider(t *testing.T) {
 	}
 	site := &site{handler: server.Handler(), index: index}
 
-	plain := site.ask(t, "GET", "/login", nil).Body.String()
-	if strings.Contains(plain, `name="password"`) {
+	plain := signInOf(t, site, "")
+	if plain.Shared {
 		t.Error("the sign-in page offers the shared password beside the provider")
 	}
-	if !strings.Contains(plain, "/login?shared") {
+	// The page links to /login?shared for whoever wants the shared password, when there is a provider and no form.
+	if !plain.Identity || plain.Desktop {
 		t.Error("the shared password cannot be reached at all")
 	}
-	asked := site.ask(t, "GET", "/login?shared", nil).Body.String()
-	if !strings.Contains(asked, `name="password"`) {
+	if asked := signInOf(t, site, "?shared"); !asked.Shared {
 		t.Error("the shared password is not offered to somebody who asked for it")
 	}
 	// A wrong one keeps it open, or there is nowhere to try again.
-	wrong := site.ask(t, "GET", "/login?wrong=1", nil).Body.String()
-	if !strings.Contains(wrong, `name="password"`) {
+	if wrong := signInOf(t, site, "?wrong=1"); !wrong.Shared || !wrong.Wrong {
 		t.Error("a wrong password left nowhere to try again")
 	}
 }
@@ -466,8 +465,7 @@ func TestACostIsShownAsMoneyAndNotAsAPointer(t *testing.T) {
 func TestABlankAgentStartsWithOneButton(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	body := site.ask(t, "GET", "/new/blank", nil).Body.String()
-	if !strings.Contains(body, `action="/instances"`) || !strings.Contains(body, `value="fixture"`) {
+	if page := blankOf(t, site); !page.engine("fixture") {
 		t.Error("the blank page does not offer to start anything")
 	}
 	started := site.ask(t, "POST", "/instances", url.Values{"title": {"Research helper"}})
@@ -479,26 +477,46 @@ func TestABlankAgentStartsWithOneButton(t *testing.T) {
 	}
 }
 
+// The words of the pages a person starts an agent from never say harness; the page's own words are checked where it is built.
 func TestThePagesAPersonStartsAnAgentFromNeverSayHarness(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	for _, path := range []string{"/presets", "/new/blank", "/instances/new?harness=fixture", "/setups"} {
-		body := strings.NewReplacer("harness=", "", `name="harness"`, "").Replace(site.ask(t, "GET", path, nil).Body.String())
-		if strings.Contains(strings.ToLower(body), "harness") {
-			i := strings.Index(strings.ToLower(body), "harness")
-			t.Errorf("%s says harness to a person: ...%s...", path, body[max(i-60, 0):min(i+60, len(body))])
+	for _, path := range []string{"/presets", "/new/blank", "/instances/new?harness=fixture", "/setups", "/templates/health"} {
+		var page any
+		site.data(t, path, &page)
+		for _, words := range wordsIn(page) {
+			if strings.Contains(strings.ToLower(strings.ReplaceAll(words, "harness=", "")), "harness") {
+				t.Errorf("%s says harness to a person: %q", path, words)
+			}
 		}
 	}
 }
 
-func TestThePresetsPageOffersPresetsAndDoesNotSayHarness(t *testing.T) {
+// wordsIn is every text a page's data holds, without the names of its fields.
+func wordsIn(data any) []string {
+	switch held := data.(type) {
+	case string:
+		return []string{held}
+	case []any:
+		var words []string
+		for _, each := range held {
+			words = append(words, wordsIn(each)...)
+		}
+		return words
+	case map[string]any:
+		var words []string
+		for _, each := range held {
+			words = append(words, wordsIn(each)...)
+		}
+		return words
+	}
+	return nil
+}
+
+func TestThePresetsPageOffersPresetsToStartFrom(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	body := site.ask(t, "GET", "/presets", nil).Body.String()
-	if !strings.Contains(body, `href="/templates/health"`) {
-		t.Errorf("/new offers no preset to start from:\n%s", body)
-	}
-	if strings.Contains(strings.ReplaceAll(body, "harness=fixture", ""), "harness") {
-		t.Error("/new says harness to a person")
+	if page := presetsOf(t, site); page.role(t, "health").Blocked != "" {
+		t.Errorf("/presets offers no preset to start from: %+v", page.Roles)
 	}
 }

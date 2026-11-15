@@ -81,6 +81,19 @@ func (s *Server) personViews() []appView {
 		{"/members", always, s.membersData},
 		{agentRoute, always, s.agentData},
 		{personRoute, always, s.personData},
+		{"/setups", always, s.setupsData},
+		{"/setups/{name}", s.hasSetups, s.setupData},
+		{"/presets", always, s.presetsData},
+		{"/templates/{name}", always, s.templateData},
+		{"/new/blank", always, s.blankData},
+	}
+}
+
+// publicViews are the app's pages that are served before anybody is signed in. Each page's own handler decides whether to draw
+// it (see publicPage), and its data is open to whoever asks.
+func (s *Server) publicViews() []appView {
+	return []appView{
+		{"/login", always, s.loginData},
 	}
 }
 
@@ -88,9 +101,11 @@ func (s *Server) personViews() []appView {
 // not the app. It is nil for a page that is always there.
 func (s *Server) pageFound(route string) func(*http.Request) bool {
 	return map[string]func(*http.Request) bool{
-		conversationRoute: s.hasConversation,
-		agentRoute:        s.hasAgent,
-		personRoute:       s.hasPerson,
+		conversationRoute:   s.hasConversation,
+		agentRoute:          s.hasAgent,
+		personRoute:         s.hasPerson,
+		"/setups/{name}":    s.hasSetup,
+		"/templates/{name}": s.hasTemplate,
 	}[route]
 }
 
@@ -119,6 +134,9 @@ func (s *Server) mountApp(mux *http.ServeMux) {
 	}
 	mount(s.appViews(), s.console)
 	mount(s.personViews(), s.guard)
+	for _, view := range s.publicViews() {
+		mux.HandleFunc("GET /app/api"+view.path, offering(view.has, s.appData(view.gather)))
+	}
 	mux.HandleFunc("GET /app/api/console", s.console(s.consoleJSON))
 	mux.HandleFunc("GET /app/api/shell", s.guard(s.personShellJSON))
 	mux.HandleFunc("GET /app/api"+conversationRoute+"/turns", s.guard(s.turnsData))
@@ -158,13 +176,21 @@ var appIndex = sync.OnceValues(func() ([]byte, error) { return spaFiles.ReadFile
 
 // appPage is the React app's one page, which draws whichever of its pages the address names.
 func (s *Server) appPage(w http.ResponseWriter, _ *http.Request) {
+	writeApp(w, appHead(s.leaseExtend()))
+}
+
+// publicPage is the app's page for a page served before anybody is signed in. It loads nothing that a session gives, so not the
+// lease banner, which asks for the host the organization runs on.
+func (s *Server) publicPage(w http.ResponseWriter, _ *http.Request) { writeApp(w, appHead("")) }
+
+func writeApp(w http.ResponseWriter, head string) {
 	page, err := appIndex()
 	if err != nil {
 		http.Error(w, "the app was not built into this server", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write(bytes.Replace(page, []byte("<!--gusto-head-->"), []byte(appHead(s.leaseExtend())), 1))
+	_, _ = w.Write(bytes.Replace(page, []byte("<!--gusto-head-->"), []byte(head), 1))
 }
 
 // appData answers a page's data as JSON.

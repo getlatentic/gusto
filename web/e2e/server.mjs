@@ -131,6 +131,8 @@ writeFileSync(
     env: { GUSTO_MODEL_URL: "{modelUrl}", GUSTO_MODEL_TOKEN: "{modelToken}" },
     needs: "key",
     stream: "plain",
+    // It takes skills, so a template's skill set can be started on it.
+    skills: "/root/.agents/skills",
   })
 )
 writeFileSync(

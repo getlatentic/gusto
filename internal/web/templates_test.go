@@ -17,11 +17,12 @@ import (
 func TestATemplateStartsAHarnessReadyForItsWork(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	if page := site.ask(t, "GET", "/presets", nil).Body.String(); !strings.Contains(page, `href="/templates/health"`) {
-		t.Fatal("the catalog does not offer the health template")
+	if health := presetsOf(t, site).role(t, "health"); health.Blocked != "" {
+		t.Fatalf("the catalog does not offer the health template to start: %q", health.Blocked)
 	}
-	if page := site.ask(t, "GET", "/templates/health", nil).Body.String(); !strings.Contains(page, `action="/templates/health"`) || !strings.HasSuffix(strings.TrimSpace(page), "</html>") {
-		t.Fatal("the health template's page is not drawn whole, with its start button")
+	var page templateJSON
+	if site.data(t, "/templates/health", &page); page.Template.Name != "health" || len(page.Harnesses) == 0 || page.Harnesses[0].Name != "fixture" {
+		t.Fatalf("the health template's page does not offer to start it: %+v", page)
 	}
 	started := site.ask(t, "POST", "/templates/health", url.Values{"harness": {"fixture"}})
 	where := started.Header().Get("Location")
@@ -31,7 +32,8 @@ func TestATemplateStartsAHarnessReadyForItsWork(t *testing.T) {
 	if starters := site.conversation(t, where).Starters; !slices.Contains(starters, "Draft a SOAP note from the visit notes") {
 		t.Errorf("the first thread does not offer the template's starters: %v", starters)
 	}
-	if setup := site.ask(t, "GET", "/setups/health", nil).Body.String(); !strings.Contains(setup, "phi-guard") {
+	var setup setupJSON
+	if site.data(t, "/setups/health", &setup); !slices.ContainsFunc(setup.Set.Skills, func(each skillView) bool { return each.Name == "phi-guard" }) {
 		t.Error("the template's skills are not a setup")
 	}
 	said := site.ask(t, "POST", where+"/say", url.Values{"said": {"Draft a SOAP note from the visit notes"}})
@@ -96,11 +98,13 @@ func TestARoleStartsOnTheFirstEngineThatCanTakeIt(t *testing.T) {
 func TestThePresetsPageShowsEachBuiltInPresetWhatItDoes(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	page := site.ask(t, "GET", "/presets", nil).Body.String()
-	for _, want := range []string{`data-role="health"`, `data-for="health"`, "What it can do", "Try asking", "Use in a new chat", `id="role-search"`} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the presets page does not carry %q", want)
-		}
+	page := presetsOf(t, site)
+	health := page.role(t, "health")
+	if health.Title == "" || health.Summary == "" || len(health.Skills) == 0 || health.Skills[0].Blurb == "" || len(health.Starters) == 0 {
+		t.Errorf("the presets page does not say what health can do and what to try asking: %+v", health)
+	}
+	if !slices.Contains(page.Fields, health.Industry) {
+		t.Errorf("the presets page does not offer health's field of work: %v", page.Fields)
 	}
 }
 

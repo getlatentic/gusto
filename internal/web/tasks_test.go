@@ -106,8 +106,7 @@ func TestATaskTheRunnerWouldRefuseIsRefusedHere(t *testing.T) {
 func TestAOneOffAgainstARepositoryIsAnInstanceStartedForATask(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	setup := site.ask(t, "GET", "/instances/new?harness=fixture&then=task", nil).Body.String()
-	if !strings.Contains(setup, `name="then" value="task"`) {
+	if setup := setUpOf(t, site, "?harness=fixture&then=task"); setup.Then != "task" {
 		t.Fatal("the set-up page forgets that a task was asked for")
 	}
 	repo := aRepository(t)
