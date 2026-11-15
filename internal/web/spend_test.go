@@ -53,7 +53,7 @@ func TestTheSpendPageNamesTheBiggestTeamWhenThereIsMoreThanOne(t *testing.T) {
 		t.Fatalf("code %d", answer.Code)
 	}
 	page := answer.Body.String()
-	for _, want := range []string{"Biggest team", ">platform<", "$0.7500", "spent this month, at least"} {
+	for _, want := range []string{"Biggest team", ">platform<", "$0.7500", `title="at least: some calls have no price"`} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("want %q on the page:\n%s", want, page)
 		}

@@ -31,10 +31,11 @@ const draw = (page: OverviewData) =>
 describe("the overview", () => {
   it("says no budget is set, and offers to set one", async () => {
     draw(month(() => {}))
-    expect(await screen.findByText(/No budget set\./)).toBeTruthy()
-    expect(
-      screen.getByRole("link", { name: "Set a budget" }).getAttribute("href")
-    ).toBe("/admin/budgets")
+    const none = await screen.findByRole("link", { name: "None" })
+    expect(none.getAttribute("href")).toBe("/admin/budgets")
+    expect(none.closest("[title]")!.getAttribute("title")).toBe(
+      "no budget is set"
+    )
   })
 
   it("says the budget is reached when the month spends all of it", async () => {
@@ -68,7 +69,9 @@ describe("the overview", () => {
     expect(alert.textContent).toContain(
       "$130.50 has been spent, and more that has no price, so the budget is passed by $30.50 at least."
     )
-    expect(screen.getByText(/At least: 2 calls have no price\./)).toBeTruthy()
+    expect(
+      screen.getByTitle("at least: 2 calls have no price").textContent
+    ).toContain("$130.50")
   })
 
   it("says when the budget cannot be read, without saying it is passed", async () => {

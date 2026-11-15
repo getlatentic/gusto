@@ -23,19 +23,22 @@ export function Figures({
   )
 }
 
-// Figure is one count: a word or two naming it, and the figure on one line. What qualifies the figure is its title.
+// Figure is one count: a word or two naming it, and the figure on one line. What qualifies the figure is its title; what
+// measures it, such as a meter against a budget, goes under it.
 export function Figure({
   value,
   label,
   detail,
   headline,
   bad,
+  children,
 }: {
   value: ReactNode
   label: string
   detail?: string
   headline?: boolean
   bad?: boolean
+  children?: ReactNode
 }) {
   return (
     <Card className="py-4" title={detail}>
@@ -53,6 +56,7 @@ export function Figure({
           {value}
         </span>
         {detail && <span className="sr-only">{detail}</span>}
+        {children}
       </CardContent>
     </Card>
   )

@@ -143,10 +143,10 @@ function Members({ page }: { page: PeopleData }) {
                     href="/admin/budgets"
                     className="text-inherit no-underline hover:underline"
                   >
-                    Spent this month
+                    Spent
                   </a>
                 ) : (
-                  "Spent this month"
+                  "Spent"
                 )}
               </TableHead>
               <TableHead className="text-right @max-lg:hidden">

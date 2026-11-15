@@ -6,6 +6,7 @@ import { Notice, PageBar, PageBody, PageSub } from "@/components/page"
 import { UsageTabsFor } from "@/pages/admin/usage-tabs"
 import { StateToggle, UsageToolbar } from "@/pages/admin/usage-toolbar"
 import { Button } from "@/components/ui/button"
+import { Figure, Figures } from "@/components/figures"
 import { Card } from "@/components/ui/card"
 import {
   DropdownMenu,
@@ -107,22 +108,27 @@ function Usage({ view, base }: { view: UsageView; base: string }) {
           base={base}
         />
       )}
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-        <p className="m-0 text-sm text-muted-foreground">
-          {priced && (
-            <strong className="font-semibold text-foreground">
-              {figures.Spent}{" "}
-            </strong>
-          )}
-          {figures.SpentCaption} · {figures.Calls} model calls · {figures.In}{" "}
-          tokens in, {figures.Cache} cached · {figures.Out} out
-          {figures.Refused > 0 && (
-            <span className="text-bad">
-              {" "}
-              · {figures.Refused} refused by a cap
-            </span>
-          )}
-        </p>
+      <Figures>
+        <Figure
+          value={priced ? figures.Spent : "—"}
+          label="Spent"
+          detail={
+            priced ? figures.SpentCaption : "no price is set for these models"
+          }
+          headline
+        />
+        <Figure value={String(figures.Calls)} label="Model calls" />
+        <Figure value={figures.In} label="Tokens in" />
+        <Figure value={figures.Cache} label="Cached" />
+        <Figure value={figures.Out} label="Tokens out" />
+        <Figure
+          value={String(figures.Refused)}
+          label="Refused"
+          detail="refused by a cap"
+          bad={figures.Refused > 0}
+        />
+      </Figures>
+      <div className="mb-3 flex justify-end">
         <StateToggle states={view.States} />
       </div>
 

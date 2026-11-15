@@ -3,6 +3,7 @@ import { EllipsisIcon } from "lucide-react"
 
 import { Loading, Pager } from "@/components/controls"
 import { Notice, PageBar, PageBody, PageSub } from "@/components/page"
+import { Figure, Figures } from "@/components/figures"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -106,9 +107,7 @@ export function BudgetsPage() {
 function Budgets({ page }: { page: BudgetsData }) {
   return (
     <>
-      <p className="m-0 mb-6 text-sm text-muted-foreground">
-        <BudgetsInWords budget={page.Budget} />
-      </p>
+      <BudgetFigures budget={page.Budget} />
       {page.Refused && <Notice>{page.Refused}</Notice>}
       {page.SpendUnreadable && (
         <Notice>
@@ -126,8 +125,8 @@ function Budgets({ page }: { page: BudgetsData }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Person</TableHead>
-                <TableHead>Budget</TableHead>
-                <TableHead className="text-right">Spent this month</TableHead>
+                <TableHead className="@max-md:hidden">Budget</TableHead>
+                <TableHead className="text-right">Spent</TableHead>
                 <TableHead>
                   <span className="sr-only">More</span>
                 </TableHead>
@@ -158,17 +157,30 @@ function Budgets({ page }: { page: BudgetsData }) {
   )
 }
 
-function BudgetsInWords({ budget }: { budget: OrgBudget }) {
-  if (budget.Err) return <>The budgets could not be read. {budget.Err}</>
+// BudgetFigures are both budgets: each person's, which stops their agents, and the organization's, which only warns.
+function BudgetFigures({ budget }: { budget: OrgBudget }) {
+  if (budget.Err) {
+    return <Notice>The budgets could not be read. {budget.Err}</Notice>
+  }
   return (
-    <>
-      {budget.MemberSet
-        ? `Each person: ${usd(budget.Member)} a month; their agents stop there.`
-        : "No budget for each person, so their agents do not stop."}{" "}
-      {budget.Set
-        ? `Organization: ${usd(budget.Limit)} a month, which only warns.`
-        : "The organization has no budget to warn at."}
-    </>
+    <Figures className="mb-6">
+      <Figure
+        value={budget.MemberSet ? usd(budget.Member) : "None"}
+        label="Each person"
+        detail={
+          budget.MemberSet
+            ? "a month; their agents stop there"
+            : "no budget, so their agents do not stop"
+        }
+      />
+      <Figure
+        value={budget.Set ? usd(budget.Limit) : "None"}
+        label="Organization"
+        detail={
+          budget.Set ? "a month, which only warns" : "no budget to warn at"
+        }
+      />
+    </Figures>
   )
 }
 
@@ -186,25 +198,17 @@ function BudgetLine({ row }: { row: BudgetRow }) {
           </span>
           <span className="grid min-w-0">
             <span className="truncate">{row.Name}</span>
-            <span className="truncate text-xs text-muted-foreground">
+            <span className="truncate text-xs text-muted-foreground @max-md:hidden">
               {row.Email}
+            </span>
+            <span className="text-xs text-muted-foreground @md:hidden">
+              <Limit budget={budget} />
             </span>
           </span>
         </span>
       </TableCell>
-      <TableCell className="whitespace-nowrap">
-        {budget.Set ? (
-          <>
-            {usd(budget.Limit)}
-            {budget.Own && (
-              <Badge variant="secondary" className="ml-1.5">
-                own
-              </Badge>
-            )}
-          </>
-        ) : (
-          <span className="text-muted-foreground">no limit</span>
-        )}
+      <TableCell className="whitespace-nowrap @max-md:hidden">
+        <Limit budget={budget} />
       </TableCell>
       <TableCell className="text-right whitespace-nowrap tabular-nums">
         <span className={cn(budget.Passed && "text-bad")}>
@@ -236,6 +240,23 @@ function BudgetLine({ row }: { row: BudgetRow }) {
         <OwnBudget row={row} />
       </TableCell>
     </TableRow>
+  )
+}
+
+// Limit is what one person may spend in a month: their own budget, everyone's, or none. On a narrow table it stands in for
+// their address under their name.
+function Limit({ budget }: { budget: MemberBudget }) {
+  if (!budget.Set)
+    return <span className="text-muted-foreground">no limit</span>
+  return (
+    <>
+      {usd(budget.Limit)}
+      {budget.Own && (
+        <Badge variant="secondary" className="ml-1.5">
+          own
+        </Badge>
+      )}
+    </>
   )
 }
 

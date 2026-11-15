@@ -121,16 +121,16 @@
     @apply mb-3 text-sm font-semibold text-ink;
   }
   .figures {
-    @apply mb-4 grid grid-cols-[repeat(auto-fit,minmax(min(9rem,100%),1fr))] gap-3;
+    @apply mb-4 grid grid-cols-[repeat(auto-fit,minmax(min(8rem,100%),1fr))] gap-3;
   }
   .figure-value {
-    @apply font-numeric text-2xl font-semibold tabular-nums;
+    @apply font-numeric text-xl font-semibold whitespace-nowrap tabular-nums sm:text-2xl;
   }
   .figure-label {
-    @apply text-xs font-medium text-subtle;
+    @apply truncate text-xs font-medium text-subtle;
   }
   .figure {
-    @apply flex flex-col-reverse justify-between gap-2 rounded-lg border border-line bg-card p-4 text-inherit no-underline;
+    @apply grid content-start gap-1 rounded-lg border border-line bg-card p-4 text-inherit no-underline;
   }
   .panels {
     @apply grid grid-cols-[repeat(auto-fit,minmax(min(22rem,100%),1fr))] items-start gap-4;

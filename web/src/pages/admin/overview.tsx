@@ -1,7 +1,8 @@
 import { AppLink } from "@/components/app-link"
 import { Loading } from "@/components/controls"
 import { Notice, PageBar, PageBody, PageSub } from "@/components/page"
-import { Card, CardContent } from "@/components/ui/card"
+import { Figure, Figures } from "@/components/figures"
+import { Card } from "@/components/ui/card"
 import { usePageData } from "@/lib/api"
 import { initial, usd } from "@/lib/format"
 import type { OverviewData, SpendLine } from "@/lib/types"
@@ -49,51 +50,51 @@ function Overview({ page }: { page: OverviewData }) {
         </Notice>
       )}
 
-      <Card className="mb-9">
-        <CardContent className="grid gap-1">
-          <p className="m-0 text-sm text-muted-foreground">Spent this month</p>
-          <p className="m-0 font-numeric text-3xl font-semibold tabular-nums">
-            {usd(spent.USD)}
-            {budget.Set && (
-              <span className="font-sans text-base font-normal text-muted-foreground">
-                {" "}
-                of {usd(budget.Limit)}
-              </span>
-            )}
-          </p>
-          {budget.Set ? (
+      <Figures className="mb-9">
+        <Figure
+          value={usd(spent.USD)}
+          label="Spent"
+          detail={
+            spent.Unmeasured > 0
+              ? `at least: ${spent.Unmeasured} ${spent.Unmeasured === 1 ? "call has" : "calls have"} no price`
+              : undefined
+          }
+          headline
+        >
+          {budget.Set && (
             <Meter
               percent={page.Percent ?? 0}
               over={budget.Passed}
               className="mt-2"
             />
-          ) : (
-            <p className="m-0 text-sm text-muted-foreground">
-              No budget set.{" "}
-              {page.BudgetsPage && (
-                <a
-                  className="font-medium text-foreground underline decoration-input underline-offset-2 hover:decoration-current"
-                  href="/admin/budgets"
-                >
-                  Set a budget
-                </a>
-              )}
-            </p>
           )}
-          {spent.Unmeasured > 0 && (
-            <p className="m-0 mt-1 text-xs text-muted-foreground">
-              At least: {spent.Unmeasured}{" "}
-              {spent.Unmeasured === 1 ? "call has" : "calls have"} no price.
-            </p>
-          )}
-          {page.Credit && (
-            <p className="m-0 mt-1 text-xs text-muted-foreground">
-              Free model credit: {usd(page.Credit.Used)} of{" "}
-              {usd(page.Credit.Limit)} used.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        </Figure>
+        <Figure
+          value={
+            budget.Set ? (
+              usd(budget.Limit)
+            ) : page.BudgetsPage ? (
+              <AppLink
+                href="/admin/budgets"
+                className="text-inherit underline decoration-input underline-offset-4 hover:decoration-current"
+              >
+                None
+              </AppLink>
+            ) : (
+              "None"
+            )
+          }
+          label="Budget"
+          detail={budget.Set ? undefined : "no budget is set"}
+        />
+        {page.Credit && (
+          <Figure
+            value={usd(page.Credit.Used)}
+            label="Free credit"
+            detail={`of ${usd(page.Credit.Limit)}`}
+          />
+        )}
+      </Figures>
 
       {spent.Split && (
         <div className="grid gap-9">

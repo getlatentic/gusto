@@ -41,7 +41,7 @@ export function ChecksTab({ checks }: { checks: RunChecks }) {
       ) : (
         <p className="m-0 text-sm text-muted-foreground">
           {checks.Verified
-            ? `Every one of the newest ${checks.Verified} finished ${plural(checks.Verified, "run")} checks out.`
+            ? "Nothing needs a look."
             : "No run has finished yet."}
         </p>
       )}

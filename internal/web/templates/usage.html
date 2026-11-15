@@ -103,7 +103,8 @@
 </label>{{end}}
 
 {{/* figure is one number of a row of them, with what it counts under it; the first is the one that is asked for. */}}
-{{define "figure"}}<div class="figure">
-  <span class="figure-value{{if .Headline}} text-accent-ink{{else if .Bad}} text-bad{{end}}">{{.Value}}</span>
+{{define "figure"}}<div class="figure"{{with .Detail}} title="{{.}}"{{end}}>
   <span class="figure-label">{{.Label}}</span>
+  <span class="figure-value{{if .Headline}} text-accent-ink{{else if .Bad}} text-bad{{end}}">{{.Value}}</span>
+  {{with .Detail}}<span class="sr-only">{{.}}</span>{{end}}
 </div>{{end}}

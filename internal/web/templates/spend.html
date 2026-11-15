@@ -19,13 +19,14 @@
 
 <section class="figures mb-9">
   {{$spent := usd .Total.USD}}{{if and (eq .Total.USD 0.0) .Total.Unmeasured}}{{$spent = "—"}}{{end}}
-  {{$caption := "spent this month, at least"}}{{if eq .Total.Unmeasured 0}}{{$caption = "spent this month"}}{{else if eq .Total.Calls .Total.Unmeasured}}{{$caption = "no price set for these models"}}{{end}}
-  {{template "figure" (dict "Headline" true "Value" $spent "Label" $caption)}}
-  {{$calls := "model calls"}}{{with .Total.Uncounted}}{{$calls = printf "model calls, %v uncounted" .}}{{end}}
-  {{template "figure" (dict "Value" .Total.Calls "Label" $calls)}}
-  {{template "figure" (dict "Value" (tokens .Total.InputTokens) "Label" (printf "tokens in, %s cached" (percent .Total.CachedTokens .Total.InputTokens)))}}
-  {{template "figure" (dict "Value" (tokens .Total.OutputTokens) "Label" "tokens out")}}
-  {{template "figure" (dict "Value" .Total.Refused "Label" "refused by a cap" "Bad" .Total.Refused)}}
+  {{$detail := "at least: some calls have no price"}}{{if eq .Total.Unmeasured 0}}{{$detail = ""}}{{else if eq .Total.Calls .Total.Unmeasured}}{{$detail = "no price is set for these models"}}{{end}}
+  {{template "figure" (dict "Headline" true "Value" $spent "Label" "Spent" "Detail" $detail)}}
+  {{$uncounted := ""}}{{with .Total.Uncounted}}{{$uncounted = printf "%v uncounted" .}}{{end}}
+  {{template "figure" (dict "Value" .Total.Calls "Label" "Model calls" "Detail" $uncounted)}}
+  {{template "figure" (dict "Value" (tokens .Total.InputTokens) "Label" "Tokens in")}}
+  {{template "figure" (dict "Value" (percent .Total.CachedTokens .Total.InputTokens) "Label" "Cached")}}
+  {{template "figure" (dict "Value" (tokens .Total.OutputTokens) "Label" "Tokens out")}}
+  {{template "figure" (dict "Value" .Total.Refused "Label" "Refused" "Detail" "refused by a cap" "Bad" .Total.Refused)}}
 </section>
 
 <section class="mb-4 card">

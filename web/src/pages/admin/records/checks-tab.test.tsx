@@ -62,15 +62,11 @@ describe("the task checks tab", () => {
     expect(screen.queryByText("How to check it yourself")).toBeNull()
   })
 
-  it("says every run checks out, or that none has finished", async () => {
+  it("says nothing needs a look, or that no run has finished", async () => {
     const { unmount } = draw(
       records("checks", (page) => (page.Checks = checks({ Verified: 2 })))
     )
-    expect(
-      await screen.findByText(
-        "Every one of the newest 2 finished runs checks out."
-      )
-    ).toBeTruthy()
+    expect(await screen.findByText("Nothing needs a look.")).toBeTruthy()
     expect(screen.queryByText("Needs a look")).toBeNull()
     unmount()
     draw(records("checks", (page) => (page.Checks = checks({}))))

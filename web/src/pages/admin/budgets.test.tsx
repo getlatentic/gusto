@@ -55,13 +55,13 @@ const draw = (page: BudgetsData, at = "/admin/budgets") =>
   renderPage(at, "/admin/budgets", <BudgetsPage />, { [at]: page })
 
 describe("budgets", () => {
-  it("says both budgets in a line, and each person's against what they spent", async () => {
+  it("gives both budgets as figures, and each person's against what they spent", async () => {
     draw(budgets(() => {}))
+    const each = await screen.findByTitle("a month; their agents stop there")
+    expect(each.textContent).toContain("Each person$10.00")
     expect(
-      await screen.findByText(
-        "Each person: $10.00 a month; their agents stop there. Organization: $50.00 a month, which only warns."
-      )
-    ).toBeTruthy()
+      screen.getByTitle("a month, which only warns").textContent
+    ).toContain("Organization$50.00")
     const ada = screen.getByText("ada@acme.com").closest("tr")!
     expect(ada.textContent).toContain("$4.00own")
     expect(ada.textContent).toContain("reached")
