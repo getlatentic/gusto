@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -41,10 +40,10 @@ func TestAnArchivedRoomTakesNoUploadAndNoEditAndSaysSoOnItsFiles(t *testing.T) {
 	if files := his.roomFilesOf(t, id); files.Archived {
 		t.Fatal("a room that is not archived says its files are")
 	}
-	opened := func() string {
-		return his.ask(t, "GET", "/instances/"+id+"/file?path=plan.md&embed=1", nil).Body.String()
+	opened := func() bool {
+		return viewed(t, his, id, "plan.md").File.Editable
 	}
-	if !strings.Contains(opened(), "data-file-edit") {
+	if !opened() {
 		t.Fatal("a file of a room that is not archived does not open to be changed")
 	}
 	mine.ask(t, "POST", "/rooms/"+id+"/archive", url.Values{"archive": {"on"}})
@@ -67,7 +66,7 @@ func TestAnArchivedRoomTakesNoUploadAndNoEditAndSaysSoOnItsFiles(t *testing.T) {
 	if files := his.roomFilesOf(t, id); !files.Archived {
 		t.Error("the room's files do not say the room is archived")
 	}
-	if strings.Contains(opened(), "data-file-edit") {
+	if opened() {
 		t.Error("a file of an archived room opens to be changed")
 	}
 

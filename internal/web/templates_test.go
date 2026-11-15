@@ -73,8 +73,10 @@ func TestTheFolderViewerShowsOnlyTheFolder(t *testing.T) {
 	started := site.ask(t, "POST", "/templates/health", url.Values{"harness": {"fixture"}})
 	where := started.Header().Get("Location")
 	instance := where[:strings.Index(where, "/threads/")]
-	if page := site.ask(t, "GET", instance+"/file?path=visit-notes.txt", nil); page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "community-acquired pneumonia") {
-		t.Fatalf("the sample file did not open: %d", page.Code)
+	var page fileJSON
+	site.data(t, instance+"/file?path=visit-notes.txt", &page)
+	if !strings.Contains(page.File.Text, "community-acquired pneumonia") {
+		t.Fatalf("the sample file did not open: %+v", page.File)
 	}
 	for _, path := range []string{"../../../etc/passwd", "/etc/passwd", ".git/config", "missing.txt"} {
 		if page := site.ask(t, "GET", instance+"/file?path="+url.QueryEscape(path), nil); page.Code != http.StatusNotFound {

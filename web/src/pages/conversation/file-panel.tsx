@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { filePanel } from "@/domain/panel-width"
 import { cn } from "@/lib/utils"
 import { RoomFiles } from "@/pages/conversation/room-files"
+import { PanelFile } from "@/pages/files/panel-file"
 import type { ConversationData } from "@/pages/conversation/types"
 
 export interface OpenFile {
@@ -16,7 +17,7 @@ export interface OpenFile {
 // roomFilesTab is the room's own list of files, which is a tab of the panel like any file.
 export const roomFilesTab = "room-files"
 
-// FilePanel is the files open beside a conversation on a wide window, one tab each; a file is its own page, drawn in a frame.
+// FilePanel is the files open beside a conversation on a wide window, one tab each; a file is drawn as its own page draws it.
 export function FilePanel({
   page,
   open,
@@ -108,13 +109,7 @@ export function FilePanel({
       {current === roomFilesTab ? (
         <RoomFiles page={page} onOpen={onOpen} />
       ) : (
-        <iframe
-          key={current}
-          data-testid="file-frame"
-          title={open.find((file) => file.href === current)?.name ?? "File"}
-          src={`${current}&embed=1`}
-          className="min-h-0 w-full flex-1 border-0"
-        />
+        <PanelFile key={current} href={current} />
       )}
     </aside>
   )

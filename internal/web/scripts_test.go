@@ -14,7 +14,7 @@ import (
 )
 
 // vendoredScripts are the scripts static/PROVENANCE.md lists as somebody else's, which are not checked.
-var vendoredScripts = []string{"htmx.min.js", "highlight.min.js"}
+var vendoredScripts = []string{"htmx.min.js"}
 
 // A scope that declares one function name twice keeps only the second: the first is replaced everywhere, and nothing says so. That is
 // how the @ menu of a room stopped opening when polling added a second look() to the same function. No test loads the page scripts, so

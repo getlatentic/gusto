@@ -81,6 +81,8 @@ func (s *Server) personViews() []appView {
 		{"/members", always, s.membersData},
 		{agentRoute, always, s.agentData},
 		{personRoute, always, s.personData},
+		{filesRoute, always, s.filesData},
+		{fileRoute, always, s.fileData},
 	}
 }
 
@@ -91,6 +93,8 @@ func (s *Server) pageFound(route string) func(*http.Request) bool {
 		conversationRoute: s.hasConversation,
 		agentRoute:        s.hasAgent,
 		personRoute:       s.hasPerson,
+		filesRoute:        s.hasPlace,
+		fileRoute:         s.hasFile,
 	}[route]
 }
 
@@ -123,6 +127,8 @@ func (s *Server) mountApp(mux *http.ServeMux) {
 	mux.HandleFunc("GET /app/api/shell", s.guard(s.personShellJSON))
 	mux.HandleFunc("GET /app/api"+conversationRoute+"/turns", s.guard(s.turnsData))
 	mux.HandleFunc("GET /app/api/rooms/{id}/files", s.guard(s.roomFilesData))
+	// A run's file is a page for a browser and its bytes for anybody else, so its page is served where its bytes are.
+	mux.HandleFunc("GET /app/api"+recordFileRoute, s.guard(s.appData(s.recordFileData)))
 	assets, err := fs.Sub(spaFiles, "spa/dist/assets")
 	if err != nil {
 		panic(err)

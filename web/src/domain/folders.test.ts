@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  chatHref,
   chosenPlace,
   emptyWords,
   explore,
+  fileKindOf,
+  filesHref,
   matching,
   nameAt,
   parentOf,
   startExplorer,
   step,
+  trailOf,
+  viewerHref,
   type ShownFolders,
 } from "@/domain/folders"
 
@@ -65,5 +70,40 @@ describe("the window that chooses a folder", () => {
     expect(emptyWords(empty, "x")).toBe("Nothing here matches.")
     expect(emptyWords(empty, "")).toBe("This folder is empty.")
     expect(emptyWords({ ...empty, at: "" }, "")).toMatch(/No projects yet/)
+  })
+})
+
+describe("the Files page", () => {
+  it("is at its own address, and opens a file with the way back to it", () => {
+    expect(filesHref("")).toBe("/files")
+    expect(filesHref("p1/docs")).toBe("/files?at=p1%2Fdocs")
+    expect(viewerHref("p1/docs", "notes.md")).toBe(
+      "/instances/p1/file?path=docs%2Fnotes.md&from=%2Ffiles%3Fat%3Dp1%252Fdocs"
+    )
+    expect(viewerHref("p1", "a b.md")).toBe(
+      "/instances/p1/file?path=a%20b.md&from=%2Ffiles%3Fat%3Dp1"
+    )
+    expect(chatHref("p1/docs")).toBe("/chat?at=p1%2Fdocs")
+  })
+
+  it("names the top Files, and links each place above the one open", () => {
+    expect(trailOf(shown)).toEqual({
+      crumbs: [
+        { label: "Files", href: "/files" },
+        { label: "Project", href: "/files?at=p1" },
+      ],
+      title: "docs",
+    })
+    expect(trailOf({ ...shown, at: "", crumbs: [shown.crumbs[0]] })).toEqual({
+      crumbs: [],
+      title: "Files",
+    })
+  })
+
+  it("marks a file by what its name says it is", () => {
+    expect(fileKindOf("a.PNG")).toBe("image")
+    expect(fileKindOf("a.csv")).toBe("table")
+    expect(fileKindOf("main.go")).toBe("code")
+    expect(fileKindOf("README")).toBe("file")
   })
 })

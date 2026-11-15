@@ -4,7 +4,7 @@ export type Place = "chat" | "files" | "members" | "usage" | "connections"
 
 const placeOf: [RegExp, Place][] = [
   [/^\/(chat|instances\/[^/]+\/threads|rooms)(\/|$)/, "chat"],
-  [/^\/files(\/|$)/, "files"],
+  [/^\/(files|instances\/[^/]+\/files?)(\/|$)/, "files"],
   [/^\/(members|presets|harnesses)(\/|$)/, "members"],
   [/^\/usage(\/|$)/, "usage"],
   [/^\/connections(\/|$)/, "connections"],
