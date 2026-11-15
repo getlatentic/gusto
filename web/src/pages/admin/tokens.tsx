@@ -17,7 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { postForm, usePageData, useRefreshPage } from "@/lib/api"
+import { usePageData, useRefreshPage } from "@/lib/api"
+import { postForm } from "@/lib/http"
 import { ago } from "@/lib/format"
 
 export interface TokenRow {

@@ -1,6 +1,5 @@
 import { useState } from "react"
 import { ArrowUpRightIcon, CheckIcon } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
 
 import { buttonVariants } from "@/components/ui/button"
 import {
@@ -9,7 +8,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { orgLines, type CloudOrg } from "@/domain/orgs"
-import { askCloud } from "@/lib/cloud"
+import { api } from "@/store/api"
 import type { PersonShell } from "@/domain/side-list"
 import { cn } from "@/lib/utils"
 
@@ -23,14 +22,8 @@ const line = cn(
 export function OrgSwitcher({ shell }: { shell: PersonShell }) {
   const org = shell.Org!
   const [asked, setAsked] = useState(false)
-  const listed = useQuery({
-    queryKey: [org.OrgsFrom],
-    queryFn: ({ signal }) =>
-      askCloud<{ orgs?: CloudOrg[] }>(org.OrgsFrom, signal),
-    enabled: asked,
-    staleTime: 60_000,
-  })
-  const orgs = listed.data?.orgs ?? []
+  const listed = api.endpoints.cloud.useQuery(org.OrgsFrom, { skip: !asked })
+  const orgs = (listed.data as { orgs?: CloudOrg[] } | undefined)?.orgs ?? []
   const lines = orgs.length
     ? orgLines(orgs, org.Slug, shell.Workspace)
     : [

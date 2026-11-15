@@ -1,1 +1,0 @@
-import{t as e}from"./badge-BDsfiVRU.js";import{cn as t}from"./controls-B79lxCoY.js";var n=t();function r({on:t}){return t?(0,n.jsx)(e,{className:`flex-none bg-ok-wash text-ok`,children:`on`}):(0,n.jsx)(e,{variant:`outline`,className:`flex-none text-muted-foreground`,children:`off`})}export{r as t};

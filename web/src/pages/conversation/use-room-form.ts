@@ -1,18 +1,16 @@
 import { useState, type FormEvent } from "react"
 import { useNavigate } from "react-router"
-import { useQueryClient } from "@tanstack/react-query"
 
-import { shellKey } from "@/lib/shell"
 import { sendForm } from "@/lib/forms"
 import type { ConversationData } from "@/pages/conversation/types"
-import { turnsPath } from "@/pages/conversation/use-room-live"
+import { useRefreshAll } from "@/lib/api"
 
 // useRoomForm sends one of the room's forms without leaving the page, then shows what the server said: it moves to where the
 // server sent the person (a refusal is said there, with its dialog open), and reads the room, its turns and the side list again.
 // A form the server turned away outright (not the person's to send) leaves its reason in failed.
 export function useRoomForm(page: ConversationData) {
   const navigate = useNavigate()
-  const client = useQueryClient()
+  const refreshAll = useRefreshAll()
   const [failed, setFailed] = useState("")
   const send = async (form: HTMLFormElement) => {
     let landed: string
@@ -23,11 +21,8 @@ export function useRoomForm(page: ConversationData) {
       setFailed(err instanceof Error ? err.message : String(err))
       return
     }
-    await Promise.all([
-      client.invalidateQueries({ queryKey: [`/app/api${page.Path}`] }),
-      client.invalidateQueries({ queryKey: [turnsPath(page)] }),
-      client.invalidateQueries({ queryKey: shellKey }),
-    ])
+    // A room change can show anywhere: in the room, its turns and the side list.
+    refreshAll()
     if (landed)
       navigate(landed, { replace: landed.split("?")[0] === page.Path })
   }

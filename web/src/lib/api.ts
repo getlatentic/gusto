@@ -1,10 +1,7 @@
-import {
-  keepPreviousData,
-  QueryClient,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
 import { useLocation } from "react-router"
+
+import { api, type ApiError } from "@/store/api"
+import { useAppDispatch } from "@/store"
 
 // A page's data is the same view the server gave its template, as JSON at /app/api followed by the page's own address. The
 // server keeps the query in the links it gives, so changing a filter is changing the address, and the address alone says what
@@ -15,107 +12,53 @@ export type Loaded<T> =
   | { state: "ready"; data: T }
   | { state: "failed"; status: number; message: string }
 
-export class Failure extends Error {
-  readonly status: number
-  constructor(status: number, message: string) {
-    super(message)
-    this.status = status
-  }
+export interface Reading {
+  // pollingInterval reads the data again every so many milliseconds while the page is in view.
+  pollingInterval?: number
+  // skip leaves the data unread, as for a part of a page that is not shown.
+  skip?: boolean
 }
 
-export async function getJSON<T>(
-  path: string,
-  signal?: AbortSignal
-): Promise<T> {
-  const answer = await fetch(path, {
-    credentials: "same-origin",
-    headers: { Accept: "application/json" },
-    signal,
+// useData is the data at a path, read again when the path changes or the data is marked stale; what was shown stays on screen
+// while the next one loads.
+export function useData<T>(path: string, reading: Reading = {}): Loaded<T> {
+  const read = api.endpoints.page.useQuery(path, {
+    ...reading,
+    skipPollingIfUnfocused: true,
   })
-  // A session that ended answers 401. Loading the page again takes the person to sign in, and back to this page after.
-  if (answer.status === 401) {
-    window.location.reload()
-    throw new Failure(401, "signed out")
+  if (read.isError) {
+    const error = read.error as ApiError
+    return { state: "failed", status: error.status, message: error.message }
   }
-  if (!answer.ok) {
-    throw new Failure(
-      answer.status,
-      (await answer.text()).trim() || answer.statusText
-    )
-  }
-  return (await answer.json()) as T
-}
-
-// newQueryClient keeps each page's data by its address. A failure the server meant (a 4xx) is not asked again; anything else
-// is, twice.
-export function newQueryClient(): QueryClient {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: (count, err) =>
-          !(err instanceof Failure && err.status < 500) && count < 2,
-      },
-    },
-  })
-}
-
-// useData is the data at a path, fetched again when the path changes or the data is marked stale; what was shown stays on
-// screen while the next one loads.
-export function useData<T>(path: string): Loaded<T> {
-  const query = useQuery({
-    queryKey: [path],
-    queryFn: ({ signal }) => getJSON<T>(path, signal),
-    placeholderData: keepPreviousData,
-  })
-  if (query.isError) {
-    const err = query.error
-    return {
-      state: "failed",
-      status: err instanceof Failure ? err.status : 0,
-      message: err.message,
-    }
-  }
-  if (query.isSuccess && !query.isPlaceholderData) {
-    return { state: "ready", data: query.data }
-  }
-  return { state: "loading", data: query.data }
+  if (read.currentData !== undefined)
+    return { state: "ready", data: read.currentData as T }
+  return { state: "loading", data: read.data as T | undefined }
 }
 
 // pagePath is where the data of the page the address names is.
-function pagePath(where: { pathname: string; search: string }): string {
+export function pagePath(where: { pathname: string; search: string }): string {
   return "/app/api" + where.pathname + where.search
 }
 
 // usePageData is the data of the page the address names.
-export function usePageData<T>(): Loaded<T> {
-  return useData<T>(pagePath(useLocation()))
+export function usePageData<T>(reading: Reading = {}): Loaded<T> {
+  return useData<T>(pagePath(useLocation()), reading)
 }
 
-// useRefreshPage marks the page's data stale, so it is fetched again, as after the page changed something the server keeps.
-export function useRefreshPage(): () => Promise<void> {
-  const client = useQueryClient()
+// useRefreshPage marks the page's data stale, so it is read again, as after the page changed something the server keeps.
+export function useRefreshPage(): () => void {
+  const dispatch = useAppDispatch()
   const path = pagePath(useLocation())
-  return () => client.invalidateQueries({ queryKey: [path] })
+  return () => dispatch(api.util.invalidateTags([{ type: "Page", id: path }]))
 }
 
-// postForm sends a form to the server as the browser would, for a page that reads the answer itself, and gives the answer
-// as JSON, or the server's reason when it refused.
-export async function postForm<T>(path: string, form: FormData): Promise<T> {
-  const fields = new URLSearchParams()
-  for (const [key, value] of form) {
-    if (typeof value === "string") fields.append(key, value)
-  }
-  const answer = await fetch(path, {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { Accept: "application/json" },
-    body: fields,
-  })
-  if (!answer.ok) {
-    throw new Failure(
-      answer.status,
-      (await answer.text()).trim() || answer.statusText
-    )
-  }
-  return (await answer.json()) as T
+// useRefreshAll marks every page's data stale, as after a form whose change may show anywhere.
+export function useRefreshAll(): () => void {
+  const dispatch = useAppDispatch()
+  return () => dispatch(api.util.invalidateTags(["Page"]))
+}
+
+// dataOf is what data there is to show: the data read, the data still shown while the next is read, or none.
+export function dataOf<T>(loaded: Loaded<T>): T | undefined {
+  return loaded.state === "failed" ? undefined : loaded.data
 }

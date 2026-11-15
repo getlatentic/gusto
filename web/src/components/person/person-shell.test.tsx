@@ -1,12 +1,12 @@
 import { fireEvent, render, screen, within } from "@testing-library/react"
-import { QueryClientProvider } from "@tanstack/react-query"
+import { Provider } from "react-redux"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { describe, expect, it, vi } from "vitest"
 
 import { PersonShell } from "@/components/person/person-shell"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import type { PersonShell as Shell, RailChat } from "@/domain/side-list"
-import { testQueryClient } from "@/test/render"
+import { makeStore } from "@/store"
 
 const chat = (
   name: string,
@@ -64,7 +64,7 @@ function draw(at: string) {
     vi.fn(async () => new Response(JSON.stringify(shell)))
   )
   render(
-    <QueryClientProvider client={testQueryClient()}>
+    <Provider store={makeStore()}>
       <TooltipProvider>
         <MemoryRouter initialEntries={[at]}>
           <Routes>
@@ -74,7 +74,7 @@ function draw(at: string) {
           </Routes>
         </MemoryRouter>
       </TooltipProvider>
-    </QueryClientProvider>
+    </Provider>
   )
 }
 

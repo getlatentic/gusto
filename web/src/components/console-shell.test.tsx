@@ -3,10 +3,10 @@ import { MemoryRouter, Route, Routes } from "react-router"
 import { describe, expect, it, vi } from "vitest"
 
 import { ConsoleShell } from "@/components/console-shell"
-import { QueryClientProvider } from "@tanstack/react-query"
+import { Provider } from "react-redux"
 
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { testQueryClient } from "@/test/render"
+import { makeStore } from "@/store"
 
 describe("the console", () => {
   it("has its sections and one way back to the pages everybody uses, and no other", async () => {
@@ -25,7 +25,7 @@ describe("the console", () => {
       )
     )
     render(
-      <QueryClientProvider client={testQueryClient()}>
+      <Provider store={makeStore()}>
         <TooltipProvider>
           <MemoryRouter initialEntries={["/admin/budgets"]}>
             <Routes>
@@ -35,7 +35,7 @@ describe("the console", () => {
             </Routes>
           </MemoryRouter>
         </TooltipProvider>
-      </QueryClientProvider>
+      </Provider>
     )
     const current = await screen.findByRole("link", { name: "Budgets" })
     expect(current.getAttribute("aria-current")).toBe("page")
@@ -64,7 +64,7 @@ describe("the console", () => {
       )
     )
     render(
-      <QueryClientProvider client={testQueryClient()}>
+      <Provider store={makeStore()}>
         <TooltipProvider>
           <MemoryRouter initialEntries={["/admin/records?tab=keeping"]}>
             <Routes>
@@ -74,7 +74,7 @@ describe("the console", () => {
             </Routes>
           </MemoryRouter>
         </TooltipProvider>
-      </QueryClientProvider>
+      </Provider>
     )
     const current = await screen.findByRole("link", { name: "Records" })
     expect(current.getAttribute("aria-current")).toBe("page")
@@ -107,7 +107,7 @@ describe("a page under a section", () => {
         )
       )
       const drawn = render(
-        <QueryClientProvider client={testQueryClient()}>
+        <Provider store={makeStore()}>
           <TooltipProvider>
             <MemoryRouter initialEntries={[at]}>
               <Routes>
@@ -117,7 +117,7 @@ describe("a page under a section", () => {
               </Routes>
             </MemoryRouter>
           </TooltipProvider>
-        </QueryClientProvider>
+        </Provider>
       )
       const apps = await screen.findByRole("link", { name: "Apps & skills" })
       expect(apps.getAttribute("aria-current")).toBe("page")

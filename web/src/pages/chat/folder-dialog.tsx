@@ -7,7 +7,6 @@ import {
   FileIcon,
   FolderIcon,
 } from "lucide-react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -30,17 +29,21 @@ import {
   type Explorer,
   type ShownFolders,
 } from "@/domain/folders"
-import { getJSON, postForm } from "@/lib/api"
+import { useData } from "@/lib/api"
+import { postForm } from "@/lib/http"
+import { useAppDispatch } from "@/store"
+import { api } from "@/store/api"
 import { bytes, shortWhen } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 const foldersAt = (at: string) => `/chat/folders?at=${encodeURIComponent(at)}`
 
-function useFolders(at: string) {
-  return useQuery({
-    queryKey: [foldersAt(at)],
-    queryFn: ({ signal }) => getJSON<ShownFolders>(foldersAt(at), signal),
-  })
+// useFolders is what a place holds; what was shown stays while the next place is read.
+function useFolders(at: string): { shown?: ShownFolders; failed: boolean } {
+  const read = useData<ShownFolders>(foldersAt(at))
+  return read.state === "failed"
+    ? { failed: true }
+    : { shown: read.data, failed: false }
 }
 
 // FolderDialog is the window that chooses the folder a chat works in: the person's projects down the side, the path along the
@@ -92,37 +95,40 @@ function Browser({
   const [state, move] = useReducer(explore, start, startExplorer)
   const here = useFolders(state.at)
   const top = useFolders("")
-  const client = useQueryClient()
+  const dispatch = useAppDispatch()
   const choose = async () => {
     const place = chosenPlace(state)
-    if (place)
-      onChoose(
-        await client.fetchQuery({
-          queryKey: [foldersAt(place)],
-          queryFn: () => getJSON<ShownFolders>(foldersAt(place)),
-        })
-      )
+    if (!place) return
+    const read = await dispatch(
+      api.endpoints.page.initiate(foldersAt(place), { subscribe: false })
+    )
+    if (read.data) onChoose(read.data as ShownFolders)
   }
-  const make = useMutation({
-    mutationFn: (name: string) => {
-      const form = new FormData()
-      form.set("at", state.at)
-      form.set("name", name)
-      form.set("harness", harness)
-      return postForm<{ at: string }>("/chat/folders", form)
-    },
-    onSuccess: async (made) => {
-      await client.invalidateQueries({ queryKey: [foldersAt(state.at)] })
-      await client.invalidateQueries({ queryKey: [foldersAt("")] })
+  // make makes a folder here, then reads this place and the projects again, with the new folder chosen.
+  const make = async (name: string) => {
+    const form = new FormData()
+    form.set("at", state.at)
+    form.set("name", name)
+    form.set("harness", harness)
+    try {
+      const made = await postForm<{ at: string }>("/chat/folders", form)
+      dispatch(
+        api.util.invalidateTags([
+          { type: "Page", id: foldersAt(state.at) },
+          { type: "Page", id: foldersAt("") },
+        ])
+      )
       move({ type: "made", at: made.at })
-    },
-    onError: (err) =>
+    } catch (err) {
       move({
         type: "failed",
-        problem: err.message || "That folder could not be made.",
-      }),
-  })
-  const shown = here.data
+        problem:
+          (err instanceof Error && err.message) ||
+          "That folder could not be made.",
+      })
+    }
+  }
+  const shown = here.shown
   const keys = (event: KeyboardEvent<HTMLElement>) => {
     if (!shown || (event.target as HTMLElement).closest("input, button, a"))
       return
@@ -151,7 +157,7 @@ function Browser({
   if (!shown) {
     return (
       <p className="m-0 p-8 text-center text-sm text-subtle">
-        {here.isError ? "The folders could not be read." : "Looking…"}
+        {here.failed ? "The folders could not be read." : "Looking…"}
       </p>
     )
   }
@@ -164,14 +170,14 @@ function Browser({
       <div className="grid min-h-0 grid-cols-[12.5rem_minmax(0,1fr)] max-sm:grid-cols-[minmax(0,1fr)]">
         <Projects
           at={shown.at}
-          projects={top.data?.folders ?? []}
+          projects={top.shown?.folders ?? []}
           move={move}
         />
         <Contents
           shown={shown}
           state={state}
           move={move}
-          onMake={(name) => make.mutate(name)}
+          onMake={(name) => void make(name)}
         />
       </div>
       <DialogFooter className="m-0 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 rounded-none px-4 py-3 max-sm:grid-cols-[minmax(0,1fr)_auto]">

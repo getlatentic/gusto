@@ -6,7 +6,6 @@ import {
   type Ref,
 } from "react"
 import { useNavigate } from "react-router"
-import { useQueryClient } from "@tanstack/react-query"
 import { PaperclipIcon, SquareIcon, XIcon } from "lucide-react"
 
 import { Composer } from "@/components/chat/composer"
@@ -16,7 +15,8 @@ import { sendForm } from "@/lib/forms"
 import { ChoiceSelect } from "@/pages/chat/choice-select"
 import { MentionBox } from "@/pages/conversation/mention-box"
 import type { ConversationData } from "@/pages/conversation/types"
-import { turnsPath, type RoomLive } from "@/pages/conversation/use-room-live"
+import type { RoomLive } from "@/pages/conversation/use-room-live"
+import { useRefreshAll } from "@/lib/api"
 
 // ConversationComposer is where a person writes in a conversation. In a room, words alone go over the live socket when it is
 // up; anything else (files, or no socket) is sent by the form, as is everything in a conversation with one agent.
@@ -48,15 +48,11 @@ export function ConversationComposer({
     },
   }))
   const navigate = useNavigate()
-  const client = useQueryClient()
   const [attached, setAttached] = useState<File[]>([])
   const [unsent, setUnsent] = useState("")
   const [sending, setSending] = useState(false)
   const room = page.Instance.Room
-  const refresh = () => {
-    void client.invalidateQueries({ queryKey: [`/app/api${page.Path}`] })
-    void client.invalidateQueries({ queryKey: [turnsPath(page)] })
-  }
+  const refresh = useRefreshAll()
   const sent = () => {
     setText("")
     setAttached([])

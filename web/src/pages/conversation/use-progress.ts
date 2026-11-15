@@ -1,6 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
-
-import { getJSON } from "@/lib/api"
+import { dataOf, useData } from "@/lib/api"
 
 interface Progress {
   what: string
@@ -22,15 +20,12 @@ export function useProgress(
   path: string,
   running: boolean
 ): Record<string, string> {
-  const progress = useQuery({
-    queryKey: [`${path}/progress`],
-    queryFn: ({ signal }) =>
-      getJSON<Record<string, Progress>>(`${path}/progress`, signal),
-    enabled: running,
-    refetchInterval: 2_000,
+  const progress = useData<Record<string, Progress>>(`${path}/progress`, {
+    pollingInterval: 2_000,
+    skip: !running,
   })
   return Object.fromEntries(
-    Object.entries(progress.data ?? {}).map(([turn, each]) => [
+    Object.entries(dataOf(progress) ?? {}).map(([turn, each]) => [
       turn,
       progressWords(each),
     ])

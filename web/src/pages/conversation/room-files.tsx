@@ -1,9 +1,10 @@
 import { useState } from "react"
 import { FileTextIcon, UploadIcon } from "lucide-react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getJSON } from "@/lib/api"
+import { useData } from "@/lib/api"
+import { useAppDispatch } from "@/store"
+import { api } from "@/store/api"
 import { bytes, shortWhen } from "@/lib/format"
 import { fileHref } from "@/pages/conversation/file-chips"
 import type {
@@ -20,35 +21,39 @@ export function RoomFiles({
   onOpen: (href: string, name: string) => void
 }) {
   const path = `/app/api/rooms/${encodeURIComponent(page.Instance.ID)}/files`
-  const client = useQueryClient()
-  const files = useQuery({
-    queryKey: [path],
-    queryFn: ({ signal }) => getJSON<RoomFilesData>(path, signal),
-  })
+  const dispatch = useAppDispatch()
+  const files = useData<RoomFilesData>(path)
   const [by, setBy] = useState<"agents" | "people">("agents")
-  const upload = useMutation({
-    mutationFn: async (chosen: File[]) => {
-      const body = new FormData()
-      for (const file of chosen) body.append("file", file)
-      const answer = await fetch(
-        `/rooms/${encodeURIComponent(page.Instance.ID)}/files`,
-        { method: "POST", credentials: "same-origin", body }
+  // adding is what became of the last files added: on their way, refused with why, or nothing to say.
+  const [adding, setAdding] = useState("")
+  const upload = async (chosen: File[]) => {
+    const body = new FormData()
+    for (const file of chosen) body.append("file", file)
+    setAdding("Adding…")
+    const answer = await fetch(
+      `/rooms/${encodeURIComponent(page.Instance.ID)}/files`,
+      {
+        method: "POST",
+        credentials: "same-origin",
+        body,
+      }
+    ).catch(() => null)
+    if (!answer?.ok) {
+      setAdding(
+        (answer && (await answer.text()).trim()) ||
+          "The files could not be added."
       )
-      if (!answer.ok)
-        throw new Error(
-          (await answer.text()).trim() || "The files could not be added."
-        )
-    },
-    onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: [path] })
-      setBy("people")
-    },
-  })
-  const data = files.data
+      return
+    }
+    setAdding("")
+    dispatch(api.util.invalidateTags([{ type: "Page", id: path }]))
+    setBy("people")
+  }
+  const data = files.state === "failed" ? undefined : files.data
   if (!data)
     return (
       <p className="m-0 p-4 text-sm text-muted-foreground">
-        {files.isError ? "The files could not be read." : "Looking…"}
+        {files.state === "failed" ? "The files could not be read." : "Looking…"}
       </p>
     )
   const days = (by === "agents" ? data.ByAgents : data.ByPeople) ?? []
@@ -73,7 +78,7 @@ export function RoomFiles({
               type="file"
               multiple
               onChange={(event) => {
-                upload.mutate([...(event.currentTarget.files ?? [])])
+                void upload([...(event.currentTarget.files ?? [])])
                 event.currentTarget.value = ""
               }}
             />
@@ -84,11 +89,7 @@ export function RoomFiles({
         role="status"
         className="m-0 text-xs text-muted-foreground empty:hidden"
       >
-        {upload.isPending
-          ? "Adding…"
-          : upload.isError
-            ? upload.error.message
-            : ""}
+        {adding}
       </p>
       {days.length === 0 ? (
         <p className="m-0 text-sm text-muted-foreground">

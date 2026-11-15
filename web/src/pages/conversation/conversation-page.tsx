@@ -1,10 +1,10 @@
 import { useRef, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
 import { useLocation } from "react-router"
 
 import { AgentMark } from "@/components/controls"
 import { Notice, PageBar } from "@/components/page"
-import { Failure, getJSON } from "@/lib/api"
+import { pagePath, usePageData } from "@/lib/api"
+import { api } from "@/store/api"
 import { useShell } from "@/lib/shell"
 import { AddDialog } from "@/pages/conversation/add-dialog"
 import {
@@ -32,22 +32,20 @@ import { useRoomLive } from "@/pages/conversation/use-room-live"
 // ConversationPage is one conversation: with one agent, or a room of people and agents.
 export function ConversationPage() {
   const where = useLocation()
-  const path = `/app/api${where.pathname}`
-  const loaded = useQuery({
-    queryKey: [path],
-    queryFn: ({ signal }) =>
-      getJSON<ConversationData>(path + where.search, signal),
-    // A preview that is starting is looked at again until it has.
-    refetchInterval: (query) => (query.state.data?.Starting ? 3_000 : false),
+  // A preview that is starting is looked at again every few seconds until it has.
+  const cached = api.endpoints.page.useQueryState(pagePath(where)).data as
+    ConversationData | undefined
+  const loaded = usePageData<ConversationData>({
+    pollingInterval: cached?.Starting ? 3_000 : 0,
   })
-  if (loaded.isError) {
+  if (loaded.state === "failed") {
     return (
       <>
         <PageBar title="Conversation" />
         <Notice>
-          {loaded.error instanceof Failure && loaded.error.status === 404
+          {loaded.status === 404
             ? "There is nothing here."
-            : `This could not be read: ${loaded.error.message}`}
+            : `This could not be read: ${loaded.message}`}
         </Notice>
       </>
     )

@@ -1,11 +1,9 @@
 import { useEffect, useEffectEvent, useState } from "react"
 import { CheckIcon } from "lucide-react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
 
-import { getJSON } from "@/lib/api"
+import { dataOf, useData, useRefreshAll } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import type { ConversationData } from "@/pages/conversation/types"
-import { turnsPath } from "@/pages/conversation/use-room-live"
 
 interface LiveItem {
   kind: "said" | "step"
@@ -45,26 +43,21 @@ function useEnded(task: string, onEnded: () => void) {
 // RunningReply is the reply of a conversation that is still being written: what it is doing now, how long it has taken, and
 // everything it has said and done so far, as it came.
 export function RunningReply({ page }: { page: ConversationData }) {
-  const client = useQueryClient()
+  const refreshAll = useRefreshAll()
   const [started] = useState(() => Date.now())
   const [now, setNow] = useState(started)
-  const live = useQuery({
-    queryKey: [`${page.Path}/live`],
-    queryFn: ({ signal }) => getJSON<LiveTurn>(`${page.Path}/live`, signal),
-    refetchInterval: 1_500,
-  })
+  const live = dataOf(
+    useData<LiveTurn>(`${page.Path}/live`, { pollingInterval: 1_500 })
+  )
   useEffect(() => {
     const tick = window.setInterval(() => setNow(Date.now()), 1_000)
     return () => window.clearInterval(tick)
   }, [])
-  useEnded(page.Latest, () => {
-    void client.invalidateQueries({ queryKey: [`/app/api${page.Path}`] })
-    void client.invalidateQueries({ queryKey: [turnsPath(page)] })
-  })
-  const items = live.data?.items ?? []
+  useEnded(page.Latest, refreshAll)
+  const items = live?.items ?? []
   const steps = items.filter((item) => item.kind === "step")
   const latest = steps[steps.length - 1]
-  const doing = live.data?.holding || page.Holding || latest?.what || "Working"
+  const doing = live?.holding || page.Holding || latest?.what || "Working"
   return (
     <section aria-label="The reply so far" className="mt-5 ml-10.5 grid gap-3">
       <p className="m-0 flex items-center gap-3 text-sm font-medium">
@@ -82,7 +75,7 @@ export function RunningReply({ page }: { page: ConversationData }) {
           aria-label="What it has done so far"
           className="m-0 grid list-none gap-2 p-0 pl-2"
         >
-          {live.data?.cut && (
+          {live?.cut && (
             <li className="text-xs text-subtle">
               The start of this turn is left out.
             </li>

@@ -1,10 +1,9 @@
 import { useRef, useState } from "react"
-import { useMutation } from "@tanstack/react-query"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { postForm } from "@/lib/api"
+import { postForm } from "@/lib/http"
 import type { ChatData } from "@/pages/chat/types"
 
 const field = "grid gap-2"
@@ -30,19 +29,29 @@ export function FirstModel({ page }: { page: ChatData }) {
   const known = page.Presets.find((each) => each.Address === provider)
   const form = useRef<HTMLFormElement>(null)
   const models = useRef<HTMLInputElement>(null)
-  const list = useMutation({
-    mutationFn: () => {
-      const fields = new FormData(form.current!)
-      const asked = new FormData()
-      for (const name of ["address", "auth", "key"])
-        asked.set(name, String(fields.get(name) ?? ""))
-      return postForm<Listed>("/setup/models", asked)
-    },
-    onSuccess: (listed) => !listed.error && models.current?.focus(),
-  })
-  const said = list.isPending
+  // listing is the provider's answer to which models the key can use: asked, answered, or not reached.
+  const [listing, setListing] = useState<{
+    asking: boolean
+    listed?: Listed
+    failed?: boolean
+  }>({ asking: false })
+  const list = () => {
+    const fields = new FormData(form.current!)
+    const asked = new FormData()
+    for (const name of ["address", "auth", "key"])
+      asked.set(name, String(fields.get(name) ?? ""))
+    setListing({ asking: true })
+    postForm<Listed>("/setup/models", asked).then(
+      (listed) => {
+        setListing({ asking: false, listed })
+        if (!listed.error) models.current?.focus()
+      },
+      () => setListing({ asking: false, failed: true })
+    )
+  }
+  const said = listing.asking
     ? "Asking the provider…"
-    : listedWords(list.data, list.isError)
+    : listedWords(listing.listed, Boolean(listing.failed))
   return (
     <>
       <form
@@ -133,11 +142,7 @@ export function FirstModel({ page }: { page: ChatData }) {
                 list="found-models"
                 className="min-w-0 flex-1"
               />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => list.mutate()}
-              >
+              <Button type="button" variant="outline" onClick={list}>
                 List my models
               </Button>
             </div>
@@ -145,7 +150,7 @@ export function FirstModel({ page }: { page: ChatData }) {
               {said}
             </p>
             <datalist id="found-models">
-              {(list.data?.models ?? []).map((name) => (
+              {(listing.listed?.models ?? []).map((name) => (
                 <option key={name} value={name} />
               ))}
             </datalist>

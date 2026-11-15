@@ -1,4 +1,4 @@
-import { Failure } from "@/lib/api"
+import { Failure } from "@/lib/http"
 
 // sendForm sends a form as the browser would, without leaving the page, and gives the address the server sent the person on to
 // (its path and query), which is where any refusal is said. The page then moves there in the app instead of loading it again.
