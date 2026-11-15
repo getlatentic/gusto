@@ -102,18 +102,57 @@ describe("the usage", () => {
     expect(screen.getByText("Bob")).toBeTruthy()
     expect(screen.getByText(/Nova/).textContent).toContain("Nova · Alice's")
     expect(screen.getByText("· 2 turns")).toBeTruthy()
-    expect(screen.getByRole("link", { name: /Failed/ }).textContent).toBe(
-      "Failed 2 this week"
-    )
+    expect(
+      screen.getByRole("button", { name: "Failed2" }).getAttribute("title")
+    ).toBe("Failed: 2 this week")
   })
 
-  it("picks its days from a calendar, not the browser's own date field", async () => {
+  it("narrows with a toolbar: a search, a span of days and one choice of each kind, with no button to press", async () => {
     renderPage("/admin/usage", "/admin/usage", <UsagePage />, {
       "/admin/usage": usage((view) => (view.Rows = [row])),
     })
     await screen.findByRole("link", { name: "Draft the policy" })
     expect(document.querySelector('input[type="date"]')).toBeNull()
-    expect(screen.getAllByRole("button", { name: "Any day" })).toHaveLength(2)
+    expect(screen.getByRole("button", { name: "Any date" })).toBeTruthy()
+    for (const facet of [
+      "Person",
+      "Agent",
+      "Agent type",
+      "Provider",
+      "Model",
+    ]) {
+      expect(screen.getByRole("button", { name: facet })).toBeTruthy()
+    }
+    expect(screen.queryByRole("button", { name: "Filter" })).toBeNull()
+    expect(screen.queryByRole("link", { name: /Reset/ })).toBeNull()
+  })
+
+  it("names what is chosen on its button, and offers to reset", async () => {
+    renderPage(
+      "/admin/usage?agent=Nova&from=2026-10-01&to=2026-10-14",
+      "/admin/usage",
+      <UsagePage />,
+      {
+        "/admin/usage?agent=Nova&from=2026-10-01&to=2026-10-14": usage(
+          (view) => {
+            view.Rows = [row]
+            view.Values = {
+              agent: ["Nova"],
+              from: ["2026-10-01"],
+              to: ["2026-10-14"],
+            }
+            view.Filtered = true
+          }
+        ),
+      }
+    )
+    expect(
+      await screen.findByRole("button", { name: "1 Oct – 14 Oct" })
+    ).toBeTruthy()
+    expect(screen.getByRole("button", { name: /^Agent\s*Nova$/ })).toBeTruthy()
+    expect(
+      screen.getByRole("link", { name: /Reset/ }).getAttribute("href")
+    ).toBe("/admin/usage")
   })
 
   it("says when no conversation has failed", async () => {

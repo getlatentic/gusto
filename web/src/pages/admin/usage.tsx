@@ -1,24 +1,12 @@
-import { useState, type FormEvent } from "react"
-import { useNavigate } from "react-router"
-import { ChevronRightIcon, DownloadIcon, EllipsisIcon } from "lucide-react"
+import { DownloadIcon, EllipsisIcon } from "lucide-react"
 
 import { AppLink } from "@/components/app-link"
-import {
-  AgentMark,
-  ChoiceSelect,
-  DateField,
-  Loading,
-  Pager,
-} from "@/components/controls"
+import { AgentMark, Loading, Pager } from "@/components/controls"
 import { Notice, PageBar, PageBody, PageSub } from "@/components/page"
 import { UsageTabsFor } from "@/pages/admin/usage-tabs"
+import { StateToggle, UsageToolbar } from "@/pages/admin/usage-toolbar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,7 +19,6 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -113,8 +100,15 @@ function Usage({ view, base }: { view: UsageView; base: string }) {
           {view.Building.total} tasks. What is below is not yet everything.
         </Notice>
       )}
-      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 text-sm">
-        <p className="m-0 text-muted-foreground">
+      {(view.Rows?.length || view.Filtered || view.Values.state?.length) && (
+        <UsageToolbar
+          key={JSON.stringify(view.Values)}
+          view={view}
+          base={base}
+        />
+      )}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <p className="m-0 text-sm text-muted-foreground">
           {priced && (
             <strong className="font-semibold text-foreground">
               {figures.Spent}{" "}
@@ -129,29 +123,8 @@ function Usage({ view, base }: { view: UsageView; base: string }) {
             </span>
           )}
         </p>
-        <nav className="flex gap-3" aria-label="Which conversations">
-          {view.States.map((state) => (
-            <AppLink
-              key={state.Label}
-              href={state.Href}
-              aria-current={state.Current ? "page" : undefined}
-              className="text-muted-foreground no-underline hover:text-foreground aria-[current=page]:font-medium aria-[current=page]:text-foreground"
-            >
-              {state.Label}
-              {state.Count && (
-                <span className="font-normal text-muted-foreground">
-                  {" "}
-                  {state.Count}
-                </span>
-              )}
-            </AppLink>
-          ))}
-        </nav>
+        <StateToggle states={view.States} />
       </div>
-
-      {(view.Rows?.length || view.Filtered) && (
-        <Filters key={JSON.stringify(view.Values)} view={view} base={base} />
-      )}
 
       {view.Rows?.length ? (
         <>
@@ -307,113 +280,5 @@ function Nothing({ view }: { view: UsageView }) {
         <EmptyDescription>{words}</EmptyDescription>
       </EmptyHeader>
     </Empty>
-  )
-}
-
-// Filters narrow the conversations: a search, a span of days, and who and what made the calls. Each one is part of the address.
-function Filters({ view, base }: { view: UsageView; base: string }) {
-  const navigate = useNavigate()
-  const value = (name: string) => view.Values[name]?.[0] ?? ""
-  const [search, setSearch] = useState(value("q"))
-  const go = (changes: Record<string, string>) => {
-    const query = new URLSearchParams()
-    for (const [name, values] of Object.entries(view.Values)) {
-      if (["after", "q", ...Object.keys(changes)].includes(name)) continue
-      for (const each of values) query.append(name, each)
-    }
-    for (const [name, chosen] of Object.entries({ q: search, ...changes })) {
-      if (chosen) query.set(name, chosen)
-    }
-    const text = query.toString()
-    navigate(text ? `${base}?${text}` : base)
-  }
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    go({})
-  }
-  return (
-    <form className="mb-4 grid gap-3 text-sm" role="search" onSubmit={submit}>
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="min-w-56 flex-1">
-          <span className="sr-only">
-            Search sessions, people, agents, agent types, providers and models
-          </span>
-          <Input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search"
-          />
-        </label>
-        <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
-          From{" "}
-          <DateField
-            label="Any day"
-            value={value("from")}
-            onChange={(day) => go({ from: day })}
-          />
-          To{" "}
-          <DateField
-            label="Any day"
-            value={value("to")}
-            onChange={(day) => go({ to: day })}
-          />
-        </div>
-        <Button type="submit">Filter</Button>
-        {view.Filtered && (
-          <AppLink
-            href={view.Clear}
-            className="text-muted-foreground no-underline underline-offset-4 hover:text-foreground hover:underline"
-          >
-            Clear
-          </AppLink>
-        )}
-      </div>
-      <Collapsible defaultOpen={view.Filtered}>
-        <CollapsibleTrigger className="group flex w-fit cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-muted-foreground hover:text-foreground">
-          <ChevronRightIcon className="size-4 transition-transform group-data-[panel-open]:rotate-90" />
-          More filters
-        </CollapsibleTrigger>
-        <CollapsibleContent className="mt-3 flex flex-wrap gap-3">
-          {view.Everyone && (
-            <ChoiceSelect
-              label="Person"
-              all="Everyone"
-              options={view.Facets.people}
-              value={value("person")}
-              onChange={(chosen) => go({ person: chosen })}
-            />
-          )}
-          <ChoiceSelect
-            label="Agent"
-            all="Every agent"
-            options={view.Facets.agents}
-            value={value("agent")}
-            onChange={(chosen) => go({ agent: chosen })}
-          />
-          <ChoiceSelect
-            label="Agent type"
-            all="Every agent type"
-            options={view.Facets.agentTypes}
-            value={value("agent_type")}
-            onChange={(chosen) => go({ agent_type: chosen })}
-          />
-          <ChoiceSelect
-            label="Provider"
-            all="Every provider"
-            options={view.Facets.providers}
-            value={value("provider")}
-            onChange={(chosen) => go({ provider: chosen })}
-          />
-          <ChoiceSelect
-            label="Model"
-            all="Every model"
-            options={view.Facets.models}
-            value={value("model")}
-            onChange={(chosen) => go({ model: chosen })}
-          />
-        </CollapsibleContent>
-      </Collapsible>
-    </form>
   )
 }

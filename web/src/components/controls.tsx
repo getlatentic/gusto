@@ -1,26 +1,11 @@
-import { useState, type ReactNode } from "react"
+import { type ReactNode } from "react"
 import { Link } from "react-router"
-import { CalendarIcon, XIcon } from "lucide-react"
 
 import { AppLink } from "@/components/app-link"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { buttonVariants } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Loaded } from "@/lib/api"
-import { dayFromISO, isoDay, shortDay } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 // LinkTabs are the views of one page, each its own address, drawn as shadcn's line tabs.
@@ -53,106 +38,6 @@ export function LinkTabs({
         ))}
       </TabsList>
     </Tabs>
-  )
-}
-
-// DateField is a day picked from a calendar, or none. It shows the day in words and gives it on as an ISO day.
-export function DateField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: string
-  onChange: (day: string) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const day = dayFromISO(value)
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        render={
-          <Button
-            variant="outline"
-            className={cn(
-              "w-40 justify-start font-normal",
-              !day && "text-muted-foreground"
-            )}
-            aria-label={label}
-          >
-            <CalendarIcon />
-            {day ? shortDay(day) : label}
-          </Button>
-        }
-      />
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={day}
-          defaultMonth={day}
-          onSelect={(picked) => {
-            onChange(picked ? isoDay(picked) : "")
-            setOpen(false)
-          }}
-        />
-        {day && (
-          <div className="border-t p-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full"
-              onClick={() => {
-                onChange("")
-                setOpen(false)
-              }}
-            >
-              <XIcon /> No date
-            </Button>
-          </div>
-        )}
-      </PopoverContent>
-    </Popover>
-  )
-}
-
-// ChoiceSelect is one of a list, or all of them: the empty choice is "all".
-export function ChoiceSelect({
-  label,
-  all,
-  options,
-  value,
-  onChange,
-}: {
-  label: string
-  all: string
-  options: string[] | null
-  value: string
-  onChange: (value: string) => void
-}) {
-  const items = [
-    { value: null as string | null, label: all },
-    ...(options ?? []).map((option) => ({
-      value: option as string | null,
-      label: option,
-    })),
-  ]
-  return (
-    <Select
-      items={items}
-      value={value || null}
-      onValueChange={(chosen) => onChange((chosen as string | null) ?? "")}
-    >
-      <SelectTrigger aria-label={label} className="min-w-40">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {items.map((item) => (
-          <SelectItem key={item.label} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   )
 }
 

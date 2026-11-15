@@ -68,8 +68,3 @@ export function dayFromISO(text: string | null): Date | undefined {
   const m = text ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(text) : null
   return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : undefined
 }
-
-// shortDay is a date as the filter shows it: "14 Oct 2026".
-export function shortDay(d: Date): string {
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
-}
