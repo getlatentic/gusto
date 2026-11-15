@@ -19,7 +19,7 @@ func (r Row) Change() Change {
 	if r.Err != nil {
 		return Unknown
 	}
-	before, after := r.Before.Gate.Passed, r.After.Gate.Passed
+	before, after := r.Before.Check.Passed, r.After.Check.Passed
 	switch {
 	case before && !after:
 		return Worse

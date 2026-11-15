@@ -7,9 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/workspace"
+
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/spend"
 )
 
@@ -28,7 +30,7 @@ func (s *Server) crewArrival(r *http.Request, held instance.Instance, memberID s
 	}
 	asker := s.askerName(r)
 	member, found := s.crew.Get(memberID)
-	if !found || !member.MayUse(asker) {
+	if !found || !member.MayUse(asker) || !workspace.Same(member.Workspace, held.Workspace) {
 		return instance.Arrival{}, fmt.Errorf("that agent is not one you may work with")
 	}
 	runs := s.runsRoom(r, held)
@@ -145,7 +147,7 @@ func (s *Server) takeOutMember(room, who, by string) error {
 
 // stopTurns stops every turn of an agent's in a room that has not finished.
 func (s *Server) stopTurns(room, agent, by string) {
-	for _, turn := range s.index.Unfinished(jobs.Record{Instance: room, Agent: agent}.Lane()) {
+	for _, turn := range s.index.Unfinished(tasks.Record{Instance: room, Agent: agent}.Lane()) {
 		_ = runner.NoteStop(turn.Dir(s.index.Root()), by, time.Now().Unix())
 		_, _, _ = s.queue.Cancel(turn.ID, by)
 	}

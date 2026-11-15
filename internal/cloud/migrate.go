@@ -22,7 +22,7 @@ type Report struct {
 
 // countedTables are the tables whose rows the report counts, under the words people read.
 var countedTables = []struct{ name, table string }{
-	{"organisations", "orgs"}, {"people", "people"}, {"memberships", "memberships"}, {"invitations", "invitations"}, {"links", "links"},
+	{"organisations", "orgs"}, {"people", "people"}, {"memberships", "memberships"}, {"workspaces", "workspaces"}, {"invitations", "invitations"}, {"links", "links"},
 	{"leads", "leads"}, {"runtime", "runtime"},
 }
 
@@ -68,7 +68,7 @@ func oldRecords(root string, now time.Time) map[string]int {
 }
 
 // ImportNow opens the accounts database, makes its schema current, and loads the old files into it when it has
-// not had them, without waiting for a front door to start. It says whether this call did the import, and what the
+// not had them, without waiting for a gusto cloud server to start. It says whether this call did the import, and what the
 // import was.
 func ImportNow(ctx context.Context, root string, set Settings) (record ImportRecord, ran bool, err error) {
 	if err := os.MkdirAll(root, 0o700); err != nil {

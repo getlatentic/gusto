@@ -28,7 +28,7 @@ func held(t *testing.T, credentials Credentials) (*Proxy, *Tokens, map[string]*h
 	kept := t.TempDir()
 	tokens := NewTokens()
 	proxy := New(tokens, credentials,
-		func(job string) (string, bool) { return filepath.Join(kept, job+".jsonl"), true },
+		func(task string) (string, bool) { return filepath.Join(kept, task+".jsonl"), true },
 		spend.NewLedger(spend.Policy{}), Allowlist{})
 	return proxy, tokens, seen, kept
 }
@@ -77,7 +77,7 @@ func TestACredentialIsPresentedTheWayItsProviderTakesIt(t *testing.T) {
 	}
 }
 
-// The credential is decided when the job starts and carried by its token, so a
+// The credential is decided when the task starts and carried by its token, so a
 // container naming another provider's model in the body does not reach it.
 func TestAContainerCannotChangeCredentialByNamingAnotherModel(t *testing.T) {
 	proxy, tokens, seen, _ := held(t, Credentials{

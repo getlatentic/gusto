@@ -1,17 +1,13 @@
 // Package web is the pages a person uses: start a harness, run work on it,
 // watch it happen, and read what every run left behind.
 //
-// Server-rendered, with the templates compiled into the binary, because a
-// customer installs one artifact and a second origin with its own build step is
-// not one artifact.
+// Drawn by the server from templates, and the console's pages by a React app
+// built from web/, both compiled into the binary, because a customer installs one
+// artifact and a second origin with its own build step is not one artifact.
 package web
 
 import (
-	"cmp"
 	"context"
-	"embed"
-	"html/template"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -28,7 +24,6 @@ import (
 	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/integration"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/notify"
 	"github.com/getlatentic/gusto/internal/orgsettings"
 	"github.com/getlatentic/gusto/internal/preset"
@@ -36,22 +31,19 @@ import (
 	"github.com/getlatentic/gusto/internal/roomlive"
 	"github.com/getlatentic/gusto/internal/setup"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/spend"
 	"github.com/getlatentic/gusto/pkg/wire"
 )
 
-//go:embed templates/*.html
-var pages embed.FS
-
 type Server struct {
-	index     *jobs.Index
+	index     *tasks.Index
 	instances *instance.Store
-	queue     *jobs.Queue
+	queue     *tasks.Queue
 	// routineNews is told how each run of a routine ended, and where the server says its own pages are.
 	routineNews notify.Every
 	publicURL   string
 	keeper      *keeper
-	templates   *template.Template
 	identity    *Identity
 	catalog     []catalog.Entry
 	// liveCatalog, when set, is asked for the catalog each time a page wants it, as on a person's own computer, where they
@@ -71,7 +63,7 @@ type Server struct {
 	registry     *registry.Registry
 	// apps and runner are the web apps people share from their agents' computers.
 	apps       *apps.Store
-	runner     AppRunner
+	runner     apps.Runner
 	publishing sync.WaitGroup
 	// checking is the apps a request could not reach that are being asked again, one check for each.
 	checking sync.Map
@@ -80,10 +72,10 @@ type Server struct {
 	listing  taskIndex
 	keyring  signing.Keyring
 	// front is set when this server is one organization's in a hosted gusto, and
-	// then rosterPath is the list of its people that the front door writes, and
-	// inbox is where the front door leaves what its admins did, for the change
+	// then rosterPath is the list of its people that gusto cloud writes, and
+	// inbox is where gusto cloud leaves what its admins did, for the change
 	// record.
-	front      *frontDoor
+	front      *cloudLink
 	rosterPath string
 	inbox      string
 	taking     sync.Mutex
@@ -91,6 +83,7 @@ type Server struct {
 	// orgSettings is what the organization's admins choose for it.
 	orgSettings *orgsettings.File
 	connectors  *connector.Connectors
+	keptHomes   KeptHomes
 	// local is how the one person a server on their own computer runs for signs in, or nil.
 	local *localSignIn
 	// operatorDefault is what a new chat runs on when neither the person nor the organization has chosen.
@@ -109,7 +102,7 @@ type Server struct {
 	roomHold  func(ctx context.Context, folder string, paths []string) (func(changed bool), error)
 	writers   sync.Mutex
 	retention *retained
-	// sockets is what keeps a room's page up to date, and announce is what turns a job's changes into its room's events.
+	// sockets is what keeps a room's page up to date, and announce is what turns a task's changes into its room's events.
 	sockets  *roomlive.Server
 	announce *announcer
 	health   Health
@@ -128,6 +121,7 @@ type Server struct {
 	reaches   func(model string, shape wire.Shape) (native, ok bool)
 	installer agentInstaller
 	replies   replyNotes
+	progress  progressKept
 	servers   setup.Servers
 	// integrations is the store of imported plugins, and cloner fetches one from a git address.
 	integrations *integration.Store
@@ -143,30 +137,14 @@ type Server struct {
 	names rosterBook
 }
 
-func New(index *jobs.Index, instances *instance.Store, queue *jobs.Queue, password string, identity *Identity, offered []catalog.Entry, models Models) (*Server, error) {
+func New(index *tasks.Index, instances *instance.Store, queue *tasks.Queue, password string, identity *Identity, offered []catalog.Entry, models Models) (*Server, error) {
 	keeper, err := newKeeper(password)
 	if err != nil {
 		return nil, err
 	}
 	s := &Server{index: index, instances: instances, queue: queue, keeper: keeper, identity: identity, catalog: offered, models: models}
 	keeper.now = s.memberNow
-	s.templates, err = template.New("").Funcs(helpers).Funcs(template.FuncMap{
-		"waiting":    s.waiting,
-		"personName": s.personName,
-		"ownerLabel": s.ownerLabel,
-		"initials":   s.initials,
-		"askedBy":    askerOf,
-		// Where a host that has a lease is extended, which is at the front door.
-		"leaseExtend": s.leaseExtend,
-		"appLink":     s.appLink,
-		"costOf":      s.costOf,
-		"replyIn":     s.replyIn,
-		"installable": s.installable,
-	}).ParseFS(pages, "templates/*.html")
-	if err != nil {
-		return nil, err
-	}
-	// A server made only to read who is who has no jobs, so nothing to hand on.
+	// A server made only to read who is who has no tasks, so nothing to hand on.
 	if index != nil {
 		index.OnFinish(s.handOff)
 	}
@@ -179,7 +157,7 @@ func (s *Server) UseSessionFile(path string) error { return s.keeper.keep(path) 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	if s.front != nil {
-		mux.HandleFunc("GET /login", s.toFrontDoor)
+		mux.HandleFunc("GET /login", s.toCloud)
 		mux.HandleFunc("GET /auth/entry", s.enter)
 	} else {
 		mux.HandleFunc("GET /login", s.loginPage)
@@ -192,6 +170,7 @@ func (s *Server) Handler() http.Handler {
 	}
 	mux.HandleFunc("GET /auth/desktop/start", s.desktopStart)
 	mux.HandleFunc("GET /auth/desktop/handoff", s.guard(s.desktopHandoff))
+	mux.HandleFunc("GET /app/api/auth/desktop/handoff", s.guard(s.desktopTicket))
 	mux.HandleFunc("GET /auth/desktop/redeem", s.desktopRedeem)
 	mux.HandleFunc("POST /logout", s.signOut)
 	mux.Handle("GET /static/", serveStatic())
@@ -200,28 +179,19 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 
 	mux.HandleFunc("GET /{$}", s.guard(s.home))
-	mux.HandleFunc("GET /files", s.guard(s.filesPage))
 	mux.HandleFunc("GET /chat/folders", s.guard(s.chatFolders))
 	mux.HandleFunc("POST /chat/folders", s.guard(s.newChatFolder))
-	mux.HandleFunc("GET /chat", s.guard(s.chatPage))
 	mux.HandleFunc("POST /chat", s.guard(s.startChat))
 	mux.HandleFunc("POST /presets", s.guard(s.savePreset))
 	mux.HandleFunc("POST /presets/{id}/delete", s.guard(s.deletePreset))
-	mux.HandleFunc("GET /presets", s.guard(s.presetsPage))
 	mux.HandleFunc("GET /new", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/presets", http.StatusMovedPermanently)
 	})
-	mux.HandleFunc("GET /new/blank", s.guard(s.blankPage))
-	mux.HandleFunc("GET /engines", s.guard(s.enginesPage))
-	mux.HandleFunc("GET /compare", s.guard(s.comparePage))
 	mux.HandleFunc("POST /compare", s.guard(s.startComparison))
-	mux.HandleFunc("GET /compare/{id}", s.guard(s.lineupPage))
-	mux.HandleFunc("GET /setups", s.guard(s.setupsPage))
 	mux.HandleFunc("GET /instances/new", s.guard(s.setUp))
+	mux.HandleFunc("GET /app/api/instances/new", s.guard(s.appData(s.setUpData)))
 	mux.HandleFunc("POST /instances", s.guard(s.startInstance))
-	mux.HandleFunc("GET /instances/{id}", s.guard(s.instancePage))
 	mux.HandleFunc("POST /instances/{id}/remove", s.guard(s.removeInstance))
-	mux.HandleFunc("GET /instances/{id}/file", s.guard(s.folderFile))
 	mux.HandleFunc("POST /instances/{id}/file", s.guard(s.saveFile))
 	mux.HandleFunc("GET /instances/{id}/files", s.guard(s.folderPage))
 	mux.HandleFunc("GET /instances/{id}/raw", s.guard(s.folderRaw))
@@ -234,32 +204,24 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /instances/{id}/routines", s.guard(s.addRoutine))
 	mux.HandleFunc("POST /instances/{id}/routines/{routine}/{action}", s.guard(s.changeRoutine))
 	mux.HandleFunc("POST /instances/{id}/threads", s.guard(s.openThread))
-	mux.HandleFunc("GET /instances/{id}/threads/{thread}", s.guard(s.conversation))
-	mux.HandleFunc("GET /instances/{id}/threads/{thread}/turns", s.guard(s.turns))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}/live", s.guard(s.turnLive))
 	mux.HandleFunc("POST /instances/{id}/threads/{thread}/say", s.guard(s.say))
-	mux.HandleFunc("GET /templates/{name}", s.guard(s.templatePage))
 	mux.HandleFunc("POST /templates/{name}", s.guard(s.startTemplate))
-	mux.HandleFunc("GET /setups/{name}", s.guard(s.setupPage))
 	s.roomRoutes(mux)
 	if s.sockets != nil {
 		mux.Handle("GET "+livePath, s.sockets.Handler())
 	}
 	s.memberRoutes(mux)
+	s.workRoutes(mux)
 	s.connectorRoutes(mux)
-	mux.HandleFunc("GET /jobs", s.guard(s.list))
 	s.mountProtocol(mux)
-	mux.HandleFunc("GET /device", s.guard(s.devicePage))
 	mux.HandleFunc("POST /device", s.guard(s.approveDevice))
 	mux.HandleFunc("POST /device/{id}/revoke", s.guard(s.endDeviceToken))
 	mux.HandleFunc("POST /device/sign-out-everywhere", s.guard(s.signOutEverywhere))
-	mux.HandleFunc("GET /jobs/{id}", s.guard(s.job))
 	mux.HandleFunc("POST /jobs/{id}/stop", s.guard(s.stopPage))
 	mux.HandleFunc("GET /jobs/{id}/files/{name}", s.guard(s.file))
 	mux.HandleFunc("GET /jobs/{id}/bundle", s.guard(s.bundle))
 	mux.HandleFunc("GET /watch/{id}", s.guard(s.watch))
-	mux.HandleFunc("GET /spend", s.guard(s.spendPage))
-	s.mountUsage(mux)
 	s.consoleRoutes(mux)
 	mux.HandleFunc("GET /readyz", s.ready)
 	mux.HandleFunc("GET /metrics", s.sent(apitoken.Metrics, s.metrics))
@@ -291,33 +253,3 @@ func redirected(to string, status int) http.HandlerFunc {
 
 // productName is what every page calls itself.
 const productName = "gusto"
-
-func (s *Server) render(w http.ResponseWriter, page string, data any) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	// An inline script runs only with the nonce this response's policy names.
-	if fields, ok := data.(map[string]any); ok {
-		marks := markOf(w)
-		fields["Nonce"] = nonceOf(w)
-		fields["Admin"] = marks.admin
-		fields["Connections"] = s.hasConnectors()
-		if s.front != nil && s.front.Org != "" {
-			fields["Org"] = s.front.Org
-			fields["OrgName"] = cmp.Or(s.front.Name, s.front.Org)
-			fields["Organizations"] = s.front.URL + "/orgs"
-			fields["OrgsFrom"] = s.front.URL + "/orgs.json"
-			fields["AccountFrom"] = s.front.URL + "/account.json"
-			fields["ConfirmAgain"] = s.front.URL + "/account/confirm"
-		}
-		// Every page of the app carries the side list drawn with it, so that moving between pages does not redraw it.
-		if _, carried := fields["Rail"]; !carried && fields["Console"] == nil && marks.req != nil && s.keeper.knows(marks.req) {
-			fields["Rail"] = s.railFor(marks.req, "")
-		}
-		if marks.req != nil && s.keeper.knows(marks.req) {
-			fields["SignedAs"] = s.signedAs(marks.req)
-		}
-	}
-	if err := s.templates.ExecuteTemplate(w, page, data); err != nil {
-		slog.Error("a page could not be drawn", "page", page, "error", err)
-		http.Error(w, "the page could not be drawn", http.StatusInternalServerError)
-	}
-}

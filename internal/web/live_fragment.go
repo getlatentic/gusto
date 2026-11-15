@@ -1,8 +1,8 @@
 package web
 
 import (
-	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"slices"
 
@@ -11,9 +11,9 @@ import (
 	"github.com/getlatentic/gusto/internal/roomlog"
 )
 
-// A live update is the HTML of one turn or note, drawn from the same templates as the page and sent to everybody in the room.
-// What is a viewer's own is not drawn into it: the turn is drawn for nobody in particular, with the elements that depend on who
-// is looking marked for the browser to settle, so one drawing serves every viewer.
+// A live update is one turn or note as the same JSON the conversation's snapshot gives, sent to everybody in the room. Nothing in
+// it is a viewer's own: whose agent answered is an address, and each page says "your agent" itself, so one turn serves every
+// viewer.
 
 // drawEvent draws what an event of a room's log changed.
 func (s *Server) drawEvent(ctx context.Context, room string, event roomlog.Event) (roomlive.Drawn, error) {
@@ -40,6 +40,8 @@ func (s *Server) drawItem(held instance.Instance, event roomlog.Event) (roomlive
 	if !found {
 		return roomlive.Drawn{}, fmt.Errorf("no conversation %s in %s", event.Thread, held.ID)
 	}
+	// Read before the turn is, so that the version never stands for more than the page drawn with it shows.
+	_, version := s.roomActivity(thread)
 	timeline := s.roomTimeline(held, thread, s.sketchTurns(thread))
 	at := slices.IndexFunc(timeline, func(each turn) bool { return each.ID == event.Ref })
 	if at < 0 {
@@ -50,19 +52,18 @@ func (s *Server) drawItem(held instance.Instance, event roomlog.Event) (roomlive
 		ledger, _ := s.spending()
 		full := s.fullTurn(shown.Record, ledger)
 		full.roomTurn = shown.roomTurn
-		full.Files = s.fileCards(held.ID, full.Changed, full.Deleted)
+		full.Files = s.fileChips(held.ID, full.Changed, full.Deleted)
 		shown = full
 	}
-	var html bytes.Buffer
-	data := map[string]any{"T": shown, "P": s.fragmentPage(held, thread)}
-	if err := s.templates.ExecuteTemplate(&html, "room-turn", data); err != nil {
+	view, err := json.Marshal(s.turnViewOf(shown, s.sceneOf(held, thread)))
+	if err != nil {
 		return roomlive.Drawn{}, err
 	}
 	kind := roomlive.FrameTurn
 	if shown.Note {
 		kind = roomlive.FrameNote
 	}
-	return roomlive.Drawn{Type: kind, Thread: thread.ID, ID: shown.ID, HTML: html.String()}, nil
+	return roomlive.Drawn{Type: kind, Thread: thread.ID, ID: shown.ID, Turn: view, Version: version}, nil
 }
 
 // sketchTurns is a conversation's turns with what the timeline needs of them and no more: who spoke and when, without reading
@@ -75,18 +76,4 @@ func (s *Server) sketchTurns(thread instance.Thread) []turn {
 		}
 	}
 	return turns
-}
-
-// fragmentPage is the page's own data that a turn is drawn with, for no viewer in particular: nobody is "me", and what only the
-// room's owner is offered is drawn hidden, for the browser to show to the owner.
-func (s *Server) fragmentPage(held instance.Instance, thread instance.Thread) map[string]any {
-	return map[string]any{
-		"Instance":    held,
-		"Thread":      thread,
-		"Path":        threadPath(thread),
-		"Names":       s.roomNames(held),
-		"Me":          "",
-		"Sharing":     false,
-		"ShareHidden": s.apps != nil,
-	}
 }

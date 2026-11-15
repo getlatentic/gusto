@@ -8,7 +8,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 func TestAConfiguredHarnessOpensWithItsAdapterAndDigest(t *testing.T) {
@@ -34,19 +34,19 @@ func TestAnAdapterIsToldWhereItsHarnessIs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	command := adapter.Command(context.Background(), job.Spec{}, t.TempDir())
+	command := adapter.Command(context.Background(), task.Spec{}, t.TempDir())
 	if want := "cat " + folder + "/prompt.md"; command.Args[2] != want {
 		t.Fatalf("argv %q, want %q", command.Args, want)
 	}
 }
 
-// The job carries the whole configured harness, and what it carries digests as
-// the original did, so the digest can be taken from the job and not the host.
+// The task carries the whole configured harness, and what it carries digests as
+// the original did, so the digest can be taken from the task and not the host.
 func TestKeepCarriesTheWholeConfiguredHarness(t *testing.T) {
 	mine := t.TempDir()
 	configuredFixture(t, mine)
 	t.Setenv("GUSTO_HARNESSES", mine)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := Keep(dir, "fixture"); err != nil {
 		t.Fatal(err)
 	}
@@ -62,13 +62,13 @@ func TestKeepCarriesTheWholeConfiguredHarness(t *testing.T) {
 	}
 }
 
-// A job kept again holds the harness as it is now, and never the old form
+// A task kept again holds the harness as it is now, and never the old form
 // beside the new one.
-func TestKeepReplacesWhatTheJobHeld(t *testing.T) {
+func TestKeepReplacesWhatTheTaskHeld(t *testing.T) {
 	mine := t.TempDir()
 	put(t, mine, "fixture.json", fixtureAdapter, 0o644)
 	t.Setenv("GUSTO_HARNESSES", mine)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := Keep(dir, "fixture"); err != nil {
 		t.Fatal(err)
 	}
@@ -89,12 +89,12 @@ func TestKeepReplacesWhatTheJobHeld(t *testing.T) {
 }
 
 // A built-in name overridden in GUSTO_HARNESSES is what a runner here would run,
-// so it is what the job carries.
+// so it is what the task carries.
 func TestKeepCarriesAnOverrideOfABuiltInHarness(t *testing.T) {
 	mine := t.TempDir()
 	put(t, mine, "opencode.json", `{"name":"opencode","program":"true","needs":"nothing"}`, 0o644)
 	t.Setenv("GUSTO_HARNESSES", mine)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := Keep(dir, "opencode"); err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestADirectoryWithoutAnAdapterIsRefused(t *testing.T) {
 	}
 }
 
-// A built-in harness digests as the bare adapter it is, so a job that carries
+// A built-in harness digests as the bare adapter it is, so a task that carries
 // a copy of it and one that does not name the same harness.
 func TestABuiltInHarnessDigestsAsItsCarriedCopyWould(t *testing.T) {
 	built, err := Open("", "opencode")
@@ -133,7 +133,7 @@ func TestABuiltInHarnessDigestsAsItsCarriedCopyWould(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	put(t, Carried(dir), "opencode.json", string(text), 0o644)
 	carried, err := Open(dir, "opencode")
 	if err != nil {

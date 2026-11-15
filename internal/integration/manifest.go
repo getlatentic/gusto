@@ -122,7 +122,7 @@ func strictAuthor(raw json.RawMessage, into *Author) error {
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(into); err != nil {
-		return fmt.Errorf("may hold only a name, an email and a url, each text: %v", err)
+		return fmt.Errorf("may hold only a name, an email and a url, each text: %w", err)
 	}
 	return nil
 }

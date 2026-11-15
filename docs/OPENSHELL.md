@@ -37,7 +37,7 @@ A server with `GUSTO_SANDBOX=openshell` on Linux with no `/dev/kvm` refuses to s
 
 ## How a task runs
 
-The runner stays on the host and writes the record itself. It checks out the repository on the host, makes a sandbox with the task's policy, and puts in the workspace and skills. It runs the agent with `openshell sandbox exec`, or over ssh for an ACP agent. The agent environment is the proxy address and the task token only. It fetches the workspace back and takes the patch on the host. The check runs in the sandbox. The runner writes `out/sandbox-events.log` and `out/sandbox-policy.json`, the manifest hashes them, the host signs it, and the sandbox is deleted.
+The runner stays on the host and writes the record itself. It checks out the repository on the host, makes a sandbox with the task's policy, and puts in the working folder and skills. It runs the agent with `openshell sandbox exec`, or over ssh for an ACP agent. The agent environment is the proxy address and the task token only. It fetches the working folder back and takes the patch on the host. The check runs in the sandbox. The runner writes `out/sandbox-events.log` and `out/sandbox-policy.json`, the manifest hashes them, the host signs it, and the sandbox is deleted.
 
 ## The policy and the image
 
@@ -49,7 +49,7 @@ The runner writes a policy for each task. Everything not named is denied.
 | each allowed host and port | `GUSTO_ALLOWED_HOSTS`: `host` is ports 80 and 443, `host:port` is one port, `*.domain` is every name under it |
 | `/usr`, `/lib`, `/bin`, `/opt`, `/proc`, read-only | the system a sandbox needs to start |
 | part of `/etc`, read-only | users, groups, name resolution, certificates, library cache (`systemReads` in `internal/openshell/policy.go`). A path named there must exist in the image |
-| `/sandbox`, `/tmp` and the agent's own folder, read-write | the workspace is `/sandbox/workspace` |
+| `/sandbox`, `/tmp` and the agent's own folder, read-write | the working folder is `/sandbox/workspace` |
 | `/dev/ptmx` and `/dev/pts`, read-write | an agent's shell tool opens a pseudo-terminal per command |
 
 File rules need Landlock. A sandbox that cannot enforce them does not start. A `GUSTO_ALLOWED_HOSTS` entry that cannot be written as a rule is refused.
@@ -74,7 +74,7 @@ An agent in a sandbox holds nothing it could use anywhere else. It is told `http
 | `authorization_details` | `gusto_run`: the room and `model`, `tools` (RFC 9396) |
 | `cnf.jkt` | the thumbprint of the run's key |
 
-Only the agent's command starts a forwarder. The gate and the checks of the image are given no model address, and spend nothing. The code is `internal/runtoken`, `cmd/gusto/boxed.go` and `pkg/proxy/runtokens.go`. A change to these makes a new runner-image key.
+Only the agent's command starts a forwarder. The check and the image's own checks are given no model address, and spend nothing. The code is `internal/runtoken`, `cmd/gusto/boxed.go` and `pkg/proxy/runtokens.go`. A change to these makes a new runner-image key.
 
 ### A room's turn in a person's computer
 
@@ -105,7 +105,7 @@ OpenShell 0.1.2, on an `m8i.xlarge` with nested virtualization. Scripts are in `
 - Only pi, dsh and hermes reported tokens the proxy could count. No price is set, so no cost is in dollars.
 - opencode on Qwen3 VL passed one of two runs before the image carried `ripgrep`, and four of four after. The cause of the failed run is unknown.
 - Claude Code then Codex worked on one project in one sandbox, and its tests passed (3 of 3). Each turn had its own token, so the proxy told their calls apart. The sandbox denied hosts the agents tried on their own, such as `models.opencode.ai`, `registry.npmjs.org` and `github.com`.
-- An upload leaves `.git` behind. Take a turn's diff on the host after fetching the workspace.
+- An upload leaves `.git` behind. Take a turn's diff on the host after fetching the working folder.
 
 ### Many sandboxes at once
 

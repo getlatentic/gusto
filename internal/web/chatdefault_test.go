@@ -5,7 +5,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -56,9 +55,8 @@ func TestAnAdminSetsWhatANewChatRunsOnAndTheChangeIsRecorded(t *testing.T) {
 		t.Errorf("%d changes were recorded, want 1", n)
 	}
 
-	chat := here.ask(t, "GET", "/chat", nil).Body.String()
-	if !regexp.MustCompile(`name="harness" value="fixture"`).MatchString(chat) || !strings.Contains(chat, `name="model" value="platform/test-model"`) {
-		t.Errorf("a new chat does not start on the organization's default")
+	if chat := chatOf(t, here, ""); chat.Harness != "fixture" || chat.Model != "platform/test-model" {
+		t.Errorf("a new chat starts on %s %s, not the organization's default", chat.Harness, chat.Model)
 	}
 
 	refused := here.ask(t, "POST", "/admin/chat-default", url.Values{"default": {"nothing|that-runs"}})
@@ -67,18 +65,15 @@ func TestAnAdminSetsWhatANewChatRunsOnAndTheChangeIsRecorded(t *testing.T) {
 	}
 }
 
-func TestTheNewChatBoxSaysWhatItRunsOnAndKeepsTheChoicesBehindIt(t *testing.T) {
+func TestTheNewChatCarriesThePresetsAgentsAndModelsItCanRunOn(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	page := site.ask(t, "GET", "/chat", nil).Body.String()
-	for _, want := range []string{`id="run-on"`, `aria-controls="chat-choices"`, `id="chat-choices" hidden`, `id="harness-pick"`, `id="model-pick"`, `id="role-pick"`} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the new chat lacks %q", want)
-		}
+	chat := chatOf(t, site, "")
+	if _, found := chat.roleOf(""); !found {
+		t.Errorf("the new chat offers no way to run with no preset: %+v", chat.Roles)
 	}
-	tools := page[strings.Index(page, `id="folder-pick"`):strings.Index(page, `id="chat-choices"`)]
-	if strings.Contains(tools, `id="harness-pick"`) || strings.Contains(tools, `id="model-pick"`) {
-		t.Error("the engine and model menus are still beside Send")
+	if !offers(chat.Agents, chat.Harness) || !offers(chat.Models[chat.Harness], chat.Model) {
+		t.Errorf("the new chat runs on %s %s, which it does not offer: %+v %+v", chat.Harness, chat.Model, chat.Agents, chat.Models)
 	}
 }
 

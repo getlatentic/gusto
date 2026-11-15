@@ -169,7 +169,7 @@ func (s *Server) startDevice(w http.ResponseWriter, r *http.Request) {
 	if label == "" {
 		label = "computer"
 	}
-	device, user, ok := s.devices.start(label, clientOf(r), time.Now())
+	device, user, ok := s.devices.start(label, s.clientOf(r), time.Now())
 	if !ok {
 		answerJSON(w, http.StatusTooManyRequests, map[string]string{"error": "slow_down"})
 		return
@@ -180,7 +180,7 @@ func (s *Server) startDevice(w http.ResponseWriter, r *http.Request) {
 	}
 	answerJSON(w, http.StatusOK, map[string]any{
 		"device_code": device, "user_code": user,
-		"verification_uri": scheme + "://" + r.Host + "/device",
+		"verification_uri": scheme + "://" + r.Host + devicePath,
 		"expires_in":       int(deviceLife.Seconds()), "interval": deviceWait,
 	})
 }
@@ -220,7 +220,7 @@ func (s *Server) pollDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.devices.done(asked.DeviceCode)
-	s.record(changelog.Event{Who: person, Role: string(Runner), From: clientOf(r), Kind: changelog.TokenCreated,
+	s.record(changelog.Event{Who: person, Role: string(Runner), From: s.clientOf(r), Kind: changelog.TokenCreated,
 		What: map[string]string{"id": token.ID, "name": token.Name, "scopes": "acts as " + person}})
 	answerJSON(w, http.StatusOK, map[string]string{"access_token": secret, "token_type": "bearer", "person": person})
 }
@@ -242,7 +242,7 @@ func (s *Server) endMe(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	s.record(changelog.Event{Who: held.Person, Role: string(Runner), From: clientOf(r), Kind: changelog.TokenRevoked,
+	s.record(changelog.Event{Who: held.Person, Role: string(Runner), From: s.clientOf(r), Kind: changelog.TokenRevoked,
 		What: map[string]string{"id": held.ID, "name": held.Name}})
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -253,30 +253,30 @@ func personOf(r *http.Request) string {
 	return who
 }
 
-// devicePage is where a person approves a computer and ends the ones they have approved.
-func (s *Server) devicePage(w http.ResponseWriter, r *http.Request) {
-	s.showDevices(w, r, map[string]any{"Code": r.URL.Query().Get("code")})
+// devicePath is where a person approves a computer and ends the ones they have approved.
+const devicePath = "/device"
+
+// deviceRow is a computer a person approved, as their page lists it.
+type deviceRow struct {
+	ID, Name, Made, LastUsed, Ended string
+	Live                            bool
 }
 
-func (s *Server) showDevices(w http.ResponseWriter, r *http.Request, page map[string]any) {
-	if s.tokens == nil {
-		http.NotFound(w, r)
-		return
-	}
+// deviceData is the page a person approves a computer on, with the code the computer sent them there with, and the computers
+// they approved. The shared sign-in is nobody's own and has none, unless it is the server's one owner.
+func (s *Server) deviceData(r *http.Request) (map[string]any, error) {
 	person := s.keeper.who(r)
-	var rows []tokenRow
+	rows := []deviceRow{}
 	if person != sharedSignIn || s.soleOwner() {
 		for _, held := range s.tokens.ListFor(person) {
-			rows = append(rows, tokenRow{ID: held.ID, Name: held.Name, Made: shownTime(held.Made), Ended: endedOf(held),
+			rows = append(rows, deviceRow{ID: held.ID, Name: held.Name, Made: shownTime(held.Made), Ended: endedOf(held),
 				LastUsed: shownTime(held.LastUsed), Live: held.Live()})
 		}
 	}
-	page["Title"] = productName + " — Your computers"
-	page["Nav"] = "devices"
-	page["Tokens"] = rows
-	page["Shared"] = person == sharedSignIn && !s.soleOwner()
-	page["Owner"] = person == sharedSignIn && s.soleOwner()
-	s.render(w, "device.html", page)
+	return map[string]any{
+		"Code": r.URL.Query().Get("code"), "Tokens": rows, "Refused": s.refusal(r), "Approved": s.message(r, "approved"),
+		"Shared": person == sharedSignIn && !s.soleOwner(), "Owner": person == sharedSignIn && s.soleOwner(),
+	}, nil
 }
 
 // soleOwner says the shared password is the one owner of this server: no identity provider is named, so nobody else can sign in, and
@@ -292,25 +292,25 @@ func (s *Server) approveDevice(w http.ResponseWriter, r *http.Request) {
 	}
 	person := s.keeper.who(r)
 	if person == sharedSignIn && !s.soleOwner() {
-		s.showDevices(w, r, map[string]any{"Refused": "The shared sign-in is not one person. Sign in with your own account to approve a computer."})
+		s.turnAway(w, r, devicePath, "The shared sign-in is not one person. Sign in with your own account to approve a computer.")
 		return
 	}
 	if r.ParseForm() != nil {
-		s.showDevices(w, r, map[string]any{"Refused": "That form could not be read."})
+		s.turnAway(w, r, devicePath, "That form could not be read.")
 		return
 	}
 	now := time.Now()
-	if s.wrong.blocked(clientOf(r), now) {
-		s.showDevices(w, r, map[string]any{"Refused": "Too many codes that were not waiting. Wait a few minutes, then try again."})
+	if s.wrong.blocked(s.clientOf(r), now) {
+		s.turnAway(w, r, devicePath, "Too many codes that were not waiting. Wait a few minutes, then try again.")
 		return
 	}
 	label, ok := s.devices.approve(r.FormValue("code"), person, now)
 	if !ok {
-		s.wrong.failed(clientOf(r), now)
-		s.showDevices(w, r, map[string]any{"Refused": "That code is not waiting. Start the sign-in again on your computer and use the new code."})
+		s.wrong.failed(s.clientOf(r), now)
+		s.turnAway(w, r, devicePath, "That code is not waiting. Start the sign-in again on your computer and use the new code.")
 		return
 	}
-	s.showDevices(w, r, map[string]any{"Approved": label})
+	http.Redirect(w, r, s.withMessage(devicePath, "approved", label), http.StatusSeeOther)
 }
 
 // signOutEverywhere ends every sign-in of the person's: their sessions in every browser and in the app, and every computer
@@ -318,7 +318,7 @@ func (s *Server) approveDevice(w http.ResponseWriter, r *http.Request) {
 func (s *Server) signOutEverywhere(w http.ResponseWriter, r *http.Request) {
 	who := s.keeper.who(r)
 	if who == sharedSignIn && !s.soleOwner() {
-		s.showDevices(w, r, map[string]any{"Refused": "The shared sign-in is not one person, so it has no sign-ins of its own to end."})
+		s.turnAway(w, r, devicePath, "The shared sign-in is not one person, so it has no sign-ins of its own to end.")
 		return
 	}
 	if s.tokens != nil {
@@ -327,7 +327,7 @@ func (s *Server) signOutEverywhere(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			if _, err := s.tokens.RevokeOwn(held.ID, who); err != nil {
-				s.showDevices(w, r, map[string]any{"Refused": "A computer's sign-in could not be ended: " + err.Error()})
+				s.turnAway(w, r, devicePath, "A computer's sign-in could not be ended: "+err.Error())
 				return
 			}
 			s.note(r, changelog.TokenRevoked, map[string]string{"id": held.ID, "name": held.Name})
@@ -355,5 +355,5 @@ func (s *Server) endDeviceToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.note(r, changelog.TokenRevoked, map[string]string{"id": held.ID, "name": held.Name})
-	http.Redirect(w, r, "/device", http.StatusSeeOther)
+	http.Redirect(w, r, devicePath, http.StatusSeeOther)
 }

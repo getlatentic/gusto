@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A runner that is not root has nobody to hand the work to, so the harness
@@ -15,12 +15,12 @@ func TestARunnerThatIsNotRootHandsNothingOver(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("the test is about a runner that is not root")
 	}
-	t.Setenv(AgentUIDEnv, "1000")
-	agent := agentHere()
+	t.Parallel()
+	agent := agentIn(Place{AgentUID: 1000})
 	if agent.present {
 		t.Fatal("a runner that is not root found an agent to switch to")
 	}
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -37,11 +37,11 @@ func TestARunnerThatIsNotRootHandsNothingOver(t *testing.T) {
 
 // A runner that has nobody to hand the work to has nothing to take back.
 func TestARunnerWithNoAgentTakesBackNothing(t *testing.T) {
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	file := dir.Workspace() + "/made-by-the-harness"
+	file := dir.WorkingFolder() + "/made-by-the-harness"
 	if err := os.WriteFile(file, []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}

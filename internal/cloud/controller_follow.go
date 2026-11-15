@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"context"
 	"net"
 	"strconv"
 	"sync"
@@ -14,7 +15,7 @@ const (
 	routeMost  = 4096
 )
 
-// routeCache is the runtimes a front door that does not lead read from the database, so that every request for an
+// routeCache is the runtimes a gusto cloud server that does not lead read from the database, so that every request for an
 // organization is not a query.
 type routeCache struct {
 	mu   sync.Mutex
@@ -45,13 +46,13 @@ func (r *routeCache) put(slug string, runtime Runtime, now time.Time) {
 	r.read[slug] = routeRead{runtime: runtime, at: now}
 }
 
-// routeFollowed is Route for a front door that does not lead: where the leader wrote the server is, read from the database.
-func (c *Controller) routeFollowed(slug string) (string, State) {
+// routeFollowed is Route for a gusto cloud server that does not lead: where the leader wrote the server is, read from the database.
+func (c *Controller) routeFollowed(ctx context.Context, slug string) (string, State) {
 	now := time.Now()
 	runtime, fresh := c.followed.get(slug, now)
 	if !fresh {
 		var err error
-		if runtime, err = c.Store.Runtime(slug); err != nil {
+		if runtime, err = c.Store.Runtime(ctx, slug); err != nil {
 			return "", ""
 		}
 		c.followed.put(slug, runtime, now)
@@ -59,9 +60,9 @@ func (c *Controller) routeFollowed(slug string) (string, State) {
 	if runtime.State != Ready {
 		return "", runtime.State
 	}
-	cell, err := c.cellNamed(runtime.Cell)
+	node, err := c.nodeNamed(runtime.Node)
 	if err != nil {
 		return "", Starting
 	}
-	return net.JoinHostPort(cell.Host(), strconv.Itoa(runtime.Port)), Ready
+	return net.JoinHostPort(node.Host(), strconv.Itoa(runtime.Port)), Ready
 }

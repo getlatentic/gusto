@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"net/http"
 	"path"
 	"regexp"
@@ -21,35 +22,43 @@ type pick struct {
 	Models []string
 }
 
-// chatPage is the place to start talking: a box, the harness and model it will
-// go to, and the conversations already held. What it offers first is what the
-// person used last, because somebody coming back wants to carry on.
-func (s *Server) chatPage(w http.ResponseWriter, r *http.Request) {
+// chatData is the place to start talking: a box, the agent and model it will go to, and the presets that set both. What it
+// offers first is what the person used last, because somebody coming back wants to carry on.
+func (s *Server) chatData(r *http.Request) (map[string]any, error) {
 	picks := s.picksFor(r)
 	harness, model := defaultPick(picks, s.lastUsed(r), s.orgDefault())
-	s.render(w, "chat.html", map[string]any{
-		"Title":       productName + " — chat",
-		"Nav":         "chat",
-		"Chat":        true,
-		"Picks":       picks,
+	return map[string]any{
+		"Ready":       len(picks) > 0,
 		"Harness":     harness,
 		"Model":       model,
-		"Agents":      s.agentOptions(picks),
-		"Models":      s.modelOptions(picks),
-		"Rail":        s.railFor(r, "/chat"),
-		"Here":        "/chat",
+		"Agents":      json.RawMessage(s.agentOptions(picks)),
+		"Models":      json.RawMessage(s.modelOptions(picks)),
 		"Refused":     s.refusal(r),
 		"Start":       s.startIn(r),
-		"Roles":       s.roleChoices(r),
+		"Roles":       json.RawMessage(s.roleChoices(r)),
 		"Role":        s.chosenRole(r),
 		"NeedsModel":  s.needsModel(r),
 		"Presets":     modelPresets,
-		"Missing":     s.missingEngines(),
+		"Missing":     s.missingAgents(),
 		"HandInstall": s.handInstall(),
 		"FoundKeys":   s.foundKeys,
 		"Lacking":     s.lacking(),
 		"Wall":        s.wallView(),
-	})
+	}, nil
+}
+
+// missingAgent is an agent this computer does not have yet, with whether gusto can install it or the command that does.
+type missingAgent struct {
+	Name, Title, Why string
+	Installable      bool
+}
+
+func (s *Server) missingAgents() []missingAgent {
+	missing := []missingAgent{}
+	for _, entry := range s.missingEngines() {
+		missing = append(missing, missingAgent{Name: entry.Name, Title: entry.Title, Why: entry.Why, Installable: s.installable(entry.Name)})
+	}
+	return missing
 }
 
 // startFolder is a folder a chat page opens with already chosen: the project the person pressed New chat under in the side list.
@@ -61,7 +70,7 @@ func (s *Server) startIn(r *http.Request) startFolder {
 	if !found {
 		return startFolder{}
 	}
-	if _, ok := s.workspaceDir(id, dir); !ok {
+	if _, ok := s.agentFolderDir(id, dir); !ok {
 		return startFolder{}
 	}
 	name := s.agentOf(held).Name

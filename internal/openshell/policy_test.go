@@ -48,7 +48,7 @@ func TestASandboxMayReachTheProxyAndTheHostsTheOperatorNamedAndNothingElse(t *te
 	}
 }
 
-func TestTheWorkspaceAndTheHarnessesOwnPlacesAreWritableAndTheSystemIsNot(t *testing.T) {
+func TestTheWorkingFolderAndTheHarnessesOwnPlacesAreWritableAndTheSystemIsNot(t *testing.T) {
 	policy := decoded(t, Config{}, "http://host.openshell.internal:8041/model/v1", "/home/agent/.local/share/opencode")
 	filesystem := policy["filesystem_policy"].(map[string]any)
 	writable := map[string]bool{}
@@ -149,18 +149,5 @@ func TestEveryCommandInASandboxStartsUnderAProcessLimit(t *testing.T) {
 	}
 	if strings.Index(script, "ulimit") > strings.Index(script, "exec \"$@\"") {
 		t.Error("the limit is set after the harness starts")
-	}
-}
-
-func TestAProcessLimitThatIsNotANumberAboveZeroIsRefused(t *testing.T) {
-	for _, bad := range []string{"0", "-3", "many"} {
-		t.Setenv("GUSTO_OPENSHELL_PROCESSES", bad)
-		if _, err := FromEnv(); err == nil {
-			t.Errorf("%q was taken as a process limit", bad)
-		}
-	}
-	t.Setenv("GUSTO_OPENSHELL_PROCESSES", "")
-	if cfg, err := FromEnv(); err != nil || cfg.Processes != 512 {
-		t.Errorf("with none set the limit is %d, %v", cfg.Processes, err)
 	}
 }

@@ -216,6 +216,26 @@ func TestAWriteThatKeepsFailingAtCloseIsCountedAsLostNotLostSilently(t *testing.
 	}
 }
 
+func TestCloseDoesNotWaitOutTheGrowingWaitOfAWriteThatKeepsFailing(t *testing.T) {
+	second := make(chan struct{})
+	store := &recStore{Fake: usagetest.New(), fail: func(attempt int) error {
+		if attempt == 2 {
+			close(second)
+		}
+		return fmt.Errorf("down")
+	}}
+	r := usage.NewRecorderSized(store, recAda, recNamed, 10, time.Second)
+	r.Record("t1", 0, recCall("m1", 5))
+	<-second
+	// The second failure has been seen by now, and the recorder waits two seconds before the third try.
+	time.Sleep(200 * time.Millisecond)
+	began := time.Now()
+	r.Close()
+	if took := time.Since(began); took > time.Second {
+		t.Fatalf("Close took %s", took)
+	}
+}
+
 func TestRecordingAfterCloseAndOnANilRecorderIsHarmless(t *testing.T) {
 	r := usage.NewRecorder(usagetest.New(), recAda, recNamed)
 	r.Close()

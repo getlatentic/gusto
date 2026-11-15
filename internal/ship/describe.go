@@ -5,24 +5,24 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/record"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// record is what the pull request says about the run behind it: enough for a
+// summary is what the pull request says about the run behind it: enough for a
 // reviewer to know which harness and model wrote the patch, which command
 // passed it, which manifest to check it against, and who signed that manifest
 // as a keyring checked it rather than as the manifest claims.
-type record struct {
-	spec     job.Spec
-	manifest evidence.Manifest
+type summary struct {
+	spec     task.Spec
+	manifest record.Manifest
 	signer   string
 	digest   string
 	at       string
 	links    links
 }
 
-func (r record) title() string {
+func (r summary) title() string {
 	first, _, _ := strings.Cut(strings.TrimSpace(r.spec.Brief), "\n")
 	runes := []rune(strings.TrimSpace(first))
 	if len(runes) > 72 {
@@ -31,26 +31,26 @@ func (r record) title() string {
 	return "gusto: " + string(runes)
 }
 
-func (r record) body() string {
+func (r summary) body() string {
 	var out strings.Builder
 	out.WriteString("A gusto task wrote this patch, and its check passed. It is here for review.\n\n")
 	out.WriteString("| | |\n| --- | --- |\n")
 	fmt.Fprintf(&out, "| agent | `%s` |\n", r.manifest.Harness)
 	fmt.Fprintf(&out, "| model | %s |\n", r.model())
-	fmt.Fprintf(&out, "| check | exit %d |\n", r.manifest.Gate.Code)
+	fmt.Fprintf(&out, "| check | exit %d |\n", r.manifest.Check.Code)
 	fmt.Fprintf(&out, "| manifest | [sha256 `%s`](%s) |\n", r.digest, r.links.blob("out/manifest.json"))
 	fmt.Fprintf(&out, "| ran against | `%s` |\n", r.at)
 	fmt.Fprintf(&out, "| signer | %s |\n", r.signer)
-	fmt.Fprintf(&out, "\nThe check:\n\n~~~\n%s\n~~~\n", shell(r.manifest.Gate.Command))
+	fmt.Fprintf(&out, "\nThe check:\n\n~~~\n%s\n~~~\n", shell(r.manifest.Check.Command))
 	fmt.Fprintf(&out, "\nThe brief:\n\n%s\n", quoted(r.spec.Brief))
 	out.WriteString(r.links.section(r.digest, r.at))
 	return out.String()
 }
 
-// model names what the job asked for and where it answered. Either can be
+// model names what the task asked for and where it answered. Either can be
 // empty: a harness may use its own default, and a harness needing no model has
 // no endpoint.
-func (r record) model() string {
+func (r summary) model() string {
 	asked := "the agent's default"
 	if r.spec.Model != "" {
 		asked = "`" + r.spec.Model + "`"
@@ -61,12 +61,12 @@ func (r record) model() string {
 	return asked + " at `" + r.manifest.ModelEndpoint + "`"
 }
 
-func (r record) message(dir job.Dir) string {
+func (r summary) message(dir task.Dir) string {
 	return fmt.Sprintf("%s\n\nThe patch from gusto task %s, whose check passed.\nManifest sha256 %s.\n",
 		r.title(), filepath.Base(filepath.Clean(dir.Path())), r.digest)
 }
 
-// shell writes the gate as a person would type it. The gate is an argv, and
+// shell writes the check as a person would type it. The check is an argv, and
 // joining it with spaces would lose where one argument ends.
 func shell(argv []string) string {
 	words := make([]string, len(argv))
@@ -99,8 +99,8 @@ func (p Plan) Describe(dry bool) string {
 		out.WriteString("a dry run: nothing below happens\n\n")
 	}
 	fmt.Fprintf(&out, "commit   %s, which is %s on %s\n", p.Commits.Change, p.Patch, p.At)
-	fmt.Fprintf(&out, "commit   %s, which is job.json and out/ on top of it\n", p.Commits.Evidence)
-	fmt.Fprintf(&out, "push     %s and %s to %s\n", p.Branch, p.Evidence, p.Remote)
+	fmt.Fprintf(&out, "commit   %s, which is job.json and out/ on top of it\n", p.Commits.Record)
+	fmt.Fprintf(&out, "push     %s and %s to %s\n", p.Branch, p.Record, p.Remote)
 	fmt.Fprintf(&out, "open     a pull request on %s/%s from %s into %s\n", p.Owner, p.Name, p.Branch, p.Base)
 	fmt.Fprintf(&out, "\ntitle    %s\n\n%s\n", p.Title, p.Body)
 	return out.String()

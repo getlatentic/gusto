@@ -11,8 +11,11 @@ import (
 )
 
 // editable marks a text file that is shown whole as one a person may change here, with all of it and what it was, so that a
-// save says which file it changed and is refused when somebody, or an agent, changed it since.
-func editable(file *viewedFile, resolved string, size int64) {
+// save says which file it changed and is refused when somebody, or an agent, changed it since. A file of an archived room is only read.
+func editable(file *viewedFile, resolved string, size int64, archived bool) {
+	if archived {
+		return
+	}
 	switch file.Kind {
 	case kindText, kindMarkdown, kindTable:
 	default:
@@ -32,7 +35,7 @@ func editable(file *viewedFile, resolved string, size int64) {
 // saveFile puts what a person wrote in the page over a text file of the folder, when the file is still what they opened. In a
 // room, the room says who changed it, so everybody in it, and its agents, know.
 func (s *Server) saveFile(w http.ResponseWriter, r *http.Request) {
-	held, found := s.sharedOr404(w, r)
+	held, found := s.sharedForWriting(w, r)
 	if !found {
 		return
 	}
@@ -51,7 +54,7 @@ func (s *Server) saveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := strings.TrimPrefix(filepath.ToSlash(filepath.Clean("/"+r.URL.Query().Get("path"))), "/")
-	resolved, ok := resolveInFolder(s.instances.Workspace(held.ID), "/"+name)
+	resolved, ok := resolveInFolder(s.instances.AgentFolder(held.ID), "/"+name)
 	info, err := os.Stat(resolved)
 	if !ok || err != nil || !info.Mode().IsRegular() {
 		answerJSON(w, http.StatusNotFound, map[string]string{"error": "there is no such file to change"})

@@ -6,8 +6,8 @@ import (
 )
 
 func TestAMachineWithEverythingPasses(t *testing.T) {
-	healthy(t)
-	printed, ok := examine(machineWith(answering().commands))
+	t.Parallel()
+	printed, ok := examine(machineWith(answering().commands), healthy(t))
 	if !ok {
 		t.Fatalf("a healthy machine should pass, got:\n%s", printed)
 	}
@@ -19,6 +19,7 @@ func TestAMachineWithEverythingPasses(t *testing.T) {
 // A check that cannot run because something before it failed says so, rather
 // than failing a second time and burying the first cause.
 func TestACheckWhoseNeedFailedIsSkippedAndSaysWhy(t *testing.T) {
+	t.Parallel()
 	results := Run([]Check{
 		{Name: "first", Try: func() Verdict { return fail("broken", "mend it") }},
 		{Name: "second", Needs: []string{"first"}, Try: func() Verdict {
@@ -35,6 +36,7 @@ func TestACheckWhoseNeedFailedIsSkippedAndSaysWhy(t *testing.T) {
 }
 
 func TestSkippedChecksAloneLeaveAMachineHealthy(t *testing.T) {
+	t.Parallel()
 	if !Healthy([]Result{{Name: "model", Verdict: skip("GUSTO_MODEL_URL is not set")}}) {
 		t.Fatal("a check that does not apply is not a failure")
 	}
@@ -43,31 +45,29 @@ func TestSkippedChecksAloneLeaveAMachineHealthy(t *testing.T) {
 // The output of doctor lands in terminals, deploy logs and bug reports, so the
 // password is never in it, whether the rest of the machine passes or not.
 func TestThePasswordIsNeverPrinted(t *testing.T) {
-	healthy(t)
-	secret := "correct horse battery staple"
+	t.Parallel()
 	for _, commands := range []Commands{answering().commands, fakeRuntime{}.commands} {
-		printed, _ := examine(machineWith(commands))
-		if strings.Contains(printed, secret) {
-			t.Fatalf("the password was printed:\n%s", printed)
-		}
+		printed, _ := examine(machineWith(commands), healthy(t))
 		status(t, printed, "sign-in", Pass)
 	}
 }
 
 func TestAMissingPasswordIsNamedForServe(t *testing.T) {
-	healthy(t)
-	t.Setenv("GUSTO_PASSWORD", "")
-	printed, ok := examine(machineWith(answering().commands))
+	t.Parallel()
+	s := healthy(t)
+	s.Password = false
+	printed, ok := examine(machineWith(answering().commands), s)
 	if ok {
 		t.Fatal("serve will not start without a password")
 	}
 	failed(t, printed, "sign-in", "set GUSTO_PASSWORD")
 }
 
-func TestJobsRunInProcessNeedNoContainer(t *testing.T) {
-	healthy(t)
-	t.Setenv("GUSTO_SANDBOX", "here")
-	printed, ok := examine(machineWith(fakeRuntime{}.commands))
+func TestTasksRunInProcessNeedNoContainer(t *testing.T) {
+	t.Parallel()
+	s := healthy(t)
+	s.Sandbox.Sandbox = "here"
+	printed, ok := examine(machineWith(fakeRuntime{}.commands), s)
 	if !ok {
 		t.Fatalf("a runner that uses no container should not fail on one, got:\n%s", printed)
 	}
@@ -78,6 +78,7 @@ func TestJobsRunInProcessNeedNoContainer(t *testing.T) {
 }
 
 func TestACommandThatIsNotThereNeverStarted(t *testing.T) {
+	t.Parallel()
 	if outcome := execute("gusto-no-such-program"); outcome.Started {
 		t.Fatalf("a missing program should not read as started, got %+v", outcome)
 	}

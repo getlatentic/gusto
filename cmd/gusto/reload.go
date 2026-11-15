@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/live"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/internal/web"
 	"github.com/getlatentic/gusto/pkg/redact"
 	"github.com/getlatentic/gusto/pkg/spend"
@@ -31,7 +31,7 @@ type pageHooks interface {
 
 type liveSettings struct {
 	way     *WayOut
-	index   *jobs.Index
+	index   *tasks.Index
 	pages   pageHooks
 	managed bool
 	// models is the list of models people are offered, as the settings file last gave it or the environment first did.
@@ -40,9 +40,9 @@ type liveSettings struct {
 }
 
 // startLive reads the settings file as the server starts and watches the others until the context ends.
-func startLive(ctx context.Context, way *WayOut, index *jobs.Index, pages pageHooks, managed bool) (*liveSettings, error) {
+func startLive(ctx context.Context, way *WayOut, index *tasks.Index, pages pageHooks, managed bool) (*liveSettings, error) {
 	l := &liveSettings{way: way, index: index, pages: pages, managed: managed}
-	initial := values("GUSTO_MODELS")
+	initial := way.cfg.models
 	l.models.Store(&initial)
 	if err := l.applyFile(); err != nil {
 		return nil, err
@@ -54,22 +54,22 @@ func startLive(ctx context.Context, way *WayOut, index *jobs.Index, pages pageHo
 	if !managed {
 		pages.UseLiveModels(func() web.Models { return *l.offered.Load() })
 	}
-	every := time.Duration(number("GUSTO_RELOAD_SECONDS", 20)) * time.Second
+	every := time.Duration(way.cfg.reloadSeconds) * time.Second
 	go live.Watch(ctx, every, l.sources(), l.told)
 	return l, nil
 }
 
 func (l *liveSettings) sources() []live.Source {
 	sources := []live.Source{
-		{Name: "GUSTO_LIVE", Path: os.Getenv("GUSTO_LIVE"), Apply: l.applyFile},
-		{Name: "GUSTO_SPEND_POLICY", Path: os.Getenv("GUSTO_SPEND_POLICY"), Apply: l.applySpend},
+		{Name: "GUSTO_LIVE", Path: l.way.cfg.live, Apply: l.applyFile},
+		{Name: "GUSTO_SPEND_POLICY", Path: l.way.cfg.spendPolicy, Apply: l.applySpend},
 	}
 	if l.way.gateways != nil {
-		sources = append(sources, live.Source{Name: "GUSTO_TOOL_POLICY", Path: os.Getenv("GUSTO_TOOL_POLICY"), Apply: l.way.gateways.reload})
+		sources = append(sources, live.Source{Name: "GUSTO_TOOL_POLICY", Path: l.way.cfg.toolPolicy, Apply: l.way.gateways.reload})
 	}
-	sources = append(sources, live.Source{Name: "GUSTO_REDACTION", Path: os.Getenv("GUSTO_REDACTION"), Apply: l.applyRedaction})
+	sources = append(sources, live.Source{Name: "GUSTO_REDACTION", Path: l.way.cfg.redaction, Apply: l.applyRedaction})
 	if !l.managed && l.way.proxy != nil {
-		sources = append(sources, live.Source{Name: "GUSTO_CREDENTIALS", Path: os.Getenv("GUSTO_CREDENTIALS"), Apply: l.applyCredentials})
+		sources = append(sources, live.Source{Name: "GUSTO_CREDENTIALS", Path: l.way.cfg.credentials, Apply: l.applyCredentials})
 	}
 	return sources
 }
@@ -77,7 +77,7 @@ func (l *liveSettings) sources() []live.Source {
 // applyRedaction reads which kinds of data are masked. A deployment with no proxy has no way to mask what goes to a model, so one
 // that asks for it is refused, and not left to send what it meant to hide.
 func (l *liveSettings) applyRedaction() error {
-	redactor, err := redact.ReadConfig(os.Getenv("GUSTO_REDACTION"))
+	redactor, err := redact.ReadConfig(l.way.cfg.redaction)
 	if err != nil {
 		return err
 	}
@@ -90,19 +90,19 @@ func (l *liveSettings) applyRedaction() error {
 
 // applyFile reads GUSTO_LIVE: the limits, which the queue takes from the next task it picks, and the models.
 func (l *liveSettings) applyFile() error {
-	settings, err := live.ReadSettings(os.Getenv("GUSTO_LIVE"))
+	settings, err := live.ReadSettings(l.way.cfg.live)
 	if err != nil {
 		return err
 	}
-	person, team := number("GUSTO_LIMIT_PERSON", 0), number("GUSTO_LIMIT_TEAM", 0)
+	person, team := l.way.cfg.limitPerson, l.way.cfg.limitTeam
 	if settings.LimitPerson != nil {
 		person = *settings.LimitPerson
 	}
 	if settings.LimitTeam != nil {
 		team = *settings.LimitTeam
 	}
-	l.index.SetLimits(jobs.Limits{Person: person, Team: team})
-	models := values("GUSTO_MODELS")
+	l.index.SetLimits(tasks.Limits{Person: person, Team: team})
+	models := l.way.cfg.models
 	if len(settings.Models) > 0 {
 		models = settings.Models
 	}
@@ -113,7 +113,7 @@ func (l *liveSettings) applyFile() error {
 
 // applySpend reads the prices and the caps again. Counted spend is kept. When the registry holds the prices, the file's are not used.
 func (l *liveSettings) applySpend() error {
-	policy, err := spend.LoadPolicy(os.Getenv("GUSTO_SPEND_POLICY"))
+	policy, err := spend.LoadPolicy(l.way.cfg.spendPolicy)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func (l *liveSettings) applySpend() error {
 }
 
 func (l *liveSettings) applyCredentials() error {
-	credentials, err := heldCredentials()
+	credentials, err := heldCredentials(l.way.cfg)
 	if err != nil {
 		return err
 	}

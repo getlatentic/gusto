@@ -34,24 +34,19 @@ func TestOnlyTheStaffMayStartADemoWhereStaffAreNamed(t *testing.T) {
 func TestWhereOnlyTheStaffGiveDemosTheLandingPageLeadsToSignUp(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		status, page, _ := landingAt(t, staffSet())
-		for _, want := range []string{`href="/signup"`, "Start free", "Book a demo", `href="https://cal.example/gusto"`, "Free to start, with $5 of gusto's models. Then add your own model key."} {
-			if !strings.Contains(page, want) {
-				t.Errorf("the landing page does not say %q", want)
-			}
+		if got := shown(t, page); status != http.StatusOK || got.Page != "landing" || got.DemoPublic || got.Book != "https://cal.example/gusto" || got.StartingCredit != StartingCredit {
+			t.Errorf("%d: the landing page does not lead to sign-up and booking a demo: %+v", status, got)
 		}
-		if status != http.StatusOK || strings.Contains(page, `href="/demo"`) || strings.Contains(page, "Try it now") || strings.Contains(page, "isolated demo") {
-			t.Errorf("%d: the landing page still offers visitors a demo", status)
-		}
-		if _, page, _ := landingAt(t, demoSet); !strings.Contains(page, `href="/demo"`) || strings.Contains(page, "Start free") {
+		if _, page, _ := landingAt(t, demoSet); !shown(t, page).DemoPublic {
 			t.Error("a host whose demos are open to anyone no longer offers them")
 		}
 
 		f := newFront(t, staffSet(), nil)
 		status, page = f.browser().get("/demo")
-		if status != http.StatusOK || !strings.Contains(page, "Book a demo") || !strings.Contains(page, `href="https://cal.example/gusto"`) || !strings.Contains(page, `href="/signup"`) || strings.Contains(page, `action="/demo"`) {
-			t.Errorf("%d: /demo does not offer to book one\n%s", status, page)
+		if got := shown(t, page); status != http.StatusOK || got.Page != "demo-book" || got.Book != "https://cal.example/gusto" {
+			t.Errorf("%d: /demo does not offer to book one: %+v", status, got)
 		}
-		if status, page := f.browser().get("/demo?team=1"); status != http.StatusOK || !strings.Contains(page, `action="/demo"`) {
+		if status, page := f.browser().get("/demo?team=1"); status != http.StatusOK || shown(t, page).Page != "demo" {
 			t.Errorf("%d: the team has no form to start a demo from", status)
 		}
 	})
@@ -61,10 +56,10 @@ func TestAVisitorWhoIsNotStaffIsRefusedADemoAndTheStaffAreNot(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, staffSet(), nil)
 		status, page, _ := f.browser().post("/demo", url.Values{"name": {"Ada"}, "email": {"ada@acme.com"}, "company": {"Acme"}})
-		if status != http.StatusForbidden || !strings.Contains(page, "Demos are given by the gusto team") || !strings.Contains(page, `value="ada@acme.com"`) {
-			t.Errorf("%d: a visitor started a demo\n%s", status, page)
+		if got := shown(t, page); status != http.StatusForbidden || got.Page != "demo" || !strings.Contains(got.Error, "Demos are given by the gusto team") || got.Email != "ada@acme.com" {
+			t.Errorf("%d: a visitor started a demo: %+v", status, got)
 		}
-		if orgs, _ := f.store.Orgs(); len(orgs) != 0 {
+		if orgs, _ := f.store.Orgs(t.Context()); len(orgs) != 0 {
 			t.Errorf("a refused demo made an organization: %v", orgs)
 		}
 		startDemoAs(t, f, "Priya Nair", "priya@latentic.com", "Acme")

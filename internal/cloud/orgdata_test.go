@@ -13,7 +13,7 @@ func TestWhatAnOrganizationsPeopleMakeIsKeptInTheOrganizationsOwnDirectory(t *te
 		for _, slug := range []string{"acme", "globex"} {
 			env := environmentFor(t, nil, slug)
 			own[slug] = map[string]string{}
-			for _, name := range []string{"GUSTO_JOBS", "GUSTO_SESSIONS", "GUSTO_SETUPS", "GUSTO_CREW", "GUSTO_PRESETS", "GUSTO_INTEGRATIONS", "GUSTO_COMPARISONS"} {
+			for _, name := range []string{"GUSTO_TASKS", "GUSTO_SESSIONS", "GUSTO_SETUPS", "GUSTO_CREW", "GUSTO_PRESETS", "GUSTO_INTEGRATIONS", "GUSTO_COMPARISONS"} {
 				value, count := settingOf(env, name)
 				if count != 1 || !strings.Contains(value, "/"+slug+"/") {
 					t.Errorf("%s for %s is %q (set %d times), which is not the organization's own", name, slug, value, count)

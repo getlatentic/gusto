@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 func foldersAt(t *testing.T, site *site, at string) (shownFolders, int) {
@@ -25,10 +25,10 @@ func TestTheExplorerShowsTheFoldersOfThePersonsCloudComputer(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	instance := strings.TrimPrefix(startedInstance(t, site), "/instances/")
-	workspace := site.server.instances.Workspace(instance)
-	os.MkdirAll(filepath.Join(workspace, "src", "app"), 0o755)
-	os.MkdirAll(filepath.Join(workspace, ".hidden"), 0o755)
-	os.WriteFile(filepath.Join(workspace, "notes.md"), []byte("x"), 0o644)
+	folder := site.server.instances.AgentFolder(instance)
+	os.MkdirAll(filepath.Join(folder, "src", "app"), 0o755)
+	os.MkdirAll(filepath.Join(folder, ".hidden"), 0o755)
+	os.WriteFile(filepath.Join(folder, "notes.md"), []byte("x"), 0o644)
 
 	top, code := foldersAt(t, site, "")
 	if code != http.StatusOK || len(top.Folders) != 1 || top.Folders[0].At != instance {
@@ -44,13 +44,13 @@ func TestTheExplorerShowsTheFoldersOfThePersonsCloudComputer(t *testing.T) {
 	}
 }
 
-// Nothing outside an agent's workspace can be named, by a path, a link or somebody else's agent.
-func TestTheExplorerNamesNothingOutsideAWorkspace(t *testing.T) {
+// Nothing outside an agent's folder can be named, by a path, a link or somebody else's agent.
+func TestTheExplorerNamesNothingOutsideAFolder(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	instance := strings.TrimPrefix(startedInstance(t, site), "/instances/")
 	outside := t.TempDir()
-	os.Symlink(outside, filepath.Join(site.server.instances.Workspace(instance), "out"))
+	os.Symlink(outside, filepath.Join(site.server.instances.AgentFolder(instance), "out"))
 	for _, at := range []string{instance + "/..", instance + "/../..", instance + "/out", instance + "/nothing", "nobody"} {
 		if _, code := foldersAt(t, site, at); code != http.StatusNotFound {
 			t.Errorf("%q answered %d", at, code)
@@ -65,7 +65,7 @@ func TestAFolderIsMadeInsideAnAgentsFolderAndAtTheTopForANewAgent(t *testing.T) 
 	if made := site.ask(t, "POST", "/chat/folders", url.Values{"at": {instance}, "name": {"drafts"}}); made.Code != http.StatusOK {
 		t.Fatalf("making a folder answered %d", made.Code)
 	}
-	if info, err := os.Stat(filepath.Join(site.server.instances.Workspace(instance), "drafts")); err != nil || !info.IsDir() {
+	if info, err := os.Stat(filepath.Join(site.server.instances.AgentFolder(instance), "drafts")); err != nil || !info.IsDir() {
 		t.Error("the folder was not made")
 	}
 	for _, bad := range []string{"../x", "a/b", ".hidden", ""} {
@@ -82,12 +82,12 @@ func TestAFolderIsMadeInsideAnAgentsFolderAndAtTheTopForANewAgent(t *testing.T) 
 	}
 }
 
-// A chat in a folder works in it: the conversation holds the folder and so does each turn's job.
+// A chat in a folder works in it: the conversation holds the folder and so does each turn's task.
 func TestAChatInAFolderOfTheCloudComputerWorksThere(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
 	instance := strings.TrimPrefix(startedInstance(t, site), "/instances/")
-	os.MkdirAll(filepath.Join(site.server.instances.Workspace(instance), "src"), 0o755)
+	os.MkdirAll(filepath.Join(site.server.instances.AgentFolder(instance), "src"), 0o755)
 	answer := site.ask(t, "POST", "/chat", url.Values{"at": {instance + "/src"}, "said": {"tidy up"}})
 	where := answer.Header().Get("Location")
 	if !strings.HasPrefix(where, "/instances/"+instance+"/threads/") {
@@ -98,7 +98,7 @@ func TestAChatInAFolderOfTheCloudComputerWorksThere(t *testing.T) {
 		t.Fatalf("the conversation holds %+v", thread)
 	}
 	record, _ := site.index.Get(thread.Turns[0])
-	spec, err := job.Read(record.Dir(site.index.Root()))
+	spec, err := task.Read(record.Dir(site.index.Root()))
 	if err != nil || spec.Dir != "src" {
 		t.Errorf("the turn's job names %q (%v)", spec.Dir, err)
 	}

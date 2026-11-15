@@ -18,7 +18,7 @@ type contractCase struct {
 // GUSTO_TEST_POSTGRES_URL names a server.
 func TestContract(t *testing.T) {
 	var cases []contractCase
-	for _, group := range [][]contractCase{storageCases, filterCases, searchCases, sortCases, pagingCases, concurrencyCases} {
+	for _, group := range [][]contractCase{storageCases, filterCases, searchCases, sortCases, pagingCases, concurrencyCases, orderCases} {
 		cases = append(cases, group...)
 	}
 	for _, b := range backends() {

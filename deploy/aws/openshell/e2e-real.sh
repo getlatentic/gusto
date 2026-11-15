@@ -14,6 +14,7 @@ source "$(dirname "$0")/env.sh"
 address="$(terraform output -raw address)"
 root="$(git rev-parse --show-toplevel)"
 ./image.sh runner-rootfs "opencode=opencode-ai pi=@earendil-works/pi-coding-agent"
+"$root/web/build.sh"
 (cd "$root" && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$PWD/deploy/aws/openshell/$state/gusto" ./cmd/gusto)
 ssh "${ssh_options[@]}" "ubuntu@$address" 'mkdir -p ~/e2e; pkill -f "[e]2e/gusto serve" || true; pkill -f "[f]ake_model.py" || true; sleep 1; rm -f ~/e2e/gusto ~/e2e/model.env'
 scp -q "${ssh_options[@]}" "$state/gusto" e2e/fake_model.py "ubuntu@$address:e2e/"

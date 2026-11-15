@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"syscall"
 
 	"github.com/getlatentic/gusto/internal/landlock"
 )
@@ -19,18 +16,7 @@ func sandboxRun(args []string) int {
 	if len(args) < 3 || args[1] != "--" {
 		return usageError("sandbox-run", "needs a policy file, --, and a command")
 	}
-	policy, err := landlock.Load(args[0])
-	if err != nil {
-		return fail(err)
-	}
-	program, err := exec.LookPath(args[2])
-	if err != nil {
-		return fail(err)
-	}
-	if err := landlock.Apply(policy); err != nil {
-		return fail(fmt.Errorf("the sandbox did not start, and the task is not run unprotected: %w", err))
-	}
-	return fail(syscall.Exec(program, args[2:], os.Environ()))
+	return fail(landlock.Become(args[0], args[2:]))
 }
 
 // checkLandlock tries the sandbox on this process and prints the kernel's version of it. With network it asks for the network rules too.

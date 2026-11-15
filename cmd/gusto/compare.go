@@ -33,7 +33,11 @@ func compareTasks(args []string) int {
 	if len(named) == 0 || len(named) == 2 {
 		return usageError("compare", "needs a task and the agents to run it on, or a comparison")
 	}
-	exit, err := compare.Answer(os.Stdout, named, f.into, replay.Where(f.here))
+	boxes, code := taskBoxes()
+	if code != 0 {
+		return code
+	}
+	exit, err := compare.Answer(os.Stdout, named, f.into, replay.Where(f.here, boxes))
 	if err != nil {
 		return fail(err)
 	}

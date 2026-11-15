@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/netip"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -67,8 +68,8 @@ func TestAnAdminAddsAProviderAndAModelAndTheFormsOfferItWithNoKeyInAnyPageOrReco
 	if got := *offered.Load(); len(got) != 1 {
 		t.Errorf("what was only added is offered before it was turned on: %v", got)
 	}
-	if body := admin.ask(t, "GET", providerPage("acme"), nil).Body.String(); !strings.Contains(body, "waiting for you to turn it on") || !strings.Contains(body, "Turn on acme") {
-		t.Error("the page does not say what is waiting")
+	if acme := modelsAt(t, admin, providerPage("acme")).Provider; acme == nil || !acme.Pending {
+		t.Errorf("the page does not say what is waiting: %+v", acme)
 	}
 	admin.ask(t, "POST", "/admin/models/providers/acme/enable", nil)
 	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"big-1"}})
@@ -78,24 +79,7 @@ func TestAnAdminAddsAProviderAndAModelAndTheFormsOfferItWithNoKeyInAnyPageOrReco
 	if !here.server.offered().Offers("acme/big-1") || here.server.offered().Offers("acme/other") {
 		t.Error("a page asks what is offered when it is drawn, and a model nobody added is not")
 	}
-	for path, wants := range map[string][]string{
-		modelsTab("models"):      {"acme/big-1", "platform/qwen", `href="/admin/models"`},
-		modelsTab("providers"):   {"set by the operator", `href="/admin/models?tab=providers&amp;provider=acme"`},
-		providerPage("acme"):     {"acme/big-1", `value="0.5"`, `value="1.5"`},
-		providerPage("platform"): {"platform/qwen", "set by the operator of this gusto"},
-		modelsTab("access"):      {"Limit a person"},
-		modelsTab("settings"):    {"Version 3", "Go back to it"},
-	} {
-		body := admin.ask(t, "GET", path, nil).Body.String()
-		for _, want := range wants {
-			if !strings.Contains(body, want) {
-				t.Errorf("%s does not say %q", path, want)
-			}
-		}
-		if strings.Contains(body, theirKey) || strings.Contains(body, "the-operators-key") {
-			t.Errorf("a key is in %s", path)
-		}
-	}
+	checkEachTabGivesWhatWasAdded(t, admin)
 	for _, event := range written(t, here.log) {
 		for _, value := range event.What {
 			if strings.Contains(value, theirKey) {
@@ -145,7 +129,7 @@ func TestAnAdminChangesPricesRetiresAndReplacesAKeyThroughThePage(t *testing.T) 
 	if _, held := reg.Effective().Credentials["acme"]; held {
 		t.Error("a retired provider is still held")
 	}
-	if body := admin.ask(t, "GET", modelsTab("providers"), nil).Body.String(); strings.Contains(body, "https://api.theirs.example") {
+	if body := admin.dataText(t, modelsTab("providers")); strings.Contains(body, "https://api.theirs.example") {
 		t.Error("a retired provider is still on the page")
 	}
 }
@@ -168,9 +152,8 @@ func TestWhatTheRegistryRefusesIsSaidOnThePageAndNothingIsChanged(t *testing.T) 
 	if reg.Document().Version != 0 {
 		t.Errorf("a refused change was made: %+v", reg.Document())
 	}
-	shown := admin.ask(t, "GET", here.server.withMessage("/admin/models", "refused", "a provider is reached over https"), nil).Body.String()
-	if !strings.Contains(shown, "a provider is reached over https") {
-		t.Error("the reason is not on the page")
+	if shown := modelsAt(t, admin, here.server.withMessage(modelsPath, "refused", "a provider is reached over https")); shown.Refused != "a provider is reached over https" {
+		t.Errorf("the reason is not on the page: %q", shown.Refused)
 	}
 	if got := admin.ask(t, "POST", "/admin/models/providers/nobody/models", url.Values{"model": {"m"}}); !strings.Contains(got.Header().Get("Location"), "refused=") {
 		t.Errorf("a model for a provider that is not there: %v", got.Header())
@@ -196,17 +179,21 @@ func TestOnlyAnAdminReachesTheModelsPageAndAServerWithNoRegistryHasNoPage(t *tes
 			t.Errorf("a stranger posting to %s: %d", path, got.Code)
 		}
 	}
-	if got := runner.ask(t, "GET", "/admin/models", nil); got.Code != http.StatusForbidden {
-		t.Errorf("a runner reading it: %d", got.Code)
+	for _, path := range []string{modelsPath, "/app/api" + modelsPath} {
+		if got := runner.ask(t, "GET", path, nil); got.Code != http.StatusForbidden {
+			t.Errorf("a runner reading %s: %d", path, got.Code)
+		}
 	}
 	if reg.Document().Version != 0 {
 		t.Error("somebody who is not an admin changed the registry")
 	}
 	bare := everything(t)
-	if got := bare.as(t, boss).ask(t, "GET", "/admin/models", nil); got.Code != http.StatusNotFound {
-		t.Errorf("a server with no registry has a page of it: %d", got.Code)
+	for _, path := range []string{modelsPath, "/app/api" + modelsPath} {
+		if got := bare.as(t, boss).ask(t, "GET", path, nil); got.Code != http.StatusNotFound {
+			t.Errorf("a server with no registry has %s: %d", path, got.Code)
+		}
 	}
-	if strings.Contains(bare.as(t, boss).ask(t, "GET", "/admin", nil).Body.String(), `href="/admin/models"`) {
+	if strings.Contains(strings.Join(consoleList(t, bare.as(t, boss)), "\n"), modelsPath) {
 		t.Error("the console lists a page there is not")
 	}
 }
@@ -214,9 +201,8 @@ func TestOnlyAnAdminReachesTheModelsPageAndAServerWithNoRegistryHasNoPage(t *tes
 func TestAnAdminOfADeploymentThatIsTheirsChoosesWhatProvidersMayBeAndAHostedOneCannot(t *testing.T) {
 	here, reg, _ := registeredAs(t, registry.Rules{}, true)
 	admin := here.as(t, boss)
-	page := admin.ask(t, "GET", modelsTab("providers"), nil).Body.String()
-	if !strings.Contains(page, `action="/admin/models/policy"`) || strings.Contains(page, " checked") {
-		t.Errorf("the form is there, with everything off:\n%s", page)
+	if page := modelsAt(t, admin, modelsTab("providers")); !page.View.Editable || page.View.Private || chosenSources(page) != "" {
+		t.Errorf("the choice is the admin's, with everything off: %+v %+v", page.View, page.Sources)
 	}
 	got := admin.ask(t, "POST", "/admin/models/policy", url.Values{"private": {"on"}, "keys": {"ssm", "file"}})
 	if got.Code != http.StatusSeeOther || got.Header().Get("Location") != modelsTab("providers") {
@@ -225,9 +211,8 @@ func TestAnAdminOfADeploymentThatIsTheirsChoosesWhatProvidersMayBeAndAHostedOneC
 	if rules := reg.Rules(); !rules.PrivateAddresses || len(rules.KeySources) != 2 {
 		t.Errorf("%+v", rules)
 	}
-	page = admin.ask(t, "GET", modelsTab("providers"), nil).Body.String()
-	if strings.Count(page, " checked") != 3 {
-		t.Errorf("the form says what is chosen: %d checked", strings.Count(page, " checked"))
+	if page := modelsAt(t, admin, modelsTab("providers")); !page.View.Private || chosenSources(page) != "file ssm" {
+		t.Errorf("the form does not say what is chosen: %+v %+v", page.View, page.Sources)
 	}
 	var said []string
 	for _, event := range written(t, here.log) {
@@ -251,7 +236,7 @@ func TestAnAdminOfADeploymentThatIsTheirsChoosesWhatProvidersMayBeAndAHostedOneC
 	if !strings.Contains(refused.Header().Get("Location"), "refused=") || hostedReg.Rules().PrivateAddresses {
 		t.Errorf("a hosted admin loosened what keeps the machine safe: %v", refused.Header())
 	}
-	if hostedPage := boss.ask(t, "GET", modelsTab("providers"), nil).Body.String(); strings.Contains(hostedPage, "/admin/models/policy") || !strings.Contains(hostedPage, "operator fixes") {
+	if hostedPage := modelsAt(t, boss, modelsTab("providers")); hostedPage.View.Editable {
 		t.Error("a hosted page offers the choice")
 	}
 }
@@ -273,11 +258,11 @@ func TestALimitedPersonIsOfferedAndMayStartOnlyTheModelsTheyAreLimitedTo(t *test
 		t.Fatalf("%+v", limits)
 	}
 
-	setUp := ada.ask(t, "GET", "/instances/new?harness=fixture", nil).Body.String()
-	if !strings.Contains(setUp, "acme/big") || strings.Contains(setUp, "platform/qwen") {
-		t.Errorf("a limited person is offered what they may use and no more:\n%s", setUp)
+	setUp := setUpOf(t, ada, "?harness=fixture")
+	if !setUp.offers("acme/big") || setUp.offers("platform/qwen") {
+		t.Errorf("a limited person is offered what they may use and no more: %+v", setUp.Models)
 	}
-	if bobs := bob.ask(t, "GET", "/instances/new?harness=fixture", nil).Body.String(); !strings.Contains(bobs, "platform/qwen") || !strings.Contains(bobs, "acme/big") {
+	if bobs := setUpOf(t, bob, "?harness=fixture"); !bobs.offers("platform/qwen") || !bobs.offers("acme/big") {
 		t.Error("somebody who is not limited is offered everything")
 	}
 	refused := ada.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}, "model": {"platform/qwen"}})
@@ -337,16 +322,16 @@ func TestAPersonChoosingAModelSeesWhatEachCosts(t *testing.T) {
 	admin.ask(t, "POST", "/admin/models/providers/acme/enable", nil)
 	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"big"}})
 	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"free-ish"}})
-	page := here.as(t, alice).ask(t, "GET", "/instances/new?harness=fixture", nil).Body.String()
+	page := setUpOf(t, here.as(t, alice), "?harness=fixture")
 	for _, want := range []string{"platform/qwen · $1 in, $2 out per million tokens", "acme/big · $0.25 in, $1.5 out per million tokens", "acme/free-ish · no price"} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the chooser does not say %q:\n%s", want, page)
+		if !page.says(want) {
+			t.Errorf("the chooser does not say %q: %+v", want, page.Models)
 		}
 	}
 	none := open(t)
 	none.server.UseLedger(spend.NewLedger(spend.Policy{}))
 	none.signIn(t)
-	if strings.Contains(none.ask(t, "GET", "/instances/new?harness=fixture", nil).Body.String(), "no price") {
+	if page := setUpOf(t, none, "?harness=fixture"); len(page.Models) == 0 || slices.ContainsFunc(page.Models, func(each option) bool { return strings.Contains(each.Label, "no price") }) {
 		t.Error("a deployment with no prices at all says so against every model")
 	}
 }
@@ -363,9 +348,11 @@ func TestAnAdminGoesBackToAnEarlierVersionThroughThePageAndItIsRecordedWithWhatI
 	if got := *offered.Load(); len(got) != 1 {
 		t.Fatalf("retired and still offered: %v", got)
 	}
-	body := admin.ask(t, "GET", modelsTab("settings"), nil).Body.String()
-	if !strings.Contains(body, "Go back") || !strings.Contains(body, "retired model acme/big") {
-		t.Errorf("the page does not offer going back, or say what was done after:\n%s", body)
+	steps := modelsAt(t, admin, modelsTab("settings")).Steps
+	if !slices.ContainsFunc(steps, func(step registry.Step) bool {
+		return step.Version == before && slices.Contains(step.Then, "retired model acme/big")
+	}) {
+		t.Errorf("the page does not offer going back, or say what was done after: %+v", steps)
 	}
 	got := admin.ask(t, "POST", "/admin/models/restore", url.Values{"version": {strconv.FormatInt(before, 10)}})
 	if got.Header().Get("Location") != modelsTab("settings") {
@@ -386,4 +373,53 @@ func TestAnAdminGoesBackToAnEarlierVersionThroughThePageAndItIsRecordedWithWhatI
 	if refused := admin.ask(t, "POST", "/admin/models/restore", url.Values{"version": {"9999"}}); !strings.Contains(refused.Header().Get("Location"), "refused=") {
 		t.Error("a version that was never kept was restored")
 	}
+}
+
+// checkEachTabGivesWhatWasAdded checks each tab of the models page gives what was added, and no key.
+func checkEachTabGivesWhatWasAdded(t *testing.T, admin *site) {
+	t.Helper()
+	page := modelsAt(t, admin, modelsTab("models"))
+	if _, held := page.rowNamed("acme/big-1"); !held {
+		t.Errorf("the Models tab does not list acme/big-1: %+v", page.Rows)
+	}
+	if _, held := page.rowNamed("platform/qwen"); !held {
+		t.Errorf("the Models tab does not list platform/qwen: %+v", page.Rows)
+	}
+	page = modelsAt(t, admin, modelsTab("providers"))
+	if platform, _ := page.providerNamed("platform"); !platform.Operator {
+		t.Errorf("the operator's provider is not said to be the operator's: %+v", page.Providers)
+	}
+	if acme, _ := page.providerNamed("acme"); acme.Href != providerPage("acme") {
+		t.Errorf("acme's row does not lead to its page: %+v", acme)
+	}
+	acme := modelsAt(t, admin, providerPage("acme"))
+	if len(acme.Models) != 1 || acme.Models[0].Full != "acme/big-1" || acme.Models[0].Price == nil ||
+		acme.Models[0].Price.InputPerMillion != 0.5 || acme.Models[0].Price.OutputPerMillion != 1.5 {
+		t.Errorf("acme's page gives %+v", acme.Models)
+	}
+	if platform := modelsAt(t, admin, providerPage("platform")); platform.Provider == nil || !platform.Provider.Operator || platform.modelsOf()[0] != "platform/qwen" {
+		t.Errorf("the operator's provider's page gives %+v", platform.Provider)
+	}
+	if access := modelsAt(t, admin, modelsTab("access")); len(access.View.Available) == 0 {
+		t.Error("there is nobody to limit a person to")
+	}
+	if settings := modelsAt(t, admin, modelsTab("settings")); !slices.ContainsFunc(settings.Steps, func(step registry.Step) bool { return step.Version == 3 }) {
+		t.Errorf("the settings do not offer going back to version 3: %+v", settings.Steps)
+	}
+	for _, path := range []string{modelsTab("models"), modelsTab("providers"), providerPage("acme"), providerPage("platform"), modelsTab("access"), modelsTab("settings")} {
+		if body := admin.dataText(t, path); strings.Contains(body, theirKey) || strings.Contains(body, "the-operators-key") {
+			t.Errorf("a key is in %s", path)
+		}
+	}
+}
+
+// chosenSources is the kinds of reference the providers' policy allows a key to be named as, in a line.
+func chosenSources(page modelsJSON) string {
+	var on []string
+	for _, source := range page.Sources {
+		if source.On {
+			on = append(on, source.Kind)
+		}
+	}
+	return strings.Join(on, " ")
 }

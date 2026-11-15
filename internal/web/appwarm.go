@@ -9,7 +9,7 @@ import (
 	"github.com/getlatentic/gusto/internal/apps"
 )
 
-// A new cell's gateway has been seen to take a request for the first app on it and never answer, while a request made
+// A new node's gateway has been seen to take a request for the first app on it and never answer, while a request made
 // afterwards on a connection of its own was answered at once. So for the first minutes of an app's life a request that is
 // safe to ask again is given a short time to be answered, and is asked again on a new connection when it is not.
 const (

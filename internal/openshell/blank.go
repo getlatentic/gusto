@@ -13,11 +13,15 @@ import (
 // A blank computer is made ahead of the person it will be for. The gateway names a sandbox when it makes it and has no call
 // to rename one, and it changes only a live sandbox's network rules, which the sandbox takes up at its next poll of the
 // gateway, ten seconds by default. So what a person's computer is made from has to be there at the start: the image, the
-// limits and the whole policy. Nothing else of a person is in a computer when it is made. The workspace, the environment and
+// limits and the whole policy. Nothing else of a person is in a computer when it is made. The working folder, the environment and
 // the token go in when a task starts, and the person's record names the sandbox, whatever it is called.
 
-// removeWithin is how long the gateway has to remove a sandbox.
-const removeWithin = 2 * time.Minute
+// removeWithin is how long the gateway has to answer a call that ends or stops a sandbox, and killWait how long a killed call
+// has to let go of its pipes.
+var (
+	removeWithin = 2 * time.Minute
+	killWait     = 5 * time.Second
+)
 
 // ComputerPolicy is the policy of a computer for an agent, which is made when the computer is. Two agents whose own
 // folders are in the home get the same policy.
@@ -56,7 +60,7 @@ func MakeBlank(ctx context.Context, cfg Config, name, modelURL string) error {
 
 // Remove removes a sandbox by its name, and one that is not there is removed.
 func Remove(ctx context.Context, cfg Config, name string) error {
-	if _, err := output((&Sandbox{cfg: cfg}).run(ctx, "sandbox", "delete", name)); err != nil && !strings.Contains(err.Error(), "not found") {
+	if _, err := output((&Sandbox{cfg: cfg}).run(ctx, "sandbox", "delete", name)); err != nil && !notThere(err) {
 		return err
 	}
 	return nil

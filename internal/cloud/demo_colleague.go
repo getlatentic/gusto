@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/getlatentic/gusto/internal/changelog"
@@ -13,7 +14,7 @@ func (s *Server) colleaguePage(w http.ResponseWriter, r *http.Request, person Pe
 }
 
 func (s *Server) drawColleague(w http.ResponseWriter, r *http.Request, status int, person Person, page view) {
-	demo, left, found := s.Store.DemoLeft(person.Org)
+	demo, left, found := s.Store.DemoLeft(r.Context(), person.Org)
 	if !found {
 		http.Redirect(w, r, "/org", http.StatusSeeOther)
 		return
@@ -26,22 +27,22 @@ func (s *Server) drawColleague(w http.ResponseWriter, r *http.Request, status in
 // inviteColleague makes the invitation and shows its link, which works the same sent by mail or pasted in a chat, because a demo is
 // short and its visitor has the colleague beside them.
 func (s *Server) inviteColleague(w http.ResponseWriter, r *http.Request, person Person) {
-	if _, _, found := s.Store.DemoLeft(person.Org); !found {
+	if _, _, found := s.Store.DemoLeft(r.Context(), person.Org); !found {
 		http.Redirect(w, r, "/org", http.StatusSeeOther)
 		return
 	}
 	address := r.PostFormValue("email")
-	secret, err := s.Store.Invite(person.Org, person, address)
+	secret, err := s.Store.Invite(r.Context(), person.Org, person, address)
 	if err != nil {
 		s.drawColleague(w, r, refusedStatus(err), person, view{Error: sentence(err), Email: address})
 		return
 	}
 	email, _ := NormalEmail(address)
 	s.record(r, person, changelog.MemberInvited, map[string]string{"email": email, "role": string(Runner)})
-	s.addToDemoRoom(person, email)
+	s.addToDemoRoom(r.Context(), person, email)
 	link := s.link("/invite", secret)
-	if s.mails.Allow(email) {
-		org, _, _ := s.Store.Org(person.Org)
+	if s.mails.Allow(r.Context(), email) {
+		org, _, _ := s.Store.Org(r.Context(), person.Org)
 		s.send(email, person.Email+" invited you to a gusto demo",
 			person.Email+" invited you to "+org.Name+"'s gusto demo, where you can work with its agents in a room:\n\n"+link+
 				"\n\nThe link works once. The demo ends when its time is up.\n")
@@ -51,8 +52,8 @@ func (s *Server) inviteColleague(w http.ResponseWriter, r *http.Request, person 
 
 // entrance is where a signed-in person goes in: a demo's own page, which starts its time when its server is
 // ready, and the organization's server for any other.
-func (s *Server) entrance(person Person) string {
-	if _, _, found := s.Store.DemoLeft(person.Org); found {
+func (s *Server) entrance(ctx context.Context, person Person) string {
+	if _, _, found := s.Store.DemoLeft(ctx, person.Org); found {
 		return "/demo/wait"
 	}
 	return "/open"

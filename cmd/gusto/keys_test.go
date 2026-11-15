@@ -5,15 +5,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// sealedJob leaves a finished, signed job under root.
-func sealedJob(t *testing.T, root, id string, signer signing.Signer) {
+// sealedTask leaves a finished, signed task under root.
+func sealedTask(t *testing.T, root, id string, signer signing.Signer) {
 	t.Helper()
-	dir := job.Dir(filepath.Join(root, id))
+	dir := task.Dir(filepath.Join(root, id))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -23,14 +23,14 @@ func sealedJob(t *testing.T, root, id string, signer signing.Signer) {
 	if err := os.WriteFile(dir.OutFile("answer.txt"), []byte("done"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	spec, files, err := evidence.Of(dir)
+	spec, files, err := record.Of(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Write(dir, evidence.Manifest{Job: spec, Files: files, Signer: "acme"}); err != nil {
+	if err := record.Write(dir, record.Manifest{Task: spec, Files: files, Signer: "acme"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Seal(dir, signer); err != nil {
+	if err := record.Seal(dir, signer); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -43,7 +43,7 @@ func TestKeysCheckFailsWhileARecordsKeyIsNotInTheKeyring(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sealedJob(t, root, "a", key)
+	sealedTask(t, root, "a", key)
 	t.Setenv(signing.KeyringEnv, ring)
 
 	if code := checkKeys([]string{"-tasks", root}); code != 0 {

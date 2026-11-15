@@ -9,8 +9,8 @@ import (
 func TestAModelSaysWhatTheBenchmarkSawTheAgentDoWithIt(t *testing.T) {
 	seconds := 27.0
 	entry := catalog.Entry{Name: "pi", Measured: []catalog.Measured{
-		{Model: "gemma/fast", Job: "one-line-fix", Finished: true, WallSeconds: &seconds},
-		{Model: "gemma/tiny", Job: "one-line-fix", Finished: false},
+		{Model: "gemma/fast", Task: "one-line-fix", Finished: true, WallSeconds: &seconds},
+		{Model: "gemma/tiny", Task: "one-line-fix", Finished: false},
 	}}
 	for model, want := range map[string]string{
 		"gemma/fast":  "finished our test in 27s",

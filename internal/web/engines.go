@@ -2,13 +2,12 @@ package web
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/getlatentic/gusto/internal/catalog"
 )
 
 // measuredView is what a matrix saw each engine do with each model on the
-// simplest job it ran: the grid a person reads to choose an engine. A model
+// simplest task it ran: the grid a person reads to choose an engine. A model
 // reached through two credentials is one column, since it is one model.
 type measuredView struct {
 	Models   []string
@@ -17,9 +16,10 @@ type measuredView struct {
 	Tried    int
 }
 
+// engineRow is one agent type's line of the grid, with its mark.
 type engineRow struct {
-	Title string
-	Cells []measuredCell
+	Name, Title, Mark, MarkDark string
+	Cells                       []measuredCell
 }
 
 // measuredCell is one engine on one model. Tried is false where no matrix
@@ -29,14 +29,6 @@ type measuredCell struct {
 	Finished bool
 	Took     string
 	Cost     string
-}
-
-func (s *Server) enginesPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "engines.html", map[string]any{
-		"Title":    productName + " — how each agent did",
-		"Nav":      "presets",
-		"Measured": measuredOf(s.engines()),
-	})
 }
 
 func measuredOf(entries []catalog.Entry) measuredView {
@@ -54,7 +46,7 @@ func measuredOf(entries []catalog.Entry) measuredView {
 		if len(entry.Measured) == 0 {
 			continue
 		}
-		row := engineRow{Title: entry.Title, Cells: make([]measuredCell, len(view.Models))}
+		row := engineRow{Name: entry.Name, Title: entry.Title, Mark: logo(entry.Name), MarkDark: logoDark(entry.Name), Cells: make([]measuredCell, len(view.Models))}
 		for _, run := range entry.Measured {
 			row.Cells[column[modelOf(run.Model)]] = cellOf(run)
 			view.Tried++

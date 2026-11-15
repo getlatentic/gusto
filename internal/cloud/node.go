@@ -1,0 +1,212 @@
+package cloud
+
+import (
+	"errors"
+	"fmt"
+	"log/slog"
+	"os"
+	"os/exec"
+	"sort"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
+	"github.com/getlatentic/gusto/internal/isolation"
+	"github.com/getlatentic/gusto/internal/sandbox"
+)
+
+// ServerSpec is how to run one organization's server: the command, the whole of its
+// environment, and where its output goes. Nothing of gusto cloud's own
+// environment is in it, so what gusto cloud holds, its mail password among
+// it, is not what an organization's server can read.
+type ServerSpec struct {
+	Slug    string
+	Command []string
+	Env     []string
+	Log     string
+}
+
+// ErrNoCapacity says no node has room for another organization yet. A node may be starting for it, so an organization
+// that meets it waits and is tried again soon, and is not failed.
+var ErrNoCapacity = errors.New("no host has room yet")
+
+// Node is where organizations' servers run. The first is this machine. Another is
+// a node with an agent on it, which the controller asks in the same words.
+//
+// An organization's data is on storage every node and gusto cloud see at the same paths, so a
+// server started on any node reads and writes what gusto cloud does.
+type Node interface {
+	Name() string
+	// Node is where gusto cloud reaches the servers on this node, and Listen the address they
+	// bind to. On this machine they are both loopback; on another node Listen is the address of
+	// its private network, which only gusto cloud's nodes may reach.
+	Host() string
+	Listen() string
+	// Ports finds two ports the node has free, from the first up, that are not in taken.
+	Ports(from int, taken map[int]bool) (server, proxy int, err error)
+	// Held says another process listens on the port. A node that cannot be asked says it does not, since a port is moved only
+	// on evidence that it is held.
+	Held(port int) bool
+	// Start runs the server, and does nothing when it is already running.
+	Start(spec ServerSpec) error
+	// Stop ends it, asking first and waiting up to grace before it insists.
+	Stop(slug string, grace time.Duration) error
+	// Alive says the server's process is running.
+	Alive(slug string) bool
+}
+
+// LocalNode runs organizations' servers as children of this process. They end
+// when it does, so a gusto cloud server that is killed leaves none of them holding a port
+// that its successor wants.
+type LocalNode struct {
+	mu       sync.Mutex
+	children map[string]*child
+}
+
+type child struct {
+	command *exec.Cmd
+	env     []string
+	done    chan struct{}
+}
+
+func (l *LocalNode) Name() string   { return "local" }
+func (l *LocalNode) Host() string   { return "127.0.0.1" }
+func (l *LocalNode) Listen() string { return "127.0.0.1" }
+
+func (l *LocalNode) Ports(from int, taken map[int]bool) (server, proxy int, err error) {
+	var found []int
+	for port := from; port < from+20000 && len(found) < 2; port++ {
+		if !taken[port] && free(port) {
+			found = append(found, port)
+		}
+	}
+	if len(found) < 2 {
+		return 0, 0, errors.New("no ports are free for another organization's server")
+	}
+	return found[0], found[1], nil
+}
+
+func (l *LocalNode) Held(port int) bool { return !free(port) }
+
+func (l *LocalNode) Start(spec ServerSpec) error {
+	if l.Alive(spec.Slug) {
+		return nil
+	}
+	// What a server that ended uncleanly left running would keep spending, and now has no server to stop it.
+	removeLeftovers(spec.Slug, spec.Env)
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.children == nil {
+		l.children = map[string]*child{}
+	}
+	if held, running := l.children[spec.Slug]; running && !finished(held) {
+		return nil
+	}
+	if len(spec.Command) == 0 {
+		return fmt.Errorf("no command was given for %s's server", spec.Slug)
+	}
+	log, err := os.OpenFile(spec.Log, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
+	if err != nil {
+		return err
+	}
+	command := exec.Command(spec.Command[0], spec.Command[1:]...)
+	command.Env = spec.Env
+	command.Stdout, command.Stderr = log, log
+	command.SysProcAttr = dieWithParent()
+	if err := command.Start(); err != nil {
+		log.Close()
+		return err
+	}
+	held := &child{command: command, env: spec.Env, done: make(chan struct{})}
+	l.children[spec.Slug] = held
+	go func() {
+		command.Wait()
+		log.Close()
+		close(held.done)
+	}()
+	return nil
+}
+
+func finished(c *child) bool {
+	select {
+	case <-c.done:
+		return true
+	default:
+		return false
+	}
+}
+
+// Running is the organizations whose servers are running here.
+func (l *LocalNode) Running() []string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	var slugs []string
+	for slug, held := range l.children {
+		if !finished(held) {
+			slugs = append(slugs, slug)
+		}
+	}
+	sort.Strings(slugs)
+	return slugs
+}
+
+func (l *LocalNode) Alive(slug string) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	held, running := l.children[slug]
+	return running && !finished(held)
+}
+
+func (l *LocalNode) Stop(slug string, grace time.Duration) error {
+	l.mu.Lock()
+	held, running := l.children[slug]
+	l.mu.Unlock()
+	if !running || finished(held) {
+		return nil
+	}
+	held.command.Process.Signal(syscall.SIGTERM)
+	select {
+	case <-held.done:
+	case <-time.After(grace):
+		held.command.Process.Kill()
+		<-held.done
+	}
+	removeLeftovers(slug, held.env)
+	return nil
+}
+
+// removeLeftovers removes the containers of an organization's tasks when its server runs them in containers. It is done when the
+// server has ended, and before one starts: a container whose client was killed with its server runs on with nobody to stop it.
+func removeLeftovers(slug string, env []string) {
+	if valueOf(env, "GUSTO_SANDBOX") != "container" {
+		return
+	}
+	runtime := isolation.RuntimeName(valueOf(env, "GUSTO_CONTAINER"), exec.LookPath)
+	if err := sandbox.RemoveOrg(runtime, slug); err != nil {
+		slog.Error("an organization's containers could not be removed", "org", slug, "error", err)
+	}
+}
+
+// valueOf is the value an environment gives a name: the last when it is given twice, which is the one the server is started with.
+func valueOf(env []string, name string) string {
+	value := ""
+	for _, each := range env {
+		if found, ok := strings.CutPrefix(each, name+"="); ok {
+			value = found
+		}
+	}
+	return value
+}
+
+// ErrNodeGone says a node is not coming back: it is not registered, or has been silent for so long that its machine is gone.
+// An organization placed on one is placed again, and its computers, which were on that node's gateway, are made anew.
+var ErrNodeGone = errors.New("the host is gone")
+
+// NodeSet is the nodes organizations' servers may be placed on.
+type NodeSet interface {
+	// Get is the node with that name, or says why it cannot be reached.
+	Get(name string) (Node, error)
+	// Place chooses the node for an organization that has none: the one with the most room.
+	Place() (Node, error)
+}

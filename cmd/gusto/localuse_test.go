@@ -30,14 +30,18 @@ func TestAKeyInThePersonsShellIsAddedToTheirOwnGusto(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("GUSTO_KEYCHAIN", "off")
-	// runLocal sets these for the server it starts; they are put back when the test ends.
-	for _, name := range []string{"GUSTO_PASSWORD", "GUSTO_ADDR", "GUSTO_PROXY_ADDR", "GUSTO_LOCAL", "GUSTO_REGISTRY", "GUSTO_REGISTRY_PRIVATE", "GUSTO_SANDBOX", "PATH"} {
+	// runLocal sets these, for the packages that read the sandbox from the environment; they are put back when the test ends.
+	for _, name := range []string{"GUSTO_SANDBOX", "GUSTO_CONTAINER", "PATH"} {
 		t.Setenv(name, os.Getenv(name))
 	}
+	t.Setenv("GUSTO_PASSWORD", "")
 	t.Chdir(t.TempDir())
 	go runLocal(home)
 	if !answers(fmt.Sprintf("http://127.0.0.1:%d/healthz", setup.Port), 20*time.Second) {
 		t.Fatal("gusto did not start")
+	}
+	if os.Getenv("GUSTO_PASSWORD") != "" {
+		t.Error("the server's password is in this process's environment, where every program it starts can read it")
 	}
 	keyProviders["GUSTO_TEST_KEY"] = keyProvider{Address: provider.URL}
 	t.Cleanup(func() { delete(keyProviders, "GUSTO_TEST_KEY") })

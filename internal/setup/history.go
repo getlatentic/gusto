@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/atomicfile"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // mostEarlier is how many earlier versions of one skill are kept to go back to.
@@ -83,13 +83,13 @@ type Earlier struct {
 
 // Earlier lists the kept versions of every skill of a setup, the latest first, including skills that were dropped.
 func (s *Store) Earlier(setup string) []Earlier {
-	if !job.Named(setup) {
+	if !task.Named(setup) {
 		return nil
 	}
 	skills, _ := os.ReadDir(filepath.Join(s.dir(setup), "earlier"))
 	var all []Earlier
 	for _, entry := range skills {
-		if !entry.IsDir() || !job.Named(entry.Name()) {
+		if !entry.IsDir() || !task.Named(entry.Name()) {
 			continue
 		}
 		_, there := os.Stat(s.skillFile(setup, entry.Name()))
@@ -115,7 +115,7 @@ func (s *Store) Fingerprint(setup, skill string) string {
 
 // RestoreSkill puts a kept version of a skill back, as the skill, keeping what it replaces.
 func (s *Store) RestoreSkill(setup, skill string, at int64) error {
-	if !job.Named(setup) || !job.Named(skill) {
+	if !task.Named(setup) || !task.Named(skill) {
 		return fmt.Errorf("no skill called %s in %s", skill, setup)
 	}
 	text, err := os.ReadFile(filepath.Join(s.earlierDir(setup, skill), fmt.Sprintf("%d.md", at)))

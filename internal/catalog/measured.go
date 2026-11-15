@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // MatrixSetting names the table a benchmark wrote, table.json, for the catalog to
@@ -23,7 +23,7 @@ const matrixVersion = 1
 type Measured struct {
 	Model       string
 	Environment string
-	Job         string
+	Task        string
 	Finished    bool
 	// WallSeconds and CostUSD are what the run took and what its calls cost,
 	// nil when the run did not leave them.
@@ -52,7 +52,7 @@ func (e Entry) CannotFinish(model string) (string, bool) {
 	}
 	first := failed[0]
 	return fmt.Sprintf("%s with %s did not finish %s, the simplest task measured, %s; the run is %s",
-		e.Name, modelName(model), first.Job, first.Environment, first.Run), true
+		e.Name, modelName(model), first.Task, first.Environment, first.Run), true
 }
 
 // Finished is a run in which the agent finished the simplest task with this model, when the benchmark has one.
@@ -113,7 +113,7 @@ type table struct {
 	Matrix   string `json:"matrix"`
 	Simplest string `json:"simplest"`
 	Rows     []struct {
-		Job         string   `json:"job"`
+		Task        string   `json:"job"`
 		Harness     string   `json:"harness"`
 		Model       string   `json:"model"`
 		Environment string   `json:"environment"`
@@ -135,16 +135,16 @@ func simplestRuns(path string) (map[string][]Measured, error) {
 	if err := json.Unmarshal(text, &read); err != nil {
 		return nil, fmt.Errorf("%s is not a benchmark's table: %w", path, err)
 	}
-	if err := job.Readable(filepath.Base(path), read.Version, matrixVersion); err != nil {
+	if err := task.Readable(filepath.Base(path), read.Version, matrixVersion); err != nil {
 		return nil, err
 	}
 	runs := map[string][]Measured{}
 	for _, row := range read.Rows {
-		if row.Job != read.Simplest || row.Finished == nil {
+		if row.Task != read.Simplest || row.Finished == nil {
 			continue
 		}
 		runs[row.Harness] = append(runs[row.Harness], Measured{
-			Model: row.Model, Environment: row.Environment, Job: row.Job,
+			Model: row.Model, Environment: row.Environment, Task: row.Task,
 			Finished: *row.Finished, WallSeconds: row.WallSeconds, CostUSD: row.CostUSD,
 			Run: filepath.Join(read.Matrix, row.Run),
 		})

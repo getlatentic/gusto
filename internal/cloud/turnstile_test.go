@@ -64,8 +64,8 @@ func TestTheDemoFormCarriesTheBotCheckAndMayLoadItsScriptFromCloudflareAndNothin
 	onEachDatabase(t, func(t *testing.T) {
 		f := checkedFront(t, newCloudflare(t))
 		status, page, header := f.browser().do("GET", "/demo", nil, nil)
-		if status != http.StatusOK || !strings.Contains(page, `class="cf-turnstile" data-size="flexible" data-sitekey="the-site-key"`) || !strings.Contains(page, "https://challenges.cloudflare.com/turnstile/v0/api.js") {
-			t.Errorf("the form has no widget:\n%s", page)
+		if got := shown(t, page); status != http.StatusOK || got.Page != "demo" || got.TurnstileSite != "the-site-key" {
+			t.Errorf("the form has no widget: %+v", got)
 		}
 		csp := header.Get("Content-Security-Policy")
 		for _, want := range []string{"script-src 'self' https://challenges.cloudflare.com", "frame-src https://challenges.cloudflare.com", "frame-ancestors 'none'"} {
@@ -77,7 +77,7 @@ func TestTheDemoFormCarriesTheBotCheckAndMayLoadItsScriptFromCloudflareAndNothin
 			t.Error("the secret is on the form")
 		}
 		_, plain, plainHeader := newFront(t, demoSet, nil).browser().do("GET", "/demo", nil, nil)
-		if strings.Contains(plain, "turnstile") || strings.Contains(plainHeader.Get("Content-Security-Policy"), "cloudflare") {
+		if shown(t, plain).TurnstileSite != "" || strings.Contains(plainHeader.Get("Content-Security-Policy"), "cloudflare") {
 			t.Error("a host with no bot check loads a script from Cloudflare")
 		}
 		f.server.Wait()
@@ -88,10 +88,10 @@ func TestADemoIsStartedOnlyForAVisitorCloudflareAcceptsAndTheSecretAndAddressAre
 	onEachDatabase(t, func(t *testing.T) {
 		c := newCloudflare(t)
 		f := checkedFront(t, c)
-		if status, page := f.tryDemo("a-robot"); status != http.StatusForbidden || !strings.Contains(page, "could not tell that you are not a robot") || !strings.Contains(page, `value="maria@futureacmebank.com"`) {
-			t.Errorf("%d\n%s", status, page)
+		if status, page := f.tryDemo("a-robot"); status != http.StatusForbidden || !strings.Contains(shown(t, page).Error, "could not tell that you are not a robot") || shown(t, page).Email != "maria@futureacmebank.com" {
+			t.Errorf("%d %+v", status, shown(t, page))
 		}
-		if orgs, _ := f.store.Orgs(); len(orgs) != 0 {
+		if orgs, _ := f.store.Orgs(t.Context()); len(orgs) != 0 {
 			t.Error("a robot made an organization")
 		}
 		asked := c.questions()
@@ -109,7 +109,7 @@ func TestADemoIsStartedOnlyForAVisitorCloudflareAcceptsAndTheSecretAndAddressAre
 		if last.Get("secret") != "the-secret" || last.Get("response") != "a-human" || last.Get("remoteip") == "" {
 			t.Errorf("%v", last)
 		}
-		if orgs, _ := f.store.Orgs(); len(orgs) != 1 {
+		if orgs, _ := f.store.Orgs(t.Context()); len(orgs) != 1 {
 			t.Errorf("%d organizations", len(orgs))
 		}
 	})
@@ -120,10 +120,10 @@ func TestWhenTheCheckCannotBeMadeNobodyIsLetThroughAndTheyAreToldToTryAgain(t *t
 	c.down = true
 	f := checkedFront(t, c)
 	status, page := f.tryDemo("a-human")
-	if status != http.StatusServiceUnavailable || !strings.Contains(page, "could not be made") {
-		t.Errorf("%d\n%s", status, page)
+	if status != http.StatusServiceUnavailable || !strings.Contains(shown(t, page).Error, "could not be made") {
+		t.Errorf("%d %q", status, shown(t, page).Error)
 	}
-	if orgs, _ := f.store.Orgs(); len(orgs) != 0 {
+	if orgs, _ := f.store.Orgs(t.Context()); len(orgs) != 0 {
 		t.Error("a visitor who could not be checked was let in")
 	}
 	dead := checkedFront(t, newCloudflare(t))
@@ -146,7 +146,7 @@ func TestTheLimitsAreCheckedBeforeCloudflareIsAskedAnything(t *testing.T) {
 	})
 }
 
-func TestABotCheckThatIsHalfSetUpStopsTheFrontDoorStartingAndNoneIsFine(t *testing.T) {
+func TestABotCheckThatIsHalfSetUpStopsGustoCloudStartingAndNoneIsFine(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		for name, tc := range map[string]struct {
 			check Turnstile
@@ -158,7 +158,7 @@ func TestABotCheckThatIsHalfSetUpStopsTheFrontDoorStartingAndNoneIsFine(t *testi
 			"a secret only": {Turnstile{Secret: "x"}, false},
 		} {
 			store := open(t, Settings{})
-			sessions, _ := store.OpenSessions(false)
+			sessions, _ := store.OpenSessions(t.Context(), false)
 			_, err := New(Config{Store: store, Sessions: sessions, Turnstile: tc.check})
 			if (err == nil) != tc.ok {
 				t.Errorf("%s: %v", name, err)

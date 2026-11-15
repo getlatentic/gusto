@@ -88,7 +88,7 @@ func TestEveryPageOfAHostWithALeaseCarriesTheScriptAndAnswersHowLongIsLeft(t *te
 		if _, page := b.get("/"); !strings.Contains(page, `src="/static/lease.js`) || !strings.Contains(page, `data-extend="/lease"`) {
 			t.Errorf("the sign-up page carries no script:\n%s", page)
 		}
-		// Asked on the front door's own name and on an organization's, which is what its pages ask.
+		// Asked on gusto cloud's own name and on an organization's, which is what its pages ask.
 		for _, host := range []string{"cloud.test", "acme.cloud.test", "anything.cloud.test:8443"} {
 			status, body, header := b.do("GET", "/.gusto/lease", nil, map[string]string{"Host": host})
 			if status != 200 || !strings.HasPrefix(body, `{"seconds":`) || header.Get("Cache-Control") != "no-store" {
@@ -132,8 +132,9 @@ func TestOnlyAPersonSignedInExtendsAndTheHostKeepsItsLatestEnd(t *testing.T) {
 		}
 		person := f.browser()
 		person.post("/signup", signup("ada@acme.com", "Acme"))
-		if status, page := person.get("/lease"); status != 200 || !strings.Contains(page, "Keep it for 30 minutes more") {
-			t.Fatalf("%d\n%s", status, page)
+		status, page := person.get("/lease")
+		if lease := shown(t, page).Lease; status != 200 || lease == nil || lease.Left != "10 minutes" || lease.Step != "30 minutes" || !lease.CanExtend {
+			t.Fatalf("%d %+v", status, lease)
 		}
 		if status, _, header := person.post("/lease/extend", nil); status != http.StatusSeeOther || header.Get("Location") != "/lease" {
 			t.Fatalf("%d %v", status, header)
@@ -142,8 +143,8 @@ func TestOnlyAPersonSignedInExtendsAndTheHostKeepsItsLatestEnd(t *testing.T) {
 			t.Errorf("ten minutes and a step: %v", left.Remaining)
 		}
 		person.post("/lease/extend", nil)
-		if status, page, _ := person.do("POST", "/lease/extend", nil, nil); status != http.StatusConflict || !strings.Contains(page, "as long as it may have") {
-			t.Errorf("past the latest: %d\n%s", status, page)
+		if status, page, _ := person.do("POST", "/lease/extend", nil, nil); status != http.StatusConflict || !strings.Contains(shown(t, page).Notice, "as long as it may have") {
+			t.Errorf("past the latest: %d %+v", status, shown(t, page))
 		}
 		if left, _ := l.Status(); left.Remaining > 50*time.Minute {
 			t.Errorf("the host was kept past its latest end: %v", left.Remaining)

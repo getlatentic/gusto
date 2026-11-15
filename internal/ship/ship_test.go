@@ -10,30 +10,30 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/ship"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 var here = ship.Options{GitHub: "o/r"}
 
-func TestAJobWhoseGateFailedIsRefused(t *testing.T) {
+func TestATaskWhoseCheckFailedIsRefused(t *testing.T) {
 	dir, _ := finished(t, "maybe")
 	_, err := ship.Prepare(dir, here)
 	if !errors.Is(err, ship.ErrRefused) || !strings.Contains(err.Error(), "did not pass") {
-		t.Fatalf("want a refusal naming the gate, got %v", err)
+		t.Fatalf("want a refusal naming the check, got %v", err)
 	}
 }
 
-func TestEvidenceChangedSinceTheRunIsRefused(t *testing.T) {
-	for name, tamper := range map[string]func(t *testing.T, dir job.Dir){
-		"a changed patch": func(t *testing.T, dir job.Dir) {
-			write(t, dir.OutFile("diff.patch"), "something the gate never saw\n")
+func TestRecordChangedSinceTheRunIsRefused(t *testing.T) {
+	for name, tamper := range map[string]func(t *testing.T, dir task.Dir){
+		"a changed patch": func(t *testing.T, dir task.Dir) {
+			write(t, dir.OutFile("diff.patch"), "something the check never saw\n")
 		},
-		"a file added after the run": func(t *testing.T, dir job.Dir) {
+		"a file added after the run": func(t *testing.T, dir task.Dir) {
 			write(t, dir.OutFile("extra.patch"), "smuggled in\n")
 		},
-		"a changed job": func(t *testing.T, dir job.Dir) {
+		"a changed job": func(t *testing.T, dir task.Dir) {
 			write(t, dir.Spec(), `{"brief": "something else", "gate": ["true"], "harness": "yes"}`)
 		},
 	} {
@@ -42,22 +42,22 @@ func TestEvidenceChangedSinceTheRunIsRefused(t *testing.T) {
 			tamper(t, dir)
 			_, err := ship.Prepare(dir, here)
 			if !errors.Is(err, ship.ErrRefused) || !strings.Contains(err.Error(), "changed since the run") {
-				t.Fatalf("want a refusal naming the evidence, got %v", err)
+				t.Fatalf("want a refusal naming the record, got %v", err)
 			}
 		})
 	}
 }
 
 // The manifest does not hash itself, so rewriting its verdict leaves every hash
-// intact. gates.json still holds the gate's real answer.
+// intact. gates.json still holds the check's real answer.
 func TestAManifestRewrittenToClaimAPassIsRefused(t *testing.T) {
 	dir, _ := finished(t, "maybe")
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifest.Gate.Passed, manifest.Gate.Code = true, 0
-	if err := evidence.Write(dir, manifest); err != nil {
+	manifest.Check.Passed, manifest.Check.Code = true, 0
+	if err := record.Write(dir, manifest); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := ship.Prepare(dir, here); !errors.Is(err, ship.ErrRefused) {
@@ -95,7 +95,7 @@ func TestADryRunTouchesNothing(t *testing.T) {
 	}
 }
 
-func TestTheBranchCarriesThePatchAtTheCommitTheJobRanAgainst(t *testing.T) {
+func TestTheBranchCarriesThePatchAtTheCommitTheTaskRanAgainst(t *testing.T) {
 	dir, bare := finished(t, "yes")
 	plan, address := shipped(t, dir, &forge{})
 	if address != "https://github.com/o/r/pull/1" {
@@ -112,7 +112,7 @@ func TestTheBranchCarriesThePatchAtTheCommitTheJobRanAgainst(t *testing.T) {
 	}
 }
 
-func TestThePullRequestNamesTheHarnessTheModelTheGateAndTheManifest(t *testing.T) {
+func TestThePullRequestNamesTheHarnessTheModelTheCheckAndTheManifest(t *testing.T) {
 	dir, _ := finished(t, "yes")
 	fake := &forge{}
 	plan, _ := shipped(t, dir, fake)
@@ -145,7 +145,7 @@ func TestShippingTheSameRunTwiceMakesTheSameBranch(t *testing.T) {
 	}
 }
 
-func shipped(t *testing.T, dir job.Dir, fake *forge) (ship.Plan, string) {
+func shipped(t *testing.T, dir task.Dir, fake *forge) (ship.Plan, string) {
 	t.Helper()
 	plan, err := ship.Prepare(dir, here)
 	if err != nil {
@@ -160,9 +160,9 @@ func shipped(t *testing.T, dir job.Dir, fake *forge) (ship.Plan, string) {
 	return plan, address
 }
 
-// snapshot is every path and its contents under the job directory, workspace
+// snapshot is every path and its contents under the task directory, working folder
 // and .git included, so any write at all shows up.
-func snapshot(t *testing.T, dir job.Dir) string {
+func snapshot(t *testing.T, dir task.Dir) string {
 	t.Helper()
 	var out strings.Builder
 	err := filepath.WalkDir(dir.Path(), func(path string, entry fs.DirEntry, err error) error {

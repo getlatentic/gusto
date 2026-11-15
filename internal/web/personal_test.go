@@ -62,11 +62,11 @@ func TestAThreadSaysWhatWasSaidInItAsAList(t *testing.T) {
 	_ = mine
 }
 
-func TestAWorkspaceListsItsFilesAndGivesThemWholeButStaysInsideItself(t *testing.T) {
+func TestAFolderListsItsFilesAndGivesThemWholeButStaysInsideItself(t *testing.T) {
 	here := withTokens(t)
 	where, _ := started(t, here.as(t, alice))
 	id := strings.TrimPrefix(where, "/instances/")
-	root := here.server.instances.Workspace(id)
+	root := here.server.instances.AgentFolder(id)
 	outside := t.TempDir()
 	os.WriteFile(filepath.Join(outside, "secret.txt"), []byte("not yours"), 0o600)
 	for path, text := range map[string]string{"notes.txt": "hello world", "src/main.go": "package main", ".git/config": "internal"} {
@@ -125,8 +125,8 @@ func TestAPersonsTokenIsNeverAnAdminsEvenForAnAdmin(t *testing.T) {
 	here := withTokens(t)
 	here.server.UseAdmins([]string{alice})
 	_, _ = started(t, here.as(t, bob))
-	if page := here.as(t, alice).ask(t, "GET", "/", nil).Body.String(); !strings.Contains(page, "Admin") {
-		t.Skip("the site does not mark an admin's page the way this test looks for")
+	if !shellOf(t, here.as(t, alice)).Admin {
+		t.Fatal("alice is not an admin, so her token proves nothing")
 	}
 	secret := signInADevice(t, here, alice)
 	if list := here.getAs(secret, "/api/instances"); strings.TrimSpace(list.Body.String()) != "[]" {

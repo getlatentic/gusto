@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/compare"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // TableVersion is the version of the table's JSON this code writes and the
@@ -14,7 +14,7 @@ import (
 const TableVersion = 1
 
 // Table is the benchmark as a person, or the catalog, reads it: a row for every
-// task and pair, each read off its run's evidence.
+// task and pair, each read off its run's record.
 type Table struct {
 	Version int `json:"version"`
 	// Benchmark is where the runs are, so every row's run can be found and
@@ -29,7 +29,7 @@ type Table struct {
 // Row is one task on one pair. Every number in it is null when the run did not
 // leave it, because a zero would read as free, or instant, or failed.
 type Row struct {
-	Job     string `json:"job"`
+	Task    string `json:"job"`
 	Harness string `json:"harness"`
 	// Model is what the run asked for, read off its job.json. Empty is a run
 	// that left the model to the harness.
@@ -37,7 +37,7 @@ type Row struct {
 	Environment string `json:"environment"`
 	// Finished is the check's verdict. Null is a run that left none.
 	Finished        *bool    `json:"finished"`
-	GateCode        *int     `json:"gateCode"`
+	CheckCode       *int     `json:"gateCode"`
 	StoppedAtBudget bool     `json:"stoppedAtBudget"`
 	WallSeconds     *float64 `json:"wallSeconds"`
 	Tokens          *int64   `json:"tokens"`
@@ -48,10 +48,10 @@ type Row struct {
 	Run string `json:"run"`
 	// Record is "checks", the first thing that changed since the run, or
 	// why there is no record to check.
-	Evidence string `json:"evidence"`
+	Record string `json:"evidence"`
 }
 
-// Tabulate reads the benchmark at where back from its runs' evidence.
+// Tabulate reads the benchmark at where back from its runs' record.
 func Tabulate(where string) (Table, error) {
 	record, err := Read(where)
 	if err != nil {
@@ -75,17 +75,17 @@ func Tabulate(where string) (Table, error) {
 // rowOf reads one cell through compare, the way `gusto compare` reads a side, so
 // a matrix and a comparison cannot disagree about a run.
 func rowOf(where, environment string, cell Cell) (Row, error) {
-	row := Row{Job: cell.Job, Harness: cell.Harness, Model: cell.Model, Environment: environment, Run: cell.Dir}
-	if spec, err := job.Read(cell.Run(where)); err == nil {
+	row := Row{Task: cell.Task, Harness: cell.Harness, Model: cell.Model, Environment: environment, Run: cell.Dir}
+	if spec, err := task.Read(cell.Run(where)); err == nil {
 		row.Model = spec.Model
 	}
 	side := sideOf(where, cell)
-	row.Evidence = checked(side)
-	if side.Err != nil || side.Manifest.Gate == nil {
+	row.Record = checked(side)
+	if side.Err != nil || side.Manifest.Check == nil {
 		return row, nil
 	}
-	passed, code := side.Manifest.Gate.Passed, side.Manifest.Gate.Code
-	row.Finished, row.GateCode, row.StoppedAtBudget = &passed, &code, side.Manifest.StoppedAtBudget
+	passed, code := side.Manifest.Check.Passed, side.Manifest.Check.Code
+	row.Finished, row.CheckCode, row.StoppedAtBudget = &passed, &code, side.Manifest.StoppedAtBudget
 	row.WallSeconds = cell.WallSeconds
 	cost, err := spentBy(cell.Run(where), side.Manifest)
 	if err != nil {
@@ -106,7 +106,7 @@ func checked(side compare.Side) string {
 		return "not run yet"
 	case side.Err != nil:
 		return "none: " + side.Err.Error()
-	case side.Manifest.Gate == nil:
+	case side.Manifest.Check == nil:
 		return "no verdict"
 	case len(side.Wrong) > 0:
 		return side.Wrong[0]
@@ -119,7 +119,7 @@ func checked(side compare.Side) string {
 // table says, not a failure of the matrix.
 func ExitCode(table Table) int {
 	for _, row := range table.Rows {
-		if row.Finished == nil || row.Evidence != "checks" {
+		if row.Finished == nil || row.Record != "checks" {
 			return 2
 		}
 	}

@@ -18,7 +18,7 @@ const (
 )
 
 // ShareRelease copies the program at exe into dir, under a name made from what it holds, and says where the copy is.
-// Hosts apart run organizations' servers from there, so a server is the front door's release and not the one its host
+// Hosts apart run organizations' servers from there, so a server is gusto cloud's release and not the one its host
 // was made with. Copies of older releases are removed past the newest few.
 func ShareRelease(exe, dir string) (string, error) {
 	sum, err := fileSum(exe)

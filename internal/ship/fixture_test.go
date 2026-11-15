@@ -1,6 +1,7 @@
 package ship_test
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -13,10 +14,11 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// Two harnesses that are programs: one leaves the answer the gate wants, and
+// Two harnesses that are programs: one leaves the answer the check wants, and
 // one leaves an answer it refuses.
 const (
 	answersYes = `{"name": "yes", "program": "sh", "argv": ["-c", "printf yes > answer.txt"], "needs": "nothing", "stream": "plain"}`
@@ -29,14 +31,13 @@ func hermetic(t *testing.T) {
 	t.Helper()
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	t.Setenv("GUSTO_SIGNER", "a-test")
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "yes.json"), answersYes)
 	write(t, filepath.Join(harnesses, "maybe.json"), answersNo)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
 }
 
-// remote is a bare repository on main whose answer is no. It is where the job
+// remote is a bare repository on main whose answer is no. It is where the task
 // clones from and where shipping pushes to.
 func remote(t *testing.T) string {
 	t.Helper()
@@ -50,27 +51,33 @@ func remote(t *testing.T) string {
 	return bare
 }
 
-// finished runs a whole job with the named harness and returns its directory
+// finished runs a whole task with the named harness and returns its directory
 // and the remote it came from.
-func finished(t *testing.T, harness string) (job.Dir, string) {
+func finished(t *testing.T, harness string) (task.Dir, string) {
+	t.Helper()
+	return finishedAs(t, harness, signing.Identity{Name: "a-test"})
+}
+
+// finishedAs is finished with the record signed as signs.
+func finishedAs(t *testing.T, harness string, signs signing.Identity) (task.Dir, string) {
 	t.Helper()
 	hermetic(t)
 	bare := remote(t)
-	dir := job.Dir(filepath.Join(t.TempDir(), "20260926-0900-make-the-answer-yes"))
+	dir := task.Dir(filepath.Join(t.TempDir(), "20260926-0900-make-the-answer-yes"))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    bare,
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: harness,
 		Model:   "local/fixture-model",
 	}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := runner.Inside(dir); err != nil {
+	if _, err := runner.InsideContext(context.Background(), dir, runner.Place{Signing: signs}); err != nil {
 		t.Fatal(err)
 	}
 	return dir, bare

@@ -44,7 +44,7 @@ sudo sh server.sh --domain agents.example.com --release v0.1.0-rc.2   # a domain
 | --- | --- |
 | [docs/QUICKSTART.md](docs/QUICKSTART.md) | five minutes, step by step |
 | [docs/LOCAL.md](docs/LOCAL.md) | on your own computer: models, agents, the sandbox |
-| [deploy/README.md](deploy/README.md) | a server: Compose, Helm, Ansible |
+| [deploy/README.md](deploy/README.md) | a server: server.sh, Compose, Helm |
 | [docs/PROTOCOL.md](docs/PROTOCOL.md) | the calls any client makes to a server |
 | [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) | what it trusts, and what it does not |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | what is next |

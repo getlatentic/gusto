@@ -13,7 +13,7 @@ import (
 	"github.com/getlatentic/gusto/internal/roster"
 )
 
-// peopleWithTokens is a server behind a front door whose roster has ada as an admin and bob, and which takes computers' tokens.
+// peopleWithTokens is a server behind gusto cloud whose roster has ada as an admin and bob, and which takes computers' tokens.
 func peopleWithTokens(t *testing.T) (*site, string, *apitoken.Store) {
 	t.Helper()
 	here, path := withPeople(t, roster.Roster{Members: []roster.Member{{Email: "ada@acme.com", Role: "admin"}, {Email: "bob@acme.com", Role: "runner"}}})
@@ -25,7 +25,7 @@ func peopleWithTokens(t *testing.T) (*site, string, *apitoken.Store) {
 	return here, path, store
 }
 
-// rewrite gives the server a roster the front door wrote again, and waits until the server looks at it.
+// rewrite gives the server a roster gusto cloud wrote again, and waits until the server looks at it.
 func rewrite(t *testing.T, path string, members ...roster.Member) {
 	t.Helper()
 	if err := roster.Write(path, roster.Roster{Members: members}); err != nil {
@@ -34,7 +34,7 @@ func rewrite(t *testing.T, path string, members ...roster.Member) {
 	time.Sleep(rosterRecheck + 50*time.Millisecond)
 }
 
-func TestAPersonDemotedOrRemovedAtTheFrontDoorIsHeldToItAtTheirNextRequest(t *testing.T) {
+func TestAPersonDemotedOrRemovedAtGustoCloudIsHeldToItAtTheirNextRequest(t *testing.T) {
 	here, path, _ := peopleWithTokens(t)
 	if page := here.ask(t, "GET", "/admin/people", nil); page.Code != http.StatusOK {
 		t.Fatalf("ada, an admin, was refused her admin page: %d", page.Code)
@@ -128,7 +128,7 @@ func TestApprovingCodesThatAreNotWaitingIsCountedAsWrongAttempts(t *testing.T) {
 		ada.ask(t, "POST", "/device", url.Values{"code": {"BCDF-GHJK"}})
 	}
 	started := jsonOf(t, here.post("/api/device", `{"label":"Laptop"}`, ""))
-	if got := ada.ask(t, "POST", "/device", url.Values{"code": {started["user_code"].(string)}}); strings.Contains(got.Body.String(), "Approved <strong>") {
-		t.Error("a source that guessed codes went on guessing")
+	if got := sendCode(t, ada, started["user_code"].(string)); got.Approved != "" || !strings.Contains(got.Refused, "Too many codes") {
+		t.Errorf("a source that guessed codes went on guessing: %+v", got)
 	}
 }

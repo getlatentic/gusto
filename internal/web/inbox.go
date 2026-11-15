@@ -9,7 +9,7 @@ import (
 	"github.com/getlatentic/gusto/internal/inbox"
 )
 
-// UseInbox says where the front door leaves what its admins did to the
+// UseInbox says where gusto cloud leaves what its admins did to the
 // organization's people. This server is the one writer of the change record, so it
 // takes those events into it. Without a change record they wait where they are.
 func (s *Server) UseInbox(dir string) { s.inbox = dir }
@@ -35,7 +35,7 @@ func (s *Server) RunInbox(ctx context.Context, every time.Duration) {
 // TakeInbox writes each event that is waiting to the change record, oldest first, and
 // removes its file, and says how many it wrote. An event that could not be written
 // stays for the next pass, and the pass stops there, so the record keeps their order. A
-// file that is not an event the front door reports is set aside, where it can be read,
+// file that is not an event gusto cloud reports is set aside, where it can be read,
 // and is not taken.
 func (s *Server) TakeInbox() int {
 	if s.inbox == "" || s.changes == nil {
@@ -50,7 +50,7 @@ func (s *Server) TakeInbox() int {
 	}
 	taken := 0
 	for _, each := range waiting {
-		if each.Err != nil || !changelog.FromFrontDoor(each.Item.Kind) {
+		if each.Err != nil || !changelog.FromCloud(each.Item.Kind) {
 			s.setAside(each)
 			continue
 		}

@@ -1,7 +1,7 @@
 ---------------------------- MODULE AppPreview ----------------------------
 (***************************************************************************)
 (* An agent's shared app previews (internal/apps, internal/web/sharing.go, *)
-(* cmd/gusto/apps.go): publishing one under the agent's limit, starting   *)
+(* internal/backend/vm): publishing one under the agent's limit, starting *)
 (* its process in the owner's computer, the proxy finding it not          *)
 (* answering, removing it, the process dying by itself, and the server    *)
 (* restarting.  Each action names the Go function it stands for.          *)

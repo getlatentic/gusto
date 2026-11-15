@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // liveItem is one thing in a running turn, in the order it happened: words the agent said, or a step it took.
@@ -55,7 +55,7 @@ func (s *Server) turnLive(w http.ResponseWriter, r *http.Request) {
 
 // timelineOf reads what a turn said and ran into one list in the order it happened. A step says how much had been said when it ran;
 // a run from before that was kept has no such place, and is given as its steps and then its words.
-func timelineOf(dir job.Dir) liveTurn {
+func timelineOf(dir task.Dir) liveTurn {
 	said, cut := transcriptOf(dir)
 	ran := ranBy(dir)
 	live := liveTurn{Items: []liveItem{}, Steps: len(ran), Cut: cut.dropped > 0}
@@ -97,7 +97,7 @@ type dropped struct{ dropped int }
 
 // transcriptOf is the transcript as far as a page is given it. When it is longer than that its start is left out, at a place where a
 // word begins, so that no word is shown cut in two.
-func transcriptOf(dir job.Dir) (string, dropped) {
+func transcriptOf(dir task.Dir) (string, dropped) {
 	if !dir.PlainOut("transcript.log") {
 		return "", dropped{}
 	}

@@ -50,14 +50,14 @@ Init ==
     /\ wrong = FALSE /\ lost = FALSE /\ changes = 0 /\ failures = 0
 
 -----------------------------------------------------------------------------
-(* The front door changes the person's role, or removes them. *)
+(* Gusto cloud changes the person's role, or removes them.                 *)
 Change ==
     /\ changes < MaxChanges
     /\ \E r \in {"admin", "runner", "out"} \ {role} : role' = r
     /\ changes' = changes + 1
     /\ UNCHANGED <<cookie, code, token, wrong, lost, failures>>
 
-(* enter: the front door signs the person in with the role it gives them. *)
+(* enter: gusto cloud signs the person in with the role it gives them.     *)
 SignIn ==
     /\ role # "out"
     /\ cookie' = role

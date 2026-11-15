@@ -5,44 +5,49 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// AgentUIDEnv names the user an agent runs as inside the box. The runner
-// stays root there, so the record in out/ is written by the runner alone: the
-// agent, and whatever code it runs, can read its workspace and its own home
-// and cannot touch the record, the proxy's log included.
-const AgentUIDEnv = "GUSTO_AGENT_UID"
-
-// agent is that user. A runner that is not root, or an image that names no
-// agent, has nobody to hand the work to and runs the harness as itself: a
-// laptop, `gusto inside` by hand, GUSTO_SANDBOX=here.
+// agent is the user an agent runs as inside the box. The runner stays root
+// there, so the record in out/ is written by the runner alone: the agent, and
+// whatever code it runs, can read its working folder and its own home and cannot
+// touch the record, the proxy's log included. A runner that is not root, or an
+// image that names no agent, has nobody to hand the work to and runs the
+// harness as itself: a laptop, `gusto inside` by hand, GUSTO_SANDBOX=here.
 type agent struct {
 	uid, gid int
 	present  bool
+	// keptHome is a home that is the person's own, kept between their tasks.
+	keptHome bool
+	// skills is where the harness finds its skills, which a kept home is given afresh for each task.
+	skills string
 }
 
-func agentHere() agent {
-	uid, err := strconv.Atoi(os.Getenv(AgentUIDEnv))
-	if err != nil || uid <= 0 || os.Geteuid() != 0 {
+func agentIn(place Place) agent {
+	if place.AgentUID <= 0 || os.Geteuid() != 0 {
 		return agent{}
 	}
-	return agent{uid: uid, gid: uid, present: true}
+	return agent{uid: place.AgentUID, gid: place.AgentUID, present: true, keptHome: place.KeptHome}
 }
 
-// handOver gives the agent its workspace and home, closes out/ to it, and
+// handOver gives the agent its working folder and home, closes out/ to it, and
 // sets the command to start as the agent.
-func (a agent) handOver(dir job.Dir, command *exec.Cmd) error {
+func (a agent) handOver(dir task.Dir, command *exec.Cmd) error {
 	if !a.present {
 		return nil
 	}
-	for _, mine := range []string{dir.Workspace(), os.Getenv("HOME")} {
+	for _, mine := range append([]string{dir.WorkingFolder()}, a.homeToGive()...) {
 		if mine == "" {
 			continue
 		}
 		if err := a.own(mine); err != nil {
+			return err
+		}
+	}
+	if a.keptHome {
+		// The home's own folder, and not what is in it: everything else there the agent made, and is the agent's already.
+		if err := os.Lchown(os.Getenv("HOME"), a.uid, a.gid); err != nil {
 			return err
 		}
 	}
@@ -64,12 +69,12 @@ func chownTree(root string, uid, gid int) error {
 	})
 }
 
-// takeBack gives the task directory, the workspace and the home to whoever owns the task directory, once the record is written
+// takeBack gives the task directory, the working folder and the home to whoever owns the task directory, once the record is written
 // and the harness is gone. That is the server that made the directory, on the machine the box runs on. The runner's own user is
 // not: under a container runtime whose root is the machine's root, what the box left would be files the server can list and
-// cannot open or remove. The workspace is a conversation's own folder when it is mounted from elsewhere, and is handed over
+// cannot open or remove. The working folder is a conversation's own folder when it is mounted from elsewhere, and is handed over
 // again, whole, at the start of the next turn. It does what it can: a file it cannot change is left, and the run is not failed.
-func (a agent) takeBack(dir job.Dir) {
+func (a agent) takeBack(dir task.Dir) {
 	if !a.present {
 		return
 	}
@@ -77,7 +82,7 @@ func (a agent) takeBack(dir job.Dir) {
 	if owner, owned := ownerOfPath(dir.Path()); owned {
 		uid, gid = owner.uid, owner.gid
 	}
-	for _, mine := range []string{dir.Path(), dir.Workspace(), os.Getenv("HOME")} {
+	for _, mine := range append([]string{dir.Path(), dir.WorkingFolder()}, a.homeToTakeBack()...) {
 		if mine != "" {
 			_ = chownTree(mine, uid, gid)
 		}

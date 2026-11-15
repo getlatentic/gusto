@@ -56,6 +56,7 @@ The page links to the next page and back to the first. It does not link to the p
 - A slow or broken database never holds up a task. The queue is bounded. A change that finds it full, or that the database refuses, is counted and logged (once a minute at most), and left for the next reconcile.
 - The reconcile compares the task directories with the rows. It adds a row that is missing, replaces a row that differs from the task in any field, and removes the row of a task whose directory is gone. The server runs it in the background when it starts, and again after a change was not written. A run that fails is tried again after 30 seconds.
 - A task that changes while a reconcile runs is not set back. The server writes its own copy of a task it holds, and writes it behind the changes already queued.
+- A row is never written over one that is further along (queued, running, running and asked to stop, then over; between two rows as far along, the later end wins). A reconcile or reindex that finds a row ahead of its `state.json`, as after the files were put back from a backup, leaves it, and does not count it as corrected. That is what keeps a reindex safe while a server runs, since the server's row is ahead of its file for a moment. To make restored files win, stop the server and run `gusto tasks reindex -from-scratch`. The rebuild code also has a `Force` option (`tasks.RebuildOptions`) that writes just those rows; no command offers it yet.
 - A task whose `state.json` cannot be read just then, because it is being written, keeps its row.
 
 ## Commands
@@ -75,7 +76,7 @@ The task index and the [usage index](USAGE.md) use the same setting.
 
 | `GUSTO_DATABASE_URL` | The task index is |
 | --- | --- |
-| empty | A SQLite file, `tasks.db`, in the directory that holds `GUSTO_JOBS` |
+| empty | A SQLite file, `tasks.db`, in the directory that holds `GUSTO_TASKS` |
 | `postgres://...` | In Postgres, in the same schema as the usage index |
 
 A `search_path` parameter in the Postgres URL gives each organization its own schema. The tables are `tasks` and `tasks_schema_migrations`. The server upgrades the schema when it starts, and refuses a database that a newer gusto made. It uses only features of Postgres 13 and later. Postgres 14 was tested.

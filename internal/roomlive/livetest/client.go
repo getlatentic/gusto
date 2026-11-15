@@ -286,8 +286,10 @@ func (c *Client) Next(within time.Duration) (Push, bool) {
 	}
 }
 
-// Close closes the socket and waits for the reader to end.
+// Close closes the socket and waits for the reader to end. A stalled reader is let go first, or it would never see the socket
+// close, as when a test fails while a client is stalled.
 func (c *Client) Close() {
+	c.stalled.Store(false)
 	_ = c.ws.Close()
 	<-c.Closed
 }

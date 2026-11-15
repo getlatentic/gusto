@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/getlatentic/gusto/internal/settings"
 	"github.com/getlatentic/gusto/internal/vmwall"
 )
 
@@ -21,11 +22,29 @@ func vmLayout(home string) (vmwall.Layout, error) {
 	return vmwall.Layout{Root: filepath.Join(home, "openshell"), User: user}, nil
 }
 
-// useInstalledWall has this gusto use the virtual machine sandbox the person installed, where there is one.
-func useInstalledWall(home string) {
-	if layout, err := vmLayout(home); err == nil {
-		vmwall.Adopt(layout, os.Getenv, func(name, value string) { os.Setenv(name, value) })
+// installedWall is the settings of the virtual machine sandbox the person installed, where there is one, for gusto to read under
+// what they set themselves.
+func installedWall(home string) map[string]string {
+	layout, err := vmLayout(home)
+	if err != nil {
+		return nil
 	}
+	installed, ok := vmwall.Installed(layout)
+	if !ok {
+		return nil
+	}
+	return map[string]string{"GUSTO_OPENSHELL": installed.Binary, "GUSTO_OPENSHELL_GATEWAY": installed.Gateway, "GUSTO_OPENSHELL_IMAGE": installed.Image}
+}
+
+// ownComputer is the settings of gusto on a person's own computer: what they set, then the sandbox they installed, under the
+// sandbox gusto chose for them.
+func ownComputer(home string) (func(string) string, error) {
+	lookup := settings.Under(installedWall(home), os.Getenv)
+	chosen, err := chooseWall(lookup)
+	if err != nil {
+		return nil, err
+	}
+	return settings.Over(chosen, lookup), nil
 }
 
 // uninstallSandbox takes away the virtual machine sandbox: the strongest gusto can give a person's tasks.
@@ -86,9 +105,7 @@ func installSandbox(home string, args []string) int {
 	// The first question to a new image waits for the gateway to import it, which takes about a minute: the person waits for it
 	// here, where they are watching, and not when gusto starts.
 	fmt.Println("Preparing the agents' image, which takes about a minute the first time...")
-	useInstalledWall(home)
-	os.Setenv("GUSTO_SANDBOX", "openshell")
-	scanCommand()
+	scanFrom(settings.Over(map[string]string{"GUSTO_SANDBOX": "openshell"}, settings.Under(installedWall(home), os.Getenv)))
 	fmt.Println("Done. gusto uses the virtual machine sandbox the next time it starts: gusto local install")
 	return 0
 }

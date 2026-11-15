@@ -15,16 +15,16 @@ import (
 	"github.com/getlatentic/gusto/internal/runtoken"
 )
 
-// startInComputer has the workspace there, and puts this task's workspace in a directory of
+// startInComputer has the computer there, and puts this task's working folder in a directory of
 // the task's own. The gateway is asked whether the sandbox is there, and what is made
-// is made once: a person's files and their agents' state are what a workspace keeps.
-func (s *Sandbox) startInComputer(ctx context.Context, workspace string) error {
+// is made once: a person's files and their agents' state are what a computer keeps.
+func (s *Sandbox) startInComputer(ctx context.Context, workingFolder string) error {
 	if _, err := output(s.run(ctx, "sandbox", "get", s.name)); err != nil {
 		if err := s.makeSandboxOnly(ctx); err != nil {
 			return err
 		}
 	} else if s.answers(ctx) != nil {
-		// It is there and does not answer, which is a workspace that was stopped.
+		// It is there and does not answer, which is a computer that was stopped.
 		if _, err := output(s.run(ctx, "sandbox", "start", s.name)); err != nil {
 			return err
 		}
@@ -32,15 +32,15 @@ func (s *Sandbox) startInComputer(ctx context.Context, workspace string) error {
 	if err := s.answering(ctx); err != nil {
 		return err
 	}
-	absolute, err := filepath.Abs(workspace)
+	absolute, err := filepath.Abs(workingFolder)
 	if err != nil {
 		return err
 	}
 	if filepath.Base(absolute) != "workspace" {
-		return fmt.Errorf("the directory is %s, and a workspace's directory is named workspace", absolute)
+		return fmt.Errorf("the directory is %s, and a task's working folder is named workspace", absolute)
 	}
-	here := jobsDir + "/" + s.job
-	// What a turn of a conversation left there is the last turn's, and the workspace it is
+	here := tasksDir + "/" + s.task
+	// What a turn of a conversation left there is the last turn's, and the working folder it is
 	// given now is the whole of what it works on.
 	steps := [][]string{{"rm", "-rf", here}, {"mkdir", "-p", here}}
 	if s.confined {
@@ -90,7 +90,7 @@ func (s *Sandbox) answers(ctx context.Context) error {
 	return err
 }
 
-// answering waits until the sandbox runs a command, which a workspace that was
+// answering waits until the sandbox runs a command, which a computer that was
 // stopped and started does a moment after it is asked to.
 func (s *Sandbox) answering(ctx context.Context) error {
 	deadline := time.Now().Add(readyWithin)
@@ -98,20 +98,24 @@ func (s *Sandbox) answering(ctx context.Context) error {
 		if s.answers(ctx) == nil {
 			return nil
 		}
-		if time.Now().After(deadline) || ctx.Err() != nil {
-			return fmt.Errorf("the workspace %s did not answer in %s", s.name, readyWithin)
+		if time.Now().After(deadline) {
+			return fmt.Errorf("the computer %s did not answer in %s", s.name, readyWithin)
 		}
-		time.Sleep(retryEvery)
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("the computer %s was not waited for: %w", s.name, ctx.Err())
+		case <-time.After(retryEvery):
+		}
 	}
 }
 
-// readyWithin is how long a workspace has to run a command once it is started.
+// readyWithin is how long a computer has to run a command once it is started.
 var readyWithin = 2 * time.Minute
 
-// jobEvents is the part of a workspace's log that is this task's: what came after the
+// taskEvents is the part of a workspace's log that is this task's: what came after the
 // lines that were there when it started. A log that is shorter than that, because
 // it was cut, is kept whole rather than dropped.
-func (s *Sandbox) jobEvents(all []byte) []byte {
+func (s *Sandbox) taskEvents(all []byte) []byte {
 	if !s.persistent || s.logBase == 0 {
 		return all
 	}
@@ -122,15 +126,19 @@ func (s *Sandbox) jobEvents(all []byte) []byte {
 	return bytes.Join(lines[s.logBase:], nil)
 }
 
-// endJob takes away what this task left in a workspace, which is the directory it
-// worked in and the skills it was given: the next task is given its own. The workspace
+// endTask takes away what this task left on a computer, which is the directory it
+// worked in and the skills it was given: the next task is given its own. The computer
 // stays, and so does the directory of a conversation, which its next turn works in.
-func (s *Sandbox) endJob() error {
+func (s *Sandbox) endTask() error {
 	if s.keepDir {
 		return nil
 	}
-	if _, err := output(s.run(context.Background(), "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
-		"rm", "-rf", jobsDir+"/"+s.job)); err != nil {
+	err := s.within(func(ctx context.Context) error {
+		_, err := output(s.run(ctx, "sandbox", "exec", "--name", s.name, "--no-login-shell", "--no-tty", "--",
+			"rm", "-rf", tasksDir+"/"+s.task))
+		return err
+	})
+	if err != nil && !notThere(err) {
 		return err
 	}
 	return nil
@@ -138,19 +146,20 @@ func (s *Sandbox) endJob() error {
 
 // Delete removes a sandbox by its name, and a sandbox that is not there is removed.
 func Delete(cfg Config, name string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), removeWithin)
-	defer cancel()
-	return Remove(ctx, cfg, name)
+	return (&Sandbox{cfg: cfg}).within(func(ctx context.Context) error { return Remove(ctx, cfg, name) })
 }
 
 // Stop stops a sandbox and keeps what is in it.
 func Stop(cfg Config, name string) error {
-	_, err := output((&Sandbox{cfg: cfg}).run(context.Background(), "sandbox", "stop", name))
-	return err
+	s := &Sandbox{cfg: cfg}
+	return s.within(func(ctx context.Context) error {
+		_, err := output(s.run(ctx, "sandbox", "stop", name))
+		return err
+	})
 }
 
-// Wake has a workspace answering, starting it if it was stopped, which is what a person's
-// workspace is after nobody used it for a while.
+// Wake has a computer answering, starting it if it was stopped, which is what a person's
+// computer is after nobody used it for a while.
 func Wake(ctx context.Context, cfg Config, name string) error {
 	s := &Sandbox{cfg: cfg, name: name}
 	if s.answers(ctx) != nil {
@@ -164,7 +173,7 @@ func Wake(ctx context.Context, cfg Config, name string) error {
 // gustoInImage is gusto in the runner image, which starts an agent with its forwarder and its Landlock policy.
 const gustoInImage = "/usr/local/bin/gusto"
 
-// Confine holds every command of the task to folders of its own in the person's computer: the workspace it is given, and a
+// Confine holds every command of the task to folders of its own in the person's computer: the working folder it is given, and a
 // home and a temporary folder kept for key under /sandbox/rooms, so what the agent remembers carries to its next turn. The rest
 // of the computer, the person's other conversations and rooms among it, cannot be read or written. The rules are the kernel's,
 // Landlock, applied by gusto in the sandbox on top of the sandbox's own; what the agent is told plays no part.
@@ -176,7 +185,7 @@ func (s *Sandbox) Confine(key string) {
 // held is the command as the sandbox runs it: through gusto boxed, which starts the run's forwarder, when the task is bound;
 // behind the task's Landlock policy, with its own home and temporary folder, when it is confined; and as it is otherwise.
 func (s *Sandbox) held(command *exec.Cmd) (*exec.Cmd, error) {
-	// Only the agent is told the model's address. The gate and the checks of the image are not, and do not spend the run's secret.
+	// Only the agent is told the model's address. The check and the image's own checks are not, so they do not spend the run's secret.
 	forwarded := s.bound && mentions(command, runtoken.Place)
 	if !s.confined && !forwarded {
 		return command, nil
@@ -189,7 +198,7 @@ func (s *Sandbox) held(command *exec.Cmd) (*exec.Cmd, error) {
 		front = []string{s.program(), "sandbox-run"}
 	}
 	if s.confined {
-		policy, err := landlock.Policy{Write: []string{jobsDir + "/" + s.job, s.home}, Temp: s.temp}.JSON()
+		policy, err := landlock.Policy{Write: []string{tasksDir + "/" + s.task, s.home}, Temp: s.temp}.JSON()
 		if err != nil {
 			return nil, err
 		}

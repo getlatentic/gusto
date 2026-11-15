@@ -3,14 +3,14 @@
   ansible.builtin.apt:
     name: docker.io
     state: present
-  when: demo_sandbox == 'container' and demo_root == ''
+  when: "'container' in demo_sandboxes and demo_root == ''"
 
 - name: Docker is running and starts with the host
   ansible.builtin.systemd:
     name: docker
     state: started
     enabled: true
-  when: demo_sandbox == 'container' and demo_root == ''
+  when: "'container' in demo_sandboxes and demo_root == ''"
 
 - name: The script that builds the model credentials from Parameter Store
   ansible.builtin.copy:
@@ -23,7 +23,7 @@
     src: "{{ item }}.j2"
     dest: "{{ demo_root }}/etc/gusto/{{ item }}"
     mode: "0644"
-  loop: [cell.env, org.env]
+  loop: [cell.env, org.env, org-demo.env]
   when: demo_role == 'cell'
   notify: Restart the cell
 

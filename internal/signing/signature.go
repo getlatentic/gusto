@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Version is the format of a signature file this code writes and the newest
@@ -50,13 +50,13 @@ func (s Signature) Encode() ([]byte, error) {
 }
 
 // Decode reads a signature file, refusing a version it does not know for the
-// reasons job.Readable gives.
+// reasons task.Readable gives.
 func Decode(name string, text []byte) (Signature, error) {
 	var signature Signature
 	if err := json.Unmarshal(text, &signature); err != nil {
 		return Signature{}, fmt.Errorf("%s: %w", name, err)
 	}
-	if err := job.Readable(name, signature.Version, Version); err != nil {
+	if err := task.Readable(name, signature.Version, Version); err != nil {
 		return Signature{}, err
 	}
 	if signature.Scheme != Scheme && signature.Scheme != SchemeDigest {

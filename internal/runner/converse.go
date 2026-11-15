@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/acp"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // hangUp is how long a harness is given to exit once the turn is over and its
@@ -23,7 +23,7 @@ const hangUp = 10 * time.Second
 // a turn the harness failed, never answered, or ended for another reason than
 // being done is 1, with its reason in stderr.
 // cwd is the directory the conversation works in, by the path the harness sees.
-func converse(ctx context.Context, command *exec.Cmd, cwd string, spec job.Spec, servers []job.Server, auth string, record *Record) (int, error) {
+func converse(ctx context.Context, command *exec.Cmd, cwd string, spec task.Spec, servers []task.Server, auth string, record *Recorder) (int, error) {
 	in, err := command.StdinPipe()
 	if err != nil {
 		return 0, err
@@ -70,7 +70,7 @@ func converse(ctx context.Context, command *exec.Cmd, cwd string, spec job.Spec,
 
 // keepErrors records the harness's stderr until it closes, then waits for the
 // process, so the record is never written from two places at once.
-func keepErrors(errs io.Reader, record *Record, command *exec.Cmd) error {
+func keepErrors(errs io.Reader, record *Recorder, command *exec.Cmd) error {
 	lines := bufio.NewScanner(errs)
 	lines.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
 	var failure error
@@ -93,12 +93,12 @@ func hangUpOn(command *exec.Cmd, exited <-chan error) error {
 	}
 }
 
-// resolved is the workspace by the path it really has. A harness can hold a
+// resolved is the working folder by the path it really has. A harness can hold a
 // session to the directory it began in, and a turn run without a container
 // reaches the conversation's directory through a link that is new every turn.
-func resolved(workspace string) string {
-	if real, err := filepath.EvalSymlinks(workspace); err == nil {
+func resolved(workingFolder string) string {
+	if real, err := filepath.EvalSymlinks(workingFolder); err == nil {
 		return real
 	}
-	return workspace
+	return workingFolder
 }

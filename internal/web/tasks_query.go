@@ -30,7 +30,7 @@ var taskStates = []string{"queued", "running", "passed", "failed", "interrupted"
 var taskFields = []string{"q", "state", "person", "agent_type", "team", "repo", "instance", "thread", "from", "to"}
 
 // taskScope is whose tasks the request may read: nobody's name for all of them, and otherwise the one person. It
-// is the rule ownJobs applies to a list in memory, so that the same person sees the same tasks either way.
+// is the rule ownTasks applies to a list in memory, so that the same person sees the same tasks either way.
 func (s *Server) taskScope(r *http.Request) (asked string, none bool) {
 	if s.admin(r) {
 		return "", false
@@ -39,7 +39,8 @@ func (s *Server) taskScope(r *http.Request) (asked string, none bool) {
 	return name, name == "" || (name == sharedSignIn && !s.soleOwner())
 }
 
-// readTaskQuery reads the filter from the query and forces its person to the one the request may read. forPage
+// readTaskQuery reads the filter from the query and forces its person to the one the request may read, and its workspace to
+// the one the request is in, whoever asks: a workspace's tasks are its members' alone. forPage
 // makes the state failed stand for the tasks that did not pass, as the list page counts them, and a state that
 // is none of the five match nothing, where the API refuses it.
 func (s *Server) readTaskQuery(r *http.Request, forPage bool) (taskQuery, error) {
@@ -60,7 +61,7 @@ func (s *Server) readTaskQuery(r *http.Request, forPage bool) (taskQuery, error)
 	}
 	f := &made.Filter
 	f.Search, f.Asked, f.Team, f.Repo = made.Values.Get("q"), made.Values.Get("person"), made.Values.Get("team"), made.Values.Get("repo")
-	f.AgentType, f.Instance, f.Thread = made.Values.Get("agent_type"), made.Values.Get("instance"), made.Values.Get("thread")
+	f.AgentType, f.Instance, f.Thread, f.Workspace = made.Values.Get("agent_type"), made.Values.Get("instance"), made.Values.Get("thread"), s.workspaceOf(r)
 	made.State = made.Values.Get("state")
 	var err error
 	if f.States, err = taskStatesOf(made.State, forPage); err != nil {
@@ -111,31 +112,6 @@ func taskLimit(text string) (int, error) {
 		return 0, fmt.Errorf("limit must be a number from 1 to %d", taskindex.MostPerPage)
 	}
 	return n, nil
-}
-
-// link is this query as an address under base, with the changes given: an empty value takes a name out.
-func (q taskQuery) link(base string, change map[string]string) string {
-	values := url.Values{}
-	for name, held := range q.Values {
-		values[name] = held
-	}
-	if q.Page.Sort != "" {
-		values.Set("sort", q.Page.Sort)
-	}
-	if q.Page.Limit != taskindex.DefaultPerPage {
-		values.Set("limit", strconv.Itoa(q.Page.Limit))
-	}
-	for name, value := range change {
-		if value == "" {
-			values.Del(name)
-		} else {
-			values.Set(name, value)
-		}
-	}
-	if len(values) == 0 {
-		return base
-	}
-	return base + "?" + values.Encode()
 }
 
 // sinceLately is the start of the week the counts across the top of the list look at.

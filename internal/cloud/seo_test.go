@@ -93,7 +93,7 @@ func TestOnlyTheLandingPageAndTheDemoFormMayBeListed(t *testing.T) {
 	})
 }
 
-func TestRobotsAndTheSitemapAnswerForTheFrontDoorAndNameOnlyWhatIsWorthFinding(t *testing.T) {
+func TestRobotsAndTheSitemapAnswerForGustoCloudAndNameOnlyWhatIsWorthFinding(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := demoFront(t)
 		status, robots, header := f.browser().get2("/robots.txt")

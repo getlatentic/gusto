@@ -45,7 +45,7 @@ func translating(t *testing.T, wires []string) (*Proxy, string, string, *chatPro
 	ledger := spend.NewLedger(fixturePrices)
 	ledger.Begin("a-job", spend.Terms{})
 	proxy := New(tokens, Credentials{"gemma": {Name: "gemma", Address: server.URL + "/openai", Key: "the-real-key", Wires: wires, MaxOutput: 8192}},
-		func(job string) (string, bool) { return filepath.Join(kept, job+".jsonl"), true }, ledger, Allowlist{})
+		func(task string) (string, bool) { return filepath.Join(kept, task+".jsonl"), true }, ledger, Allowlist{})
 	token, err := tokens.Mint("a-job", "gemma")
 	if err != nil {
 		t.Fatal(err)

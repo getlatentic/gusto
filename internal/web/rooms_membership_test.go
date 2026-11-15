@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 func TestDeletingAnAgentStopsItsTurnsInTheRoomsItWasIn(t *testing.T) {
@@ -17,7 +17,7 @@ func TestDeletingAnAgentStopsItsTurnsInTheRoomsItWasIn(t *testing.T) {
 	his := site.as(t, bob)
 	agent := bobsAgentIn(t, site, id)
 	his.ask(t, "POST", thread+"/say", url.Values{"said": {"@Atlas take a long time"}})
-	lane := jobs.Record{Instance: id, Agent: agent.ID}.Lane()
+	lane := tasks.Record{Instance: id, Agent: agent.ID}.Lane()
 	if len(site.server.index.Unfinished(lane)) != 1 {
 		t.Fatal("the turn was not started")
 	}

@@ -37,14 +37,12 @@ var tokenScopeWords = map[string]string{
 	apitoken.Work:    "act as one person, on their own work",
 }
 
-func (s *Server) tokensPage(w http.ResponseWriter, r *http.Request) {
-	s.showTokens(w, r, map[string]any{})
-}
+// tokensPath is the console's page of the tokens programs call this server with.
+const tokensPath = "/admin/tokens"
 
-// showTokens draws the page with what the caller adds: a refusal, or the secret
-// of the token just made, which is on no other page and in no other request.
-func (s *Server) showTokens(w http.ResponseWriter, r *http.Request, page map[string]any) {
-	var rows []tokenRow
+// tokensData is every token made here, and the scopes a new one may be given.
+func (s *Server) tokensData(r *http.Request) (map[string]any, error) {
+	rows := []tokenRow{}
 	for _, held := range s.tokens.List() {
 		rows = append(rows, tokenRow{
 			ID: held.ID, Name: held.Name, May: describeScopes(held.Scopes), By: held.By, Live: held.Live(),
@@ -55,10 +53,7 @@ func (s *Server) showTokens(w http.ResponseWriter, r *http.Request, page map[str
 	for _, scope := range apitoken.Scopes {
 		offered = append(offered, map[string]string{"Scope": scope, "Words": tokenScopeWords[scope]})
 	}
-	page["Title"] = productName + " — API tokens"
-	page["Tokens"], page["Offered"] = rows, offered
-	w.Header().Set("Cache-Control", "no-store")
-	s.drawConsole(w, "admin-tokens.html", "tokens", page)
+	return map[string]any{"Tokens": rows, "Offered": offered, "Refused": s.refusal(r)}, nil
 }
 
 func describeScopes(scopes []string) string {
@@ -95,20 +90,25 @@ func endedOf(held apitoken.Token) string {
 	return shownTime(held.Revoked) + " by " + or(held.RevokedBy, "nobody signed in")
 }
 
-// makeToken makes a token and shows its secret in this one response.
+// madeToken is a token just made, with its secret, which is in this one answer and nowhere else.
+type madeToken struct {
+	Made, Secret string
+}
+
+// makeToken makes a token and answers its secret, as JSON, to the page that asked for it.
 func (s *Server) makeToken(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		s.showTokens(w, r, map[string]any{"Refused": err.Error()})
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	who := s.keeper.who(r)
-	token, secret, err := s.tokens.Create(r.FormValue("name"), r.Form["scope"], who)
+	token, secret, err := s.tokens.CreateIn(r.FormValue("name"), r.Form["scope"], s.keeper.who(r), s.workspaceOf(r))
 	if err != nil {
-		s.showTokens(w, r, map[string]any{"Refused": err.Error()})
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	s.note(r, changelog.TokenCreated, map[string]string{"id": token.ID, "name": token.Name, "scopes": describeScopes(token.Scopes)})
-	s.showTokens(w, r, map[string]any{"Secret": secret, "Made": token.Name})
+	w.Header().Set("Cache-Control", "no-store")
+	s.asJSON(w, madeToken{Made: token.Name, Secret: secret})
 }
 
 // revokeToken ends a token. It takes effect on the next request the token makes.
@@ -119,5 +119,5 @@ func (s *Server) revokeToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.note(r, changelog.TokenRevoked, map[string]string{"id": held.ID, "name": held.Name})
-	http.Redirect(w, r, "/admin/tokens", http.StatusSeeOther)
+	http.Redirect(w, r, tokensPath, http.StatusSeeOther)
 }

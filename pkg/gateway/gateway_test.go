@@ -35,7 +35,7 @@ func reports(t *testing.T) (*upstream, Server) {
 	return fake, Server{Name: "reports", URL: address, Headers: map[string]string{"Authorization": "Bearer s3cret"}}
 }
 
-func TestAJobIsShownThreeToolsAndFindsAndCallsTheOthersByName(t *testing.T) {
+func TestATaskIsShownThreeToolsAndFindsAndCallsTheOthersByName(t *testing.T) {
 	fake, server := reports(t)
 	h := start(t, Config{Servers: []Server{server}})
 	if got := namesOf(t, h); strings.Join(got, ",") != "tool_search,tool_schema,tool_call" {
@@ -80,7 +80,7 @@ func TestEveryCallIsWrittenDownWithWhoMadeItAndWhatCameOfIt(t *testing.T) {
 		t.Fatalf("calls = %+v", calls)
 	}
 	first := calls[0]
-	if first.Person != "ada@acme.example" || first.Job != "20261008-1" || first.Server != "reports" || first.Tool != "get_report" || first.ArgBytes != len(`{"id":"q3"}`) || first.ResultBytes == 0 || first.At == 0 {
+	if first.Person != "ada@acme.example" || first.Task != "20261008-1" || first.Server != "reports" || first.Tool != "get_report" || first.ArgBytes != len(`{"id":"q3"}`) || first.ResultBytes == 0 || first.At == 0 {
 		t.Errorf("entry = %+v", first)
 	}
 	data, _ := os.ReadFile(h.record)
@@ -141,7 +141,7 @@ func TestAToolThePolicyTakesFromACallerIsNotFoundAndIsRefusedWithWhyAndRecorded(
 	if len(refused) != 2 || refused[0].Tool != "delete_report" || refused[0].Why != "deleting reports is for the finance team" || refused[0].Person != "ada@acme.example" {
 		t.Errorf("refusals recorded: %+v", refused)
 	}
-	support := start(t, Config{Servers: []Server{server}, Policy: policy, Caller: Caller{Job: "j2", Person: "bo@acme.example", Team: "support"}})
+	support := start(t, Config{Servers: []Server{server}, Policy: policy, Caller: Caller{Task: "j2", Person: "bo@acme.example", Team: "support"}})
 	if _, failed := support.call("tool_call", map[string]any{"name": "reports/send_email"}); failed {
 		t.Error("the team a rule names was refused")
 	}
@@ -343,7 +343,7 @@ func TestManyCallsAtOnceAreAllAnsweredAndAllRecorded(t *testing.T) {
 	}
 }
 
-func TestTheToolsTheJobIsShownAreSchemasAClientTakes(t *testing.T) {
+func TestTheToolsTheTaskIsShownAreSchemasAClientTakes(t *testing.T) {
 	_, server := reports(t)
 	h := start(t, Config{Servers: []Server{server}})
 	for _, mode := range []Mode{Discover, All} {
@@ -365,7 +365,7 @@ func TestTheToolsTheJobIsShownAreSchemasAClientTakes(t *testing.T) {
 	}
 }
 
-func TestAChangeToThePolicyReachesAJobThatIsAlreadyRunning(t *testing.T) {
+func TestAChangeToThePolicyReachesATaskThatIsAlreadyRunning(t *testing.T) {
 	fake, server := reports(t)
 	var mu sync.Mutex
 	current := Policy{}
@@ -394,7 +394,7 @@ func TestAChangeToThePolicyReachesAJobThatIsAlreadyRunning(t *testing.T) {
 	}
 }
 
-func TestWhatAToolAnswersIsMaskedBeforeTheJobSeesItAndCountedInTheRecord(t *testing.T) {
+func TestWhatAToolAnswersIsMaskedBeforeTheTaskSeesItAndCountedInTheRecord(t *testing.T) {
 	_, server := reports(t)
 	redactor, err := redact.New("email", "card")
 	if err != nil {
@@ -510,7 +510,7 @@ func TestAHostCanGiveTheClientThatCallsTheServersAndIsTold(t *testing.T) {
 	if failed || !strings.Contains(found, "reports/get_report") || way.trips == 0 {
 		t.Fatalf("the host's client carried %d requests; search found %q", way.trips, found)
 	}
-	if len(told) == 0 || told[0].Kind != "search" || told[0].Job != "20261008-1" {
+	if len(told) == 0 || told[0].Kind != "search" || told[0].Task != "20261008-1" {
 		t.Fatalf("the host was told %+v", told)
 	}
 }

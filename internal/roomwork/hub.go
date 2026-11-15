@@ -105,6 +105,9 @@ func (h *Hub) hold(ctx context.Context, in Room) (release func(), err error) {
 	h.mu.Lock()
 	state := h.rooms[in.Folder]
 	h.mu.Unlock()
+	if state == nil {
+		return nil, ErrClosed
+	}
 	return guard(ctx, state)
 }
 

@@ -5,45 +5,45 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// claiming writes a finished job whose manifest says "alice" signed it, a
+// claiming writes a finished task whose manifest says "alice" signed it, a
 // claim nothing checks, and returns its directory.
-func claiming(t *testing.T, root, id string) job.Dir {
+func claiming(t *testing.T, root, id string) task.Dir {
 	t.Helper()
 	leaveOld(t, filepath.Join(root, id), map[string]string{
 		"state.json": `{"id":"` + id + `","state":"passed","brief":"b","repo":"/repo","harness":"fixture",` +
 			`"asked":"someone","exit":0,"queuedAt":1788264000,"startedAt":1788264001,"endedAt":1788264060}`,
 	})
-	dir := job.Dir(filepath.Join(root, id))
+	dir := task.Dir(filepath.Join(root, id))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: "b", Repo: "/repo", Gate: []string{"true"}, Harness: "fixture"}
+	spec := task.Spec{Brief: "b", Repo: "/repo", Check: []string{"true"}, Harness: "fixture"}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
-	hash, files, err := evidence.Of(dir)
+	hash, files, err := record.Of(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifest := evidence.Manifest{Job: hash, Files: files, Gate: &evidence.Verdict{Command: spec.Gate, Passed: true}, Signer: "alice"}
-	if err := evidence.Write(dir, manifest); err != nil {
+	manifest := record.Manifest{Task: hash, Files: files, Check: &record.Verdict{Command: spec.Check, Passed: true}, Signer: "alice"}
+	if err := record.Write(dir, manifest); err != nil {
 		t.Fatal(err)
 	}
 	return dir
 }
 
-func sealWith(t *testing.T, dir job.Dir, ring, name string) {
+func sealWith(t *testing.T, dir task.Dir, ring, name string) {
 	t.Helper()
 	key, err := signing.Generate(ring, name)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Seal(dir, key); err != nil {
+	if err := record.Seal(dir, key); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -57,7 +57,7 @@ func keyringAt(t *testing.T, ring string) signing.Keyring {
 	return keyring
 }
 
-func TestTheJobPageNamesOnlyTheSignerTheKeyringChecked(t *testing.T) {
+func TestTheTaskPageNamesOnlyTheSignerTheKeyringChecked(t *testing.T) {
 	root, trusted := t.TempDir(), t.TempDir()
 	claiming(t, root, "unsigned-20260927-0100")
 	sealWith(t, claiming(t, root, "stranger-20260927-0100"), t.TempDir(), "stranger")
@@ -66,19 +66,25 @@ func TestTheJobPageNamesOnlyTheSignerTheKeyringChecked(t *testing.T) {
 	for name, tc := range map[string]struct {
 		id      string
 		keyring signing.Keyring
-		want    string
+		// signer is who the page says signed it, and unchecked why it could not say; the page words them
+		// (web/src/pages/work/task-page.test.tsx).
+		signer, unchecked string
 	}{
-		"unsigned":                           {"unsigned-20260927-0100", keyring, "Not signed"},
-		"signed, no keyring":                 {"acme-20260927-0100", signing.Keyring{}, evidence.NoKeyring},
-		"signed by a key not in the keyring": {"stranger-20260927-0100", keyring, "is not in the keyring"},
-		"signed by a key in the keyring":     {"acme-20260927-0100", keyring, "signed by acme,"},
+		"unsigned":                           {"unsigned-20260927-0100", keyring, "", ""},
+		"signed, no keyring":                 {"acme-20260927-0100", signing.Keyring{}, "", record.NoKeyring},
+		"signed by a key not in the keyring": {"stranger-20260927-0100", keyring, "", "is not in the keyring"},
+		"signed by a key in the keyring":     {"acme-20260927-0100", keyring, "acme", ""},
 	} {
 		t.Run(name, func(t *testing.T) {
 			site := openKeyed(t, root, tc.keyring)
 			site.signIn(t)
-			body := site.ask(t, "GET", "/jobs/"+tc.id, nil).Body.String()
-			if !strings.Contains(body, tc.want) || strings.Contains(body, "alice") {
-				t.Fatalf("want %q in the proof and never the manifest's claim:\n%s", tc.want, body)
+			proof := site.task(t, tc.id).Proof
+			if proof == nil || proof.Signer != tc.signer || proof.Signed != (tc.signer != "") || !proof.Holds ||
+				(tc.unchecked == "") != (proof.Unchecked == "") || !strings.Contains(proof.Unchecked, tc.unchecked) {
+				t.Fatalf("want the signer %q and %q unchecked in the proof: %+v", tc.signer, tc.unchecked, proof)
+			}
+			if body := site.dataText(t, "/jobs/"+tc.id); strings.Contains(body, "alice") {
+				t.Fatalf("the page carries the manifest's claim: %s", body)
 			}
 		})
 	}

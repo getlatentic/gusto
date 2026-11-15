@@ -75,7 +75,7 @@ func readRequests(in io.Reader, handle func(request, error)) error {
 		}
 		var got request
 		if err := json.Unmarshal(text, &got); err != nil {
-			handle(request{}, fmt.Errorf("this is not JSON: %v", err))
+			handle(request{}, fmt.Errorf("this is not JSON: %w", err))
 			continue
 		}
 		handle(got, nil)

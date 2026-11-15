@@ -127,7 +127,7 @@ func (s *Server) hashesJSON(w http.ResponseWriter, r *http.Request) {
 		answerJSON(w, http.StatusBadRequest, map[string]string{"error": `send {"paths": [...]}, at most 5000`})
 		return
 	}
-	root := s.instances.Workspace(held.ID)
+	root := s.instances.AgentFolder(held.ID)
 	out := map[string]string{}
 	for _, name := range asked.Paths {
 		full, err := folderPath(root, name)
@@ -166,7 +166,7 @@ func (s *Server) stillWhatTheWriterSaw(id, name, full string, saw string) (curre
 
 // writeFile puts a file in the folder whole, or not at all, for a person's computer that keeps the folder in sync.
 func (s *Server) writeFile(w http.ResponseWriter, r *http.Request) {
-	held, found := s.sharedOr404(w, r)
+	held, found := s.sharedForWriting(w, r)
 	if !found {
 		return
 	}
@@ -194,7 +194,7 @@ type fileWrite struct {
 // naming the file's present hash, when the writer says the file is something other than what it is; a writer that says
 // nothing is not checked.
 func (s *Server) putFile(r *http.Request, instance, name string, body io.Reader, saw string, runs bool) fileWrite {
-	root := s.instances.Workspace(instance)
+	root := s.instances.AgentFolder(instance)
 	full, err := folderPath(root, name)
 	if err != nil {
 		return fileWrite{status: http.StatusBadRequest, err: err.Error()}
@@ -261,12 +261,12 @@ func (s *Server) putFile(r *http.Request, instance, name string, body io.Reader,
 // removeFile deletes a file of the folder, when it is what the writer saw. A file that is not there, and the writer saw not
 // there, is as deleted as it gets.
 func (s *Server) removeFile(w http.ResponseWriter, r *http.Request) {
-	held, found := s.sharedOr404(w, r)
+	held, found := s.sharedForWriting(w, r)
 	if !found {
 		return
 	}
 	name := r.URL.Query().Get("path")
-	root := s.instances.Workspace(held.ID)
+	root := s.instances.AgentFolder(held.ID)
 	full, err := folderPath(root, name)
 	if err != nil {
 		answerJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})

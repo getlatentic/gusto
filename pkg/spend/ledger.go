@@ -86,7 +86,7 @@ type account struct {
 // counted as a scope of its own, named by its date, so a month's report can
 // say how the spending fell across it.
 const (
-	ByJob     = "job"
+	ByTask    = "job"
 	ByProject = "project"
 	ByTeam    = "team"
 	ByHarness = "harness"
@@ -128,7 +128,7 @@ type monthly struct {
 type Ledger struct {
 	guard  sync.Mutex
 	policy Policy
-	jobs   map[string]*account
+	tasks  map[string]*account
 	months map[monthly]*Tally
 	now    func() time.Time
 	// operatorEver is everything counted on the operator's keys, in any month, which a credit is held to.
@@ -141,7 +141,7 @@ type Ledger struct {
 func NewLedger(policy Policy) *Ledger {
 	return &Ledger{
 		policy: policy,
-		jobs:   map[string]*account{},
+		tasks:  map[string]*account{},
 		months: map[monthly]*Tally{},
 		now:    time.Now,
 	}
@@ -172,10 +172,10 @@ func (l *Ledger) SetPrices(prices map[string]Price) {
 
 // Begin records a task's terms. A task run again keeps what it already spent,
 // because its record still holds those calls.
-func (l *Ledger) Begin(job string, terms Terms) {
+func (l *Ledger) Begin(task string, terms Terms) {
 	l.guard.Lock()
 	defer l.guard.Unlock()
-	l.account(job).terms = terms
+	l.account(task).terms = terms
 }
 
 // UsePersonBudgets says what each person may spend in a month, and false for a person with no budget. It is asked at each
@@ -191,13 +191,13 @@ type personBudget struct {
 	set   bool
 }
 
-func (l *Ledger) personBudgetOf(job string) personBudget {
+func (l *Ledger) personBudgetOf(task string) personBudget {
 	budget := l.budgets.Load()
 	if budget == nil {
 		return personBudget{}
 	}
 	l.guard.Lock()
-	person := l.account(job).terms.Person
+	person := l.account(task).terms.Person
 	l.guard.Unlock()
 	if person == "" {
 		return personBudget{}
@@ -208,13 +208,13 @@ func (l *Ledger) personBudgetOf(job string) personBudget {
 
 // Allow is asked before a call leaves, on the credential named, which is the organization's own when own is set. Nil lets it
 // go; a refusal names the cap that stops it. Only calls already in flight can take a task past its cap.
-func (l *Ledger) Allow(job, credential, model string, own bool) *Refusal {
+func (l *Ledger) Allow(task, credential, model string, own bool) *Refusal {
 	credit := l.creditLimit()
-	person := l.personBudgetOf(job)
+	person := l.personBudgetOf(task)
 	l.guard.Lock()
 	defer l.guard.Unlock()
-	held := l.account(job)
-	if refusal := l.jobSpent(held); refusal != nil {
+	held := l.account(task)
+	if refusal := l.taskSpent(held); refusal != nil {
 		return refusal
 	}
 	if refusal := l.teamSpent(held); refusal != nil {
@@ -239,12 +239,12 @@ func (l *Ledger) Allow(job, credential, model string, own bool) *Refusal {
 
 // Count adds a call that happened, or was refused, to the task, its project
 // and its team, in the month it happened.
-func (l *Ledger) Count(job string, call Call) {
+func (l *Ledger) Count(task string, call Call) {
 	if !call.ToModel() {
 		return
 	}
 	l.guard.Lock()
-	l.countLocked(job, call)
+	l.countLocked(task, call)
 	credited := l.credit != nil && !call.Own && call.USD != nil && *call.USD > 0
 	used := 0.0
 	if credited {
@@ -256,11 +256,11 @@ func (l *Ledger) Count(job string, call Call) {
 	}
 }
 
-func (l *Ledger) countLocked(job string, call Call) {
+func (l *Ledger) countLocked(task string, call Call) {
 	if !call.Own && call.USD != nil {
 		l.operatorEver += *call.USD
 	}
-	held := l.account(job)
+	held := l.account(task)
 	held.tally.add(call)
 	if call.Refused == nil && call.billed() && !call.Measured() {
 		held.blind++
@@ -268,7 +268,7 @@ func (l *Ledger) countLocked(job string, call Call) {
 	sent := time.Unix(call.AtUnix, 0).UTC()
 	month := monthOf(sent)
 	for scope, name := range map[string]string{
-		ByJob: job, ByProject: held.terms.Project, ByTeam: held.terms.Team,
+		ByTask: task, ByProject: held.terms.Project, ByTeam: held.terms.Team,
 		ByHarness: held.terms.Harness, ByModel: call.Named(), ByDay: sent.Format("2006-01-02"), ByAllowance: held.terms.Allowance,
 		ByPayer: payerOf(call), ByPerson: held.terms.Person,
 	} {
@@ -279,11 +279,11 @@ func (l *Ledger) countLocked(job string, call Call) {
 	}
 }
 
-func (l *Ledger) account(job string) *account {
-	held, found := l.jobs[job]
+func (l *Ledger) account(task string) *account {
+	held, found := l.tasks[task]
 	if !found {
 		held = &account{}
-		l.jobs[job] = held
+		l.tasks[task] = held
 	}
 	return held
 }
@@ -300,7 +300,7 @@ func (l *Ledger) tally(scope, name, month string) *Tally {
 
 func monthOf(at time.Time) string { return at.UTC().Format("2006-01") }
 
-func (l *Ledger) jobSpent(held *account) *Refusal {
+func (l *Ledger) taskSpent(held *account) *Refusal {
 	limit := held.terms.CapUSD
 	if limit == nil || !Reached(held.tally.USD, *limit) {
 		return nil

@@ -6,20 +6,20 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/record"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Run does the work of one prepared replay. Its error is for a run that could
 // not happen; the verdict is read from the record it leaves.
-type Run func(job.Dir) error
+type Run func(task.Dir) error
 
 // Row is one task in a sweep: what it was, and what it is now.
 type Row struct {
-	Old    job.Dir
-	Replay job.Dir
-	Before evidence.Manifest
-	After  evidence.Manifest
+	Old    task.Dir
+	Replay task.Dir
+	Before record.Manifest
+	After  record.Manifest
 	// Err is set when the rerun could not be made, could not run, or left no
 	// verdict. Then After is empty and Change says nothing about the harness.
 	Err error
@@ -28,7 +28,7 @@ type Row struct {
 // Sweep reruns every task, one after the other, and returns a row each. One task
 // that cannot be rerun is a row with an error rather than the end of the
 // sweep, so a single broken directory does not hide what happened to the rest.
-func Sweep(olds []job.Dir, parent string, run Run) []Row {
+func Sweep(olds []task.Dir, parent string, run Run) []Row {
 	rows := make([]Row, 0, len(olds))
 	for _, old := range olds {
 		rows = append(rows, once(old, parent, run))
@@ -36,7 +36,7 @@ func Sweep(olds []job.Dir, parent string, run Run) []Row {
 	return rows
 }
 
-func once(old job.Dir, parent string, run Run) Row {
+func once(old task.Dir, parent string, run Run) Row {
 	row := Row{Old: old}
 	row.Before, row.Err = Known(old)
 	if row.Err != nil {
@@ -53,64 +53,64 @@ func once(old job.Dir, parent string, run Run) Row {
 	return row
 }
 
-// verdictOf is the replay's own verdict, read from its evidence rather than
+// verdictOf is the replay's own verdict, read from its record rather than
 // from an exit code, because only the manifest says which harness answered.
-func verdictOf(dir job.Dir) (evidence.Manifest, error) {
-	manifest, err := evidence.Read(dir)
+func verdictOf(dir task.Dir) (record.Manifest, error) {
+	manifest, err := record.Read(dir)
 	if err != nil {
-		return evidence.Manifest{}, fmt.Errorf("the rerun in %s left no manifest: %w", dir, err)
+		return record.Manifest{}, fmt.Errorf("the rerun in %s left no manifest: %w", dir, err)
 	}
-	if manifest.Gate == nil {
-		return evidence.Manifest{}, fmt.Errorf("the rerun in %s left no verdict", dir)
+	if manifest.Check == nil {
+		return record.Manifest{}, fmt.Errorf("the rerun in %s left no verdict", dir)
 	}
 	return manifest, nil
 }
 
-// Expand turns what a person named into jobs. A directory holding job.json is a
+// Expand turns what a person named into tasks. A directory holding job.json is a
 // task. Any other directory is a set of tasks, and every child holding job.json is
 // one, in name order, except the reruns among them: a sweep repeats originals,
 // and a second sweep over the same directory should not rerun the first one's
 // replays.
-func Expand(paths []string) ([]job.Dir, error) {
-	var jobs []job.Dir
+func Expand(paths []string) ([]task.Dir, error) {
+	var tasks []task.Dir
 	for _, path := range paths {
 		found, err := expandOne(path)
 		if err != nil {
 			return nil, err
 		}
-		jobs = append(jobs, found...)
+		tasks = append(tasks, found...)
 	}
-	return jobs, nil
+	return tasks, nil
 }
 
-func expandOne(path string) ([]job.Dir, error) {
-	if isJob(path) {
-		return []job.Dir{job.Dir(path)}, nil
+func expandOne(path string) ([]task.Dir, error) {
+	if isTask(path) {
+		return []task.Dir{task.Dir(path)}, nil
 	}
 	listing, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
 	}
-	var jobs []job.Dir
+	var tasks []task.Dir
 	for _, entry := range listing {
-		child := job.Dir(filepath.Join(path, entry.Name()))
-		if entry.IsDir() && isJob(child.Path()) && !isReplay(child) {
-			jobs = append(jobs, child)
+		child := task.Dir(filepath.Join(path, entry.Name()))
+		if entry.IsDir() && isTask(child.Path()) && !isReplay(child) {
+			tasks = append(tasks, child)
 		}
 	}
-	if len(jobs) == 0 {
+	if len(tasks) == 0 {
 		return nil, fmt.Errorf("%s is not a task and holds none", path)
 	}
-	sort.Slice(jobs, func(i, j int) bool { return jobs[i] < jobs[j] })
-	return jobs, nil
+	sort.Slice(tasks, func(i, j int) bool { return tasks[i] < tasks[j] })
+	return tasks, nil
 }
 
-func isJob(path string) bool {
-	_, err := os.Stat(job.Dir(path).Spec())
+func isTask(path string) bool {
+	_, err := os.Stat(task.Dir(path).Spec())
 	return err == nil
 }
 
-func isReplay(dir job.Dir) bool {
+func isReplay(dir task.Dir) bool {
 	_, err := os.Stat(dir.OutFile(MarkFile))
 	return err == nil
 }

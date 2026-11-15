@@ -26,12 +26,12 @@ type Person struct {
 	Verified time.Time `json:"verified,omitzero"`
 	// By is who invited them, and empty for the admin who made the organization.
 	By string `json:"by,omitempty"`
-	// LastSignIn is when the front door last signed them in to their organization's
+	// LastSignIn is when gusto cloud last signed them in to their organization's
 	// server, and the zero time until it has.
 	LastSignIn time.Time `json:"lastSignIn,omitzero"`
 }
 
-// Org is an organization as the front door knows it. Its work is in its own
+// Org is an organization as gusto cloud knows it. Its work is in its own
 // directory and its own server, and this is only who it is and who made it.
 type Org struct {
 	Slug  string `json:"slug"`
@@ -46,7 +46,7 @@ type Org struct {
 }
 
 // Limits are the quotas an organization moves between, and the settings that make
-// them. Paid is for an organization with a subscription, and its Jobs are for each seat.
+// them. Paid is for an organization with a subscription, and its Tasks are for each seat.
 type Limits struct {
 	Trial, Verified, Paid quota.Quota
 }
@@ -58,9 +58,9 @@ const StartingCredit = 5.0
 // DefaultLimits are what a sign-up may run before and after it is verified, and once it pays.
 func DefaultLimits() Limits {
 	return Limits{
-		Trial:    quota.Quota{Jobs: 3, Concurrent: 1, Members: 1, Computers: 1, Note: "Confirm the admin's email address to raise this limit.", CreditUSD: StartingCredit},
-		Verified: quota.Quota{Jobs: 200, Monthly: true, Concurrent: 4, Invites: true, Members: 4, Computers: 4, CreditUSD: StartingCredit},
-		Paid:     quota.Quota{Jobs: 200, Monthly: true, Concurrent: 4, Invites: true, Members: 50, Computers: 50, CreditUSD: StartingCredit},
+		Trial:    quota.Quota{Tasks: 3, Concurrent: 1, Members: 1, Computers: 1, Note: "Confirm the admin's email address to raise this limit.", CreditUSD: StartingCredit},
+		Verified: quota.Quota{Tasks: 200, Monthly: true, Concurrent: 4, Invites: true, Members: 4, Computers: 4, CreditUSD: StartingCredit},
+		Paid:     quota.Quota{Tasks: 200, Monthly: true, Concurrent: 4, Invites: true, Members: 50, Computers: 50, CreditUSD: StartingCredit},
 	}
 }
 

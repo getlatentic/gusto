@@ -36,7 +36,7 @@ func TestTheCodeInTheMailSignsThePersonInOnceAndSpendsTheLink(t *testing.T) {
 		if status, _, header := b.post("/signin/code", url.Values{"email": {"Ada@Acme.com"}, "code": {typed}}); status != http.StatusSeeOther || header.Get("Location") != "/app" {
 			t.Fatalf("the code answered %d %v", status, header)
 		}
-		if status, page := b.get("/org"); status != http.StatusOK || !strings.Contains(page, "Acme") {
+		if status, page := b.get("/org"); status != http.StatusOK || shown(t, page).Org == nil || shown(t, page).Org.Name != "Acme" {
 			t.Errorf("the code did not sign the person in: %d", status)
 		}
 		if status, _, _ := f.browser().post("/signin/code", url.Values{"email": {"ada@acme.com"}, "code": {code}}); status != http.StatusUnprocessableEntity {
@@ -73,7 +73,7 @@ func TestACodeWorksOnlyForItsAddressAndGuessesRunOut(t *testing.T) {
 
 	_, wrong, _ := f.browser().post("/signin/code", url.Values{"email": {"bob@bob.com"}, "code": {code}})
 	_, nobody, _ := f.browser().post("/signin/code", url.Values{"email": {"nobody@acme.com"}, "code": {code}})
-	if !strings.Contains(wrong, "That code is wrong or has expired") ||
+	if !strings.Contains(shown(t, wrong).Error, "That code is wrong or has expired") ||
 		strings.ReplaceAll(nobody, "nobody@acme.com", "bob@bob.com") != wrong {
 		t.Errorf("another address's code, or one with no account, was answered differently:\n%s\n%s", wrong, nobody)
 	}

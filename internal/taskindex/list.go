@@ -33,7 +33,7 @@ func (s *store) conditions(f Filter) ([]string, []any) {
 	if !f.QueuedTo.IsZero() {
 		conds, args = append(conds, "queued < ?"), append(args, f.QueuedTo.Unix())
 	}
-	for _, e := range []struct{ column, value string }{{"asked_lc", lower(f.Asked)}, {"team", f.Team}, {"repo", f.Repo},
+	for _, e := range []struct{ column, value string }{{"asked_lc", lower(f.Asked)}, {"team", f.Team}, {"workspace", f.Workspace}, {"repo", f.Repo},
 		{"harness", f.AgentType}, {"instance", f.Instance}, {"thread", f.Thread}} {
 		if e.value != "" {
 			conds, args = append(conds, e.column+" = ?"), append(args, e.value)

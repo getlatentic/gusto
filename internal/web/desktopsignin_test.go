@@ -3,15 +3,17 @@ package web
 import (
 	"crypto/sha256"
 	"encoding/base64"
-	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/getlatentic/gusto/internal/instance"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 func challengeFor(secret string) string {
@@ -43,16 +45,21 @@ func cookieSet(answer *httptest.ResponseRecorder, name string) *http.Cookie {
 	return nil
 }
 
-// ticketFrom is the ticket the handoff page links the app with.
-func ticketFrom(t *testing.T, page string) string {
+// ticketFrom is the ticket the handoff page's data links the app with. The data forgets the hash it was for as it answers.
+func ticketFrom(t *testing.T, answer *httptest.ResponseRecorder) string {
 	t.Helper()
-	const prefix = "latentic://signed-in?ticket="
-	from := strings.Index(page, prefix)
-	if from < 0 {
-		t.Fatalf("the handoff page has no link to the app: %s", page)
+	var page handoffView
+	if err := json.Unmarshal(answer.Body.Bytes(), &page); answer.Code != http.StatusOK || err != nil {
+		t.Fatalf("the handoff page's data answered %d: %s", answer.Code, answer.Body.String())
 	}
-	ticket := page[from+len(prefix):]
-	return ticket[:strings.IndexAny(ticket, `"&`)]
+	if gone := answer.Result().Cookies(); len(gone) == 0 || gone[0].Name != desktopCookie || gone[0].MaxAge >= 0 {
+		t.Errorf("the handoff page's data did not forget the app's hash: %v", gone)
+	}
+	ticket, found := strings.CutPrefix(page.Link, "latentic://signed-in?ticket=")
+	if !found || ticket == "" || strings.ContainsAny(ticket, `"&`) {
+		t.Fatalf("the handoff page has no link to the app: %q", page.Link)
+	}
+	return ticket
 }
 
 // The app sends the browser to sign in, the browser comes back to the app with a ticket, and the app trades the ticket and its secret for
@@ -71,8 +78,10 @@ func TestTheAppIsSignedInThroughTheBrowser(t *testing.T) {
 	if started.Header().Get("Location") != "/auth/desktop/handoff" || remembered == nil {
 		t.Fatalf("a signed-in browser went to %q with %v", started.Header().Get("Location"), remembered)
 	}
-	page := get(t, site, "/auth/desktop/handoff", append(signedIn, remembered), nil).Body.String()
-	ticket := ticketFrom(t, page)
+	if page := get(t, site, "/auth/desktop/handoff", append(signedIn, remembered), nil); page.Code != http.StatusOK || !strings.Contains(page.Body.String(), `<div id="root">`) {
+		t.Fatalf("the handoff page is not the app: %d", page.Code)
+	}
+	ticket := ticketFrom(t, get(t, site, "/app/api/auth/desktop/handoff", append(signedIn, remembered), nil))
 
 	redeem := func(ticket, secret string) *httptest.ResponseRecorder {
 		query := url.Values{"ticket": {ticket}, "secret": {secret}}
@@ -82,7 +91,7 @@ func TestTheAppIsSignedInThroughTheBrowser(t *testing.T) {
 	if cookieSet(wrong, cookieName) != nil || !strings.HasPrefix(wrong.Header().Get("Location"), "/login") {
 		t.Fatalf("the wrong secret got %q", wrong.Header().Get("Location"))
 	}
-	ticket = ticketFrom(t, get(t, site, "/auth/desktop/handoff", append(signedIn, remembered), nil).Body.String())
+	ticket = ticketFrom(t, get(t, site, "/app/api/auth/desktop/handoff", append(signedIn, remembered), nil))
 	right := redeem(ticket, secret)
 	session := cookieSet(right, cookieName)
 	if right.Header().Get("Location") != "/chat" || session == nil {
@@ -157,7 +166,7 @@ func TestACrossSiteRedeemIsRefused(t *testing.T) {
 
 // Where a provider is named, the browser the app opens goes to the provider and does not stop at a page that asks for one more press.
 func TestTheAppsBrowserGoesStraightToTheProvider(t *testing.T) {
-	index, err := jobs.Open(t.TempDir())
+	index, err := tasks.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,5 +182,22 @@ func TestTheAppsBrowserGoesStraightToTheProvider(t *testing.T) {
 	answer := get(t, site, "/auth/desktop/start?challenge="+challengeFor("secret"), nil, nil)
 	if answer.Header().Get("Location") != "/auth/start" {
 		t.Errorf("the browser went to %q", answer.Header().Get("Location"))
+	}
+}
+
+// A browser the app did not send has no hand-off: the page sends it to the pages, and the data gives no ticket.
+func TestAHandoffTheAppDidNotAskForGivesNoTicket(t *testing.T) {
+	site := open(t)
+	site.signIn(t)
+	signedIn := []*http.Cookie{site.cookie}
+	if page := get(t, site, "/auth/desktop/handoff", signedIn, nil); page.Code != http.StatusSeeOther || page.Header().Get("Location") != "/" {
+		t.Errorf("a hand-off the app did not ask for answered %d to %q", page.Code, page.Header().Get("Location"))
+	}
+	if data := get(t, site, "/app/api/auth/desktop/handoff", signedIn, nil); data.Code != http.StatusNotFound || strings.Contains(data.Body.String(), "latentic://") {
+		t.Errorf("a hand-off the app did not ask for gave a ticket: %d %s", data.Code, data.Body.String())
+	}
+	asked := &http.Cookie{Name: desktopCookie, Value: challengeFor("secret")}
+	if data := get(t, site, "/app/api/auth/desktop/handoff", []*http.Cookie{asked}, nil); data.Code != http.StatusUnauthorized {
+		t.Errorf("a browser nobody signed in was given a ticket: %d", data.Code)
 	}
 }

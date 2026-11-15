@@ -8,8 +8,8 @@ import (
 
 // sandboxChoice says which wall gusto would put between an agent and this computer's files, in words, and why a stronger one was not
 // chosen. Having none is not a failure of the computer, so it passes, with what would give it one.
-func sandboxChoice(machine Machine) Verdict {
-	host := isolation.This()
+func sandboxChoice(machine Machine, set isolation.Settings) Verdict {
+	host := isolation.This(set)
 	host.LookPath = machine.LookPath
 	host.Run = func(program string, args ...string) (string, bool) {
 		outcome := machine.Commands(program, args...)

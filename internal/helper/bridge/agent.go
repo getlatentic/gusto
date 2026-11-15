@@ -21,8 +21,8 @@ type Cloud interface {
 	StartInstance(ctx context.Context, harness, model string) (helper.Instance, helper.Thread, error)
 	NewThread(ctx context.Context, instance, title string) (helper.Thread, error)
 	Say(ctx context.Context, instance, thread, said, key string) (helper.Said, error)
-	FollowJob(ctx context.Context, job string, told helper.Follower) (helper.Ended, error)
-	StopJob(ctx context.Context, job string) error
+	FollowTask(ctx context.Context, task string, told helper.Follower) (helper.Ended, error)
+	StopTask(ctx context.Context, task string) error
 }
 
 // Agent is the helper as an ACP agent. Its sessions are threads on one of the person's agents in the cloud.
@@ -52,7 +52,7 @@ type session struct {
 	mu       sync.Mutex
 	turns    int
 	active   bool
-	job      string
+	task     string
 	canceled bool
 	noted    bool
 }

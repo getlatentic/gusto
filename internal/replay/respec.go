@@ -6,18 +6,18 @@ import (
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Rewrite copies from's job.json into to with the named fields set, and nothing
 // else changed. A rerun sets ref to the pinned commit; a comparison sets the
 // agent as well.
 //
-// The file is copied field by field rather than through job.Spec, so a field
+// The file is copied field by field rather than through task.Spec, so a field
 // this build does not know survives into the copy instead of being dropped, and
 // the copy asks for exactly what the original asked for. from and to may be the
 // same directory.
-func Rewrite(from, to job.Dir, set map[string]any) error {
+func Rewrite(from, to task.Dir, set map[string]any) error {
 	text, err := os.ReadFile(from.Spec())
 	if err != nil {
 		return err
@@ -41,14 +41,14 @@ func Rewrite(from, to job.Dir, set map[string]any) error {
 	if err := os.WriteFile(to.Spec(), append(out, '\n'), 0o644); err != nil {
 		return err
 	}
-	_, err = job.Read(to)
+	_, err = task.Read(to)
 	return err
 }
 
 // anchor makes a relative repository path absolute. The runner clones from
-// inside the job directory, so a path like ../repo meant a place relative to
+// inside the task directory, so a path like ../repo meant a place relative to
 // the old directory and would mean another one from the replay's.
-func anchor(fields map[string]json.RawMessage, old job.Dir) error {
+func anchor(fields map[string]json.RawMessage, old task.Dir) error {
 	var repo string
 	if err := json.Unmarshal(fields["repo"], &repo); err != nil || repo == "" || filepath.IsAbs(repo) {
 		return nil
@@ -70,7 +70,7 @@ func anchor(fields map[string]json.RawMessage, old job.Dir) error {
 // ran a built-in adapter or one from GUSTO_HARNESSES, and harness.Keep carries
 // the one this machine has now, so a container that has never heard of it
 // still runs it.
-func Carry(old, fresh job.Dir, name string) error {
+func Carry(old, fresh task.Dir, name string) error {
 	if err := copyCarried(old, fresh); err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func Carry(old, fresh job.Dir, name string) error {
 	return harness.Keep(fresh, name)
 }
 
-func copyCarried(old, fresh job.Dir) error {
+func copyCarried(old, fresh task.Dir) error {
 	listing, err := os.ReadDir(harness.Carried(old))
 	if os.IsNotExist(err) {
 		return nil

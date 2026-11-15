@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A watcher here is served over a pipe rather than a socket. A write to a pipe
@@ -97,9 +97,9 @@ func transcriptLine(n int) string {
 	return fmt.Sprintf("line %04d %s", n, strings.Repeat("x", 48))
 }
 
-// aJobThatSaid runs a job through the queue and puts lines in its transcript,
+// aTaskThatSaid runs a task through the queue and puts lines in its transcript,
 // which is what a watcher reads.
-func aJobThatSaid(t *testing.T, site *site, lines int) string {
+func aTaskThatSaid(t *testing.T, site *site, lines int) string {
 	t.Helper()
 	id := aTask(t, site, url.Values{"brief": {"watch me"}, "gate": {"true"}})
 	select {
@@ -130,7 +130,7 @@ func TestAWatcherThatStopsReadingIsHungUpOn(t *testing.T) {
 
 	site := open(t)
 	site.signIn(t)
-	id := aJobThatSaid(t, site, 5000)
+	id := aTaskThatSaid(t, site, 5000)
 
 	// The head is read and the body never is: the frames have nowhere to go. The
 	// read deadline is set while the connection is open, so a connection left
@@ -172,7 +172,7 @@ func TestAWatcherThatKeepsReadingSeesEveryLineAndTheVerdict(t *testing.T) {
 	const lines = 5000
 	site := open(t)
 	site.signIn(t)
-	id := aJobThatSaid(t, site, lines)
+	id := aTaskThatSaid(t, site, lines)
 
 	// No patience is borrowed here: a watcher that reads is held to the same
 	// deadline the server ships with.
@@ -209,11 +209,11 @@ func TestAWatcherThatKeepsReadingSeesEveryLineAndTheVerdict(t *testing.T) {
 	}
 }
 
-// idle is a site with no queue behind it, so a queued job stays queued until the
+// idle is a site with no queue behind it, so a queued task stays queued until the
 // test says otherwise.
 func idle(t *testing.T) *site {
 	t.Helper()
-	index, err := jobs.Open(t.TempDir())
+	index, err := tasks.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,10 +230,10 @@ func idle(t *testing.T) *site {
 	return site
 }
 
-// aJobIn puts a job on disk in the state given, with lines in its transcript.
-func aJobIn(t *testing.T, site *site, id string, state jobs.State, said ...string) {
+// aTaskIn puts a task on disk in the state given, with lines in its transcript.
+func aTaskIn(t *testing.T, site *site, id string, state tasks.State, said ...string) {
 	t.Helper()
-	dir := job.Dir(filepath.Join(site.index.Root(), id))
+	dir := task.Dir(filepath.Join(site.index.Root(), id))
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -246,16 +246,16 @@ func aJobIn(t *testing.T, site *site, id string, state jobs.State, said ...strin
 			t.Fatal(err)
 		}
 	}
-	if err := site.index.Add(jobs.Record{ID: id, State: state, Brief: "watch me", Queued: jobs.Now()}); err != nil {
+	if err := site.index.Add(tasks.Record{ID: id, State: state, Brief: "watch me", Queued: tasks.Now()}); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestAWatcherOfAnEndedJobIsReplayedTheTranscriptAndToldHowItEnded(t *testing.T) {
-	for _, state := range []jobs.State{jobs.Passed, jobs.Failed, jobs.Interrupted} {
+func TestAWatcherOfAnEndedTaskIsReplayedTheTranscriptAndToldHowItEnded(t *testing.T) {
+	for _, state := range []tasks.State{tasks.Passed, tasks.Failed, tasks.Interrupted} {
 		t.Run(string(state), func(t *testing.T) {
 			site := idle(t)
-			aJobIn(t, site, "20260101-0900-"+string(state), state, "first line", "last line before the end")
+			aTaskIn(t, site, "20260101-0900-"+string(state), state, "first line", "last line before the end")
 			got := site.ask(t, "GET", "/watch/20260101-0900-"+string(state), nil).Body.String()
 			want := "data: first line\n\ndata: last line before the end\n\nevent: ended\ndata: " + string(state) + "\n\n"
 			if got != want {
@@ -265,15 +265,15 @@ func TestAWatcherOfAnEndedJobIsReplayedTheTranscriptAndToldHowItEnded(t *testing
 	}
 }
 
-func TestAWatcherOfAQueuedJobWaitsForItsVerdict(t *testing.T) {
+func TestAWatcherOfAQueuedTaskWaitsForItsVerdict(t *testing.T) {
 	site := idle(t)
 	id := "20260101-0900-still-queued"
-	aJobIn(t, site, id, jobs.Queued)
+	aTaskIn(t, site, id, tasks.Queued)
 	viewer := watchOverAPipe(t, site, id)
 	if err := viewer.conn.SetReadDeadline(time.Now().Add(10 * time.Second)); err != nil {
 		t.Fatal(err)
 	}
-	// The stream is open with nothing on it. Were a queued job taken as ended,
+	// The stream is open with nothing on it. Were a queued task taken as ended,
 	// the verdict would already be waiting on the pipe and the handler would
 	// have let go.
 	select {
@@ -281,7 +281,7 @@ func TestAWatcherOfAQueuedJobWaitsForItsVerdict(t *testing.T) {
 		t.Fatal("the stream ended while the job was still queued")
 	case <-time.After(time.Second):
 	}
-	if err := site.index.Finish(id, jobs.Failed, 1); err != nil {
+	if err := site.index.Finish(id, tasks.Failed, 1); err != nil {
 		t.Fatal(err)
 	}
 	got, err := io.ReadAll(viewer.response.Body)
@@ -293,15 +293,15 @@ func TestAWatcherOfAQueuedJobWaitsForItsVerdict(t *testing.T) {
 	}
 }
 
-// A job the index never knew is answered 404 before any stream opens, so the
+// A task the index never knew is answered 404 before any stream opens, so the
 // record the watcher holds is the only word on it, and it names no verdict.
-func TestTheLatestWordOnAJobTheIndexNeverKnewIsTheOneTheWatcherHolds(t *testing.T) {
-	index, err := jobs.Open(t.TempDir())
+func TestTheLatestWordOnATaskTheIndexNeverKnewIsTheOneTheWatcherHolds(t *testing.T) {
+	index, err := tasks.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
 	server := &Server{index: index}
-	held := jobs.Record{ID: "20260101-0900-never-added", State: jobs.Running}
+	held := tasks.Record{ID: "20260101-0900-never-added", State: tasks.Running}
 	if got := server.latest(held); got != held {
 		t.Errorf("the watcher was given %+v in place of %+v", got, held)
 	}

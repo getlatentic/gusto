@@ -1,0 +1,7 @@
+# The npm packages of the MCP servers the runner image carries, one a line, and
+# of what an agent type needs to call them. A setup can only give an agent a
+# server whose program is here. Versions live in pkg/harness/pins.json.
+@modelcontextprotocol/server-memory
+# Not a server: the extension pi takes MCP servers through, measured on
+# 2026-09-27 against a probe server.
+pi-mcp-adapter

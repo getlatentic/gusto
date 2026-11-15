@@ -5,34 +5,85 @@ import (
 	"net/http"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/repoaccess"
+	"github.com/getlatentic/gusto/internal/setup"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/internal/workspace"
 )
 
-// setUp is the step between picking a harness and having one: what it thinks
-// with, and what it starts out working on.
+// setUp is the step between picking a harness and having one: what it thinks with, and what it starts out working on. A harness
+// this deployment cannot start sends the person back to the presets, saying so.
 func (s *Server) setUp(w http.ResponseWriter, r *http.Request) {
+	if _, found := s.harnessToSetUp(r); !found {
+		s.turnAway(w, r, "/presets", "this deployment cannot start "+r.URL.Query().Get("harness"))
+		return
+	}
+	s.appPage(w, r)
+}
+
+// harnessToSetUp is the harness the address names, when this deployment can start it.
+func (s *Server) harnessToSetUp(r *http.Request) (catalog.Entry, bool) {
 	wanted := r.URL.Query().Get("harness")
 	for _, entry := range s.engines() {
 		if entry.Name == wanted && entry.Ready {
-			s.render(w, "setup.html", map[string]any{
-				"Title":   productName + " — " + entry.Name,
-				"Nav":     "harnesses",
-				"Harness": entry,
-				"Models":  s.offeredTo(r),
-				"Setups":  s.fitting(entry),
-				"Chosen":  r.URL.Query().Get("setup"),
-				"Then":    r.URL.Query().Get("then"),
-				"Refused": s.refusal(r),
-			})
-			return
+			return entry, true
 		}
 	}
-	s.turnAway(w, r, "/presets", "this deployment cannot start "+wanted)
+	return catalog.Entry{}, false
+}
+
+// setUpHarness is the harness being set up, with its mark when it has one.
+type setUpHarness struct{ Name, Title, What, Mark string }
+
+// setUpData is what the set-up page offers: the models the person may use, each with its price and whether the harness failed
+// the benchmark's one-line fix on it, and the skill sets the harness can take. Chosen is the skill set the link named, and Then
+// what the person wants once it has started.
+func (s *Server) setUpData(r *http.Request) (map[string]any, error) {
+	entry, found := s.harnessToSetUp(r)
+	if !found {
+		return nil, failed{http.StatusNotFound, "this deployment cannot start " + r.URL.Query().Get("harness")}
+	}
+	models := []option{}
+	for _, model := range s.offeredTo(r) {
+		label := model
+		if cost := s.costOf(model); cost != "" {
+			label += " · " + cost
+		}
+		if slices.Contains(entry.Unfinished(), model) {
+			label += " · did not finish the one-line fix"
+		}
+		models = append(models, option{Value: model, Label: label})
+	}
+	setups := []option{}
+	for _, held := range s.fitting(entry) {
+		setups = append(setups, option{Value: held.Name, Label: setupLabel(held)})
+	}
+	return map[string]any{
+		"Harness": setUpHarness{Name: entry.Name, Title: entry.Title, What: entry.What, Mark: logo(entry.Name)},
+		"Models":  models,
+		"Setups":  setups,
+		"Chosen":  r.URL.Query().Get("setup"),
+		"Then":    r.URL.Query().Get("then"),
+		"Refused": s.refusal(r),
+	}, nil
+}
+
+// setupLabel is a skill set as the set-up page's menu says it: "reviewer · 2 skills, 1 MCP".
+func setupLabel(held setup.Setup) string {
+	label := held.Name + " · " + strconv.Itoa(len(held.Skills)) + " skill"
+	if len(held.Skills) != 1 {
+		label += "s"
+	}
+	if len(held.Servers) > 0 {
+		label += ", " + strconv.Itoa(len(held.Servers)) + " MCP"
+	}
+	return label
 }
 
 // startInstance gives a harness a computer to work in.
@@ -90,15 +141,20 @@ func (s *Server) beginInstance(r *http.Request, wanted instance.Instance) (start
 	if wanted.Model == "" {
 		wanted.Model = cmp.Or(s.modelToStartOn(r, wanted.Harness), first(s.offeredTo(r)))
 	}
-	name := wanted.Harness
-	if wanted.Repo != "" {
-		name = filepath.Base(strings.TrimSuffix(wanted.Repo, ".git"))
-	}
-	started, err := s.instances.Start(jobs.Name(name, time.Now()), wanted)
+	wanted.Workspace = workspace.Stored(s.workspaceOf(r))
+	started, err := s.instances.Start(tasks.Name(instanceName(wanted), time.Now()), wanted)
 	if err != nil {
 		return started, "/presets", err.Error()
 	}
 	return started, "", ""
+}
+
+// instanceName is what a new instance's id begins with: its repository's name, or its agent type's when it has none.
+func instanceName(wanted instance.Instance) string {
+	if wanted.Repo != "" {
+		return filepath.Base(strings.TrimSuffix(wanted.Repo, ".git"))
+	}
+	return wanted.Harness
 }
 
 // runnable says why an agent cannot be started here: there is none by that name, or this machine cannot run it now.
@@ -115,41 +171,9 @@ func (s *Server) runnable(harness string) string {
 	return "there is no agent called " + harness + " here"
 }
 
-// instancePage is one computer: what it runs, what it works in, and every
-// conversation being held with it.
-func (s *Server) instancePage(w http.ResponseWriter, r *http.Request) {
-	held, found := s.mine(w, r)
-	if !found {
-		return
-	}
-	threads := s.namedThreads(held.ID)
-	said := make([]map[string]any, 0, len(threads))
-	for i := len(threads) - 1; i >= 0; i-- {
-		said = append(said, map[string]any{"Thread": threads[i], "Latest": s.latestTurn(threads[i].Thread)})
-	}
-	routines, unread := s.routineRows(held.ID)
-	s.render(w, "instance.html", map[string]any{
-		"Title":     productName + " — " + s.agentOf(held).Name,
-		"Nav":       "harnesses",
-		"Instance":  held,
-		"Agent":     s.agentOf(held),
-		"Threads":   said,
-		"Workspace": s.instances.Workspace(held.ID),
-		"Models":    s.offeredTo(r),
-		"Sharing":   s.apps != nil,
-		"Runs":      s.runner != nil,
-		"Apps":      s.appsOf(held.ID),
-		"Refresh":   startingApp(s.appsOf(held.ID)),
-		"Tasks":     s.tasks(held.ID),
-		"Routines":  routines,
-		"Unread":    unread,
-		"Refused":   s.refusal(r),
-	})
-}
-
 // latestTurn is the last thing said in a thread, which is what a list of
 // threads needs to tell them apart.
-func (s *Server) latestTurn(thread instance.Thread) (record jobs.Record) {
+func (s *Server) latestTurn(thread instance.Thread) (record tasks.Record) {
 	if len(thread.Turns) == 0 {
 		return record
 	}

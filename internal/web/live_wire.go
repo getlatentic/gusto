@@ -6,12 +6,12 @@ import (
 	"sync"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/roomlive"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // A room's page follows the room over one WebSocket. The store's event log says what happened; this file connects it to the
-// live layer: it starts it, gives it the page's routes and rules, and turns a job's changes into events.
+// live layer: it starts it, gives it the page's routes and rules, and turns a task's changes into events.
 
 // livePath is where a browser opens the socket.
 const livePath = "/live"
@@ -57,7 +57,7 @@ func (s *Server) UseLive(opts roomlive.Options) error {
 	return nil
 }
 
-// CloseLive ends every socket and the goroutine that records job changes, and waits for them or for ctx.
+// CloseLive ends every socket and the goroutine that records task changes, and waits for them or for ctx.
 func (s *Server) CloseLive(ctx context.Context) error {
 	if s.sockets == nil {
 		return nil
@@ -81,7 +81,7 @@ func (s *Server) liveMetrics(out *exposition) {
 	out.counter("gusto_live_commands_repeated_total", "Of them, commands sent twice, which were done once.", float64(stats.Repeated))
 }
 
-// announcer turns the changes of jobs into events in their rooms' logs. A job's change is noted under the index's lock, so it
+// announcer turns the changes of tasks into events in their rooms' logs. A task's change is noted under the index's lock, so it
 // is only queued here, and a goroutine writes the events. A turn that changes twice before its event is written is one event,
 // since an event says that something changed and the page is drawn from the state as it is when it is sent.
 type announcer struct {
@@ -109,10 +109,10 @@ func newAnnouncer(instances *instance.Store) *announcer {
 	return a
 }
 
-// note queues the change of a job that is a turn in a conversation. A job that is only queued is announced by the store when it
-// is added to the conversation, but is remembered, since the turns queued behind a job that starts or ends have a place in line
+// note queues the change of a task that is a turn in a conversation. A task that is only queued is announced by the store when it
+// is added to the conversation, but is remembered, since the turns queued behind a task that starts or ends have a place in line
 // that changes, and are announced again.
-func (a *announcer) note(record jobs.Record) {
+func (a *announcer) note(record tasks.Record) {
 	if record.Instance == "" || record.Thread == "" {
 		return
 	}
@@ -122,7 +122,7 @@ func (a *announcer) note(record jobs.Record) {
 	if a.stopped {
 		return
 	}
-	if record.State == jobs.Queued {
+	if record.State == tasks.Queued {
 		a.waiting[turn.room] = append(a.waiting[turn.room], turn)
 		return
 	}

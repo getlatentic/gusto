@@ -2,6 +2,7 @@ package instance
 
 import (
 	"fmt"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"strings"
 )
 
@@ -100,7 +101,7 @@ func (s *Store) DirectRoom(who, member string) (Instance, bool) {
 
 // StartDirect is a person's own room with a workspace agent: the one they have, or a new one, made whole in one step and named
 // for the agent.
-func (s *Store) StartDirect(who string, agent Agent) (Instance, error) {
+func (s *Store) StartDirect(who, space string, agent Agent) (Instance, error) {
 	if err := checkAgent(&agent); err != nil {
 		return Instance{}, err
 	}
@@ -112,7 +113,7 @@ func (s *Store) StartDirect(who string, agent Agent) (Instance, error) {
 	}
 	agent.ID = "a1"
 	held, err := s.Start(slug(agent.Name), Instance{
-		Title: agent.Name, Who: who, Room: true, Direct: true,
+		Title: agent.Name, Who: who, Workspace: workspace.Stored(space), Room: true, Direct: true,
 		Members: []Member{{Who: who, Role: RoleAdmin}}, Agents: []Agent{agent},
 	})
 	if err != nil {

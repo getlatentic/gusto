@@ -27,7 +27,7 @@ func (r Report) WriteText(to io.Writer) error {
 	for _, part := range []struct {
 		title string
 		lines []Line
-	}{{"team", r.Teams}, {"project", r.Projects}, {"task", r.Jobs}} {
+	}{{"team", r.Teams}, {"project", r.Projects}, {"task", r.Tasks}} {
 		fmt.Fprintf(table, "\n%s\tspent\tcalls\tunmeasured\trefused\tinput tokens\toutput tokens\n", part.title)
 		for _, line := range part.lines {
 			fmt.Fprintf(table, "%s\t%s\t%d\t%d\t%d\t%d\t%d\n", named(line.Name), line.Money(),

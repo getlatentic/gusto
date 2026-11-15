@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/runner"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 	"github.com/getlatentic/gusto/schema"
 )
 
@@ -19,7 +19,7 @@ func TestARunLeavesAManifestTheSchemaAccepts(t *testing.T) {
 		schema []byte
 		path   string
 	}{
-		{schema.Job(), dir.Spec()},
+		{schema.Task(), dir.Spec()},
 		{schema.Manifest(), dir.OutFile("manifest.json")},
 	} {
 		written, err := os.ReadFile(tc.path)
@@ -32,14 +32,14 @@ func TestARunLeavesAManifestTheSchemaAccepts(t *testing.T) {
 	}
 }
 
-// A job written before the version field, carrying a field a newer writer
-// added, is what an old job directory looks like after the format grows. It
-// still runs, and its evidence still verifies.
-func TestAnOldJobStillRunsAfterTheFormatGainsAField(t *testing.T) {
+// A task written before the version field, carrying a field a newer writer
+// added, is what an old task directory looks like after the format grows. It
+// still runs, and its record still verifies.
+func TestAnOldTaskStillRunsAfterTheFormatGainsAField(t *testing.T) {
 	harnesses := t.TempDir()
 	write(t, filepath.Join(harnesses, "fixture.json"), adapter)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestAnOldJobStillRunsAfterTheFormatGainsAField(t *testing.T) {
 		t.Fatalf("an old job should run and pass, exit %d: %v", exit, err)
 	}
 	unversion(t, dir)
-	wrong, err := evidence.Check(dir)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestAnOldJobStillRunsAfterTheFormatGainsAField(t *testing.T) {
 
 // unversion rewrites the manifest as one from before the version field, with a
 // field a newer writer added.
-func unversion(t *testing.T, dir job.Dir) {
+func unversion(t *testing.T, dir task.Dir) {
 	t.Helper()
 	text, err := os.ReadFile(dir.OutFile("manifest.json"))
 	if err != nil {
@@ -89,8 +89,8 @@ func unversion(t *testing.T, dir job.Dir) {
 	write(t, dir.OutFile("manifest.json"), string(text))
 }
 
-func TestAJobFromANewerVersionIsRefusedByName(t *testing.T) {
-	dir := job.Dir(t.TempDir())
+func TestATaskFromANewerVersionIsRefusedByName(t *testing.T) {
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}

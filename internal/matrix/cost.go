@@ -1,9 +1,9 @@
 package matrix
 
 import (
-	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/pkg/spend"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Where a run's cost was read from.
@@ -29,7 +29,7 @@ type spent struct {
 
 // spentBy reads the proxy's record when the run went through the proxy, and
 // the harness's report when it did not.
-func spentBy(dir job.Dir, manifest evidence.Manifest) (spent, error) {
+func spentBy(dir task.Dir, manifest record.Manifest) (spent, error) {
 	calls, err := spend.ReadCalls(dir.OutFile("proxy.jsonl"))
 	if err != nil {
 		return spent{}, err
@@ -46,7 +46,7 @@ func spentBy(dir job.Dir, manifest evidence.Manifest) (spent, error) {
 }
 
 // reported is the harness's own account, and nothing where it gave none.
-func reported(manifest evidence.Manifest) spent {
+func reported(manifest record.Manifest) spent {
 	if manifest.CostUSD == nil && manifest.Tokens == nil {
 		return spent{}
 	}
@@ -62,7 +62,7 @@ func counted(calls []spend.Call) spend.Tally {
 	}
 	var total spend.Tally
 	for _, month := range ledger.Months() {
-		for _, line := range ledger.Report(month).Jobs {
+		for _, line := range ledger.Report(month).Tasks {
 			total.Calls += line.Calls
 			total.USD += line.USD
 			total.Unmeasured += line.Unmeasured

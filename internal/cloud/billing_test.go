@@ -136,7 +136,7 @@ func recorded(t *testing.T, s *Store, body []byte) (bool, error) {
 	if err != nil || !about {
 		t.Fatalf("%v %v", about, err)
 	}
-	return s.RecordSubscription(billing)
+	return s.RecordSubscription(t.Context(), billing)
 }
 
 func TestASubscriptionSetsThePaidQuotaForEachSeatAndAnEndedOneStopsNewTasks(t *testing.T) {
@@ -148,23 +148,23 @@ func TestASubscriptionSetsThePaidQuotaForEachSeatAndAnEndedOneStopsNewTasks(t *t
 			t.Fatalf("%v %v", kept, err)
 		}
 		q, _ := s.Quota(org.Slug)
-		if q.Jobs != 600 || q.Members != 50 || !q.Invites || q.Concurrent != 4 {
+		if q.Tasks != 600 || q.Members != 50 || !q.Invites || q.Concurrent != 4 {
 			t.Errorf("three paid seats: %+v", q)
 		}
 		// An event Stripe made earlier, arriving late, changes nothing.
 		if kept, _ := recorded(t, s, subscriptionEvent("customer.subscription.updated", org.Slug, "sub_1", "incomplete", 1, at.Add(-time.Minute))); kept {
 			t.Error("an older event was kept")
 		}
-		if b, _, _ := s.Billing(org.Slug); b.Seats != 3 || b.Status != "active" || b.Customer != "cus_1" || b.Item != "si_1" {
+		if b, _, _ := s.Billing(t.Context(), org.Slug); b.Seats != 3 || b.Status != "active" || b.Customer != "cus_1" || b.Item != "si_1" {
 			t.Errorf("%+v", b)
 		}
 		recorded(t, s, subscriptionEvent("customer.subscription.updated", org.Slug, "sub_1", "past_due", 3, at.Add(time.Hour)))
-		if q, _ := s.Quota(org.Slug); q.Jobs != 600 {
+		if q, _ := s.Quota(org.Slug); q.Tasks != 600 {
 			t.Errorf("while Stripe tries the card again the organization keeps working: %+v", q)
 		}
 		recorded(t, s, subscriptionEvent("customer.subscription.deleted", org.Slug, "sub_1", "canceled", 3, at.Add(2*time.Hour)))
 		q, _ = s.Quota(org.Slug)
-		if q.Jobs != 0 || q.Concurrent != 0 || q.Invites || q.Members != 50 || q.Computers != 50 || q.Note != lapsedNote {
+		if q.Tasks != 0 || q.Concurrent != 0 || q.Invites || q.Members != 50 || q.Computers != 50 || q.Note != lapsedNote {
 			t.Errorf("an ended subscription starts nothing and removes nobody: %+v", q)
 		}
 		if err := q.Refuse(0); err == nil || !strings.Contains(err.Error(), "renew") {
@@ -186,7 +186,7 @@ func TestASecondSubscriptionForAnOrganizationThatPaysIsRefusedAndNoticed(t *test
 		if _, err := recorded(t, s, subscriptionEvent("customer.subscription.created", org.Slug, "sub_2", "active", 1, at.Add(time.Second))); !errors.Is(err, errSecondSubscription) {
 			t.Errorf("%v", err)
 		}
-		if b, _, _ := s.Billing(org.Slug); b.Subscription != "sub_1" {
+		if b, _, _ := s.Billing(t.Context(), org.Slug); b.Subscription != "sub_1" {
 			t.Errorf("the first subscription stands: %+v", b)
 		}
 		if kept, _ := recorded(t, s, subscriptionEvent("customer.subscription.created", "nobody-com", "sub_3", "active", 1, at)); kept {
@@ -198,12 +198,12 @@ func TestASecondSubscriptionForAnOrganizationThatPaysIsRefusedAndNoticed(t *test
 func TestConfirmingAnAddressDoesNotTakeAPaidOrganizationOffItsPlan(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
-		_, org, _ := s.SignUp(Signup{Email: "ada@acme.com", OrgName: "Acme"})
+		_, org, _ := s.SignUp(t.Context(), Signup{Email: "ada@acme.com", OrgName: "Acme"})
 		recorded(t, s, subscriptionEvent("customer.subscription.created", org.Slug, "sub_1", "active", 2, time.Now()))
-		if err := s.Verify("ada@acme.com"); err != nil {
+		if err := s.Verify(t.Context(), "ada@acme.com"); err != nil {
 			t.Fatal(err)
 		}
-		if q, _ := s.Quota(org.Slug); q.Jobs != 400 {
+		if q, _ := s.Quota(org.Slug); q.Tasks != 400 {
 			t.Errorf("%+v", q)
 		}
 	})
@@ -232,15 +232,15 @@ func TestStripesEventsArriveSignedAndChangeTheOrganizationsPlan(t *testing.T) {
 		if status, _ := f.postEvent(body, signStripe(body, "wrong", time.Now())); status != http.StatusBadRequest {
 			t.Errorf("an unsigned event was taken: %d", status)
 		}
-		if _, page := admin.get("/org"); !strings.Contains(page, "Free trial") || !strings.Contains(page, "Subscribe: 1 seat at $25 a month each") {
-			t.Fatalf("before paying:\n%s", page)
+		if _, page := admin.get("/org"); shown(t, page).Plan == nil || *shown(t, page).Plan != (plan{Words: "Free trial", Offer: "Subscribe: 1 seat at $25 a month each", Subscribe: true}) {
+			t.Fatalf("before paying: %+v", shown(t, page).Plan)
 		}
 		if status, text := f.postEvent(body, signStripe(body, testWebhookSecret, time.Now())); status != http.StatusOK {
 			t.Fatalf("%d %s", status, text)
 		}
 		_, page := admin.get("/org")
-		if !strings.Contains(page, "Paid: 1 seat at $25 a month each") || strings.Contains(page, "/org/billing/subscribe") || !strings.Contains(page, "/org/billing/manage") {
-			t.Errorf("after paying:\n%s", page)
+		if paid := shown(t, page).Plan; paid == nil || paid.Words != "Paid: 1 seat at $25 a month each" || paid.Subscribe || !paid.Manage {
+			t.Errorf("after paying: %+v", paid)
 		}
 		// An event bigger than a form, as Stripe's are, is taken.
 		big := subscriptionEvent("customer.subscription.updated", "acme-com", "sub_1", "active", 1, time.Now())
@@ -279,11 +279,11 @@ func TestAnAdminSubscribesForASeatForEachMemberAndARunnerCannot(t *testing.T) {
 		if status, _, _ := bob.post("/org/billing/subscribe", nil); status != http.StatusForbidden || stripe.count() != calls {
 			t.Errorf("a runner subscribed: %d", status)
 		}
-		if _, page := admin.get("/org?billing=started"); !strings.Contains(page, "once Stripe confirms the payment") {
-			t.Errorf("%s", page)
+		if got := shownAt(t, admin, "/org?billing=started"); !strings.Contains(got.Notice, "once Stripe confirms the payment") {
+			t.Errorf("%q", got.Notice)
 		}
 		stripe.fail(true)
-		if status, page, _ := admin.post("/org/billing/subscribe", nil); status != http.StatusBadGateway || !strings.Contains(page, "Payments are not answering") {
+		if status, page, _ := admin.post("/org/billing/subscribe", nil); status != http.StatusBadGateway || !strings.Contains(shown(t, page).Notice, "Payments are not answering") {
 			t.Errorf("%d", status)
 		}
 	})
@@ -325,7 +325,7 @@ func TestTheSeatsBilledFollowTheMembersAndAFailedChangeIsTriedAgain(t *testing.T
 		if n := seats.Once(ctx); n != 0 {
 			t.Errorf("a failed change was counted: %d", n)
 		}
-		if b, _, _ := s.Billing(org.Slug); b.Seats != 1 {
+		if b, _, _ := s.Billing(ctx, org.Slug); b.Seats != 1 {
 			t.Errorf("a change Stripe refused was recorded: %+v", b)
 		}
 		stripe.fail(false)
@@ -336,20 +336,20 @@ func TestTheSeatsBilledFollowTheMembersAndAFailedChangeIsTriedAgain(t *testing.T
 		if path != "/v1/subscription_items/si_1" || form.Get("quantity") != "3" || form.Get("proration_behavior") != "create_prorations" {
 			t.Errorf("%s %v", path, form)
 		}
-		if q, _ := s.Quota(org.Slug); q.Jobs != 600 {
+		if q, _ := s.Quota(org.Slug); q.Tasks != 600 {
 			t.Errorf("the quota follows the seats: %+v", q)
 		}
-		s.Remove(org.Slug, ada, "cy@acme.com")
+		s.Remove(ctx, org.Slug, ada, "cy@acme.com")
 		seats.Once(ctx)
 		if _, form := stripe.last(); form.Get("quantity") != "2" {
 			t.Errorf("%v", form)
 		}
 		// An organization whose subscription ended cannot invite, and is not billed for anybody.
 		recorded(t, s, subscriptionEvent("customer.subscription.deleted", org.Slug, "sub_1", "canceled", 2, time.Now().Add(time.Hour)))
-		if _, err := s.Invite(org.Slug, ada, "dee@acme.com"); !errors.Is(err, ErrLapsed) {
+		if _, err := s.Invite(ctx, org.Slug, ada, "dee@acme.com"); !errors.Is(err, ErrLapsed) {
 			t.Errorf("%v", err)
 		}
-		s.Remove(org.Slug, ada, "bob@acme.com")
+		s.Remove(ctx, org.Slug, ada, "bob@acme.com")
 		calls := stripe.count()
 		if n := seats.Once(ctx); n != 0 || stripe.count() != calls {
 			t.Errorf("an ended subscription was changed: %d", n)
@@ -361,14 +361,14 @@ func TestADemoIsNeverOfferedAPlan(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		stripe := newFakeStripe(t)
 		f := newFront(t, demoSet, func(c *Config) { c.Stripe = stripe.stripe() })
-		person, org, err := f.store.StartDemo("Ada", "ada@acme.com", "Acme")
+		person, org, err := f.store.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if p := f.server.planOf(org, person); p != nil {
+		if p := f.server.planOf(t.Context(), org, person); p != nil {
 			t.Errorf("%+v", p)
 		}
-		if err := f.store.EndDemo(org.Slug, "done"); err != nil {
+		if err := f.store.EndDemo(t.Context(), org.Slug, "done"); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -378,8 +378,8 @@ func TestBillingIsOffUntilItIsSetUp(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		admin := f.verifiedAdmin("ada@acme.com", "Acme")
-		if _, page := admin.get("/org"); strings.Contains(page, "Plan") || strings.Contains(page, "Subscribe") {
-			t.Errorf("%s", page)
+		if _, page := admin.get("/org"); shown(t, page).Plan != nil {
+			t.Errorf("%+v", shown(t, page).Plan)
 		}
 		body := subscriptionEvent("customer.subscription.created", "acme-com", "sub_1", "active", 1, time.Now())
 		if status, _ := f.postEvent(body, signStripe(body, testWebhookSecret, time.Now())); status != http.StatusNotFound {
@@ -399,13 +399,13 @@ func TestSeatWords(t *testing.T) {
 	}
 }
 
-// Every organization has the starting credit on the models gusto provides, a demo a smaller one, and a front door that starts
+// Every organization has the starting credit on the models gusto provides, a demo a smaller one, and a gusto cloud server that starts
 // writes every quota again so organizations made before a change in the limits have it too.
 func TestEveryOrganizationHasACreditAndAStartWritesEveryQuotaAgain(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, _ := clocked(t, demoSet)
-		_, org, _ := s.SignUp(Signup{Email: "ada@acme.com", OrgName: "Acme"})
-		_, demo, _ := s.StartDemo("Bo", "bo@globex.com", "Globex")
+		_, org, _ := s.SignUp(t.Context(), Signup{Email: "ada@acme.com", OrgName: "Acme"})
+		_, demo, _ := s.StartDemo(t.Context(), "Bo", "bo@globex.com", "Globex")
 		if q, _ := s.Quota(org.Slug); q.CreditUSD != StartingCredit {
 			t.Errorf("%+v", q)
 		}
@@ -417,7 +417,7 @@ func TestEveryOrganizationHasACreditAndAStartWritesEveryQuotaAgain(t *testing.T)
 		if err := s.setQuota(org.Slug, old); err != nil {
 			t.Fatal(err)
 		}
-		if err := s.ApplyQuotas(); err != nil {
+		if err := s.ApplyQuotas(t.Context()); err != nil {
 			t.Fatal(err)
 		}
 		if q, _ := s.Quota(org.Slug); q.CreditUSD != StartingCredit {
@@ -430,13 +430,12 @@ func TestTheOrganizationPageSaysWhatIsLeftOfTheCredit(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		admin := f.verifiedAdmin("ada@acme.com", "Acme")
-		if _, page := admin.get("/org"); !strings.Contains(page, ">$5.00</span>") || !strings.Contains(page, "left of $5.00 on gusto's models") ||
-			!strings.Contains(page, "add your own key in Admin, Models") {
-			t.Errorf("a new organization's credit:\n%s", page)
+		if _, page := admin.get("/org"); shown(t, page).Credit == nil || *shown(t, page).Credit != (credit{Left: "$5.00", Of: "$5.00"}) || !shown(t, page).IsAdmin {
+			t.Errorf("a new organization's credit: %+v", shown(t, page).Credit)
 		}
 		os.WriteFile(filepath.Join(f.store.DataDir("acme-com"), "credit-used.json"), []byte(`{"usd":1.8}`), 0o600)
-		if _, page := admin.get("/org"); !strings.Contains(page, ">$3.20</span>") {
-			t.Errorf("after the server used some:\n%s", page)
+		if _, page := admin.get("/org"); shown(t, page).Credit == nil || shown(t, page).Credit.Left != "$3.20" {
+			t.Errorf("after the server used some: %+v", shown(t, page).Credit)
 		}
 	})
 }

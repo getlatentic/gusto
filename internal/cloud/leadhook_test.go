@@ -134,7 +134,7 @@ func TestTheLeadHookNeedsBothItsAddressAndItsSecretAndAnHttpsAddress(t *testing.
 		}
 	}
 	if (&LeadHook{}).Complete() != nil || (*LeadHook)(nil).Complete() != nil || (&LeadHook{}).Enabled() {
-		t.Error("a front door with no lead hook is not an error")
+		t.Error("a gusto cloud server with no lead hook is not an error")
 	}
 	if (&LeadHook{URL: "https://script.google.com/macros/s/x/exec", Secret: "s"}).Complete() != nil {
 		t.Error("a whole hook was refused")
@@ -154,7 +154,7 @@ func TestADemoStartedAndEndedIsToldToTheSheetInThatOrder(t *testing.T) {
 		b.get("/demo/wait")
 		slug := demoSlugOf(t, f)
 		f.store.now = func() time.Time { return time.Now().Add(time.Hour) }
-		f.server.EndDueDemos()
+		f.server.EndDueDemos(t.Context())
 		f.server.ender.running.Wait()
 		waitFor(t, func() bool { return len(s.events()) == 2 })
 		if got := s.events(); got[0] != "started "+slug || got[1] != "ended "+slug {

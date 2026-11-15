@@ -316,15 +316,15 @@ func TestAnInboxFileWhoseEventIsInTheLogIsKnownAfterARestart(t *testing.T) {
 	}
 }
 
-func TestOnlyTheChangesTheFrontDoorReportsAreItsToReport(t *testing.T) {
+func TestOnlyTheChangesGustoCloudReportsAreItsToReport(t *testing.T) {
 	for _, kind := range []string{changelog.MemberInvited, changelog.MemberRole, changelog.MemberRemoved} {
-		if !changelog.FromFrontDoor(kind) {
-			t.Errorf("%s is the front door's", kind)
+		if !changelog.FromCloud(kind) {
+			t.Errorf("%s is gusto cloud's", kind)
 		}
 	}
 	for _, kind := range []string{changelog.SignedIn, changelog.RoleChanged, changelog.SettingsChanged, changelog.ServerStarted, changelog.TokenCreated, ""} {
-		if changelog.FromFrontDoor(kind) {
-			t.Errorf("the front door may not report %q", kind)
+		if changelog.FromCloud(kind) {
+			t.Errorf("gusto cloud may not report %q", kind)
 		}
 	}
 }

@@ -27,7 +27,7 @@ func TestAPersonSignsInAndTheirTokenIsKeptAndRenewed(t *testing.T) {
 	a := connectortest.New(t)
 	c := connectors(t, "https://acme.gusto.test")
 	entry := Entry{ID: "tasks", Name: "Tasks", URL: a.MCP()}
-	signIn, err := c.Begin(context.Background(), "Ada@Acme.com", entry)
+	signIn, err := c.Begin(context.Background(), "Ada@Acme.com", "", entry)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,23 +38,23 @@ func TestAPersonSignsInAndTheirTokenIsKeptAndRenewed(t *testing.T) {
 	if a.Scope() != "read write" {
 		t.Errorf("the sign-in asked for %q, not the scope the server's challenge named", a.Scope())
 	}
-	if _, err := c.Finish(context.Background(), "bob@acme.com", state, code); err == nil {
+	if _, _, err := c.Finish(context.Background(), "bob@acme.com", state, code); err == nil {
 		t.Error("somebody else finished ada's sign-in")
 	}
 	state, code = a.Approve(t, mustBegin(t, c, "ada@acme.com", entry))
-	if connector, err := c.Finish(context.Background(), "ada@acme.com", state, code); err != nil || connector != "tasks" {
+	if connector, _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err != nil || connector != "tasks" {
 		t.Fatalf("finishing: %q %v", connector, err)
 	}
-	if _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err == nil {
+	if _, _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err == nil {
 		t.Error("a sign-in was finished twice")
 	}
-	if token, err := c.Token(context.Background(), "ada@acme.com", "tasks"); err != nil || token != "access-1" {
+	if token, err := c.Token(context.Background(), "ada@acme.com", "", "tasks"); err != nil || token != "access-1" {
 		t.Errorf("ada's token: %q %v", token, err)
 	}
-	if _, connected := c.Connected("ADA@acme.com", "tasks"); !connected {
+	if _, connected := c.Connected("ADA@acme.com", "", "tasks"); !connected {
 		t.Error("ada is not connected")
 	}
-	if _, err := c.Token(context.Background(), "bob@acme.com", "tasks"); err == nil {
+	if _, err := c.Token(context.Background(), "bob@acme.com", "", "tasks"); err == nil {
 		t.Error("bob, who never signed in, has a token")
 	}
 	if a.Clients() != 1 {
@@ -64,13 +64,13 @@ func TestAPersonSignsInAndTheirTokenIsKeptAndRenewed(t *testing.T) {
 	a.Lasts(30 * time.Second)
 	state, code = a.Approve(t, mustBegin(t, c, "ada@acme.com", entry))
 	c.Finish(context.Background(), "ada@acme.com", state, code)
-	if token, err := c.Token(context.Background(), "ada@acme.com", "tasks"); err != nil || token != "access-3" {
+	if token, err := c.Token(context.Background(), "ada@acme.com", "", "tasks"); err != nil || token != "access-3" {
 		t.Errorf("a token about to run out was not renewed: %q %v", token, err)
 	}
-	if err := c.Disconnect("ada@acme.com", "tasks"); err != nil {
+	if err := c.Disconnect("ada@acme.com", "", "tasks"); err != nil {
 		t.Fatal(err)
 	}
-	if _, connected := c.Connected("ada@acme.com", "tasks"); connected {
+	if _, connected := c.Connected("ada@acme.com", "", "tasks"); connected {
 		t.Error("ada is connected after disconnecting")
 	}
 }
@@ -142,7 +142,7 @@ func TestAnOperatorsSecretIsSentAsTheAppAsksAndTheEntrysScopesAreAskedFor(t *tes
 		if a.Scope() != "read" {
 			t.Errorf("the sign-in asked for %q, not the entry's scopes", a.Scope())
 		}
-		if _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err != nil {
+		if _, _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err != nil {
 			t.Fatal(err)
 		}
 		if got := a.Secrets(); len(got) != 1 || got[0] != each.want {
@@ -153,7 +153,7 @@ func TestAnOperatorsSecretIsSentAsTheAppAsksAndTheEntrysScopesAreAskedFor(t *tes
 
 func mustBegin(t *testing.T, c *Connectors, person string, entry Entry) string {
 	t.Helper()
-	signIn, err := c.Begin(context.Background(), person, entry)
+	signIn, err := c.Begin(context.Background(), person, "", entry)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,24 +184,24 @@ func TestAPersonsDefaultForTheirAgentsIsKeptAcrossRenewalAndSigningInAgain(t *te
 	a := connectortest.New(t)
 	c := connectors(t, "https://acme.gusto.test")
 	entry := Entry{ID: "tasks", Name: "Tasks", URL: a.MCP()}
-	if err := c.SetForAgents("ada@acme.com", "tasks", true); err == nil {
+	if err := c.SetForAgents("ada@acme.com", "", "tasks", true); err == nil {
 		t.Error("a person who never signed in set a default for their agents")
 	}
 	state, code := a.Approve(t, mustBegin(t, c, "ada@acme.com", entry))
 	c.Finish(context.Background(), "ada@acme.com", state, code)
-	if c.ForAgents("ada@acme.com", "tasks") {
+	if c.ForAgents("ada@acme.com", "", "tasks") {
 		t.Fatal("agents may use an app before the person said so")
 	}
-	if err := c.SetForAgents("Ada@Acme.com", "tasks", true); err != nil || !c.ForAgents("ada@acme.com", "tasks") {
+	if err := c.SetForAgents("Ada@Acme.com", "", "tasks", true); err != nil || !c.ForAgents("ada@acme.com", "", "tasks") {
 		t.Fatalf("the default did not turn on: %v", err)
 	}
 	a.Lasts(30 * time.Second)
 	state, code = a.Approve(t, mustBegin(t, c, "ada@acme.com", entry))
 	c.Finish(context.Background(), "ada@acme.com", state, code)
-	if _, err := c.Token(context.Background(), "ada@acme.com", "tasks"); err != nil || !c.ForAgents("ada@acme.com", "tasks") {
+	if _, err := c.Token(context.Background(), "ada@acme.com", "", "tasks"); err != nil || !c.ForAgents("ada@acme.com", "", "tasks") {
 		t.Errorf("signing in again or renewing lost the default: %v", err)
 	}
-	if c.ForAgents("bob@acme.com", "tasks") {
+	if c.ForAgents("bob@acme.com", "", "tasks") {
 		t.Error("bob's agents use an app bob never connected")
 	}
 }
@@ -217,17 +217,17 @@ func TestDisconnectingDuringARenewalStaysDisconnected(t *testing.T) {
 	}
 	a.Lasts(30 * time.Second)
 	state, code := a.Approve(t, mustBegin(t, c, "ada@acme.com", Entry{ID: "tasks", Name: "Tasks", URL: a.MCP()}))
-	if _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err != nil {
+	if _, _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err != nil {
 		t.Fatal(err)
 	}
 	renewed := make(chan error, 1)
 	go func() {
-		_, err := c.Token(context.Background(), "ada@acme.com", "tasks")
+		_, err := c.Token(context.Background(), "ada@acme.com", "", "tasks")
 		renewed <- err
 	}()
 	<-renewing
 	disconnected := make(chan error, 1)
-	go func() { disconnected <- c.Disconnect("ada@acme.com", "tasks") }()
+	go func() { disconnected <- c.Disconnect("ada@acme.com", "", "tasks") }()
 	time.Sleep(50 * time.Millisecond)
 	close(release)
 	if err := <-renewed; err != nil {
@@ -236,7 +236,7 @@ func TestDisconnectingDuringARenewalStaysDisconnected(t *testing.T) {
 	if err := <-disconnected; err != nil {
 		t.Fatal(err)
 	}
-	if _, connected := c.Connected("ada@acme.com", "tasks"); connected {
+	if _, connected := c.Connected("ada@acme.com", "", "tasks"); connected {
 		t.Error("the renewal put back a sign-in the person had disconnected")
 	}
 }
@@ -275,18 +275,18 @@ func TestDisconnectingWhileASignInFinishesStaysDisconnected(t *testing.T) {
 	state, code := a.Approve(t, mustBegin(t, c, "ada@acme.com", Entry{ID: "tasks", Name: "Tasks", URL: a.MCP()}))
 	finished := make(chan error, 1)
 	go func() {
-		_, err := c.Finish(context.Background(), "ada@acme.com", state, code)
+		_, _, err := c.Finish(context.Background(), "ada@acme.com", state, code)
 		finished <- err
 	}()
 	<-trading
-	if err := c.Disconnect("ada@acme.com", "tasks"); err != nil {
+	if err := c.Disconnect("ada@acme.com", "", "tasks"); err != nil {
 		t.Fatal(err)
 	}
 	close(release)
 	if err := <-finished; err == nil {
 		t.Error("a sign-in that came back before a disconnect was kept after it")
 	}
-	if _, connected := c.Connected("ada@acme.com", "tasks"); connected {
+	if _, connected := c.Connected("ada@acme.com", "", "tasks"); connected {
 		t.Error("the person is connected after disconnecting")
 	}
 }
@@ -298,24 +298,24 @@ func TestASignInTheAppNoLongerTakesIsNotConnected(t *testing.T) {
 	c := connectors(t, "https://acme.gusto.test")
 	a.Lasts(30 * time.Second)
 	state, code := a.Approve(t, mustBegin(t, c, "ada@acme.com", Entry{ID: "tasks", Name: "Tasks", URL: a.MCP()}))
-	if _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err != nil {
+	if _, _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err != nil {
 		t.Fatal(err)
 	}
 	a.Revoke()
-	if _, err := c.Token(context.Background(), "ada@acme.com", "tasks"); !errors.Is(err, ErrGrantGone) {
+	if _, err := c.Token(context.Background(), "ada@acme.com", "", "tasks"); !errors.Is(err, ErrGrantGone) {
 		t.Fatalf("a revoked sign-in renewed: %v", err)
 	}
-	if _, connected := c.Connected("ada@acme.com", "tasks"); connected {
+	if _, connected := c.Connected("ada@acme.com", "", "tasks"); connected {
 		t.Error("a sign-in the app refused is still connected")
 	}
-	if _, err := c.Token(context.Background(), "ada@acme.com", "tasks"); err == nil || errors.Is(err, ErrGrantGone) {
+	if _, err := c.Token(context.Background(), "ada@acme.com", "", "tasks"); err == nil || errors.Is(err, ErrGrantGone) {
 		t.Errorf("a broken sign-in was taken to the app again: %v", err)
 	}
 	state, code = a.Approve(t, mustBegin(t, c, "ada@acme.com", Entry{ID: "tasks", Name: "Tasks", URL: a.MCP()}))
-	if _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err != nil {
+	if _, _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err != nil {
 		t.Fatal(err)
 	}
-	if _, connected := c.Connected("ada@acme.com", "tasks"); !connected {
+	if _, connected := c.Connected("ada@acme.com", "", "tasks"); !connected {
 		t.Error("signing in again did not connect")
 	}
 }

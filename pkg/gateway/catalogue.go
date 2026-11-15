@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// entry is one tool of one server as the job's caller may see it.
+// entry is one tool of one server as the task's caller may see it.
 type entry struct {
 	Server string
 	Tool   Tool
@@ -40,7 +40,7 @@ type Catalog struct {
 	mu      sync.Mutex
 	loading chan struct{}
 	// entries is every tool the servers have, and what the caller may use is worked out from the policy as it is when the tool is
-	// asked for, so a change to the policy reaches a job that is already running.
+	// asked for, so a change to the policy reaches a task that is already running.
 	entries []entry
 	byName  map[string]entry
 	byFlat  map[string]entry
@@ -61,7 +61,7 @@ func newCatalog(servers []Server, private bool, launch Launcher, policy func() P
 		byName: map[string]entry{}, byFlat: map[string]entry{}, read: map[string]time.Time{}, broken: map[string]string{}}
 	for _, server := range servers {
 		if server.IsProgram() {
-			c.servers[server.Name] = StartProgram(server, caller.Job, launch)
+			c.servers[server.Name] = StartProgram(server, caller.Task, launch)
 		} else if client != nil {
 			upstream := DialWith(server, client)
 			upstream.tokens = tokens

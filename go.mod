@@ -12,6 +12,7 @@ require (
 	github.com/centrifugal/centrifuge v0.40.1
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/dlclark/regexp2 v1.12.0
+	github.com/dop251/goja v0.0.0-20260826204918-8f1c0696a37b
 	github.com/fsnotify/fsevents v0.2.0
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-jose/go-jose/v4 v4.1.4
@@ -46,6 +47,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect

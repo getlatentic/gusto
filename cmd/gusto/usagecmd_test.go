@@ -11,7 +11,7 @@ import (
 
 	"github.com/getlatentic/gusto/cmd/internal/cmdline/clitest"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/internal/usage"
 	"github.com/getlatentic/gusto/internal/web"
 )
@@ -19,7 +19,7 @@ import (
 func withUsageData(t *testing.T) (data string) {
 	t.Helper()
 	data = t.TempDir()
-	t.Setenv("GUSTO_JOBS", filepath.Join(data, "jobs"))
+	t.Setenv("GUSTO_TASKS", filepath.Join(data, "jobs"))
 	t.Setenv("GUSTO_SESSIONS", filepath.Join(data, "sessions"))
 	t.Setenv("GUSTO_DATABASE_URL", "")
 	t.Setenv("GUSTO_REGISTRY", "")
@@ -55,7 +55,7 @@ func TestTheUsageCommandsHelpSaysWhatTheyReadAndHowTheyEnd(t *testing.T) {
 			t.Fatalf("%v: exit code %d", path, code)
 		}
 		if len(path) == 2 {
-			for _, want := range []string{"GUSTO_DATABASE_URL", "GUSTO_JOBS", "Examples", "Exit codes"} {
+			for _, want := range []string{"GUSTO_DATABASE_URL", "GUSTO_TASKS", "Examples", "Exit codes"} {
 				if !strings.Contains(out, want) {
 					t.Errorf("%v: help lacks %q:\n%s", path, want, out)
 				}
@@ -184,20 +184,20 @@ func TestUsageReindexFromScratchSaysHowManyRowsItRemovedAndRebuildsThem(t *testi
 
 func TestDoctorAndDataStatusReportTheIndex(t *testing.T) {
 	data := withUsageData(t)
-	result := usageCheck()
+	result := usageCheck(indexesOf(fromEnv(t).stores))
 	if result.Status != "pass" || !strings.Contains(result.Said, "does not exist yet") {
 		t.Errorf("before the server made it: %+v", result)
 	}
 	seedUsage(t, data, usageRow("t1", 0, "s1", "ada@acme.com", "m", time.Now(), 1))
-	result = usageCheck()
+	result = usageCheck(indexesOf(fromEnv(t).stores))
 	if result.Status != "pass" || !strings.Contains(result.Said, "schema version") || result.Name != "usage index" {
 		t.Errorf("after: %+v", result)
 	}
-	if line := usageStatusLine(); !strings.Contains(line, "schema version") || !strings.Contains(line, "1 rows") {
+	if line := usageStatusLine(indexesOf(fromEnv(t).stores)); !strings.Contains(line, "schema version") || !strings.Contains(line, "1 rows") {
 		t.Errorf("data status line: %q", line)
 	}
 	t.Setenv("GUSTO_DATABASE_URL", "ftp://u:hunter2@h/db")
-	result = usageCheck()
+	result = usageCheck(indexesOf(fromEnv(t).stores))
 	if result.Status != "fail" || strings.Contains(result.Said, "hunter2") || result.Remedy == "" {
 		t.Errorf("a database that cannot be used: %+v", result)
 	}
@@ -205,7 +205,7 @@ func TestDoctorAndDataStatusReportTheIndex(t *testing.T) {
 
 func TestAnIndexPlaceNeverHoldsAPassword(t *testing.T) {
 	t.Setenv("GUSTO_DATABASE_URL", "postgres://gusto:hunter2@db.internal:5432/gusto?search_path=org_acme")
-	place := usagePlace("jobs")
+	place := indexes{url: indexesOf(fromEnv(t).stores).url, tasks: "jobs"}.usagePlace()
 	if strings.Contains(place, "hunter2") || !strings.Contains(place, "db.internal") || !strings.Contains(place, "org_acme") {
 		t.Errorf("%q", place)
 	}
@@ -214,7 +214,7 @@ func TestAnIndexPlaceNeverHoldsAPassword(t *testing.T) {
 func TestAServerFillsTheIndexAtStartAndStopsCleanly(t *testing.T) {
 	data := withUsageData(t)
 	writeTask(t, data, "20261001-0900-a", "ada@acme.com", modelLine+modelLine)
-	index, err := jobs.Open(filepath.Join(data, "jobs"))
+	index, err := tasks.Open(filepath.Join(data, "jobs"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -227,7 +227,7 @@ func TestAServerFillsTheIndexAtStartAndStopsCleanly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stop, err := startUsage(nil, pages, index.Root())
+	stop, err := startUsage(nil, pages, indexes{url: indexesOf(fromEnv(t).stores).url, tasks: index.Root()}, "")
 	if err != nil {
 		t.Fatal(err)
 	}

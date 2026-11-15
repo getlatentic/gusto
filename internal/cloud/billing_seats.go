@@ -9,7 +9,7 @@ import (
 
 // SeatSync keeps the seats Stripe bills each paying organization for equal to its members. It
 // runs when woken after someone joins or is removed, and on a timer, which catches a change
-// whose call to Stripe failed. Two front doors syncing at once set the same number twice.
+// whose call to Stripe failed. Two gusto cloud servers syncing at once set the same number twice.
 type SeatSync struct {
 	Store  *Store
 	Stripe *Stripe
@@ -61,7 +61,7 @@ func (y *SeatSync) Once(ctx context.Context) int {
 			slog.Error("an organization's seats were not changed at Stripe", "org", each.org, "seats", each.want, "error", err)
 			continue
 		}
-		if err := y.Store.SeatsBilled(each.org, each.want); err != nil {
+		if err := y.Store.SeatsBilled(ctx, each.org, each.want); err != nil {
 			slog.Error("an organization's billed seats were not recorded", "org", each.org, "error", err)
 			continue
 		}

@@ -1,11 +1,11 @@
 # Limits on what one person or team runs at once
 
-`GUSTO_JOB_CONCURRENCY` sets how many tasks the server runs at once. Two settings stop one person or team from taking all of them.
+`GUSTO_TASK_CONCURRENCY` sets how many tasks the server runs at once. Two settings stop one person or team from taking all of them.
 
-| Setting | Meaning | Playbook | Chart |
-| --- | --- | --- | --- |
-| `GUSTO_LIMIT_PERSON` | the most tasks one person runs at once | `limit_person` | `jobs.limitPerson` |
-| `GUSTO_LIMIT_TEAM` | the most tasks one team runs at once | `limit_team` | `jobs.limitTeam` |
+| Setting | Meaning | Chart |
+| --- | --- | --- |
+| `GUSTO_LIMIT_PERSON` | the most tasks one person runs at once | `jobs.limitPerson` |
+| `GUSTO_LIMIT_TEAM` | the most tasks one team runs at once | `jobs.limitTeam` |
 
 Zero or unset is no limit. Compose takes the two variables in `.env`.
 

@@ -11,14 +11,14 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Allows refuses a task whose code may not leave against a model endpoint that
 // is not local. The message names the endpoint, because whoever wrote the task is
 // the one who has to fix it.
-func Allows(spec job.Spec, endpoint string) error {
-	if spec.Sensitivity != job.Restricted {
+func Allows(spec task.Spec, endpoint string) error {
+	if spec.Sensitivity != task.Restricted {
 		return nil
 	}
 	// No endpoint means no model: there is nowhere for the code to go.

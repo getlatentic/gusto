@@ -22,69 +22,86 @@ import (
 // two are compared every few seconds. [mirror] has the rule: a change on one side goes to the other, a change beats a
 // deletion, and when both sides changed a file the local one keeps its name and the cloud's is saved beside it.
 func Sync(args []string) int {
-	flags := flag.NewFlagSet("sync", flag.ContinueOnError)
-	address := serverFlag(flags)
-	instance := flags.String("instance", os.Getenv("GUSTO_INSTANCE"), "the agent in the cloud whose folder this is (default your newest)")
-	folder := flags.String("folder", "", "the folder on this computer")
-	once := flags.Bool("once", false, "compare once and stop")
-	dry := flags.Bool("dry-run", false, "say what would be done, and do nothing")
-	force := flags.Bool("force", false, "go on when the checks say it looks like a mistake")
-	interval := flags.Duration("every", 3*time.Second, "how often to compare while there are changes (it waits longer when there are none)")
-	if flags.Parse(args) != nil {
-		return 2
+	asked, code := syncAsked(args)
+	if code != 0 {
+		return code
 	}
-	server, ok := needServer(*address)
-	if !ok {
-		return 2
+	client, code := signedIn(asked.account, asked.server)
+	if code != 0 {
+		return code
 	}
-	if *folder == "" {
-		fmt.Fprintln(os.Stderr, "name the folder on this computer: -folder ~/work/project")
-		return 2
-	}
-	root, err := filepath.Abs(*folder)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return 1
-	}
-	vault, err := helper.OpenVault(os.Stderr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return 1
-	}
-	token, err := vault.Get(server)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return 1
-	}
-	client := helper.Client{Server: server, Token: token}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	chosen, err := agentFor(ctx, client, *instance)
+	chosen, err := agentFor(ctx, client, asked.instance)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	engine, err := newEngine(root, server, chosen, client, *force)
+	root := asked.root
+	engine, err := newEngine(root, asked.server, chosen, client, asked.force)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
 	fmt.Printf("Keeping %s the same as %s's folder in the cloud.\n", root, firstNonEmpty(chosen.Title, chosen.Harness))
-	if *dry {
+	if asked.dry {
 		return preview(ctx, engine)
 	}
-	if *once {
+	if asked.once {
 		report, err := engine.Once(ctx)
 		return said(report, err)
 	}
 	wake, slow := wakes(ctx, root, engine.Ignore, client, chosen.ID)
 	fmt.Println("Compares when a file is saved or a turn changes, and every few seconds while there are changes. Press Ctrl+C to stop.")
-	_ = engine.Keep(ctx, *interval, slow, wake, func(report *mirror.Report, err error) {
+	_ = engine.Keep(ctx, asked.every, slow, wake, func(report *mirror.Report, err error) {
 		if err != nil || (report != nil && (len(report.Errors) > 0 || changed(report))) {
 			said(report, err)
 		}
 	})
 	return 0
+}
+
+// syncRequest is what gusto-helper sync was asked to do, from its settings and its flags.
+type syncRequest struct {
+	syncSettings
+	root             string
+	once, dry, force bool
+	every            time.Duration
+}
+
+// syncAsked reads sync's settings and flags, or is the exit code of saying what is wrong with them.
+func syncAsked(args []string) (syncRequest, int) {
+	var asked syncRequest
+	if !loaded(os.Getenv, asked.declare) {
+		return asked, 2
+	}
+	flags := flag.NewFlagSet("sync", flag.ContinueOnError)
+	address := serverFlag(flags, asked.server)
+	flags.StringVar(&asked.instance, "instance", asked.instance, "the agent in the cloud whose folder this is (default your newest)")
+	folder := flags.String("folder", "", "the folder on this computer")
+	flags.BoolVar(&asked.once, "once", false, "compare once and stop")
+	flags.BoolVar(&asked.dry, "dry-run", false, "say what would be done, and do nothing")
+	flags.BoolVar(&asked.force, "force", false, "go on when the checks say it looks like a mistake")
+	flags.DurationVar(&asked.every, "every", 3*time.Second, "how often to compare while there are changes (it waits longer when there are none)")
+	if flags.Parse(args) != nil {
+		return asked, 2
+	}
+	server, ok := needServer(*address)
+	if !ok {
+		return asked, 2
+	}
+	asked.server = server
+	if *folder == "" {
+		fmt.Fprintln(os.Stderr, "name the folder on this computer: -folder ~/work/project")
+		return asked, 2
+	}
+	root, err := filepath.Abs(*folder)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return asked, 1
+	}
+	asked.root = root
+	return asked, 0
 }
 
 func firstNonEmpty(values ...string) string {

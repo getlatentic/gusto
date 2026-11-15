@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // claudeStream is Claude Code's own JSON stream, as its adapter read it before the agent spoke ACP: a cumulative total
@@ -35,7 +35,7 @@ func claudeStream() harness.Adapter {
 const result = `{"total_cost_usd":1.3161,"usage":{"input_tokens":12,"cache_creation_input_tokens":39699,"cache_read_input_tokens":6744,"output_tokens":300}}`
 
 func TestASpendTotalCountsTheCacheTokensItWasBilledFor(t *testing.T) {
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestASpendTotalCountsTheCacheTokensItWasBilledFor(t *testing.T) {
 const toolCall = `{"type":"tool_use","sessionID":"ses_x","part":{"type":"tool","tool":"read","callID":"chatcmpl-tool-947b85e34fd7a66d","state":{"status":"completed","input":{"filePath":"/job/workspace/adder.sh"},"title":"adder.sh","time":{"start":1790431302271,"end":1790431302313}}}}`
 
 func TestWhatTheAgentRanIsKeptApartFromWhatItSaid(t *testing.T) {
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func TestWhatTheAgentRanIsKeptApartFromWhatItSaid(t *testing.T) {
 }
 
 func TestATranscriptLineIsNotACommand(t *testing.T) {
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +142,7 @@ func TestATranscriptLineIsNotACommand(t *testing.T) {
 // $0.28 of Anthropic prices for tokens another provider served, so its price
 // was dropped from the adapter — and the record then said the run cost nothing.
 func TestTokensWithoutAPriceAreNotARunThatWasFree(t *testing.T) {
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +179,7 @@ var acpTurn = []string{
 }
 
 func TestAnACPHarnessIsReadWhereTheProtocolSaysThings(t *testing.T) {
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -229,7 +229,7 @@ var claudeTurn = []string{
 }
 
 func TestClaudeCodeIsHeardOnlyWhereTheAgentSpeaks(t *testing.T) {
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func TestClaudeCodeIsHeardOnlyWhereTheAgentSpeaks(t *testing.T) {
 
 // A tool call says how much of the transcript was written when it ran, so that what the agent said can be shown around it.
 func TestAToolCallSaysWhereInTheTranscriptItRan(t *testing.T) {
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}

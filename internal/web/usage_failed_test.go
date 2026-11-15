@@ -6,58 +6,50 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/catalog"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // The Failed view lists a conversation whose latest turn failed or was interrupted, and not one that failed and then went on.
 func TestTheFailedViewListsOnlyConversationsWhoseLatestTurnFailed(t *testing.T) {
 	here, _ := withUsage(t, aCall("broke", 0, "broke", alice, 0), aCall("stopped", 0, "stopped", alice, 1),
 		aCall("fine", 0, "fine", bob, 2), aCall("turn-1", 0, "room:1", alice, 3), aCall("turn-2", 0, "room:1", alice, 4))
-	recordTask(t, here.site, jobs.Record{ID: "broke", Harness: "fixture", Asked: alice, State: jobs.Failed})
-	recordTask(t, here.site, jobs.Record{ID: "stopped", Harness: "fixture", Asked: alice, State: jobs.Interrupted})
-	recordTask(t, here.site, jobs.Record{ID: "fine", Harness: "fixture", Asked: bob, State: jobs.Passed})
-	recordTask(t, here.site, jobs.Record{ID: "turn-1", Harness: "fixture", Asked: alice, Instance: "room", Thread: "1", State: jobs.Failed})
-	recordTask(t, here.site, jobs.Record{ID: "turn-2", Harness: "fixture", Asked: alice, Instance: "room", Thread: "1", State: jobs.Passed})
+	recordTask(t, here.site, tasks.Record{ID: "broke", Harness: "fixture", Asked: alice, State: tasks.Failed})
+	recordTask(t, here.site, tasks.Record{ID: "stopped", Harness: "fixture", Asked: alice, State: tasks.Interrupted})
+	recordTask(t, here.site, tasks.Record{ID: "fine", Harness: "fixture", Asked: bob, State: tasks.Passed})
+	recordTask(t, here.site, tasks.Record{ID: "turn-1", Harness: "fixture", Asked: alice, Instance: "room", Thread: "1", State: tasks.Failed})
+	recordTask(t, here.site, tasks.Record{ID: "turn-2", Harness: "fixture", Asked: alice, Instance: "room", Thread: "1", State: tasks.Passed})
 
-	all := here.ask(t, "GET", "/admin/usage", nil).Body.String()
-	if !strings.Contains(all, `href="/admin/usage" aria-current="page">All</a>`) || !strings.Contains(all, `href="/admin/usage?state=failed">Failed <span class="font-normal text-subtle">2 this week</span></a>`) {
-		t.Errorf("the views are not offered with the week's count:\n%s", all)
+	all := usagePageOf(t, here, "")
+	if states := all.Usage.States; len(states) != 2 || states[0].Href != "/admin/usage" || !states[0].Current || states[1].Href != "/admin/usage?state=failed" || states[1].Count != "2 this week" {
+		t.Errorf("the views are not offered with the week's count: %+v", states)
 	}
-	failed := here.ask(t, "GET", "/admin/usage?state=failed", nil).Body.String()
-	for _, want := range []string{"/admin/usage/broke", "/admin/usage/stopped"} {
-		if !strings.Contains(failed, want) {
-			t.Errorf("the failed view leaves out %s", want)
-		}
+	failed := usagePageOf(t, here, "?state=failed")
+	if got := strings.Join(failed.sessionsOf(), " "); got != "stopped broke" {
+		t.Errorf("the failed view lists %q, not only the conversations whose latest turn failed", got)
 	}
-	for _, kept := range []string{"/admin/usage/fine", "/admin/usage/room:1"} {
-		if strings.Contains(failed, kept) {
-			t.Errorf("the failed view lists %s, whose latest turn did not fail", kept)
-		}
-	}
-	if !strings.Contains(failed, `name="state" value="failed"`) || !strings.Contains(failed, "/api/usage.csv?state=failed") {
-		t.Error("the filters and the download do not keep the failed view")
+	if failed.Usage.Values["state"][0] != "failed" || failed.Usage.Export != "/api/usage.csv?state=failed" {
+		t.Errorf("the filters and the download do not keep the failed view: %v %q", failed.Usage.Values, failed.Usage.Export)
 	}
 
-	narrowed := here.ask(t, "GET", "/admin/usage?state=failed&q=stopped", nil).Body.String()
-	if strings.Contains(narrowed, "/admin/usage/broke") || !strings.Contains(narrowed, "/admin/usage/stopped") || !strings.Contains(narrowed, `href="/admin/usage?state=failed">Clear</a>`) {
-		t.Errorf("a filter does not narrow the failed view, or its Clear leaves the view:\n%s", narrowed)
+	narrowed := usagePageOf(t, here, "?state=failed&q=stopped")
+	if got := strings.Join(narrowed.sessionsOf(), " "); got != "stopped" || narrowed.Usage.Clear != "/admin/usage?state=failed" {
+		t.Errorf("a filter does not narrow the failed view (%q), or its Clear leaves the view (%q)", got, narrowed.Usage.Clear)
 	}
 
 	csv := here.ask(t, "GET", "/api/usage.csv?state=failed", nil).Body.String()
 	if !strings.Contains(csv, ",broke,") || !strings.Contains(csv, ",stopped,") || strings.Contains(csv, ",fine,") || strings.Contains(csv, ",room:1,") {
 		t.Errorf("the download of the failed view holds:\n%s", csv)
 	}
-	if got := here.ask(t, "GET", "/admin/usage?state=sideways", nil); got.Code != 400 {
+	if got := here.ask(t, "GET", "/app/api/admin/usage?state=sideways", nil); got.Code != 400 {
 		t.Errorf("an unknown state answered %d", got.Code)
 	}
 }
 
 func TestTheFailedViewSaysWhenNothingFailed(t *testing.T) {
 	here, _ := withUsage(t, aCall("fine", 0, "fine", bob, 2))
-	recordTask(t, here.site, jobs.Record{ID: "fine", Harness: "fixture", Asked: bob, State: jobs.Passed})
-	body := here.ask(t, "GET", "/admin/usage?state=failed", nil).Body.String()
-	if !strings.Contains(body, "No conversation has failed.") || strings.Contains(body, "/admin/usage/fine") {
-		t.Errorf("an empty failed view:\n%s", body)
+	recordTask(t, here.site, tasks.Record{ID: "fine", Harness: "fixture", Asked: bob, State: tasks.Passed})
+	if page := usagePageOf(t, here, "?state=failed"); len(page.Usage.Rows) != 0 || page.Usage.Filtered {
+		t.Errorf("an empty failed view: %+v", page.Usage)
 	}
 }
 
@@ -66,17 +58,18 @@ func TestARowSaysWhoAskedAndWhoseAgentAnswered(t *testing.T) {
 	call := aCall("turn", 0, "room:1", alice, 0)
 	call.Agent = "Nova"
 	here, _ := withUsage(t, call)
-	recordTask(t, here.site, jobs.Record{ID: "turn", Harness: "fixture", Asked: bob, PaidBy: alice, Instance: "room", Thread: "1", State: jobs.Passed})
-	body := here.ask(t, "GET", "/admin/usage", nil).Body.String()
+	recordTask(t, here.site, tasks.Record{ID: "turn", Harness: "fixture", Asked: bob, PaidBy: alice, Instance: "room", Thread: "1", State: tasks.Passed})
+	page := usagePageOf(t, here, "")
 	owner, asker := here.server.personName(alice), here.server.personName(bob)
-	if !strings.Contains(body, ">Asked by<") || !strings.Contains(body, ">Agent · owner<") {
-		t.Errorf("the headings are not Asked by and Agent · owner:\n%s", body)
+	var headings []string
+	for _, column := range page.Usage.Columns {
+		headings = append(headings, column.Label)
 	}
-	if !strings.Contains(body, `<td class="max-w-40 truncate">`+asker+`</td>`) {
-		t.Errorf("the row does not say %s asked", asker)
+	if got := strings.Join(headings, ", "); got != "Last request, Conversation, Asked by, Agent · owner, Cost, Model" {
+		t.Errorf("the headings are %s", got)
 	}
-	if !strings.Contains(body, `Nova <span class="text-subtle">· `+owner+`'s</span>`) {
-		t.Errorf("the row does not say the agent is %s's", owner)
+	if len(page.Usage.Rows) != 1 || page.Usage.Rows[0].Asked != asker || page.Usage.Rows[0].Agent != "Nova" || page.Usage.Rows[0].Owner != owner {
+		t.Errorf("the row does not say %s asked of %s's Nova: %+v", asker, owner, page.Usage.Rows)
 	}
 }
 
@@ -89,19 +82,19 @@ func TestALinkToAPersonOrAnAgentTypeChoosesItsFilter(t *testing.T) {
 		return []catalog.Entry{{Name: "claude", Title: "Claude Code"}, {Name: "codex", Title: "Codex"}}
 	})
 
-	byType := here.ask(t, "GET", "/admin/usage?agent_type=codex", nil).Body.String()
-	if !strings.Contains(byType, "/admin/usage/codex-session") || strings.Contains(byType, "/admin/usage/alice-session") {
-		t.Errorf("an agent type by its id does not narrow the table:\n%s", byType)
+	byType := usagePageOf(t, here, "?agent_type=codex")
+	if got := strings.Join(byType.sessionsOf(), " "); got != "codex-session" {
+		t.Errorf("an agent type by its id narrows the table to %q", got)
 	}
-	if !strings.Contains(byType, "<option selected>Codex</option>") || !strings.Contains(byType, "<details class=\"group\" open>") {
-		t.Error("an agent type by its id is not shown chosen")
+	if byType.Usage.Values["agent_type"][0] != "Codex" || !byType.Usage.Filtered {
+		t.Errorf("an agent type by its id is not shown chosen: %v", byType.Usage.Values)
 	}
 
-	byPerson := here.ask(t, "GET", "/admin/usage?person="+url.QueryEscape(bob), nil).Body.String()
-	if !strings.Contains(byPerson, "/admin/usage/bob-session") || strings.Contains(byPerson, "/admin/usage/alice-session") {
-		t.Errorf("a person's link does not narrow the table:\n%s", byPerson)
+	byPerson := usagePageOf(t, here, "?person="+url.QueryEscape(bob))
+	if got := strings.Join(byPerson.sessionsOf(), " "); got != "bob-session" {
+		t.Errorf("a person's link narrows the table to %q", got)
 	}
-	if !strings.Contains(byPerson, "<option selected>"+bob+"</option>") {
-		t.Error("a person's link is not shown chosen")
+	if byPerson.Usage.Values["person"][0] != bob {
+		t.Errorf("a person's link is not shown chosen: %v", byPerson.Usage.Values)
 	}
 }

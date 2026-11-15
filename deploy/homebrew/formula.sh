@@ -16,7 +16,7 @@ sum() {
 
 cat <<RUBY
 class Gusto < Formula
-  desc "Run AI agents under common security, cost and policy controls, with evidence anybody can re-check"
+  desc "Run AI agents under common security, cost and policy controls, with a record anybody can re-check"
   homepage "https://github.com/getlatentic/gusto"
   version "${tag#v}"
   license "Apache-2.0"

@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"cmp"
+	"context"
 	"errors"
 	"log/slog"
 	"net"
@@ -14,17 +15,19 @@ import (
 	"github.com/getlatentic/gusto/internal/apps"
 	"github.com/getlatentic/gusto/internal/entry"
 	"github.com/getlatentic/gusto/internal/web"
+	"github.com/getlatentic/gusto/internal/workspace"
 )
 
 // provision starts an organization's server, without making the person wait for it.
-func (s *Server) provision(slug string) {
+func (s *Server) provision(ctx context.Context, slug string) {
 	if s.Controller == nil {
 		return
 	}
+	ctx = context.WithoutCancel(ctx)
 	s.making.Add(1)
 	go func() {
 		defer s.making.Done()
-		if err := s.Controller.Provision(slug); err != nil && !errors.Is(err, ErrRemoved) {
+		if err := s.Controller.Provision(ctx, slug); err != nil && !errors.Is(err, ErrRemoved) {
 			slog.Error("an organization's server could not be started", "org", slug, "error", err)
 		}
 	}()
@@ -80,7 +83,7 @@ func (s *Server) appURL(slug, id string) string {
 // orgURL is the address of an organization's server as a browser reaches it.
 func (s *Server) orgURL(slug string) string { return OrgAddress(s.URL, s.Domain, slug) }
 
-// OrgAddress is the address of an organization's server as a browser reaches it, under a front door at public that serves
+// OrgAddress is the address of an organization's server as a browser reaches it, under a gusto cloud server at public that serves
 // organizations on their own names in domain.
 func OrgAddress(public *url.URL, domain, slug string) string {
 	host := slug + "." + domain
@@ -107,10 +110,10 @@ var upstream = &http.Transport{ResponseHeaderTimeout: 0, IdleConnTimeout: 90 * t
 
 // forward sends a request to the organization's server, for one of its apps when an app is named.
 func (s *Server) forward(w http.ResponseWriter, r *http.Request, slug, app string) {
-	address, state := s.Controller.Route(slug)
+	address, state := s.Controller.Route(r.Context(), slug)
 	if state == "" {
-		if _, found, _ := s.Store.Org(slug); !found {
-			if !s.demoEnded(w, slug) {
+		if _, found, _ := s.Store.Org(r.Context(), slug); !found {
+			if !s.demoEnded(r.Context(), w, slug) {
 				http.NotFound(w, r)
 			}
 			return
@@ -137,8 +140,8 @@ func (s *Server) forward(w http.ResponseWriter, r *http.Request, slug, app strin
 	}).ServeHTTP(w, r)
 }
 
-// rewrite sends a request on to the address as the front door saw it: the client
-// is who the front door says, and none of the front door's own cookies go. What the
+// rewrite sends a request on to the address as gusto cloud saw it: the client
+// is who gusto cloud says, and none of gusto cloud's own cookies go. What the
 // client claimed about itself is not believed, since the organization's server
 // writes down where a person signed in from.
 func (s *Server) rewrite(address, appSignature string) func(*httputil.ProxyRequest) {
@@ -153,7 +156,7 @@ func (s *Server) rewrite(address, appSignature string) func(*httputil.ProxyReque
 		pr.Out.Header.Set("X-Forwarded-For", s.source(pr.In))
 		pr.Out.Header.Set("X-Forwarded-Proto", scheme)
 		pr.Out.Header.Set("X-Forwarded-Host", pr.In.Host)
-		// Which app a request is for is said by the front door alone: whatever the client sent is
+		// Which app a request is for is said by gusto cloud alone: whatever the client sent is
 		// dropped, and a request that is not for an app carries none.
 		pr.Out.Header.Del(web.AppHeader)
 		if appSignature != "" {
@@ -190,7 +193,7 @@ func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 		http.NotFound(w, r)
 		return
 	}
-	if _, state := s.Controller.Route(person.Org); state != Ready {
+	if _, state := s.Controller.Route(r.Context(), person.Org); state != Ready {
 		s.starting(w, r, person, state)
 		return
 	}
@@ -213,20 +216,24 @@ func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 		http.Redirect(w, r, s.appURL(person.Org, id)+"/auth/entry?t="+url.QueryEscape(token), http.StatusSeeOther)
 		return
 	}
-	if err := s.Store.RecordSignIn(person.Email, person.Org); err != nil {
+	if err := s.Store.RecordSignIn(r.Context(), person.Email, person.Org); err != nil {
 		slog.Error("a sign-in to an organization was not recorded", "org", person.Org, "error", err)
 	}
-	http.Redirect(w, r, s.orgURL(person.Org)+"/auth/entry?t="+url.QueryEscape(token), http.StatusSeeOther)
+	into := url.Values{"t": {token}}
+	if space := r.URL.Query().Get("workspace"); workspace.Valid(space) == nil {
+		into.Set("workspace", space)
+	}
+	http.Redirect(w, r, s.orgURL(person.Org)+"/auth/entry?"+into.Encode(), http.StatusSeeOther)
 }
 
 // starting is what a person going in sees while their organization's server is not ready: what it is doing, on a
 // page that looks again until it can let them in. A demo has its own page for this.
 func (s *Server) starting(w http.ResponseWriter, r *http.Request, person Person, state State) {
-	if _, _, found := s.Store.DemoLeft(person.Org); found {
+	if _, _, found := s.Store.DemoLeft(r.Context(), person.Org); found {
 		http.Redirect(w, r, "/demo/wait", http.StatusSeeOther)
 		return
 	}
-	org, _, err := s.Store.Org(person.Org)
+	org, _, err := s.Store.Org(r.Context(), person.Org)
 	if err != nil {
 		slog.Error("an organization's record could not be read", "org", person.Org, "error", err)
 	}

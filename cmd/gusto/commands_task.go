@@ -7,13 +7,10 @@ var (
 		{Name: "GUSTO_MODEL_URL", Text: "the model endpoint the agent calls"},
 		{Name: "GUSTO_MODEL_TOKEN", Text: "the key for that endpoint"},
 	}
-	envSigning = cmdline.Param{Name: "GUSTO_SIGNING_KEY", Text: "the private key the record is signed with, from gusto keygen"}
-	envKeyring = cmdline.Param{Name: "GUSTO_KEYRING", Text: "the directory of public keys that name a record's signer"}
-	envRuntime = []cmdline.Param{
-		{Name: "GUSTO_CONTAINER", Text: "the container runtime to use, docker or podman"},
-		{Name: "GUSTO_IMAGE", Text: "the runner image tasks run in"},
-	}
-	exitCheck = []cmdline.Param{
+	envKeyring = cmdline.ParamsOf(new(signingSettings).declareKeyring)
+	envRuntime = cmdline.ParamsOf(new(containerSettings).declare)
+	envTask    = cmdline.ParamsOf(new(taskSettings).declare)
+	exitCheck  = []cmdline.Param{
 		{Name: "0", Text: "the check passed"},
 		{Name: "1", Text: "the check failed, or the task could not be run"},
 		{Name: "2", Text: "usage error"},
@@ -42,7 +39,7 @@ func taskCommands() []*cmdline.Command {
 			Description: "Checks the repository out here, so that a repository credential stays on this computer and never enters the " +
 				"container with the agent, then runs the agent and the check in a container. The exit code is the check's answer.",
 			Args:     []cmdline.Param{{Name: "<dir>", Text: "the task directory made by gusto new"}},
-			Env:      append(append(append([]cmdline.Param{}, envRuntime...), envModel...), envSigning),
+			Env:      append(append([]cmdline.Param{}, envTask...), envModel...),
 			Examples: []string{"gusto run fix-login"},
 			Exit:     exitCheck,
 			SeeAlso:  []string{"inside", "verify", "show"},
@@ -53,7 +50,7 @@ func taskCommands() []*cmdline.Command {
 			Usage:       []string{"<dir>"},
 			Description: "Runs the agent and the check in this process, on this computer. Stopping it with an interrupt stops the agent, and the record says so. The exit code is the check's answer.",
 			Args:        []cmdline.Param{{Name: "<dir>", Text: "the task directory made by gusto new"}},
-			Env:         append(append([]cmdline.Param{}, envModel...), envSigning),
+			Env:         append(cmdline.ParamsOf(new(insideSettings).declare), envModel...),
 			Examples:    []string{"gusto inside fix-login"},
 			Exit:        exitCheck,
 			SeeAlso:     []string{"run", "verify"},
@@ -64,21 +61,17 @@ func taskCommands() []*cmdline.Command {
 			Usage:       []string{"<dir>"},
 			Description: "Sends the task to a gusto server instead of running it here, so the work outlives your shell. Prints the task's id and its address on the server.",
 			Args:        []cmdline.Param{{Name: "<dir>", Text: "the task directory made by gusto new"}},
-			Env: []cmdline.Param{
-				{Name: "GUSTO_SERVER", Text: "the server, with its scheme, such as https://gusto.example.com"},
-				{Name: "GUSTO_TOKEN", Text: "an API token from the server's Tokens page"},
-				{Name: "GUSTO_PASSWORD", Text: "the server's shared sign-in, when it has no tokens"},
-			},
-			Examples: []string{"GUSTO_SERVER=https://gusto.example.com gusto submit fix-login"},
-			SeeAlso:  []string{"serve", "show"},
-			Run:      submit,
+			Env:         cmdline.ParamsOf(new(submitSettings).declare),
+			Examples:    []string{"GUSTO_SERVER=https://gusto.example.com gusto submit fix-login"},
+			SeeAlso:     []string{"serve", "show"},
+			Run:         submit,
 		},
 		{
 			Name: "show", Group: groupTask, Summary: "What a task asked for and what happened",
 			Usage:       []string{"<dir>"},
 			Description: "Prints the brief, the repository, the agent and the check, then the verdict, the model, the signer, the files and the cost, once the task has run.",
 			Args:        []cmdline.Param{{Name: "<dir>", Text: "the task directory"}},
-			Env:         []cmdline.Param{envKeyring},
+			Env:         envKeyring,
 			Examples:    []string{"gusto show fix-login"},
 			SeeAlso:     []string{"verify", "rerun"},
 			Run:         show,
@@ -90,7 +83,7 @@ func taskCommands() []*cmdline.Command {
 				"Give a task directory, or a directory of tasks.",
 			Args:     []cmdline.Param{{Name: "<dir>...", Text: "task directories, or a directory of them"}},
 			Flags:    flagsOf(declareRerun),
-			Env:      envRuntime,
+			Env:      envTask,
 			Examples: []string{"gusto rerun tasks/", "gusto rerun fix-login -here"},
 			Exit: []cmdline.Param{
 				{Name: "0", Text: "every verdict held or improved"},
@@ -111,7 +104,7 @@ func taskCommands() []*cmdline.Command {
 				{Name: "<comparison>", Text: "a comparison directory that already ran"},
 			},
 			Flags:    flagsOf(declareCompare),
-			Env:      envRuntime,
+			Env:      envTask,
 			Examples: []string{"gusto compare fix-login claude-code codex"},
 			Exit: []cmdline.Param{
 				{Name: "0", Text: "every side ran and its record checks"},

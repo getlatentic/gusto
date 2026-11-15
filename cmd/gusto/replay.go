@@ -36,7 +36,11 @@ func rerunTasks(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	rows := replay.Sweep(olds, f.into, replay.Where(f.here))
+	boxes, code := taskBoxes()
+	if code != 0 {
+		return code
+	}
+	rows := replay.Sweep(olds, f.into, replay.Where(f.here, boxes))
 	replay.Print(os.Stdout, rows)
 	return replay.ExitCode(rows)
 }

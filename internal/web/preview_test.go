@@ -55,8 +55,8 @@ func TestAPageTheAgentBuiltIsPreviewedFromTheConversationItWasBuiltIn(t *testing
 	if len(shared) != 1 || shared[0].Folder != "2048-app" || shared[0].State != apps.Live || shared[0].Command != "" {
 		t.Fatalf("the page is not shared, live, with nothing run for it: %+v", shared)
 	}
-	if page := site.ask(t, "GET", thread, nil).Body.String(); !strings.Contains(page, "Open the app") || strings.Contains(page, "Starting the preview") {
-		t.Errorf("the conversation does not link to the page at once")
+	if page := site.conversation(t, thread); len(page.Apps) != 1 || page.Apps[0].Link != "/apps/"+shared[0].ID+"/" || page.Apps[0].Name != "2048-app" || page.Starting {
+		t.Errorf("the conversation does not link to the page at once: %+v starting %v", page.Apps, page.Starting)
 	}
 	submit(url.Values{"preview": {"2048-app"}, "back": {thread}})
 	if again := site.server.appsOf(strings.TrimPrefix(instance, "/instances/")); len(again) != 1 {
@@ -79,14 +79,14 @@ func TestAPageTheAgentBuiltIsPreviewedFromTheConversationItWasBuiltIn(t *testing
 func TestAPageIsServedFromItsFolderAndNothingElse(t *testing.T) {
 	site := pagesSite(t)
 	instance := strings.TrimPrefix(startedInstance(t, site), "/instances/")
-	folder := filepath.Join(site.server.instances.Workspace(instance), "site")
+	folder := filepath.Join(site.server.instances.AgentFolder(instance), "site")
 	os.MkdirAll(filepath.Join(folder, "parts"), 0o755)
 	os.WriteFile(filepath.Join(folder, "index.html"), []byte("<h1>splitter</h1>"), 0o644)
 	os.WriteFile(filepath.Join(folder, "app.js"), []byte("console.log(1)"), 0o644)
 	os.WriteFile(filepath.Join(folder, "parts", "index.html"), []byte("<p>part</p>"), 0o644)
-	os.WriteFile(filepath.Join(site.server.instances.Workspace(instance), "secret.txt"), []byte("TOPSECRET"), 0o644)
-	os.Symlink(filepath.Join(site.server.instances.Workspace(instance), "secret.txt"), filepath.Join(folder, "leak.txt"))
-	app, err := site.server.apps.NewPage(instance, "", "site", 3)
+	os.WriteFile(filepath.Join(site.server.instances.AgentFolder(instance), "secret.txt"), []byte("TOPSECRET"), 0o644)
+	os.Symlink(filepath.Join(site.server.instances.AgentFolder(instance), "secret.txt"), filepath.Join(folder, "leak.txt"))
+	app, err := site.server.apps.NewPage(apps.Sharer{Instance: instance}, "site", 3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,16 +119,16 @@ func TestAPageIsServedFromItsFolderAndNothingElse(t *testing.T) {
 	}
 }
 
-// Behind a front door a page has a host name of its own, so the browser lets it keep what it saves, and nothing fences it.
-func TestAPageBehindAFrontDoorIsItsOwnSite(t *testing.T) {
+// Behind gusto cloud a page has a host name of its own, so the browser lets it keep what it saves, and nothing fences it.
+func TestAPageBehindGustoCloudIsItsOwnSite(t *testing.T) {
 	site := pagesSite(t)
-	site.server.UseFrontDoor(FrontDoor{Key: entryKey, Org: "acme-com", URL: "https://cloud.test"})
+	site.server.UseCloud(Cloud{Key: entryKey, Org: "acme-com", URL: "https://cloud.test"})
 	site.handler = site.server.Handler()
 	instance := strings.TrimPrefix(startedInstance(t, site), "/instances/")
-	folder := filepath.Join(site.server.instances.Workspace(instance), "site")
+	folder := filepath.Join(site.server.instances.AgentFolder(instance), "site")
 	os.MkdirAll(folder, 0o755)
 	os.WriteFile(filepath.Join(folder, "index.html"), []byte("<h1>splitter</h1>"), 0o644)
-	app, err := site.server.apps.NewPage(instance, "", "site", 3)
+	app, err := site.server.apps.NewPage(apps.Sharer{Instance: instance}, "site", 3)
 	if err != nil {
 		t.Fatal(err)
 	}

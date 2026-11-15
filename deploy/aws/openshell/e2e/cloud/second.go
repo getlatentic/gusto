@@ -21,8 +21,8 @@ func (r run) secondTurns(slug string, threads []*thread) {
 	}
 	group.Wait()
 	for _, each := range threads {
-		jobs, err := r.host.finished(slug, each.person.email, 2, r.within)
-		check(err == nil, "%s's second turn is done: %v", each.person.email, states(jobs))
+		tasks, err := r.host.finished(slug, each.person.email, 2, r.within)
+		check(err == nil, "%s's second turn is done: %v", each.person.email, states(tasks))
 		answer, err := r.host.fileIn(slug, each.instance, "answer.txt")
 		check(err == nil && strings.Contains(answer, each.secret), "the second turn found what the first left: %q", answer)
 	}
@@ -43,7 +43,7 @@ func (r run) observe(slug string, threads []*thread) {
 		return
 	}
 	listed, err := r.host.computers()
-	must(err, "gusto cloud workspaces")
+	must(err, "gusto cloud computers")
 	fmt.Println(listed)
 	held := map[string]bool{}
 	for _, name := range computerName.FindAllString(listed, -1) {
@@ -90,7 +90,7 @@ func (r run) isolation(slug string, threads []*thread) {
 	}
 
 	listed, err := r.host.computers()
-	must(err, "gusto cloud workspaces")
+	must(err, "gusto cloud computers")
 	fmt.Println(listed)
 	held := map[string]bool{}
 	for _, name := range computerName.FindAllString(listed, -1) {

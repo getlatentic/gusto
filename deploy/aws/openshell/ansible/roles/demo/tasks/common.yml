@@ -30,7 +30,7 @@
   when: demo_role != 'cell'
   notify:
     - Restart the front door
-    - Restart the owner's page
+    - Restart the operator's page
 
 - name: What each model costs, which the organizations' servers price their spending by
   ansible.builtin.copy:

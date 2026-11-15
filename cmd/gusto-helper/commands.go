@@ -14,8 +14,6 @@ const (
 	groupOther  = "Other"
 )
 
-var envServer = cmdline.Param{Name: "GUSTO_SERVER", Text: "your organization's server, when -server is not given"}
-
 // program is the command table. The flags of each command are read by the command itself, in internal/helper/cli; the
 // declarations here are what help says of them.
 func program() *cmdline.Program {
@@ -34,20 +32,20 @@ func program() *cmdline.Program {
 				Usage:       []string{"[-server <address>] [-label <name>] [-browser=false]"},
 				Description: "Opens your organization's approval page in the browser, and keeps the token it gives in this computer's keychain.",
 				Flags:       loginFlags,
-				Env:         []cmdline.Param{envServer},
+				Env:         cmdline.ParamsOf(cli.AccountSettings),
 				Examples:    []string{"gusto-helper login -server https://acme.gusto.example.com"},
 				SeeAlso:     []string{"whoami", "logout"},
 				Run:         cli.Login,
 			},
 			{
 				Name: "logout", Group: groupSignIn, Summary: "End this computer's sign-in and forget it",
-				Usage: []string{"[-server <address>]"}, Flags: serverFlag, Env: []cmdline.Param{envServer},
+				Usage: []string{"[-server <address>]"}, Flags: serverFlag, Env: cmdline.ParamsOf(cli.AccountSettings),
 				SeeAlso: []string{"login"},
 				Run:     cli.Logout,
 			},
 			{
 				Name: "whoami", Group: groupSignIn, Summary: "Who this computer is signed in as",
-				Usage: []string{"[-server <address>]"}, Flags: serverFlag, Env: []cmdline.Param{envServer},
+				Usage: []string{"[-server <address>]"}, Flags: serverFlag, Env: cmdline.ParamsOf(cli.AccountSettings),
 				SeeAlso: []string{"login"},
 				Run:     cli.Whoami,
 			},
@@ -56,7 +54,7 @@ func program() *cmdline.Program {
 				Usage:       []string{"[-server <address>] [-tray=false]"},
 				Description: "Runs the helper in the foreground. A service starts this at login; see gusto-helper service.",
 				Flags:       runFlags,
-				Env:         []cmdline.Param{envServer},
+				Env:         cmdline.ParamsOf(cli.AccountSettings),
 				SeeAlso:     []string{"service", "status"},
 				Run:         cli.Run,
 			},
@@ -82,7 +80,7 @@ func program() *cmdline.Program {
 					"to the other, a change beats a deletion, and when both sides changed a file the local one keeps its name and the " +
 					"cloud's is saved beside it.",
 				Flags:    syncFlags,
-				Env:      []cmdline.Param{envServer, {Name: "GUSTO_INSTANCE", Text: "the agent whose folder this is, when -instance is not given"}},
+				Env:      cmdline.ParamsOf(cli.SyncSettings),
 				Examples: []string{"gusto-helper sync -folder ~/agent-files"},
 				SeeAlso:  []string{"acp"},
 				Run:      cli.Sync,
@@ -92,11 +90,9 @@ func program() *cmdline.Program {
 				Usage:       []string{"[-server <address>] [-instance <name>] [-agent <kind>]"},
 				Description: "An editor starts this and talks to it on standard input and output. Whatever the helper has to say goes to standard error.",
 				Flags:       acpFlags,
-				Env: []cmdline.Param{envServer,
-					{Name: "GUSTO_INSTANCE", Text: "the agent to work with, when -instance is not given"},
-					{Name: "GUSTO_AGENT_KIND", Text: "the kind of agent to start, when -agent is not given"}},
-				SeeAlso: []string{"sync"},
-				Run:     cli.ACP,
+				Env:         cmdline.ParamsOf(cli.ACPSettings),
+				SeeAlso:     []string{"sync"},
+				Run:         cli.ACP,
 			},
 			{
 				Name: "version", Group: groupOther, Summary: "Print the release",
@@ -117,7 +113,7 @@ func program() *cmdline.Program {
 func serviceCommand(name, summary string) *cmdline.Command {
 	return &cmdline.Command{
 		Name: name, Summary: summary,
-		Usage: []string{"[-server <address>]"}, Flags: serverFlag, Env: []cmdline.Param{envServer},
+		Usage: []string{"[-server <address>]"}, Flags: serverFlag, Env: cmdline.ParamsOf(cli.ServiceSettings),
 		Run: func(args []string) int { return cli.Service(append([]string{name}, args...)) },
 	}
 }

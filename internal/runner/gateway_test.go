@@ -6,17 +6,17 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-func gatewaySpec() job.Spec {
-	return job.Spec{Setup: &job.Setup{Name: "team", Gateway: []string{"crm", "billing"}, Servers: []string{"memory"}}}
+func gatewaySpec() task.Spec {
+	return task.Spec{Setup: &task.Setup{Name: "team", Gateway: []string{"crm", "billing"}, Servers: []string{"memory"}}}
 }
 
-func TestAJobWithServersBehindTheGatewayIsGivenOneServerAndNotTheirDefinitions(t *testing.T) {
+func TestATaskWithServersBehindTheGatewayIsGivenOneServerAndNotTheirDefinitions(t *testing.T) {
 	t.Setenv("GUSTO_MODEL_URL", "http://127.0.0.1:8041/model/v1")
 	t.Setenv("GUSTO_MODEL_TOKEN", "job-token")
-	direct := []job.Server{{Name: "memory", Command: "mcp-server-memory"}}
+	direct := []task.Server{{Name: "memory", Command: "mcp-server-memory"}}
 	got, err := withGateway(direct, gatewaySpec())
 	if err != nil {
 		t.Fatal(err)
@@ -32,25 +32,25 @@ func TestAJobWithServersBehindTheGatewayIsGivenOneServerAndNotTheirDefinitions(t
 	}
 }
 
-func TestAJobWithNothingBehindTheGatewayIsGivenNoGateway(t *testing.T) {
+func TestATaskWithNothingBehindTheGatewayIsGivenNoGateway(t *testing.T) {
 	t.Setenv("GUSTO_MODEL_TOKEN", "job-token")
-	for _, spec := range []job.Spec{{}, {Setup: &job.Setup{Name: "x", Servers: []string{"memory"}}}} {
-		got, err := withGateway([]job.Server{{Name: "memory"}}, spec)
+	for _, spec := range []task.Spec{{}, {Setup: &task.Setup{Name: "x", Servers: []string{"memory"}}}} {
+		got, err := withGateway([]task.Server{{Name: "memory"}}, spec)
 		if err != nil || len(got) != 1 {
 			t.Errorf("%+v %v", got, err)
 		}
 	}
 }
 
-func TestAJobWithServersBehindTheGatewayAndNoProxyIsRefusedByName(t *testing.T) {
+func TestATaskWithServersBehindTheGatewayAndNoProxyIsRefusedByName(t *testing.T) {
 	t.Setenv("GUSTO_MODEL_TOKEN", "")
 	if _, err := withGateway(nil, gatewaySpec()); err == nil || !strings.Contains(err.Error(), "no proxy") || !strings.Contains(err.Error(), "team") {
 		t.Errorf("err = %v", err)
 	}
 }
 
-func TestAHarnessWithNoMCPIsRefusedAGatewayJob(t *testing.T) {
-	spec := job.Spec{Setup: &job.Setup{Name: "team", Gateway: []string{"crm"}}}
+func TestAHarnessWithNoMCPIsRefusedAGatewayTask(t *testing.T) {
+	spec := task.Spec{Setup: &task.Setup{Name: "team", Gateway: []string{"crm"}}}
 	if err := fits(spec, harness.Adapter{Name: "plain"}); err == nil || !strings.Contains(err.Error(), "takes no MCP servers") {
 		t.Errorf("err = %v", err)
 	}
@@ -104,9 +104,9 @@ func TestAHarnessThatReadsItsServersFromAFileIsRefusedInABoxByName(t *testing.T)
 	}
 }
 
-func TestAJobWithNothingBehindTheGatewayIsGivenNothingInABoxAndOneWithNoTokenIsRefused(t *testing.T) {
+func TestATaskWithNothingBehindTheGatewayIsGivenNothingInABoxAndOneWithNoTokenIsRefused(t *testing.T) {
 	adapter, env := inABox(t, "claude")
-	command, servers, err := boxCommand(context.Background(), adapter, job.Spec{Setup: &job.Setup{Name: "x"}}, "/w", env)
+	command, servers, err := boxCommand(context.Background(), adapter, task.Spec{Setup: &task.Setup{Name: "x"}}, "/w", env)
 	if err != nil || len(servers) != 0 || strings.Contains(strings.Join(command.Args, " "), "mcp-config") {
 		t.Errorf("%+v %v %v", servers, err, command.Args)
 	}

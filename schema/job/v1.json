@@ -67,6 +67,22 @@
       "description": "Who the job's spend counts against. A team named in the operator's spend policy has a monthly cap its jobs share. It is a label the person asking chooses; nothing yet proves they belong to the team.",
       "type": "string"
     },
+    "person": {
+      "description": "Who asked for the job, whose own monthly budget it counts against. Absent for a job sent with a token that belongs to nobody.",
+      "type": "string"
+    },
+    "workspace": {
+      "description": "The workspace of the organization the job is in. Only the workspace's members reach the job and its record. Absent for the organization's first workspace.",
+      "type": "string"
+    },
+    "agent": {
+      "description": "The room agent the turn is for.",
+      "type": "string"
+    },
+    "dir": {
+      "description": "The folder of the agent's folder the turn works in, from its root. Absent for the root.",
+      "type": "string"
+    },
     "session": {
       "description": "The instance this job is a turn on. Its workspace is mounted instead of a clone of repo.",
       "type": "string"

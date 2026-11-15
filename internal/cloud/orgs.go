@@ -2,7 +2,7 @@ package cloud
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 )
@@ -19,9 +19,9 @@ func (s *Server) orgsPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/org", http.StatusSeeOther)
 		return
 	}
-	orgs, err := s.Store.OrgsOf(all[0].Email)
+	orgs, err := s.Store.OrgsOf(r.Context(), all[0].Email)
 	if err != nil {
-		log.Printf("cloud: a person's organizations could not be read: %v", err)
+		slog.Error("a person's organizations could not be read", "error", err)
 		s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
 		return
 	}
@@ -32,6 +32,14 @@ func (s *Server) orgsPage(w http.ResponseWriter, r *http.Request) {
 type switchable struct {
 	Name string `json:"name"`
 	Slug string `json:"slug"`
+	Open string `json:"open"`
+	// Workspaces is the organization's workspaces the person is in, each with the address that opens it.
+	Workspaces []switchSpace `json:"workspaces"`
+}
+
+type switchSpace struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 	Open string `json:"open"`
 }
 
@@ -45,22 +53,32 @@ func (s *Server) orgsJSON(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not signed in", http.StatusUnauthorized)
 		return
 	}
-	orgs, err := s.Store.OrgsOf(all[0].Email)
+	orgs, err := s.Store.OrgsOf(r.Context(), all[0].Email)
 	if err != nil {
-		log.Printf("cloud: a person's organizations could not be read: %v", err)
+		slog.Error("a person's organizations could not be read", "error", err)
 		http.Error(w, "the organizations could not be read", http.StatusInternalServerError)
+		return
+	}
+	spaces, err := s.Store.SpacesOf(r.Context(), all[0].Email)
+	if err != nil {
+		slog.Error("a person's workspaces could not be read", "error", err)
+		http.Error(w, "the workspaces could not be read", http.StatusInternalServerError)
 		return
 	}
 	list := make([]switchable, 0, len(orgs))
 	for _, org := range orgs {
 		open := s.URL.JoinPath("/open").String() + "?" + url.Values{"org": {org.Slug}}.Encode()
-		list = append(list, switchable{Name: org.Name, Slug: org.Slug, Open: open})
+		item := switchable{Name: org.Name, Slug: org.Slug, Open: open, Workspaces: []switchSpace{}}
+		for _, space := range spaces[org.Slug] {
+			item.Workspaces = append(item.Workspaces, switchSpace{ID: space.ID, Name: space.Name, Open: open + "&" + url.Values{"workspace": {space.ID}}.Encode()})
+		}
+		list = append(list, item)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{"orgs": list})
 }
 
-// isOrgOrigin says an origin is an organization's address on this front door, by the scheme the front door is on.
+// isOrgOrigin says an origin is an organization's address on this gusto cloud server, by the scheme gusto cloud is on.
 func (s *Server) isOrgOrigin(origin string) bool {
 	parsed, err := url.Parse(origin)
 	if err != nil || parsed.Scheme != s.URL.Scheme || parsed.Path != "" {

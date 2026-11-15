@@ -26,7 +26,7 @@ func TestARoleIsChangedFromTheOrganizationsOwnAddressOnly(t *testing.T) {
 	}
 	status, header := role("http://acme-com.cloud.test", "admin")
 	if status != http.StatusSeeOther || header.Get("Location") != "/org" {
-		t.Errorf("from the organization's address: %d %s, and an http front door sends nobody to an http page", status, header.Get("Location"))
+		t.Errorf("from the organization's address: %d %s, and an http gusto cloud sends nobody to an http page", status, header.Get("Location"))
 	}
 	if got, _ := member(f.roster(), "bob@acme.com"); got.Role != "admin" {
 		t.Errorf("the change from the organization's own address was not made: %+v", got)

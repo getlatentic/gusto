@@ -3,6 +3,7 @@ package roomwork
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -46,17 +47,36 @@ func commit(in Room, actions []action) ([]step, error) {
 	if len(actions) == 0 {
 		return nil, nil
 	}
-	forget(in)
-	for _, dir := range []string{stageDir(in), backupDir(in)} {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return nil, err
-		}
+	if err := prepare(in); err != nil {
+		return nil, err
 	}
 	steps, err := stage(in, actions)
 	if err != nil {
 		forget(in)
 		return nil, err
 	}
+	if err := carryOut(in, steps); err != nil {
+		return nil, err
+	}
+	return steps, nil
+}
+
+// prepare makes the room ready for a merge. A journal still here is a merge whose undo failed. Its backups are the only copy of
+// the files it replaced, so they are put back before anything is cleared, and no merge goes ahead over files that could not be.
+func prepare(in Room) error {
+	if err := recoverMerge(in); err != nil {
+		return fmt.Errorf("an earlier merge into this room could not be undone: %w", err)
+	}
+	for _, dir := range []string{stageDir(in), backupDir(in)} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// carryOut journals the steps and runs them, and undoes them when one fails.
+func carryOut(in Room, steps []step) error {
 	made, err := makeParents(in.Folder, steps)
 	plan := journal{Steps: steps, Made: made}
 	if err == nil {
@@ -74,9 +94,8 @@ func commit(in Room, actions []action) ([]step, error) {
 		if undo(plan) == nil {
 			forget(in)
 		}
-		return nil, err
 	}
-	return steps, nil
+	return err
 }
 
 // stage copies each file to be put in place into the staging folder, and works out where everything goes.

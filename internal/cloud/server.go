@@ -2,8 +2,7 @@ package cloud
 
 import (
 	"embed"
-	"html/template"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -14,10 +13,10 @@ import (
 	"github.com/getlatentic/gusto/internal/web"
 )
 
-//go:embed templates/*.html static/cloud.css static/hero-light.webp static/hero-dark.webp static/shots/*.webp static/landing-theme.js static/demo-warm.js static/og.png
+//go:embed static/hero-light.webp static/hero-dark.webp static/shots/*.webp static/og.png
 var files embed.FS
 
-// Config is what a front door is made from.
+// Config is what a gusto cloud server is made from.
 type Config struct {
 	Store    *Store
 	Mail     Mailer
@@ -32,7 +31,7 @@ type Config struct {
 	// The most sign-ups from one address in an hour, mail to one address in an
 	// hour, and sign-ups in all in an hour.
 	PerAddress, PerMailbox, InAll int
-	// Controller runs the organizations' servers. Without one the front door has
+	// Controller runs the organizations' servers. Without one gusto cloud has
 	// accounts and no organization to open.
 	Controller *Controller
 	// Lease, when there is one, is how long this host has before it removes itself.
@@ -45,18 +44,19 @@ type Config struct {
 	Notify string
 	// ComputersWait is how long an ending demo waits for its computers to be removed. It is ninety seconds when not set.
 	ComputersWait time.Duration
-	// Prewarm, when it is set, starts a cell for a visitor who has begun the demo form, so it is up by the time they send it.
+	// Prewarm, when it is set, starts a node for a visitor who has begun the demo form, so it is up by the time they send it.
 	// It must not block, and must bound what it starts itself.
 	Prewarm func()
 	// Stripe bills organizations for their seats, when it is set up, and Seats keeps the seats billed equal to the members.
 	Stripe *Stripe
 	Seats  *SeatSync
+	// Metrics is what this process reports. New makes one when it is not given, and gives it to the controller.
+	Metrics *Metrics
 }
 
-// Server is the front door's pages.
+// Server is gusto cloud's pages.
 type Server struct {
 	Config
-	pages   *template.Template
 	signups *Limiter
 	mails   *Limiter
 	all     *Limiter
@@ -67,7 +67,7 @@ type Server struct {
 	ender   demoEnder
 }
 
-// New makes the front door.
+// New makes gusto cloud.
 func New(c Config) (*Server, error) {
 	if c.PerAddress <= 0 {
 		c.PerAddress = 10
@@ -78,22 +78,25 @@ func New(c Config) (*Server, error) {
 	if c.InAll <= 0 {
 		c.InAll = 200
 	}
-	pages, err := template.New("").Funcs(template.FuncMap{"asset": web.Asset, "own": fingerprinted, "minutes": minutes, "minuteLong": minuteLong, "clock": clock, "picture": picture, "agentMark": agentMark, "darkScreen": darkScreen}).ParseFS(files, "templates/*.html")
-	if err != nil {
-		return nil, err
-	}
 	if err := c.Turnstile.Complete(); err != nil {
 		return nil, err
 	}
 	if err := c.Leads.Complete(); err != nil {
 		return nil, err
 	}
-	return &Server{Config: c, pages: pages,
+	if c.Metrics == nil {
+		c.Metrics = NewMetrics()
+	}
+	if c.Controller != nil && c.Controller.Metrics == nil {
+		c.Controller.Metrics = c.Metrics
+		c.Metrics.watch(c.Controller)
+	}
+	return &Server{Config: c,
 		signups: c.limiter("signups", c.PerAddress), mails: c.limiter("mails", c.PerMailbox), all: c.limiter("all", c.InAll),
 		invites: c.limiter("invites", 20), codes: c.limiter("codes", codeTries)}, nil
 }
 
-// limiter counts most events an hour. With a store the count is shared by every front door on its database.
+// limiter counts most events an hour. With a store the count is shared by every gusto cloud server on its database.
 func (c Config) limiter(scope string, most int) *Limiter {
 	if c.Store == nil {
 		return NewLimiter(most, time.Hour)
@@ -101,40 +104,89 @@ func (c Config) limiter(scope string, most int) *Limiter {
 	return c.Store.Limiter(scope, most, time.Hour)
 }
 
-// Handler is every page the front door has, and every organization's server behind
+// Handler is every page gusto cloud has, and every organization's server behind
 // its own host name.
 func (s *Server) Handler() http.Handler {
+	served := s.Metrics.observe(s.serve(), s.routeClass)
+	metrics := onlyHere(s.Metrics.Handler())
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == MetricsPath && r.Method == http.MethodGet {
+			metrics.ServeHTTP(w, r)
+			return
+		}
+		served.ServeHTTP(w, r)
+	})
+}
+
+// routeClass names the kind of a request that was served, for the metrics: the mux pattern that matched, or the organization's
+// server or computer's app it was sent on to. It is read after the request, which is when the mux has set the pattern.
+func (s *Server) routeClass(r *http.Request) string {
+	switch {
+	case r.URL.Path == "/.gusto/lease":
+		return "lease"
+	case r.Pattern != "":
+		return r.Pattern
+	}
+	if _, _, ok := s.appHost(r.Host); ok {
+		return "app"
+	}
+	if _, ok := s.orgSlug(r.Host); ok {
+		return "org"
+	}
+	return "unmatched"
+}
+
+func (s *Server) serve() http.Handler {
 	pages := s.routes()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Asked on every host name, so a page of an organization can warn of the end of the host.
-		if r.Method == http.MethodGet && r.URL.Path == "/.gusto/lease" {
-			if slug, ok := s.orgSlug(r.Host); ok && s.demoLeaseJSON(w, slug) {
-				return
-			}
-			s.leaseJSON(w, r)
-			return
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/.gusto/lease":
+			s.lease(w, r)
+		case s.isAppHost(r.Host):
+			s.serveApp(w, r)
+		case s.isOrgHost(r.Host):
+			s.serveOrg(w, r, pages)
+		default:
+			pages.ServeHTTP(w, r)
 		}
-		if _, _, ok := s.appHost(r.Host); ok && unlisted(w, r) {
-			return
-		}
-		if slug, id, ok := s.appHost(r.Host); ok {
-			s.routeApp(w, r, slug, id)
-			return
-		}
-		if _, ok := s.orgSlug(r.Host); ok && unlisted(w, r) {
-			return
-		}
-		if slug, ok := s.orgSlug(r.Host); ok {
-			// The page of a demo that has ended is made of the front door's own styles, which the gone server cannot send.
-			if _, found := s.Store.LeadOf(slug); found && strings.HasPrefix(r.URL.Path, "/static/") && !s.orgExists(slug) {
-				pages.ServeHTTP(w, r)
-				return
-			}
-			s.route(w, r, slug)
-			return
-		}
-		pages.ServeHTTP(w, r)
 	})
+}
+
+func (s *Server) isAppHost(host string) bool { _, _, ok := s.appHost(host); return ok }
+
+func (s *Server) isOrgHost(host string) bool { _, ok := s.orgSlug(host); return ok }
+
+// lease is asked on every host name, so a page of an organization can warn of the end of the host.
+func (s *Server) lease(w http.ResponseWriter, r *http.Request) {
+	if slug, ok := s.orgSlug(r.Host); ok && s.demoLeaseJSON(r.Context(), w, slug) {
+		return
+	}
+	s.leaseJSON(w, r)
+}
+
+func (s *Server) serveApp(w http.ResponseWriter, r *http.Request) {
+	if unlisted(w, r) {
+		return
+	}
+	slug, id, _ := s.appHost(r.Host)
+	s.routeApp(w, r, slug, id)
+}
+
+func (s *Server) serveOrg(w http.ResponseWriter, r *http.Request, pages http.Handler) {
+	if unlisted(w, r) {
+		return
+	}
+	slug, _ := s.orgSlug(r.Host)
+	// The page of a demo that has ended is drawn by gusto cloud's own files and the app's, which the gone server cannot send.
+	if _, found := s.Store.LeadOf(r.Context(), slug); found && servedByCloud(r.URL.Path) && !s.orgExists(r.Context(), slug) {
+		pages.ServeHTTP(w, r)
+		return
+	}
+	s.route(w, r, slug)
+}
+
+func servedByCloud(path string) bool {
+	return strings.HasPrefix(path, "/static/") || strings.HasPrefix(path, "/app/assets/")
 }
 
 func (s *Server) routes() http.Handler {
@@ -157,10 +209,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /org", s.guard(s.org))
 	mux.HandleFunc("POST /org/verify", s.guard(s.resend))
 	mux.HandleFunc("GET /open", s.guard(s.open))
-	mux.HandleFunc("POST /org/invite", s.guard(s.invite))
-	mux.HandleFunc("POST /org/invites/cancel", s.guard(s.cancelInvitation))
-	mux.HandleFunc("POST /org/people/remove", s.guard(s.removePerson))
-	mux.HandleFunc("POST /org/people/role", s.guard(s.changeRole))
+	s.peopleRoutes(mux)
 	mux.HandleFunc("POST /org/billing/subscribe", s.guard(s.subscribe))
 	mux.HandleFunc("POST /org/billing/manage", s.guard(s.manageBilling))
 	mux.HandleFunc("POST /stripe/webhook", s.stripeWebhook)
@@ -181,13 +230,11 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /signout", s.signOut)
 	mux.HandleFunc("GET /signout", s.signedOutThere)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok\n")) })
-	mux.Handle("GET /static/cloud.css", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/shots/", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/hero-light.webp", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/hero-dark.webp", cached(http.FileServerFS(files)))
-	mux.Handle("GET /static/landing-theme.js", cached(http.FileServerFS(files)))
-	mux.Handle("GET /static/demo-warm.js", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/og.png", cached(http.FileServerFS(files)))
+	mux.Handle("GET /app/assets/", web.AppAssets())
 	mux.HandleFunc("GET /robots.txt", s.robots)
 	mux.HandleFunc("GET /sitemap.xml", s.sitemap)
 	mux.Handle("GET /static/", web.Static())
@@ -234,7 +281,7 @@ func (s *Server) secure(next http.Handler) http.Handler {
 }
 
 // sentFromOrgs are the forms an organization's own pages send here.
-var sentFromOrgs = map[string]bool{"/account/confirm": true, "/org/people/role": true}
+var sentFromOrgs = map[string]bool{"/account/confirm": true, "/org/people/role": true, "/org/invite": true}
 
 // sameSite says a form came from a page of this server. A browser names the
 // page's origin on every form it posts, and says when the site is another.
@@ -288,7 +335,7 @@ func (s *Server) send(to, subject, body string) {
 	go func() {
 		defer s.sending.Done()
 		if err := s.Mail.Send(to, subject, body); err != nil {
-			log.Printf("cloud: mail to a person was not sent: %v", err)
+			slog.Error("mail to a person was not sent", "error", err)
 		}
 	}()
 }

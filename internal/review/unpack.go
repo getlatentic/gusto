@@ -9,17 +9,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/record"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// unpack writes the evidence commit's files into the job directory, each as
-// the exact bytes git holds. Only the names a job directory gives its evidence
+// unpack writes the record commit's files into the task directory, each as
+// the exact bytes git holds. Only the names a task directory gives its record
 // are written, and only as plain files: anything else in the commit is
 // reported and never written, so a crafted commit cannot put a file in the
-// workspace or outside the directory.
-func unpack(ctx context.Context, found fetched, dir job.Dir) ([]string, error) {
-	listing, err := git(ctx, "-C", found.workspace, "ls-tree", "-r", "-z", found.evidence)
+// working folder or outside the directory.
+func unpack(ctx context.Context, found fetched, dir task.Dir) ([]string, error) {
+	listing, err := git(ctx, "-C", found.workingFolder, "ls-tree", "-r", "-z", found.record)
 	if err != nil {
 		return nil, err
 	}
@@ -32,11 +32,11 @@ func unpack(ctx context.Context, found fetched, dir job.Dir) ([]string, error) {
 			continue
 		}
 		mode, blob, name := entry(line)
-		if !plainFile(mode) || !jobFile(name) {
+		if !plainFile(mode) || !taskFile(name) {
 			wrong = append(wrong, fmt.Sprintf("the record carries %s, which a task directory does not hold", name))
 			continue
 		}
-		if err := written(ctx, found.workspace, blob, filepath.Join(dir.Path(), filepath.FromSlash(name))); err != nil {
+		if err := written(ctx, found.workingFolder, blob, filepath.Join(dir.Path(), filepath.FromSlash(name))); err != nil {
 			return nil, err
 		}
 	}
@@ -57,8 +57,8 @@ func plainFile(mode string) bool {
 	return mode == "100644" || mode == "100755"
 }
 
-// jobFile is job.json, or a file directly in out/.
-func jobFile(name string) bool {
+// taskFile is job.json, or a file directly in out/.
+func taskFile(name string) bool {
 	if name == "job.json" {
 		return true
 	}
@@ -66,8 +66,8 @@ func jobFile(name string) bool {
 	return found && file != "" && file != "." && file != ".." && !strings.Contains(file, "/")
 }
 
-func written(ctx context.Context, workspace, blob, path string) error {
-	text, err := gitBytes(ctx, "-C", workspace, "cat-file", "blob", blob)
+func written(ctx context.Context, workingFolder, blob, path string) error {
+	text, err := gitBytes(ctx, "-C", workingFolder, "cat-file", "blob", blob)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func written(ctx context.Context, workspace, blob, path string) error {
 // is what ties the files to the pull request: whoever can push can move the
 // ref, and only a manifest with the named hash is the one the pull request
 // vouched for.
-func held(dir job.Dir, digest string) ([]string, error) {
+func held(dir task.Dir, digest string) ([]string, error) {
 	text, err := os.ReadFile(dir.OutFile("manifest.json"))
 	if os.IsNotExist(err) {
 		return []string{"manifest.json is missing"}, nil
@@ -91,5 +91,5 @@ func held(dir job.Dir, digest string) ([]string, error) {
 	if got := hex.EncodeToString(sum[:]); got != digest {
 		return []string{fmt.Sprintf("manifest.json hashes to %s, and the pull request names %s", got, digest)}, nil
 	}
-	return evidence.Check(dir)
+	return record.Check(dir)
 }

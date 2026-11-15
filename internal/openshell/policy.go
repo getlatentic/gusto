@@ -12,7 +12,7 @@ import (
 // Policy is the OpenShell policy for a task, as JSON, which a YAML reader takes.
 //
 // Everything is denied that is not named. The sandbox may read the system
-// paths and write its workspace, /tmp and the agent's own directories. It may
+// paths and write its working folder, /tmp and the agent's own directories. It may
 // reach the gusto proxy, which holds the model credential, and the hosts the
 // operator allowed, and nothing else. A name the operator wrote as a wildcard
 // needs three labels in OpenShell, and an entry that cannot be translated is

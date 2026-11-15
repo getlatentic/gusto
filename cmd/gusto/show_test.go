@@ -6,48 +6,48 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// claimed is a finished job whose manifest says "alice" signed it, a claim
+// claimed is a finished task whose manifest says "alice" signed it, a claim
 // nothing checks.
-func claimed(t *testing.T) job.Dir {
+func claimed(t *testing.T) task.Dir {
 	t.Helper()
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{Brief: "b", Repo: "r", Gate: []string{"true"}, Harness: "h"}
+	spec := task.Spec{Brief: "b", Repo: "r", Check: []string{"true"}, Harness: "h"}
 	if err := spec.Write(dir); err != nil {
 		t.Fatal(err)
 	}
-	hash, files, err := evidence.Of(dir)
+	hash, files, err := record.Of(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifest := evidence.Manifest{Job: hash, Files: files, Gate: &evidence.Verdict{Command: spec.Gate, Passed: true}, Signer: "alice"}
-	if err := evidence.Write(dir, manifest); err != nil {
+	manifest := record.Manifest{Task: hash, Files: files, Check: &record.Verdict{Command: spec.Check, Passed: true}, Signer: "alice"}
+	if err := record.Write(dir, manifest); err != nil {
 		t.Fatal(err)
 	}
 	return dir
 }
 
-func sealedBy(t *testing.T, dir job.Dir, ring, name string) {
+func sealedBy(t *testing.T, dir task.Dir, ring, name string) {
 	t.Helper()
 	key, err := signing.Generate(ring, name)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := evidence.Seal(dir, key); err != nil {
+	if err := record.Seal(dir, key); err != nil {
 		t.Fatal(err)
 	}
 }
 
 // shown is the signer line gusto show prints under the keyring at ring, which
 // is empty for none.
-func shown(t *testing.T, dir job.Dir, ring string) string {
+func shown(t *testing.T, dir task.Dir, ring string) string {
 	t.Helper()
 	t.Setenv(signing.KeyringEnv, ring)
 	reader, writer, err := os.Pipe()
@@ -83,12 +83,12 @@ func TestShowNamesOnlyTheSignerTheKeyringChecked(t *testing.T) {
 	acme := claimed(t)
 	sealedBy(t, acme, trusted, "acme-2026")
 	for name, tc := range map[string]struct {
-		dir  job.Dir
+		dir  task.Dir
 		ring string
 		want string
 	}{
-		"unsigned":                           {unsigned, trusted, evidence.Unsigned},
-		"signed, no keyring":                 {stranger, "", evidence.NoKeyring},
+		"unsigned":                           {unsigned, trusted, record.Unsigned},
+		"signed, no keyring":                 {stranger, "", record.NoKeyring},
 		"signed by a key not in the keyring": {stranger, trusted, "is not in the keyring"},
 		"signed by a key in the keyring":     {acme, trusted, "acme-2026"},
 	} {
@@ -100,18 +100,18 @@ func TestShowNamesOnlyTheSignerTheKeyringChecked(t *testing.T) {
 	}
 }
 
-// A turn in a conversation has no gate, and gusto show says so instead of failing on the manifest.
-func TestShowAJobWithNoGate(t *testing.T) {
+// A turn in a conversation has no check, and gusto show says so instead of failing on the manifest.
+func TestShowATaskWithNoCheck(t *testing.T) {
 	dir := claimed(t)
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifest.Gate = nil
-	if err := evidence.Write(dir, manifest); err != nil {
+	manifest.Check = nil
+	if err := record.Write(dir, manifest); err != nil {
 		t.Fatal(err)
 	}
 	if got := shown(t, dir, ""); got == "" {
-		t.Fatal("gusto show printed no signer line for a job with no gate")
+		t.Fatal("gusto show printed no signer line for a job with no check")
 	}
 }

@@ -9,11 +9,11 @@ import (
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/repoaccess"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Git pushes by shelling out to git in a scratch repository of its own, so the
-// task's workspace, which is record, is never touched.
+// task's working folder, which is part of the record, is never touched.
 type Git struct {
 	// Token, when set, is sent to Host and to no other.
 	Token string
@@ -27,7 +27,7 @@ type Git struct {
 // record commit by name, so commits that come out different from the plan
 // stop the push.
 func (g Git) Push(ctx context.Context, plan Plan) error {
-	dir := job.Dir(plan.Job)
+	dir := task.Dir(plan.Task)
 	return inScratch(ctx, dir, plan.When, func(s scratch) error {
 		made, err := s.made(ctx, dir, plan)
 		if err != nil {
@@ -35,10 +35,10 @@ func (g Git) Push(ctx context.Context, plan Plan) error {
 		}
 		if made != plan.Commits {
 			return fmt.Errorf("the commits came out as %s and %s, and the plan named %s and %s",
-				made.Change, made.Evidence, plan.Commits.Change, plan.Commits.Evidence)
+				made.Change, made.Record, plan.Commits.Change, plan.Commits.Record)
 		}
 		_, err = run(ctx, g.env(), "-C", s.path, "push", "--quiet", plan.Remote,
-			made.Change+":refs/heads/"+plan.Branch, made.Evidence+":"+plan.Evidence)
+			made.Change+":refs/heads/"+plan.Branch, made.Record+":"+plan.Record)
 		return err
 	})
 }
@@ -64,18 +64,18 @@ func (g Git) env() []string {
 	return repoaccess.WithToken(env, or(g.Host, "https://github.com"), g.Token)
 }
 
-// ranAgainst is the commit the workspace was checked out at. The patch is a
+// ranAgainst is the commit the working folder was checked out at. The patch is a
 // diff against it, so it is the one commit the patch is sure to apply to.
-func ranAgainst(dir job.Dir) (string, error) {
-	at, err := run(context.Background(), nil, "-C", dir.Workspace(), "rev-parse", "--verify", "HEAD")
+func ranAgainst(dir task.Dir) (string, error) {
+	at, err := run(context.Background(), nil, "-C", dir.WorkingFolder(), "rev-parse", "--verify", "HEAD")
 	if err != nil {
-		return "", fmt.Errorf("the workspace does not say which commit the task ran against: %w", err)
+		return "", fmt.Errorf("the working folder does not say which commit the task ran against: %w", err)
 	}
 	return at, nil
 }
 
 // baseBranch is the branch the pull request targets: the one asked for, else
-// the job's ref when the remote has it as a branch, else the remote's default.
+// the task's ref when the remote has it as a branch, else the remote's default.
 // One ls-remote answers both questions and changes nothing on the remote.
 func baseBranch(remote, ref, asked string) (string, error) {
 	if asked != "" {

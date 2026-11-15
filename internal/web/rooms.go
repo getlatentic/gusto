@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A room is a conversation its people share. Each of its agents keeps a conversation of its own in it and answers when it is
@@ -24,11 +24,12 @@ const (
 )
 
 func (s *Server) roomRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /rooms/new", s.guard(s.newRoomPage))
+	s.roomSettingRoutes(mux)
 	mux.HandleFunc("POST /rooms", s.guard(s.makeRoom))
 	mux.HandleFunc("GET /rooms/{id}/members", s.guard(s.roomMembersPage))
-	mux.HandleFunc("GET /rooms/{id}/files", s.guard(s.roomFilesPanel))
+	mux.HandleFunc("GET /rooms/{id}/files", s.guard(s.roomFiles))
 	mux.HandleFunc("GET /instances/{id}/threads/{thread}/version", s.guard(s.turnsVersion))
+	mux.HandleFunc("GET /instances/{id}/threads/{thread}/progress", s.guard(s.roomProgress))
 	mux.HandleFunc("POST /rooms/{id}/files", s.guard(s.uploadToRoom))
 	mux.HandleFunc("POST /rooms/{id}/members/add", s.guard(s.addRoomMembers))
 	mux.HandleFunc("POST /rooms/{id}/members/role", s.guard(s.changeRoomRole))
@@ -39,13 +40,14 @@ func (s *Server) roomRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /rooms/{id}/agents/{agent}/allowance", s.guard(s.setRoomAgentAllowance))
 }
 
-func (s *Server) newRoomPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "room-new.html", map[string]any{"Title": productName + " — new room", "Nav": "chat"})
+// newRoomData is the page that makes a room, with why the last name was refused.
+func (s *Server) newRoomData(r *http.Request) (map[string]any, error) {
+	return map[string]any{"Refused": s.refusal(r)}, nil
 }
 
 // makeRoom makes a room with the person asking as its admin, and opens its members, where its agents are added.
 func (s *Server) makeRoom(w http.ResponseWriter, r *http.Request) {
-	held, err := s.instances.StartRoom(r.FormValue("name"), s.askerName(r))
+	held, err := s.instances.StartRoom(r.FormValue("name"), s.askerName(r), s.workspaceOf(r))
 	if err != nil {
 		s.turnAway(w, r, "/rooms/new", err.Error())
 		return
@@ -85,6 +87,10 @@ func (s *Server) setRoomMember(w http.ResponseWriter, r *http.Request) {
 	role := r.FormValue("role")
 	if role == "" {
 		role = instance.RoleMember
+	}
+	if why := s.outsideWorkspace(held, r.FormValue("who")); why != "" {
+		s.turnAway(w, r, s.membersPath(held), why)
+		return
 	}
 	if err := s.instances.SetMember(held.ID, r.FormValue("who"), role); err != nil {
 		s.turnAway(w, r, s.membersPath(held), err.Error())
@@ -157,8 +163,22 @@ func mentionedWaiting(held instance.Instance, text string) []instance.Agent {
 	return waiting
 }
 
-// roomSay is somebody saying something in a room, by the page's form.
-func (s *Server) roomSay(w http.ResponseWriter, r *http.Request, held instance.Instance, thread instance.Thread, said string) {
+// roomSay is somebody saying something in a room, by the page's form, with the files they attached. Nothing is said in an archived
+// room.
+func (s *Server) roomSay(w http.ResponseWriter, r *http.Request, held instance.Instance, thread instance.Thread) {
+	if held.Archived != 0 {
+		s.turnAway(w, r, threadPath(thread), roomArchivedWords)
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, attachLimit)
+	said, kept := s.withAttachments(w, r, held, thread, strings.TrimSpace(r.FormValue("said")))
+	if !kept {
+		return
+	}
+	if said == "" {
+		http.Redirect(w, r, threadPath(thread), http.StatusSeeOther)
+		return
+	}
 	first, err := s.speak(s.keeper.who(r), held, thread, said, "", false)
 	if err != nil {
 		s.turnAway(w, r, threadPath(thread), err.Error())
@@ -179,12 +199,12 @@ type roomAsk struct {
 
 // startRoomTurn queues a turn for one of a room's agents. The record keeps what was said as the room shows it; the agent is
 // given that with who is in the room and what was said since it last spoke, since it keeps a conversation of its own.
-func (s *Server) startRoomTurn(asked string, held instance.Instance, thread instance.Thread, said string, agent instance.Agent, how roomAsk) (jobs.Record, error) {
+func (s *Server) startRoomTurn(asked string, held instance.Instance, thread instance.Thread, said string, agent instance.Agent, how roomAsk) (tasks.Record, error) {
 	if fresh, found := s.instances.Thread(held.ID, thread.ID); found {
 		thread = fresh
 	}
 	brief := s.roomBrief(held, thread, agent, asked, said, how.from)
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:       brief,
 		Harness:     agent.Harness,
 		Model:       agent.Model,
@@ -194,41 +214,46 @@ func (s *Server) startRoomTurn(asked string, held instance.Instance, thread inst
 		Remembered:  thread.Sessions[agent.ID],
 		Agent:       agent.ID,
 		Repo:        held.Repo,
-		Budget:      job.Budget{MonthUSD: agent.AllowanceUSD},
+		Budget:      task.Budget{MonthUSD: agent.AllowanceUSD},
 		Setup:       setupOf(held),
 		Sensitivity: sensitivityOf(held),
 	}
 	if agent.Setup != "" {
-		spec.Setup = &job.Setup{Name: agent.Setup}
+		spec.Setup = &task.Setup{Name: agent.Setup}
 	}
 	id, err := s.index.Reserve(said, time.Now())
 	if err != nil {
-		return jobs.Record{}, err
+		return tasks.Record{}, err
 	}
-	record := jobs.Record{
-		ID: id, State: jobs.Queued,
+	record := tasks.Record{
+		ID: id, State: tasks.Queued,
 		Brief: said, Repo: held.Repo, Harness: agent.Harness, Model: agent.Model,
 		Instance: held.ID, Thread: thread.ID, Agent: agent.ID, HandedBy: how.from, Answers: how.answers, Hops: how.hops,
-		Asked: asked, PaidBy: s.ownerOf(agent), Key: how.key, Queued: jobs.Now(),
+		Asked: asked, PaidBy: s.ownerOf(agent), Key: how.key, Queued: tasks.Now(),
 	}
 	if err := s.place(spec, record); err != nil {
-		return jobs.Record{}, err
+		return tasks.Record{}, err
 	}
 	if err := s.instances.Said(held.ID, thread.ID, record.ID, ""); err != nil {
-		return jobs.Record{}, err
+		return tasks.Record{}, err
 	}
 	s.queue.Wake()
 	return record, nil
 }
 
+// handsOn says whether a turn's reply may start turns of other agents: it is an agent's, it finished, and the chain is not at its end.
+func handsOn(record tasks.Record) bool {
+	return record.Agent != "" && record.State == tasks.Passed && record.Hops < handOffs
+}
+
 // handOff starts a turn for each agent a finished room turn's reply mentions, so agents can pass work along. A chain stops after
 // handOffs turns, and a turn that did not finish hands nothing on.
-func (s *Server) handOff(record jobs.Record) {
-	if record.Agent == "" || record.State != jobs.Passed || record.Hops >= handOffs {
+func (s *Server) handOff(record tasks.Record) {
+	if !handsOn(record) {
 		return
 	}
 	held, found := s.instances.Get(record.Instance)
-	if !found || !held.Room {
+	if !found || !held.Room || held.Archived != 0 {
 		return
 	}
 	held = s.liveRoom(held)

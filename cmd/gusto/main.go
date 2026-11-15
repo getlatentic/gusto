@@ -14,12 +14,11 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/internal/sandbox"
-	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 func main() { os.Exit(run(os.Args[1:])) }
@@ -34,7 +33,7 @@ func declareNew(set *flag.FlagSet) *newFlags {
 	set.StringVar(&f.brief, "brief", "", "what to do, in your `words`")
 	set.StringVar(&f.agent, "agent", "opencode", "which agent does the work, from gusto agents")
 	set.StringVar(&f.model, "model", "", "the `model` to ask for")
-	set.StringVar(&f.sensitivity, "sensitivity", string(job.Internal), "`label` the task: public, internal or restricted")
+	set.StringVar(&f.sensitivity, "sensitivity", string(task.Internal), "`label` the task: public, internal or restricted")
 	return f
 }
 
@@ -49,17 +48,17 @@ func newTask(args []string) int {
 	if where == "" || f.repo == "" || f.brief == "" || len(check) == 0 {
 		return usageError("new", "needs a directory, -repo, -brief, and a check after --")
 	}
-	dir := job.Dir(where)
+	dir := task.Dir(where)
 	if err := dir.Make(); err != nil {
 		return fail(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:       f.brief,
 		Repo:        f.repo,
-		Gate:        check,
+		Check:       check,
 		Harness:     f.agent,
 		Model:       f.model,
-		Sensitivity: job.Sensitivity(f.sensitivity),
+		Sensitivity: task.Sensitivity(f.sensitivity),
 	}
 	if err := spec.Write(dir); err != nil {
 		return fail(err)
@@ -78,7 +77,7 @@ func runTask(args []string) int {
 	}
 	// The checkout happens here rather than in the container, so a repository
 	// credential stays on the runner and never enters the box with the agent.
-	spec, err := job.Read(dir)
+	spec, err := task.Read(dir)
 	if err != nil {
 		return fail(err)
 	}
@@ -88,7 +87,11 @@ func runTask(args []string) int {
 	if err := runner.Fill(spec, dir); err != nil {
 		return fail(err)
 	}
-	exit, err := sandbox.Run(dir, harness.ModelURL(), "")
+	boxes, code := taskBoxes()
+	if code != 0 {
+		return code
+	}
+	exit, err := boxes.Run(context.Background(), dir, harness.ModelURL(), "", sandbox.Owner{})
 	if err != nil {
 		return fail(err)
 	}
@@ -104,7 +107,11 @@ func inside(args []string) int {
 	// down: the agent is stopped, and the record says so.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	exit, err := runner.InsideContext(ctx, dir)
+	place, code := insidePlace()
+	if code != 0 {
+		return code
+	}
+	exit, err := runner.InsideContext(ctx, dir, place)
 	if err != nil {
 		return fail(err)
 	}
@@ -129,8 +136,8 @@ func verify(args []string) int {
 	if where == "" || set.NArg() > 0 {
 		return usageError("verify", "needs one task directory")
 	}
-	dir := job.Dir(where)
-	wrong, err := evidence.Check(dir)
+	dir := task.Dir(where)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		return fail(err)
 	}
@@ -143,11 +150,11 @@ func verify(args []string) int {
 	// The signer is named from the keyring, never from the record's signer
 	// field. Unsigned passes unless -signed asks otherwise, because every record
 	// made before signing, and every run with no key, is unsigned.
-	keyring, err := signing.ConfiguredKeyring()
+	keyring, err := configuredKeyring()
 	if err != nil {
 		return fail(err)
 	}
-	attested, err := evidence.Attest(dir, keyring)
+	attested, err := record.Attest(dir, keyring)
 	if err != nil {
 		fmt.Println(err)
 		return 1
@@ -156,24 +163,24 @@ func verify(args []string) int {
 	if f.signed && !attested.Signed {
 		return 1
 	}
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		return fail(err)
 	}
-	if manifest.Gate == nil {
+	if manifest.Check == nil {
 		fmt.Printf("%d files match, and the task had no check to run again\n", len(manifest.Files))
 		return 0
 	}
-	spec, err := job.Read(dir)
+	spec, err := task.Read(dir)
 	if err != nil {
 		return fail(err)
 	}
-	again, _, err := runner.Ask(spec, dir)
+	again, _, err := runner.Ask(context.Background(), spec, dir)
 	if err != nil {
 		return fail(err)
 	}
-	if again.Passed != manifest.Gate.Passed || again.Code != manifest.Gate.Code {
-		fmt.Printf("the check now exits %d, and the record says %d\n", again.Code, manifest.Gate.Code)
+	if again.Passed != manifest.Check.Passed || again.Code != manifest.Check.Code {
+		fmt.Printf("the check now exits %d, and the record says %d\n", again.Code, manifest.Check.Code)
 		return 1
 	}
 	fmt.Printf("%d files match, and the check still exits %d\n", len(manifest.Files), again.Code)
@@ -185,30 +192,30 @@ func show(args []string) int {
 	if code != 0 {
 		return code
 	}
-	spec, err := job.Read(dir)
+	spec, err := task.Read(dir)
 	if err != nil {
 		return fail(err)
 	}
 	fmt.Printf("brief    %s\nrepo     %s\nagent    %s\ncheck    %s\nlabel    %s\n",
-		spec.Brief, spec.Repo, spec.Harness, strings.Join(spec.Gate, " "), spec.Sensitivity)
-	manifest, err := evidence.Read(dir)
+		spec.Brief, spec.Repo, spec.Harness, strings.Join(spec.Check, " "), spec.Sensitivity)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		fmt.Println("\nno record yet, so this task has not run here")
 		return 0
 	}
 	// The signer is the keyring's name for the key, as verify gives it, never
 	// the record's signer field, which is the runner's claim.
-	keyring, err := signing.ConfiguredKeyring()
+	keyring, err := configuredKeyring()
 	if err != nil {
 		return fail(err)
 	}
 	check := "none: a turn in a conversation has no check"
-	if manifest.Gate != nil {
-		check = fmt.Sprintf("exit %d, passed %t", manifest.Gate.Code, manifest.Gate.Passed)
+	if manifest.Check != nil {
+		check = fmt.Sprintf("exit %d, passed %t", manifest.Check.Code, manifest.Check.Passed)
 	}
 	fmt.Printf("\ncheck    %s\nagent    exit %d, stopped at the budget %t\nmodel    %s\nsigner   %s\nfiles    %d\n",
 		check, manifest.HarnessExit, manifest.StoppedAtBudget,
-		manifest.ModelEndpoint, evidence.SignedBy(dir, keyring), len(manifest.Files))
+		manifest.ModelEndpoint, record.SignedBy(dir, keyring), len(manifest.Files))
 	if manifest.Tokens != nil {
 		fmt.Printf("tokens   %d\n", *manifest.Tokens)
 	}

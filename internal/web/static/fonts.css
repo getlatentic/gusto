@@ -1,5 +1,11 @@
-/* The two faces the tokens name, served from the binary. */
-@font-face { font-family: "Inter"; src: url("/static/inter.woff2") format("woff2");
-  font-weight: 100 900; font-display: swap; }
-@font-face { font-family: "Noto Sans Mono"; src: url("/static/noto-sans-mono.woff2") format("woff2");
-  font-weight: 100 900; font-display: swap; }
+/* The faces the tokens name, served from the binary. */
+@font-face { font-family: "IBM Plex Sans"; src: url("/static/ibm-plex-sans.woff2") format("woff2");
+  font-weight: 100 700; font-display: swap; }
+@font-face { font-family: "IBM Plex Serif"; src: url("/static/ibm-plex-serif-400.woff2") format("woff2");
+  font-weight: 400; font-display: swap; }
+@font-face { font-family: "IBM Plex Serif"; src: url("/static/ibm-plex-serif-500.woff2") format("woff2");
+  font-weight: 500; font-display: swap; }
+@font-face { font-family: "IBM Plex Serif"; src: url("/static/ibm-plex-serif-600.woff2") format("woff2");
+  font-weight: 600; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("/static/jetbrains-mono.woff2") format("woff2");
+  font-weight: 100 800; font-display: swap; }

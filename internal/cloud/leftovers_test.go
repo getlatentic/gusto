@@ -29,16 +29,16 @@ func leftoverRuntime(t *testing.T) (runtime, removed string) {
 
 func TestAServerThatRunsContainersHasItsLeftoversRemovedWhenItStopsAndBeforeItStarts(t *testing.T) {
 	runtime, removed := leftoverRuntime(t)
-	cell := &LocalCell{}
+	node := &LocalNode{}
 	spec := ServerSpec{Slug: "acme-com", Command: []string{"sleep", "60"}, Log: filepath.Join(t.TempDir(), "log"),
 		Env: []string{"GUSTO_SANDBOX=openshell", "GUSTO_SANDBOX=container", "GUSTO_CONTAINER=" + runtime}}
-	if err := cell.Start(spec); err != nil {
+	if err := node.Start(spec); err != nil {
 		t.Fatal(err)
 	}
-	if err := cell.Start(spec); err != nil {
+	if err := node.Start(spec); err != nil {
 		t.Fatal(err)
 	}
-	if err := cell.Stop("acme-com", time.Second); err != nil {
+	if err := node.Stop("acme-com", time.Second); err != nil {
 		t.Fatal(err)
 	}
 	got, _ := os.ReadFile(removed)
@@ -49,13 +49,13 @@ func TestAServerThatRunsContainersHasItsLeftoversRemovedWhenItStopsAndBeforeItSt
 
 func TestAServerThatRunsNoContainersHasNothingRemoved(t *testing.T) {
 	runtime, removed := leftoverRuntime(t)
-	cell := &LocalCell{}
+	node := &LocalNode{}
 	spec := ServerSpec{Slug: "acme-com", Command: []string{"sleep", "60"}, Log: filepath.Join(t.TempDir(), "log"),
 		Env: []string{"GUSTO_SANDBOX=openshell", "GUSTO_CONTAINER=" + runtime}}
-	if err := cell.Start(spec); err != nil {
+	if err := node.Start(spec); err != nil {
 		t.Fatal(err)
 	}
-	cell.Stop("acme-com", time.Second)
+	node.Stop("acme-com", time.Second)
 	if _, err := os.Stat(removed); !os.IsNotExist(err) {
 		t.Error("a server in OpenShell had containers removed")
 	}

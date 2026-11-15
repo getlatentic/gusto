@@ -209,8 +209,8 @@ func (r *Recorder) flush(held []pending) {
 	r.drop(int64(len(rows)), tasks...)
 }
 
-// write retries a failed write with a growing wait, for as long as the recorder runs, and a few times more once
-// it is closing. It says whether the rows were written.
+// write retries a failed write with a growing wait, for as long as the recorder runs, and a few times more, the
+// first wait apart, once it is closing. It says whether the rows were written.
 func (r *Recorder) write(rows []Row) bool {
 	wait := r.retry
 	for attempt := 1; ; attempt++ {
@@ -225,10 +225,16 @@ func (r *Recorder) write(rows []Row) bool {
 		if closing && attempt >= closingAttempts {
 			return false
 		}
-		time.Sleep(wait)
-		if !closing {
-			wait = min(wait*2, longestRetry)
+		if closing {
+			time.Sleep(r.retry)
+			continue
 		}
+		// Close cuts a long wait short, and the closing attempts follow at once.
+		select {
+		case <-r.stop:
+		case <-time.After(wait):
+		}
+		wait = min(wait*2, longestRetry)
 	}
 }
 

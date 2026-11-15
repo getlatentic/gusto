@@ -1,0 +1,11 @@
+# The agent types the runner image carries, one a line, as name=package: the
+# adapter's name and the npm package that provides its program. Versions are
+# not here: pkg/harness/pins.json pins every package, and the image's build
+# verifies each tarball against it.
+opencode=opencode-ai
+claude=@agentclientprotocol/claude-agent-acp
+codex=@agentclientprotocol/codex-acp
+pi=@earendil-works/pi-coding-agent
+dsh=@deepseek-ai/dsh
+hermes=hermes-agent
+muse=muse

@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-// A table as a matrix writes it: opencode measured on the simplest job with
-// two models on a laptop, one of them also on the box, and a harder job the
+// A table as a matrix writes it: opencode measured on the simplest task with
+// two models on a laptop, one of them also on the box, and a harder task the
 // catalog does not judge by.
 const measuredTable = `{
   "version": 1,
@@ -32,7 +32,7 @@ func tableAt(t *testing.T, text string) string {
 	return path
 }
 
-func TestAPairThatCannotFinishTheSimplestJobIsMarkedWithWhy(t *testing.T) {
+func TestAPairThatCannotFinishTheSimplestTaskIsMarkedWithWhy(t *testing.T) {
 	t.Setenv(MatrixSetting, tableAt(t, measuredTable))
 	opencode := entryNamed(t, Survey("", "", []string{"opencode"}), "opencode")
 
@@ -54,8 +54,8 @@ func TestAPairThatCannotFinishTheSimplestJobIsMarkedWithWhy(t *testing.T) {
 }
 
 // Finishing somewhere is finishing, a run with no verdict measured nothing, and
-// a harder job failing says nothing about the simplest one.
-func TestOnlyAMeasuredFailureOnTheSimplestJobMarksAPair(t *testing.T) {
+// a harder task failing says nothing about the simplest one.
+func TestOnlyAMeasuredFailureOnTheSimplestTaskMarksAPair(t *testing.T) {
 	entries, err := WithMatrix([]Entry{{Name: "opencode"}}, tableAt(t, measuredTable))
 	if err != nil {
 		t.Fatal(err)

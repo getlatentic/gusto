@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // Every template ships whole: named so a setup can take its name, with skills
@@ -15,14 +15,14 @@ func TestEveryTemplateIsCompleteAndItsFilesAreInvented(t *testing.T) {
 		t.Fatalf("%d templates", len(all))
 	}
 	for _, held := range all {
-		if !job.Named(held.Name) || held.Title == "" || len(held.Skills) == 0 || len(held.Starters) == 0 || len(held.Harnesses) == 0 {
+		if !task.Named(held.Name) || held.Title == "" || len(held.Skills) == 0 || len(held.Starters) == 0 || len(held.Harnesses) == 0 {
 			t.Errorf("%s is incomplete", held.Name)
 		}
 		if !held.Sensitivity.Known() {
 			t.Errorf("%s has sensitivity %q", held.Name, held.Sensitivity)
 		}
 		for _, skill := range held.Skills {
-			if !job.Named(skill.Name) || skill.Title == "" || skill.Blurb == "" || skill.Description == "" || skill.Body == "" {
+			if !task.Named(skill.Name) || skill.Title == "" || skill.Blurb == "" || skill.Description == "" || skill.Body == "" {
 				t.Errorf("%s: skill %q is incomplete", held.Name, skill.Name)
 			}
 		}

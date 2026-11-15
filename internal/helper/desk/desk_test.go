@@ -9,8 +9,8 @@ import (
 	"github.com/getlatentic/gusto/internal/helper"
 )
 
-func turn(job, state string) helper.Turn {
-	return helper.Turn{Job: job, Instance: "i1", Thread: "t1", Brief: "write the report", State: state}
+func turn(task, state string) helper.Turn {
+	return helper.Turn{Task: task, Instance: "i1", Thread: "t1", Brief: "write the report", State: state}
 }
 
 func TestMenuListsRunningTurnsBeforeEnded(t *testing.T) {
@@ -51,8 +51,8 @@ func TestMenuHoldsAtMostItsSlots(t *testing.T) {
 	}
 }
 
-func TestPageOfAJobWithNoConversationIsTheJob(t *testing.T) {
-	if got := PageOf("https://s", helper.Turn{Job: "j9"}); got != "https://s/jobs/j9" {
+func TestPageOfATaskWithNoConversationIsTheTask(t *testing.T) {
+	if got := PageOf("https://s", helper.Turn{Task: "j9"}); got != "https://s/jobs/j9" {
 		t.Fatal(got)
 	}
 }

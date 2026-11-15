@@ -21,27 +21,27 @@ import (
 // from the box's own root. Left as it is, a link opens a page that is not there. Here it opens the file in the agent's folder, a folder
 // opens the list of files, and a link to something that is not in the folder is the words alone.
 
-// workspaceMark replaces the box's path in a link, so that a path from the folder's root is told from one relative to where the agent
+// folderMark replaces the box's path in a link, so that a path from the folder's root is told from one relative to where the agent
 // was working.
-const workspaceMark = "gusto-workspace:"
+const folderMark = "gusto-workspace:"
 
 var hasScheme = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
 
 // fileLinks draws the links of one reply of one agent's conversation.
 type fileLinks struct {
 	id, dir, back string
-	workspace     string
+	folder        string
 }
 
 // replyIn is a reply as HTML, with its links to the agent's files made to open them.
 func (s *Server) replyIn(text, id, dir, back string) template.HTML {
-	text = strings.ReplaceAll(text, "](/job/workspace/", "]("+workspaceMark)
+	text = strings.ReplaceAll(text, "](/job/workspace/", "]("+folderMark)
 	text = strings.ReplaceAll(text, "/job/workspace/", "")
 	renderers := goldmark.New(
 		goldmark.WithExtensions(extension.GFM),
 		goldmark.WithRendererOptions(
 			html.WithHardWraps(),
-			renderer.WithNodeRenderers(util.Prioritized(untrusted{}, 100), util.Prioritized(fileLinks{id: id, dir: dir, back: back, workspace: s.instances.Workspace(id)}, 99)),
+			renderer.WithNodeRenderers(util.Prioritized(untrusted{}, 100), util.Prioritized(fileLinks{id: id, dir: dir, back: back, folder: s.instances.AgentFolder(id)}, 99)),
 		),
 	)
 	var drawn bytes.Buffer
@@ -98,7 +98,7 @@ func (f fileLinks) opened(node ast.Node) bool {
 
 // isFile says whether a destination is a path in the agent's folder, and not an address or a place on this site.
 func (f fileLinks) isFile(destination string) bool {
-	if strings.HasPrefix(destination, workspaceMark) {
+	if strings.HasPrefix(destination, folderMark) {
 		return true
 	}
 	return destination != "" && !strings.HasPrefix(destination, "/") && !strings.HasPrefix(destination, "#") && !hasScheme.MatchString(destination)
@@ -110,7 +110,7 @@ func (f fileLinks) address(destination string) (string, bool) {
 		return "", false
 	}
 	base := f.dir
-	if rest, whole := strings.CutPrefix(destination, workspaceMark); whole {
+	if rest, whole := strings.CutPrefix(destination, folderMark); whole {
 		destination, base = rest, ""
 	}
 	if cut := strings.IndexAny(destination, "?#"); cut >= 0 {
@@ -120,7 +120,7 @@ func (f fileLinks) address(destination string) (string, bool) {
 	if joined == "." || joined == ".." || strings.HasPrefix(joined, "../") {
 		return "", false
 	}
-	resolved, ok := resolveInFolder(f.workspace, "/"+joined)
+	resolved, ok := resolveInFolder(f.folder, "/"+joined)
 	if !ok {
 		return "", false
 	}

@@ -3,7 +3,7 @@ package cloud
 import (
 	"net/http"
 	"net/url"
-	"strings"
+	"slices"
 	"testing"
 	"time"
 
@@ -12,7 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/roster"
 )
 
-// acme is an organization with a verified admin, ada, and a front door that starts its
+// acme is an organization with a verified admin, ada, and a gusto cloud server that starts its
 // server, which is the fake.
 func acme(t *testing.T) (*front, *browser) {
 	t.Helper()
@@ -118,7 +118,7 @@ func TestAnAdminChangesRolesAndAnOrganizationKeepsAnAdmin(t *testing.T) {
 		return status
 	}
 	roleOf := func(email string) Role {
-		person, _, _ := f.store.only(email)
+		person, _, _ := f.store.only(t.Context(), email)
 		return person.Role
 	}
 
@@ -214,19 +214,15 @@ func TestWhatIsRefusedOrChangesNothingIsNotRecorded(t *testing.T) {
 func TestAnAdminIsOfferedTheOtherRoleAndTheLastAdminIsNotOfferedRunner(t *testing.T) {
 	f, ada := acme(t)
 	bob := f.invitedAndJoined(ada, "bob@acme.com")
-	_, page := ada.get("/org")
-	if !strings.Contains(page, `name="role" value="admin"`) {
-		t.Errorf("an admin cannot make a runner an admin:\n%s", page)
+	if got := shownAt(t, ada, "/org"); !got.IsAdmin || got.Admins != 1 || !slices.Contains(got.Members, memberView{Email: "bob@acme.com", Role: "runner"}) {
+		t.Errorf("an admin is offered to make a runner an admin, and the only admin is not offered to become a runner: %+v", got)
 	}
-	if strings.Contains(page, `name="role" value="runner"`) {
-		t.Errorf("the only admin is offered to become a runner:\n%s", page)
-	}
-	if _, page := bob.get("/org"); strings.Contains(page, "/org/people/role") {
-		t.Errorf("a runner is offered to change roles:\n%s", page)
+	if shownAt(t, bob, "/org").IsAdmin {
+		t.Error("a runner is offered to change roles")
 	}
 	ada.post("/org/people/role", url.Values{"email": {"bob@acme.com"}, "role": {"admin"}})
-	if _, page := ada.get("/org"); !strings.Contains(page, `name="role" value="runner"`) {
-		t.Errorf("with two admins either may step down:\n%s", page)
+	if got := shownAt(t, ada, "/org"); got.Admins != 2 || !slices.Contains(got.Members, memberView{Email: "bob@acme.com", Role: "admin"}) {
+		t.Errorf("with two admins either may step down: %+v", got)
 	}
 }
 
@@ -235,12 +231,12 @@ func TestADemoVisitorIsInTheRosterByTheNameTheyGave(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := demoFront(t)
 		startDemoAs(t, f, "Priya Nair", "priya@acme.com", "Acme Research")
-		orgs, err := f.store.Orgs()
+		orgs, err := f.store.Orgs(t.Context())
 		if err != nil || len(orgs) != 1 {
 			t.Fatalf("%d organizations: %v", len(orgs), err)
 		}
 		slug := orgs[0].Slug
-		if err := f.store.PublishRoster(slug); err != nil {
+		if err := f.store.PublishRoster(t.Context(), slug); err != nil {
 			t.Fatal(err)
 		}
 		list, err := roster.Read(f.store.RosterFile(slug))

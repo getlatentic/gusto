@@ -26,8 +26,10 @@ ok   Computer.before-retire.cfg: Error: Invariant OnlyAskedIsRemoved is violated
 ok   Computer.now.cfg: 4448 states generated, 1164 distinct states found, 0 states left on queue.
 ok   ConnectorSignIn.before-563.cfg: Error: Invariant DisconnectHolds is violated.
 ok   ConnectorSignIn.before-broken.cfg: Error: Temporal properties were violated.
+ok   ConnectorSignIn.before-expired.cfg: Error: Temporal properties were violated.
 ok   ConnectorSignIn.before-finish.cfg: Error: Invariant DisconnectHolds is violated.
-ok   ConnectorSignIn.now.cfg: 14766 states generated, 5237 distinct states found, 0 states left on queue.
+ok   ConnectorSignIn.before-held.cfg: Error: Invariant RotationKeepsSignInWorking is violated.
+ok   ConnectorSignIn.now.cfg: 53892 states generated, 16882 distinct states found, 0 states left on queue.
 ok   Credentials.before-code.cfg: Error: Invariant ApprovalKept is violated.
 ok   Credentials.before-recheck.cfg: Error: Invariant NoStaleAuthority is violated.
 ok   Credentials.now.cfg: 308 states generated, 92 distinct states found, 0 states left on queue.
@@ -36,15 +38,15 @@ ok   Demo.before-ending.cfg: Error: Invariant EndingStaysEnding is violated.
 ok   Demo.before-guards.cfg: Error: Invariant NoExtendAfterStop is violated.
 ok   Demo.before-lead.cfg: Error: Invariant LeadFollowsDemo is violated.
 ok   Demo.now.cfg: 388 states generated, 231 distinct states found, 0 states left on queue.
-ok   Evidence.before-intact.cfg: Error: Invariant NothingChangedIsSigned is violated.
-ok   Evidence.before-pending.cfg: Error: Invariant StaysSigned is violated.
-ok   Evidence.now.cfg: 50 states generated, 38 distinct states found, 0 states left on queue.
+ok   Record.before-intact.cfg: Error: Invariant NothingChangedIsSigned is violated.
+ok   Record.before-pending.cfg: Error: Invariant StaysSigned is violated.
+ok   Record.now.cfg: 50 states generated, 38 distinct states found, 0 states left on queue.
 ok   Formats.before-applied.cfg: Error: Invariant UpToDateIsWhole is violated.
 ok   Formats.before-format.cfg: Error: Invariant UndoneIsUpgraded is violated.
 ok   Formats.before-scratch.cfg: Error: Invariant StampsLand is violated.
 ok   Formats.now.cfg: 325 states generated, 60 distinct states found, 0 states left on queue.
-ok   FrontDoors.before-leader.cfg: Error: Invariant OneServer is violated.
-ok   FrontDoors.now.cfg: 55269 states generated, 11534 distinct states found, 0 states left on queue.
+ok   CloudServers.before-leader.cfg: Error: Invariant OneServer is violated.
+ok   CloudServers.now.cfg: 55269 states generated, 11534 distinct states found, 0 states left on queue.
 ok   Helper.before-hold.cfg: Error: Invariant NothingLost is violated.
 ok   Helper.before-lock.cfg: Error: Invariant OneHelper is violated.
 ok   Helper.now.cfg: 383 states generated, 117 distinct states found, 0 states left on queue.
@@ -122,7 +124,7 @@ server crash and restart (`Open`). Each action names the Go function it models.
 | --- | --- | --- | --- |
 | `StopWins` | A stop the person was told took always ends the task Interrupted. | Broken: the stop lands after the worker looked | `TestAStopThatComesAsTheWorkReturnsStillEndsTheTaskInterrupted` |
 | `PassedIsEarned` | A task passes only on a manifest that earned it. | Broken: recovery passed a turn whose harness failed | `TestARunThatEndedWhileNobodyWatchedIsGradedAsIfWatched` |
-| `GradedAsEarned` | Live and recovered runs are graded by `evidence.Earned`. | | |
+| `GradedAsEarned` | Live and recovered runs are graded by `record.Earned`. | | |
 | `EndsOnce` | A finished task never changes state. | | |
 | `EveryTaskEnds` | Every task finishes, with up to one crash. | | |
 
@@ -130,7 +132,7 @@ The model assumes `state.json` is written whole. Torn writes are getlatentic/pla
 
 ## OrgSupervisor
 
-One organization address in the front door's controller (`internal/cloud/controller.go`), across the organizations that
+One organization address in gusto cloud's controller (`internal/cloud/controller.go`), across the organizations that
 may hold it one after another: a demo's address has two random bytes, so it can be given again. The callers of
 `provision` are the signup's goroutine, `Run`'s goroutines at start, and the supervisor. The demo sweep removes with
 `Controller.Remove`, then `Store.EndDemo`, then `Controller.Ended`. `Fixes` says which fixes the code has.
@@ -142,28 +144,29 @@ may hold it one after another: a demo's address has two random bytes, so it can 
 | `NewOrgIsProvisioned` | A new organization at a removed address is provisioned. | a check that ignores when the organization was made | `TestANewOrganizationAtARemovedAddressIsProvisioned` |
 
 `provisionChecksOrg` alone keeps `EndingStopsServer`: the supervisor's own check from getlatentic/gusto#560 is a second
-guard. FrontDoors models several front doors.
+guard. CloudServers models several gusto cloud servers.
 
-## FrontDoors
+## CloudServers
 
-Two front doors on one database, each with a controller over one organization, and two cells. With `leader`, one front
+Two gusto cloud servers on one database, each with a controller over one organization, and two nodes. With `leader`, one front
 door at a time holds a lease with an epoch, only it acts, and a runtime write is refused unless its epoch is the lease's.
 The lease may lapse while its holder is paused, and the holder acts on until it notices.
 
 | Property | What it says | Broken without | Go test |
 | --- | --- | --- | --- |
-| `OneServer` | The organization's server runs on one cell at most. | `leader`: each front door places it on a cell of its own and starts it there. With the lease but no epoch on writes, a paused leader does the same | `TestAControllerThatLostTheLeaseStartsNothing`, `TestLeadershipRunsTheWorkOnOneFrontDoorAtATime` |
+| `OneServer` | The organization's server runs on one node at most. | `leader`: each gusto cloud server places it on a node of its own and starts it there. With the lease but no epoch on writes, a paused leader does the same | `TestAControllerThatLostTheLeaseStartsNothing`, `TestLeadershipRunsTheWorkOnOneGustoCloudServerAtATime` |
 
 ## ConnectorSignIn
 
 One person's sign-in to one app (`internal/connector`): `Finish`, `Token` renewing, `Disconnect`, the app revoking the
-grant, and the server restarting. The app rotates refresh tokens, and a vault write may fail. `Fixes` says which fixes
-the code has.
+grant, and the server restarting. The app rotates refresh tokens, may give none, and a vault write may fail; renewed
+tokens that could not be written are held in memory until the server restarts. `Fixes` says which fixes the code has.
 
 | Property | What it says | Broken without | Go test |
 | --- | --- | --- | --- |
 | `DisconnectHolds` | Nothing begun before a disconnect is kept after it. | `disconnectLocks` (getlatentic/gusto#563): a renewal writes the tokens back; `finishChecksGen`: a sign-in that came back before the disconnect is kept | `TestDisconnectingDuringARenewalStaysDisconnected`, `TestDisconnectingWhileASignInFinishesStaysDisconnected` |
-| `DeadSignInIsSeen` | A sign-in the app no longer renews stops showing as connected. | `refusedMarksBroken`: it shows as connected for good, and agents are told nothing is disconnected | `TestASignInTheAppNoLongerTakesIsNotConnected` |
+| `DeadSignInIsSeen` | A sign-in the app no longer renews, or that ran out with no refresh token, stops showing as connected. | `refusedMarksBroken`: it shows as connected for good, and agents are told nothing is disconnected; `expiredNeedsSignIn`: a sign-in with no refresh token shows as connected after its access token ran out | `TestASignInTheAppNoLongerTakesIsNotConnected`, `TestASignInThatRanOutWithNothingToRenewItIsNotConnected` |
+| `RotationKeepsSignInWorking` | While the server stays up and the app revoked nothing, the refresh token kept is one the app takes, though the vault could not take the renewed one. | `holdUnsaved`: the refresh token on disk is the one the app retired, and the sign-in is broken for good while it shows as connected | `TestRenewedTokensThatCannotBeWrittenAreKeptUntilTheyCan` |
 
 `DeadSignInIsSeen` assumes the app answers and the disk takes a write in the end (strong fairness), and that somebody
 keeps using the app.
@@ -196,8 +199,8 @@ fail, the kernel may write part of the last line, and either the process or the 
 
 ## Computer
 
-One person's computer (`internal/computer`, `cmd/gusto/computers.go`): its record, its sandbox, the tasks that run in
-it, the front door asking for it to be removed when the person is, and the organization server's tend loop, which
+One person's computer (`internal/computer`, `internal/backend/vm`): its record, its sandbox, the tasks that run in
+it, gusto cloud asking for it to be removed when the person is, and the organization server's tend loop, which
 removes what was asked and stops what is idle. A computer made again after one was removed is a new generation under
 the same id. Tasks are paid for by the owner and may be asked by a colleague, as a room agent's turn is.
 
@@ -228,7 +231,7 @@ journal. A crash leaves the journal, and `recoverMerge` undoes what ran; putting
 
 ## AppPreview
 
-An agent's shared app previews (`internal/apps`, `internal/web/sharing.go`, `cmd/gusto/apps.go`): publishing one under the
+An agent's shared app previews (`internal/apps`, `internal/web/sharing.go`, `internal/backend/vm/apps.go`): publishing one under the
 agent's limit, starting its process in the owner's computer, the proxy finding it not answering, removing it, its
 process dying, and the server restarting.
 
@@ -241,20 +244,20 @@ process dying, and the server restarting.
 ## Credentials
 
 What one person may do on their organization's server, and what they carry to show it (`internal/web/auth.go`, `sent.go`,
-`device.go`). The front door changes the person's role, or removes them, and writes the roster the server reads. The person
+`device.go`). Gusto cloud changes the person's role, or removes them, and writes the roster the server reads. The person
 signs in with a signed cookie that names their role, and approves a computer by the device flow, which gives it a token that
 acts as them. Making the token may fail.
 
 | Property | What it says | Broken without | Go test |
 | --- | --- | --- | --- |
-| `NoStaleAuthority` | No request is served as more than the person is now. | `recheck`: the cookie's role, and a computer's token, held until they expired after the front door demoted or removed the person | `TestAPersonDemotedOrRemovedAtTheFrontDoorIsHeldToItAtTheirNextRequest`, `TestAComputerOfAPersonWhoWasRemovedStopsWorking` |
+| `NoStaleAuthority` | No request is served as more than the person is now. | `recheck`: the cookie's role, and a computer's token, held until they expired after gusto cloud demoted or removed the person | `TestAPersonDemotedOrRemovedAtGustoCloudIsHeldToItAtTheirNextRequest`, `TestAComputerOfAPersonWhoWasRemovedStopsWorking` |
 | `ApprovalKept` | A computer whose approval was taken is given its token, or may ask again. | `keepCode`: the code was spent before the token was made, so a failure made the person start over | `TestAComputerWhoseTokenCouldNotBeMadeAsksAgain` |
 
 ## Demo
 
 One demo (`internal/cloud/demo_*.go`): made at a visitor's request, its server made ready by the leader's controller, its
 clock started, opened by the visitor or by a colleague through the organization's own address, extended, stopped,
-ended by the leader's sweep, and the front door crashing. The lead row is kept after the demo, and says how it went.
+ended by the leader's sweep, and gusto cloud crashing. The lead row is kept after the demo, and says how it went.
 A lead write outside a transaction may fail.
 
 | Property | What it says | Broken without | Go test |
@@ -268,7 +271,7 @@ A lead write outside a transaction may fail.
 
 One organization's `quota.json` (`internal/cloud/quota_apply.go`), which its server reads for its limits, and the database it
 is worked out from. A Stripe event, the seat sync and a confirmed address change the database, and each then calls
-`ApplyQuota`, several at once. Writing the file may fail, and the front door may crash; a start writes every quota again.
+`ApplyQuota`, several at once. Writing the file may fail, and gusto cloud may crash; a start writes every quota again.
 Stripe sends an event again when its quota was not written. Role changes and removals are not modelled: an organization with
 no admin who confirmed their address is on the trial, which has room for one person, or has a subscription, which decides its
 quota.
@@ -319,7 +322,7 @@ offered to the channels until it is taken or given up on. A person adds a routin
 ## Hosts
 
 The hosts organizations' servers run on, as the scaler stops them and the controller places on them
-(`internal/cell/scaler.go`, `internal/cell/pool.go`, `internal/cloud/controller.go`). An organization is provisioned: it is
+(`internal/node/scaler.go`, `internal/node/pool.go`, `internal/cloud/controller.go`). An organization is provisioned: it is
 placed on a host, or stays on the one it was placed on, and its server is started there. A server may end on its own. The
 scaler retires a host it judges idle: it marks it, checks it again and stops it. A stopped host may start again and register.
 While a host's registration is there, the pool takes a silent host to be away for a while; once it is not, the host is gone,
@@ -331,15 +334,15 @@ and its organizations are placed again.
 | `NoStopUnderAStart` | No host is stopped under an organization whose server is being started on it. | `busy`: an organization being placed or started did not count, and the idle host is the one with the most room | `TestAHostIsNotStoppedUnderAnOrganizationBeingPlacedOnIt` |
 | `NoStopUnderAStart` | | `mark`: a host was placed on after its last check and before it stopped | `TestAHostBeingStoppedIsNotPlacedOnWhileItBeatsOnItsWayDown` |
 
-Two more fixes have Go tests and no model: a front door that starts again counts on from the day's prewarms
-(`TestTheDaysPrewarmsAreCountedOnByAFrontDoorThatStartsAgain`), and knows when a quiet host was last heard from
-(`TestAHostThatWentQuietAMomentAgoIsLeftByAFrontDoorThatStartsAgain`). A host that goes stops its servers together, inside
+Two more fixes have Go tests and no model: a gusto cloud server that starts again counts on from the day's prewarms
+(`TestTheDaysPrewarmsAreCountedOnByAGustoCloudServerThatStartsAgain`), and knows when a quiet host was last heard from
+(`TestAHostThatWentQuietAMomentAgoIsLeftByAGustoCloudServerThatStartsAgain`). A host that goes stops its servers together, inside
 its service's stop time (`TestAHostThatGoesStopsItsServersTogetherAndTakesItsRegistrationAway`).
 
-## Evidence
+## Record
 
-A room turn's record, as `evidence.Decide` puts what was done with the turn's changes under its signature
-(`internal/evidence/decide.go`). The run ends with `out/` hashed into `manifest.json` and the manifest signed. Decide writes
+A room turn's record, as `record.Decide` puts what was done with the turn's changes under its signature
+(`internal/record/decide.go`). The run ends with `out/` hashed into `manifest.json` and the manifest signed. Decide writes
 `decision.json`, makes the manifest again and signs it again. A file in `out/` may be changed after the run was signed, and
 the server may crash at any step and start again.
 
@@ -452,13 +455,13 @@ a crash between them ends the turn with the process. Accepting an agent that is 
 
 One finished task and the sweep that removes it when it is due (`internal/retention/sweep.go`, `internal/retention/holds.go`,
 `internal/web/retention.go`). An admin holds the task. A sweep reads whether the task is held and removes it when it is not.
-The task may be a turn of a room, which its owner removes, and an operator may delete it. The policy keeps the workspace for
+The task may be a turn of a room, which its owner removes, and an operator may delete it. The policy keeps the working folder for
 ever or for some days.
 
 | Property | What it says | Broken without | Go test |
 | --- | --- | --- | --- |
 | `TheHeldAreKept` | The sweep never removes a task that is held. | `guard`: the sweep read the holds once, and removed a task held after that | `TestAHoldPlacedWhileASweepRunsKeepsTheTask` |
-| `ForeverIsForever` | A workspace the policy keeps for ever is never removed. | `forever`: a record with days and a workspace with none took the workspace with it | `TestARecordCannotGoWhileItsWorkspaceIsKeptForEver` |
+| `ForeverIsForever` | A working folder the policy keeps for ever is never removed. | `forever`: a record with days and a working folder with none took the working folder with it | `TestARecordCannotGoWhileItsWorkspaceIsKeptForEver` |
 | `RemovedRoomsTurnsGo` | A due turn of a room that was removed goes, or is held. | `rooms`: no turn of a room was ever swept, and removing a room keeps its turns | `TestATurnOfARoomThatWasRemovedIsSweptAndOneOfAKeptRoomIsNot` |
 | `NoHoldOutlivesItsTask` | A hold on a task that is gone ends. | `forget`: holds on removed tasks stayed for ever | `TestAHoldOnATaskThatIsGoneIsEnded` |
 

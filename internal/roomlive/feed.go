@@ -100,8 +100,10 @@ func (f *feed) run() {
 	}
 }
 
-// drain hands on every event after the last one, and says whether the feed can go on. It cannot when the room is gone or its
-// log started again: the viewers are then sent away to come back with a position that is true.
+// drain hands on every event after the last one, and says whether the feed can go on. It cannot when the room is gone. When the
+// room's log started again, or the feed fell out of its window, the viewers are sent away to come back with a position that is
+// true, and the feed goes on from where the log stands now: a node tells the broker of a room only when its first viewer comes,
+// so a viewer that comes back while another has not yet left would find no feed if this one ended.
 func (f *feed) drain() bool {
 	for !f.stopped() {
 		slice, err := f.broker.log.RoomEvents(f.room, f.last, batch)
@@ -110,8 +112,9 @@ func (f *feed) drain() bool {
 			return false
 		}
 		if slice.Head.Epoch != f.epoch || slice.Gap {
+			f.last, f.epoch = slice.Head.Seq, slice.Head.Epoch
 			f.broker.gone(f.room)
-			return false
+			continue
 		}
 		if len(slice.Events) == 0 {
 			return true
@@ -129,7 +132,7 @@ func (f *feed) handOn(events []roomlog.Event) {
 			return
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), b.drawTimeout)
-		pub := &centrifuge.Publication{Offset: event.Seq, Data: b.frame(ctx, f.room, event), Time: event.At * 1000}
+		pub := &centrifuge.Publication{Offset: event.Seq, Data: b.frame(ctx, f.room, f.epoch, event), Time: event.At * 1000}
 		cancel()
 		position := centrifuge.StreamPosition{Offset: event.Seq, Epoch: f.epoch}
 		// An event the node refuses is not tried again, which would stop every later one behind it; the viewers' position

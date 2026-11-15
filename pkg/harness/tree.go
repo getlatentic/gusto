@@ -48,7 +48,7 @@ func bare(path string) (Tree, error) {
 // walk reads a configured harness directory. A link or a device is refused by
 // name rather than followed: a link reaches outside the harness, so what it
 // points at would differ between two machines holding the same directory, and
-// carrying it into a job could copy anything on the host.
+// carrying it into a task could copy anything on the host.
 func walk(root string) (Tree, error) {
 	var tree Tree
 	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
@@ -117,7 +117,7 @@ func (t Tree) adapter() ([]byte, bool) {
 }
 
 // bareOnly says whether the tree is an adapter and nothing else, which is
-// carried as name.json, the way a job has always carried one.
+// carried as name.json, the way a task has always carried one.
 func (t Tree) bareOnly() bool {
 	return len(t) == 1 && t[0].Path == AdapterFile
 }

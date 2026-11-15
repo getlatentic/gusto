@@ -21,8 +21,8 @@ if [ "$SANDBOX" = container ]; then
 PATH=/usr/local/bin:/usr/sbin:/sbin:/usr/bin:/bin
 GUSTO_SANDBOX=container
 GUSTO_IMAGE=gusto-runner:e2e
-GUSTO_JOB_MEMORY=3g
-GUSTO_JOB_CPUS=2
+GUSTO_TASK_MEMORY=3g
+GUSTO_TASK_CPUS=2
 GUSTO_CREDENTIALS=$C/creds
 GUSTO_MODELS=$MODEL
 ENV

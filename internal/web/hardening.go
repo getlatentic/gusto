@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// maxBody is the most a request may send. A form or a JSON job is a few
+// maxBody is the most a request may send. A form or a JSON task is a few
 // kilobytes; the largest thing posted is a skill's text.
 const maxBody = 4 << 20
 
@@ -21,8 +21,8 @@ func (s *Server) secure(next http.Handler) http.Handler {
 		nonce := randomValue()
 		h := w.Header()
 		h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'nonce-"+nonce+"'; "+
-			"style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"+s.frontDoorSource()+"; "+
-			"form-action 'self'"+s.frontDoorSource()+"; frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
+			"style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"+s.cloudSource()+"; "+
+			"form-action 'self'"+s.cloudSource()+"; frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "same-origin")
@@ -32,35 +32,30 @@ func (s *Server) secure(next http.Handler) http.Handler {
 			h.Set("Strict-Transport-Security", "max-age=31536000")
 		}
 		// What is behind the sign-in is not kept by a browser or a proxy. Only
-		// the vendored assets are, and they set their own.
-		if !strings.HasPrefix(r.URL.Path, "/static/") {
+		// the vendored assets and the app's built files, named by their content, are.
+		if !strings.HasPrefix(r.URL.Path, "/static/") && !strings.HasPrefix(r.URL.Path, "/app/assets/") {
 			h.Set("Cache-Control", "no-store")
 		}
 		if r.Body != nil && r.Method != http.MethodGet && r.Method != http.MethodHead {
 			r.Body = http.MaxBytesReader(w, r.Body, bodyLimit(r))
 		}
-		next.ServeHTTP(&marked{ResponseWriter: w, nonce: nonce, admin: s.admin(r), req: r, page: r.Method == http.MethodGet && strings.Contains(r.Header.Get("Accept"), "text/html")}, r)
+		next.ServeHTTP(&marked{ResponseWriter: w, nonce: nonce, page: r.Method == http.MethodGet && strings.Contains(r.Header.Get("Accept"), "text/html")}, r)
 	})
 }
 
-// frontDoorSource is the front door, for the content security policy, when this server is behind one: the
+// cloudSource is gusto cloud, for the content security policy, when this server is behind one: the
 // organization switcher asks it which organizations the person is in, and signing out here goes on to sign out there.
-func (s *Server) frontDoorSource() string {
+func (s *Server) cloudSource() string {
 	if s.front == nil {
 		return ""
 	}
 	return " " + s.front.URL
 }
 
-// marked carries what a page needs to know of its request: the nonce its inline
-// scripts run with, and whether an admin asked, which is what shows the link to
-// the console on every page.
+// marked carries what a page drawn for a fault needs to know of its request: the nonce its inline script runs with.
 type marked struct {
 	http.ResponseWriter
 	nonce string
-	admin bool
-	// req is the request the response answers, which a page uses to draw what is the person's own, such as the side list.
-	req *http.Request
 	// page is whether a person's browser asked, and so would rather be shown a page than a line of text for a thing that is not there.
 	page bool
 	// swallow is set once a page was written in place of the line of text a handler went on to write.
@@ -121,13 +116,13 @@ const faultPage = `<!doctype html>
   root.dataset.accent = accent;
 })();</script>
 <style>
-body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--gu-bg); color: var(--gu-text); font: .9375rem/1.55 var(--gu-font-text); }
+body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--gu-bg); color: var(--gu-text); font: .875rem/1.25rem var(--gu-font-text); }
 main { width: min(26rem, 92vw); display: grid; gap: var(--gu-space-4); padding: var(--gu-space-8); text-align: center; }
-h1 { margin: 0; font: 600 1.375rem/1.2 var(--gu-font-display); letter-spacing: -.02em; }
+h1 { margin: 0; font: 600 1.5rem/2rem var(--gu-font-display); letter-spacing: -.019em; }
 p { margin: 0; color: var(--gu-text-muted); }
 .row { display: flex; flex-wrap: wrap; gap: var(--gu-space-3); justify-content: center; }
-a { padding: var(--gu-space-2) var(--gu-space-4); border: 0.0625rem solid var(--gu-border-strong); border-radius: var(--gu-radius-sm); background: var(--gu-surface); color: var(--gu-text); text-decoration: none; font-weight: 600; font-size: .875rem; }
-a.main { background: var(--gu-accent); border-color: var(--gu-accent); color: var(--gu-on-accent); }
+a { display: inline-flex; align-items: center; height: 2.25rem; padding: 0 var(--gu-space-4); border: var(--gu-hairline) solid var(--gu-border-strong); border-radius: var(--gu-radius-md); background: var(--gu-surface); color: var(--gu-text); text-decoration: none; font-weight: 500; font-size: .875rem; }
+a.main { background: var(--gu-accent-solid); border-color: var(--gu-accent-solid); color: var(--gu-on-accent-solid); }
 </style></head><body><main>
 <h1>{{title}}</h1>
 <p>{{text}}</p>
@@ -147,24 +142,6 @@ func (m *marked) Flush() {
 		flusher.Flush()
 	}
 }
-
-// markOf is what the response w was marked with, or nothing.
-func markOf(w http.ResponseWriter) marked {
-	for w != nil {
-		switch held := w.(type) {
-		case *marked:
-			return marked{nonce: held.nonce, admin: held.admin, req: held.req}
-		case interface{ Unwrap() http.ResponseWriter }:
-			w = held.Unwrap()
-		default:
-			return marked{}
-		}
-	}
-	return marked{}
-}
-
-// nonceOf is the nonce of the response w belongs to, or nothing.
-func nonceOf(w http.ResponseWriter) string { return markOf(w).nonce }
 
 const (
 	// failuresAllowed is how many wrong credentials one source may present

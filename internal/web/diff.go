@@ -43,7 +43,7 @@ type diffLine struct {
 // parseDiff reads the output of `git diff`, which is what a runner writes to
 // diff.patch. It only sorts lines, it never rejects one: the patch comes from a
 // harness nobody trusts, and a line it cannot place is still drawn as a note so
-// nothing in the evidence is hidden from the reader.
+// nothing in the record is hidden from the reader.
 //
 // Inside a hunk every line starts with a space, '+', '-' or '\', so a line
 // starting "diff " or "@@" can only be a header, and a removed line that reads

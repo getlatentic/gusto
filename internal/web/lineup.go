@@ -1,10 +1,8 @@
 package web
 
 import (
-	"net/http"
-
 	"github.com/getlatentic/gusto/internal/compare"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/spend"
 )
 
@@ -14,7 +12,7 @@ type side struct {
 	Engine  string
 	Harness string
 	Model   string
-	Record  jobs.Record
+	Record  tasks.Record
 	// Holding is what a run that has not started waits for.
 	Holding string
 	Checked bool
@@ -38,36 +36,11 @@ func (s side) Seconds() int64 {
 	return s.Record.Ended - s.Record.Started
 }
 
-func (s *Server) lineupPage(w http.ResponseWriter, r *http.Request) {
-	if s.lineups == nil {
-		http.NotFound(w, r)
-		return
-	}
-	lineup, found := s.lineups.Get(r.PathValue("id"))
-	if !found || !s.mayUse(r, lineup.Who) {
-		http.NotFound(w, r)
-		return
-	}
-	ledger, _ := s.spending()
-	sides, running := s.sidesOf(lineup, ledger)
-	page := map[string]any{
-		"Title": productName + " — " + lineup.Brief, "Nav": "compare",
-		"Lineup": lineup, "Sides": sides, "Running": running,
-		"Passed": passedCount(sides),
-	}
-	// A verdict on runs that are still working would name a winner that a run
-	// still to finish could overturn.
-	if !running && len(sides) > 1 {
-		page["Reading"] = weigh(sides)
-	}
-	s.render(w, "lineup.html", page)
-}
-
 func (s *Server) sidesOf(lineup compare.Lineup, ledger *spend.Ledger) ([]side, bool) {
 	sides := make([]side, 0, len(lineup.Runs))
 	running := false
 	for _, entry := range lineup.Runs {
-		record, found := s.index.Get(entry.Job)
+		record, found := s.index.Get(entry.Task)
 		if !found {
 			continue
 		}
@@ -77,11 +50,11 @@ func (s *Server) sidesOf(lineup compare.Lineup, ledger *spend.Ledger) ([]side, b
 	return sides, running
 }
 
-func (s *Server) sideOf(entry compare.Entry, record jobs.Record, ledger *spend.Ledger) side {
+func (s *Server) sideOf(entry compare.Entry, record tasks.Record, ledger *spend.Ledger) side {
 	shown := side{Engine: s.engineName(entry.Harness), Harness: entry.Harness, Model: modelName(record.Model), Record: record, Holding: s.waiting(record.ID)}
 	dir := record.Dir(s.index.Root())
-	if manifest := readManifest(dir); manifest != nil && manifest.Gate != nil {
-		shown.Checked, shown.Passed = true, manifest.Gate.Passed
+	if manifest := readManifest(dir); manifest != nil && manifest.Check != nil {
+		shown.Checked, shown.Passed = true, manifest.Check.Passed
 	}
 	shown.Spent, shown.Metered = spentBy(ledger, record.ID)
 	if patch, found := readPatch(dir, record.ID); found {

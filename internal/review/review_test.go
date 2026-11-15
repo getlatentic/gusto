@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestOnlyTheNamesAJobDirectoryHoldsAreUnpacked(t *testing.T) {
+func TestOnlyTheNamesATaskDirectoryHoldsAreUnpacked(t *testing.T) {
 	for name, want := range map[string]bool{
 		"job.json":              true,
 		"out/manifest.json":     true,
@@ -21,7 +21,7 @@ func TestOnlyTheNamesAJobDirectoryHoldsAreUnpacked(t *testing.T) {
 		".git/hooks/pre-commit": false,
 		"answer.txt":            false,
 	} {
-		if got := jobFile(name); got != want {
+		if got := taskFile(name); got != want {
 			t.Errorf("%s: got %t, want %t", name, got, want)
 		}
 	}
@@ -51,7 +51,7 @@ func TestADirectoryThatHoldsSomethingIsNotUnpackedInto(t *testing.T) {
 	}
 }
 
-func TestARemoteWithNoEvidenceSaysSo(t *testing.T) {
+func TestARemoteWithNoRecordSaysSo(t *testing.T) {
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
 	bare := filepath.Join(t.TempDir(), "remote.git")

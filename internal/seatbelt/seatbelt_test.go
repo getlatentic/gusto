@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// behind runs a shell command behind a policy, as a job's engine is run, and says what it printed.
+// behind runs a shell command behind a policy, as a task's engine is run, and says what it printed.
 func behind(t *testing.T, policy Policy, script string) string {
 	t.Helper()
 	if runtime.GOOS != "darwin" || Available() != nil {
@@ -27,10 +27,10 @@ func behind(t *testing.T, policy Policy, script string) string {
 	return string(out)
 }
 
-// A person's home, with a folder the job was given, a secret of theirs, and a tool the engine is made of.
+// A person's home, with a folder the task was given, a secret of theirs, and a tool the engine is made of.
 func person(t *testing.T) (home string, policy Policy) {
 	t.Helper()
-	// A home that is not under a temporary folder, which a job is let write.
+	// A home that is not under a temporary folder, which a task is let write.
 	real, err := os.UserHomeDir()
 	if err != nil {
 		t.Skip("no home")
@@ -54,7 +54,7 @@ func person(t *testing.T) (home string, policy Policy) {
 	return home, Policy{Home: home, Writable: []string{filepath.Join(home, "job")}, Readable: []string{filepath.Join(home, "tools", "engine")}}
 }
 
-func TestAJobWritesItsOwnFoldersAndNothingElseOfThePersons(t *testing.T) {
+func TestATaskWritesItsOwnFoldersAndNothingElseOfThePersons(t *testing.T) {
 	home, policy := person(t)
 	said := behind(t, policy, `echo made > `+home+`/job/workspace/made.txt && echo "own folder: written"; echo x > `+home+`/elsewhere.txt 2>/dev/null; [ -e `+home+`/elsewhere.txt ] && echo "home: WRITTEN" || echo "home: refused"; echo x > `+home+`/.ssh/authorized_keys 2>/dev/null; [ -e `+home+`/.ssh/authorized_keys ] && echo "ssh: WRITTEN" || echo "ssh: refused"; echo y > $TMPDIR/scratch && echo "temp: written"`)
 	for _, want := range []string{"own folder: written", "home: refused", "ssh: refused", "temp: written"} {
@@ -64,7 +64,7 @@ func TestAJobWritesItsOwnFoldersAndNothingElseOfThePersons(t *testing.T) {
 	}
 }
 
-func TestAJobReadsNoneOfThePersonsHomeButItsOwnFoldersAndItsEngine(t *testing.T) {
+func TestATaskReadsNoneOfThePersonsHomeButItsOwnFoldersAndItsEngine(t *testing.T) {
 	home, policy := person(t)
 	said := behind(t, policy, `cat `+home+`/.ssh/id_ed25519 >/dev/null 2>&1 && echo "ssh key: READ" || echo "ssh key: refused"; cat `+home+`/notes.txt >/dev/null 2>&1 && echo "notes: READ" || echo "notes: refused"; ls `+home+` >/dev/null 2>&1 && echo "home listing: READ" || echo "home listing: refused"; cat `+home+`/tools/engine/bin/engine >/dev/null 2>&1 && echo "engine: read" || echo "engine: REFUSED"; echo hi > `+home+`/job/workspace/a && cat `+home+`/job/workspace/a >/dev/null && echo "own folder: read"; cat /etc/hosts >/dev/null && echo "system: read"`)
 	for _, want := range []string{"ssh key: refused", "notes: refused", "home listing: refused", "engine: read", "own folder: read", "system: read"} {
@@ -74,7 +74,7 @@ func TestAJobReadsNoneOfThePersonsHomeButItsOwnFoldersAndItsEngine(t *testing.T)
 	}
 }
 
-func TestAJobReachesOnlyGustosProxy(t *testing.T) {
+func TestATaskReachesOnlyGustosProxy(t *testing.T) {
 	_, policy := person(t)
 	proxy, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

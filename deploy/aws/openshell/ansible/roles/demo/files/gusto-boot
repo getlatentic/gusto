@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs as root when a demo host starts, before nginx, gusto cloud and gusto host. What it does depends on ROLE:
+# Runs as root when a demo host starts, before nginx, gusto cloud and gusto node. What it does depends on ROLE:
 #
 #   all           a host that is the front door and runs the organizations' servers too
 #   orchestrator  the front door alone: the tokens, the certificate, the lease and the name
@@ -115,13 +115,17 @@ container_image() {
   for tag in $stale; do docker rmi "gusto-runner:$tag" >/dev/null; done
 }
 
-# The image an organization's agents run in: a container's, or the root file system an OpenShell sandbox is made from.
+# The images organizations' agents run in: a container's, and the root file system an OpenShell sandbox is made from, for each
+# kind of sandbox the host has (SANDBOXES).
 image() {
-  case "${SANDBOX:-openshell}" in
-  container) container_image ;;
-  openshell) runner_image ;;
-  *) echo "gusto-boot: SANDBOX is container or openshell, not $SANDBOX" >&2; exit 2 ;;
-  esac
+  local sandbox
+  for sandbox in ${SANDBOXES:-${SANDBOX:-openshell}}; do
+    case "$sandbox" in
+    container) container_image ;;
+    openshell) runner_image ;;
+    *) echo "gusto-boot: a sandbox is container or openshell, not $sandbox" >&2; exit 2 ;;
+    esac
+  done
 }
 
 credentials() {
@@ -155,7 +159,7 @@ cell_secret() {
 cell_identity() {
   local id
   id=$(metadata instance-id)
-  printf 'GUSTO_CELL_NAME=cell-%s\nGUSTO_CELL_PRIVATE=%s\n' "${id#i-}" "$(metadata local-ipv4)" > "$run/cell.env"
+  printf 'GUSTO_NODE_NAME=cell-%s\nGUSTO_NODE_PRIVATE=%s\n' "${id#i-}" "$(metadata local-ipv4)" > "$run/cell.env"
 }
 
 point_the_name_here() {

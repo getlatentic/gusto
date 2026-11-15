@@ -9,7 +9,7 @@ import (
 )
 
 // An organization's pages remind a person who has not confirmed their address, and mail the link again, by asking
-// the front door from the organization's own address. No other address is answered.
+// gusto cloud from the organization's own address. No other address is answered.
 func TestAnOrganizationsPagesAskWhetherThePersonHasConfirmedAndMailTheLinkAgain(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := withServers(t)
@@ -25,7 +25,7 @@ func TestAnOrganizationsPagesAskWhetherThePersonHasConfirmedAndMailTheLinkAgain(
 			}
 			return answer
 		}
-		if got := confirmed(ada); got != (confirmation{Email: "ada@acme.com", Jobs: DefaultLimits().Verified.Jobs}) {
+		if got := confirmed(ada); got != (confirmation{Email: "ada@acme.com", Tasks: DefaultLimits().Verified.Tasks}) {
 			t.Errorf("a new admin has not confirmed: %+v", got)
 		}
 

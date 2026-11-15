@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/notify"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // aRoutine adds a routine through the form and says which instance it is on.
@@ -27,7 +27,7 @@ func aRoutine(t *testing.T, site *site, form url.Values) (instanceID string, whe
 func TestADueRoutineStartsATurnInItsOwnConversationOnceAPerSlot(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
-	id, where := aRoutine(t, site, url.Values{"title": {"Morning"}, "prompt": {"what changed?"}, "every": {"6"}})
+	id, _ := aRoutine(t, site, url.Values{"title": {"Morning"}, "prompt": {"what changed?"}, "every": {"6"}})
 	routine := routinesOf(t, site, id)[0]
 
 	site.server.StartDueRoutines(time.Now())
@@ -39,7 +39,7 @@ func TestADueRoutineStartsATurnInItsOwnConversationOnceAPerSlot(t *testing.T) {
 	if !strings.HasPrefix(record.Brief, "[routine] Morning: what changed?") || record.Instance != id || record.Thread != routine.Thread {
 		t.Errorf("the turn is %+v", record)
 	}
-	if got := routinesOf(t, site, id)[0].Last; got == nil || got.Job != record.ID {
+	if got := routinesOf(t, site, id)[0].Last; got == nil || got.Task != record.ID {
 		t.Errorf("the slot kept %+v", got)
 	}
 
@@ -47,14 +47,15 @@ func TestADueRoutineStartsATurnInItsOwnConversationOnceAPerSlot(t *testing.T) {
 	if again, _ := site.server.instances.Thread(id, routine.Thread); len(again.Turns) != 1 {
 		t.Errorf("six hours had not passed, and a second turn started: %d", len(again.Turns))
 	}
-	if body := site.ask(t, "GET", where, nil).Body.String(); !strings.Contains(body, "Morning") || !strings.Contains(body, "every 6 hours") {
-		t.Error("the agent's page does not list its routine and when it runs")
+	if listed := site.project(t, id).Routines; len(listed) != 1 || listed[0].Title != "Morning" || listed[0].When != "every 6 hours" ||
+		listed[0].Last != "ran" || listed[0].Thread != routine.Thread || listed[0].Prompt != "what changed?" {
+		t.Errorf("the agent's page does not list its routine and when it runs: %+v", listed)
 	}
 }
 
 func TestARoutineWhoseLastRunIsStillAnsweringSkipsTheSlotAndSaysWhy(t *testing.T) {
 	started, release := make(chan string, 4), make(chan struct{})
-	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
 		started <- dir.Path()
 		select {
 		case <-release:
@@ -154,7 +155,7 @@ func aFinishedRun(t *testing.T, site *site) (id, routine string) {
 	<-site.ran
 	last := routinesOf(t, site, id)[0].Last
 	for range 100 {
-		if record, _ := site.index.Get(last.Job); record.State.Done() {
+		if record, _ := site.index.Get(last.Task); record.State.Done() {
 			return id, routine
 		}
 		time.Sleep(20 * time.Millisecond)
@@ -209,7 +210,7 @@ func TestTheNewsIsGivenUpOnAfterFiveTriesAndSaysWhy(t *testing.T) {
 
 func TestARunWhoseTurnHasNotEndedIsNotToldYet(t *testing.T) {
 	started, release := make(chan string, 4), make(chan struct{})
-	testWork = func(ctx context.Context, dir job.Dir) (int, error) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
 		started <- dir.Path()
 		select {
 		case <-release:

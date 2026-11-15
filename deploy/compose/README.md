@@ -98,7 +98,7 @@ GUSTO_KEYRING=/var/lib/gusto/keys
 | What | Where |
 | --- | --- |
 | Tasks and their record | `$GUSTO_DATA/jobs` (`/var/lib/gusto/jobs` unless moved); the proxy's socket is `.proxy.sock` there. The smoke check keeps its repository in `$GUSTO_DATA/smoke` and its tasks here until you delete them |
-| Workspaces, setups, comparisons | `$GUSTO_DATA/sessions`, `setups`, `comparisons` |
+| Agents' folders, setups, comparisons | `$GUSTO_DATA/sessions`, `setups`, `comparisons` |
 | The change record | `$GUSTO_DATA/changes/changes.jsonl` ([CHANGES.md](../../docs/CHANGES.md)) |
 | The server's log | `docker compose logs server`: one JSON line a request |
 

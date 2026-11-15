@@ -8,11 +8,11 @@ import (
 )
 
 // confirmation is whether the person signed in here has confirmed their address, for the reminder on their
-// organization's pages. Jobs is the monthly limit that confirming lifts the trial to.
+// organization's pages. Tasks is the monthly limit that confirming lifts the trial to.
 type confirmation struct {
 	Email     string `json:"email"`
 	Confirmed bool   `json:"confirmed"`
-	Jobs      int    `json:"jobs"`
+	Tasks     int    `json:"jobs"`
 }
 
 // allowOrgOrigin lets an organization's own address read the answer with the person's cookie, and says which
@@ -55,9 +55,9 @@ func (s *Server) accountJSON(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not signed in", http.StatusUnauthorized)
 		return
 	}
-	org, _, _ := s.Store.Org(slug)
+	org, _, _ := s.Store.Org(r.Context(), slug)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(confirmation{Email: person.Email, Confirmed: !person.Trial() || org.Demo != nil, Jobs: s.Store.set.Limits.Verified.Jobs})
+	json.NewEncoder(w).Encode(confirmation{Email: person.Email, Confirmed: !person.Trial() || org.Demo != nil, Tasks: s.Store.set.Limits.Verified.Tasks})
 }
 
 // confirmAgain mails the person the link that confirms their address again, up to the limit for the address.
@@ -76,11 +76,11 @@ func (s *Server) confirmAgain(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	if !s.mails.Allow(person.Email) {
+	if !s.mails.Allow(r.Context(), person.Email) {
 		http.Error(w, "that address has been mailed too often", http.StatusTooManyRequests)
 		return
 	}
-	org, _, _ := s.Store.Org(slug)
-	s.mailVerification(person, org)
+	org, _, _ := s.Store.Org(r.Context(), slug)
+	s.mailVerification(r.Context(), person, org)
 	w.WriteHeader(http.StatusNoContent)
 }

@@ -49,7 +49,7 @@ func TestGenerateOldLayoutFixture(t *testing.T) {
 	must(err)
 	at = T.Add(-time.Hour)
 	must(s.RecordSignIn("ada@acme.com"))
-	must(s.SetRuntime("acme-com", Runtime{State: Ready, Cell: "cell-a", Port: 9100, ProxyPort: 9101, Restarts: 2}))
+	must(s.SetRuntime("acme-com", Runtime{State: Ready, Node: "cell-a", Port: 9100, ProxyPort: 9101, Restarts: 2}))
 
 	at = T.Add(-3 * time.Hour)
 	_, _, err = s.SignUp(Signup{Email: "eve@globex.com", OrgName: "Globex"})

@@ -48,5 +48,5 @@ func PageOf(server string, turn helper.Turn) string {
 	if turn.Instance != "" && turn.Thread != "" {
 		return server + "/instances/" + turn.Instance + "/threads/" + turn.Thread
 	}
-	return server + "/jobs/" + turn.Job
+	return server + "/jobs/" + turn.Task
 }

@@ -89,13 +89,7 @@ func Fingerprint(path string) (string, error) {
 // filled, or a tool that is part of the way through writing it, is not read as the setting. Where an empty file would mean no
 // rules, that is the difference between a policy and none.
 func Watch(ctx context.Context, every time.Duration, sources []Source, told func(Change)) {
-	seen := map[string]string{}
-	waiting := map[string]string{}
-	for _, source := range sources {
-		if source.Path != "" {
-			seen[source.Name], _ = Fingerprint(source.Path)
-		}
-	}
+	w := newWatcher(sources, told)
 	ticker := time.NewTicker(every)
 	defer ticker.Stop()
 	for {
@@ -103,26 +97,50 @@ func Watch(ctx context.Context, every time.Duration, sources []Source, told func
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			w.look()
 		}
-		for _, source := range sources {
-			if source.Path == "" {
-				continue
-			}
-			now, err := Fingerprint(source.Path)
-			if err != nil || now == seen[source.Name] {
-				delete(waiting, source.Name)
-				continue
-			}
-			if waiting[source.Name] != now {
-				waiting[source.Name] = now
-				continue
-			}
-			delete(waiting, source.Name)
-			change := Change{Name: source.Name, Was: seen[source.Name], Now: now, Err: source.Apply()}
-			seen[source.Name] = now
-			if told != nil {
-				told(change)
-			}
+	}
+}
+
+// watcher is what Watch knows between looks: the content in force for each source, and new content seen once and waiting to
+// be seen again.
+type watcher struct {
+	sources []Source
+	told    func(Change)
+	seen    map[string]string
+	waiting map[string]string
+}
+
+func newWatcher(sources []Source, told func(Change)) *watcher {
+	w := &watcher{sources: sources, told: told, seen: map[string]string{}, waiting: map[string]string{}}
+	for _, source := range sources {
+		if source.Path != "" {
+			w.seen[source.Name], _ = Fingerprint(source.Path)
+		}
+	}
+	return w
+}
+
+// look looks at every source once, and applies what has been the same new content at this look and the one before.
+func (w *watcher) look() {
+	for _, source := range w.sources {
+		if source.Path == "" {
+			continue
+		}
+		now, err := Fingerprint(source.Path)
+		if err != nil || now == w.seen[source.Name] {
+			delete(w.waiting, source.Name)
+			continue
+		}
+		if w.waiting[source.Name] != now {
+			w.waiting[source.Name] = now
+			continue
+		}
+		delete(w.waiting, source.Name)
+		change := Change{Name: source.Name, Was: w.seen[source.Name], Now: now, Err: source.Apply()}
+		w.seen[source.Name] = now
+		if w.told != nil {
+			w.told(change)
 		}
 	}
 }

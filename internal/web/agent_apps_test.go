@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // A person who ends a connection and makes it again starts from their default for their agents: what they chose for an agent under
@@ -17,7 +17,7 @@ func TestAnAppConnectedAgainFollowsThePersonsDefaultAndNotWhatTheyChoseBefore(t 
 	here.ask(t, "POST", "/admin/connectors/tasks/on", nil)
 	ada := here.as(t, alice)
 	signInAt(t, ada, app)
-	room, err := here.server.instances.StartRoom("Launch", alice)
+	room, err := here.server.instances.StartRoom("Launch", alice, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func TestAnAppConnectedAgainFollowsThePersonsDefaultAndNotWhatTheyChoseBefore(t 
 		t.Fatal(err)
 	}
 	turn := func(id string) []string {
-		spec, _ := job.Read(placed(t, here, id, jobs.Record{Asked: alice, Agent: inRoom.ID, Instance: room.ID}, "opencode"))
+		spec, _ := task.Read(placed(t, here, id, tasks.Record{Asked: alice, Agent: inRoom.ID, Instance: room.ID}, "opencode"))
 		if spec.Setup == nil {
 			return nil
 		}

@@ -4,11 +4,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/getlatentic/gusto/internal/compare"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 const (
@@ -46,6 +47,7 @@ func TestSomebodyElsesAgentIsNotFoundOnAnyPage(t *testing.T) {
 
 	for _, page := range []struct{ method, path string }{
 		{"GET", where},
+		{"GET", "/app/api" + where},
 		{"GET", where + "/files"},
 		{"GET", where + "/file?path=notes.txt"},
 		{"GET", thread},
@@ -62,6 +64,9 @@ func TestSomebodyElsesAgentIsNotFoundOnAnyPage(t *testing.T) {
 	if got := mine.ask(t, "GET", where, nil); got.Code != http.StatusOK {
 		t.Errorf("the owner's own agent answered %d", got.Code)
 	}
+	if page := mine.project(t, strings.TrimPrefix(where, "/instances/")); len(page.Conversations) != 1 || page.Conversations[0].Path != thread {
+		t.Errorf("the owner's own agent does not list its conversation: %+v", page.Conversations)
+	}
 	if _, found := site.server.instances.Get(strings.TrimPrefix(where, "/instances/")); !found {
 		t.Error("somebody else removed the agent")
 	}
@@ -77,8 +82,8 @@ func TestTheSideListCarriesOnlyYourOwnProjects(t *testing.T) {
 	}
 	hers, his := spoke(alice), spoke(bob)
 
-	page := site.as(t, alice).ask(t, "GET", "/chat", nil).Body.String()
-	if !strings.Contains(page, `href="/chat?at=`+hers+`"`) || strings.Contains(page, his) {
+	hersToo := site.as(t, alice)
+	if _, listed := shellOf(t, hersToo).Rail.project(hers); !listed || strings.Contains(hersToo.dataText(t, "/shell"), his) {
 		t.Errorf("alice's side list should carry %s and not %s", hers, his)
 	}
 }
@@ -90,40 +95,47 @@ func TestAnAdminAndTheSharedSignInSeeEverybodysAgents(t *testing.T) {
 
 	here.signIn(t)
 	for name, seen := range map[string]*site{"the shared sign-in": here, "a named admin": here.as(t, "carol@example.com")} {
-		if got := seen.ask(t, "GET", where, nil); got.Code != http.StatusOK {
-			t.Errorf("%s got %d for somebody's agent", name, got.Code)
+		for _, path := range []string{where, "/app/api" + where} {
+			if got := seen.ask(t, "GET", path, nil); got.Code != http.StatusOK {
+				t.Errorf("%s got %d for somebody's agent at %s", name, got.Code, path)
+			}
 		}
 	}
-	if got := here.as(t, bob).ask(t, "GET", where, nil); got.Code != http.StatusNotFound {
-		t.Errorf("a person who is not an admin got %d", got.Code)
+	for _, path := range []string{where, "/app/api" + where} {
+		if got := here.as(t, bob).ask(t, "GET", path, nil); got.Code != http.StatusNotFound {
+			t.Errorf("a person who is not an admin got %d at %s", got.Code, path)
+		}
 	}
 }
 
 // A run is the asker's, and so is everything it left behind: the page, each
 // file, the bundle and the live stream.
-func TestSomebodyElsesJobIsNotFoundOnAnyPage(t *testing.T) {
+func TestSomebodyElsesTaskIsNotFoundOnAnyPage(t *testing.T) {
 	site := open(t)
 	mine, theirs := site.as(t, alice), site.as(t, bob)
 	where, _ := started(t, mine)
-	task := mine.ask(t, "POST", where+"/tasks", url.Values{"brief": {"count the files"}, "gate": {"true"}})
-	job := task.Header().Get("Location")
-	id := strings.TrimPrefix(job, "/jobs/")
-	if id == job {
-		t.Fatalf("the task did not open a job: %d %q", task.Code, job)
+	sent := mine.ask(t, "POST", where+"/tasks", url.Values{"brief": {"count the files"}, "gate": {"true"}})
+	task := sent.Header().Get("Location")
+	id := strings.TrimPrefix(task, "/jobs/")
+	if id == task {
+		t.Fatalf("the task did not open a job: %d %q", sent.Code, task)
 	}
 
-	for _, path := range []string{job, job + "/files/transcript.log", job + "/bundle", "/watch/" + id} {
+	for _, path := range []string{task, "/app/api" + task, task + "/files/transcript.log", task + "/bundle", "/watch/" + id} {
 		if got := theirs.ask(t, "GET", path, nil); got.Code != http.StatusNotFound {
 			t.Errorf("GET %s answered %d to somebody else", path, got.Code)
 		}
 	}
-	if got := mine.ask(t, "GET", job, nil); got.Code != http.StatusOK {
+	if got := mine.ask(t, "GET", task, nil); got.Code != http.StatusOK {
 		t.Errorf("the asker's own job answered %d", got.Code)
 	}
-	if list := theirs.ask(t, "GET", "/jobs", nil).Body.String(); strings.Contains(list, id) {
+	if page := mine.task(t, id); page.Job.ID != id || page.Job.Brief != "count the files" {
+		t.Errorf("the asker's own job reads as %+v", page.Job)
+	}
+	if list := theirs.dataText(t, "/jobs"); strings.Contains(list, id) {
 		t.Error("somebody else's job is on the jobs list")
 	}
-	if list := mine.ask(t, "GET", "/jobs", nil).Body.String(); !strings.Contains(list, id) {
+	if list := mine.activity(t, "").ids(); !slices.Contains(list, id) {
 		t.Error("your own job is missing from the jobs list")
 	}
 }
@@ -133,12 +145,14 @@ func TestSomebodyElsesJobIsNotFoundOnAnyPage(t *testing.T) {
 func TestWorkWithNoOwnerIsAnAdminsAlone(t *testing.T) {
 	site := open(t)
 	for id, asked := range map[string]string{"asked-by-nobody": "", "asked-by-the-shared-sign-in": sharedSignIn} {
-		spentJob(t, site.index.Root(), id, "platform", priced)
-		if err := site.index.Add(jobs.Record{ID: id, State: jobs.Passed, Brief: "old", Harness: "fixture", Asked: asked}); err != nil {
+		spentTask(t, site.index.Root(), id, "platform", priced)
+		if err := site.index.Add(tasks.Record{ID: id, State: tasks.Passed, Brief: "old", Harness: "fixture", Asked: asked}); err != nil {
 			t.Fatal(err)
 		}
-		if got := site.as(t, alice).ask(t, "GET", "/jobs/"+id, nil); got.Code != http.StatusNotFound {
-			t.Errorf("a job asked by %q answered %d to a person", asked, got.Code)
+		for _, path := range []string{"/jobs/" + id, "/app/api/jobs/" + id} {
+			if got := site.as(t, alice).ask(t, "GET", path, nil); got.Code != http.StatusNotFound {
+				t.Errorf("a job asked by %q answered %d to a person at %s", asked, got.Code, path)
+			}
 		}
 		site.signIn(t)
 		if got := site.ask(t, "GET", "/jobs/"+id, nil); got.Code != http.StatusOK {
@@ -158,14 +172,21 @@ func TestSomebodyElsesComparisonIsNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got := site.as(t, bob).ask(t, "GET", "/compare/one-lineup", nil); got.Code != http.StatusNotFound {
-		t.Errorf("somebody else's comparison answered %d", got.Code)
+	for _, path := range []string{"/compare/one-lineup", "/app/api/compare/one-lineup"} {
+		if got := site.as(t, bob).ask(t, "GET", path, nil); got.Code != http.StatusNotFound {
+			t.Errorf("somebody else's comparison answered %d at %s", got.Code, path)
+		}
+		if got := site.as(t, alice).ask(t, "GET", path, nil); got.Code != http.StatusOK {
+			t.Errorf("the owner's own comparison answered %d at %s", got.Code, path)
+		}
 	}
-	if list := site.as(t, bob).ask(t, "GET", "/compare", nil).Body.String(); strings.Contains(list, "fix the parser") {
+	if list := site.as(t, bob).dataText(t, "/compare"); strings.Contains(list, "fix the parser") {
 		t.Error("somebody else's comparison is on the compare page")
 	}
-	if got := site.as(t, alice).ask(t, "GET", "/compare/one-lineup", nil); got.Code != http.StatusOK {
-		t.Errorf("the owner's own comparison answered %d", got.Code)
+	var hers compareJSON
+	site.as(t, alice).data(t, "/compare", &hers)
+	if len(hers.Lineups) != 1 || hers.Lineups[0].Brief != "fix the parser" {
+		t.Errorf("the owner's comparison is not on the compare page: %+v", hers.Lineups)
 	}
 }
 
@@ -175,18 +196,17 @@ func TestSpendIsYourOwnUnlessYouAreAnAdmin(t *testing.T) {
 	here := open(t)
 	here.server.UseAdmins([]string{"carol@example.com"})
 	for id, asked := range map[string]string{"alice-run": alice, "bob-run": bob} {
-		spentJob(t, here.index.Root(), id, "platform", priced)
-		if err := here.index.Add(jobs.Record{ID: id, State: jobs.Passed, Brief: "b", Harness: "fixture", Asked: asked}); err != nil {
+		spentTask(t, here.index.Root(), id, "platform", priced)
+		if err := here.index.Add(tasks.Record{ID: id, State: tasks.Passed, Brief: "b", Harness: "fixture", Asked: asked}); err != nil {
 			t.Fatal(err)
 		}
 	}
-	// Each run cost $0.25, so a person who sees only their own sees $0.2500 and one who sees the bill sees $0.5000.
+	// Each run cost $0.25, so a person who sees only their own sees $0.25 and one who sees the bill sees $0.50.
 	spent := func(who *site) string {
-		body := who.ask(t, "GET", "/spend?month=2026-09", nil).Body.String()
-		switch {
-		case strings.Contains(body, "$0.5000"):
+		switch spendAt(t, who, "/spend?month=2026-09").Ledger.Total.USD {
+		case 0.5:
 			return "both"
-		case strings.Contains(body, "$0.2500"):
+		case 0.25:
 			return "one"
 		}
 		return "none"
@@ -215,9 +235,8 @@ func TestSpendIsYourOwnUnlessYouAreAnAdmin(t *testing.T) {
 // screen can tell whose it is.
 func TestTheRailSaysWhoIsSignedIn(t *testing.T) {
 	site := open(t)
-	page := site.as(t, "ada.lovelace@example.com").ask(t, "GET", "/chat", nil).Body.String()
-	if !strings.Contains(page, `aria-label="Ada Lovelace, account and settings"`) || !strings.Contains(page, `title="ada.lovelace@example.com"`) ||
-		!strings.Contains(page, `aria-hidden="true">AL</span>`) {
-		t.Errorf("the rail does not say who is signed in:\n%s", page)
+	ada := site.as(t, "ada.lovelace@example.com")
+	if who := shellOf(t, ada).SignedAs; who != (signedAs{Name: "Ada Lovelace", Initials: "AL", Who: "ada.lovelace@example.com"}) {
+		t.Errorf("the shell does not say who is signed in: %+v", who)
 	}
 }

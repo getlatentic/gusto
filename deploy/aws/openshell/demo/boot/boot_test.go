@@ -308,7 +308,7 @@ func TestTheFirstBootStartsTheLeaseAndALaterOneDoesNotGiveMoreTime(t *testing.T)
 	}
 	info, _ := os.Stat(filepath.Join(h.dir, "lease", "lease.json"))
 	if info.Mode().Perm() != 0o644 {
-		t.Errorf("the front door and the reaper both read it: %v", info.Mode())
+		t.Errorf("gusto cloud and the reaper both read it: %v", info.Mode())
 	}
 	// Somebody extended it, and the script ran again.
 	extended := fmt.Sprintf(`{"deadline": %d, "hardMax": %d}`, deadline+1800, hardMax)

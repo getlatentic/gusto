@@ -44,7 +44,7 @@ func Keep(logger *slog.Logger) func(http.Handler) http.Handler {
 
 // unremarkable leaves out /healthz and /readyz. A probe polls them on a timer
 // and almost always hears the same answer, so its lines would bury the ones that
-// say who asked for a job, and none of them would name anybody.
+// say who asked for a task, and none of them would name anybody.
 func unremarkable(r *http.Request) bool {
 	return r.URL.Path == "/healthz" || r.URL.Path == "/readyz"
 }

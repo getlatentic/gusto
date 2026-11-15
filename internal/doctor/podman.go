@@ -4,17 +4,15 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-
-	"github.com/getlatentic/gusto/internal/sandbox"
 )
 
 // podmanRuntimeDirectory checks rootless podman can reach the directory it
 // talks to conmon through. A systemd unit with ProtectHome hides /run/user, and
 // podman then refuses every container with exit 125 and a line about symlinks,
 // which is the failure a whole deploy once took to find.
-func podmanRuntimeDirectory(machine Machine) Verdict {
-	if filepath.Base(sandbox.Runtime()) != "podman" {
-		return skip("the container command is " + sandbox.Runtime() + ", not podman")
+func podmanRuntimeDirectory(machine Machine, runtime string) Verdict {
+	if filepath.Base(runtime) != "podman" {
+		return skip("the container command is " + runtime + ", not podman")
 	}
 	if machine.User() == 0 {
 		return skip("podman runs as root here, and root keeps its runtime directory under /run")

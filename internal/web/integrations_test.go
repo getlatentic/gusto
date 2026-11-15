@@ -18,7 +18,7 @@ import (
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/integration"
 	"github.com/getlatentic/gusto/internal/setup"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 const (
@@ -82,18 +82,20 @@ func TestAnAdministratorImportsAnIntegrationAndItIsOffUntilTurnedOn(t *testing.T
 	if err != nil || held.On != "" || len(held.Versions) != 1 {
 		t.Fatalf("%+v %v", held, err)
 	}
-	page := admin.ask(t, "GET", made.Header().Get("Location"), nil).Body.String()
-	for _, want := range []string{"summarize", "api.example.com", "off", "Turn on"} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the page does not say %q", want)
-		}
+	page := integrationPageOf(t, admin, made.Header().Get("Location"))
+	if shown := page.Shown; shown == nil || len(shown.Skills) != 1 || shown.Skills[0].Name != "summarize" ||
+		len(shown.Servers) != 1 || shown.Servers[0].URL != "https://api.example.com/mcp" {
+		t.Errorf("the page does not show the version's skill and server: %+v", page.Shown)
 	}
-	if list := admin.ask(t, "GET", "/admin/apps?tab=skills", nil).Body.String(); !strings.Contains(list, "reports") {
-		t.Error("the list does not show it")
+	if page.Integration.On != "" || len(page.Integration.Versions) != 1 {
+		t.Errorf("the page does not give it as off, with a version to turn on: %+v", page.Integration)
+	}
+	if row := appsPageOf(t, admin, "?tab=skills").skill(t, "reports"); row.On || row.Href != "/admin/integrations/reports" {
+		t.Errorf("the list does not show it, off: %+v", row)
 	}
 }
 
-func TestAJobWithASetupThatNamesAnIntegrationGetsItOnlyOnceItIsOn(t *testing.T) {
+func TestATaskWithASetupThatNamesAnIntegrationGetsItOnlyOnceItIsOn(t *testing.T) {
 	here, admin := withIntegrations(t)
 	made := upload(t, admin, zipped(t, pluginFiles("1.0.0", "Summarize a report.")))
 	version := strings.SplitN(made.Header().Get("Location"), "version=", 2)[1]
@@ -102,8 +104,8 @@ func TestAJobWithASetupThatNamesAnIntegrationGetsItOnlyOnceItIsOn(t *testing.T) 
 	if held, _ := here.server.setups.Get("team"); len(held.Integrations) != 1 {
 		t.Fatalf("the setup does not name it: %+v", held)
 	}
-	if page := admin.ask(t, "GET", "/admin/skill-sets/team", nil).Body.String(); !strings.Contains(page, "an administrator turns it on") {
-		t.Error("the setup's page does not say the integration is off")
+	if uses := skillSetPageOf(t, admin, "team").Uses; len(uses) != 1 || uses[0].Name != "reports" || uses[0].On {
+		t.Errorf("the setup's page does not say the integration is off: %+v", uses)
 	}
 
 	started := admin.ask(t, "POST", "/instances", url.Values{"harness": {"fixture"}, "setup": {"team"}})
@@ -112,7 +114,7 @@ func TestAJobWithASetupThatNamesAnIntegrationGetsItOnlyOnceItIsOn(t *testing.T) 
 	if strings.Contains(said.Header().Get("Location"), "#") && !strings.Contains(said.Header().Get("Location"), "refused=") {
 		id := strings.TrimPrefix(said.Header().Get("Location"), where+"#")
 		admin.wait(t, id)
-		if spec, err := job.Read(job.Dir(filepath.Join(here.index.Root(), id))); err == nil && spec.Setup != nil && len(spec.Setup.Skills) > 0 {
+		if spec, err := task.Read(task.Dir(filepath.Join(here.index.Root(), id))); err == nil && spec.Setup != nil && len(spec.Setup.Skills) > 0 {
 			t.Fatalf("a job got the skills of an integration that is off: %+v", spec.Setup)
 		}
 	}
@@ -125,8 +127,8 @@ func TestAJobWithASetupThatNamesAnIntegrationGetsItOnlyOnceItIsOn(t *testing.T) 
 	said = admin.ask(t, "POST", where+"/say", url.Values{"said": {"go"}})
 	id := strings.TrimPrefix(said.Header().Get("Location"), where+"#")
 	admin.wait(t, id)
-	dir := job.Dir(filepath.Join(here.index.Root(), id))
-	spec, err := job.Read(dir)
+	dir := task.Dir(filepath.Join(here.index.Root(), id))
+	spec, err := task.Read(dir)
 	if err != nil || spec.Setup == nil || strings.Join(spec.Setup.Skills, ",") != "summarize" || strings.Join(spec.Setup.Gateway, ",") != "reports-api" || len(spec.Setup.Servers) != 0 {
 		t.Fatalf("job.json names %+v (%v)", spec.Setup, err)
 	}
@@ -205,9 +207,9 @@ func TestAnIntegrationCanBeImportedFromAGitAddress(t *testing.T) {
 	if !strings.HasPrefix(made.Header().Get("Location"), "/admin/integrations/reports") {
 		t.Fatalf("answered %q", made.Header().Get("Location"))
 	}
-	page := admin.ask(t, "GET", "/admin/integrations/reports", nil).Body.String()
-	if !strings.Contains(page, "git file://") || !strings.Contains(page, " @ ") {
-		t.Error("the page does not say where the version came from and its commit")
+	source := integrationPageOf(t, admin, "/admin/integrations/reports").Integration.Versions[0].Source
+	if source.Kind != "git" || !strings.HasPrefix(source.Address, "file://") || source.Commit == "" {
+		t.Errorf("the page does not say where the version came from and its commit: %+v", source)
 	}
 }
 
@@ -244,9 +246,10 @@ func TestAnAdministratorAllowsTheProgramsOfOneVersionAndItIsRecorded(t *testing.
 	files["mcp.json"] = `{` + mcpHead + `, "mcpServers": {"db": {"type": "stdio", "command": "node", "args": ["${PLUGIN_ROOT}/db.js"]}}}`
 	made := upload(t, admin, zipped(t, files))
 	version := strings.SplitN(made.Header().Get("Location"), "version=", 2)[1]
-	page := admin.ask(t, "GET", made.Header().Get("Location"), nil).Body.String()
-	if !strings.Contains(page, "node ${PLUGIN_ROOT}/db.js") || !strings.Contains(page, "Allow the programs") {
-		t.Errorf("the page does not show the program and the way to allow it:\n%s", page)
+	page := integrationPageOf(t, admin, made.Header().Get("Location"))
+	if servers := page.Shown.Servers; len(servers) != 1 || servers[0].Transport != "stdio" || servers[0].Command != "node" ||
+		strings.Join(servers[0].Args, " ") != "${PLUGIN_ROOT}/db.js" || page.Integration.Programs != "" {
+		t.Errorf("the page does not show the program, not yet allowed: %+v %+v", page.Shown.Servers, page.Integration)
 	}
 	if refused := admin.ask(t, "POST", "/admin/integrations/reports/programs/allow", url.Values{"version": {version}}); !strings.Contains(refused.Header().Get("Location"), "refused=") {
 		t.Errorf("the programs were allowed without the box being ticked: %q", refused.Header().Get("Location"))
@@ -259,8 +262,8 @@ func TestAnAdministratorAllowsTheProgramsOfOneVersionAndItIsRecorded(t *testing.
 	if held.Programs != version {
 		t.Fatalf("programs = %q", held.Programs)
 	}
-	if page := admin.ask(t, "GET", made.Header().Get("Location"), nil).Body.String(); !strings.Contains(page, "Allowed.") || !strings.Contains(page, "Stop allowing them") {
-		t.Error("the page does not say the programs are allowed")
+	if page := integrationPageOf(t, admin, made.Header().Get("Location")); page.Integration.Programs != page.Shown.ID {
+		t.Errorf("the page does not say the programs are allowed: %+v", page.Integration)
 	}
 	admin.ask(t, "POST", "/admin/integrations/reports/programs/refuse", nil)
 	events := ofKind(written(t, here.log), changelog.IntegrationPrograms)
@@ -269,7 +272,7 @@ func TestAnAdministratorAllowsTheProgramsOfOneVersionAndItIsRecorded(t *testing.
 	}
 }
 
-func TestAnAdministratorChoosesWhoAnIntegrationIsOnForAndAJobForSomebodyElseDoesNotStart(t *testing.T) {
+func TestAnAdministratorChoosesWhoAnIntegrationIsOnForAndATaskForSomebodyElseDoesNotStart(t *testing.T) {
 	here, admin := withIntegrations(t)
 	made := upload(t, admin, zipped(t, pluginFiles("1.0.0", "Summarize a report.")))
 	version := strings.SplitN(made.Header().Get("Location"), "version=", 2)[1]

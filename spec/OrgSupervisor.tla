@@ -1,6 +1,6 @@
 --------------------------- MODULE OrgSupervisor ---------------------------
 (***************************************************************************)
-(* One organization address (slug) in the front door's controller          *)
+(* One organization address (slug) in gusto cloud's controller             *)
 (* (internal/cloud/controller.go), across the generations of organization *)
 (* that may hold it: a demo's slug has two random bytes, so a slug can be *)
 (* given again after its demo ends.  Each action names the Go function it *)
@@ -16,7 +16,7 @@
 (*    body of one provision is one step;                                   *)
 (*  - Store.EndDemo deletes the directory, then the rows in one           *)
 (*    transaction: one step, since nothing that matters reads in between;  *)
-(*  - a server on a host apart outlives the front door.                    *)
+(*  - a server on a host apart outlives gusto cloud.                       *)
 (*                                                                         *)
 (* Fixes is which fixes the code has.  "restartChecksKept" is             *)
 (* getlatentic/gusto#560; "provisionChecksOrg" is that provision refuses  *)
@@ -27,7 +27,7 @@ EXTENDS Naturals
 CONSTANTS
     Fixes,       \* a subset of {"restartChecksKept", "provisionChecksOrg"}
     MaxGen,      \* how many organizations may hold the slug, one after another
-    MaxCrashes   \* how many times the front door may crash
+    MaxCrashes   \* how many times gusto cloud may crash
 
 ASSUME Fixes \subseteq {"restartChecksKept", "provisionChecksOrg"}
 ASSUME MaxGen \in Nat \ {0} /\ MaxCrashes \in Nat
@@ -44,8 +44,8 @@ VARIABLES
     memState,    \* its state there
     removed,     \* the generation Controller.Remove last forgot, or 0
     server,      \* the slug's server runs on its cell
-    up,          \* the front door is running
-    crashes,     \* front-door crashes so far
+    up,          \* gusto cloud is running
+    crashes,     \* gusto cloud crashes so far
     signup,      \* the signup's Provision goroutine has yet to run
     runCall,     \* a Provision goroutine Run started has yet to run
     supervisor,  \* what supervise decided under c.mu and has yet to do
@@ -192,7 +192,7 @@ Ended ==
                    signup, runCall, supervisor, ending>>
 
 -----------------------------------------------------------------------------
-(* The front door.  A crash loses its memory and its goroutines; the store, *)
+(* Gusto cloud.  A crash loses its memory and its goroutines; the store,   *)
 (* the directory and a server on its host stay.                             *)
 Crash ==
     /\ up /\ crashes < MaxCrashes

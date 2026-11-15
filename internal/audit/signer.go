@@ -3,19 +3,19 @@ package audit
 import (
 	"fmt"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 )
 
 // asWritten is the derived summary as the version the export was written at
 // says it. Version 1 carried the manifest's signer claim as it stood, so a
 // version 1 export is held to exactly that and still verifies; it vouches for
 // no signer, and a reader of version 1 is told so by the schema.
-func (r Record) asWritten(version int, manifest evidence.Manifest) Record {
+func (r Summary) asWritten(version int, manifest record.Manifest) Summary {
 	if version != 1 {
 		return r
 	}
 	r.Version = 1
-	r.Evidence.Signer = manifest.Signer
+	r.Record.Signer = manifest.Signer
 	return r
 }
 

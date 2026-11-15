@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -36,7 +37,7 @@ func TestAPersonInvitedFromAnotherOrganizationIsInBothWithARoleInEach(t *testing
 		ada, acme := verifiedOrg(t, s, "ada@acme.com", "Acme")
 		_, globex := verifiedOrg(t, s, "eve@globex.com", "Globex")
 		joined(t, s, acme, ada, "Eve@Globex.com")
-		all, err := s.Memberships("eve@globex.com")
+		all, err := s.Memberships(t.Context(), "eve@globex.com")
 		if err != nil || len(all) != 2 {
 			t.Fatalf("%+v %v", all, err)
 		}
@@ -53,11 +54,11 @@ func TestAPersonInvitedFromAnotherOrganizationIsInBothWithARoleInEach(t *testing
 		if got := strings.Join(rosterEmails(t, s, acme.Slug), " "); got != "ada@acme.com:admin eve@globex.com:runner" {
 			t.Errorf("acme's server sees its own members: %s", got)
 		}
-		s.PublishRoster(globex.Slug)
+		s.PublishRoster(t.Context(), globex.Slug)
 		if got := strings.Join(rosterEmails(t, s, globex.Slug), " "); got != "eve@globex.com:admin" {
 			t.Errorf("globex's server sees only its own: %s", got)
 		}
-		orgs, err := s.OrgsOf("eve@globex.com")
+		orgs, err := s.OrgsOf(t.Context(), "eve@globex.com")
 		if err != nil || len(orgs) != 2 || orgs[0].Name != "Acme" || orgs[1].Name != "Globex" {
 			t.Errorf("%+v %v", orgs, err)
 		}
@@ -71,20 +72,20 @@ func TestRemovingAPersonFromOneOrganizationLeavesTheirOthersAndTheirSignIn(t *te
 		_, globex := verifiedOrg(t, s, "eve@globex.com", "Globex")
 		joined(t, s, acme, ada, "eve@globex.com")
 		joined(t, s, acme, ada, "bob@acme.com")
-		if err := s.Remove(acme.Slug, ada, "eve@globex.com"); err != nil {
+		if err := s.Remove(t.Context(), acme.Slug, ada, "eve@globex.com"); err != nil {
 			t.Fatal(err)
 		}
-		all, _ := s.Memberships("eve@globex.com")
+		all, _ := s.Memberships(t.Context(), "eve@globex.com")
 		if len(all) != 1 || all[0].Org != globex.Slug || all[0].Role != Admin {
 			t.Errorf("%+v", all)
 		}
-		if found, _ := s.HasAccount("eve@globex.com"); !found {
+		if found, _ := s.HasAccount(t.Context(), "eve@globex.com"); !found {
 			t.Error("the sign-in went with one organization of two")
 		}
-		if err := s.Remove(acme.Slug, ada, "bob@acme.com"); err != nil {
+		if err := s.Remove(t.Context(), acme.Slug, ada, "bob@acme.com"); err != nil {
 			t.Fatal(err)
 		}
-		if found, _ := s.HasAccount("bob@acme.com"); found {
+		if found, _ := s.HasAccount(t.Context(), "bob@acme.com"); found {
 			t.Error("a person in no organization still has a sign-in")
 		}
 		if got := strings.Join(rosterEmails(t, s, acme.Slug), " "); got != "ada@acme.com:admin" {
@@ -99,23 +100,23 @@ func TestARoleIsChangedInOneOrganizationOnly(t *testing.T) {
 		ada, acme := verifiedOrg(t, s, "ada@acme.com", "Acme")
 		_, globex := verifiedOrg(t, s, "eve@globex.com", "Globex")
 		joined(t, s, acme, ada, "eve@globex.com")
-		if _, err := s.SetRole(acme.Slug, ada, "eve@globex.com", Admin); err != nil {
+		if _, err := s.SetRole(t.Context(), acme.Slug, ada, "eve@globex.com", Admin); err != nil {
 			t.Fatal(err)
 		}
-		inGlobex, _, _ := s.Person("eve@globex.com", globex.Slug)
-		inAcme, _, _ := s.Person("eve@globex.com", acme.Slug)
+		inGlobex, _, _ := s.Person(t.Context(), "eve@globex.com", globex.Slug)
+		inAcme, _, _ := s.Person(t.Context(), "eve@globex.com", acme.Slug)
 		if inAcme.Role != Admin || inGlobex.Role != Admin {
 			t.Fatalf("%+v %+v", inAcme, inGlobex)
 		}
-		if _, err := s.SetRole(acme.Slug, ada, "eve@globex.com", Runner); err != nil {
+		if _, err := s.SetRole(t.Context(), acme.Slug, ada, "eve@globex.com", Runner); err != nil {
 			t.Fatal(err)
 		}
-		if again, _, _ := s.Person("eve@globex.com", globex.Slug); again.Role != Admin {
+		if again, _, _ := s.Person(t.Context(), "eve@globex.com", globex.Slug); again.Role != Admin {
 			t.Errorf("a role in one organization changed another's: %+v", again)
 		}
 		// An admin of one organization is nobody in another.
-		eve, _, _ := s.Person("eve@globex.com", globex.Slug)
-		if _, err := s.SetRole(acme.Slug, eve, "ada@acme.com", Runner); err != ErrNotAdmin {
+		eve, _, _ := s.Person(t.Context(), "eve@globex.com", globex.Slug)
+		if _, err := s.SetRole(t.Context(), acme.Slug, eve, "ada@acme.com", Runner); err != ErrNotAdmin {
 			t.Errorf("%v", err)
 		}
 	})
@@ -125,18 +126,18 @@ func TestEndingADemoKeepsItsPeoplesOtherOrganizations(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, _ := clocked(t, demoSet)
 		_, globex := verifiedOrg(t, s, "eve@globex.com", "Globex")
-		ada, demo, err := s.StartDemo("Ada", "ada@acme.com", "Acme")
+		ada, demo, err := s.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")
 		if err != nil {
 			t.Fatal(err)
 		}
 		joined(t, s, demo, ada, "eve@globex.com")
-		if err := s.EndDemo(demo.Slug, "its time was up"); err != nil {
+		if err := s.EndDemo(t.Context(), demo.Slug, "its time was up"); err != nil {
 			t.Fatal(err)
 		}
-		if found, _ := s.HasAccount("ada@acme.com"); found {
+		if found, _ := s.HasAccount(t.Context(), "ada@acme.com"); found {
 			t.Error("the person who was only in the demo is still there")
 		}
-		all, _ := s.Memberships("eve@globex.com")
+		all, _ := s.Memberships(t.Context(), "eve@globex.com")
 		if len(all) != 1 || all[0].Org != globex.Slug {
 			t.Errorf("%+v", all)
 		}
@@ -184,11 +185,11 @@ func TestEachPersonOfAnEarlierSchemaBecomesOneMembership(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		ada, found, err := s.Person("ada@acme.com", "acme-com")
+		ada, found, err := s.Person(ctx, "ada@acme.com", "acme-com")
 		if err != nil || !found || ada.Role != Admin || ada.Trial() || !ada.LastSignIn.Equal(at.Add(time.Hour)) {
 			t.Errorf("%+v %v %v", ada, found, err)
 		}
-		bob, _, _ := s.Person("bob@acme.com", "acme-com")
+		bob, _, _ := s.Person(ctx, "bob@acme.com", "acme-com")
 		if bob.Role != Runner || bob.By != "ada@acme.com" || !bob.Trial() || !bob.Created.Equal(at.Add(time.Minute)) {
 			t.Errorf("%+v", bob)
 		}
@@ -224,22 +225,24 @@ func TestAPersonInSeveralOrganizationsChoosesOneAndOpensOnlyTheirOwn(t *testing.
 			}
 		}
 		_, page := eve.get("/orgs")
-		for _, want := range []string{`href="/open?org=acme-com"`, `href="/open?org=globex-com"`, `href="/org?org=acme-com"`, `href="/org?org=globex-com"`} {
-			if !strings.Contains(page, want) || strings.Contains(page, "initech") {
-				t.Fatalf("the choice is their own organizations, to go into or to manage, and lacks %s:\n%s", want, page)
-			}
+		var slugs []string
+		for _, org := range shown(t, page).Orgs {
+			slugs = append(slugs, org.Slug)
 		}
-		if _, page := eve.get("/org?org=globex-com"); !strings.Contains(page, ">Globex</h1>") || !strings.Contains(page, `href="/orgs"`) {
-			t.Fatalf("choosing Globex shows Globex, with a way back to the choice:\n%s", page)
+		if slices.Sort(slugs); shown(t, page).Page != "orgs" || !slices.Equal(slugs, []string{"acme-com", "globex-com"}) || strings.Contains(page, "initech") {
+			t.Fatalf("the choice is their own organizations, to go into or to manage: %v", slugs)
 		}
-		if _, page := eve.get("/org"); !strings.Contains(page, ">Globex</h1>") {
-			t.Errorf("the choice is remembered:\n%s", page)
+		if got := shownAt(t, eve, "/org?org=globex-com"); got.Org == nil || got.Org.Name != "Globex" || !got.Several {
+			t.Fatalf("choosing Globex shows Globex, with a way back to the choice: %+v", got)
+		}
+		if got := shownAt(t, eve, "/org"); got.Org == nil || got.Org.Name != "Globex" {
+			t.Errorf("the choice is remembered: %+v", got)
 		}
 		if status, _, header := eve.get2("/"); status != http.StatusSeeOther || header.Get("Location") != "/open" {
-			t.Errorf("once chosen, the front door takes them into it: %d %v", status, header)
+			t.Errorf("once chosen, gusto cloud takes them into it: %d %v", status, header)
 		}
-		if _, page := eve.get("/org?org=initech-com"); !strings.Contains(page, ">Globex</h1>") {
-			t.Errorf("an organization they are not in is not chosen:\n%s", page)
+		if got := shownAt(t, eve, "/org?org=initech-com"); got.Org == nil || got.Org.Name != "Globex" {
+			t.Errorf("an organization they are not in is not chosen: %+v", got)
 		}
 		entered := func(org string) (string, string) {
 			status, _, header := eve.get2("/open?org=" + org)
@@ -259,13 +262,13 @@ func TestAPersonInSeveralOrganizationsChoosesOneAndOpensOnlyTheirOwn(t *testing.
 		if host, _ := entered("initech-com"); host != "globex-com.cloud.test" {
 			t.Errorf("another organization's name opens the one they are in, not it: %s", host)
 		}
-		if _, page := ada.get("/org"); strings.Contains(page, `href="/orgs"`) {
-			t.Errorf("a person in one organization is offered no switch:\n%s", page)
+		if shownAt(t, ada, "/org").Several {
+			t.Error("a person in one organization is offered a switch")
 		}
 	})
 }
 
-// The switcher on an organization's pages asks the front door for the person's organizations. Only an
+// The switcher on an organization's pages asks gusto cloud for the person's organizations. Only an
 // organization's own address is told it may read the answer with the person's cookie.
 func TestTheSwitcherListsAPersonsOrganizationsToTheirOrganizationsPagesOnly(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
@@ -282,11 +285,13 @@ func TestTheSwitcherListsAPersonsOrganizationsToTheirOrganizationsPagesOnly(t *t
 			t.Fatalf("%d %v %s", status, err, body)
 		}
 		want := []switchable{
-			{Name: "Acme", Slug: "acme-com", Open: "http://cloud.test/open?org=acme-com"},
-			{Name: "Globex", Slug: "globex-com", Open: "http://cloud.test/open?org=globex-com"},
+			{Name: "Acme", Slug: "acme-com", Open: "http://cloud.test/open?org=acme-com",
+				Workspaces: []switchSpace{{ID: "main", Name: "Acme", Open: "http://cloud.test/open?org=acme-com&workspace=main"}}},
+			{Name: "Globex", Slug: "globex-com", Open: "http://cloud.test/open?org=globex-com",
+				Workspaces: []switchSpace{{ID: "main", Name: "Globex", Open: "http://cloud.test/open?org=globex-com&workspace=main"}}},
 		}
-		if !slices.Equal(answer.Orgs, want) {
-			t.Errorf("their own organizations, each opened through the front door: %+v", answer.Orgs)
+		if !reflect.DeepEqual(answer.Orgs, want) {
+			t.Errorf("their own organizations, each opened through gusto cloud: %+v", answer.Orgs)
 		}
 		if header.Get("Access-Control-Allow-Origin") != "http://globex-com.cloud.test" || header.Get("Access-Control-Allow-Credentials") != "true" {
 			t.Errorf("an organization's page may read it: %v", header)

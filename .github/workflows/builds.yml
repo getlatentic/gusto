@@ -1,5 +1,6 @@
 # gusto and the helper on a person's computer have to build for every system a person has. This builds both programs for each
-# system on every Go change. The helper's keychain code is tested on Windows by builds-windows.
+# system on every Go change. The helper's keychain code is tested on Windows by builds-windows. It also holds every function to
+# the budget of 50 lines and complexity 10 (internal/budget).
 name: builds
 
 on:
@@ -37,3 +38,16 @@ jobs:
         run: |
           target="${{ matrix.target }}"
           GOOS="${target%/*}" GOARCH="${target#*/}" go vet ./...
+
+  budget:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Hold every function to the budget
+        env:
+          CGO_ENABLED: "0"
+        run: go test ./internal/budget

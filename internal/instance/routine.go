@@ -35,7 +35,7 @@ type Routine struct {
 // Ran is one slot of a routine.
 type Ran struct {
 	At      int64  `json:"at"`
-	Job     string `json:"job,omitempty"`
+	Task    string `json:"job,omitempty"`
 	Skipped string `json:"skipped,omitempty"`
 	// Told is the channels that have taken the news of how the run ended, Tries how many times it was offered and not all
 	// taken it, and Notified that it is settled: taken by every channel, or given up on, with why in NotifyError.
@@ -48,7 +48,7 @@ type Ran struct {
 // maxOwed is how many earlier runs' news a routine keeps; past it the oldest is let go.
 const maxOwed = 16
 
-func (r *Ran) untold() bool { return r != nil && r.Job != "" && !r.Notified }
+func (r *Ran) untold() bool { return r != nil && r.Task != "" && !r.Notified }
 
 // Untold is the runs whose news is not settled, oldest first.
 func (r Routine) Untold() []Ran {
@@ -164,16 +164,16 @@ func (s *Store) RoutineRan(id, routine string, ran Ran) error {
 	})
 }
 
-// NoteRun changes the run of a routine that started job, the latest or an owed one, which is how the news of how it ended
+// NoteRun changes the run of a routine that started task, the latest or an owed one, which is how the news of how it ended
 // is kept. An owed run whose news is settled is let go.
-func (s *Store) NoteRun(id, routine, job string, change func(*Ran)) error {
+func (s *Store) NoteRun(id, routine, task string, change func(*Ran)) error {
 	return s.changeRoutine(id, routine, func(r *Routine) {
-		if r.Last != nil && r.Last.Job == job {
+		if r.Last != nil && r.Last.Task == task {
 			change(r.Last)
 		}
 		owed := r.Owed[:0]
 		for _, ran := range r.Owed {
-			if ran.Job == job {
+			if ran.Task == task {
 				change(&ran)
 			}
 			if !ran.Notified {

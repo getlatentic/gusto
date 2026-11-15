@@ -1,7 +1,9 @@
 package instance
 
 import (
+	"errors"
 	"fmt"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -19,6 +21,8 @@ const (
 type Member struct {
 	Who  string `json:"who"`
 	Role string `json:"role"`
+	// Muted says the person has silenced the room for themselves: it adds nothing to what they have unread.
+	Muted bool `json:"muted,omitempty"`
 }
 
 // Agent is an agent in a room: a harness and a model, known by a name people mention it by, and what it does there.
@@ -60,14 +64,14 @@ type Note struct {
 // agentName is what an agent may be called: a letter first, then letters, digits, spaces and a few marks, as people write names.
 var agentName = regexp.MustCompile(`^[\p{L}][\p{L}\p{N} '’._-]{0,31}$`)
 
-// StartRoom makes a room whose first member, its admin, is the person who made it.
-func (s *Store) StartRoom(name, who string) (Instance, error) {
+// StartRoom makes a room in a workspace, whose first member, its admin, is the person who made it.
+func (s *Store) StartRoom(name, who, space string) (Instance, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return Instance{}, fmt.Errorf("a room needs a name")
 	}
 	who = strings.ToLower(strings.TrimSpace(who))
-	return s.Start(slug(name), Instance{Title: name, Who: who, Room: true, Members: []Member{{Who: who, Role: RoleAdmin}}})
+	return s.Start(slug(name), Instance{Title: name, Who: who, Workspace: workspace.Stored(space), Room: true, Members: []Member{{Who: who, Role: RoleAdmin}}})
 }
 
 // RoleOf is the role a person holds in a room, or nothing when they are not in it.
@@ -271,23 +275,28 @@ func (s *Store) FileNotice(id, thread, text, path string) (Note, error) {
 func (s *Store) addNote(id, thread string, note Note) (Note, error) {
 	s.guard.Lock()
 	defer s.guard.Unlock()
-	held, found := s.threads[id][thread]
-	if !found {
-		return Note{}, fmt.Errorf("no thread %s on %s", thread, id)
-	}
-	if note.Key != "" {
-		for _, kept := range held.Notes {
-			if kept.Key == note.Key && kept.Who == note.Who {
-				return kept, nil
+	kept, added := note, false
+	_, err := s.amend(id, thread, func(held *Thread) bool {
+		if note.Key != "" {
+			for _, earlier := range held.Notes {
+				if earlier.Key == note.Key && earlier.Who == note.Who {
+					kept = earlier
+					return false
+				}
 			}
 		}
+		note.ID, note.At, note.After = fmt.Sprintf("n%d", len(held.Notes)+1), time.Now().Unix(), len(held.Turns)
+		held.Notes = append(held.Notes, note)
+		kept, added = note, true
+		return true
+	})
+	if err != nil {
+		return Note{}, err
 	}
-	note.ID, note.At, note.After = fmt.Sprintf("n%d", len(held.Notes)+1), time.Now().Unix(), len(held.Turns)
-	held.Notes = append(held.Notes, note)
-	s.threads[id][held.ID] = held
-	err := s.writeThread(held)
-	s.record(id, held.ID, KindNote, note.ID)
-	return note, err
+	if added {
+		s.record(id, thread, KindNote, note.ID)
+	}
+	return kept, nil
 }
 
 // Learned keeps what an agent calls a conversation, so its next turn resumes it. A room's agents each keep their own.
@@ -297,19 +306,17 @@ func (s *Store) Learned(id, thread, agent, remembered string) error {
 	}
 	s.guard.Lock()
 	defer s.guard.Unlock()
-	held, found := s.threads[id][thread]
-	if !found {
-		return fmt.Errorf("no thread %s on %s", thread, id)
-	}
-	if remembered == "" {
-		return nil
-	}
-	if held.Sessions == nil {
-		held.Sessions = map[string]string{}
-	}
-	held.Sessions[agent] = remembered
-	s.threads[id][held.ID] = held
-	return s.writeThread(held)
+	_, err := s.amend(id, thread, func(held *Thread) bool {
+		if remembered == "" {
+			return false
+		}
+		if held.Sessions == nil {
+			held.Sessions = map[string]string{}
+		}
+		held.Sessions[agent] = remembered
+		return true
+	})
+	return err
 }
 
 // Saw keeps that a person looked at a conversation at a time. It writes only when that is later than they last looked.
@@ -317,19 +324,17 @@ func (s *Store) Saw(id, thread, who string, at int64) error {
 	who = strings.ToLower(strings.TrimSpace(who))
 	s.guard.Lock()
 	defer s.guard.Unlock()
-	held, found := s.threads[id][thread]
-	if !found {
-		return fmt.Errorf("no thread %s on %s", thread, id)
-	}
-	if who == "" || held.Seen[who] >= at {
-		return nil
-	}
-	if held.Seen == nil {
-		held.Seen = map[string]int64{}
-	}
-	held.Seen[who] = at
-	s.threads[id][held.ID] = held
-	return s.writeThread(held)
+	_, err := s.amend(id, thread, func(held *Thread) bool {
+		if who == "" || held.Seen[who] >= at {
+			return false
+		}
+		if held.Seen == nil {
+			held.Seen = map[string]int64{}
+		}
+		held.Seen[who] = at
+		return true
+	})
+	return err
 }
 
 // Direct marks a room as one person's own with one agent, or as a room again.
@@ -351,6 +356,9 @@ func (s *Store) changeRoom(id string, change func(*Instance) error) error {
 	held.Members = append([]Member(nil), held.Members...)
 	held.Agents = append([]Agent(nil), held.Agents...)
 	if err := change(&held); err != nil {
+		if errors.Is(err, errUnchanged) {
+			return nil
+		}
 		return err
 	}
 	if err := s.write(held); err != nil {

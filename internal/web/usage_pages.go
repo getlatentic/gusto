@@ -11,24 +11,6 @@ import (
 	"github.com/getlatentic/gusto/internal/usage"
 )
 
-// mountUsage makes the pages of the usage index, in the app and in the console, and the calls of the API that read it.
-func (s *Server) mountUsage(mux *http.ServeMux) {
-	mux.HandleFunc("GET /usage", s.guard(s.usagePage("/usage", false)))
-	mux.HandleFunc("GET /usage/{session}", s.guard(s.usageSessionPage("/usage", false)))
-	mux.HandleFunc("GET /admin/usage", s.console(s.usagePage("/admin/usage", true)))
-	mux.HandleFunc("GET /admin/usage/{session}", s.console(s.usageSessionPage("/admin/usage", true)))
-}
-
-// drawUsage draws a page of the usage in the app or, for an admin, in the console.
-func (s *Server) drawUsage(w http.ResponseWriter, name string, console bool, page map[string]any) {
-	if console {
-		s.drawConsole(w, name, "usage", page)
-		return
-	}
-	page["Nav"] = "usage"
-	s.render(w, name, page)
-}
-
 // usageView is the sessions page: the figures above the table, the table, and the controls that narrow it.
 type usageView struct {
 	Query    usageQuery
@@ -64,6 +46,8 @@ type usageColumn struct {
 type usageRow struct {
 	ID, Title, Href, Record, Last, LastFull string
 	Person, Agent, Engine, Harness          string
+	// Mark is the agent type's logo, and MarkDark the one for a dark page when its owner publishes one.
+	Mark, MarkDark string
 	// Asked is who asked for the conversation's latest turn, and Owner whose agent it is, which is who pays for its calls.
 	Asked, Owner                   string
 	Providers, Models              string
@@ -73,36 +57,29 @@ type usageRow struct {
 	Turns int
 }
 
-func (s *Server) usagePage(base string, console bool) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) { s.showUsage(w, r, base, console) }
-}
-
-func (s *Server) showUsage(w http.ResponseWriter, r *http.Request, base string, console bool) {
-	page := map[string]any{"Title": productName + " — usage", "Base": base, "Tabs": tabsFor(console, "tasks")}
+// usageData is the sessions page: a person's own at /usage, and everyone's in the console.
+func (s *Server) usageData(r *http.Request, base string, console bool) (map[string]any, error) {
+	page := map[string]any{"Base": base, "Tabs": tabsFor(console, "tasks")}
 	// A person sees their own month against their budget before they reach it.
 	if mine := s.memberBudgetOf(s.askerName(r)); !console && mine.Set {
 		page["Mine"] = mine
 	}
 	if s.usage.store == nil {
-		s.drawUsage(w, "usage.html", console, page)
-		return
+		return page, nil
 	}
 	query, allowed, err := s.readUsageQuery(r)
 	switch {
 	case !allowed:
-		http.NotFound(w, r)
-		return
+		return nil, failed{http.StatusNotFound, "not found"}
 	case err != nil:
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return nil, failed{http.StatusBadRequest, err.Error()}
 	}
 	view, err := s.viewUsage(r, query, base)
 	if err != nil {
-		http.Error(w, "the usage could not be read: "+err.Error(), http.StatusInternalServerError)
-		return
+		return nil, failed{http.StatusInternalServerError, "the usage could not be read: " + err.Error()}
 	}
 	page["Usage"] = view
-	s.drawUsage(w, "usage.html", console, page)
+	return page, nil
 }
 
 func (s *Server) viewUsage(r *http.Request, query usageQuery, base string) (usageView, error) {
@@ -122,7 +99,7 @@ func (s *Server) viewUsage(r *http.Request, query usageQuery, base string) (usag
 	}
 	facets = chosenIn(facets, query.Values)
 	view := usageView{Query: query, Values: query.Values, Everyone: person == "", Facets: facets, Building: s.usage.building(),
-		Figures: figuresOf(totals), Rows: rowsOf(sessions, base), Columns: columnsOf(query, base),
+		Figures: figuresOf(totals, query.Values), Rows: rowsOf(sessions, base), Columns: columnsOf(query, base),
 		Export: query.link("/api/usage.csv", map[string]string{"sort": "", "dir": "", "limit": "", "after": ""}),
 		States: s.usageStates(query, base), Filtered: filteredBeyond(query.Values, person), Clear: clearedOf(query.Values, base)}
 	if view.ShowWho = s.describeRows(view.Rows) > 1 || view.Everyone; !view.ShowWho {
@@ -137,8 +114,8 @@ func (s *Server) viewUsage(r *http.Request, query usageQuery, base string) (usag
 	return view, nil
 }
 
-func figuresOf(t usage.Totals) usageFigures {
-	spent, caption := usageSpent(t)
+func figuresOf(t usage.Totals, values url.Values) usageFigures {
+	spent, caption := usageSpent(t, usagePeriod(values))
 	return usageFigures{Spent: spent, SpentCaption: caption, Unpriced: unpricedNote(t), Calls: t.Calls, Refused: t.Refused, In: compact(t.InputTokens),
 		Out: compact(t.OutputTokens), Cache: cacheRate(t.CachedTokens, t.InputTokens)}
 }
@@ -212,33 +189,25 @@ type sessionView struct {
 	Next, Newest                      string
 }
 
-func (s *Server) usageSessionPage(base string, console bool) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) { s.showSession(w, r, base, console) }
-}
-
-func (s *Server) showSession(w http.ResponseWriter, r *http.Request, base string, console bool) {
+// sessionData is one session's calls, under the usage page at base.
+func (s *Server) sessionData(r *http.Request, base string) (map[string]any, error) {
 	if s.usage.store == nil {
-		http.NotFound(w, r)
-		return
+		return nil, failed{http.StatusNotFound, "not found"}
 	}
 	query, allowed, err := s.readUsageQuery(r)
 	switch {
 	case !allowed:
-		http.NotFound(w, r)
-		return
+		return nil, failed{http.StatusNotFound, "not found"}
 	case err != nil:
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return nil, failed{http.StatusBadRequest, err.Error()}
 	}
 	id := r.PathValue("session")
 	rows, next, err := s.sessionCalls(r, id, query)
 	switch {
 	case errors.Is(err, usage.ErrNotFound):
-		http.NotFound(w, r)
-		return
+		return nil, failed{http.StatusNotFound, "not found"}
 	case err != nil:
-		http.Error(w, "the usage could not be read: "+err.Error(), http.StatusInternalServerError)
-		return
+		return nil, failed{http.StatusInternalServerError, "the usage could not be read: " + err.Error()}
 	}
 	view := sessionView{ID: id, Calls: callRows(rows), Search: query.Values.Get("q")}
 	if len(rows) > 0 {
@@ -251,7 +220,7 @@ func (s *Server) showSession(w http.ResponseWriter, r *http.Request, base string
 	if next != "" {
 		view.Next = query.link(here, map[string]string{"after": string(next)})
 	}
-	s.drawUsage(w, "usage-session.html", console, map[string]any{"Title": productName + " — usage of " + id, "Base": base, "Session": view})
+	return map[string]any{"Base": base, "Session": view}, nil
 }
 
 // sessionCalls is a session's calls that match the filter, which for a person is also theirs alone. A session

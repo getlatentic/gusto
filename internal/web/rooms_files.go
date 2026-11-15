@@ -2,6 +2,7 @@ package web
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -21,9 +22,13 @@ import (
 
 // roomFile is one file as the room's files panel lists it.
 type roomFile struct {
-	workspaceFile
-	Name   string
-	Folder string
+	Path     string
+	Name     string
+	Folder   string
+	Size     int64
+	Modified int64
+	// modifiedNs orders files changed within the same second.
+	modifiedNs int64
 }
 
 // roomFileDay is the files changed on one day, newest first.
@@ -32,35 +37,54 @@ type roomFileDay struct {
 	Files []roomFile
 }
 
-func (s *Server) roomFilesPanel(w http.ResponseWriter, r *http.Request) {
+// sharedForWriting is the folder's agent or room for a request that changes its files, which an archived room refuses: it is kept
+// as it was, and a notice of a file changed would be the one thing that still moved in its conversation.
+func (s *Server) sharedForWriting(w http.ResponseWriter, r *http.Request) (instance.Instance, bool) {
+	held, found := s.sharedOr404(w, r)
+	if found && held.Archived != 0 {
+		answerJSON(w, http.StatusConflict, map[string]string{"error": roomArchivedFilesWords})
+		return held, false
+	}
+	return held, found
+}
+
+// roomFiles opens the room's folder as a page.
+func (s *Server) roomFiles(w http.ResponseWriter, r *http.Request) {
+	held, found := s.roomOf(w, r)
+	if !found {
+		return
+	}
+	http.Redirect(w, r, "/instances/"+held.ID+"/files?from="+threadPath(s.instances.Latest(held.ID)), http.StatusSeeOther)
+}
+
+// roomFilesData is a room's files for the panel beside its conversation, by who made them, newest day first.
+func (s *Server) roomFilesData(w http.ResponseWriter, r *http.Request) {
 	held, found := s.roomOf(w, r)
 	if !found {
 		return
 	}
 	thread := s.instances.Latest(held.ID)
-	if r.URL.Query().Get("panel") == "" {
-		http.Redirect(w, r, "/instances/"+held.ID+"/files?from="+threadPath(thread), http.StatusSeeOther)
-		return
-	}
-	files, cut := workspaceFiles(s.instances.Workspace(held.ID))
+	files, cut := folderFiles(s.instances.AgentFolder(held.ID))
 	made := s.madeByAgents(thread)
-	var byAgents, byPeople []roomFile
+	byAgents, byPeople := []roomFile{}, []roomFile{}
 	for _, file := range files {
-		shown := roomFile{workspaceFile: file, Name: path.Base(file.Path), Folder: path.Dir(file.Path)}
+		shown := roomFile{Path: file.Path, Name: path.Base(file.Path), Folder: path.Dir(file.Path), Size: file.Size, Modified: file.Modified, modifiedNs: file.ModifiedNs}
 		if made[file.Path] {
 			byAgents = append(byAgents, shown)
 		} else {
 			byPeople = append(byPeople, shown)
 		}
 	}
-	s.render(w, "room-files", map[string]any{
-		"Room":     held,
+	w.Header().Set("Cache-Control", "no-store")
+	s.asJSON(w, map[string]any{
+		"Room":     map[string]string{"ID": held.ID, "Title": held.Title},
 		"From":     threadPath(thread),
 		"ByAgents": filesByDay(byAgents, time.Now()),
 		"ByPeople": filesByDay(byPeople, time.Now()),
 		"Agents":   len(byAgents),
 		"People":   len(byPeople),
 		"Cut":      cut,
+		"Archived": held.Archived != 0,
 	})
 }
 
@@ -78,7 +102,7 @@ func (s *Server) madeByAgents(thread instance.Thread) map[string]bool {
 }
 
 func filesByDay(files []roomFile, now time.Time) []roomFileDay {
-	slices.SortFunc(files, func(a, b roomFile) int { return cmp.Compare(b.ModifiedNs, a.ModifiedNs) })
+	slices.SortFunc(files, func(a, b roomFile) int { return cmp.Compare(b.modifiedNs, a.modifiedNs) })
 	var days []roomFileDay
 	for _, file := range files {
 		day := dayName(time.Unix(file.Modified, 0), now)
@@ -110,55 +134,69 @@ func (s *Server) uploadToRoom(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("send between 1 and %d files", mostUploads), http.StatusBadRequest)
 		return
 	}
-	root := s.instances.Workspace(held.ID)
+	if _, status, err := s.keepUploads(r, held, sent); err != nil {
+		http.Error(w, err.Error(), status)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// keepUploads puts files somebody added into the room's folder, and gives the names they were kept under. When it cannot, it says
+// which status to answer with.
+func (s *Server) keepUploads(r *http.Request, held instance.Instance, sent []*multipart.FileHeader) ([]string, int, error) {
+	if held.Archived != 0 {
+		return nil, http.StatusConflict, errors.New(roomArchivedFilesWords)
+	}
+	root := s.instances.AgentFolder(held.ID)
 	s.writing(held.ID).Lock()
 	defer s.writing(held.ID).Unlock()
 	// An upload never replaces a file, so it keeps no version for the turns; it waits only so a merge cannot put a file over it.
 	done, err := s.holdFolder(r, root)
 	if err != nil {
-		http.Error(w, "the room's folder is busy: "+err.Error(), http.StatusServiceUnavailable)
-		return
+		return nil, http.StatusServiceUnavailable, fmt.Errorf("the room's folder is busy: %w", err)
 	}
 	defer done(true)
+	names := make([]string, 0, len(sent))
 	for _, each := range sent {
 		if each.Size > mostFileBytes {
-			http.Error(w, each.Filename+" is too big", http.StatusRequestEntityTooLarge)
-			return
+			return nil, http.StatusRequestEntityTooLarge, fmt.Errorf("%s is too big", each.Filename)
 		}
-		if err := keepUpload(root, each); err != nil {
-			http.Error(w, each.Filename+" could not be kept: "+err.Error(), http.StatusInternalServerError)
-			return
+		name, err := keepUpload(root, each)
+		if err != nil {
+			return nil, http.StatusInternalServerError, fmt.Errorf("%s could not be kept: %w", each.Filename, err)
 		}
+		names = append(names, name)
 	}
-	w.WriteHeader(http.StatusNoContent)
+	return names, 0, nil
 }
 
-// keepUpload writes one uploaded file at the top of the folder under its own name, numbering the name when it is taken.
-func keepUpload(root string, sent *multipart.FileHeader) error {
+// keepUpload writes one uploaded file at the top of the folder under its own name, numbering the name when it is taken, and gives
+// the name it was kept under.
+func keepUpload(root string, sent *multipart.FileHeader) (string, error) {
 	name := filepath.Base(strings.ReplaceAll(sent.Filename, "\\", "/"))
 	if name == "." || name == "/" || strings.HasPrefix(name, ".") {
-		return fmt.Errorf("that name cannot be used")
+		return "", fmt.Errorf("that name cannot be used")
 	}
 	full, err := freePath(root, name)
 	if err != nil {
-		return err
+		return "", err
 	}
 	from, err := sent.Open()
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer from.Close()
 	to, err := os.OpenFile(full, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o664)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if _, err := io.Copy(to, from); err != nil {
 		to.Close()
 		os.Remove(full)
-		return err
+		return "", err
 	}
 	matchOwner(full, root)
-	return to.Close()
+	return filepath.Base(full), to.Close()
 }
 
 // freePath is where a file of that name can go in the folder without replacing one: the name, or the name numbered.

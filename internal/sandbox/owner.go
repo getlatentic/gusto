@@ -21,10 +21,10 @@ type Owner struct {
 // LabelPrefix begins the name of every label gusto puts on a container.
 const LabelPrefix = "com.getlatentic.gusto."
 
-// labels are the flags that label a task's container with its owner and its job.
-func (o Owner) labels(job string) []string {
+// labels are the flags that label a task's container with its owner and its task.
+func (o Owner) labels(task string) []string {
 	var args []string
-	for _, each := range [][2]string{{"org", o.Org}, {"person", o.Person}, {"instance", o.Instance}, {"job", job}} {
+	for _, each := range [][2]string{{"org", o.Org}, {"person", o.Person}, {"instance", o.Instance}, {"job", task}} {
 		if each[1] != "" {
 			args = append(args, "--label", LabelPrefix+each[0]+"="+each[1])
 		}

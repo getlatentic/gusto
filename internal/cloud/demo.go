@@ -9,7 +9,7 @@ import (
 	"github.com/getlatentic/gusto/internal/quota"
 )
 
-// DemoSettings make the front door offer a demo: an organization that a visitor starts without signing up, that
+// DemoSettings make gusto cloud offer a demo: an organization that a visitor starts without signing up, that
 // has a time, and that is deleted when the time is up. A demo is offered when Length is set.
 type DemoSettings struct {
 	// Length is how long a demo lasts from when its server is ready, and Extend is what the one extension adds.
@@ -34,7 +34,7 @@ type DemoSettings struct {
 	Staff []string
 }
 
-// Enabled says the front door offers a demo.
+// Enabled says gusto cloud offers a demo.
 func (d DemoSettings) Enabled() bool { return d.Length > 0 }
 
 // Public says a visitor may start a demo, rather than only the host's staff.
@@ -59,11 +59,11 @@ func (d DemoSettings) patience() time.Duration {
 
 // DefaultDemoLimits is what a demo may run: enough for a person to see agents do work, and not enough to cost much.
 func DefaultDemoLimits() quota.Quota {
-	return quota.Quota{Jobs: 30, Concurrent: 2, Invites: true, Members: 2, Computers: 2, Note: "This is a demo, which is removed when its time is up.", CreditUSD: 0.5}
+	return quota.Quota{Tasks: 30, Concurrent: 2, Invites: true, Members: 2, Computers: 2, Note: "This is a demo, which is removed when its time is up.", CreditUSD: 0.5}
 }
 
 // Demo is what makes an organization a demo. Ready is when its server first answered, which is when its time
-// starts, so a visitor who waits for a cell to start is not charged for the wait.
+// starts, so a visitor who waits for a node to start is not charged for the wait.
 type Demo struct {
 	Name     string    `json:"name"`
 	Company  string    `json:"company"`

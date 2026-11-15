@@ -6,9 +6,11 @@ package landlock
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 )
 
 // Policy is what one task may do.
@@ -18,7 +20,7 @@ type Policy struct {
 	// Write are the folders the task may read, write and run programs from.
 	Write []string `json:"write"`
 	// ProxyPort is the one TCP port the task may connect to, which is gusto's proxy. Zero leaves the network open, as
-	// GUSTO_JOB_NETWORK=open does.
+	// GUSTO_TASK_NETWORK=open does.
 	ProxyPort int `json:"proxyPort"`
 	// Temp is the task's own temporary folder. When it is set, the system's shared ones are not writable, since other tasks
 	// on the same computer leave what is theirs there.
@@ -75,4 +77,21 @@ func Wrap(self, file string) func(*exec.Cmd) {
 		command.Args = append([]string{self, "sandbox-run", file, "--"}, command.Args...)
 		command.Path = self
 	}
+}
+
+// Become holds this process to the policy in file and becomes command, which keeps the restriction. It is what Wrap's
+// `sandbox-run` does, and it returns only when it could not.
+func Become(file string, command []string) error {
+	policy, err := Load(file)
+	if err != nil {
+		return err
+	}
+	program, err := exec.LookPath(command[0])
+	if err != nil {
+		return err
+	}
+	if err := Apply(policy); err != nil {
+		return fmt.Errorf("the sandbox did not start, and the task is not run unprotected: %w", err)
+	}
+	return syscall.Exec(program, command, os.Environ())
 }

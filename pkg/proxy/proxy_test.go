@@ -36,7 +36,7 @@ func site(t *testing.T, key string) (*Proxy, *Tokens, string, *http.Header) {
 	tokens := NewTokens()
 	kept := t.TempDir()
 	proxy := New(tokens, Credentials{"": {Address: model.URL, Key: key, Name: "the-platform-key"}},
-		func(job string) (string, bool) { return filepath.Join(kept, job+".jsonl"), true },
+		func(task string) (string, bool) { return filepath.Join(kept, task+".jsonl"), true },
 		spend.NewLedger(spend.Policy{}), Allowlist{})
 	return proxy, tokens, kept, &seen
 }
@@ -79,7 +79,7 @@ func TestATokenNobodyMintedGetsNothing(t *testing.T) {
 	}
 }
 
-func TestAJobsWayOutEndsWithTheJob(t *testing.T) {
+func TestATasksWayOutEndsWithTheTask(t *testing.T) {
 	proxy, tokens, _, _ := site(t, "the-real-key")
 	token, err := tokens.Mint("a-job", "")
 	if err != nil {
@@ -94,7 +94,7 @@ func TestAJobsWayOutEndsWithTheJob(t *testing.T) {
 	}
 }
 
-func TestOneJobsTokenIsNotAnothers(t *testing.T) {
+func TestOneTasksTokenIsNotAnothers(t *testing.T) {
 	_, tokens, _, _ := site(t, "k")
 	first, _ := tokens.Mint("job-one", "")
 	second, _ := tokens.Mint("job-two", "")
@@ -102,7 +102,7 @@ func TestOneJobsTokenIsNotAnothers(t *testing.T) {
 		t.Fatal("two jobs were given the same way out")
 	}
 	tokens.Drop("job-one")
-	if _, still := tokens.Job(second); !still {
+	if _, still := tokens.Task(second); !still {
 		t.Fatal("ending one job took another's way out with it")
 	}
 }
@@ -144,7 +144,7 @@ func TestAModelThatNeedsNoCredentialGetsNone(t *testing.T) {
 
 // A harness keeps its base URL in static configuration and its key in the
 // Authorization header. Requiring the token in the path would mean rewriting
-// that configuration for every job.
+// that configuration for every task.
 func TestATokenPresentedWhereAKeyWouldGoIsAccepted(t *testing.T) {
 	proxy, tokens, _, seen := site(t, "the-real-key")
 	token, err := tokens.Mint("a-job", "")
@@ -184,26 +184,26 @@ func TestAKeyThatIsNotATokenStillGetsNothing(t *testing.T) {
 // A host that signs its tokens and keeps its keys elsewhere plugs both into the proxy.
 type signedTokens map[string]Ticket
 
-func (s signedTokens) Job(token string) (Ticket, bool) { ticket, ok := s[token]; return ticket, ok }
+func (s signedTokens) Task(token string) (Ticket, bool) { ticket, ok := s[token]; return ticket, ok }
 
-type keysByJob struct {
+type keysByTask struct {
 	address string
 	keys    map[string]string
 	asked   []string
 }
 
-func (k *keysByJob) Credential(_ context.Context, ticket Ticket) (Credential, bool) {
-	k.asked = append(k.asked, ticket.Job)
-	key, ok := k.keys[ticket.Job]
+func (k *keysByTask) Credential(_ context.Context, ticket Ticket) (Credential, bool) {
+	k.asked = append(k.asked, ticket.Task)
+	key, ok := k.keys[ticket.Task]
 	if !ok {
 		return Credential{}, false
 	}
-	return Credential{Name: "asker-" + ticket.Job, Address: k.address, Key: key, Auth: Anthropic}, true
+	return Credential{Name: "asker-" + ticket.Task, Address: k.address, Key: key, Auth: Anthropic}, true
 }
 
 func TestATokenAndAKeyFromElsewhereAreUsedInPlaceOfTheHeldOnes(t *testing.T) {
 	proxy, _, _, seen := site(t, "the-held-key")
-	keys := &keysByJob{keys: map[string]string{"lease-9": "the-askers-key"}}
+	keys := &keysByTask{keys: map[string]string{"lease-9": "the-askers-key"}}
 	var model *httptest.Server
 	model = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		*seen = r.Header.Clone()
@@ -211,7 +211,7 @@ func TestATokenAndAKeyFromElsewhereAreUsedInPlaceOfTheHeldOnes(t *testing.T) {
 	}))
 	defer model.Close()
 	keys.address = model.URL
-	proxy.UseTokens(signedTokens{"v1.signed": {Job: "lease-9"}, "v1.keyless": {Job: "lease-10"}})
+	proxy.UseTokens(signedTokens{"v1.signed": {Task: "lease-9"}, "v1.keyless": {Task: "lease-10"}})
 	proxy.UseCredentials(keys)
 
 	if answer := ask(t, proxy, "/model/v1.signed/v1/messages", `{"model":"x"}`); answer.Code != http.StatusOK {
@@ -233,7 +233,7 @@ func TestATokenAndAKeyFromElsewhereAreUsedInPlaceOfTheHeldOnes(t *testing.T) {
 
 func TestTheSignedTokenAlsoOpensTheForwardProxy(t *testing.T) {
 	proxy, _, _, _ := site(t, "k")
-	proxy.UseTokens(signedTokens{"v1.signed": {Job: "lease-9"}})
+	proxy.UseTokens(signedTokens{"v1.signed": {Task: "lease-9"}})
 	request := httptest.NewRequest("CONNECT", "http://example.com:443", nil)
 	request.Header.Set("Proxy-Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("host:v1.signed")))
 	recorder := httptest.NewRecorder()
@@ -252,7 +252,7 @@ func TestTheSignedTokenAlsoOpensTheForwardProxy(t *testing.T) {
 
 func TestUseCredentialsWithNilGoesBackToTheHeldOnes(t *testing.T) {
 	proxy, tokens, _, seen := site(t, "the-held-key")
-	proxy.UseCredentials(&keysByJob{})
+	proxy.UseCredentials(&keysByTask{})
 	proxy.UseCredentials(nil)
 	token, _ := tokens.Mint("a-job", "")
 	if answer := ask(t, proxy, "/model/"+token+"/v1/models", `{}`); answer.Code != http.StatusOK || seen.Get("Authorization") != "Bearer the-held-key" {

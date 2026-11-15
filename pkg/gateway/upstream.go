@@ -39,14 +39,16 @@ type Server struct {
 	// Data is a folder the program may write, which belongs to this task and goes with it.
 	Data string `json:"data,omitempty"`
 	// Connector, for an app a person signed in to with their own account, names the app; Person is whose sign-in the server is
-	// called with. The token is asked for at each call, so one renewed while the task runs is the one sent.
+	// called with, and Workspace the workspace of the organization the sign-in was made in, empty for the first. The token is
+	// asked for at each call, so one renewed while the task runs is the one sent.
 	Connector string `json:"connector,omitempty"`
 	Person    string `json:"person,omitempty"`
+	Workspace string `json:"workspace,omitempty"`
 }
 
-// Tokens gives a person's current token for an app they signed in to, renewing it when it has run out.
+// Tokens gives a person's current token for an app they signed in to in a workspace, renewing it when it has run out.
 type Tokens interface {
-	Token(ctx context.Context, person, connector string) (string, error)
+	Token(ctx context.Context, person, workspace, connector string) (string, error)
 }
 
 // IsProgram says the server is a program and not an address.
@@ -187,7 +189,7 @@ func (u *Upstream) decorate(request *http.Request, session string) error {
 		if u.tokens == nil {
 			return fmt.Errorf("%s is an app signed in to with a person's own account, and this gateway holds no sign-ins", u.server.Connector)
 		}
-		token, err := u.tokens.Token(request.Context(), u.server.Person, u.server.Connector)
+		token, err := u.tokens.Token(request.Context(), u.server.Person, u.server.Workspace, u.server.Connector)
 		if err != nil {
 			return err
 		}

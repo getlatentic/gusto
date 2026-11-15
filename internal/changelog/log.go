@@ -50,6 +50,10 @@ const (
 	MemberInvited    = "member.invited"
 	MemberRole       = "member.role"
 	MemberRemoved    = "member.removed"
+	WorkspaceMade    = "workspace.made"
+	WorkspaceRenamed = "workspace.renamed"
+	WorkspaceAdded   = "workspace.member.added"
+	WorkspaceLeft    = "workspace.member.removed"
 	BudgetSet        = "budget.set"
 	MemberBudgetSet  = "budget.member.set"
 	ChatDefaultSet   = "chat.default"
@@ -89,14 +93,21 @@ const (
 	ConnectorsLetInRoom = "connector.room"
 	ConnectorsLetAgent  = "connector.agent"
 	ConnectorForAgents  = "connector.default"
+
+	RoomGuidelines = "room.guidelines"
+	RoomArchived   = "room.archived"
+	RoomMuted      = "room.muted"
+	PersonBio      = "person.bio"
+	// HomeReset is a person removing the home their agents keep between tasks, with what it held.
+	HomeReset = "home.reset"
 )
 
-// FromFrontDoor says whether a kind of event is one that an organization's front
+// FromCloud says whether a kind of event is one that an organization's front
 // door reports. Only these are taken from its inbox: what else is in the record was
 // written by this server about itself.
-func FromFrontDoor(kind string) bool {
+func FromCloud(kind string) bool {
 	switch kind {
-	case MemberInvited, MemberRole, MemberRemoved:
+	case MemberInvited, MemberRole, MemberRemoved, WorkspaceMade, WorkspaceRenamed, WorkspaceAdded, WorkspaceLeft:
 		return true
 	}
 	return false

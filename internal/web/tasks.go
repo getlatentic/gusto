@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// runTask is work done on an instance's own computer: a brief, a gate, and the
-// folder the instance already has. It is the one way a page runs a gated task,
-// so it takes everything a job can be asked to carry: how sensitive the code
+// runTask is work done on an instance's own computer: a brief, a check, and the
+// folder the instance already has. It is the one way a page runs a task with a check,
+// so it takes everything a task can be asked to carry: how sensitive the code
 // is, the team its spend counts against, and a cap on what its calls may cost.
 func (s *Server) runTask(w http.ResponseWriter, r *http.Request) {
 	held, found := s.mine(w, r)
@@ -33,10 +33,10 @@ func (s *Server) runTask(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, where, err.Error())
 		return
 	}
-	record := jobs.Record{
-		ID: id, State: jobs.Queued,
+	record := tasks.Record{
+		ID: id, State: tasks.Queued,
 		Brief: spec.Brief, Repo: held.Repo, Harness: held.Harness, Model: held.Model,
-		Instance: held.ID, Asked: s.keeper.who(r), Team: spec.Team, Queued: jobs.Now(),
+		Instance: held.ID, Asked: s.keeper.who(r), Team: spec.Team, Queued: tasks.Now(),
 	}
 	if err := s.place(spec, record); err != nil {
 		s.turnAway(w, r, where, err.Error())
@@ -47,12 +47,12 @@ func (s *Server) runTask(w http.ResponseWriter, r *http.Request) {
 }
 
 // taskOn is the spec the task form describes, on the instance it was posted to.
-// Anything the runner would refuse to read is refused here instead, so a job
+// Anything the runner would refuse to read is refused here instead, so a task
 // that cannot run is never written.
-func taskOn(held instance.Instance, r *http.Request) (job.Spec, error) {
-	spec := job.Spec{
+func taskOn(held instance.Instance, r *http.Request) (task.Spec, error) {
+	spec := task.Spec{
 		Brief:       strings.TrimSpace(r.FormValue("brief")),
-		Gate:        job.Words(r.FormValue("gate")),
+		Check:       task.Words(r.FormValue("gate")),
 		Harness:     held.Harness,
 		Model:       held.Model,
 		Repo:        held.Repo,
@@ -61,30 +61,30 @@ func taskOn(held instance.Instance, r *http.Request) (job.Spec, error) {
 		Team:        strings.TrimSpace(r.FormValue("team")),
 		Setup:       setupOf(held),
 	}
-	if held.Sensitivity == string(job.Restricted) {
-		spec.Sensitivity = job.Restricted
+	if held.Sensitivity == string(task.Restricted) {
+		spec.Sensitivity = task.Restricted
 	}
-	if spec.Brief == "" || len(spec.Gate) == 0 {
-		return job.Spec{}, errors.New("a task needs something to do and a command that says it worked")
+	if spec.Brief == "" || len(spec.Check) == 0 {
+		return task.Spec{}, errors.New("a task needs something to do and a command that says it worked")
 	}
 	if !spec.Sensitivity.Known() {
-		return job.Spec{}, fmt.Errorf("%q is not a sensitivity this server knows", spec.Sensitivity)
+		return task.Spec{}, fmt.Errorf("%q is not a sensitivity this server knows", spec.Sensitivity)
 	}
 	capped, err := dollars(r.FormValue("usd"))
 	if err != nil {
-		return job.Spec{}, err
+		return task.Spec{}, err
 	}
 	spec.Budget.USD = capped
 	return spec, spec.Budget.Check()
 }
 
 // sensitivity is the label picked, or internal when none was, which is what a
-// job that names none is read as anyway.
-func sensitivity(picked string) job.Sensitivity {
+// task that names none is read as anyway.
+func sensitivity(picked string) task.Sensitivity {
 	if picked == "" {
-		return job.Internal
+		return task.Internal
 	}
-	return job.Sensitivity(picked)
+	return task.Sensitivity(picked)
 }
 
 // dollars is a cap a person typed. Nothing typed is no cap, which is not the
@@ -101,10 +101,10 @@ func dollars(typed string) (*float64, error) {
 	return &amount, nil
 }
 
-// tasks is the work done on an instance that was not said to it: a job that
+// tasks is the work done on an instance that was not said to it: a task that
 // named this instance and no thread of it.
-func (s *Server) tasks(id string) []jobs.Record {
-	var done []jobs.Record
+func (s *Server) tasks(id string) []tasks.Record {
+	var done []tasks.Record
 	for _, record := range s.index.List() {
 		if record.Instance == id && record.Thread == "" {
 			done = append(done, record)

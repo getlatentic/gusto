@@ -20,7 +20,7 @@ func TestARoomKeepsItsMembersAndAlwaysAnAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	room, err := store.StartRoom("Launch plan", "Ada@Example.com")
+	room, err := store.StartRoom("Launch plan", "Ada@Example.com", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,8 +57,8 @@ func TestARoomKeepsItsMembersAndAlwaysAnAdmin(t *testing.T) {
 func TestThePeopleInARoomFindItWithoutLookingThroughEveryInstance(t *testing.T) {
 	root := t.TempDir()
 	store, _ := Open(root)
-	first, _ := store.StartRoom("First", "ada@example.com")
-	second, _ := store.StartRoom("Second", "bob@example.com")
+	first, _ := store.StartRoom("First", "ada@example.com", "")
+	second, _ := store.StartRoom("Second", "bob@example.com", "")
 	if _, err := store.Start("not-a-room", Instance{Harness: "claude", Who: "ada@example.com"}); err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestThePeopleInARoomFindItWithoutLookingThroughEveryInstance(t *testing.T) 
 // and the agent's memory on disk, and a new agent given it would carry on as the one that left.
 func TestANewAgentNeverTakesTheIDOfOneThatLeftSomethingBehind(t *testing.T) {
 	store, _ := Open(t.TempDir())
-	room, err := store.StartRoom("Launch", "ada@example.com")
+	room, err := store.StartRoom("Launch", "ada@example.com", "")
 	if err != nil {
 		t.Fatal(err)
 	}

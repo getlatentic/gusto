@@ -75,6 +75,9 @@ func (s *Store) addMember(ctx context.Context, tx dbkit.Tx, p Person) (bool, err
 // dropMember takes a person out of an organization, and takes their account away when it was the last they were in,
 // since an address that belongs nowhere has nothing to sign in to.
 func dropMember(ctx context.Context, tx dbkit.Tx, email, org string) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM workspace_members WHERE email = ? AND org = ?`, email, org); err != nil {
+		return err
+	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM memberships WHERE email = ? AND org = ?`, email, org); err != nil {
 		return err
 	}
@@ -83,43 +86,43 @@ func dropMember(ctx context.Context, tx dbkit.Tx, email, org string) error {
 }
 
 // Person is the account at an address as it is in one organization.
-func (s *Store) Person(email, org string) (Person, bool, error) {
+func (s *Store) Person(ctx context.Context, email, org string) (Person, bool, error) {
 	email, err := NormalEmail(email)
 	if err != nil || ValidSlug(org) != nil {
 		return Person{}, false, nil
 	}
-	return fetchMember(context.Background(), s.db, email, org)
+	return fetchMember(ctx, s.db, email, org)
 }
 
 // Memberships is the account at an address in each organization it is in, oldest first, and none for an address
 // that has no account.
-func (s *Store) Memberships(email string) ([]Person, error) {
+func (s *Store) Memberships(ctx context.Context, email string) ([]Person, error) {
 	email, err := NormalEmail(email)
 	if err != nil {
 		return nil, nil
 	}
-	return membershipsOf(context.Background(), s.db, email)
+	return membershipsOf(ctx, s.db, email)
 }
 
 // OrgsOf is the organizations an address is in, by name.
-func (s *Store) OrgsOf(email string) ([]Org, error) {
-	return collect(context.Background(), s.db, scanOrg, `SELECT `+orgColumns+` FROM orgs
+func (s *Store) OrgsOf(ctx context.Context, email string) ([]Org, error) {
+	return collect(ctx, s.db, scanOrg, `SELECT `+orgColumns+` FROM orgs
 		WHERE slug IN (SELECT org FROM memberships WHERE email = ?) ORDER BY name, slug`, email)
 }
 
 // HasAccount says whether an address can be signed in.
-func (s *Store) HasAccount(email string) (bool, error) {
+func (s *Store) HasAccount(ctx context.Context, email string) (bool, error) {
 	email, err := NormalEmail(email)
 	if err != nil {
 		return false, nil
 	}
-	return hasAccount(context.Background(), s.db, email)
+	return hasAccount(ctx, s.db, email)
 }
 
 // Verify records that a person read the mail sent to them, and the first time works out again the quota of
 // each organization they administer, which takes an organization that does not pay off the trial.
-func (s *Store) Verify(email string) error {
-	ctx := context.Background()
+func (s *Store) Verify(ctx context.Context, email string) error {
+
 	var administers []Person
 	err := s.db.InTx(ctx, func(tx dbkit.Tx) error {
 		at := s.stamp(s.now().UTC().Truncate(time.Second))
@@ -152,7 +155,7 @@ func (s *Store) Verify(email string) error {
 		return err
 	}
 	for _, each := range administers {
-		s.quotaChanged(each.Org)
+		s.quotaChanged(ctx, each.Org)
 	}
 	return nil
 }

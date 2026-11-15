@@ -1,0 +1,259 @@
+// Package task is the directory a run happens in, and the spec at its root.
+//
+// Every part of a run reads and writes this one directory, and nothing else
+// passes between them. That is what makes a runner replaceable: hand the same
+// directory to a managed fleet, to a container in the customer's own account,
+// or to a laptop, and the work is the same.
+package task
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"math"
+	"os"
+	"path"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"github.com/getlatentic/gusto/internal/atomicfile"
+)
+
+// Sensitivity is how sensitive the code in a task is. A runner says whose
+// machine it is, and the two are matched before anything starts.
+type Sensitivity string
+
+const (
+	Public     Sensitivity = "public"
+	Internal   Sensitivity = "internal"
+	Restricted Sensitivity = "restricted"
+)
+
+// Known reports whether this is a label the rules understand.
+//
+// An unknown label must never read as "not restricted". The rules ask whether a
+// task is restricted, so `secret`, `confidential` or `Restricted` would each
+// switch off the one rule this platform enforces, silently, by a typo.
+func (s Sensitivity) Known() bool {
+	switch s {
+	case Public, Internal, Restricted:
+		return true
+	}
+	return false
+}
+
+// Budget is what a task may spend before a runner stops it.
+//
+// USD is a cap on what the task's calls to a model may cost, counted at the
+// proxy. Nil is no cap, and zero allows nothing, so leaving it out can never
+// be mistaken for a cap of nothing or the other way round.
+type Budget struct {
+	Turns   int      `json:"turns"`
+	Seconds int      `json:"seconds"`
+	USD     *float64 `json:"usd,omitempty"`
+	// MonthUSD is what a room's agent may spend in that room in a calendar month, all its turns together: the allowance its
+	// owner gave the room.
+	MonthUSD *float64 `json:"monthUsd,omitempty"`
+}
+
+// Spec carries a brief, not a prompt. The brief is input to an agent, and a
+// field that passed a prompt straight through would make this a proxy for
+// somebody else's model account.
+//
+// Version is the format of job.json. A file without one is version 1.
+type Spec struct {
+	Version int      `json:"version"`
+	Brief   string   `json:"brief"`
+	Repo    string   `json:"repo"`
+	Ref     string   `json:"ref"`
+	Check   []string `json:"gate,omitempty"`
+	Harness string   `json:"harness"`
+	Model   string   `json:"model,omitempty"`
+	// Session names the instance this task is a turn on: the computer whose
+	// working folder it mounts instead of cloning. Thread names the conversation on
+	// that instance, and Remembered is the agent's own name for that
+	// conversation, handed back so it resumes rather than restarts.
+	Session string `json:"session,omitempty"`
+	Thread  string `json:"thread,omitempty"`
+	// Dir is the folder of the working folder the agent works in, from the workspace's root: a turn that was asked to work in one folder
+	// of the agent's computer starts there. It is empty for the root.
+	Dir        string `json:"dir,omitempty"`
+	Remembered string `json:"remembered,omitempty"`
+	// Agent is the room agent this turn is for, so what it calls the conversation is kept as its own.
+	Agent       string      `json:"agent,omitempty"`
+	Sensitivity Sensitivity `json:"sensitivity"`
+	Budget      Budget      `json:"budget"`
+	// Team is who a task's spend counts against. It is a label the person
+	// asking chooses: nothing proves they belong to the team yet.
+	Team string `json:"team,omitempty"`
+	// Person is who asked for the task, whose own monthly budget it counts against.
+	Person string `json:"person,omitempty"`
+	// Workspace is the workspace of the organization the task is in, and empty for the first. Only its members reach the task.
+	Workspace string `json:"workspace,omitempty"`
+	// Setup is what the agent was configured with beyond its adapter: the
+	// skills it was given and the MCP servers it may call.
+	Setup *Setup `json:"setup,omitempty"`
+}
+
+// Setup names a configuration and what was in it. Only names are here,
+// because job.json is a record anyone with the run can read, and a server's
+// definition can carry a token. The definitions themselves travel beside the
+// task, in the directory Setup names.
+type Setup struct {
+	Name    string   `json:"name"`
+	Skills  []string `json:"skills,omitempty"`
+	Servers []string `json:"servers,omitempty"`
+	// Gateway is the servers the task reaches only through the gateway, which holds their addresses and credentials. The
+	// agent is given one server for all of them.
+	Gateway []string `json:"gateway,omitempty"`
+	// Integrations is each integration the task was given skills or servers from, and the version of it: what was turned on when
+	// the task started.
+	Integrations []IntegrationUse `json:"integrations,omitempty"`
+	// Connectors is the apps the task's asker had signed in to with their own account, which the gateway calls as them.
+	Connectors []string `json:"connectors,omitempty"`
+}
+
+// IntegrationUse is one version of an integration a task ran with.
+type IntegrationUse struct {
+	Name string `json:"name"`
+	// Version is the fingerprint of the files, and Label the version the plugin calls itself.
+	Version string `json:"version"`
+	Label   string `json:"label,omitempty"`
+	// Commit is where a version fetched from git was pinned.
+	Commit string `json:"commit,omitempty"`
+}
+
+// named is what a skill or a server may be called: lower case, digits and
+// hyphens, as the Agent Skills format asks, and never a path.
+var named = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,63}$`)
+
+// Named says whether a name can be a skill's or a server's.
+func Named(name string) bool { return named.MatchString(name) }
+
+// Server is one MCP server as the deployment declares it: a program the box
+// runs, or an address it calls.
+type Server struct {
+	Name    string            `json:"name"`
+	Command string            `json:"command,omitempty"`
+	Args    []string          `json:"args,omitempty"`
+	Env     map[string]string `json:"env,omitempty"`
+	URL     string            `json:"url,omitempty"`
+	Headers map[string]string `json:"headers,omitempty"`
+}
+
+// Dir is a task directory.
+type Dir string
+
+func (d Dir) Path() string            { return string(d) }
+func (d Dir) Spec() string            { return filepath.Join(string(d), "job.json") }
+func (d Dir) WorkingFolder() string   { return filepath.Join(string(d), "workspace") }
+func (d Dir) Out() string             { return filepath.Join(string(d), "out") }
+func (d Dir) OutFile(n string) string { return filepath.Join(d.Out(), n) }
+
+// PlainOut says whether out/n is a plain file. An agent that can write out/
+// (a runner with no agent user to hand the work to) can leave a link there, and
+// a page that opens it would show whatever it points at, or wait on a pipe for
+// ever; so what the server shows of a task's record is read only when it is a
+// file and not a link.
+func (d Dir) PlainOut(n string) bool {
+	if info, err := os.Lstat(d.Out()); err != nil || !info.IsDir() {
+		return false
+	}
+	info, err := os.Lstat(d.OutFile(n))
+	return err == nil && info.Mode().IsRegular()
+}
+
+// SetupDir is where a task's skills and server definitions wait for the
+// runner. It sits outside out/ and the working folder, so it is neither signed
+// record nor in the bundle a reviewer downloads.
+func (d Dir) SetupDir() string { return filepath.Join(string(d), "setup") }
+
+func (d Dir) Make() error {
+	if err := os.MkdirAll(d.WorkingFolder(), 0o755); err != nil {
+		return err
+	}
+	return os.MkdirAll(d.Out(), 0o755)
+}
+
+// Read the spec, filling in what a person left out. A field this build does not
+// know is ignored, so a task written after an additive change still runs; a
+// version it does not know is refused.
+func Read(d Dir) (Spec, error) {
+	text, err := os.ReadFile(d.Spec())
+	if err != nil {
+		return Spec{}, err
+	}
+	var spec Spec
+	if err := json.Unmarshal(text, &spec); err != nil {
+		return Spec{}, err
+	}
+	if err := Readable("job.json", spec.Version, Version); err != nil {
+		return Spec{}, err
+	}
+	spec = spec.withDefaults()
+	if !spec.Sensitivity.Known() {
+		return Spec{}, fmt.Errorf("%q is not a sensitivity this runner knows, so it cannot say what may leave", spec.Sensitivity)
+	}
+	if err := spec.Budget.Check(); err != nil {
+		return Spec{}, err
+	}
+	return spec, nil
+}
+
+// Check refuses a money cap nothing could spend under. A negative cap would
+// refuse every call and read, to whoever set it, like a typo that capped nothing.
+func (b Budget) Check() error {
+	if b.USD != nil && (*b.USD < 0 || math.IsNaN(*b.USD) || math.IsInf(*b.USD, 0)) {
+		return fmt.Errorf("a budget of $%.4f is not a cap anything can spend under", *b.USD)
+	}
+	return nil
+}
+
+func (s Spec) withDefaults() Spec {
+	if s.Version == 0 {
+		s.Version = Version
+	}
+	if s.Ref == "" {
+		s.Ref = "HEAD"
+	}
+	if s.Sensitivity == "" {
+		s.Sensitivity = Internal
+	}
+	if s.Budget.Turns == 0 {
+		s.Budget.Turns = 40
+	}
+	if s.Budget.Seconds == 0 {
+		s.Budget.Seconds = 900
+	}
+	return s
+}
+
+func (s Spec) Write(d Dir) error {
+	text, err := json.MarshalIndent(s.withDefaults(), "", "  ")
+	if err != nil {
+		return err
+	}
+	return atomicfile.WriteFile(d.Spec(), append(text, '\n'), 0o644)
+}
+
+// CleanDir is a folder of a working folder as a task may name it: relative to the working folder, with no way out of it. It says why when it is not.
+func CleanDir(dir string) (string, error) {
+	if dir == "" {
+		return "", nil
+	}
+	if len(dir) > 240 || strings.ContainsAny(dir, "\\\x00\n\r") {
+		return "", errors.New("that is not a folder in the agent's folder")
+	}
+	if strings.HasPrefix(dir, "/") {
+		return "", errors.New("a folder in the agent's folder is named from its root, without a leading slash")
+	}
+	cleaned := path.Clean(dir)
+	if cleaned == "." {
+		return "", nil
+	}
+	if cleaned == ".." || strings.HasPrefix(cleaned, "../") {
+		return "", errors.New("a folder in the agent's folder cannot be outside it")
+	}
+	return cleaned, nil
+}

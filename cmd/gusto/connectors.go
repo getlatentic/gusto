@@ -16,28 +16,27 @@ import (
 // the clients the operator registered with the apps that need one, by connector id: {"github": {"id": "…", "secret": "…"}}, or
 // ssm:<name>, a SecureString parameter holding the same.
 // GUSTO_CONNECTOR_APPS is a JSON file of more apps than the catalog's, such as the organization's own: [{"id", "name", "what", "url"}].
-func openConnectors() (*connector.Connectors, error) {
-	dir := os.Getenv("GUSTO_CONNECTORS")
+func openConnectors(cfg wayOutSettings, base string) (*connector.Connectors, error) {
+	dir := cfg.connectors
 	if dir == "" {
 		return nil, nil
 	}
-	base := os.Getenv("GUSTO_PUBLIC_URL")
 	if base == "" {
 		return nil, errors.New("GUSTO_CONNECTORS needs GUSTO_PUBLIC_URL, the address a sign-in at an app comes back to")
 	}
-	clients, err := connectorClients(context.Background(), os.Getenv("GUSTO_CONNECTOR_CLIENTS"), openParameters)
+	clients, err := connectorClients(context.Background(), cfg.connectorClients, openParameters)
 	if err != nil {
 		return nil, err
 	}
 	var more []connector.Entry
-	if err := readSettingsFile(os.Getenv("GUSTO_CONNECTOR_APPS"), &more); err != nil {
+	if err := readSettingsFile(cfg.connectorApps, &more); err != nil {
 		return nil, err
 	}
 	apps, err := connector.WithMore(more)
 	if err != nil {
 		return nil, err
 	}
-	return connector.Open(connector.Config{Dir: dir, Base: base, Clients: clients, Apps: apps, Private: os.Getenv("GUSTO_GATEWAY_PRIVATE") == "1"})
+	return connector.Open(connector.Config{Dir: dir, Base: base, Clients: clients, Apps: apps, Private: cfg.gatewayPrivate})
 }
 
 // connectorClients reads the operator's clients from a file, or from Parameter Store when the setting is ssm:<name>. A parameter

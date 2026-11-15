@@ -81,7 +81,7 @@ func TestTheIsolationCheckPassesWhenOnlyTheModelProxyIsOpenAndNamesAreAnsweredIn
 func TestTheIsolationCheckFailsAndNamesWhatASandboxCanOpen(t *testing.T) {
 	for name, open := range map[string]string{
 		"the metadata address":             "169.254.169.254:80",
-		"the front door":                   "10.0.0.7:8050",
+		"gusto cloud":                      "10.0.0.7:8050",
 		"the file system":                  "10.0.0.9:2049",
 		"the machine's agent":              "10.0.0.5:8060",
 		"the internet":                     "1.1.1.1:443",

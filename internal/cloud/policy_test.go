@@ -8,7 +8,7 @@ import (
 
 // Signing in, signing up and joining are forms whose redirects end at an organization's or an app's address, and a
 // browser holds every redirect of a form to the page's form-action.
-func TestTheFrontDoorsFormsMayEndAtAnyOrganizationsAddress(t *testing.T) {
+func TestGustoCloudsFormsMayEndAtAnyOrganizationsAddress(t *testing.T) {
 	f := withServers(t)
 	_, _, header := f.browser().do("GET", "/signin", nil, nil)
 	if policy := header.Get("Content-Security-Policy"); !strings.Contains(policy, "form-action 'self' http://*.cloud.test https://checkout.stripe.com") {
@@ -25,6 +25,6 @@ func TestTheFrontDoorsFormsMayEndAtAnyOrganizationsAddress(t *testing.T) {
 		}
 	}
 	if got := (&Server{Config: Config{URL: &url.URL{Scheme: "https", Host: "gusto.example.com"}}}).orgsSource(); got != "" {
-		t.Errorf("a front door with no organizations' domain allows %q", got)
+		t.Errorf("a gusto cloud server with no organizations' domain allows %q", got)
 	}
 }

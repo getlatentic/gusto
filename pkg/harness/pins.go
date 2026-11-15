@@ -11,7 +11,7 @@ import (
 )
 
 // pinsFile is pins.json: every npm package the runner image installs, at one version, with the registry's sha512 integrity
-// of that tarball. pin.sh writes it. The image's build refuses a package whose bytes differ, so the agent a job runs is the
+// of that tarball. pin.sh writes it. The image's build refuses a package whose bytes differ, so the agent a task runs is the
 // one these pins name and not whatever the registry served that day.
 //
 //go:embed pins.json

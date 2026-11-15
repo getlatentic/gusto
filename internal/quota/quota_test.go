@@ -10,7 +10,7 @@ import (
 )
 
 func TestARefusalSaysWhatWasAllowedAndHowTheLimitIsLifted(t *testing.T) {
-	trial := Quota{Jobs: 3, Concurrent: 1, Note: "Confirm your email address to raise this limit."}
+	trial := Quota{Tasks: 3, Concurrent: 1, Note: "Confirm your email address to raise this limit."}
 	if err := trial.Refuse(2); err != nil {
 		t.Fatalf("under the limit: %v", err)
 	}
@@ -21,7 +21,7 @@ func TestARefusalSaysWhatWasAllowedAndHowTheLimitIsLifted(t *testing.T) {
 	if want := "This organization may start 3 tasks in all and has started 3. Confirm your email address to raise this limit."; err.Error() != want {
 		t.Errorf("%q, want %q", err.Error(), want)
 	}
-	monthly := Quota{Jobs: 200, Monthly: true}
+	monthly := Quota{Tasks: 200, Monthly: true}
 	if err := monthly.Refuse(200); err == nil || !strings.Contains(err.Error(), "200 tasks a month") || strings.HasSuffix(err.Error(), " ") {
 		t.Errorf("%v", err)
 	}
@@ -32,21 +32,21 @@ func TestARefusalSaysWhatWasAllowedAndHowTheLimitIsLifted(t *testing.T) {
 
 func TestTheQuotaIsReadAgainWhenASecondHasPassedAndNotBefore(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "quota.json")
-	if err := Write(path, Quota{Jobs: 3}); err != nil {
+	if err := Write(path, Quota{Tasks: 3}); err != nil {
 		t.Fatal(err)
 	}
 	now := time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC)
 	f := Open(path)
 	f.now = func() time.Time { return now }
-	if q, err := f.Current(); err != nil || q.Jobs != 3 {
+	if q, err := f.Current(); err != nil || q.Tasks != 3 {
 		t.Fatalf("%+v %v", q, err)
 	}
-	Write(path, Quota{Jobs: 200, Monthly: true})
-	if q, _ := f.Current(); q.Jobs != 3 {
+	Write(path, Quota{Tasks: 200, Monthly: true})
+	if q, _ := f.Current(); q.Tasks != 3 {
 		t.Errorf("a file is not read for every question: %+v", q)
 	}
 	now = now.Add(1100 * time.Millisecond)
-	if q, _ := f.Current(); q.Jobs != 200 || !q.Monthly {
+	if q, _ := f.Current(); q.Tasks != 200 || !q.Monthly {
 		t.Errorf("a limit that was lifted takes effect: %+v", q)
 	}
 	if info, _ := os.Stat(path); info.Mode().Perm() != 0o600 {
@@ -70,8 +70,8 @@ func TestAQuotaThatCannotBeReadIsAnErrorAndNotNoLimit(t *testing.T) {
 	}
 }
 
-func TestOneJobIsNotJobs(t *testing.T) {
-	if err := (Quota{Jobs: 1}).Refuse(1); err == nil || !strings.Contains(err.Error(), "1 task in all") {
+func TestOneTaskIsNotTasks(t *testing.T) {
+	if err := (Quota{Tasks: 1}).Refuse(1); err == nil || !strings.Contains(err.Error(), "1 task in all") {
 		t.Errorf("%v", err)
 	}
 }

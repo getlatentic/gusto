@@ -97,13 +97,18 @@ func retryable(err error) bool {
 	if errors.As(err, &pg) {
 		return pg.Code == "40001" || pg.Code == "40P01"
 	}
+	return Busy(err)
+}
+
+// Busy is whether SQLite refused because another connection holds the database, which asking again can get past.
+func Busy(err error) bool {
 	var lite *sqlite.Error
-	if errors.As(err, &lite) {
-		const busy, locked = 5, 6
-		code := lite.Code() & 0xff
-		return code == busy || code == locked
+	if !errors.As(err, &lite) {
+		return false
 	}
-	return false
+	const busy, locked = 5, 6
+	code := lite.Code() & 0xff
+	return code == busy || code == locked
 }
 
 // lock holds a lock named by key until the transaction ends. It does nothing on SQLite, whose write lock

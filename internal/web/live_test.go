@@ -6,15 +6,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/roomlive"
 	"github.com/getlatentic/gusto/internal/roomlive/livetest"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/spend"
 )
 
@@ -43,7 +42,7 @@ type liveRoom struct {
 func newLiveRoom(t *testing.T, work *roomWork, agents ...[2]string) *liveRoom {
 	t.Helper()
 	site, id, thread := aRoom(t, work, agents...)
-	// A running server has the proxy's ledger in memory; without one every page rebuilds it from every job on disk.
+	// A running server has the proxy's ledger in memory; without one every page rebuilds it from every task on disk.
 	ledger, err := spend.Rebuild(site.index.Root(), spend.Policy{})
 	if err != nil {
 		t.Fatal(err)
@@ -135,10 +134,10 @@ func TestAMessageAndAnAgentsReplyAppearInEveryOpenViewWithoutPolling(t *testing.
 	// A message makes a turn that is queued, running, and finished: each is told, and the last carries the reply.
 	for name, c := range map[string]*livetest.Client{"alice": ada, "bob": ben} {
 		seen := frames(t, c, 1)
-		if seen[0].Type != roomlive.FrameTurn || !strings.Contains(seen[0].HTML, "what is next?") {
+		if first := turnOf(t, seen[0]); seen[0].Type != roomlive.FrameTurn || first.Said != "what is next?" || first.Kind != "turn" {
 			t.Fatalf("%s first saw %+v", name, seen[0])
 		}
-		for !strings.Contains(seen[len(seen)-1].HTML, "the reply from Scout") {
+		for !strings.Contains(turnOf(t, seen[len(seen)-1]).ReplyHTML, "the reply from Scout") {
 			seen = append(seen, frames(t, c, 1)...)
 		}
 		for i := 1; i < len(seen); i++ {
@@ -160,13 +159,13 @@ func TestANoteAppearsInEveryOpenView(t *testing.T) {
 	}
 	for name, c := range map[string]*livetest.Client{"alice": ada, "bob": ben} {
 		got := frames(t, c, 1)
-		if got[0].Type != roomlive.FrameNote || !strings.Contains(got[0].HTML, "lunch at noon") || got[0].ID != "n1" {
+		if note := turnOf(t, got[0]); got[0].Type != roomlive.FrameNote || note.Said != "lunch at noon" || note.Kind != "note" || got[0].ID != "n1" {
 			t.Fatalf("%s saw %+v", name, got[0])
 		}
 	}
 }
 
-func TestADrawnTurnIsTheSameHTMLTheRoomPageShows(t *testing.T) {
+func TestTheFramesTurnIsTheTurnTheSnapshotGivesWhoeverAsks(t *testing.T) {
 	work := &roomWork{replies: map[string]string{"a1": "the reply from Scout"}}
 	l := newLiveRoom(t, work, [2]string{"Scout", "fixture"})
 	ada := l.socket(alice)
@@ -174,15 +173,29 @@ func TestADrawnTurnIsTheSameHTMLTheRoomPageShows(t *testing.T) {
 	work.waitTurns(t, l.site, 1)
 
 	var last roomlive.Frame
-	for !strings.Contains(last.HTML, "the reply from Scout") {
+	for !strings.Contains(turnOf(t, last).ReplyHTML, "the reply from Scout") {
 		last = frames(t, ada, 1)[0]
 	}
-	// Bob did not say it, so the page is drawn for him as the live update is drawn for everybody.
-	page := l.site.as(t, bob).ask(t, "GET", l.thread+"/turns", nil).Body.String()
-	article := page[strings.Index(page, `<article id="`+last.ID+`"`):]
-	article = article[:strings.Index(article, "</article>")+len("</article>")]
-	if article != strings.TrimSpace(last.HTML) {
-		t.Fatalf("the live update and the page differ:\nlive: %s\npage: %s", last.HTML, article)
+	live, err := json.Marshal(turnOf(t, last))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A frame is built once for everybody, so the snapshot gives the same turn to the one who said it and to anybody else.
+	for _, who := range []string{alice, bob} {
+		snapshot, _ := l.site.as(t, who).turnsAt(t, l.thread)
+		var shown turnView
+		for _, each := range snapshot.Turns {
+			if each.ID == last.ID {
+				shown = each
+			}
+		}
+		page, err := json.Marshal(shown)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(page) != string(live) {
+			t.Fatalf("the live turn and %s's snapshot differ:\nlive: %s\nsnapshot: %s", who, live, page)
+		}
 	}
 }
 
@@ -272,7 +285,7 @@ func TestAnAgentIsStoppedFromTheSocket(t *testing.T) {
 	made := l.say(ada, "c-1", "take a long time", false)
 	eventually(t, 5*time.Second, "the turn to start", func() bool {
 		record, found := l.site.index.Get(made.Ref)
-		return found && record.State == jobs.Running
+		return found && record.State == tasks.Running
 	})
 	data, rerr := ada.RPC(roomlive.CmdStop, roomlive.Command{V: 1, ID: "s-1", Room: l.id, Ref: made.Ref})
 	if rerr != nil {
@@ -289,12 +302,12 @@ func TestAnAgentIsStoppedFromTheSocket(t *testing.T) {
 	})
 	var last roomlive.Frame
 	deadline := time.Now().Add(10 * time.Second)
-	for !strings.Contains(last.HTML, "Stopped by") && time.Now().Before(deadline) {
+	for turnOf(t, last).StoppedBy == "" && time.Now().Before(deadline) {
 		if p, ok := ada.Next(time.Second); ok {
 			_ = json.Unmarshal(p.Data, &last)
 		}
 	}
-	if !strings.Contains(last.HTML, "Stopped by "+alice) {
+	if turnOf(t, last).StoppedBy != alice {
 		t.Fatalf("the room was not told the turn was stopped: %+v", last)
 	}
 }
@@ -324,27 +337,24 @@ func TestTypingInARoomIsShownToTheOthersAndNotKept(t *testing.T) {
 	}
 }
 
-func TestTheRoomPageSaysWhereItsStreamStandsAndLoadsTheSocketScripts(t *testing.T) {
+func TestTheRoomsDataSaysWhereItsStreamStands(t *testing.T) {
 	l := newLiveRoom(t, &roomWork{}, [2]string{"Scout", "fixture"})
 	mine := l.site.as(t, alice)
 	mine.ask(t, "POST", l.thread+"/say", url.Values{"said": {"hello"}})
-	// The agent's turn keeps writing to the room while the page renders, so the page's position lies between the
-	// newest event before the request and the newest after it.
+	// The agent's turn keeps writing to the room while the data is read, so the position given lies between the newest event
+	// before the request and the newest after it.
 	before, _ := l.site.server.instances.RoomHead(l.id)
-	page := mine.ask(t, "GET", l.thread, nil).Body.String()
+	page := mine.conversation(t, l.thread)
 	after, _ := l.site.server.instances.RoomHead(l.id)
-	for _, want := range []string{
-		`data-live="/live?room=` + l.id + `"`, `data-epoch="` + before.Epoch + `"`, `data-room="` + l.id + `"`,
-		`/static/centrifuge.js?v=`, `/static/live.js?v=`, `id="typing"`, `id="here"`,
-	} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the room's page lacks %s", want)
-		}
+	stream := page.Stream
+	if stream == nil || stream.Path != "/live?room="+l.id || stream.Epoch != before.Epoch {
+		t.Fatalf("the room's data says its stream is %+v", stream)
 	}
-	turns := page[strings.Index(page, `id="turns"`):]
-	seq, err := strconv.ParseUint(between(turns, `data-seq="`, `"`), 10, 64)
-	if err != nil || before.Seq == 0 || seq < before.Seq || seq > after.Seq {
-		t.Errorf("the page should follow from the newest event, between %d and %d: %s", before.Seq, after.Seq, turns[:200])
+	if before.Seq == 0 || stream.Seq < before.Seq || stream.Seq > after.Seq {
+		t.Errorf("the page should follow from the newest event, between %d and %d: %d", before.Seq, after.Seq, stream.Seq)
+	}
+	if page.Instance.ID != l.id || page.Thread.ID != l.threadID() || page.Me != alice || page.Settings.Mark == "" {
+		t.Errorf("the room's data does not say which room, conversation and person it is for: %+v %+v %q", page.Instance, page.Thread, page.Me)
 	}
 }
 

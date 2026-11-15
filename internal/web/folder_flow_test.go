@@ -41,7 +41,7 @@ func TestAFolderOnThePersonsComputerIsKeptTheSameAsTheirAgentsFolder(t *testing.
 		t.Fatalf("a chat for a folder answered %q", where)
 	}
 	instance := strings.Split(strings.TrimPrefix(where, "/instances/"), "/")[0]
-	workspace := here.server.instances.Workspace(instance)
+	folder := here.server.instances.AgentFolder(instance)
 
 	local := filepath.Join(t.TempDir(), "thesis")
 	os.MkdirAll(local, 0o755)
@@ -59,10 +59,10 @@ func TestAFolderOnThePersonsComputerIsKeptTheSameAsTheirAgentsFolder(t *testing.
 	defer func() { stop(); <-done }()
 
 	waitLong(t, "the person's file to reach the agent's folder", func() bool {
-		text, err := os.ReadFile(filepath.Join(workspace, "chapter.md"))
+		text, err := os.ReadFile(filepath.Join(folder, "chapter.md"))
 		return err == nil && string(text) == "by hand"
 	})
-	os.WriteFile(filepath.Join(workspace, "from-the-agent.md"), []byte("by the agent"), 0o644)
+	os.WriteFile(filepath.Join(folder, "from-the-agent.md"), []byte("by the agent"), 0o644)
 	waitLong(t, "the agent's file to reach the person's folder", func() bool {
 		text, err := os.ReadFile(filepath.Join(local, "from-the-agent.md"))
 		return err == nil && string(text) == "by the agent"

@@ -5,8 +5,13 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"slices"
 	"testing"
 	"time"
+
+	"github.com/getlatentic/gusto/cmd/internal/cmdline"
+	"github.com/getlatentic/gusto/internal/isolation"
+	"github.com/getlatentic/gusto/internal/settings"
 )
 
 func TestTheLocalSetupIsMadeOnceAndOnlyItsPersonCanReadIt(t *testing.T) {
@@ -123,23 +128,69 @@ func TestThePersonsOwnShellIsAskedForItsPath(t *testing.T) {
 	}
 }
 
-// A computer's own choice of wall is set as GUSTO_SANDBOX, so the rest of gusto runs jobs behind it, and a person's own setting
+// A computer's own choice of wall is the GUSTO_SANDBOX the rest of gusto reads, so it runs tasks behind it, and a person's own setting
 // is left alone.
-func TestTheWallChosenIsTheSandboxJobsRunBehind(t *testing.T) {
-	t.Setenv("GUSTO_SANDBOX", "")
-	t.Setenv("GUSTO_CONTAINER", "")
+func TestTheWallChosenIsTheSandboxTasksRunBehind(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
-	// A computer with no docker and no VM has its own sandbox where it has a process sandbox that holds a job to a folder and a
+	// A computer with no docker and no VM has its own sandbox where it has a process sandbox that holds a task to a folder and a
 	// port, and nothing otherwise.
 	expected := "here"
-	if processWallHere() {
+	if isolation.ProcessWall(isolation.This(isolation.Settings{})).Ready {
 		expected = "process"
 	}
-	if chooseWall(); os.Getenv("GUSTO_SANDBOX") != expected || wall == nil {
-		t.Errorf("a computer with no docker and no VM chose %q, want %q", os.Getenv("GUSTO_SANDBOX"), expected)
+	nothingSet := func(string) string { return "" }
+	if decided, err := chooseWall(nothingSet); err != nil || decided["GUSTO_SANDBOX"] != expected || wall == nil {
+		t.Errorf("a computer with no docker and no VM chose %v, want %q: %v", decided, expected, err)
 	}
-	t.Setenv("GUSTO_SANDBOX", "container")
-	if chooseWall(); os.Getenv("GUSTO_SANDBOX") != "container" || !wall.Forced {
-		t.Error("a person's own setting was second-guessed")
+	theirs := func(name string) string { return map[string]string{"GUSTO_SANDBOX": "container"}[name] }
+	if decided, err := chooseWall(theirs); err != nil || len(decided) != 0 || !wall.Forced {
+		t.Errorf("a person's own setting was second-guessed: %v, %v", decided, err)
+	}
+}
+
+// The sandbox a person installed is what gusto uses, under what they set themselves, and the sandbox chosen is read over both.
+func TestAnInstalledSandboxIsUsedUnderThePersonsOwnSettings(t *testing.T) {
+	t.Parallel()
+	installed := map[string]string{"GUSTO_OPENSHELL": "/h/openshell/bin/openshell", "GUSTO_OPENSHELL_IMAGE": "/h/openshell/rootfs.tar"}
+	theirs := map[string]string{"GUSTO_OPENSHELL_IMAGE": "/theirs/rootfs.tar"}
+	lookup := settings.Over(map[string]string{"GUSTO_SANDBOX": "openshell"}, settings.Under(installed, func(name string) string { return theirs[name] }))
+	cfg, _, err := loadServe(lookup)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := cfg.boxes.openShell.cfg; got.Binary != installed["GUSTO_OPENSHELL"] || got.Image != theirs["GUSTO_OPENSHELL_IMAGE"] || cfg.boxes.sandbox != "openshell" {
+		t.Errorf("the sandbox is %+v, kind %s", got, cfg.boxes.sandbox)
+	}
+}
+
+// The server of one person on their own computer is set by gusto: on the loopback, signed in by its own secret, and with the
+// person as the admin of their own registry.
+func TestTheServerOnAPersonsComputerIsSetByGusto(t *testing.T) {
+	t.Parallel()
+	setup := localSetup{Secret: "local-secret", Port: 8041, ProxyPort: 8042, FoundKeys: []string{"DEEPSEEK_API_KEY", "OPENAI_API_KEY"}}
+	theirs := map[string]string{"GUSTO_ADDR": "0.0.0.0:80", "GUSTO_ORG": "acme"}
+	cfg, _, err := loadServe(settings.Over(ownServer("/home/ada/gusto", setup), func(name string) string { return theirs[name] }))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.core.addr != "127.0.0.1:8041" || cfg.core.password != "local-secret" || !cfg.core.local || cfg.core.org != "acme" {
+		t.Errorf("core is %+v", cfg.core)
+	}
+	if !slices.Equal(cfg.access.foundKeys, setup.FoundKeys) {
+		t.Errorf("found keys are %v", cfg.access.foundKeys)
+	}
+}
+
+// Every setting gusto decides for a person's own server is one serve reads, so none is decided and then never read.
+func TestEverySettingGustoDecidesLocallyIsOneServeReads(t *testing.T) {
+	t.Parallel()
+	declared := map[string]bool{}
+	for _, each := range cmdline.ParamsOf(new(serveSettings).declare) {
+		declared[each.Name] = true
+	}
+	for name := range ownServer("/home/ada/gusto", localSetup{}) {
+		if !declared[name] {
+			t.Errorf("%s is decided for the local server, and serve does not read it", name)
+		}
 	}
 }

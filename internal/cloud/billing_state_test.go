@@ -27,11 +27,11 @@ func TestTwoEventsInOneSecondKeepTheSubscriptionAsStripeHasIt(t *testing.T) {
 				t.Fatalf("%d %s", status, text)
 			}
 		}
-		if b, _, _ := f.store.Billing("acme-com"); b.Status != "active" {
+		if b, _, _ := f.store.Billing(t.Context(), "acme-com"); b.Status != "active" {
 			t.Errorf("the older of two events in one second was kept: %+v", b)
 		}
-		if _, page := admin.get("/org"); !strings.Contains(page, "Paid: 1 seat") {
-			t.Errorf("\n%s", page)
+		if paid := shownAt(t, admin, "/org").Plan; paid == nil || !strings.HasPrefix(paid.Words, "Paid: 1 seat") {
+			t.Errorf("%+v", paid)
 		}
 	})
 }
@@ -45,8 +45,8 @@ func TestAnAdminIsNotOfferedASecondSubscriptionWhileTheFirstAwaitsPayment(t *tes
 		if status, text := f.postEvent(body, signStripe(body, testWebhookSecret, time.Now())); status != http.StatusOK {
 			t.Fatalf("%d %s", status, text)
 		}
-		if _, page := admin.get("/org"); !strings.Contains(page, "Payment pending") || strings.Contains(page, "/org/billing/subscribe") {
-			t.Errorf("an incomplete subscription offers a second:\n%s", page)
+		if pending := shownAt(t, admin, "/org").Plan; pending == nil || !strings.HasPrefix(pending.Words, "Payment pending") || pending.Subscribe {
+			t.Errorf("an incomplete subscription offers a second: %+v", pending)
 		}
 	})
 }
@@ -54,7 +54,7 @@ func TestAnAdminIsNotOfferedASecondSubscriptionWhileTheFirstAwaitsPayment(t *tes
 func TestAQuotaThatCouldNotBeWrittenIsWrittenByTheSweep(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
-		_, org, err := s.SignUp(Signup{Email: "ada@acme.com", OrgName: "Acme"})
+		_, org, err := s.SignUp(t.Context(), Signup{Email: "ada@acme.com", OrgName: "Acme"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -66,7 +66,7 @@ func TestAQuotaThatCouldNotBeWrittenIsWrittenByTheSweep(t *testing.T) {
 		if err := os.MkdirAll(filepath.Join(file, "in-the-way"), 0o700); err != nil {
 			t.Fatal(err)
 		}
-		if err := s.Verify("ada@acme.com"); err != nil {
+		if err := s.Verify(t.Context(), "ada@acme.com"); err != nil {
 			t.Fatalf("the address was confirmed, whatever became of the quota: %v", err)
 		}
 		if err := os.RemoveAll(file); err != nil {
@@ -75,7 +75,7 @@ func TestAQuotaThatCouldNotBeWrittenIsWrittenByTheSweep(t *testing.T) {
 		if err := s.applyDueQuotas(context.Background()); err != nil {
 			t.Fatal(err)
 		}
-		if q, err := s.Quota(org.Slug); err != nil || q.Jobs != s.set.Limits.Verified.Jobs {
+		if q, err := s.Quota(org.Slug); err != nil || q.Tasks != s.set.Limits.Verified.Tasks {
 			t.Fatalf("the sweep did not write the verified quota: %+v %v", q, err)
 		}
 		if due, _ := count(context.Background(), s.db, `SELECT count(*) FROM orgs WHERE quota_due`); due != 0 {

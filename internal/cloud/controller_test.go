@@ -33,7 +33,7 @@ func whoIs(t *testing.T, address string) map[string]any {
 
 func made(t *testing.T, s *Store, email, name string) Org {
 	t.Helper()
-	_, org, err := s.SignUp(Signup{Email: email, OrgName: name})
+	_, org, err := s.SignUp(t.Context(), Signup{Email: email, OrgName: name})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,10 +45,10 @@ func TestAnOrganizationsServerIsMadeAndStartedWithOnlyItsOwnDirectoriesKeysAndSe
 		s := open(t, Settings{})
 		c := controlled(t, s)
 		org := made(t, s, "ada@acme.com", "Acme")
-		if err := c.Provision(org.Slug); err != nil {
+		if err := c.Provision(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)
 		}
-		address, state := c.Route(org.Slug)
+		address, state := c.Route(t.Context(), org.Slug)
 		if state != Ready || address == "" {
 			t.Fatalf("%q %q", address, state)
 		}
@@ -64,7 +64,7 @@ func TestAnOrganizationsServerIsMadeAndStartedWithOnlyItsOwnDirectoriesKeysAndSe
 			}
 		}
 		if said["mailVisible"] != false {
-			t.Error("the front door's mail password reached an organization's server")
+			t.Error("gusto cloud's mail password reached an organization's server")
 		}
 		if !strings.HasPrefix(fmt.Sprint(said["addr"]), "127.0.0.1:") || said["addr"] == said["proxyAddr"] {
 			t.Errorf("a server listens on the loopback, and its proxy is another port: %v %v", said["addr"], said["proxyAddr"])
@@ -85,8 +85,8 @@ func TestAnOrganizationsServerIsMadeAndStartedWithOnlyItsOwnDirectoriesKeysAndSe
 				t.Errorf("%s: %v %v", dir, info, err)
 			}
 		}
-		runtime, _ := s.Runtime(org.Slug)
-		if runtime.State != Ready || runtime.Port == 0 || runtime.ProxyPort == 0 || runtime.Cell != "local" {
+		runtime, _ := s.Runtime(t.Context(), org.Slug)
+		if runtime.State != Ready || runtime.Port == 0 || runtime.ProxyPort == 0 || runtime.Node != "local" {
 			t.Errorf("what was done is written down: %+v", runtime)
 		}
 	})
@@ -105,35 +105,35 @@ func TestOrganizationsProvisionedTogetherShareNeitherAPortNorADirectory(t *testi
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				if err := c.Provision(org.Slug); err != nil {
+				if err := c.Provision(t.Context(), org.Slug); err != nil {
 					t.Error(err)
 				}
 			}()
 		}
 		wg.Wait()
-		ports, jobs := map[string]bool{}, map[string]bool{}
+		ports, tasks := map[string]bool{}, map[string]bool{}
 		for _, org := range orgs {
-			address, state := c.Route(org.Slug)
+			address, state := c.Route(t.Context(), org.Slug)
 			if state != Ready {
 				logged, _ := os.ReadFile(filepath.Join(s.OrgDir(org.Slug), "server.log"))
-				runtime, _ := s.Runtime(org.Slug)
+				runtime, _ := s.Runtime(t.Context(), org.Slug)
 				t.Fatalf("%s: %q, port %d, server said:\n%s", org.Slug, state, runtime.Port, logged)
 			}
 			said := whoIs(t, address)
 			if said["org"] != org.Slug {
 				t.Errorf("%s answered as %v", org.Slug, said["org"])
 			}
-			runtime, _ := s.Runtime(org.Slug)
+			runtime, _ := s.Runtime(t.Context(), org.Slug)
 			for _, port := range []string{fmt.Sprint(runtime.Port), fmt.Sprint(runtime.ProxyPort)} {
 				if ports[port] {
 					t.Errorf("port %s was given twice", port)
 				}
 				ports[port] = true
 			}
-			if jobs[fmt.Sprint(said["jobs"])] {
+			if tasks[fmt.Sprint(said["jobs"])] {
 				t.Errorf("a directory was shared: %v", said["jobs"])
 			}
-			jobs[fmt.Sprint(said["jobs"])] = true
+			tasks[fmt.Sprint(said["jobs"])] = true
 		}
 	})
 }
@@ -143,16 +143,16 @@ func TestProvisioningAgainChangesNothingAndDoesNotRestartTheServer(t *testing.T)
 		s := open(t, Settings{})
 		c := controlled(t, s)
 		org := made(t, s, "ada@acme.com", "Acme")
-		c.Provision(org.Slug)
-		address, _ := c.Route(org.Slug)
+		c.Provision(t.Context(), org.Slug)
+		address, _ := c.Route(t.Context(), org.Slug)
 		first := whoIs(t, address)
-		before, _ := s.Runtime(org.Slug)
+		before, _ := s.Runtime(t.Context(), org.Slug)
 		key, _ := os.ReadFile(filepath.Join(s.OrgDir(org.Slug), "entry.key"))
-		if err := c.Provision(org.Slug); err != nil {
+		if err := c.Provision(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)
 		}
-		again, _ := c.Route(org.Slug)
-		after, _ := s.Runtime(org.Slug)
+		again, _ := c.Route(t.Context(), org.Slug)
+		after, _ := s.Runtime(t.Context(), org.Slug)
 		if again != address || whoIs(t, again)["pid"] != first["pid"] || after.Port != before.Port {
 			t.Error("a second pass restarted the server or moved it")
 		}
@@ -167,26 +167,26 @@ func TestAServerThatStopsIsStartedAgain(t *testing.T) {
 		s := open(t, Settings{})
 		c := controlled(t, s)
 		org := made(t, s, "ada@acme.com", "Acme")
-		c.Provision(org.Slug)
-		address, _ := c.Route(org.Slug)
+		c.Provision(t.Context(), org.Slug)
+		address, _ := c.Route(t.Context(), org.Slug)
 		first := whoIs(t, address)
 		http.Get("http://" + address + "/die")
 		deadline := time.Now().Add(5 * time.Second)
-		for c.Cell.Alive(org.Slug) && time.Now().Before(deadline) {
+		for c.Node.Alive(org.Slug) && time.Now().Before(deadline) {
 			time.Sleep(20 * time.Millisecond)
 		}
-		if _, state := c.Route(org.Slug); state != Starting {
+		if _, state := c.Route(t.Context(), org.Slug); state != Starting {
 			t.Errorf("a server whose process has gone is not routed to: %q", state)
 		}
-		c.supervise()
-		again, state := c.Route(org.Slug)
+		c.supervise(t.Context())
+		again, state := c.Route(t.Context(), org.Slug)
 		if state != Ready || again != address {
 			t.Fatalf("%q %q", again, state)
 		}
 		if said := whoIs(t, again); said["pid"] == first["pid"] {
 			t.Error("the same process answered")
 		}
-		if runtime, _ := s.Runtime(org.Slug); runtime.Restarts != 1 {
+		if runtime, _ := s.Runtime(t.Context(), org.Slug); runtime.Restarts != 1 {
 			t.Errorf("a restart is counted: %+v", runtime)
 		}
 	})
@@ -196,28 +196,28 @@ func TestAServerThatCannotStartIsFailedWithAReasonAndTriedAgainLessOften(t *test
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		c := controlled(t, s, "FAKE_FAIL=1")
-		c.Wait = 600 * time.Millisecond
+		c.Wait = time.Minute
 		org := made(t, s, "ada@acme.com", "Acme")
-		if err := c.Provision(org.Slug); err == nil {
+		began := time.Now()
+		if err := c.Provision(t.Context(), org.Slug); err == nil {
 			t.Fatal("a server that never answers is an error")
 		}
-		if address, state := c.Route(org.Slug); state != Failed || address != "" {
+		if took := time.Since(began); took > 20*time.Second {
+			t.Errorf("a server that had ended was waited for: %s", took)
+		}
+		if address, state := c.Route(t.Context(), org.Slug); state != Failed || address != "" {
 			t.Errorf("%q %q", address, state)
 		}
-		runtime, _ := s.Runtime(org.Slug)
-		if runtime.State != Failed || !strings.Contains(runtime.Error, "server.log") {
-			t.Errorf("the reason is written down, and says where to look: %+v", runtime)
+		runtime, _ := s.Runtime(t.Context(), org.Slug)
+		if runtime.State != Failed || !strings.Contains(runtime.Error, "told to fail") || !strings.Contains(runtime.Error, "server.log") {
+			t.Errorf("the reason is what the server said, and where it said it: %+v", runtime)
 		}
-		if log, _ := os.ReadFile(filepath.Join(s.OrgDir(org.Slug), "server.log")); !strings.Contains(string(log), "told to fail") {
-			t.Errorf("what the server said is kept: %q", log)
-		}
-		c.supervise()
-		first := c.retry[org.Slug]
-		if first.IsZero() {
-			t.Fatal("a failure sets when to try again")
+		held, _ := c.stateOf(org.Slug)
+		if !held.retryAt.After(time.Now()) {
+			t.Fatalf("the first failure sets when to try again, and it is not at once: %+v", held)
 		}
 		before, _ := os.ReadFile(filepath.Join(s.OrgDir(org.Slug), "server.log"))
-		c.supervise() // too soon: nothing is tried
+		c.supervise(t.Context()) // too soon: nothing is tried
 		after, _ := os.ReadFile(filepath.Join(s.OrgDir(org.Slug), "server.log"))
 		if string(before) != string(after) {
 			t.Error("a server that failed was tried again at once")
@@ -225,7 +225,7 @@ func TestAServerThatCannotStartIsFailedWithAReasonAndTriedAgainLessOften(t *test
 	})
 }
 
-// A server that is slow to start is not waited for by the front door: asking where
+// A server that is slow to start is not waited for by gusto cloud: asking where
 // it is answers at once, and says it is starting.
 func TestRoutingDoesNotWaitForAServerThatIsStarting(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
@@ -233,10 +233,10 @@ func TestRoutingDoesNotWaitForAServerThatIsStarting(t *testing.T) {
 		c := controlled(t, s, "FAKE_DELAY=1500ms")
 		org := made(t, s, "ada@acme.com", "Acme")
 		done := make(chan error, 1)
-		go func() { done <- c.Provision(org.Slug) }()
+		go func() { done <- c.Provision(t.Context(), org.Slug) }()
 		deadline := time.Now().Add(3 * time.Second)
 		for {
-			if _, state := c.Route(org.Slug); state == Starting {
+			if _, state := c.Route(t.Context(), org.Slug); state == Starting {
 				break
 			}
 			if time.Now().After(deadline) {
@@ -246,7 +246,7 @@ func TestRoutingDoesNotWaitForAServerThatIsStarting(t *testing.T) {
 		}
 		began := time.Now()
 		for range 200 {
-			c.Route(org.Slug)
+			c.Route(t.Context(), org.Slug)
 		}
 		if took := time.Since(began); took > 200*time.Millisecond {
 			t.Errorf("routing waited on a server that was starting: %s", took)
@@ -254,13 +254,13 @@ func TestRoutingDoesNotWaitForAServerThatIsStarting(t *testing.T) {
 		if err := <-done; err != nil {
 			t.Fatal(err)
 		}
-		if _, state := c.Route(org.Slug); state != Ready {
+		if _, state := c.Route(t.Context(), org.Slug); state != Ready {
 			t.Errorf("%q", state)
 		}
 	})
 }
 
-// Run starts every organization, and leaves them running when it ends, for the next leader; StopAll, when the front door
+// Run starts every organization, and leaves them running when it ends, for the next leader; StopAll, when gusto cloud
 // stops, asks each to stop.
 func TestRunStartsEveryOrganizationAndStopAllStopsThem(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
@@ -271,17 +271,21 @@ func TestRunStartsEveryOrganizationAndStopAllStopsThem(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		stopped := make(chan struct{})
 		go func() { c.Run(ctx, 50*time.Millisecond); close(stopped) }()
-		waitFor(t, func() bool { _, sa := c.Route(a.Slug); _, sb := c.Route(b.Slug); return sa == Ready && sb == Ready })
+		waitFor(t, func() bool {
+			_, sa := c.Route(ctx, a.Slug)
+			_, sb := c.Route(ctx, b.Slug)
+			return sa == Ready && sb == Ready
+		})
 		cancel()
 		<-stopped
 		for _, org := range []Org{a, b} {
-			if !c.Cell.Alive(org.Slug) {
+			if !c.Node.Alive(org.Slug) {
 				t.Errorf("%s stopped when Run ended", org.Slug)
 			}
 		}
 		c.StopAll()
 		for _, org := range []Org{a, b} {
-			if c.Cell.Alive(org.Slug) {
+			if c.Node.Alive(org.Slug) {
 				t.Errorf("%s is still running", org.Slug)
 			}
 			if marker, _ := os.ReadFile(filepath.Join(s.DataDir(org.Slug), "stopped")); string(marker) != "asked\n" {
@@ -297,31 +301,31 @@ func TestAServerThatIgnoresBeingAskedToStopIsMadeToAfterTheGrace(t *testing.T) {
 		c := controlled(t, s, "FAKE_IGNORE_TERM=1")
 		c.StopGrace = 300 * time.Millisecond
 		org := made(t, s, "ada@acme.com", "Acme")
-		c.Provision(org.Slug)
+		c.Provision(t.Context(), org.Slug)
 		began := time.Now()
 		c.StopAll()
-		if c.Cell.Alive(org.Slug) || time.Since(began) < 250*time.Millisecond || time.Since(began) > 5*time.Second {
-			t.Errorf("stopped in %s, alive %v", time.Since(began), c.Cell.Alive(org.Slug))
+		if c.Node.Alive(org.Slug) || time.Since(began) < 250*time.Millisecond || time.Since(began) > 5*time.Second {
+			t.Errorf("stopped in %s, alive %v", time.Since(began), c.Node.Alive(org.Slug))
 		}
 	})
 }
 
-// What was Ready before the front door restarted is starting until it answers again,
+// What was Ready before gusto cloud restarted is starting until it answers again,
 // and not gone: a request in that moment is told to wait.
-func TestAnOrganizationThatWasReadyIsStartingAgainWhenTheFrontDoorRestarts(t *testing.T) {
+func TestAnOrganizationThatWasReadyIsStartingAgainWhenGustoCloudRestarts(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		first := controlled(t, s)
 		org := made(t, s, "ada@acme.com", "Acme")
-		first.Provision(org.Slug)
+		first.Provision(t.Context(), org.Slug)
 		first.StopAll()
 
 		second := controlled(t, s, "FAKE_DELAY=1s")
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		go second.Run(ctx, time.Hour)
-		waitFor(t, func() bool { _, state := second.Route(org.Slug); return state == Starting })
-		waitFor(t, func() bool { _, state := second.Route(org.Slug); return state == Ready })
+		waitFor(t, func() bool { _, state := second.Route(ctx, org.Slug); return state == Starting })
+		waitFor(t, func() bool { _, state := second.Route(ctx, org.Slug); return state == Ready })
 	})
 }
 
@@ -356,7 +360,7 @@ func TestPortsGivenAtTheSameMomentAreAllDifferent(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				runtime, err := c.givePorts(org.Slug, Runtime{Cell: "local"}, c.Cell)
+				runtime, err := c.givePorts(t.Context(), org.Slug, Runtime{Node: "local"}, c.Node)
 				if err != nil {
 					t.Error(err)
 					return
@@ -385,16 +389,16 @@ func TestARemovedOrganizationIsNotStartedAgain(t *testing.T) {
 		s := open(t, Settings{})
 		c := controlled(t, s)
 		org := made(t, s, "ada@acme.com", "Acme")
-		c.Provision(org.Slug)
-		c.Remove(org.Slug)
-		c.restart(org.Slug)
-		if _, state := c.Route(org.Slug); state != "" {
+		c.Provision(t.Context(), org.Slug)
+		c.Remove(t.Context(), org.Slug)
+		c.restart(t.Context(), org.Slug)
+		if _, state := c.Route(t.Context(), org.Slug); state != "" {
 			t.Fatalf("a removed organization is %q", state)
 		}
-		if c.Cell.Alive(org.Slug) {
+		if c.Node.Alive(org.Slug) {
 			t.Error("a removed organization's server was started again")
 		}
-		if err := c.reprovision(org.Slug); err != nil || c.Cell.Alive(org.Slug) {
+		if err := c.reprovision(t.Context(), org.Slug); err != nil || c.Node.Alive(org.Slug) {
 			t.Errorf("a retry for a removed organization started it: %v", err)
 		}
 	})
@@ -407,14 +411,14 @@ func TestAProvisionThatRunsAfterRemoveIsRefused(t *testing.T) {
 		s := open(t, Settings{})
 		c := controlled(t, s)
 		org := made(t, s, "ada@acme.com", "Acme")
-		c.Remove(org.Slug)
-		if err := c.Provision(org.Slug); !errors.Is(err, ErrRemoved) {
+		c.Remove(t.Context(), org.Slug)
+		if err := c.Provision(t.Context(), org.Slug); !errors.Is(err, ErrRemoved) {
 			t.Errorf("provisioning a removed organization said %v", err)
 		}
-		if c.Cell.Alive(org.Slug) {
+		if c.Node.Alive(org.Slug) {
 			t.Error("a removed organization's server was started")
 		}
-		if _, state := c.Route(org.Slug); state != "" {
+		if _, state := c.Route(t.Context(), org.Slug); state != "" {
 			t.Errorf("a removed organization is %q", state)
 		}
 	})
@@ -425,19 +429,19 @@ func TestAnOrganizationGoneFromTheStoreIsNotProvisioned(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s, _ := clocked(t, demoSet)
 		c := controlled(t, s)
-		_, org, err := s.StartDemo("Ada", "ada@acme.com", "Acme")
+		_, org, err := s.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")
 		if err != nil {
 			t.Fatal(err)
 		}
-		c.Remove(org.Slug)
-		if err := s.EndDemo(org.Slug, "test"); err != nil {
+		c.Remove(t.Context(), org.Slug)
+		if err := s.EndDemo(t.Context(), org.Slug, "test"); err != nil {
 			t.Fatal(err)
 		}
 		c.Ended(org.Slug)
-		if err := c.Provision(org.Slug); !errors.Is(err, ErrRemoved) {
+		if err := c.Provision(t.Context(), org.Slug); !errors.Is(err, ErrRemoved) {
 			t.Errorf("provisioning a deleted organization said %v", err)
 		}
-		if c.Cell.Alive(org.Slug) {
+		if c.Node.Alive(org.Slug) {
 			t.Error("a deleted organization's server was started")
 		}
 		if _, err := os.Stat(s.OrgDir(org.Slug)); !os.IsNotExist(err) {
@@ -453,10 +457,10 @@ func TestANewOrganizationAtARemovedAddressIsProvisioned(t *testing.T) {
 		c := controlled(t, s)
 		org := made(t, s, "ada@acme.com", "Acme")
 		c.removed = map[string]time.Time{org.Slug: org.Created.Add(-time.Hour)}
-		if err := c.Provision(org.Slug); err != nil {
+		if err := c.Provision(t.Context(), org.Slug); err != nil {
 			t.Fatal(err)
 		}
-		if !c.Cell.Alive(org.Slug) {
+		if !c.Node.Alive(org.Slug) {
 			t.Error("a new organization at a removed address was not started")
 		}
 	})

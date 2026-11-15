@@ -133,7 +133,7 @@ const attempts = 4
 
 // cloneWithToken tries again when GitHub's git servers refuse a token the API
 // has just minted and vouches for. Some of them answer "Repository not found"
-// to a valid token now and then, and the next try succeeds, so a job for a
+// to a valid token now and then, and the next try succeeds, so a task for a
 // repository the App reaches is not failed by it.
 func cloneWithToken(ctx context.Context, env []string, remote, dir, into string) error {
 	delay := retryDelay

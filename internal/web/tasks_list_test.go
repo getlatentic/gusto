@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/taskindex"
 	"github.com/getlatentic/gusto/internal/taskindex/taskindextest"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // listed is a server whose task list reads an index that holds every task there is, the way a server that has
@@ -41,9 +41,9 @@ func (l *listed) attach(t *testing.T) {
 	l.server.SetTasks(l.store)
 }
 
-func (l *listed) addTask(t *testing.T, id, asked string, state jobs.State, agentType, brief string, queued int64) {
+func (l *listed) addTask(t *testing.T, id, asked string, state tasks.State, agentType, brief string, queued int64) {
 	t.Helper()
-	record := jobs.Record{ID: id, State: state, Brief: brief, Harness: agentType, Asked: asked, Repo: "acme/web", Queued: queued}
+	record := tasks.Record{ID: id, State: state, Brief: brief, Harness: agentType, Asked: asked, Repo: "acme/web", Queued: queued}
 	if state.Done() {
 		record.Ended = queued + 60
 	}
@@ -59,31 +59,28 @@ func (l *listed) addTask(t *testing.T, id, asked string, state jobs.State, agent
 func (l *listed) somePeoplesTasks(t *testing.T) {
 	t.Helper()
 	now := time.Now().Unix()
-	l.addTask(t, "a-passed", alice, jobs.Passed, "codex", "fix the login form", now-100)
-	l.addTask(t, "a-failed", alice, jobs.Failed, "claude-code", "migrate 100% of the users", now-200)
-	l.addTask(t, "a-interrupted", alice, jobs.Interrupted, "codex", "write the docs", now-300)
-	l.addTask(t, "a-queued", alice, jobs.Queued, "pi", "snake_case the names", now-50)
-	l.addTask(t, "b-passed", bob, jobs.Passed, "codex", "bobs secret project", now-400)
-	l.addTask(t, "b-running", bob, jobs.Running, "pi", "bobs running work", now-10)
-	l.addTask(t, "b-old", bob, jobs.Failed, "claude-code", "bobs old failure", now-30*24*3600)
+	l.addTask(t, "a-passed", alice, tasks.Passed, "codex", "fix the login form", now-100)
+	l.addTask(t, "a-failed", alice, tasks.Failed, "claude-code", "migrate 100% of the users", now-200)
+	l.addTask(t, "a-interrupted", alice, tasks.Interrupted, "codex", "write the docs", now-300)
+	l.addTask(t, "a-queued", alice, tasks.Queued, "pi", "snake_case the names", now-50)
+	l.addTask(t, "b-passed", bob, tasks.Passed, "codex", "bobs secret project", now-400)
+	l.addTask(t, "b-running", bob, tasks.Running, "pi", "bobs running work", now-10)
+	l.addTask(t, "b-old", bob, tasks.Failed, "claude-code", "bobs old failure", now-30*24*3600)
 }
 
-var taskLink = regexp.MustCompile(`class="[^"]*\bbrief\b[^"]*" href="/jobs/([^"]+)"`)
-
-func idsOnPage(body string) []string {
-	var ids []string
-	for _, found := range taskLink.FindAllStringSubmatch(body, -1) {
-		ids = append(ids, found[1])
-	}
-	return ids
+// listedOn is the ids Activity lists at path, in its order.
+func listedOn(t *testing.T, here *site, path string) []string {
+	t.Helper()
+	return here.activity(t, strings.TrimPrefix(path, "/jobs")).ids()
 }
 
-var figureCounts = regexp.MustCompile(`class="is-(\w+)[^"]*" href="[^"]*"[^>]*><span class="[^"]*\bdot\b[^"]*"></span>\w+ <span class="[^"]*\bn\b[^"]*">(\d+)</span>`)
-
-func figuresOnPage(body string) string {
+// countsShown is the counts across the top of Activity that it shows: those with a count, and the one chosen.
+func countsShown(board boardView) string {
 	var out []string
-	for _, found := range figureCounts.FindAllStringSubmatch(body, -1) {
-		out = append(out, found[1]+"="+found[2])
+	for _, each := range board.Figures {
+		if each.Count > 0 || each.Current {
+			out = append(out, fmt.Sprintf("%s=%d", each.Label, each.Count))
+		}
 	}
 	return strings.Join(out, ",")
 }
@@ -113,35 +110,24 @@ func TestTheListFromTheIndexShowsWhatTheListFromMemoryShows(t *testing.T) {
 		before := map[string][3]string{}
 		for who, viewer := range viewers {
 			for _, path := range paths {
-				body := viewer.ask(t, "GET", path, nil).Body.String()
-				before[who+path] = [3]string{strings.Join(idsOnPage(body), " "), figuresOnPage(body), strings.Join(harnessOptions(body), ",")}
+				board := viewer.activity(t, strings.TrimPrefix(path, "/jobs"))
+				before[who+path] = [3]string{strings.Join(board.ids(), " "), countsShown(board), strings.Join(board.Harnesses, ",")}
 			}
 		}
 		here.attach(t)
 		for who, viewer := range viewers {
 			for _, path := range paths {
-				answer := viewer.ask(t, "GET", path, nil)
-				body := answer.Body.String()
-				got := [3]string{strings.Join(idsOnPage(body), " "), figuresOnPage(body), strings.Join(harnessOptions(body), ",")}
+				board := viewer.activity(t, strings.TrimPrefix(path, "/jobs"))
+				got := [3]string{strings.Join(board.ids(), " "), countsShown(board), strings.Join(board.Harnesses, ",")}
 				if want := before[who+path]; got != want {
 					t.Errorf("%s %s: from the index\n%q\nfrom memory\n%q", who, path, got, want)
 				}
 			}
 		}
-		if ids := idsOnPage(viewers["admin"].ask(t, "GET", "/jobs", nil).Body.String()); len(ids) != 7 {
+		if ids := listedOn(t, viewers["admin"], "/jobs"); len(ids) != 7 {
 			t.Fatalf("the admin sees %v", ids)
 		}
 	})
-}
-
-var optionTag = regexp.MustCompile(`<option(?: selected)?>([^<]+)</option>`)
-
-func harnessOptions(body string) []string {
-	var out []string
-	for _, found := range optionTag.FindAllStringSubmatch(body, -1) {
-		out = append(out, found[1])
-	}
-	return out
 }
 
 func TestTheListCanBeSearchedFilteredAndOrdered(t *testing.T) {
@@ -164,16 +150,16 @@ func TestTheListCanBeSearchedFilteredAndOrdered(t *testing.T) {
 			"/jobs?sort=seq":                          "b-old b-running b-passed a-queued a-interrupted a-failed a-passed",
 			"/jobs?q=work&state=passed&person=nobody": "",
 		} {
-			body := here.ask(t, "GET", path, nil).Body.String()
-			if got := strings.Join(idsOnPage(body), " "); got != want {
+			if got := strings.Join(listedOn(t, here.site, path), " "); got != want {
 				t.Errorf("%s shows %q, want %q", path, got, want)
 			}
 		}
-		if body := here.ask(t, "GET", "/jobs?q=nothing+like+it", nil).Body.String(); !strings.Contains(body, "Nothing matches these filters") {
-			t.Error("an empty search does not say so")
+		// The page says nothing matches when a search finds nothing (web/src/domain/activity.test.ts).
+		if empty := here.activity(t, "?q=nothing+like+it"); len(empty.runs()) != 0 || empty.Index == nil || empty.Index.Query != "nothing like it" {
+			t.Errorf("an empty search is not given as one: %+v", empty)
 		}
-		if body := here.ask(t, "GET", "/jobs", nil).Body.String(); !strings.Contains(body, `name="q"`) || !strings.Contains(body, "7 tasks") {
-			t.Errorf("the page has no search box or no total:\n%s", body)
+		if board := here.activity(t, ""); board.Index == nil || board.Shown != "7 tasks" {
+			t.Errorf("the page has no search box or no total: %+v", board)
 		}
 	})
 }
@@ -182,31 +168,34 @@ func TestTheListPagesByCursor(t *testing.T) {
 	here := withIndexedTasks(t, taskindextest.New())
 	now := time.Now().Unix()
 	for n := 0; n < 120; n++ {
-		here.addTask(t, fmt.Sprintf("t%03d", n), alice, jobs.Passed, "codex", fmt.Sprintf("task %d", n), now-int64(1000-n))
+		here.addTask(t, fmt.Sprintf("t%03d", n), alice, tasks.Passed, "codex", fmt.Sprintf("task %d", n), now-int64(1000-n))
 	}
 	here.attach(t)
 	var seen []string
 	path := "/jobs"
 	for pages := 0; pages < 10 && path != ""; pages++ {
-		body := here.ask(t, "GET", path, nil).Body.String()
-		seen = append(seen, idsOnPage(body)...)
-		path = ""
-		if found := regexp.MustCompile(`<a class="[^"]*" href="([^"]*after=[^"]*)">Older</a>`).FindStringSubmatch(body); found != nil {
-			path = strings.ReplaceAll(found[1], "&amp;", "&")
+		board := here.activity(t, strings.TrimPrefix(path, "/jobs"))
+		seen = append(seen, board.ids()...)
+		path = board.Older
+		if path != "" && !strings.Contains(path, "after=") {
+			t.Fatalf("the way to older tasks is %s", path)
 		}
 	}
 	if len(seen) != 120 || seen[0] != "t119" || seen[119] != "t000" {
 		t.Fatalf("the pages showed %d tasks, from %v", len(seen), seen[:3])
 	}
-	second := here.ask(t, "GET", "/jobs", nil).Body.String()
-	if !strings.Contains(second, "Older") || strings.Contains(second, ">Newest</a>") {
+	first := here.activity(t, "")
+	if first.Older == "" || first.Index == nil || first.Index.Newest != "" {
 		t.Error("the first page has no way on, or a way back to where it is")
 	}
-	if got := here.ask(t, "GET", "/jobs?after=garbage", nil); got.Code != http.StatusBadRequest {
+	if later := here.activity(t, strings.TrimPrefix(first.Older, "/jobs")); later.Index == nil || later.Index.Newest != "/jobs" {
+		t.Errorf("a later page has no way back to the newest: %+v", later.Index)
+	}
+	if got := here.ask(t, "GET", "/app/api/jobs?after=garbage", nil); got.Code != http.StatusBadRequest {
 		t.Errorf("a cursor that is rubbish answered %d", got.Code)
 	}
-	queuedCursor := regexp.MustCompile(`after=([^"&]+)`).FindStringSubmatch(second)[1]
-	if got := here.ask(t, "GET", "/jobs?sort=seq&after="+queuedCursor, nil); got.Code != http.StatusBadRequest {
+	queuedCursor := regexp.MustCompile(`after=([^&]+)`).FindStringSubmatch(first.Older)[1]
+	if got := here.ask(t, "GET", "/app/api/jobs?sort=seq&after="+queuedCursor, nil); got.Code != http.StatusBadRequest {
 		t.Errorf("a cursor of another order answered %d", got.Code)
 	}
 }
@@ -269,12 +258,14 @@ func TestNoParameterWidensWhatAPersonSeesOfTheTaskList(t *testing.T) {
 		bobs := []string{"b-passed", "b-running", "b-old", "bobs secret project", "bobs running work", "bobs old failure", bob}
 		for _, query := range []string{"", "?person=" + url.QueryEscape(bob), "?person=", "?person=%20", "?q=bob", "?q=secret", "?q=" + bob,
 			"?agent_type=pi", "?state=running", "?state=failed", "?sort=seq", "?sort=ended", "?limit=1000", "?from=2000-01-01"} {
-			page := hers.ask(t, "GET", "/jobs"+query, nil)
+			page := hers.ask(t, "GET", "/app/api/jobs"+query, nil)
 			if page.Code != http.StatusOK {
 				t.Fatalf("/jobs%s answered %d", query, page.Code)
 			}
+			// The search box gives back the person searched for.
+			shown := strings.ReplaceAll(page.Body.String(), `"Person":"`+bob+`"`, "")
 			for _, word := range bobs {
-				if strings.Contains(strings.ReplaceAll(page.Body.String(), "value=\""+bob+"\"", ""), word) && !strings.Contains(query, word) {
+				if strings.Contains(shown, word) && !strings.Contains(query, word) {
 					t.Errorf("/jobs%s shows %q to alice", query, word)
 				}
 			}
@@ -285,10 +276,10 @@ func TestNoParameterWidensWhatAPersonSeesOfTheTaskList(t *testing.T) {
 				}
 			}
 		}
-		if body := hers.ask(t, "GET", "/jobs", nil).Body.String(); strings.Contains(body, `name="person"`) {
+		if board := hers.activity(t, ""); board.Index == nil || board.Index.Everyone {
 			t.Error("a person who sees only their own has no use for a choice of people")
 		}
-		if body := here.ask(t, "GET", "/jobs", nil).Body.String(); !strings.Contains(body, `name="person"`) {
+		if board := here.activity(t, ""); board.Index == nil || !board.Index.Everyone {
 			t.Error("an admin has no way to choose a person")
 		}
 	})
@@ -298,15 +289,15 @@ func TestNoParameterWidensWhatAPersonSeesOfTheTaskList(t *testing.T) {
 func TestTasksWithNoOwnerAreAnAdminsAloneOnTheList(t *testing.T) {
 	eachStore(t, func(t *testing.T, store taskindex.Store) {
 		here := withIndexedTasks(t, store)
-		here.addTask(t, "nobodys", "", jobs.Passed, "codex", "no owner", time.Now().Unix())
-		here.addTask(t, "shared", sharedSignIn, jobs.Passed, "codex", "the shared sign-in", time.Now().Unix())
-		here.addTask(t, "alices", alice, jobs.Passed, "codex", "alice", time.Now().Unix())
+		here.addTask(t, "nobodys", "", tasks.Passed, "codex", "no owner", time.Now().Unix())
+		here.addTask(t, "shared", sharedSignIn, tasks.Passed, "codex", "the shared sign-in", time.Now().Unix())
+		here.addTask(t, "alices", alice, tasks.Passed, "codex", "alice", time.Now().Unix())
 		for _, memory := range []bool{true, false} {
 			if !memory {
 				here.attach(t)
 			}
-			hers := idsOnPage(here.as(t, alice).ask(t, "GET", "/jobs", nil).Body.String())
-			all := idsOnPage(here.ask(t, "GET", "/jobs", nil).Body.String())
+			hers := listedOn(t, here.as(t, alice), "/jobs")
+			all := listedOn(t, here.site, "/jobs")
 			if fmt.Sprint(hers) != "[alices]" || len(all) != 3 {
 				t.Errorf("memory=%v: alice sees %v, the admin %v", memory, hers, all)
 			}
@@ -319,14 +310,15 @@ func TestAPageSaysWhileTheIndexIsStillBeingBuilt(t *testing.T) {
 	here.somePeoplesTasks(t)
 	here.attach(t)
 	here.server.SetTasksStatus(func() taskindex.Status { return taskindex.Status{Building: true, Done: 3, Total: 12} })
-	if body := here.ask(t, "GET", "/jobs", nil).Body.String(); !strings.Contains(body, "The index is still being built, 3 of 12 tasks") {
-		t.Errorf("the page does not say it is still being built:\n%s", body)
+	// The page says it in words (web/src/pages/work/activity-page.test.tsx).
+	if board := here.activity(t, ""); board.Index == nil || board.Index.Building != (taskindex.Status{Building: true, Done: 3, Total: 12}) {
+		t.Errorf("the page does not say it is still being built: %+v", board.Index)
 	}
 	if got := here.call("GET", "/api/jobs", here.person(t, alice)); got.Header().Get("Task-Index-Building") != "3 of 12 tasks" {
 		t.Errorf("header = %q", got.Header().Get("Task-Index-Building"))
 	}
 	here.server.SetTasksStatus(func() taskindex.Status { return taskindex.Status{Done: 12, Total: 12} })
-	if body := here.ask(t, "GET", "/jobs", nil).Body.String(); strings.Contains(body, "still being built") {
+	if board := here.activity(t, ""); board.Index == nil || board.Index.Building.Building {
 		t.Error("a finished index is said to be building")
 	}
 }
@@ -334,9 +326,8 @@ func TestAPageSaysWhileTheIndexIsStillBeingBuilt(t *testing.T) {
 func TestWithoutAnIndexThePageIsAsItWasAndTheApiSaysThereIsNone(t *testing.T) {
 	here := withIndexedTasks(t, taskindextest.New())
 	here.somePeoplesTasks(t)
-	page := here.ask(t, "GET", "/jobs", nil)
-	if page.Code != http.StatusOK || len(idsOnPage(page.Body.String())) != 7 || strings.Contains(page.Body.String(), `name="q"`) {
-		t.Fatalf("the page = %d with %v", page.Code, idsOnPage(page.Body.String()))
+	if board := here.activity(t, ""); len(board.runs()) != 7 || board.Index != nil {
+		t.Fatalf("the page lists %v, searching %+v", board.ids(), board.Index)
 	}
 	if code, _, _ := here.tasksOf(t, here.person(t, alice), ""); code != http.StatusNotFound {
 		t.Errorf("the API answered %d", code)
@@ -350,7 +341,7 @@ func TestAnIndexThatCannotBeReadIsAServerError(t *testing.T) {
 	here.store.Close()
 	closed := &failing{here.store}
 	here.server.SetTasks(closed)
-	if page := here.ask(t, "GET", "/jobs", nil); page.Code != http.StatusInternalServerError || strings.Contains(page.Body.String(), "hunter2") {
+	if page := here.ask(t, "GET", "/app/api/jobs", nil); page.Code != http.StatusInternalServerError || strings.Contains(page.Body.String(), "hunter2") {
 		t.Fatalf("page = %d %s", page.Code, page.Body)
 	}
 	if code, _, body := here.tasksOf(t, here.person(t, alice), ""); code != http.StatusInternalServerError || strings.Contains(body, "hunter2") {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/dbkit"
 	"github.com/getlatentic/gusto/internal/quota"
+	"github.com/getlatentic/gusto/internal/workspace"
 )
 
 const orgColumns = `slug, name, admin, domain, created, is_demo, demo_name, demo_company, demo_ready, demo_expires, demo_extended, demo_stopped, demo_ending`
@@ -75,6 +76,10 @@ func (s *Store) create(ctx context.Context, tx dbkit.Tx, person Person, org Org,
 	if _, err := tx.ExecContext(ctx, insertMembership.SQL(1), s.membershipArgs(person)...); err != nil {
 		return err
 	}
+	first := Workspace{ID: workspace.First, Name: org.Name, Created: org.Created}
+	if err := s.putWorkspace(ctx, tx, org.Slug, first, person.Email); err != nil {
+		return err
+	}
 	return s.makeOrgDir(org.Slug, q)
 }
 
@@ -90,14 +95,14 @@ func (s *Store) makeOrgDir(slug string, q quota.Quota) error {
 }
 
 // Org is an organization by its address.
-func (s *Store) Org(slug string) (Org, bool, error) {
+func (s *Store) Org(ctx context.Context, slug string) (Org, bool, error) {
 	if ValidSlug(slug) != nil {
 		return Org{}, false, nil
 	}
-	return fetchOrg(context.Background(), s.db, slug)
+	return fetchOrg(ctx, s.db, slug)
 }
 
 // Orgs is every organization there is.
-func (s *Store) Orgs() ([]Org, error) {
-	return collect(context.Background(), s.db, scanOrg, `SELECT `+orgColumns+` FROM orgs ORDER BY slug`)
+func (s *Store) Orgs(ctx context.Context) ([]Org, error) {
+	return collect(ctx, s.db, scanOrg, `SELECT `+orgColumns+` FROM orgs ORDER BY slug`)
 }

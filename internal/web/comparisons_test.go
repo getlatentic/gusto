@@ -12,10 +12,10 @@ import (
 
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/compare"
-	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/record"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // twoEngines is a server offering two harnesses that need no account.
@@ -56,10 +56,10 @@ func TestAComparisonGivesEveryAgentTheSameTask(t *testing.T) {
 	if !found || len(lineup.Runs) != 2 {
 		t.Fatalf("lineup %+v", lineup)
 	}
-	var specs []job.Spec
+	var specs []task.Spec
 	for _, run := range lineup.Runs {
-		waitFor(t, site.index, run.Job)
-		spec, err := job.Read(job.Dir(filepath.Join(site.index.Root(), run.Job)))
+		waitFor(t, site.index, run.Task)
+		spec, err := task.Read(task.Dir(filepath.Join(site.index.Root(), run.Task)))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -67,18 +67,18 @@ func TestAComparisonGivesEveryAgentTheSameTask(t *testing.T) {
 	}
 	first, second := specs[0], specs[1]
 	if first.Harness == second.Harness || first.Ref != lineup.Commit || second.Ref != lineup.Commit ||
-		first.Brief != second.Brief || first.Model != second.Model || strings.Join(first.Gate, " ") != "node --test" ||
+		first.Brief != second.Brief || first.Model != second.Model || strings.Join(first.Check, " ") != "node --test" ||
 		first.Setup == nil || first.Setup.Name != "engineering" {
 		t.Fatalf("the runs were not given the same task:\n%+v\n%+v", first, second)
 	}
 	if _, err := os.Stat(filepath.Join(first.Repo, "invoice.test.js")); err != nil {
 		t.Errorf("the sample does not hold the template's files: %v", err)
 	}
-	page := site.ask(t, "GET", where, nil).Body.String()
-	for _, want := range []string{"First", "Second", "Only the agent differs"} {
-		if !strings.Contains(page, want) {
-			t.Errorf("want %q on the page:\n%s", want, page)
-		}
+	isTheApp(t, site, where)
+	var page lineupJSON
+	site.data(t, where, &page)
+	if page.Lineup.Brief != "Run the tests and fix what fails" || len(page.Sides) != 2 || page.Sides[0].Engine != "First" || page.Sides[1].Engine != "Second" {
+		t.Errorf("the comparison does not show each agent: %+v", page)
 	}
 }
 
@@ -109,9 +109,9 @@ func TestAComparisonNeedsTwoAgents(t *testing.T) {
 // when they stand clear of the others.
 func TestOnlyAPassingRunIsBestAtAnything(t *testing.T) {
 	sides := []side{
-		{Passed: false, Record: jobs.Record{Started: 1, Ended: 2}, Metered: true},
-		{Passed: true, Record: jobs.Record{Started: 1, Ended: 30}, Metered: true},
-		{Passed: true, Record: jobs.Record{Started: 1, Ended: 10}, Metered: true},
+		{Passed: false, Record: tasks.Record{Started: 1, Ended: 2}, Metered: true},
+		{Passed: true, Record: tasks.Record{Started: 1, Ended: 30}, Metered: true},
+		{Passed: true, Record: tasks.Record{Started: 1, Ended: 10}, Metered: true},
 	}
 	sides[1].Spent.USD, sides[2].Spent.USD = 0.001, 0.002
 	weigh(sides)
@@ -122,8 +122,8 @@ func TestOnlyAPassingRunIsBestAtAnything(t *testing.T) {
 
 func TestRunsThatAreLevelHaveNoBest(t *testing.T) {
 	sides := []side{
-		{Passed: true, Record: jobs.Record{Started: 0 + 1, Ended: 101}, Metered: true},
-		{Passed: true, Record: jobs.Record{Started: 1, Ended: 106}, Metered: true},
+		{Passed: true, Record: tasks.Record{Started: 0 + 1, Ended: 101}, Metered: true},
+		{Passed: true, Record: tasks.Record{Started: 1, Ended: 106}, Metered: true},
 	}
 	sides[0].Spent.USD, sides[1].Spent.USD = 1.00, 1.05
 	reading := weigh(sides)
@@ -151,44 +151,51 @@ func TestTheComparisonPageSaysWhichDidBetter(t *testing.T) {
 		{"second", false, 90, []string{priced}},
 	} {
 		id := fmt.Sprintf("run-%d", i)
-		spentJob(t, site.index.Root(), id, "", each.lines...)
-		dir := job.Dir(filepath.Join(site.index.Root(), id))
-		if err := evidence.Write(dir, evidence.Manifest{Gate: &evidence.Verdict{Passed: each.passed}}); err != nil {
+		spentTask(t, site.index.Root(), id, "", each.lines...)
+		dir := task.Dir(filepath.Join(site.index.Root(), id))
+		if err := record.Write(dir, record.Manifest{Check: &record.Verdict{Passed: each.passed}}); err != nil {
 			t.Fatal(err)
 		}
-		if err := site.index.Add(jobs.Record{ID: id, State: jobs.Passed, Brief: "fix it", Harness: each.harness, Started: 100, Ended: 100 + each.took}); err != nil {
+		if err := site.index.Add(tasks.Record{ID: id, State: tasks.Passed, Brief: "fix it", Harness: each.harness, Started: 100, Ended: 100 + each.took}); err != nil {
 			t.Fatal(err)
 		}
-		lineup.Runs = append(lineup.Runs, compare.Entry{Harness: each.harness, Job: id})
+		lineup.Runs = append(lineup.Runs, compare.Entry{Harness: each.harness, Task: id})
 	}
 	if err := board.Save(lineup); err != nil {
 		t.Fatal(err)
 	}
 	site.signIn(t)
-	page := site.ask(t, "GET", "/compare/two-runs", nil).Body.String()
-	for _, want := range []string{"First was the only one to pass the check.", ">Model calls</th>", ">3</td>", "$0.7500", "40 s"} {
-		if !strings.Contains(page, want) {
-			t.Errorf("want %q on the page:\n%s", want, page)
-		}
+	var page lineupJSON
+	site.data(t, "/compare/two-runs", &page)
+	if page.Reading == nil || page.Reading.Headline != "First was the only one to pass the check." {
+		t.Errorf("the comparison does not say which did better: %+v", page.Reading)
+	}
+	if first := page.Sides[0]; first.Calls != 3 || first.Money != "$0.7500" || first.Seconds != 40 || !first.Metered || !first.Checked || !first.Passed {
+		t.Errorf("the first run is given as %+v", first)
+	}
+	if page.Passed != 1 || page.Running {
+		t.Errorf("%d passed, running %v", page.Passed, page.Running)
 	}
 
-	if err := job.Dir(filepath.Join(site.index.Root(), "run-2")).Make(); err != nil {
+	if err := task.Dir(filepath.Join(site.index.Root(), "run-2")).Make(); err != nil {
 		t.Fatal(err)
 	}
-	if err := site.index.Add(jobs.Record{ID: "run-2", State: jobs.Running, Brief: "fix it", Harness: "second", Started: 100}); err != nil {
+	if err := site.index.Add(tasks.Record{ID: "run-2", State: tasks.Running, Brief: "fix it", Harness: "second", Started: 100}); err != nil {
 		t.Fatal(err)
 	}
 	unfinished := compare.Lineup{ID: "still-going", Brief: "fix it", Model: "m",
-		Runs: []compare.Entry{lineup.Runs[0], {Harness: "second", Job: "run-2"}}}
+		Runs: []compare.Entry{lineup.Runs[0], {Harness: "second", Task: "run-2"}}}
 	if err := board.Save(unfinished); err != nil {
 		t.Fatal(err)
 	}
-	if page := site.ask(t, "GET", "/compare/still-going", nil).Body.String(); strings.Contains(page, "only one to pass") {
-		t.Errorf("a verdict was given while a run was still working:\n%s", page)
+	var going lineupJSON
+	site.data(t, "/compare/still-going", &going)
+	if going.Reading != nil || !going.Running {
+		t.Errorf("a verdict was given while a run was still working: %+v", going.Reading)
 	}
 }
 
-func waitFor(t *testing.T, index *jobs.Index, id string) {
+func waitFor(t *testing.T, index *tasks.Index, id string) {
 	t.Helper()
 	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
 		if record, found := index.Get(id); found && record.State.Done() {
@@ -198,13 +205,17 @@ func waitFor(t *testing.T, index *jobs.Index, id string) {
 	t.Fatalf("%s never finished", id)
 }
 
-// The engine choices are their own control. Under the catalog's card class
-// they drew as tall pills of every width, with the checkbox above the name.
-func TestEngineChoicesDoNotWearTheCatalogCardClass(t *testing.T) {
+// The page offers each agent that can take the sample as its own choice, drawn as one (web/src/pages/work/compare-page.test.tsx).
+func TestThePageOffersEachAgentThatCanBeCompared(t *testing.T) {
 	site := twoEngines(t)
 	site.signIn(t)
-	page := site.ask(t, "GET", "/compare", nil).Body.String()
-	if strings.Count(page, ` data-engine>`) != 2 || strings.Contains(page, `<label class="pick"`) {
-		t.Fatalf("the engine choices are not their own control:\n%s", page)
+	isTheApp(t, site, "/compare")
+	var page compareJSON
+	site.data(t, "/compare", &page)
+	if len(page.Engines) != 2 || page.Engines[0].Name != "first" || page.Engines[1].Title != "Second" {
+		t.Fatalf("the engine choices are %+v", page.Engines)
+	}
+	if page.Template == nil || page.Template.Check != "node --test" || page.Template.Starter == "" || len(page.Models) == 0 {
+		t.Errorf("the page does not say what the agents are given: %+v", page.Template)
 	}
 }

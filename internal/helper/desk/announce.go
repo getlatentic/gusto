@@ -20,7 +20,7 @@ type Announcer struct {
 func (a *Announcer) Run(ctx context.Context) {
 	a.going = map[string]bool{}
 	for _, turn := range a.Hub.Turns() {
-		a.going[turn.Job] = !ended(turn.State)
+		a.going[turn.Task] = !ended(turn.State)
 	}
 	events, stop := a.Hub.Listen()
 	defer stop()
@@ -35,8 +35,8 @@ func (a *Announcer) Run(ctx context.Context) {
 }
 
 func (a *Announcer) hear(turn helper.Turn) {
-	wasGoing := a.going[turn.Job]
-	a.going[turn.Job] = !ended(turn.State)
+	wasGoing := a.going[turn.Task]
+	a.going[turn.Task] = !ended(turn.State)
 	if wasGoing && ended(turn.State) {
 		a.Say(Note{Title: "Your agent " + stateWord(turn.State), Body: short(turn.Brief)})
 	}

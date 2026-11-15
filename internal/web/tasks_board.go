@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/taskindex"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // badQuery is a request the list page cannot read, which is the asker's mistake and not the server's.
@@ -57,12 +57,12 @@ func (s *Server) boardFromIndex(r *http.Request) (board, error) {
 
 func (s *Server) fillBoard(r *http.Request, shown *board, query taskQuery) error {
 	ctx, store := r.Context(), s.listing.store
-	scope := taskindex.Filter{Asked: query.Filter.Asked}
+	scope := taskindex.Filter{Asked: query.Filter.Asked, Workspace: query.Filter.Workspace}
 	counts, err := s.figuresOf(r, scope)
 	if err != nil {
 		return err
 	}
-	for _, state := range []jobs.State{jobs.Running, jobs.Queued, jobs.Passed, jobs.Failed} {
+	for _, state := range []tasks.State{tasks.Running, tasks.Queued, tasks.Passed, tasks.Failed} {
 		shown.Figures = append(shown.Figures, figure{
 			Label: string(state), Count: counts[string(state)],
 			Href:    filtered(r.URL.Query(), "state", string(state)),
@@ -87,7 +87,7 @@ func (s *Server) fillBoard(r *http.Request, shown *board, query taskQuery) error
 	}
 	ledger, _ := s.spending()
 	for _, row := range rows {
-		shown.Runs = append(shown.Runs, s.recorded(jobs.RecordOf(row), ledger))
+		shown.Runs = append(shown.Runs, s.recorded(tasks.RecordOf(row), ledger))
 	}
 	if total := totalOf(matching); total > 0 {
 		shown.Shown = strconv.Itoa(total) + " " + plural(total, "task")
@@ -100,8 +100,8 @@ func (s *Server) fillBoard(r *http.Request, shown *board, query taskQuery) error
 // tasks that ended lately. Interrupted tasks are counted with the failures.
 func (s *Server) figuresOf(r *http.Request, scope taskindex.Filter) (map[string]int, error) {
 	active, done := scope, scope
-	active.States = []string{string(jobs.Running), string(jobs.Queued)}
-	done.States = []string{string(jobs.Passed), string(jobs.Failed), string(jobs.Interrupted)}
+	active.States = []string{string(tasks.Running), string(tasks.Queued)}
+	done.States = []string{string(tasks.Passed), string(tasks.Failed), string(tasks.Interrupted)}
 	done.QueuedFrom = sinceLately(time.Now())
 	counts := map[string]int{}
 	for _, f := range []taskindex.Filter{active, done} {
@@ -110,7 +110,7 @@ func (s *Server) figuresOf(r *http.Request, scope taskindex.Filter) (map[string]
 			return nil, err
 		}
 		for state, n := range got {
-			counts[filed(jobs.State(state))] += n
+			counts[filed(tasks.State(state))] += n
 		}
 	}
 	return counts, nil

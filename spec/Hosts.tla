@@ -1,7 +1,7 @@
 ------------------------------- MODULE Hosts --------------------------------
 (***************************************************************************)
 (* The hosts organizations' servers run on, as the scaler stops them and   *)
-(* the controller places on them (internal/cell scaler.go, pool.go,        *)
+(* the controller places on them (internal/node scaler.go, pool.go,        *)
 (* internal/cloud controller.go).  An organization is provisioned: it is   *)
 (* placed on a host, or stays on the host it was placed on, and its server *)
 (* is started there.  The scaler retires a host it judges idle: it marks   *)

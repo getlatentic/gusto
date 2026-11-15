@@ -14,7 +14,7 @@ type Report struct {
 	Projects  []Line `json:"projects"`
 	Harnesses []Line `json:"harnesses"`
 	Models    []Line `json:"models"`
-	Jobs      []Line `json:"jobs"`
+	Tasks     []Line `json:"jobs"`
 	// Allowances are rooms' agents in their rooms, as "<room>/<agent>".
 	Allowances []Line `json:"allowances,omitempty"`
 	// People is what each person who asked for tasks spent.
@@ -40,7 +40,7 @@ func (l *Ledger) Report(month string) Report {
 	defer l.guard.Unlock()
 	report := Report{Month: month}
 	into := map[string]*[]Line{
-		ByTeam: &report.Teams, ByProject: &report.Projects, ByJob: &report.Jobs,
+		ByTeam: &report.Teams, ByProject: &report.Projects, ByTask: &report.Tasks,
 		ByHarness: &report.Harnesses, ByModel: &report.Models, ByDay: &report.Days, ByAllowance: &report.Allowances,
 		ByPayer: &report.Payers, ByPerson: &report.People,
 	}
@@ -49,7 +49,7 @@ func (l *Ledger) Report(month string) Report {
 			continue
 		}
 		*into[key.scope] = append(*into[key.scope], Line{Name: key.name, Tally: *tally})
-		if key.scope == ByJob {
+		if key.scope == ByTask {
 			report.Total.join(*tally)
 		}
 	}
@@ -78,12 +78,12 @@ func (l *Ledger) Months() []string {
 	return months
 }
 
-// Job is everything one task has spent, whatever month it was in, and whether
+// Task is everything one task has spent, whatever month it was in, and whether
 // it reached a model at all.
-func (l *Ledger) Job(id string) (Tally, bool) {
+func (l *Ledger) Task(id string) (Tally, bool) {
 	l.guard.Lock()
 	defer l.guard.Unlock()
-	held, found := l.jobs[id]
+	held, found := l.tasks[id]
 	if !found || held.tally.Calls+held.tally.Refused == 0 {
 		return Tally{}, false
 	}

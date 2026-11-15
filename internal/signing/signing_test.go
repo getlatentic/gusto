@@ -1,6 +1,7 @@
 package signing_test
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -170,14 +171,38 @@ func TestASignatureFileRoundTripsAndANewerVersionIsRefused(t *testing.T) {
 	}
 }
 
-func TestNoKeyConfiguredLeavesARunUnsignedAndABadOneFails(t *testing.T) {
-	t.Setenv(signing.KeyEnv, "")
-	if _, found, err := signing.Configured(); found || err != nil {
-		t.Fatalf("found %t: %v", found, err)
+func TestNoKeyLeavesARunUnsignedAndABadOneFails(t *testing.T) {
+	t.Parallel()
+	unsigned, err := signing.Open(context.Background(), "", "")
+	if err != nil || unsigned.Signed() || unsigned.Says() != "unsigned" {
+		t.Fatalf("%+v: %v", unsigned, err)
 	}
-	t.Setenv(signing.KeyEnv, filepath.Join(t.TempDir(), "absent.key"))
-	if _, found, err := signing.Configured(); found || err == nil {
-		t.Fatalf("want a named but missing key refused, found %t", found)
+	if _, err := signing.Open(context.Background(), filepath.Join(t.TempDir(), "absent.key"), ""); err == nil {
+		t.Fatal("want a named but missing key refused")
+	}
+}
+
+func TestARecordSaysTheNameGivenOrTheKeysID(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	key, err := signing.Generate(dir, "acme")
+	if err != nil {
+		t.Fatal(err)
+	}
+	keyed, err := signing.Open(context.Background(), filepath.Join(dir, "acme.key"), "")
+	if err != nil || !keyed.Signed() || keyed.Says() != key.ID() {
+		t.Fatalf("%q: %v", keyed.Says(), err)
+	}
+	named, err := signing.Open(context.Background(), filepath.Join(dir, "acme.key"), "acme")
+	if err != nil || named.Says() != "acme" {
+		t.Fatalf("%q: %v", named.Says(), err)
+	}
+}
+
+func TestNoKeyringDirectoryIsAnEmptyKeyring(t *testing.T) {
+	t.Parallel()
+	if ring, err := signing.OpenKeyring(""); err != nil || len(ring) != 0 {
+		t.Fatalf("%v: %v", ring, err)
 	}
 }
 
@@ -212,5 +237,16 @@ func TestAKeyHandedOutByNameReadsBackAsTheSameKey(t *testing.T) {
 	}
 	if _, found := ring.Named("someone-else"); found {
 		t.Error("a name the keyring does not hold should not be found")
+	}
+}
+
+func TestAKeyIsMadeInAFolderThatIsNotThereYet(t *testing.T) {
+	t.Parallel()
+	dir := filepath.Join(t.TempDir(), "keys")
+	if _, err := signing.Generate(dir, "host"); err != nil {
+		t.Fatal(err)
+	}
+	if ring, err := signing.OpenKeyring(dir); err != nil || len(ring) != 1 {
+		t.Fatalf("%v: %v", ring, err)
 	}
 }

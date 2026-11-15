@@ -3,7 +3,7 @@
 package runner
 
 // This checks that a skill an integration brings, with the files beside it, is found and used by the harnesses it is placed for,
-// through the same path a job takes: the plugin is imported, a setup carries it into a job, and the runner places it where the
+// through the same path a task takes: the plugin is imported, a setup carries it into a task, and the runner places it where the
 // harness's adapter says it reads skills.
 //
 //	GUSTO_MEASURE=1 go test -tags realharnesses -run RealSkill -v ./internal/runner
@@ -22,13 +22,13 @@ import (
 	"github.com/getlatentic/gusto/internal/integration"
 	"github.com/getlatentic/gusto/internal/setup"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 const skillText = "---\nname: codeword\ndescription: Use when asked for the codeword, the secret word, or the passphrase of the project. Tells where the word is kept.\n---\n\nThe codeword is kept in references/word.md next to this file. Read that file and answer with the word in it.\n"
 
-// carried is a job directory whose setup carries a plugin's skill, folder and all.
-func carried(t *testing.T) (job.Dir, job.Spec) {
+// carried is a task directory whose setup carries a plugin's skill, folder and all.
+func carried(t *testing.T) (task.Dir, task.Spec) {
 	t.Helper()
 	source := t.TempDir()
 	for name, text := range map[string]string{
@@ -53,13 +53,13 @@ func carried(t *testing.T) (job.Dir, job.Spec) {
 	setups, _ := setup.Open(t.TempDir())
 	setups.UseIntegrations(store)
 	setups.Save(setup.Setup{Name: "words", Integrations: []string{"words"}}, setup.Servers{})
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	dir.Make()
 	setupRecord, err := setups.Carry("words", setup.Servers{}, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return dir, job.Spec{Setup: setupRecord}
+	return dir, task.Spec{Setup: setupRecord}
 }
 
 func ask(t *testing.T, workdir string, env []string, name string, args ...string) string {

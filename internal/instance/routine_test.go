@@ -82,7 +82,7 @@ func TestARoutineKeepsItsThreadAndSurvivesAReload(t *testing.T) {
 	if added.ID != "r1" || added.Thread == "" || added.Thread == store.Threads(held.ID)[0].ID {
 		t.Fatalf("a routine is given an id and a conversation of its own: %+v", added)
 	}
-	if err := store.RoutineRan(held.ID, added.ID, Ran{At: 1, Job: "job-1"}); err != nil {
+	if err := store.RoutineRan(held.ID, added.ID, Ran{At: 1, Task: "job-1"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := store.PauseRoutine(held.ID, added.ID, true); err != nil {
@@ -96,7 +96,7 @@ func TestARoutineKeepsItsThreadAndSurvivesAReload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(read) != 1 || !read[0].Paused || read[0].Last == nil || read[0].Last.Job != "job-1" || read[0].Who != "tosin" {
+	if len(read) != 1 || !read[0].Paused || read[0].Last == nil || read[0].Last.Task != "job-1" || read[0].Who != "tosin" {
 		t.Fatalf("read back as %+v", read)
 	}
 	second, _ := again.AddRoutine(held.ID, Routine{Title: "Evening", Prompt: "x", Every: 12})

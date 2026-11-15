@@ -1,10 +1,13 @@
 package cloud
 
 import (
+	"encoding/json"
 	"html/template"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/web"
 
 	"github.com/getlatentic/gusto/internal/quota"
 )
@@ -47,7 +50,7 @@ type view struct {
 	Several bool
 	// Credit is what is left of the organization's free credit on the models gusto provides.
 	Credit *credit
-	// Plan is how the organization pays, when this front door bills.
+	// Plan is how the organization pays, when this gusto cloud server bills.
 	Plan *plan
 	// Orgs are the organizations a person chooses among.
 	Orgs     []Org
@@ -66,15 +69,19 @@ type view struct {
 	Server  string
 	CanOpen bool
 	Refresh bool
+	// RefreshEvery is how many seconds the page waits to look again, three when it is not set.
+	RefreshEvery int
 	// Steps and Waited say how far a demo is from ready.
 	Steps  []Step
 	Waited string
 	// The people: who is in, who has been invited and has not answered, whether the
 	// person looking is an admin, and whether they may invite one more.
-	Members   []Person
-	Invited   []Invitation
-	IsAdmin   bool
-	CanInvite bool
+	Members []Person
+	// Workspaces is the organization's workspaces, shown on its page when an admin may change them or there are several.
+	Workspaces []workspaceRow
+	Invited    []Invitation
+	IsAdmin    bool
+	CanInvite  bool
 	// Admins is how many of the members are admins, since the last one cannot be made
 	// a runner and is not offered it.
 	Admins int
@@ -115,14 +122,17 @@ type view struct {
 	Name string
 }
 
+// render answers with a page of the web app's cloud entry, drawn from the view as JSON inside it, so a refused form is answered
+// with what was typed and no second request.
 func (s *Server) render(w http.ResponseWriter, status int, page string, v view) {
 	v.Lease = s.Lease != nil
 	v.WorkOnly = s.Store != nil && !s.Store.FreeMailAllowed()
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(status)
-	if err := s.pages.ExecuteTemplate(w, page, v); err != nil {
-		w.Write([]byte("that page could not be drawn"))
+	data, err := json.Marshal(pageOf(page, v))
+	if err != nil {
+		http.Error(w, "that page could not be drawn", http.StatusInternalServerError)
+		return
 	}
+	web.WriteAppPage(w, status, web.CloudEntry, pageHead(v), string(data))
 }
 
 // link is the address a mailed link points at.

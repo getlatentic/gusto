@@ -23,7 +23,7 @@ func TestDoctorChecksTheInstallOnlyWhenThereIsOneAndTheShellNamesNoServer(t *tes
 	}{
 		{"an install and a bare shell", installed, nil, true},
 		{"no install", has(), nil, false},
-		{"a folder of tasks is named", installed, map[string]string{"GUSTO_JOBS": "/srv/jobs"}, false},
+		{"a folder of tasks is named", installed, map[string]string{"GUSTO_TASKS": "/srv/jobs"}, false},
 		{"an address is named", installed, map[string]string{"GUSTO_ADDR": ":8040"}, false},
 		{"a sandbox is named", installed, map[string]string{"GUSTO_SANDBOX": "container"}, false},
 		{"a container command is named", installed, map[string]string{"GUSTO_CONTAINER": "podman"}, false},

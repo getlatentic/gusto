@@ -6,7 +6,6 @@ Each install runs the same server. `gusto serve` answers the pages, the API and 
 | --- | --- | --- |
 | `server.sh` | A Linux machine of your own (a VPS, a virtual machine), with HTTPS | [install/server.sh](install/server.sh): `sudo server.sh --domain agents.example.com`, or `--no-tls` on a trusted network. It installs Docker on Debian and Ubuntu, makes a password, starts gusto and says how to sign in |
 | Install script | One person's own computer, as a service of theirs | [../docs/LOCAL.md](../docs/LOCAL.md) |
-| Ansible | The one box this project runs on, beside other people's sites | [ansible/README.md](ansible/README.md) |
 | Compose | One Linux machine of your own | [compose/README.md](compose/README.md) |
 | Helm | A Kubernetes cluster of your own | [helm/gusto/README.md](helm/gusto/README.md) |
 
@@ -23,7 +22,7 @@ To run a pilot on somebody else's infrastructure, see [../docs/PILOT.md](../docs
 
 ## Published images
 
-A version tag (`v0.1.0`) runs `.github/workflows/release.yml`. It builds the server and the runner, pushes both to GHCR with an SBOM and build provenance, signs each with the workflow's identity, and lists both digests in the GitHub release. The runner carries the agents and MCP packages that `ansible/group_vars/all.yml` pins.
+A version tag (`v0.1.0`) runs `.github/workflows/release.yml`. It builds the server and the runner, pushes both to GHCR with an SBOM and build provenance, signs each with the workflow's identity, and lists both digests in the GitHub release. The runner carries the agent types in [runner/harnesses.txt](runner/harnesses.txt) and the MCP packages in [runner/mcp.txt](runner/mcp.txt).
 
 To install from them, check the signature and set both images in `.env` from the release's notes:
 

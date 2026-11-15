@@ -11,7 +11,8 @@ import (
 
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/replay"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 func TestOneSubmissionMakesTwoRunsThatDifferOnlyByHarness(t *testing.T) {
@@ -24,7 +25,7 @@ func TestOneSubmissionMakesTwoRunsThatDifferOnlyByHarness(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sides, err := compare.Start(where, replay.Here)
+	sides, err := compare.Start(where, replay.Here(signing.Identity{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +34,7 @@ func TestOneSubmissionMakesTwoRunsThatDifferOnlyByHarness(t *testing.T) {
 	if record.Commit != started || len(record.Runs) != 2 {
 		t.Fatalf("the record should name two runs at %s, got %+v", started, record)
 	}
-	yes, maybe := specOf(t, record.Runs[0].Job(where)), specOf(t, record.Runs[1].Job(where))
+	yes, maybe := specOf(t, record.Runs[0].Task(where)), specOf(t, record.Runs[1].Task(where))
 	if yes["harness"] != "yes" || maybe["harness"] != "maybe" {
 		t.Fatalf("each run should name its own harness, got %v and %v", yes["harness"], maybe["harness"])
 	}
@@ -50,39 +51,39 @@ func TestOneSubmissionMakesTwoRunsThatDifferOnlyByHarness(t *testing.T) {
 			t.Fatalf("the record should say %s is held, and holds %v", field, record.Held)
 		}
 	}
-	if !sides[0].Manifest.Gate.Passed || sides[1].Manifest.Gate.Passed || compare.ExitCode(sides) != 0 {
+	if !sides[0].Manifest.Check.Passed || sides[1].Manifest.Check.Passed || compare.ExitCode(sides) != 0 {
 		t.Fatalf("yes should pass and maybe fail, and both ran: %+v", sides)
 	}
 }
 
-func TestEachRunKeepsItsOwnEvidenceAndNeitherSeesTheOther(t *testing.T) {
+func TestEachRunKeepsItsOwnRecordAndNeitherSeesTheOther(t *testing.T) {
 	hermetic(t)
 	where, err := compare.Prepare(submitted(t, remote(t), ""), "", []string{"yes", "maybe"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	sides, err := compare.Start(where, replay.Here)
+	sides, err := compare.Start(where, replay.Here(signing.Identity{}))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	yes, maybe := sides[0].Job(where), sides[1].Job(where)
-	if yes.Workspace() == maybe.Workspace() || yes.Out() == maybe.Out() {
+	yes, maybe := sides[0].Task(where), sides[1].Task(where)
+	if yes.WorkingFolder() == maybe.WorkingFolder() || yes.Out() == maybe.Out() {
 		t.Fatal("the runs share a directory")
 	}
-	if read(t, filepath.Join(yes.Workspace(), "answer.txt")) != "yes" || read(t, filepath.Join(maybe.Workspace(), "answer.txt")) != "maybe" {
+	if read(t, filepath.Join(yes.WorkingFolder(), "answer.txt")) != "yes" || read(t, filepath.Join(maybe.WorkingFolder(), "answer.txt")) != "maybe" {
 		t.Fatal("one harness's work reached the other's workspace")
 	}
 	for _, side := range sides {
 		if len(side.Wrong) > 0 || side.Err != nil {
-			t.Fatalf("%s's evidence does not check: %v %v", side.Harness, side.Wrong, side.Err)
+			t.Fatalf("%s's record does not check: %v %v", side.Harness, side.Wrong, side.Err)
 		}
-		if _, err := os.Stat(filepath.Join(side.Job(where).Path(), compare.RecordFile)); err == nil {
+		if _, err := os.Stat(filepath.Join(side.Task(where).Path(), compare.RecordFile)); err == nil {
 			t.Fatalf("%s's run can read the comparison, which names the other harness", side.Harness)
 		}
 	}
 	if strings.Contains(read(t, yes.OutFile("manifest.json")), "maybe") {
-		t.Fatal("one run's evidence names the other")
+		t.Fatal("one run's record names the other")
 	}
 }
 
@@ -98,17 +99,17 @@ func TestTheCommitIsPinnedBeforeAnyRunClones(t *testing.T) {
 	}
 	advance(t, bare)
 
-	sides, err := compare.Start(where, replay.Here)
+	sides, err := compare.Start(where, replay.Here(signing.Identity{}))
 
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, side := range sides {
-		dir := side.Job(where)
-		if at := git(t, dir.Workspace(), "rev-parse", "HEAD"); at != started {
+		dir := side.Task(where)
+		if at := git(t, dir.WorkingFolder(), "rev-parse", "HEAD"); at != started {
 			t.Fatalf("%s worked on %s rather than the pinned %s", side.Harness, at, started)
 		}
-		if _, err := os.Stat(filepath.Join(dir.Workspace(), "later.txt")); err == nil {
+		if _, err := os.Stat(filepath.Join(dir.WorkingFolder(), "later.txt")); err == nil {
 			t.Fatalf("%s saw a commit made after the pin", side.Harness)
 		}
 	}
@@ -118,7 +119,7 @@ func TestAComparisonIsAddressedByItsDirectory(t *testing.T) {
 	hermetic(t)
 	submission := submitted(t, remote(t), "")
 	var first bytes.Buffer
-	exit, err := compare.Answer(&first, []string{submission.Path(), "yes", "maybe"}, "", replay.Here)
+	exit, err := compare.Answer(&first, []string{submission.Path(), "yes", "maybe"}, "", replay.Here(signing.Identity{}))
 	if err != nil || exit != 0 {
 		t.Fatalf("the comparison should run, exit %d: %v\n%s", exit, err, &first)
 	}
@@ -143,7 +144,7 @@ func TestAComparisonIsAddressedByItsDirectory(t *testing.T) {
 func TestARunThatCannotStartIsReportedBesideTheOneThatRan(t *testing.T) {
 	hermetic(t)
 	var out bytes.Buffer
-	exit, err := compare.Answer(&out, []string{submitted(t, remote(t), "").Path(), "yes", "missing"}, "", replay.Here)
+	exit, err := compare.Answer(&out, []string{submitted(t, remote(t), "").Path(), "yes", "missing"}, "", replay.Here(signing.Identity{}))
 
 	if err != nil {
 		t.Fatal(err)
@@ -167,7 +168,7 @@ func TestAComparisonNeedsTwoDifferentHarnessesItCanRun(t *testing.T) {
 	}
 }
 
-func specOf(t *testing.T, dir job.Dir) map[string]any {
+func specOf(t *testing.T, dir task.Dir) map[string]any {
 	t.Helper()
 	var fields map[string]any
 	if err := json.Unmarshal([]byte(read(t, dir.Spec())), &fields); err != nil {

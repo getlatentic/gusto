@@ -6,9 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/getlatentic/gusto/internal/audit"
-	"github.com/getlatentic/gusto/internal/evidence"
-	"github.com/getlatentic/gusto/internal/signing"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/record"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 type exportFlags struct {
@@ -43,12 +42,12 @@ func exportTask(args []string) int {
 	}
 	// The keyring names the signer both ways: the one an export is written
 	// under, and the one a verifier checks that name against.
-	keyring, err := signing.ConfiguredKeyring()
+	keyring, err := configuredKeyring()
 	if err != nil {
 		return fail(err)
 	}
 	if f.verify {
-		report, err := audit.Verify(job.Dir(where), keyring)
+		report, err := audit.Verify(task.Dir(where), keyring)
 		if err != nil {
 			return fail(err)
 		}
@@ -71,10 +70,10 @@ func exportTask(args []string) int {
 	if f.to == "" {
 		f.to = filepath.Clean(where) + ".audit"
 	}
-	record, err := audit.Export(job.Dir(where), f.to, audit.Options{Policy: policy, RequestLog: f.requests, Now: evidence.Now, Keyring: keyring})
+	summary, err := audit.Export(task.Dir(where), f.to, audit.Options{Policy: policy, RequestLog: f.requests, Now: record.Now, Keyring: keyring})
 	if err != nil {
 		return fail(err)
 	}
-	fmt.Printf("%s\n%d files carried, %d redacted\n", filepath.Join(f.to, audit.SummaryFile), len(record.Carried), len(record.Redactions))
+	fmt.Printf("%s\n%d files carried, %d redacted\n", filepath.Join(f.to, audit.SummaryFile), len(summary.Carried), len(summary.Redactions))
 	return 0
 }

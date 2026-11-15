@@ -7,12 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/replay"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-func TestAReplayRunsTheSameJobAtTheCommitTheOldRunStartedFrom(t *testing.T) {
+func TestAReplayRunsTheSameTaskAtTheCommitTheOldRunStartedFrom(t *testing.T) {
 	hermetic(t)
 	bare := remote(t)
 	started := git(t, bare, "rev-parse", "main")
@@ -20,36 +21,36 @@ func TestAReplayRunsTheSameJobAtTheCommitTheOldRunStartedFrom(t *testing.T) {
 	advance(t, bare)
 	before := read(t, old.OutFile("manifest.json"))
 
-	rows := replay.Sweep([]job.Dir{old}, "", replay.Here)
+	rows := replay.Sweep([]task.Dir{old}, "", replay.Here(signing.Identity{}))
 
 	row := rows[0]
 	if row.Err != nil {
 		t.Fatal(row.Err)
 	}
-	if row.Change() != replay.Same || !row.After.Gate.Passed {
+	if row.Change() != replay.Same || !row.After.Check.Passed {
 		t.Fatalf("the same harness on the same commit should pass again, got %s", row.Change())
 	}
-	if spec, _ := job.Read(row.Replay); spec.Ref != started {
+	if spec, _ := task.Read(row.Replay); spec.Ref != started {
 		t.Fatalf("the replay should ask for %s, the commit the old run started from, and asks for %s", started, spec.Ref)
 	}
-	if at := git(t, row.Replay.Workspace(), "rev-parse", "HEAD"); at != started {
+	if at := git(t, row.Replay.WorkingFolder(), "rev-parse", "HEAD"); at != started {
 		t.Fatalf("the replay worked on %s rather than %s", at, started)
 	}
-	if _, err := os.Stat(filepath.Join(row.Replay.Workspace(), "later.txt")); err == nil {
+	if _, err := os.Stat(filepath.Join(row.Replay.WorkingFolder(), "later.txt")); err == nil {
 		t.Fatal("the replay saw a commit made after the old run, so it did not run the same job")
 	}
 	if after := read(t, old.OutFile("manifest.json")); after != before {
 		t.Fatal("replaying a job rewrote its manifest")
 	}
-	if wrong, err := evidence.Check(old); err != nil || len(wrong) > 0 {
-		t.Fatalf("replaying a job disturbed its evidence: %v %v", wrong, err)
+	if wrong, err := record.Check(old); err != nil || len(wrong) > 0 {
+		t.Fatalf("replaying a job disturbed its record: %v %v", wrong, err)
 	}
 }
 
-func TestAReplayIsToldApartFromTheOriginalByItsOwnHashedEvidence(t *testing.T) {
+func TestAReplayIsToldApartFromTheOriginalByItsOwnHashedRecord(t *testing.T) {
 	hermetic(t)
 	old := finished(t, t.TempDir(), "fix", "yes", remote(t))
-	row := replay.Sweep([]job.Dir{old}, "", replay.Here)[0]
+	row := replay.Sweep([]task.Dir{old}, "", replay.Here(signing.Identity{}))[0]
 	if row.Err != nil {
 		t.Fatal(row.Err)
 	}
@@ -74,7 +75,7 @@ func TestAReplayIsToldApartFromTheOriginalByItsOwnHashedEvidence(t *testing.T) {
 	}
 }
 
-// A harness that commits moves HEAD onto a commit only its workspace has. A
+// A harness that commits moves HEAD onto a commit only its working folder has. A
 // replay pinned to HEAD would fail to check it out, or start with the answer
 // already in the tree.
 func TestAHarnessThatCommittedDoesNotMoveThePin(t *testing.T) {
@@ -82,11 +83,11 @@ func TestAHarnessThatCommittedDoesNotMoveThePin(t *testing.T) {
 	bare := remote(t)
 	started := git(t, bare, "rev-parse", "main")
 	old := finished(t, t.TempDir(), "fix", "committer", bare)
-	if head := git(t, old.Workspace(), "rev-parse", "HEAD"); head == started {
+	if head := git(t, old.WorkingFolder(), "rev-parse", "HEAD"); head == started {
 		t.Fatal("the fixture harness should have committed")
 	}
 
-	row := replay.Sweep([]job.Dir{old}, "", replay.Here)[0]
+	row := replay.Sweep([]task.Dir{old}, "", replay.Here(signing.Identity{}))[0]
 
 	if row.Err != nil {
 		t.Fatal(row.Err)
@@ -105,7 +106,7 @@ func TestAHarnessThatGotWorseFailsTheSweep(t *testing.T) {
 	old := finished(t, t.TempDir(), "fix", "yes", remote(t))
 	write(t, filepath.Join(harnesses, "yes.json"), regressedTo)
 
-	rows := replay.Sweep([]job.Dir{old}, t.TempDir(), replay.Here)
+	rows := replay.Sweep([]task.Dir{old}, t.TempDir(), replay.Here(signing.Identity{}))
 
 	if rows[0].Err != nil {
 		t.Fatal(rows[0].Err)
@@ -115,19 +116,19 @@ func TestAHarnessThatGotWorseFailsTheSweep(t *testing.T) {
 	}
 }
 
-func TestASweepOverADirectoryOfJobsGivesOneSummary(t *testing.T) {
+func TestASweepOverADirectoryOfTasksGivesOneSummary(t *testing.T) {
 	hermetic(t)
 	bare := remote(t)
-	jobs := t.TempDir()
-	finished(t, jobs, "a-passes", "yes", bare)
-	finished(t, jobs, "b-fails", "maybe", bare)
+	tasks := t.TempDir()
+	finished(t, tasks, "a-passes", "yes", bare)
+	finished(t, tasks, "b-fails", "maybe", bare)
 	into := t.TempDir()
 
-	olds, err := replay.Expand([]string{jobs})
+	olds, err := replay.Expand([]string{tasks})
 	if err != nil {
 		t.Fatal(err)
 	}
-	rows := replay.Sweep(olds, into, replay.Here)
+	rows := replay.Sweep(olds, into, replay.Here(signing.Identity{}))
 	var out bytes.Buffer
 	replay.Print(&out, rows)
 
@@ -146,36 +147,36 @@ func TestASweepOverADirectoryOfJobsGivesOneSummary(t *testing.T) {
 
 func TestASecondSweepReplaysTheOriginalsAndNotTheFirstSweepsReplays(t *testing.T) {
 	hermetic(t)
-	jobs := t.TempDir()
-	finished(t, jobs, "fix", "yes", remote(t))
-	first, _ := replay.Expand([]string{jobs})
-	replay.Sweep(first, "", replay.Here)
+	tasks := t.TempDir()
+	finished(t, tasks, "fix", "yes", remote(t))
+	first, _ := replay.Expand([]string{tasks})
+	replay.Sweep(first, "", replay.Here(signing.Identity{}))
 
-	second, err := replay.Expand([]string{jobs})
+	second, err := replay.Expand([]string{tasks})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(second) != 1 || filepath.Base(second[0].Path()) != "fix" {
 		t.Fatalf("the second sweep should find the one original, found %v", second)
 	}
-	rows := replay.Sweep(second, "", replay.Here)
+	rows := replay.Sweep(second, "", replay.Here(signing.Identity{}))
 	if filepath.Base(rows[0].Replay.Path()) != "fix-replay-2" {
 		t.Fatalf("a second replay should not reuse the first one's directory, got %s", rows[0].Replay)
 	}
 }
 
-func TestAJobWhoseEvidenceChangedIsNotReplayedAndTheSweepSaysSo(t *testing.T) {
+func TestATaskWhoseRecordChangedIsNotReplayedAndTheSweepSaysSo(t *testing.T) {
 	hermetic(t)
 	bare := remote(t)
-	jobs := t.TempDir()
-	tampered := finished(t, jobs, "a-tampered", "maybe", bare)
-	fine := finished(t, jobs, "b-fine", "yes", bare)
+	tasks := t.TempDir()
+	tampered := finished(t, tasks, "a-tampered", "maybe", bare)
+	fine := finished(t, tasks, "b-fine", "yes", bare)
 	write(t, tampered.OutFile("gates.json"), `{"passed": true}`)
 
-	rows := replay.Sweep([]job.Dir{tampered, fine}, "", replay.Here)
+	rows := replay.Sweep([]task.Dir{tampered, fine}, "", replay.Here(signing.Identity{}))
 
 	if rows[0].Err == nil || rows[0].Replay != "" {
-		t.Fatal("a job whose evidence changed has no verdict worth comparing against")
+		t.Fatal("a job whose record changed has no verdict worth comparing against")
 	}
 	if rows[1].Err != nil || rows[1].Change() != replay.Same {
 		t.Fatalf("one broken job should not stop the rest: %v", rows[1].Err)
@@ -185,18 +186,18 @@ func TestAJobWhoseEvidenceChangedIsNotReplayedAndTheSweepSaysSo(t *testing.T) {
 	}
 }
 
-func TestAReplayCarriesTheAdapterTheOldJobCarried(t *testing.T) {
+func TestAReplayCarriesTheAdapterTheOldTaskCarried(t *testing.T) {
 	hermetic(t)
 	old := finished(t, t.TempDir(), "fix", "yes", remote(t))
-	// Carried is written after the run, as a job made by `gusto new` would hold
-	// it. It is outside out/, so the evidence still checks.
+	// Carried is written after the run, as a task made by `gusto new` would hold
+	// it. It is outside out/, so the record still checks.
 	if err := os.MkdirAll(filepath.Join(old.Path(), "harnesses"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	write(t, filepath.Join(old.Path(), "harnesses", "yes.json"), answersYes)
 	t.Setenv("GUSTO_HARNESSES", t.TempDir())
 
-	row := replay.Sweep([]job.Dir{old}, "", replay.Here)[0]
+	row := replay.Sweep([]task.Dir{old}, "", replay.Here(signing.Identity{}))[0]
 
 	if row.Err != nil {
 		t.Fatalf("the replay should run on the adapter the job carried: %v", row.Err)

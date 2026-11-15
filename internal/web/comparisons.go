@@ -8,12 +8,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/workspace"
+
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/compare"
 	"github.com/getlatentic/gusto/internal/industry"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/rules"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // UseBoard gives the pages somewhere to keep comparisons. Without one, a
@@ -30,20 +32,6 @@ func comparable() []industry.Template {
 		}
 	}
 	return fit
-}
-
-func (s *Server) comparePage(w http.ResponseWriter, r *http.Request) {
-	page := map[string]any{"Title": productName + " — compare agents", "Nav": "compare", "Refused": s.refusal(r)}
-	if s.lineups != nil {
-		page["Lineups"] = s.ownLineups(r, s.lineups.List())
-	}
-	if fit := comparable(); len(fit) > 0 {
-		held := fit[0]
-		page["Template"] = held
-		page["Engines"] = s.runnersOf(held)
-		page["Models"] = s.sharedModels(held, s.offeredTo(r))
-	}
-	s.render(w, "compare.html", page)
 }
 
 // sharedModels is each model, by the name a person reads, that the template's engines can be compared on: every model
@@ -107,7 +95,7 @@ func (s *Server) lineUp(r *http.Request, brief, named string, harnesses []string
 		return "", err
 	}
 	models := s.offeredTo(r)
-	specs := make([]job.Spec, 0, len(harnesses))
+	specs := make([]task.Spec, 0, len(harnesses))
 	for _, harness := range harnesses {
 		spec, err := s.sideSpec(models, held, harness, named, brief, repo, commit)
 		if err != nil {
@@ -115,40 +103,46 @@ func (s *Server) lineUp(r *http.Request, brief, named string, harnesses []string
 		}
 		specs = append(specs, spec)
 	}
-	lineup := compare.Lineup{Brief: brief, Template: held.Name,
-		Model: named, Commit: commit, Check: held.Check, At: time.Now().Unix(), Who: s.keeper.who(r)}
-	if lineup.ID, err = s.lineups.Reserve(jobs.Name("compare "+brief, time.Now()), lineup); err != nil {
+	lineup := compare.Lineup{Brief: brief, Template: held.Name, Model: named, Commit: commit, Check: held.Check, At: time.Now().Unix(),
+		Who: s.keeper.who(r), Workspace: workspace.Stored(s.workspaceOf(r))}
+	if lineup.ID, err = s.lineups.Reserve(tasks.Name("compare "+brief, time.Now()), lineup); err != nil {
 		return "", err
 	}
-	// Each run is kept in the lineup as soon as it is queued, so a run queued before a failure is one the lineup shows.
+	return lineup.ID, s.queueRuns(lineup, specs)
+}
+
+// queueRuns queues each run of a lineup, in its workspace. Each run is kept in the lineup as soon as it is queued, so a run
+// queued before a failure is one the lineup shows.
+func (s *Server) queueRuns(lineup compare.Lineup, specs []task.Spec) error {
 	for _, spec := range specs {
-		run, err := s.queued(spec, nil, s.keeper.who(r), "")
+		spec.Workspace = lineup.Workspace
+		run, err := s.queued(spec, nil, lineup.Who, "")
 		if err != nil {
-			return lineup.ID, err
+			return err
 		}
-		lineup.Runs = append(lineup.Runs, compare.Entry{Harness: spec.Harness, Job: run})
+		lineup.Runs = append(lineup.Runs, compare.Entry{Harness: spec.Harness, Task: run})
 		if err := s.lineups.Save(lineup); err != nil {
-			return lineup.ID, err
+			return err
 		}
 	}
-	return lineup.ID, nil
+	return nil
 }
 
 // sideSpec is one engine's run in a lineup, refused here rather than in the
 // queue when the engine is not offered or cannot reach the model.
-func (s *Server) sideSpec(models Models, held industry.Template, harness, named, brief, repo, commit string) (job.Spec, error) {
+func (s *Server) sideSpec(models Models, held industry.Template, harness, named, brief, repo, commit string) (task.Spec, error) {
 	if !slices.ContainsFunc(s.runnersOf(held), func(entry catalog.Entry) bool { return entry.Name == harness }) {
-		return job.Spec{}, fmt.Errorf("%s is not offered here", harness)
+		return task.Spec{}, fmt.Errorf("%s is not offered here", harness)
 	}
 	model, found := modelFor(models, named)
 	if !found {
-		return job.Spec{}, fmt.Errorf("%s is not offered here", named)
+		return task.Spec{}, fmt.Errorf("%s is not offered here", named)
 	}
-	spec := job.Spec{Brief: brief, Repo: repo, Ref: commit, Gate: held.Check, Harness: harness, Model: model,
-		Sensitivity: held.Sensitivity, Setup: &job.Setup{Name: held.Name}}
+	spec := task.Spec{Brief: brief, Repo: repo, Ref: commit, Check: held.Check, Harness: harness, Model: model,
+		Sensitivity: held.Sensitivity, Setup: &task.Setup{Name: held.Name}}
 	adapter, err := runnable(spec, nil)
 	if err != nil {
-		return job.Spec{}, err
+		return task.Spec{}, err
 	}
 	return spec, rules.Allows(spec, adapter.EndpointOf())
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/getlatentic/gusto/internal/changelog"
+	"github.com/getlatentic/gusto/internal/crew"
 )
 
 // agentApps is what an agent's Apps tab shows the person looking: each app they connected, and what the agent may do with it.
@@ -20,6 +21,9 @@ type agentApps struct {
 type agentApp struct {
 	ID, Name, Choice string
 	Default          bool
+	// SignInAgain is an app whose sign-in no longer works: the agent cannot use it until the person signs in again, so there
+	// is nothing to choose.
+	SignInAgain bool
 }
 
 // agentAppsFor is an agent's Apps tab for the person asking, or nil where this server offers no apps.
@@ -36,21 +40,25 @@ func (s *Server) agentAppsFor(r *http.Request, member string) *agentApps {
 	if shown.Works = held.MayUse(who); !shown.Works {
 		return shown
 	}
-	views, err := s.connectorViews(who)
+	views, err := s.connectorViews(who, held.Workspace)
 	if err != nil {
 		return shown
 	}
 	for _, view := range views {
-		if !view.On || !view.Usable || !view.Connected {
-			continue
+		if view.On && view.Usable && (view.Connected || view.SignInAgain) {
+			shown.Apps = append(shown.Apps, s.agentAppOf(view, held, who))
 		}
-		app := agentApp{ID: view.ID, Name: view.Name, Choice: "inherit", Default: s.connectors.ForAgents(who, view.ID)}
-		if allowed, chosen := held.AppChoice(who, view.ID); chosen {
-			app.Choice = map[bool]string{true: "allow", false: "deny"}[allowed]
-		}
-		shown.Apps = append(shown.Apps, app)
 	}
 	return shown
+}
+
+// agentAppOf is one of a person's apps as an agent's Apps tab lists it.
+func (s *Server) agentAppOf(view connectorView, held crew.Agent, who string) agentApp {
+	app := agentApp{ID: view.ID, Name: view.Name, Choice: "inherit", Default: s.connectors.ForAgents(who, held.Workspace, view.ID), SignInAgain: view.SignInAgain}
+	if allowed, chosen := held.AppChoice(who, view.ID); chosen {
+		app.Choice = map[bool]string{true: "allow", false: "deny"}[allowed]
+	}
+	return app
 }
 
 // chooseAgentApp sets what an agent may do with one app of the asking person's: inherit their default, allow or deny. Each person
@@ -78,11 +86,11 @@ func (s *Server) chooseAgentApp(w http.ResponseWriter, r *http.Request) {
 }
 
 // forgetAgentChoices drops what a person chose for one app of theirs on every agent.
-func (s *Server) forgetAgentChoices(who, app string) error {
+func (s *Server) forgetAgentChoices(who, space, app string) error {
 	if s.crew == nil {
 		return nil
 	}
-	return s.crew.ForgetApp(who, app)
+	return s.crew.ForgetApp(who, space, app)
 }
 
 // setAppForAgents sets the asking person's default for whether their agents may use one app they connected, which every agent they
@@ -95,7 +103,7 @@ func (s *Server) setAppForAgents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	on := r.FormValue("on") == "on"
-	if err := s.connectors.SetForAgents(who, entry.ID, on); err != nil {
+	if err := s.connectors.SetForAgents(who, s.workspaceOf(r), entry.ID, on); err != nil {
 		s.turnAway(w, r, connectionsPath, err.Error())
 		return
 	}

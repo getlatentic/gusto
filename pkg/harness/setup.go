@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // SetupFolder is where the task's setup sits in the listing a digest is taken
@@ -14,9 +14,9 @@ import (
 // in the listing never means two files.
 const SetupFolder = "setup"
 
-// setupOf reads the setup the job carries, or nothing when it carries none or
-// there is no job.
-func setupOf(dir job.Dir) (Tree, error) {
+// setupOf reads the setup the task carries, or nothing when it carries none or
+// there is no task.
+func setupOf(dir task.Dir) (Tree, error) {
 	if dir == "" || !isDir(dir.SetupDir()) {
 		return nil, nil
 	}
@@ -44,7 +44,7 @@ const serversFile = "servers.json"
 // own credentials would never compare. The names stay, because a server given
 // a different variable is configured differently.
 func nameOnly(definitions []byte) ([]byte, error) {
-	var servers []job.Server
+	var servers []task.Server
 	if err := json.Unmarshal(definitions, &servers); err != nil {
 		return nil, fmt.Errorf("setup/%s: %w", serversFile, err)
 	}

@@ -4,7 +4,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // verifiedRuns is how many of the newest runs the task checks look at. Each check reads the run's files.
@@ -52,7 +52,7 @@ func (s *Server) checkRuns() runChecks {
 	return runChecks{Rows: rows, Verified: counts["verified"], Unsigned: counts["unsigned"], Unchecked: counts["unchecked"], Failing: counts["does not check out"]}
 }
 
-func checkedRow(record jobs.Record, state string) checked {
+func checkedRow(record tasks.Record, state string) checked {
 	return checked{ID: record.ID, Brief: record.Brief, Who: record.Asked, State: state,
 		When: time.Unix(record.Queued, 0).UTC().Format("2 Jan 15:04"), Href: "/jobs/" + record.ID}
 }

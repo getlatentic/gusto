@@ -3,6 +3,7 @@ package taskindex
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"github.com/getlatentic/gusto/internal/workspace"
 	"strconv"
 	"strings"
 )
@@ -28,6 +29,17 @@ func (r Row) Sum() string {
 		r.RequestKey, r.StoppedBy, r.Team} {
 		h.Write([]byte(strconv.Itoa(len(s)) + ":" + s))
 	}
+	// A task in the first workspace sums as it did before workspaces, so the rows kept then still match their tasks.
+	if space := workspace.Of(r.Workspace); space != workspace.First {
+		h.Write([]byte("workspace " + strconv.Itoa(len(space)) + ":" + space))
+	}
+	// A task that is not a room agent's turn sums as it did before turns kept these.
+	if r.Agent != "" || r.HandedBy != "" || r.Answers != "" || r.Hops != 0 || r.PaidBy != "" {
+		for _, s := range []string{r.Agent, r.HandedBy, r.Answers, r.PaidBy} {
+			h.Write([]byte("turn " + strconv.Itoa(len(s)) + ":" + s))
+		}
+		h.Write([]byte("hops " + strconv.Itoa(r.Hops) + ","))
+	}
 	for _, n := range []int64{r.Seq, int64(r.Exit), r.Queued, r.Started, r.Ended} {
 		h.Write([]byte(strconv.FormatInt(n, 10) + ","))
 	}
@@ -35,4 +47,6 @@ func (r Row) Sum() string {
 }
 
 // Entry is what a rebuild compares the row with.
-func (r Row) Entry() Entry { return Entry{State: r.State, Ended: r.Ended, Seq: r.Seq, Sum: r.Sum()} }
+func (r Row) Entry() Entry {
+	return Entry{State: r.State, Ended: r.Ended, Seq: r.Seq, Sum: r.Sum(), Progress: r.Progress()}
+}

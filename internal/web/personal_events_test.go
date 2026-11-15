@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // listening is a person's connection to the event stream, read a frame at a time.
@@ -76,8 +76,8 @@ func (l *listening) quiet(wait time.Duration) {
 	}
 }
 
-// addJob puts a job in the index the way a submission does: a directory is reserved for it, and its record is kept there.
-func addTurnJob(t *testing.T, here *tokened, record jobs.Record) string {
+// addTask puts a task in the index the way a submission does: a directory is reserved for it, and its record is kept there.
+func addTurnTask(t *testing.T, here *tokened, record tasks.Record) string {
 	t.Helper()
 	id, err := here.server.index.Reserve(record.Brief, time.Now())
 	if err != nil {
@@ -96,13 +96,13 @@ func quickEvents(t *testing.T) {
 	t.Cleanup(func() { eventEvery = was })
 }
 
-func TestAPersonHearsWhenTheirOwnJobsStartAndEndAndNobodyElses(t *testing.T) {
+func TestAPersonHearsWhenTheirOwnTasksStartAndEndAndNobodyElses(t *testing.T) {
 	quickEvents(t)
 	here := withTokens(t)
 	index := here.server.index
 	now := time.Now().Unix()
-	hers := addTurnJob(t, here, jobs.Record{State: jobs.Queued, Brief: "fix the build", Harness: "opencode", Asked: alice, Instance: "i1", Thread: "t1", Queued: now})
-	his := addTurnJob(t, here, jobs.Record{State: jobs.Queued, Brief: "bobs work", Harness: "opencode", Asked: bob, Queued: now})
+	hers := addTurnTask(t, here, tasks.Record{State: tasks.Queued, Brief: "fix the build", Harness: "opencode", Asked: alice, Instance: "i1", Thread: "t1", Queued: now})
+	his := addTurnTask(t, here, tasks.Record{State: tasks.Queued, Brief: "bobs work", Harness: "opencode", Asked: bob, Queued: now})
 	heard := listen(t, here, signInADevice(t, here, alice), "")
 
 	first := heard.next()
@@ -112,13 +112,13 @@ func TestAPersonHearsWhenTheirOwnJobsStartAndEndAndNobodyElses(t *testing.T) {
 	if ready := heard.next(); !strings.Contains(ready, "event: ready") {
 		t.Fatalf("the end of the catch-up was not marked: %q", ready)
 	}
-	if err := index.Finish(hers, jobs.Passed, 0); err != nil {
+	if err := index.Finish(hers, tasks.Passed, 0); err != nil {
 		t.Fatal(err)
 	}
 	if done := heard.next(); !strings.Contains(done, "event: turn.finished") || !strings.Contains(done, `"state":"passed"`) {
 		t.Fatalf("a finished job was told as %q", done)
 	}
-	if err := index.Finish(his, jobs.Failed, 1); err != nil {
+	if err := index.Finish(his, tasks.Failed, 1); err != nil {
 		t.Fatal(err)
 	}
 	heard.quiet(300 * time.Millisecond)
@@ -128,8 +128,8 @@ func TestACatchUpTellsWhatEndedSinceAndNotWhatEndedBefore(t *testing.T) {
 	quickEvents(t)
 	here := withTokens(t)
 	now := time.Now().Unix()
-	addTurnJob(t, here, jobs.Record{State: jobs.Passed, Brief: "long ago", Harness: "h", Asked: alice, Queued: now - 7200, Started: now - 7200, Ended: now - 7000})
-	recent := addTurnJob(t, here, jobs.Record{State: jobs.Failed, Brief: "while away", Harness: "h", Asked: alice, Queued: now - 600, Started: now - 600, Ended: now - 500})
+	addTurnTask(t, here, tasks.Record{State: tasks.Passed, Brief: "long ago", Harness: "h", Asked: alice, Queued: now - 7200, Started: now - 7200, Ended: now - 7000})
+	recent := addTurnTask(t, here, tasks.Record{State: tasks.Failed, Brief: "while away", Harness: "h", Asked: alice, Queued: now - 600, Started: now - 600, Ended: now - 500})
 	secret := signInADevice(t, here, alice)
 
 	heard := listen(t, here, secret, "")

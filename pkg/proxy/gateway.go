@@ -6,7 +6,7 @@ import (
 )
 
 // Gateways gives the handler that is a task's gateway to its tool servers, or says the task has none.
-type Gateways func(job string) (http.Handler, bool)
+type Gateways func(task string) (http.Handler, bool)
 
 // UseGateways lets a task reach its tool servers through the proxy, at /mcp. The task's token says whose they are, as it says whose
 // credential a model call uses, and what a task may reach is what its setup was given and not what its agent asks for.
@@ -21,7 +21,7 @@ func (p *Proxy) tools(w http.ResponseWriter, r *http.Request, ticket Ticket) {
 		http.NotFound(w, r)
 		return
 	}
-	handler, has := (*held)(ticket.Job)
+	handler, has := (*held)(ticket.Task)
 	if !has {
 		http.NotFound(w, r)
 		return

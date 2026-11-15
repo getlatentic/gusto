@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // captured is what fn writes to standard output.
@@ -29,7 +29,7 @@ func captured(t *testing.T, fn func() int) (string, int) {
 
 func TestTheRetentionCommandListsWhatWouldGoAndRemovesNothing(t *testing.T) {
 	root := t.TempDir()
-	index, err := jobs.Open(root)
+	index, err := tasks.Open(root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestTheRetentionCommandListsWhatWouldGoAndRemovesNothing(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "old", "workspace", "f"), []byte(strings.Repeat("x", 300)), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := index.Add(jobs.Record{ID: "old", State: jobs.Passed, Brief: "old", Ended: ended, Queued: ended}); err != nil {
+	if err := index.Add(tasks.Record{ID: "old", State: tasks.Passed, Brief: "old", Ended: ended, Queued: ended}); err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()

@@ -12,6 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/computer"
 	"github.com/getlatentic/gusto/internal/openshell"
 	"github.com/getlatentic/gusto/internal/runner"
+	"github.com/getlatentic/gusto/internal/signing"
 	"github.com/getlatentic/gusto/internal/spare"
 	"github.com/getlatentic/gusto/pkg/harness"
 )
@@ -157,24 +158,24 @@ func TestAFirstTaskRunsInTheSpareWithoutMakingASandboxAndAnotherSpareIsMade(t *t
 		if i > 2000 {
 			t.Fatalf("nobody was given the spare %s", spareName)
 		}
-		if held, _, err = registry.EnsureFrom(fmt.Sprintf("p%d@acme.com", i), "cell-1", spare.Offer{Pool: pool, Key: key}); err != nil {
+		if held, _, err = registry.EnsureFrom(fmt.Sprintf("p%d@acme.com", i), "", "cell-1", spare.Offer{Pool: pool, Key: key}); err != nil {
 			t.Fatal(err)
 		}
 		time.Sleep(time.Millisecond)
 	}
 
-	dir, _ := aJob(t)
+	dir, _ := aTask(t)
 	withHarness(t, `printf yes > answer.txt; ls -A ../../../.. | tr '\n' ' ' > seen.txt`)
-	if exit, err := runner.Outside(dir, inComputer(t, dir, held.Sandbox, "20260929-1200-first")); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), dir, inComputer(t, dir, held.Sandbox, "20260929-1200-first"), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 	calls, _ := os.ReadFile(filepath.Join(root, "calls.log"))
 	for _, line := range strings.Split(string(calls), "\n") {
-		if strings.HasPrefix(line, "sandbox create --name "+computer.Name(org, held.User)) {
+		if strings.HasPrefix(line, "sandbox create --name "+computer.Name(org, "", held.User)) {
 			t.Errorf("the task made a sandbox of its own: %s", line)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(root, computer.Name(org, held.User))); err == nil {
+	if _, err := os.Stat(filepath.Join(root, computer.Name(org, "", held.User))); err == nil {
 		t.Error("a sandbox was made under the person's own name as well as the spare")
 	}
 	eventually(t, "the next spare", func() bool {
@@ -210,14 +211,14 @@ func TestASpareThatCannotBeMadeLeavesNothingAndTheFirstTaskMakesItsOwn(t *testin
 		t.Fatal(err)
 	}
 	time.Sleep(100 * time.Millisecond)
-	held, _, err := registry.EnsureFrom("ada@acme.com", "cell-1", spare.Offer{Pool: pool, Key: key})
-	if err != nil || held.Sandbox != computer.Name(org, "ada@acme.com") {
+	held, _, err := registry.EnsureFrom("ada@acme.com", "", "cell-1", spare.Offer{Pool: pool, Key: key})
+	if err != nil || held.Sandbox != computer.Name(org, "", "ada@acme.com") {
 		t.Fatalf("%q %v", held.Sandbox, err)
 	}
 	os.Remove(filepath.Join(root, "broken"))
-	dir, _ := aJob(t)
+	dir, _ := aTask(t)
 	withHarness(t, `printf yes > answer.txt`)
-	if exit, err := runner.Outside(dir, inComputer(t, dir, held.Sandbox, "20260929-1200-first")); err != nil || exit != 0 {
+	if exit, err := runner.Outside(context.Background(), dir, inComputer(t, dir, held.Sandbox, "20260929-1200-first"), signing.Identity{}); err != nil || exit != 0 {
 		t.Fatalf("exit %d, %v", exit, err)
 	}
 	if _, err := os.Stat(filepath.Join(root, held.Sandbox, "sandbox")); err != nil {

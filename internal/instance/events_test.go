@@ -21,7 +21,7 @@ func eventsOf(t *testing.T, store *Store, room string) []string {
 
 func TestAChangeToARoomIsAnEventWithTheNextSequence(t *testing.T) {
 	store := opened(t)
-	room, _ := store.StartRoom("Launch plan", "ada@example.com")
+	room, _ := store.StartRoom("Launch plan", "ada@example.com", "")
 	thread := store.Latest(room.ID)
 
 	if err := store.Said(room.ID, thread.ID, "job-1", ""); err != nil {
@@ -53,7 +53,7 @@ func TestAnInstanceThatIsNotARoomHasNoEvents(t *testing.T) {
 func TestSequencesSurviveAReopenedStore(t *testing.T) {
 	root := t.TempDir()
 	store, _ := Open(root)
-	room, _ := store.StartRoom("Launch plan", "ada@example.com")
+	room, _ := store.StartRoom("Launch plan", "ada@example.com", "")
 	thread := store.Latest(room.ID)
 	for i := range 5 {
 		_ = store.Said(room.ID, thread.ID, fmt.Sprintf("job-%d", i), "")
@@ -77,7 +77,7 @@ func TestSequencesSurviveAReopenedStore(t *testing.T) {
 
 func TestConcurrentChangesAreSequencedInTheOrderTheyWereMade(t *testing.T) {
 	store := opened(t)
-	room, _ := store.StartRoom("Launch plan", "ada@example.com")
+	room, _ := store.StartRoom("Launch plan", "ada@example.com", "")
 	thread := store.Latest(room.ID)
 
 	const speakers, each = 8, 40
@@ -114,7 +114,7 @@ func TestWatchersAreToldOfEachEventAndOfARemovedRoom(t *testing.T) {
 		told = append(told, room)
 		mu.Unlock()
 	})
-	room, _ := store.StartRoom("Launch plan", "ada@example.com")
+	room, _ := store.StartRoom("Launch plan", "ada@example.com", "")
 	thread := store.Latest(room.ID)
 	_ = store.Said(room.ID, thread.ID, "job-1", "")
 	if err := store.Remove(room.ID); err != nil {

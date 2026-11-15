@@ -146,9 +146,9 @@ func (c *cloud) Say(_ context.Context, _, _, said, key string) (helper.Said, err
 	if c.say != nil {
 		return c.say(n)
 	}
-	return helper.Said{Job: "job-1", State: "queued"}, nil
+	return helper.Said{Task: "job-1", State: "queued"}, nil
 }
-func (c *cloud) FollowJob(_ context.Context, _ string, told helper.Follower) (helper.Ended, error) {
+func (c *cloud) FollowTask(_ context.Context, _ string, told helper.Follower) (helper.Ended, error) {
 	c.mu.Lock()
 	c.followed++
 	n := c.followed
@@ -158,16 +158,16 @@ func (c *cloud) FollowJob(_ context.Context, _ string, told helper.Follower) (he
 	}
 	return passed("done"), nil
 }
-func (c *cloud) StopJob(_ context.Context, job string) error {
+func (c *cloud) StopTask(_ context.Context, task string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.stopped = append(c.stopped, job)
+	c.stopped = append(c.stopped, task)
 	return nil
 }
 
 func passed(reply string) helper.Ended {
 	var ended helper.Ended
-	ended.Job.ID, ended.Job.State, ended.Reply = "job-1", "passed", reply
+	ended.Task.ID, ended.Task.State, ended.Reply = "job-1", "passed", reply
 	return ended
 }
 
@@ -296,7 +296,7 @@ func TestASendThatFailedIsTriedAgainWithTheSameKeyAndIsOneTurn(t *testing.T) {
 		if n < 3 {
 			return helper.Said{}, errors.New("connection reset")
 		}
-		return helper.Said{Job: "job-1"}, nil
+		return helper.Said{Task: "job-1"}, nil
 	}
 	e := connect(t, &Agent{Cloud: c})
 	got, _ := e.call("session/prompt", prompt(opened(e), "do it"))
@@ -343,7 +343,7 @@ func TestACancelStopsTheTurnInTheCloudAndTheTurnEndsCancelled(t *testing.T) {
 		told.Step(helper.Step{What: "Ran", Detail: "sleep"})
 		<-release
 		var ended helper.Ended
-		ended.Job.ID, ended.Job.State, ended.Job.StoppedBy = "job-1", "interrupted", "ada@acme.example"
+		ended.Task.ID, ended.Task.State, ended.Task.StoppedBy = "job-1", "interrupted", "ada@acme.example"
 		return ended, nil
 	}
 	e := connect(t, &Agent{Cloud: c})
@@ -378,10 +378,10 @@ func TestACancelStopsTheTurnInTheCloudAndTheTurnEndsCancelled(t *testing.T) {
 func TestACancelThatComesBeforeTheTurnIsSentStopsItAsItIsSent(t *testing.T) {
 	c := withAgents()
 	gate := make(chan struct{})
-	c.say = func(int) (helper.Said, error) { <-gate; return helper.Said{Job: "job-9"}, nil }
+	c.say = func(int) (helper.Said, error) { <-gate; return helper.Said{Task: "job-9"}, nil }
 	c.follow = func(int, helper.Follower) (helper.Ended, error) {
 		var ended helper.Ended
-		ended.Job.State, ended.Job.StoppedBy = "interrupted", "me"
+		ended.Task.State, ended.Task.StoppedBy = "interrupted", "me"
 		return ended, nil
 	}
 	e := connect(t, &Agent{Cloud: c})
@@ -406,7 +406,7 @@ func TestAFailedTurnSaysWhyInWordsAndASecondPromptWhileBusyIsRefused(t *testing.
 	c.follow = func(n int, told helper.Follower) (helper.Ended, error) {
 		<-release
 		var ended helper.Ended
-		ended.Job.State, ended.Stopped = "failed", "the model refused the call"
+		ended.Task.State, ended.Stopped = "failed", "the model refused the call"
 		return ended, nil
 	}
 	e := connect(t, &Agent{Cloud: c})

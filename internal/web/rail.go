@@ -32,9 +32,11 @@ type railChat struct {
 	// Room says the conversation is a room, and Unread what its person has not read there.
 	Room   bool
 	Unread unread
-	// ID is the room's, and Harness the agent type of a person's own room with one agent, which shows as that agent.
-	ID      string
-	Harness string
+	// ID is the room's, and Harness the agent type of a person's own room with one agent, which shows as that agent, with its
+	// marks.
+	ID             string
+	Harness        string
+	Mark, MarkDark string
 }
 
 // railList is the side list: the projects used lately, the older ones folded away, and where the page is, so its conversation shows as
@@ -43,6 +45,8 @@ type railList struct {
 	// Direct is the person's own rooms with one agent each, and Rooms the rooms they share.
 	Direct []railChat
 	Rooms  []railChat
+	// Archived is the rooms an admin put away, which stay one click from being brought back.
+	Archived []railChat
 	// Latest is every conversation newest first, and Unread and ForYou how many rooms hold something unread, and something that
 	// mentions the person, for the side list's tabs.
 	Latest []railChat
@@ -64,6 +68,7 @@ func (s *Server) railFor(r *http.Request, here string) railList {
 			list.Rooms = append(list.Rooms, room)
 		}
 	}
+	list.Archived = s.archivedRoomsFor(r)
 	used := s.lastUsed(r)
 	started := startedWhereNamedAlike(used)
 	var groups []railGroup

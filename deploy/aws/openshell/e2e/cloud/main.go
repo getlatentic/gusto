@@ -49,12 +49,12 @@ func (r run) orgAt(slug string) string { return "http://" + slug + "." + r.domai
 func main() {
 	var r run
 	var team string
-	flag.StringVar(&r.host.root, "root", "cloud", "the front door's GUSTO_CLOUD_ROOT")
+	flag.StringVar(&r.host.root, "root", "cloud", "gusto cloud's GUSTO_CLOUD_ROOT")
 	flag.StringVar(&r.host.gusto, "gusto", "gusto", "the gusto program")
 	flag.StringVar(&r.host.gateway, "gateway", "spike", "the OpenShell gateway")
 	flag.StringVar(&r.host.sandbox, "sandbox", "openshell", "what the agents run in: openshell or container")
 	flag.StringVar(&r.host.probe, "probe", "", "with -sandbox container, the isolation check run inside the first agent's container")
-	flag.StringVar(&r.door, "door", "127.0.0.1:8050", "where the front door listens")
+	flag.StringVar(&r.door, "door", "127.0.0.1:8050", "where gusto cloud listens")
 	flag.StringVar(&r.domain, "domain", "gusto.test", "GUSTO_CLOUD_DOMAIN")
 	flag.StringVar(&r.model, "model", "", "the model the agents are given")
 	flag.StringVar(&team, "team", "ada@acme-research.com,bob@acme-research.com,cy@acme-research.com,di@acme-research.com", "the admin, then the people they invite")
@@ -183,8 +183,8 @@ func (r run) firstTurns(slug string, people []*visitor) []*thread {
 		if each == nil {
 			os.Exit(1)
 		}
-		jobs, err := r.host.finished(slug, each.person.email, 1, r.within)
-		check(err == nil, "%s's first turn is done: %v", each.person.email, states(jobs))
+		tasks, err := r.host.finished(slug, each.person.email, 1, r.within)
+		check(err == nil, "%s's first turn is done: %v", each.person.email, states(tasks))
 		word, err := r.host.fileIn(slug, each.instance, "secret.txt")
 		check(err == nil && word == each.secret, "the file the agent wrote is in %s's instance: %q", each.person.email, word)
 	}
@@ -197,9 +197,9 @@ func (t *thread) say(r run, slug, said string) {
 	check(sent.status == 200, "%s asks their agent for something", t.person.email)
 }
 
-func states(jobs []jobOf) string {
+func states(tasks []taskOf) string {
 	var seen []string
-	for _, each := range jobs {
+	for _, each := range tasks {
 		seen = append(seen, fmt.Sprintf("%s exit %d", each.State, each.Exit))
 	}
 	return strings.Join(seen, ", ")

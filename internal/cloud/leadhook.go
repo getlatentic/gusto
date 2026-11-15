@@ -157,11 +157,11 @@ func (s *Server) RunLeads(ctx context.Context, every time.Duration) {
 }
 
 // tell queues a lead's event, and tries to send it at once so the sheet is current. A failure is kept for the next try.
-func (s *Server) tell(event, slug string) {
+func (s *Server) tell(ctx context.Context, event, slug string) {
 	if !s.Leads.Enabled() {
 		return
 	}
-	lead, found := s.Store.LeadOf(slug)
+	lead, found := s.Store.LeadOf(ctx, slug)
 	if !found {
 		return
 	}
@@ -169,8 +169,9 @@ func (s *Server) tell(event, slug string) {
 		slog.Error("a lead was not kept to be sent", "org", slug, "event", event, "error", err)
 		return
 	}
+	ctx = context.WithoutCancel(ctx)
 	go func() {
-		if err := s.Leads.Flush(context.Background()); err != nil {
+		if err := s.Leads.Flush(ctx); err != nil {
 			slog.Warn("a lead is waiting to be sent", "error", err)
 		}
 	}()

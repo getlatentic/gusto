@@ -102,6 +102,42 @@ tests:
               summary: "More than a fifth of the model calls in the last ten minutes failed on the model's side"
               runbook: "docs/RUNBOOK.md#gustomodelerrors"
 
+  - name: provisions that keep failing
+    interval: 1m
+    input_series:
+      - series: 'gusto_provision_failures_total'
+        values: '0 0 0 1 2 3 4 5 6 7 8 9'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: GustoProvisionFailing
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: GustoProvisionFailing
+        exp_alerts:
+          - exp_labels: { severity: page }
+            exp_annotations:
+              summary: "An organization's server failed to provision, and it has kept happening for five minutes"
+              runbook: "docs/RUNBOOK.md#gustoprovisionfailing"
+
+  - name: the front door starts to fail
+    interval: 1m
+    input_series:
+      - series: 'gusto_front_requests_total{class="GET /",status="2xx"}'
+        values: '0+10x30'
+      - series: 'gusto_front_requests_total{class="GET /",status="5xx"}'
+        values: '0+0x10 0+5x20'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: GustoFrontErrors
+        exp_alerts: []
+      - eval_time: 28m
+        alertname: GustoFrontErrors
+        exp_alerts:
+          - exp_labels: { severity: page }
+            exp_annotations:
+              summary: "More than one in twenty requests to the front door in the last ten minutes ended in a 5xx"
+              runbook: "docs/RUNBOOK.md#gustofronterrors"
+
   - name: a few errors on a few calls do not page
     interval: 1m
     input_series:

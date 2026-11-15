@@ -103,7 +103,7 @@ AGAIN=all ./e2e-matrix.sh             # or AGAIN=codex@deepseek/deepseek-flash,.
 ./e2e-shared.sh        # claude, then codex, on one project in one sandbox; the app they wrote, shared through the gateway
 ./demo-up.sh           # a host that serves the public cloud at https://$DEMO_NAME (see below)
 ./demo-down.sh         # its DNS records, then the host
-./e2e-cloud.sh         # the public cloud as people use it: sign-up, three invited people, a workspace each, a second organization
+./e2e-cloud.sh         # the public cloud as people use it: sign-up, three invited people, a computer each, a second organization
 ./e2e-concurrency.sh   # 1, 2, 4, 8 and 12 sandboxes at once, in waves of four (SIZES and WAVE change them)
 ```
 
@@ -153,9 +153,9 @@ It checks:
 
 - main is deployed: the `deploy` and `demo bundle` runs of its head passed
 - the landing, demo and sign-up pages answer, `/app` sends a stranger to sign in, and signing in reaches the code page
-- the organization is ready, sends a stranger to the front door, and serves its connector client document
+- the organization is ready, sends a stranger to gusto cloud, and serves its connector client document
 - both certificates have 14 days or more left
-- the front door and a cell are running, and no sign-in mail failed in 24 hours
+- gusto cloud and a node are running, and no sign-in mail failed in 24 hours
 - the organization's newest task did not fail. An older failure is printed as a note
 
 It does not start a demo, because the demo page asks for a Turnstile check. It does not run a task.

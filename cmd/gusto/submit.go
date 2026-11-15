@@ -11,9 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/settings"
 	"github.com/getlatentic/gusto/internal/web"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // submit sends a task directory to a server instead of running it here. It is the
@@ -24,15 +25,19 @@ func submit(args []string) int {
 	if code != 0 {
 		return code
 	}
-	server, err := sending(os.Getenv("GUSTO_SERVER"))
+	var s submitSettings
+	if err := loadSettings(s.declare); err != nil {
+		return refused(err)
+	}
+	server, err := sending(s.server)
 	if err != nil {
 		return fail(err)
 	}
-	secret := credential()
+	secret := s.credential()
 	if secret == "" {
 		return fail(errors.New("set GUSTO_TOKEN to an API token from the server's Tokens page, or GUSTO_PASSWORD to its shared sign-in"))
 	}
-	spec, err := job.Read(dir)
+	spec, err := task.Read(dir)
 	if err != nil {
 		return fail(err)
 	}
@@ -50,13 +55,26 @@ func submit(args []string) int {
 	return 0
 }
 
+// submitSettings is where gusto submit sends a task and what it signs in with.
+type submitSettings struct {
+	server   string
+	token    string
+	password string
+}
+
+func (s *submitSettings) declare(set *settings.Set) {
+	set.String(&s.server, "GUSTO_SERVER", "", "the server, with its scheme, such as https://gusto.example.com")
+	set.Secret(&s.token, "GUSTO_TOKEN", "an API token from the server's Tokens page")
+	set.Secret(&s.password, "GUSTO_PASSWORD", "the server's shared sign-in, when it has no tokens")
+}
+
 // credential is what to send the server: an API token when there is one, and
 // otherwise the shared password a server with no tokens takes.
-func credential() string {
-	if token := os.Getenv("GUSTO_TOKEN"); token != "" {
-		return token
+func (s submitSettings) credential() string {
+	if s.token != "" {
+		return s.token
 	}
-	return os.Getenv("GUSTO_PASSWORD")
+	return s.password
 }
 
 // sending is the server to send to. A scheme is asked for rather than assumed,
@@ -75,7 +93,7 @@ func sending(to string) (string, error) {
 
 // carriedAdapter reads the adapter the task holds for its agent. A task naming a
 // built-in agent holds none, and every server has those already.
-func carriedAdapter(dir job.Dir, name string) (*harness.Adapter, error) {
+func carriedAdapter(dir task.Dir, name string) (*harness.Adapter, error) {
 	text, err := os.ReadFile(filepath.Join(harness.Carried(dir), name+".json"))
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil

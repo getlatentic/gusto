@@ -6,19 +6,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-func TestASetupThatIsOffStartsNoJobAndTurningItOnStartsOne(t *testing.T) {
+func TestASetupThatIsOffStartsNoTaskAndTurningItOnStartsOne(t *testing.T) {
 	store, _ := Open(t.TempDir())
 	store.Save(Setup{Name: "mine", Off: true}, memory())
-	if _, err := store.Carry("mine", memory(), job.Dir(t.TempDir())); err == nil || !strings.Contains(err.Error(), "is off") {
+	if _, err := store.Carry("mine", memory(), task.Dir(t.TempDir())); err == nil || !strings.Contains(err.Error(), "is off") {
 		t.Fatalf("err = %v", err)
 	}
 	if err := store.SetOff("mine", false); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.Carry("mine", memory(), job.Dir(t.TempDir())); err != nil {
+	if _, err := store.Carry("mine", memory(), task.Dir(t.TempDir())); err != nil {
 		t.Errorf("a setup that was turned on was refused: %v", err)
 	}
 	store.SetOff("mine", true)
@@ -38,7 +38,7 @@ func TestASetupKeptBeforeThereWasAnOffSwitchIsOn(t *testing.T) {
 	if held, found := store.Get("old"); !found || held.Off {
 		t.Fatalf("%+v %v", held, found)
 	}
-	if _, err := store.Carry("old", Servers{}, job.Dir(t.TempDir())); err != nil {
+	if _, err := store.Carry("old", Servers{}, task.Dir(t.TempDir())); err != nil {
 		t.Errorf("a setup kept before the switch is off after an upgrade: %v", err)
 	}
 }

@@ -50,7 +50,7 @@ writeFileSync(join(work, "agents", "opencode.json"), JSON.stringify({
 execFileSync(bin, ["keygen", "capture", "-dir", join(work, "keys")], { stdio: "ignore" });
 start("python3", [join(root, "deploy/landing/replay.py"), join(work, "replies.json")]);
 start(bin, ["serve"], {
-  GUSTO_PASSWORD: password, GUSTO_ADDR: `127.0.0.1:${port}`, GUSTO_JOBS: join(work, "jobs"), GUSTO_SESSIONS: join(work, "sessions"),
+  GUSTO_PASSWORD: password, GUSTO_ADDR: `127.0.0.1:${port}`, GUSTO_TASKS: join(work, "jobs"), GUSTO_SESSIONS: join(work, "sessions"),
   GUSTO_SANDBOX: "here", GUSTO_CREDENTIALS: join(work, "creds"), GUSTO_MODELS: "gemma/google.gemma-4-26b-a4b", GUSTO_HARNESSES: join(work, "agents"),
   GUSTO_SIGNING_KEY: join(work, "keys", "capture.key"), GUSTO_KEYRING: join(work, "keys"), GUSTO_SPEND_POLICY: join(work, "spend.json"),
   GUSTO_PROXY_ADDR: "127.0.0.1:8721", GUSTO_QUOTA: join(work, "quota.json"), HOME: work,
@@ -68,7 +68,7 @@ mkdirSync(join(models, "creds"));
 // an operator's provider, at an address that is only a name here
 writeFileSync(join(models, "creds", "gemma.json"), JSON.stringify({ address: "https://models.example.com/v1", auth: "bearer", key: "x", wires: ["chat"] }));
 start(bin, ["serve"], {
-  GUSTO_PASSWORD: password, GUSTO_ADDR: "127.0.0.1:8724", GUSTO_JOBS: join(models, "jobs"), GUSTO_SESSIONS: join(models, "sessions"),
+  GUSTO_PASSWORD: password, GUSTO_ADDR: "127.0.0.1:8724", GUSTO_TASKS: join(models, "jobs"), GUSTO_SESSIONS: join(models, "sessions"),
   GUSTO_SANDBOX: "here", GUSTO_CREDENTIALS: join(models, "creds"), GUSTO_MODELS: "gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b", GUSTO_REGISTRY: join(work, "registry"),
   GUSTO_HARNESSES: join(root, "pkg/harness/adapters"), GUSTO_SPEND_POLICY: join(work, "spend.json"), GUSTO_PROXY_ADDR: "127.0.0.1:8725", HOME: models,
 }, models);

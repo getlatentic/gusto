@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/registry"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 func (s *site) postAs(secret, path, body string) *httptest.ResponseRecorder {
@@ -73,10 +73,10 @@ func TestALimitedPersonsTokenIsOfferedAndMayStartOnlyTheirModels(t *testing.T) {
 	}
 }
 
-// turnDone waits for the test queue to finish a job.
-func turnDone(t *testing.T, here *tokened, id string) jobs.Record {
+// turnDone waits for the test queue to finish a task.
+func turnDone(t *testing.T, here *tokened, id string) tasks.Record {
 	t.Helper()
-	var record jobs.Record
+	var record tasks.Record
 	waitUntil(t, "the job to finish", func() bool {
 		found, ok := here.index.Get(id)
 		record = found
@@ -107,14 +107,14 @@ func TestATurnIsReadAsJSONWithItsStepsItsReplyAndWhatChanged(t *testing.T) {
 
 	got := here.getAs(ada, "/api/jobs/"+id)
 	var turn struct {
-		Job   struct{ State, Brief string }
+		Task  struct{ State, Brief string } `json:"job"`
 		Steps []struct{ What, Detail string }
 		Reply string
 	}
 	if got.Code != http.StatusOK || json.Unmarshal(got.Body.Bytes(), &turn) != nil {
 		t.Fatalf("%d %s", got.Code, got.Body)
 	}
-	if turn.Job.State != "passed" || turn.Job.Brief != "read the file" || !strings.Contains(turn.Reply, "first line") || len(turn.Steps) != 1 || turn.Steps[0].What != "Read" || !strings.Contains(turn.Steps[0].Detail, "main.go") {
+	if turn.Task.State != "passed" || turn.Task.Brief != "read the file" || !strings.Contains(turn.Reply, "first line") || len(turn.Steps) != 1 || turn.Steps[0].What != "Read" || !strings.Contains(turn.Steps[0].Detail, "main.go") {
 		t.Errorf("the turn read as %+v", turn)
 	}
 	if got := here.getAs(signInADevice(t, here, bob), "/api/jobs/"+id); got.Code != http.StatusNotFound {
@@ -162,7 +162,7 @@ func TestARunningTurnIsFollowedStepByStepToItsEnd(t *testing.T) {
 	t.Cleanup(func() { followEvery = was })
 	here := withTokens(t)
 	ada := signInADevice(t, here, alice)
-	id := addTurnJob(t, here, jobs.Record{State: jobs.Running, Brief: "work", Harness: "fixture", Asked: alice, Queued: time.Now().Unix(), Started: time.Now().Unix()})
+	id := addTurnTask(t, here, tasks.Record{State: tasks.Running, Brief: "work", Harness: "fixture", Asked: alice, Queued: time.Now().Unix(), Started: time.Now().Unix()})
 	dir := here.index.Root() + "/" + id
 	os.MkdirAll(dir+"/out", 0o755)
 	os.WriteFile(dir+"/out/transcript.log", []byte("thinking"), 0o644)
@@ -176,7 +176,7 @@ func TestARunningTurnIsFollowedStepByStepToItsEnd(t *testing.T) {
 		t.Fatalf("step %q", step)
 	}
 	os.WriteFile(dir+"/out/transcript.log", []byte("all done"), 0o644)
-	if err := here.index.Finish(id, jobs.Passed, 0); err != nil {
+	if err := here.index.Finish(id, tasks.Passed, 0); err != nil {
 		t.Fatal(err)
 	}
 	var ended string
@@ -196,7 +196,7 @@ func TestARunningTurnIsFollowedStepByStepToItsEnd(t *testing.T) {
 
 func TestSomebodyElsesTurnCannotBeFollowed(t *testing.T) {
 	here := withTokens(t)
-	id := addTurnJob(t, here, jobs.Record{State: jobs.Passed, Brief: "mine", Harness: "fixture", Asked: alice, Queued: time.Now().Unix(), Ended: time.Now().Unix()})
+	id := addTurnTask(t, here, tasks.Record{State: tasks.Passed, Brief: "mine", Harness: "fixture", Asked: alice, Queued: time.Now().Unix(), Ended: time.Now().Unix()})
 	if got := here.getAs(signInADevice(t, here, bob), "/api/jobs/"+id+"/follow"); got.Code != http.StatusNotFound {
 		t.Errorf("bob followed alice's turn: %d", got.Code)
 	}

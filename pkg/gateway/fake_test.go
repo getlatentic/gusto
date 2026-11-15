@@ -119,7 +119,7 @@ func (u *upstream) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(reply)
 }
 
-// gateway is a job's gateway over servers, and a way to talk to it as a harness does.
+// gateway is a task's gateway over servers, and a way to talk to it as a harness does.
 type harness struct {
 	t       *testing.T
 	session *Session
@@ -135,8 +135,8 @@ func start(t *testing.T, config Config) *harness {
 		path := t.TempDir() + "/" + RecordFile
 		config.Record = OpenRecord(path)
 	}
-	if config.Caller.Job == "" {
-		config.Caller = Caller{Job: "20261008-1", Person: "ada@acme.example", Team: "payments"}
+	if config.Caller.Task == "" {
+		config.Caller = Caller{Task: "20261008-1", Person: "ada@acme.example", Team: "payments"}
 	}
 	session := New(config)
 	t.Cleanup(session.Close)

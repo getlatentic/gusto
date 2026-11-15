@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
 
 	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/pkg/proxy"
@@ -14,8 +13,7 @@ import (
 // so the harness asks on loopback and the runner hands each connection to the
 // proxy's socket, mounted in from the host. In a box that is not sealed there
 // is no socket, and nothing is relayed.
-func relayOut() (func(), error) {
-	socket := os.Getenv("GUSTO_PROXY_SOCKET")
+func relayOut(socket string) (func(), error) {
 	if socket == "" {
 		return func() {}, nil
 	}

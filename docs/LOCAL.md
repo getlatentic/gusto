@@ -54,7 +54,7 @@ Docker on macOS and Windows is not used as a sandbox: its virtual machine cannot
 
 Get the virtual machine sandbox on an Apple Silicon Mac or Linux with `/dev/kvm` with `gusto local sandbox install` (`--yes` agrees without asking, `--image FILE` names a root file system archive). It checks the computer, downloads OpenShell (about 72 MB on a Mac) and the Linux image the agents run in (about 1.1 GB), checks the checksums, and keeps a gateway named `gusto` running. It needs no password and no Homebrew. `gusto local sandbox uninstall` removes it all.
 
-The process sandbox blocks downloads (`npm install`, `git clone`, `curl`) and a check's own server on the loopback. `GUSTO_JOB_NETWORK=open` opens the network and keeps the rest. On Linux it does not limit UDP, unix sockets, or reading your other processes' environment through `/proc`. A kernel before 6.7 has no network rules, so gusto does not offer it there unless `GUSTO_JOB_NETWORK=open`.
+The process sandbox blocks downloads (`npm install`, `git clone`, `curl`) and a check's own server on the loopback. `GUSTO_TASK_NETWORK=open` opens the network and keeps the rest. On Linux it does not limit UDP, unix sockets, or reading your other processes' environment through `/proc`. A kernel before 6.7 has no network rules, so gusto does not offer it there unless `GUSTO_TASK_NETWORK=open`.
 
 ## Models and keys
 

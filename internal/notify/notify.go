@@ -24,7 +24,7 @@ type Event struct {
 	Instance string `json:"instance"`
 	Routine  string `json:"routine"`
 	Title    string `json:"title"`
-	Job      string `json:"job"`
+	Task     string `json:"job"`
 	// State is finished, failed or interrupted.
 	State string `json:"state"`
 	At    int64  `json:"at"`

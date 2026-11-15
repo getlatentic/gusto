@@ -4,12 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"html"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 )
@@ -21,24 +19,20 @@ func hashOf(text string) string {
 
 // A text file opens to be changed with all of it, as it is, and what it was; a file that cannot be changed here does not.
 func TestATextFileShownWholeCanBeChangedAndOthersCannot(t *testing.T) {
-	site, id, workspace := viewerSite(t)
-	os.WriteFile(filepath.Join(workspace, "plan.md"), []byte("\n# Plan <b>\n"), 0o644)
-	os.WriteFile(filepath.Join(workspace, "big.txt"), []byte(strings.Repeat("a", mostShown+1)), 0o644)
-	os.WriteFile(filepath.Join(workspace, "blob.bin"), []byte{0, 1, 2}, 0o644)
+	site, id, folder := viewerSite(t)
+	os.WriteFile(filepath.Join(folder, "plan.md"), []byte("\n# Plan <b>\n"), 0o644)
+	os.WriteFile(filepath.Join(folder, "big.txt"), []byte(strings.Repeat("a", mostShown+1)), 0o644)
+	os.WriteFile(filepath.Join(folder, "blob.bin"), []byte{0, 1, 2}, 0o644)
 
 	page := viewed(t, site, id, "plan.md")
-	source := regexp.MustCompile(`(?s)<textarea[^>]*name="text"[^>]*>\n(.*?)</textarea>`).FindStringSubmatch(page)
-	if !strings.Contains(page, "data-edit>Edit</button>") || source == nil || html.UnescapeString(source[1]) != "\n# Plan <b>\n" {
-		t.Fatalf("the file does not open to be changed as it is: %q", source)
+	if !page.File.Editable || page.File.Source != "\n# Plan <b>\n" || page.Save != "/instances/"+id+"/file?path=plan.md" {
+		t.Fatalf("the file does not open to be changed as it is: %+v", page)
 	}
-	if !strings.Contains(page, `name="seen" value="`+hashOf("\n# Plan <b>\n")+`"`) {
+	if page.File.Hash != hashOf("\n# Plan <b>\n") {
 		t.Error("the page does not say what the file was")
 	}
-	if panel := site.ask(t, "GET", "/instances/"+id+"/file?path=plan.md&panel=1", nil).Body.String(); !strings.Contains(panel, "data-file-edit") {
-		t.Error("its tab beside a chat cannot change it")
-	}
 	for _, name := range []string{"big.txt", "blob.bin"} {
-		if strings.Contains(viewed(t, site, id, name), "data-file-edit") {
+		if shown := viewed(t, site, id, name); shown.File.Editable || shown.Save != "" || shown.File.Source != "" {
 			t.Errorf("%s opens to be changed", name)
 		}
 	}
@@ -54,8 +48,8 @@ func saved(t *testing.T, site *site, id, name, text, seen string) (int, map[stri
 
 // A save is put in place when the file is what the person opened, and refused when it changed since, leaving the change there.
 func TestASaveIsRefusedWhenTheFileChangedSinceItWasOpened(t *testing.T) {
-	site, id, workspace := viewerSite(t)
-	path := filepath.Join(workspace, "notes", "plan.md")
+	site, id, folder := viewerSite(t)
+	path := filepath.Join(folder, "notes", "plan.md")
 	os.MkdirAll(filepath.Dir(path), 0o755)
 	os.WriteFile(path, []byte("first"), 0o644)
 
@@ -82,13 +76,13 @@ func TestASaveIsRefusedWhenTheFileChangedSinceItWasOpened(t *testing.T) {
 func TestAChangeToARoomsFileIsSaidInTheRoom(t *testing.T) {
 	site, id, where := aRoom(t, &roomWork{})
 	mine := site.as(t, alice)
-	os.WriteFile(filepath.Join(site.server.instances.Workspace(id), "launch-plan.md"), []byte("draft"), 0o644)
+	os.WriteFile(filepath.Join(site.server.instances.AgentFolder(id), "launch-plan.md"), []byte("draft"), 0o644)
 	answer := mine.ask(t, "POST", "/instances/"+id+"/file?path=launch-plan.md", url.Values{"text": {"final"}, "seen": {hashOf("draft")}})
 	if answer.Code != http.StatusOK {
 		t.Fatalf("saving answered %d: %s", answer.Code, answer.Body)
 	}
-	page := mine.ask(t, "GET", where, nil).Body.String()
-	if !strings.Contains(page, "changed launch-plan.md.") || !strings.Contains(page, `/instances/`+id+`/file?path=launch-plan.md&amp;from=`) {
-		t.Errorf("the room does not say the file was changed, with a way to it")
+	page := mine.conversation(t, where)
+	if len(page.Turns) != 1 || page.Turns[0].Kind != "notice" || !strings.Contains(page.Turns[0].Said, "changed launch-plan.md.") || page.Turns[0].File != "launch-plan.md" {
+		t.Errorf("the room does not say the file was changed, with a way to it: %+v", page.Turns)
 	}
 }

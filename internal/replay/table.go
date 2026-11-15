@@ -5,7 +5,7 @@ import (
 	"io"
 	"text/tabwriter"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 )
 
 // Print writes the sweep's one summary: a line a task, then the totals, then
@@ -29,14 +29,14 @@ func Print(w io.Writer, rows []Row) {
 	}
 }
 
-func verdict(manifest evidence.Manifest) string {
-	if manifest.Gate == nil {
+func verdict(manifest record.Manifest) string {
+	if manifest.Check == nil {
 		return "-"
 	}
-	if manifest.Gate.Passed {
-		return fmt.Sprintf("passed (%d)", manifest.Gate.Code)
+	if manifest.Check.Passed {
+		return fmt.Sprintf("passed (%d)", manifest.Check.Code)
 	}
-	return fmt.Sprintf("failed (%d)", manifest.Gate.Code)
+	return fmt.Sprintf("failed (%d)", manifest.Check.Code)
 }
 
 // harnesses names one harness when both runs used it, which is what a replay
@@ -50,7 +50,7 @@ func harnesses(row Row) string {
 }
 
 func exits(row Row) string {
-	if row.After.Gate == nil {
+	if row.After.Check == nil {
 		return fmt.Sprintf("%d -> -", row.Before.HarnessExit)
 	}
 	return fmt.Sprintf("%d -> %d", row.Before.HarnessExit, row.After.HarnessExit)

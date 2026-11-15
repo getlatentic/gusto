@@ -22,7 +22,7 @@ type Turnstile struct {
 
 const turnstileVerify = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
-// Enabled says the form has the check. A check that is half set up is an error where the front door starts, and not a
+// Enabled says the form has the check. A check that is half set up is an error where gusto cloud starts, and not a
 // form that quietly asks nothing.
 func (t Turnstile) Enabled() bool { return t.Site != "" && t.Secret != "" }
 

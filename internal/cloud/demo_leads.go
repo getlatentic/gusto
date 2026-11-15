@@ -36,17 +36,17 @@ func (s *Store) putLead(ctx context.Context, tx dbkit.Tx, l Lead) error {
 }
 
 // LeadOf is the lead a demo made, found after the demo is gone.
-func (s *Store) LeadOf(slug string) (Lead, bool) {
+func (s *Store) LeadOf(ctx context.Context, slug string) (Lead, bool) {
 	if ValidSlug(slug) != nil {
 		return Lead{}, false
 	}
-	lead, found, err := one(context.Background(), s.db, scanLead, `SELECT `+leadColumns+` FROM leads WHERE slug = ?`, slug)
+	lead, found, err := one(ctx, s.db, scanLead, `SELECT `+leadColumns+` FROM leads WHERE slug = ?`, slug)
 	return lead, found && err == nil
 }
 
 // Leads are every visitor who started a demo, newest first.
-func (s *Store) Leads() ([]Lead, error) {
-	return collect(context.Background(), s.db, scanLead, `SELECT `+leadColumns+` FROM leads ORDER BY requested DESC, slug`)
+func (s *Store) Leads(ctx context.Context) ([]Lead, error) {
+	return collect(ctx, s.db, scanLead, `SELECT `+leadColumns+` FROM leads ORDER BY requested DESC, slug`)
 }
 
 // withinHabit refuses a visitor whose address, or whose company, has started as many demos as one may in the last

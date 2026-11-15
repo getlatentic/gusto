@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// withServers is a front door that starts an organization's server, the fake, for
+// withServers is a gusto cloud server that starts an organization's server, the fake, for
 // each sign-up.
 func withServers(t *testing.T, extra ...string) *front {
 	t.Helper()
@@ -43,8 +43,8 @@ func TestSigningUpStartsTheOrganizationsServerAndThePageOffersToOpenIt(t *testin
 		f := withServers(t)
 		b := f.signedUp("ada@acme.com")
 		_, page := b.get("/org")
-		if !strings.Contains(page, "Ready") || !strings.Contains(page, `href="/open?org=acme-com"`) || strings.Contains(page, "http-equiv") {
-			t.Errorf("the server is ready and can be opened:\n%s", page)
+		if got := shown(t, page); got.Server != string(Ready) || !got.CanOpen || got.Org == nil || got.Org.Slug != "acme-com" || strings.Contains(page, "http-equiv") {
+			t.Errorf("the server is ready and can be opened: %+v", got)
 		}
 	})
 }
@@ -55,26 +55,27 @@ func TestWhileTheServerIsStartingThePageSaysSoAndLooksAgain(t *testing.T) {
 		b := f.browser()
 		b.post("/signup", url.Values{"email": {"ada@acme.com"}})
 		_, page := b.get("/org")
-		if !strings.Contains(page, "Starting") || !strings.Contains(page, `http-equiv="refresh"`) || strings.Contains(page, `href="/open"`) {
-			t.Errorf("%s", page)
+		if got := shown(t, page); got.Server == string(Ready) || got.Server == "" || got.CanOpen || !strings.Contains(page, `http-equiv="refresh"`) {
+			t.Errorf("a server that is starting says so and the page looks again: %+v", got)
 		}
 		status, page, _ := b.get2("/open")
-		if status != http.StatusOK || !strings.Contains(page, `http-equiv="refresh"`) || !strings.Contains(page, "is being set up") && !strings.Contains(page, "is starting") || !strings.Contains(page, `href="/org"`) {
-			t.Errorf("going in waits on a page that looks again, with the settings a click away: %d\n%s", status, page)
+		got := shown(t, page)
+		if status != http.StatusOK || got.Page != "starting" || !strings.Contains(page, `http-equiv="refresh"`) || !strings.Contains(got.Notice, "is being set up") && !strings.Contains(got.Notice, "is starting") {
+			t.Errorf("going in waits on a page that looks again, with the settings a click away: %d %+v", status, got)
 		}
 		f.server.Wait()
 		if status, _, header := b.get2("/open"); status != http.StatusSeeOther || !strings.Contains(header.Get("Location"), "/auth/entry?t=") {
 			t.Errorf("once it is ready, the same address goes in: %d %v", status, header)
 		}
-		if _, page := b.get("/org"); !strings.Contains(page, "Ready") {
-			t.Errorf("%s", page)
+		if got := shownAt(t, b, "/org"); got.Server != string(Ready) {
+			t.Errorf("%+v", got)
 		}
 	})
 }
 
 func (b *browser) get2(path string) (int, string, http.Header) { return b.do("GET", path, nil, nil) }
 
-// The whole way in: the person is signed in at the front door, is sent to their
+// The whole way in: the person is signed in at gusto cloud, is sent to their
 // organization's own address with a token, and the organization's server signs them in
 // from it. Nothing about the organization is asked of them again.
 func TestOpeningAnOrganizationSignsThePersonInToItsServer(t *testing.T) {
@@ -95,7 +96,7 @@ func TestOpeningAnOrganizationSignsThePersonInToItsServer(t *testing.T) {
 	}
 }
 
-func TestEachHostNameIsOneOrganizationAndTheFrontDoorIsTheDomainItself(t *testing.T) {
+func TestEachHostNameIsOneOrganizationAndGustoCloudIsTheDomainItself(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := withServers(t)
 		b := f.signedUp("ada@acme.com")
@@ -108,8 +109,8 @@ func TestEachHostNameIsOneOrganizationAndTheFrontDoorIsTheDomainItself(t *testin
 		if status, _, _ := b.at("nobody.cloud.test", "GET", "/whoami", nil); status != http.StatusNotFound {
 			t.Errorf("no organization of that name: %d", status)
 		}
-		if status, page, _ := b.at("cloud.test", "GET", "/signin", nil); status != 200 || !strings.Contains(page, "Email me a sign-in code") {
-			t.Errorf("the domain itself is the front door: %d", status)
+		if status, page, _ := b.at("cloud.test", "GET", "/signin", nil); status != 200 || shown(t, page).Page != "signin" || shown(t, page).Sent {
+			t.Errorf("the domain itself is gusto cloud: %d", status)
 		}
 		if status, body, _ := b.at("a.acme-com.cloud.test", "GET", "/whoami", nil); status == 200 && strings.Contains(body, "acme-com") {
 			t.Error("a name with two labels is not an organization")
@@ -120,7 +121,7 @@ func TestEachHostNameIsOneOrganizationAndTheFrontDoorIsTheDomainItself(t *testin
 	})
 }
 
-func TestTheFrontDoorSaysWhoTheClientIsAndKeepsItsOwnCookiesToItself(t *testing.T) {
+func TestGustoCloudSaysWhoTheClientIsAndKeepsItsOwnCookiesToItself(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := withServers(t)
 		b := f.signedUp("ada@acme.com")
@@ -133,7 +134,7 @@ func TestTheFrontDoorSaysWhoTheClientIsAndKeepsItsOwnCookiesToItself(t *testing.
 			t.Errorf("what the client claimed is not believed, since the server writes down where people signed in from: %v %v", said["xff"], said["proto"])
 		}
 		if said["cookie"] != "other=1; gusto=session" {
-			t.Errorf("the front door's cookies do not go to an organization's server: %q", said["cookie"])
+			t.Errorf("gusto cloud's cookies do not go to an organization's server: %q", said["cookie"])
 		}
 
 		behind := newFront(t, Settings{}, func(c *Config) { c.TrustProxy = true; c.Controller = controlled(t, c.Store) })
@@ -210,27 +211,25 @@ func TestAnOrganizationThatIsNotReadyIsToldToWaitAndNotSentAnError(t *testing.T)
 	})
 }
 
-func TestWithNoControllerTheFrontDoorRoutesNothing(t *testing.T) {
+func TestWithNoControllerGustoCloudRoutesNothing(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		status, page, _ := f.browser().at("acme-com.cloud.test", "GET", "/", nil)
-		if status != 200 || !strings.Contains(page, "Get started") {
+		if status != 200 || shown(t, page).Page != "signup" {
 			t.Errorf("%d", status)
 		}
 	})
 }
 
-// A stylesheet is kept by a browser for an hour, so its address changes when it does.
-func TestTheFrontDoorsStylesheetIsNamedByItsDigestSoANewReleaseIsFetched(t *testing.T) {
+// A stylesheet is kept by a browser, so its address changes when it does.
+func TestGustoCloudsStylesheetIsNamedByItsDigestSoANewReleaseIsFetched(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		_, page := f.browser().get("/")
-		if !strings.Contains(page, `href="/static/cloud.css?v=`) {
-			t.Fatalf("the stylesheet's address has no digest:\n%s", page)
-		}
-		address := fingerprinted("/static/cloud.css")
-		if len(address) != len("/static/cloud.css?v=")+10 || !strings.Contains(page, address) {
-			t.Errorf("%q is not in the page", address)
+		styled(t, f.browser(), "cloud.test", page)
+		address := fingerprinted("/static/hero-light.webp")
+		if len(address) != len("/static/hero-light.webp?v=")+10 {
+			t.Errorf("%q has no digest", address)
 		}
 		if fingerprinted("/static/nothing.css") != "/static/nothing.css" {
 			t.Error("a file that is not there has no digest")
@@ -243,10 +242,10 @@ func TestTheFrontDoorsStylesheetIsNamedByItsDigestSoANewReleaseIsFetched(t *test
 
 func (b *browser) get3(path string) (int, string, http.Header) { return b.do("GET", path, nil, nil) }
 
-// A room's page holds a WebSocket open through the front door to its organization's server. The upgrade passes, the host the
+// A room's page holds a WebSocket open through gusto cloud to its organization's server. The upgrade passes, the host the
 // browser used reaches the server as it was (the server checks the Origin against it), the cookie that is the server's passes
-// and the front door's does not, and what is sent is answered at once, with nothing held back to fill a buffer.
-func TestAWebSocketPassesThroughTheFrontDoorToTheOrganizationsServer(t *testing.T) {
+// and gusto cloud's does not, and what is sent is answered at once, with nothing held back to fill a buffer.
+func TestAWebSocketPassesThroughGustoCloudToTheOrganizationsServer(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := withServers(t)
 		f.signedUp("ada@acme.com")
@@ -273,7 +272,7 @@ func TestAWebSocketPassesThroughTheFrontDoorToTheOrganizationsServer(t *testing.
 			t.Errorf("the server saw the origin %q", got)
 		}
 		if got := response.Header.Get("X-Seen-Cookie"); got != "gusto=session" {
-			t.Errorf("the server saw the cookie %q: the front door's own must not go", got)
+			t.Errorf("the server saw the cookie %q: gusto cloud's own must not go", got)
 		}
 		for i := range 3 {
 			began := time.Now()

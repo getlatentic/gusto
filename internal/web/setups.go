@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -13,7 +14,7 @@ import (
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/integration"
 	"github.com/getlatentic/gusto/internal/setup"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // UseSetups hands the pages the store of setups and the MCP servers this
@@ -38,38 +39,42 @@ func (s *Server) UseInBuilding(reachable bool) { s.inBuilding.Store(reachable) }
 // setupsPath is where the console keeps the skill sets, for whoever changes them.
 const setupsPath = "/admin/skill-sets"
 
-// setupsPage is every skill set, for anybody to read.
-func (s *Server) setupsPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "setups.html", map[string]any{
-		"Title":   productName + " — skill sets",
-		"Nav":     "presets",
-		"Base":    "/setups",
-		"Setups":  s.setupsList(),
-		"Keeps":   s.setups != nil,
-		"Refused": s.refusal(r),
-	})
+// setupRow is a skill set as a person's list of them says it: its name, how many skills it holds and the servers it names.
+type setupRow struct {
+	Name    string
+	Skills  int
+	Servers []string
 }
 
-// setupOf is what a job on this instance is given, named for job.json.
-func setupOf(held instance.Instance) *job.Setup {
+// setupsData is every skill set that is on, for anybody to read. Keeps is whether this server keeps skill sets at all.
+func (s *Server) setupsData(r *http.Request) (map[string]any, error) {
+	rows := []setupRow{}
+	for _, held := range s.setupsList() {
+		rows = append(rows, setupRow{Name: held.Name, Skills: len(held.Skills), Servers: orNone(held.Servers)})
+	}
+	return map[string]any{"Setups": rows, "Keeps": s.setups != nil, "Refused": s.refusal(r)}, nil
+}
+
+// setupOf is what a task on this instance is given, named for job.json.
+func setupOf(held instance.Instance) *task.Setup {
 	if held.Setup == "" {
 		return nil
 	}
-	return &job.Setup{Name: held.Setup}
+	return &task.Setup{Name: held.Setup}
 }
 
 // sensitivityOf is what a turn on this instance is labeled: the instance's
 // own, or internal.
-func sensitivityOf(held instance.Instance) job.Sensitivity {
+func sensitivityOf(held instance.Instance) task.Sensitivity {
 	if held.Sensitivity == "" {
-		return job.Internal
+		return task.Internal
 	}
-	return job.Sensitivity(held.Sensitivity)
+	return task.Sensitivity(held.Sensitivity)
 }
 
-// equip carries the setup a job names into its directory, and puts in
+// equip carries the setup a task names into its directory, and puts in
 // job.json what it actually held, whatever the sender said it held.
-func (s *Server) equip(spec *job.Spec, dir job.Dir, asker string) error {
+func (s *Server) equip(spec *task.Spec, dir task.Dir, asker string) error {
 	if spec.Setup == nil {
 		return nil
 	}
@@ -135,11 +140,54 @@ func (s *Server) saveSetup(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, setupsPath+"/"+name, http.StatusSeeOther)
 }
 
-// setupPage is one setup: its skills and its servers, for anybody to read.
-func (s *Server) setupPage(w http.ResponseWriter, r *http.Request) {
-	if page, ok := s.setupData(w, r, "/setups"); ok {
-		s.render(w, "setup-detail.html", page)
+// hasSetup is whether the address names a skill set that is on, which is all a person may read.
+func (s *Server) hasSetup(r *http.Request) bool {
+	if s.setups == nil {
+		return false
 	}
+	held, found := s.setups.Get(r.PathValue("name"))
+	return found && !held.Off
+}
+
+// setupStarter is an agent type a skill set may be started with, from its page: where to start it, or why it cannot take the set.
+type setupStarter struct {
+	Name, Href, Unfit string
+}
+
+// setupData is one skill set that is on: its skills and its servers, for anybody to read, and the agents that can start with it.
+// Offers is whether this deployment offers MCP servers at all.
+func (s *Server) setupData(r *http.Request) (map[string]any, error) {
+	held, found := s.setups.Get(r.PathValue("name"))
+	if !found || held.Off {
+		return nil, failed{http.StatusNotFound, "there is no such skill set"}
+	}
+	starters := []setupStarter{}
+	for _, entry := range s.engines() {
+		if !entry.Ready {
+			continue
+		}
+		each := setupStarter{Name: entry.Name, Unfit: held.Fits(entry.Skills, entry.MCP)}
+		if each.Unfit == "" {
+			each.Href = "/instances/new?" + url.Values{"harness": {entry.Name}, "setup": {held.Name}}.Encode()
+		}
+		starters = append(starters, each)
+	}
+	return map[string]any{
+		"Set":       viewOfSkillSet(held),
+		"Servers":   orNone(held.Servers),
+		"Offers":    len(s.servers) > 0,
+		"Uses":      orNone(held.Uses),
+		"StartWith": starters,
+		"Refused":   s.refusal(r),
+	}, nil
+}
+
+// orNone is a list as JSON says it: empty, and not null, when there is nothing in it.
+func orNone[T any](list []T) []T {
+	if list == nil {
+		return []T{}
+	}
+	return list
 }
 
 // exportSetup is a skill set as an Agent Plugin, for another deployment to import, or this one.
@@ -153,38 +201,6 @@ func (s *Server) exportSetup(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`-plugin.zip"`)
 	w.Write(data)
-}
-
-// skillSetPage is one setup, and the way to change its skills and servers.
-func (s *Server) skillSetPage(w http.ResponseWriter, r *http.Request) {
-	if page, ok := s.setupData(w, r, setupsPath); ok {
-		s.drawConsole(w, "setup-detail.html", "apps", page)
-	}
-}
-
-// setupData is what a page of the setup the path names is drawn from, and
-// answers 404 itself when there is none.
-func (s *Server) setupData(w http.ResponseWriter, r *http.Request, base string) (map[string]any, bool) {
-	if s.setups == nil {
-		http.NotFound(w, r)
-		return nil, false
-	}
-	held, found := s.setups.Get(r.PathValue("name"))
-	if !found || (held.Off && base != setupsPath) {
-		http.NotFound(w, r)
-		return nil, false
-	}
-	return map[string]any{
-		"Earlier":  s.setups.Earlier(held.Name),
-		"Title":    productName + " — " + held.Name,
-		"Nav":      "presets",
-		"Base":     base,
-		"Setup":    held,
-		"Offered":  s.servers,
-		"Imported": s.importedIntegrations(),
-		"Catalog":  s.engines(),
-		"Refused":  s.refusal(r),
-	}, true
 }
 
 func (s *Server) writeSkill(w http.ResponseWriter, r *http.Request) {

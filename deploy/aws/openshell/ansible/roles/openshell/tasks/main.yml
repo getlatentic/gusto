@@ -33,13 +33,19 @@
     mode: "0755"
   loop: ["/opt/openshell", "{{ openshell_bin }}", "{{ openshell_dist }}", "{{ openshell_config }}/openshell", "{{ openshell_state }}/openshell"]
 
+# GitHub's release downloads were seen to take 12 s to start, past get_url's default of 10, so each is given longer and tried again.
 - name: The release's binaries, each checked against its pinned checksum
   ansible.builtin.get_url:
     url: "{{ openshell_release }}/{{ item.file }}"
     dest: "{{ openshell_dist }}/{{ item.file }}"
     checksum: "sha256:{{ item.sha256 }}"
     mode: "0644"
+    timeout: 120
   loop: "{{ openshell_assets }}"
+  register: openshell_download
+  until: openshell_download is succeeded
+  retries: 3
+  delay: 10
 
 - name: Unpacked
   ansible.builtin.unarchive:

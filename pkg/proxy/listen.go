@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 )
 
 // ListenSocket serves the proxy on a unix socket, which is what a sealed
@@ -42,7 +43,9 @@ func (p *Proxy) ListenTCP(address string) (func(), error) {
 }
 
 func (p *Proxy) serve(listener net.Listener) func() {
-	server := &http.Server{Handler: p.Handler()}
+	// An agent may hold a connection open, but not send its headers slowly to tie one up. A model's answer streams for as
+	// long as it runs, so a write has no limit.
+	server := &http.Server{Handler: p.Handler(), ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 2 * time.Minute}
 	go func() {
 		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("the proxy stopped", "error", err)

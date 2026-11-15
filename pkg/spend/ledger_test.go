@@ -25,7 +25,7 @@ func fixedLedger(at time.Time) *Ledger {
 
 var september = time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
 
-func TestAJobCapRefusesOnceItIsSpent(t *testing.T) {
+func TestATaskCapRefusesOnceItIsSpent(t *testing.T) {
 	ledger := fixedLedger(september)
 	ledger.Begin("a-job", Terms{CapUSD: dollars(0.5)})
 	ledger.Count("a-job", answered(0.3, september))
@@ -52,9 +52,9 @@ func TestAZeroCapAllowsNothingAndNoCapAllowsEverything(t *testing.T) {
 	}
 }
 
-// A team's cap is shared by every job that names the team, and it is a cap
+// A team's cap is shared by every task that names the team, and it is a cap
 // for the month: a new month starts from nothing.
-func TestATeamCapStopsTheJobThatWouldExceedIt(t *testing.T) {
+func TestATeamCapStopsTheTaskThatWouldExceedIt(t *testing.T) {
 	ledger := fixedLedger(september)
 	ledger.Begin("first", Terms{Team: "platform"})
 	ledger.Begin("second", Terms{Team: "platform"})
@@ -96,7 +96,7 @@ func TestACapRefusesWhatItCannotCount(t *testing.T) {
 
 // A provider that refused a call billed nothing for it, so an error without
 // usage costs nothing and does not blind the cap.
-func TestAnErrorWithoutUsageDoesNotStopACappedJob(t *testing.T) {
+func TestAnErrorWithoutUsageDoesNotStopACappedTask(t *testing.T) {
 	ledger := fixedLedger(september)
 	ledger.Begin("a-job", Terms{CapUSD: dollars(5)})
 	ledger.Count("a-job", Call{Path: "/v1/chat/completions", Status: 429, AtUnix: september.Unix(), Model: "fixture-model"})
@@ -126,7 +126,7 @@ func TestARequestToAnotherHostIsNotSpend(t *testing.T) {
 	if refusal := ledger.Allow("a-job", "", "fixture-model", false); refusal != nil {
 		t.Fatalf("refused after requests to other hosts: %+v", refusal)
 	}
-	if calls := ledger.jobs["a-job"].tally.Calls; calls != 0 {
+	if calls := ledger.tasks["a-job"].tally.Calls; calls != 0 {
 		t.Fatalf("%d calls counted as spend", calls)
 	}
 }
@@ -187,28 +187,28 @@ func organizationLedger(at time.Time, cap float64) *Ledger {
 	return ledger
 }
 
-func TestAnOrganizationCapStopsEveryJobOnceTheJobsTogetherHaveSpentIt(t *testing.T) {
+func TestAnOrganizationCapStopsEveryTaskOnceTheTasksTogetherHaveSpentIt(t *testing.T) {
 	ledger := organizationLedger(september, 0.5)
 	ledger.Begin("first", Terms{Team: "red"})
 	ledger.Begin("second", Terms{Team: "blue"})
 	ledger.Begin("third", Terms{})
 	ledger.Count("first", answered(0.3, september))
 	ledger.Count("second", answered(0.15, september))
-	for _, job := range []string{"first", "second", "third"} {
-		if refusal := ledger.Allow(job, "", "fixture-model", false); refusal != nil {
-			t.Fatalf("%s was refused under the cap: %+v", job, refusal)
+	for _, task := range []string{"first", "second", "third"} {
+		if refusal := ledger.Allow(task, "", "fixture-model", false); refusal != nil {
+			t.Fatalf("%s was refused under the cap: %+v", task, refusal)
 		}
 	}
 	ledger.Count("second", answered(0.1, september))
-	for _, job := range []string{"first", "second", "third"} {
-		refusal := ledger.Allow(job, "", "fixture-model", false)
+	for _, task := range []string{"first", "second", "third"} {
+		refusal := ledger.Allow(task, "", "fixture-model", false)
 		if refusal == nil || refusal.Cap != "organisation" || refusal.LimitUSD != 0.5 || math.Abs(refusal.SpentUSD-0.55) > 1e-9 || !strings.Contains(refusal.Reason, "this organization has spent") {
-			t.Errorf("%s: %+v", job, refusal)
+			t.Errorf("%s: %+v", task, refusal)
 		}
 	}
 }
 
-func TestAnOrganizationCapIsForAMonthAndAJobCapStillComesFirst(t *testing.T) {
+func TestAnOrganizationCapIsForAMonthAndATaskCapStillComesFirst(t *testing.T) {
 	ledger := organizationLedger(september, 0.5)
 	ledger.Begin("old", Terms{})
 	ledger.Count("old", answered(0.6, september.AddDate(0, -1, 0)))

@@ -1,0 +1,57 @@
+package web
+
+import (
+	"context"
+	"os"
+	"testing"
+
+	"github.com/getlatentic/gusto/pkg/task"
+)
+
+// A turn the kept home's size refused says so where it is shown, with the way out, instead of only the error the agent left.
+func TestATurnRefusedForAFullHomeSaysSoAndLinksToTheReset(t *testing.T) {
+	testWork = func(ctx context.Context, dir task.Dir) (int, error) {
+		os.MkdirAll(dir.Out(), 0o755)
+		os.WriteFile(dir.OutFile("home.json"), []byte(`{"outcome":"refused","used":6442450944,"limit":5368709120}`), 0o644)
+		os.WriteFile(dir.OutFile("stderr.log"), []byte("gusto: the kept home is over its size limit\n"), 0o644)
+		return 1, nil
+	}
+	t.Cleanup(func() { testWork = nil })
+	here := withTokens(t)
+	ada := here.as(t, alice)
+	_, thread := started2(t, here, alice)
+	_, said := here.say("/api"+thread+"/say", signInADevice(t, here, alice), "one more", "go")
+	id := said["job"].(string)
+	turnDone(t, here, id)
+
+	shown, found := ada.conversation(t, thread).turnIn(id)
+	if !found {
+		t.Fatal("the conversation does not have the turn")
+	}
+	if home := shown.Home; home == nil || home.Outcome != "refused" || home.Used == "" || home.Limit == "" {
+		t.Errorf("the turn does not say the home was full: %+v", home)
+	}
+	if shown.Stopped != "" {
+		t.Errorf("the turn carries the agent's error as well as the full home: %q", shown.Stopped)
+	}
+
+	admin := *here.site
+	admin.signIn(t)
+	// The task's page says whose home it is, and leaves the reset to its owner (web/src/pages/work/task-page.test.tsx).
+	if task := admin.task(t, id); task.Home == nil || task.Home.Outcome != "refused" || task.Home.Used == "" {
+		t.Errorf("the task page, read by somebody else, does not say the home is full: %+v", task.Home)
+	}
+}
+
+// A turn that failed for another reason says nothing of the home, and a note that is not one is ignored.
+func TestATurnThatFailedForAnotherReasonSaysNothingOfTheHome(t *testing.T) {
+	for name, files := range map[string]map[string]string{
+		"no note":      {"stderr.log": "boom\n"},
+		"not a note":   {"stderr.log": "boom\n", "home.json": "not json"},
+		"no limit set": {"stderr.log": "boom\n", "home.json": `{"outcome":"refused"}`},
+	} {
+		if homeFullOf(failedTurn(t, files)) != nil {
+			t.Errorf("%s: the turn is said to have a full home", name)
+		}
+	}
+}

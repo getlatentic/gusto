@@ -13,7 +13,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/apitoken"
 	"github.com/getlatentic/gusto/internal/changelog"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // tokened is a site that takes API tokens, with the change log on, and the
@@ -67,7 +67,7 @@ func TestOnceTokensAreOnTheSharedPasswordOpensNoEndpoint(t *testing.T) {
 			t.Errorf("the shared password gave %d at %s", got.Code, target[1])
 		}
 	}
-	code, answer := here.send(t, password, Submission{Spec: aJob()})
+	code, answer := here.send(t, password, Submission{Spec: aSpec()})
 	if code != http.StatusUnauthorized || answer.ID != "" {
 		t.Fatalf("the shared password sent a job: %d %+v", code, answer)
 	}
@@ -84,7 +84,7 @@ func TestATokenDoesWhatItWasGivenAndNothingElse(t *testing.T) {
 		for scope, target := range endpoint {
 			var code int
 			if scope == "submit" {
-				code, _ = here.send(t, here.secrets[name], Submission{Spec: aJob()})
+				code, _ = here.send(t, here.secrets[name], Submission{Spec: aSpec()})
 			} else {
 				code = here.call(target[0], target[1], here.secrets[name]).Code
 			}
@@ -98,17 +98,16 @@ func TestATokenDoesWhatItWasGivenAndNothingElse(t *testing.T) {
 	}
 }
 
-func TestAJobSentWithATokenIsAskedForByThatToken(t *testing.T) {
+func TestATaskSentWithATokenIsAskedForByThatToken(t *testing.T) {
 	here := withTokens(t)
-	_, answer := here.send(t, here.secrets["ci"], Submission{Spec: aJob()})
+	_, answer := here.send(t, here.secrets["ci"], Submission{Spec: aSpec()})
 	record, found := here.index.Get(answer.ID)
 	if !found || record.Asked != "token:ci" {
 		t.Fatalf("the job was asked for by %q", record.Asked)
 	}
 	here.signIn(t)
-	page := here.ask(t, "GET", "/jobs/"+answer.ID, nil).Body.String()
-	if !strings.Contains(page, "sent to POST /api/jobs") {
-		t.Fatalf("the record does not say the job came over the API:\n%s", page)
+	if on := here.task(t, answer.ID).On; !strings.Contains(on.Why, "sent to POST /api/jobs") {
+		t.Fatalf("the record does not say the job came over the API: %+v", on)
 	}
 	stranger := here.as(t, "amy@acme.test")
 	if got := stranger.ask(t, "GET", "/jobs/"+answer.ID, nil); got.Code != http.StatusNotFound {
@@ -136,7 +135,7 @@ func TestAWrongTokenAndARevokedOneGetTheSameAnswer(t *testing.T) {
 	if after.Code != http.StatusUnauthorized || before.Code != http.StatusUnauthorized || after.Body.String() != before.Body.String() {
 		t.Fatalf("a revoked token gave %d %q and an unknown one %d %q", after.Code, after.Body.String(), before.Code, before.Body.String())
 	}
-	if code, _ := here.send(t, here.secrets["ci"], Submission{Spec: aJob()}); code != http.StatusUnauthorized {
+	if code, _ := here.send(t, here.secrets["ci"], Submission{Spec: aSpec()}); code != http.StatusUnauthorized {
 		t.Fatalf("a revoked token sent a job: %d", code)
 	}
 	here.nothing(t)
@@ -148,12 +147,12 @@ func TestMakingAndRevokingATokenAreRecordedAndNoSecretIs(t *testing.T) {
 	made := here.ask(t, "POST", "/admin/tokens", url.Values{"name": {"nightly"}, "scope": {"submit", "spend"}})
 	secret := regexp.MustCompile(`gusto_[0-9a-f]{16}_[A-Za-z0-9_-]{43}`).FindString(made.Body.String())
 	if secret == "" {
-		t.Fatalf("the page did not show the secret:\n%s", made.Body.String())
+		t.Fatalf("the answer did not give the secret:\n%s", made.Body.String())
 	}
 	if made.Header().Get("Cache-Control") != "no-store" {
 		t.Errorf("the secret's page may be cached: %q", made.Header().Get("Cache-Control"))
 	}
-	if again := here.ask(t, "GET", "/admin/tokens", nil).Body.String(); strings.Contains(again, secret) || !strings.Contains(again, "nightly") {
+	if again := here.dataText(t, "/admin/tokens"); strings.Contains(again, secret) || !strings.Contains(again, "nightly") {
 		t.Fatalf("the secret is shown again, or the token is not listed")
 	}
 	if got := here.call("GET", "/api/spend", secret); got.Code != http.StatusOK {
@@ -203,7 +202,7 @@ func TestTheTokensPageIsAnAdminsAndOnlyOnAServerThatTakesTokens(t *testing.T) {
 	if got := plain.ask(t, "GET", "/admin/tokens", nil); got.Code != http.StatusNotFound {
 		t.Fatalf("a server with no tokens gave %d at /tokens", got.Code)
 	}
-	if page := plain.ask(t, "GET", "/admin", nil).Body.String(); strings.Contains(page, `href="/admin/tokens"`) {
+	if page := plain.dataText(t, "/admin"); strings.Contains(page, "/admin/tokens") {
 		t.Fatal("a server with no tokens links to its tokens page")
 	}
 	here.signIn(t)
@@ -221,9 +220,9 @@ func TestATokenNeedsAValidNameAndAScopeAndKeepsNoSecret(t *testing.T) {
 		"a made-up scope":    {"name": {"nightly"}, "scope": {"root"}},
 		"a name in use":      {"name": {"ci"}, "scope": {"submit"}},
 	} {
-		page := here.ask(t, "POST", "/admin/tokens", form).Body.String()
-		if !strings.Contains(page, `role="alert"`) || strings.Contains(page, "gusto_") {
-			t.Errorf("%s was not refused, or showed a secret:\n%s", name, page)
+		answer := here.ask(t, "POST", "/admin/tokens", form)
+		if answer.Code != http.StatusBadRequest || strings.Contains(answer.Body.String(), "gusto_") {
+			t.Errorf("%s was not refused, or gave a secret: %d %s", name, answer.Code, answer.Body.String())
 		}
 	}
 	saved, err := os.ReadFile(here.file)
@@ -241,8 +240,8 @@ func TestSpendSaysWhoAskedAndTheScriptGetsTheSame(t *testing.T) {
 	here := withTokens(t)
 	root := here.index.Root()
 	for id, asked := range map[string]string{"by-token": "token:ci", "by-amy": "amy@acme.test", "by-api": sentOverHTTP} {
-		spentJob(t, root, id, "", priced)
-		if err := here.index.Add(jobs.Record{ID: id, State: jobs.Passed, Brief: "b", Asked: asked}); err != nil {
+		spentTask(t, root, id, "", priced)
+		if err := here.index.Add(tasks.Record{ID: id, State: tasks.Passed, Brief: "b", Asked: asked}); err != nil {
 			t.Fatal(err)
 		}
 	}

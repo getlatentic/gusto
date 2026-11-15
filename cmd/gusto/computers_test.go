@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"net"
 	"os"
 	"os/exec"
@@ -12,13 +11,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/backend"
+	"github.com/getlatentic/gusto/internal/backend/vm"
 	"github.com/getlatentic/gusto/internal/computer"
-	"github.com/getlatentic/gusto/internal/evidence"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/openshell"
+	"github.com/getlatentic/gusto/internal/openshell/openshelltest"
 	"github.com/getlatentic/gusto/internal/quota"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/internal/record"
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // hostProcesses is the process limit this machine already has. The fake gateway runs a sandbox's commands here, where the
@@ -36,34 +38,6 @@ func hostProcesses(t *testing.T) int {
 	}
 	return n
 }
-
-// A gateway that keeps each sandbox as a directory, enough for a job to run in one.
-const gateway = `#!/bin/bash
-root=${OPENSHELL_FAKE_ROOT:?}
-echo "$*" >> "$root/calls.log"
-while [ "${1:-}" = "--gateway" ]; do shift 2; done
-cmd=$1; sub=${2:-}
-case "$cmd $sub" in
-"sandbox create") shift 2; name=""; while [ $# -gt 0 ]; do case "$1" in --name) name=$2; shift 2;; --) break;; *) shift;; esac; done
-  mkdir -p "$root/$name/sandbox"; echo "Created sandbox: $name";;
-"sandbox get") [ -d "$root/$3" ] || { echo "Error: sandbox not found" >&2; exit 1; };;
-"sandbox start") rm -f "$root/$3/stopped";;
-"sandbox stop") touch "$root/$3/stopped";;
-"sandbox upload") mkdir -p "$root/$3$5"; cp -R "$4" "$root/$3$5/";;
-"sandbox exec") shift 2; name=""; workdir=/; while [ $# -gt 0 ]; do case "$1" in --name) name=$2; shift 2;; --workdir) workdir=$2; shift 2;;
-    --no-login-shell|--no-tty) shift;; --) shift; break;; *) shift;; esac; done
-  [ -e "$root/$name/stopped" ] && { echo "Error: sandbox is stopped" >&2; exit 1; }
-  mapped=(); for a in "$@"; do case "$a" in /sandbox|/sandbox/*) a="$root/$name$a";; esac; mapped+=("$a"); done
-  cd "$root/$name$workdir" && exec env -i PATH="$PATH" "${mapped[@]}";;
-"sandbox download") mkdir -p "$5"; cp -R "$root/$3$4/." "$5/";;
-"sandbox delete") rm -rf "$root/$3"; echo "$3" >> "$root/deleted.log";;
-"service expose") echo "✓ Exposed service $5 on sandbox $3 -> 127.0.0.1:$4"; echo "  URL: http://default--$3--$5.openshell.localhost:${OPENSHELL_FAKE_GATEWAY_PORT:-18080}/"; echo "$3 $4 $5" >> "$root/exposed.log";;
-"service delete") echo "$3 $4" >> "$root/unexposed.log";;
-"logs "*|"logs") echo '{"event":"net.allow"}';;
-"policy get") echo "policy";;
-*) echo "fake gateway: unexpected $*" >&2; exit 2;;
-esac
-`
 
 // gustoShim stands in for gusto in the fake gateway's sandbox, which runs commands on this machine: it writes down the Landlock
 // policy and the home it was given, and runs the real gusto boxed, the test binary, without the policy, which Linux alone applies.
@@ -100,33 +74,22 @@ func freeAddress(t *testing.T) string {
 	return listener.Addr().String()
 }
 
-func withGateway(t *testing.T) string {
-	t.Helper()
-	bin, root := t.TempDir(), t.TempDir()
-	if err := os.WriteFile(filepath.Join(bin, "openshell"), []byte(gateway), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("OPENSHELL_FAKE_ROOT", root)
-	return root
-}
-
-// organizationServer is what serve is made of for an organization that runs jobs in
-// computers: the index, the way out, the record of computers, and the work that runs a job.
-func organizationServer(t *testing.T, quotaOf quota.Quota) (jobs.Work, *jobs.Index, *computer.Registry, openshell.Config, string) {
+// organizationServer is what serve is made of for an organization that runs tasks in
+// computers: the index, the way out, the record of computers, and the work that runs a task.
+func organizationServer(t *testing.T, quotaOf quota.Quota) (tasks.Work, *tasks.Index, *computer.Registry, openshell.Config, string) {
 	work, index, registry, cfg, root, _ := organizationWithInstances(t, quotaOf)
 	return work, index, registry, cfg, root
 }
 
-func organizationWithInstances(t *testing.T, quotaOf quota.Quota) (jobs.Work, *jobs.Index, *computer.Registry, openshell.Config, string, *instance.Store) {
+func organizationWithInstances(t *testing.T, quotaOf quota.Quota) (tasks.Work, *tasks.Index, *computer.Registry, openshell.Config, string, *instance.Store) {
 	t.Helper()
 	return organizationWithWayOut(t, quotaOf, func(*WayOut) {})
 }
 
 // organizationWithWayOut is organizationWithInstances with the server's way out set up by configure before any task runs.
-func organizationWithWayOut(t *testing.T, quotaOf quota.Quota, configure func(*WayOut)) (jobs.Work, *jobs.Index, *computer.Registry, openshell.Config, string, *instance.Store) {
+func organizationWithWayOut(t *testing.T, quotaOf quota.Quota, configure func(*WayOut)) (tasks.Work, *tasks.Index, *computer.Registry, openshell.Config, string, *instance.Store) {
 	t.Helper()
-	root := withGateway(t)
+	root := openshelltest.Install(t)
 	harnesses := t.TempDir()
 	os.WriteFile(filepath.Join(harnesses, "fixture.json"), []byte(`{"name":"fixture","program":"sh","argv":["-c","printf yes > answer.txt; echo ran in $(pwd | sed 's|.*/sandbox||')"],"needs":"nothing","stream":"plain"}`), 0o644)
 	t.Setenv("GUSTO_HARNESSES", harnesses)
@@ -135,17 +98,17 @@ func organizationWithWayOut(t *testing.T, quotaOf quota.Quota, configure func(*W
 	t.Setenv("GUSTO_MODEL_KEY", "not-a-key")
 	t.Setenv("GUSTO_PROXY_ADDR", freeAddress(t))
 	t.Setenv("GUSTO_CREDENTIALS", "")
-	index, err := jobs.Open(filepath.Join(t.TempDir(), "jobs"))
+	index, err := tasks.Open(filepath.Join(t.TempDir(), "jobs"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	way, err := openWayOut(index.Root())
+	way, err := openWayOut(index.Root(), fromEnv(t).way, fromEnv(t).core.local)
 	if err != nil {
 		t.Fatal(err)
 	}
 	configure(way)
 	// An agent in a sandbox reaches its model through its forwarder, which trades its secret at the proxy before it starts.
-	stopProxy, err := way.Listen()
+	stopProxy, err := way.Listen(backend.Loopback)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,24 +126,25 @@ func organizationWithWayOut(t *testing.T, quotaOf quota.Quota, configure func(*W
 	if err != nil {
 		t.Fatal(err)
 	}
-	way.UseRunRecords(func(dir job.Dir, spec job.Spec) evidence.Run { return runRecord(index, instances, dir, spec) })
-	work := inSandbox(way, cfg, index, registry, instances, newRoomRuns(instances, func(dir job.Dir) string { return personWhoAsked(index, dir) }))
-	return func(dir job.Dir) (int, error) { return work(context.Background(), dir) }, index, registry, cfg, root, instances
+	way.UseRunRecords(func(dir task.Dir, spec task.Spec) record.Run { return runRecord(index, instances, dir, spec) })
+	boxes := vm.New(vm.Config{Gateway: cfg, Computers: registry, Org: "acme-com", Node: "local"})
+	work := turns(boxes, way, instances, index, newRoomRuns(instances, func(dir task.Dir) string { return personWhoAsked(index, dir) }, fromEnv(t).boxes.roomCopy(), nil))
+	return func(dir task.Dir) (int, error) { return work(context.Background(), dir) }, index, registry, cfg, root, instances
 }
 
-// jobBy is a job asked for by who, run by the work, and the directory it ran in.
-func jobBy(t *testing.T, work jobs.Work, index *jobs.Index, who, brief string) job.Dir {
+// taskBy is a task asked for by who, run by the work, and the directory it ran in.
+func taskBy(t *testing.T, work tasks.Work, index *tasks.Index, who, brief string) task.Dir {
 	t.Helper()
 	id, err := index.Reserve(brief, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
-	record := jobs.Record{ID: id, State: jobs.Running, Brief: brief, Harness: "fixture", Asked: who, Queued: jobs.Now()}
+	record := tasks.Record{ID: id, State: tasks.Running, Brief: brief, Harness: "fixture", Asked: who, Queued: tasks.Now()}
 	dir := record.Dir(index.Root())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	if err := (job.Spec{Brief: brief, Harness: "fixture", Gate: []string{"true"}}).Write(dir); err != nil {
+	if err := (task.Spec{Brief: brief, Harness: "fixture", Check: []string{"true"}}).Write(dir); err != nil {
 		t.Fatal(err)
 	}
 	if err := index.Add(record); err != nil {
@@ -192,23 +156,23 @@ func jobBy(t *testing.T, work jobs.Work, index *jobs.Index, who, brief string) j
 	return dir
 }
 
-func transcriptOf(dir job.Dir) string {
+func transcriptOf(dir task.Dir) string {
 	text, _ := os.ReadFile(dir.OutFile("transcript.log"))
 	return string(text)
 }
 
-func TestAPersonsJobsRunInTheirOwnComputerAndAScriptsJobInASandboxOfItsOwn(t *testing.T) {
-	work, index, registry, _, root := organizationServer(t, quota.Quota{Computers: 4, Jobs: 100})
-	adaOne := jobBy(t, work, index, "ada@acme.com", "first thing for ada")
-	adaTwo := jobBy(t, work, index, "Ada@Acme.com", "second thing for ada")
-	bob := jobBy(t, work, index, "bob@acme.com", "a thing for bob")
-	script := jobBy(t, work, index, "token:ci", "a thing for a script")
+func TestAPersonsTasksRunInTheirOwnComputerAndAScriptsTaskInASandboxOfItsOwn(t *testing.T) {
+	work, index, registry, _, root := organizationServer(t, quota.Quota{Computers: 4, Tasks: 100})
+	adaOne := taskBy(t, work, index, "ada@acme.com", "first thing for ada")
+	adaTwo := taskBy(t, work, index, "Ada@Acme.com", "second thing for ada")
+	bob := taskBy(t, work, index, "bob@acme.com", "a thing for bob")
+	script := taskBy(t, work, index, "token:ci", "a thing for a script")
 
-	ada, err := registry.Of("ada@acme.com")
-	if err != nil || ada.State != computer.Running || ada.Org != "acme-com" || ada.Sandbox != computer.Name("acme-com", "ada@acme.com") || ada.LastActive.IsZero() {
+	ada, err := registry.Of("ada@acme.com", "")
+	if err != nil || ada.State != computer.Running || ada.Org != "acme-com" || ada.Sandbox != computer.Name("acme-com", "", "ada@acme.com") || ada.LastActive.IsZero() {
 		t.Fatalf("Ada has a computer that ran her jobs: %+v %v", ada, err)
 	}
-	bobs, _ := registry.Of("bob@acme.com")
+	bobs, _ := registry.Of("bob@acme.com", "")
 	if bobs.ID == ada.ID || bobs.Sandbox == ada.Sandbox {
 		t.Error("two people share a computer")
 	}
@@ -220,7 +184,7 @@ func TestAPersonsJobsRunInTheirOwnComputerAndAScriptsJobInASandboxOfItsOwn(t *te
 		t.Errorf("Ada's computer was made %d times", n)
 	}
 	for name, want := range map[string]string{adaOne.Path(): "ran in /jobs/", adaTwo.Path(): "ran in /jobs/", bob.Path(): "ran in /jobs/"} {
-		if text := transcriptOf(job.Dir(name)); !strings.Contains(text, want) {
+		if text := transcriptOf(task.Dir(name)); !strings.Contains(text, want) {
 			t.Errorf("%s: %q", filepath.Base(name), text)
 		}
 	}
@@ -234,14 +198,14 @@ func TestAPersonsJobsRunInTheirOwnComputerAndAScriptsJobInASandboxOfItsOwn(t *te
 }
 
 func TestAPersonPastTheOrganizationsComputersIsRefusedInTheRecordOfTheirTask(t *testing.T) {
-	work, index, registry, _, root := organizationServer(t, quota.Quota{Computers: 1, Jobs: 100, Note: "Ask the admin for more."})
-	jobBy(t, work, index, "ada@acme.com", "the first")
-	carol := jobBy(t, work, index, "carol@acme.com", "the second")
+	work, index, registry, _, root := organizationServer(t, quota.Quota{Computers: 1, Tasks: 100, Note: "Ask the admin for more."})
+	taskBy(t, work, index, "ada@acme.com", "the first")
+	carol := taskBy(t, work, index, "carol@acme.com", "the second")
 	text := transcriptOf(carol)
-	if !strings.Contains(text, "refused this task before the agent started") || !strings.Contains(text, "may have 1 workspace and has 1") || !strings.Contains(text, "Ask the admin for more.") {
+	if !strings.Contains(text, "refused this task before the agent started") || !strings.Contains(text, "may have 1 computer and has 1") || !strings.Contains(text, "Ask the admin for more.") {
 		t.Errorf("%q", text)
 	}
-	if _, err := registry.Of("carol@acme.com"); err == nil {
+	if _, err := registry.Of("carol@acme.com", ""); err == nil {
 		t.Error("a refused person was given a computer")
 	}
 	calls, _ := os.ReadFile(filepath.Join(root, "calls.log"))
@@ -251,146 +215,34 @@ func TestAPersonPastTheOrganizationsComputersIsRefusedInTheRecordOfTheirTask(t *
 }
 
 func TestAComputerThatCannotBeMadeIsFailedInTheRecordWithTheReason(t *testing.T) {
-	work, index, registry, _, root := organizationServer(t, quota.Quota{Computers: 4, Jobs: 100})
+	work, index, registry, _, root := organizationServer(t, quota.Quota{Computers: 4, Tasks: 100})
 	os.WriteFile(filepath.Join(root, "unused"), nil, 0o644)
 	// The gateway can make nothing.
 	bad := filepath.Join(t.TempDir(), "openshell")
 	os.WriteFile(bad, []byte("#!/bin/bash\necho \"Error: × the gateway is down\" >&2\nexit 1\n"), 0o755)
 	t.Setenv("PATH", filepath.Dir(bad)+string(os.PathListSeparator)+os.Getenv("PATH"))
-	dir := jobBy(t, work, index, "ada@acme.com", "a thing")
-	got, err := registry.Of("ada@acme.com")
+	dir := taskBy(t, work, index, "ada@acme.com", "a thing")
+	got, err := registry.Of("ada@acme.com", "")
 	if err != nil || got.State != computer.Failed || !strings.Contains(got.Note, "gateway is down") {
 		t.Errorf("%+v %v", got, err)
 	}
 	_ = dir
 }
 
-func TestTheJanitorRemovesRetiredComputersAndStopsIdleOnesThatNoOneIsUsing(t *testing.T) {
-	work, index, registry, cfg, root := organizationServer(t, quota.Quota{Computers: 4, Jobs: 100})
-	jobBy(t, work, index, "ada@acme.com", "for ada")
-	jobBy(t, work, index, "bob@acme.com", "for bob")
-	jobBy(t, work, index, "cy@acme.com", "for cy")
-	jobBy(t, work, index, "dee@acme.com", "for dee")
-	ada, _ := registry.Of("ada@acme.com")
-	bob, _ := registry.Of("bob@acme.com")
-	cy, _ := registry.Of("cy@acme.com")
-	dee, _ := registry.Of("dee@acme.com")
-
-	// Ada was removed from the organization, by the front door, which only marks her computer.
-	if err := registry.Retire("ada@acme.com"); err != nil {
+// A computer stopped for being idle is started again for its person's next task.
+func TestAStoppedComputerIsStartedForThePersonsNextTask(t *testing.T) {
+	work, index, registry, _, root := organizationServer(t, quota.Quota{Computers: 4, Tasks: 100})
+	taskBy(t, work, index, "bob@acme.com", "for bob")
+	bob, _ := registry.Of("bob@acme.com", "")
+	if err := os.WriteFile(filepath.Join(root, bob.Sandbox, "stopped"), nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	// Bob has been idle and cy has too, but cy has a job running.
-	old := time.Now().Add(-2 * time.Hour)
-	for _, c := range []computer.Computer{bob, cy} {
-		registry.Change(c.ID, func(each *computer.Computer) { each.LastActive = old })
-	}
-	retire(cfg, registry)
-	use := newComputerUse()
-	use.enter(cy.ID)
-	rest(cfg, registry, use, func(string) bool { return false }, time.Hour)
-
-	deleted, _ := os.ReadFile(filepath.Join(root, "deleted.log"))
-	if !strings.Contains(string(deleted), ada.Sandbox) {
-		t.Errorf("a retired computer is removed from the gateway: %q", deleted)
-	}
-	if _, err := registry.Of("ada@acme.com"); err == nil {
-		t.Error("and from the record")
-	}
-	if _, err := os.Stat(filepath.Join(root, bob.Sandbox, "stopped")); err != nil {
-		t.Error("an idle computer nobody is using is stopped")
-	}
-	if got, _ := registry.Of("bob@acme.com"); got.State != computer.Stopped {
-		t.Errorf("%+v", got)
-	}
-	if _, err := os.Stat(filepath.Join(root, cy.Sandbox, "stopped")); err == nil {
-		t.Error("a computer with a job running is left running")
-	}
-	if got, _ := registry.Of("cy@acme.com"); got.State != computer.Running {
-		t.Errorf("%+v", got)
-	}
-	if _, err := os.Stat(filepath.Join(root, dee.Sandbox, "stopped")); err == nil {
-		t.Error("a computer that was used a moment ago is not idle")
-	}
-	// And a stopped computer is started for the next job.
-	jobBy(t, work, index, "bob@acme.com", "bob again")
+	registry.Change(bob.ID, func(each *computer.Computer) { each.State = computer.Stopped })
+	taskBy(t, work, index, "bob@acme.com", "bob again")
 	if _, err := os.Stat(filepath.Join(root, bob.Sandbox, "stopped")); err == nil {
 		t.Error("Bob's computer was not started for his job")
 	}
-	if got, _ := registry.Of("bob@acme.com"); got.State != computer.Running {
+	if got, _ := registry.Of("bob@acme.com", ""); got.State != computer.Running {
 		t.Errorf("%+v", got)
-	}
-}
-
-// A person removed while a task of theirs runs has their computer removed; the task ending, or a late start, does not mark it
-// running again, so it is not counted against the organization or handed out.
-func TestAComputerRemovedWhileATaskUsesItStaysRemoved(t *testing.T) {
-	work, index, registry, cfg, _ := organizationServer(t, quota.Quota{Computers: 4, Jobs: 100})
-	jobBy(t, work, index, "ada@acme.com", "for ada")
-	ada, _ := registry.Of("ada@acme.com")
-	if err := registry.Retire("ada@acme.com"); err != nil {
-		t.Fatal(err)
-	}
-	retire(cfg, registry)
-	box := &computerBox{registry: registry, id: ada.ID}
-	box.update(func(each *computer.Computer) { each.State = computer.Running })
-	box.change(computer.Running, "")
-	if _, err := registry.Of("ada@acme.com"); err == nil {
-		t.Error("a removed computer is live again")
-	}
-	if all, _ := registry.All(); len(all) != 0 {
-		t.Errorf("the organization counts %+v", all)
-	}
-}
-
-// The idle stop leaves a computer a task is in, whoever asked the task, and a task that starts while a stop is under way
-// waits for it, so it is not stopped once it runs. spec/Computer.tla is the model.
-func TestTheIdleStopLeavesAComputerATaskIsIn(t *testing.T) {
-	use := newComputerUse()
-	use.enter("c1")
-	if use.stopIdle("c1", func() { t.Error("a computer a task is in was stopped") }) {
-		t.Error("the stop said it stopped a busy computer")
-	}
-	use.leave("c1")
-	stopping, release := make(chan struct{}), make(chan struct{})
-	stopped := make(chan bool, 1)
-	go func() { stopped <- use.stopIdle("c1", func() { close(stopping); <-release }) }()
-	<-stopping
-	entered := make(chan struct{})
-	go func() { use.enter("c1"); close(entered) }()
-	select {
-	case <-entered:
-		t.Fatal("a task was counted in a computer while it was being stopped")
-	case <-time.After(50 * time.Millisecond):
-	}
-	close(release)
-	<-entered
-	if !<-stopped {
-		t.Error("an idle computer was not stopped")
-	}
-	if use.stopIdle("c1", func() { t.Error("the task that started after the stop was stopped") }) {
-		t.Error("the stop said it stopped a busy computer")
-	}
-}
-
-// A computer that never started is not left being made: it says why it failed, and does not count as being made for good. One
-// that had started keeps its state when a later task fails before starting.
-func TestAComputerThatNeverStartedIsNotLeftBeingMade(t *testing.T) {
-	registry, err := computer.Open(t.TempDir(), "acme")
-	if err != nil {
-		t.Fatal(err)
-	}
-	held, _, err := registry.Ensure("ada@acme.com", "local")
-	if err != nil {
-		t.Fatal(err)
-	}
-	failedBeforeStart(registry, held.ID, errors.New("no token for the sandbox"))
-	if got, _ := registry.Of("ada@acme.com"); got.State != computer.Failed || got.Note != "no token for the sandbox" {
-		t.Errorf("a computer that never started: %s %q", got.State, got.Note)
-	}
-	registry.Change(held.ID, func(each *computer.Computer) { each.State = computer.Running })
-	failedBeforeStart(registry, held.ID, errors.New("a later task failed"))
-	if got, _ := registry.Of("ada@acme.com"); got.State != computer.Running {
-		t.Errorf("a running computer was marked %s by a task that failed", got.State)
 	}
 }

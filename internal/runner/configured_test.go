@@ -6,16 +6,16 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/runner"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
-// configuredRun runs a job carrying a configured harness whose adapter is
-// given, beside a prompt, and returns the job and the digest the job carried
+// configuredRun runs a task carrying a configured harness whose adapter is
+// given, beside a prompt, and returns the task and the digest the task carried
 // before it ran.
-func configuredRun(t *testing.T, adapter string) (job.Dir, string) {
+func configuredRun(t *testing.T, adapter string) (task.Dir, string) {
 	t.Helper()
 	mine := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(mine, "configured"), 0o755); err != nil {
@@ -24,14 +24,14 @@ func configuredRun(t *testing.T, adapter string) (job.Dir, string) {
 	write(t, filepath.Join(mine, "configured", "adapter.json"), adapter)
 	write(t, filepath.Join(mine, "configured", "prompt.md"), "Answer yes.\n")
 	t.Setenv("GUSTO_HARNESSES", mine)
-	dir := job.Dir(t.TempDir())
+	dir := task.Dir(t.TempDir())
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	spec := job.Spec{
+	spec := task.Spec{
 		Brief:   "make the answer yes",
 		Repo:    repo(t),
-		Gate:    []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
+		Check:   []string{"sh", "-c", `test "$(cat answer.txt)" = yes`},
 		Harness: "configured",
 	}
 	if err := spec.Write(dir); err != nil {
@@ -50,17 +50,17 @@ func configuredRun(t *testing.T, adapter string) (job.Dir, string) {
 	return dir, carried.Digest
 }
 
-func TestTheManifestNamesTheConfiguredHarnessTheJobCarried(t *testing.T) {
+func TestTheManifestNamesTheConfiguredHarnessTheTaskCarried(t *testing.T) {
 	dir, carried := configuredRun(t, `{"name": "configured", "program": "sh",
 		"argv": ["-c", "printf yes > answer.txt"], "needs": "nothing"}`)
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if manifest.HarnessDigest != carried {
 		t.Fatalf("the manifest says %q, the job carried %s", manifest.HarnessDigest, carried)
 	}
-	if wrong, err := evidence.Check(dir); err != nil || len(wrong) != 0 {
+	if wrong, err := record.Check(dir); err != nil || len(wrong) != 0 {
 		t.Fatalf("an untouched harness should verify: %v %v", wrong, err)
 	}
 }
@@ -72,14 +72,14 @@ func TestTheManifestNamesTheConfiguredHarnessTheJobCarried(t *testing.T) {
 func TestAHarnessThatWritesToItselfIsCaught(t *testing.T) {
 	dir, carried := configuredRun(t, `{"name": "configured", "program": "sh",
 		"argv": ["-c", "printf yes > answer.txt; echo learned >> {harnessDir}/prompt.md"], "needs": "nothing"}`)
-	manifest, err := evidence.Read(dir)
+	manifest, err := record.Read(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if manifest.HarnessDigest != carried {
 		t.Fatalf("the manifest says %q, the job carried %s before the run", manifest.HarnessDigest, carried)
 	}
-	wrong, err := evidence.Check(dir)
+	wrong, err := record.Check(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

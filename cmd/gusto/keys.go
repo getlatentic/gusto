@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/getlatentic/gusto/internal/evidence"
+	"github.com/getlatentic/gusto/internal/record"
 	"github.com/getlatentic/gusto/internal/signing"
 )
 
@@ -14,7 +14,7 @@ type keysFlags struct{ tasks string }
 
 func declareKeys(set *flag.FlagSet) *keysFlags {
 	f := &keysFlags{}
-	set.StringVar(&f.tasks, "tasks", "", "the `directory` of tasks to read (default $GUSTO_JOBS, else jobs)")
+	set.StringVar(&f.tasks, "tasks", "", "the `directory` of tasks to read (default $GUSTO_TASKS, else jobs)")
 	return f
 }
 
@@ -31,14 +31,27 @@ func checkKeys(args []string) int {
 	if set.NArg() > 0 {
 		return usageError("keys", "takes no arguments")
 	}
-	keyring, err := signing.ConfiguredKeyring()
+	keyring, err := configuredKeyring()
 	if err != nil {
 		return fail(err)
 	}
-	found, err := evidence.SignersUnder(orSetting(f.tasks, "GUSTO_JOBS", "jobs"), keyring)
+	tasks, err := tasksDir(f.tasks)
 	if err != nil {
 		return fail(err)
 	}
+	found, err := record.SignersUnder(tasks, keyring)
+	if err != nil {
+		return fail(err)
+	}
+	printSigners(found)
+	if !found.Sound() {
+		return 1
+	}
+	return 0
+}
+
+// printSigners says how many records each signer signed, how many nobody did, and which do not check.
+func printSigners(found record.Signers) {
 	names := make([]string, 0, len(found.Signed))
 	for name := range found.Signed {
 		names = append(names, name)
@@ -56,10 +69,6 @@ func checkKeys(args []string) int {
 	for _, name := range found.Broken {
 		fmt.Printf("      %s: the signature does not hold, or cannot be read\n", name)
 	}
-	if !found.Sound() {
-		return 1
-	}
-	return 0
 }
 
 // signerFromKMS writes the public key of a key AWS KMS holds into a keyring

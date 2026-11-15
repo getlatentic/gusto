@@ -11,14 +11,14 @@ import (
 // key, and every call shows the token with a fresh proof signed by the key (DPoP, RFC 9449). A token or a secret taken out of the
 // sandbox is worth nothing: the secret is spent, and the token needs the key.
 type RunTokens interface {
-	Exchange(subject, proof, method, url string, redeem func(secret string) (job string, ok bool), live func(job string) bool) (string, error)
-	Check(token, proof, method, url string) (job string, err error)
+	Exchange(subject, proof, method, url string, redeem func(secret string) (task string, ok bool), live func(task string) bool) (string, error)
+	Check(token, proof, method, url string) (task string, err error)
 }
 
 // Runs is a token source whose bound tasks' secrets are traded for run tokens. Tokens is one.
 type Runs interface {
-	Redeem(secret string) (job string, ok bool)
-	Run(job string) (Ticket, bool)
+	Redeem(secret string) (task string, ok bool)
+	Run(task string) (Ticket, bool)
 }
 
 // UseRunTokens has the proxy trade bound tasks' secrets for run tokens and check them, with source keeping the tasks.
@@ -51,7 +51,7 @@ func (p *Proxy) exchange(w http.ResponseWriter, r *http.Request) {
 		oauthError(w, "unsupported_grant_type")
 		return
 	}
-	live := func(job string) bool { _, running := runs.Run(job); return running }
+	live := func(task string) bool { _, running := runs.Run(task); return running }
 	token, err := tokens.Exchange(r.PostForm.Get("subject_token"), r.Header.Get("DPoP"), r.Method, requestURL(r), runs.Redeem, live)
 	if err != nil {
 		oauthError(w, "invalid_grant")
@@ -77,11 +77,11 @@ func (p *Proxy) runTicket(r *http.Request) (Ticket, string, bool) {
 	if !shown || !on {
 		return Ticket{}, "", false
 	}
-	job, err := tokens.Check(strings.TrimSpace(token), r.Header.Get("DPoP"), r.Method, requestURL(r))
+	task, err := tokens.Check(strings.TrimSpace(token), r.Header.Get("DPoP"), r.Method, requestURL(r))
 	if err != nil {
 		return Ticket{}, "", false
 	}
-	ticket, live := runs.Run(job)
+	ticket, live := runs.Run(task)
 	return ticket, path.Clean("/" + strings.TrimPrefix(r.URL.Path, "/model")), live
 }
 

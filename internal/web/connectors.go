@@ -10,12 +10,12 @@ import (
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/connector"
 	"github.com/getlatentic/gusto/internal/crew"
-	"github.com/getlatentic/gusto/internal/jobs"
 	"github.com/getlatentic/gusto/internal/orgsettings"
 	"github.com/getlatentic/gusto/internal/setup"
+	"github.com/getlatentic/gusto/internal/tasks"
 	"github.com/getlatentic/gusto/pkg/gateway"
 	"github.com/getlatentic/gusto/pkg/harness"
-	"github.com/getlatentic/gusto/pkg/job"
+	"github.com/getlatentic/gusto/pkg/task"
 )
 
 // connectionsPath is where a person signs in to the apps their agents may use as them.
@@ -31,8 +31,8 @@ func (s *Server) connectorRoutes(mux *http.ServeMux) {
 	// An app reads the client document to know this server, and has no sign-in here.
 	mux.HandleFunc("GET /connectors/client.json", offering(s.hasConnectors, s.clientDocument))
 	mine := func(next http.HandlerFunc) http.HandlerFunc { return s.guard(offering(s.hasConnectors, next)) }
-	mux.HandleFunc("GET "+connectionsPath, mine(s.connectionsPage))
 	mux.HandleFunc("GET "+connectionsPath+"/callback", mine(s.finishConnecting))
+	mux.HandleFunc("POST "+connectionsHomePath, s.guard(offering(s.hasKeptHomes, s.resetHome)))
 	// Connecting is a link and not a form: the page it leads to is the app's, and a form may only lead to this server.
 	mux.HandleFunc("GET "+connectionsPath+"/{id}/connect", mine(s.connect))
 	mux.HandleFunc("POST "+connectionsPath+"/{id}/disconnect", mine(s.disconnect))
@@ -53,14 +53,25 @@ func (s *Server) clientDocument(w http.ResponseWriter, r *http.Request) {
 type connectorView struct {
 	connector.Entry
 	On, Usable, Connected bool
-	Since                 time.Time
+	// SignInAgain is a sign-in that was made and no longer works, which only the person can make again.
+	SignInAgain bool
+	// Since is when the sign-in was made.
+	Since time.Time
+	// NeedSignIn is, on the admin's page, how many people's sign-ins need making again.
+	NeedSignIn int
 	// ForAgents is the person's default for whether their agents may use the app.
 	ForAgents bool
 }
 
+// Offered is an app an admin has turned on and that people can sign in to.
+func (v connectorView) Offered() bool { return v.On && v.Usable }
+
+// SignedInTo is an app the person has a sign-in to, working or not, which they may end whether or not it is still offered.
+func (v connectorView) SignedInTo() bool { return v.Connected || v.SignInAgain }
+
 // appAllowed says whether a task may be given one app of its asker's: any, on their own task that they pay for; on a turn they
 // asked of a room's agent, what they chose for that agent and app, or else their default for their agents.
-func (s *Server) appAllowed(record jobs.Record, app string) bool {
+func (s *Server) appAllowed(record tasks.Record, app string) bool {
 	if !record.InRoom() {
 		return record.Payer() == record.Asked
 	}
@@ -71,11 +82,11 @@ func (s *Server) appAllowed(record jobs.Record, app string) bool {
 	if allowed, chosen := member.AppChoice(record.Asked, app); chosen {
 		return allowed
 	}
-	return s.connectors.ForAgents(record.Asked, app)
+	return s.connectors.ForAgents(record.Asked, record.Workspace, app)
 }
 
 // memberOf is the workspace agent that took a room turn.
-func (s *Server) memberOf(record jobs.Record) (crew.Agent, bool) {
+func (s *Server) memberOf(record tasks.Record) (crew.Agent, bool) {
 	if s.instances == nil || s.crew == nil {
 		return crew.Agent{}, false
 	}
@@ -90,18 +101,25 @@ func (s *Server) memberOf(record jobs.Record) (crew.Agent, bool) {
 	return s.crew.Get(agent.Member)
 }
 
-// connectorViews is every connector in the catalog, as it stands for one person, or for nobody on the admin's page.
-func (s *Server) connectorViews(person string) ([]connectorView, error) {
+// connectorViews is every connector in the catalog, as it stands for one person in one workspace, or for nobody on the admin's page.
+func (s *Server) connectorViews(person, space string) ([]connectorView, error) {
 	settings, err := s.orgSettings.Read()
 	if err != nil {
 		return nil, err
+	}
+	var needing map[string]int
+	if person == "" {
+		needing = s.connectors.NeedingSignIn()
 	}
 	views := make([]connectorView, 0, len(s.connectors.Apps()))
 	for _, entry := range s.connectors.Apps() {
 		view := connectorView{Entry: entry, On: settings.ConnectorOn(entry.ID), Usable: s.connectors.Usable(entry)}
 		if person != "" {
-			view.Since, view.Connected = s.connectors.Connected(person, entry.ID)
-			view.ForAgents = view.Connected && s.connectors.ForAgents(person, entry.ID)
+			standing, since := s.connectors.Standing(person, space, entry.ID)
+			view.Since, view.Connected, view.SignInAgain = since, standing == connector.SignedIn, standing == connector.NeedsSignIn
+			view.ForAgents = view.Connected && s.connectors.ForAgents(person, space, entry.ID)
+		} else {
+			view.NeedSignIn = needing[entry.ID]
 		}
 		views = append(views, view)
 	}
@@ -113,20 +131,6 @@ func (s *Server) connectorViews(person string) ([]connectorView, error) {
 func (s *Server) connectingPerson(r *http.Request) (string, bool) {
 	who := s.keeper.who(r)
 	return who, who != "" && who != sharedSignIn
-}
-
-func (s *Server) connectionsPage(w http.ResponseWriter, r *http.Request) {
-	who, person := s.connectingPerson(r)
-	views, err := s.connectorViews(who)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	offered := slices.DeleteFunc(views, func(view connectorView) bool { return !view.On || !view.Usable })
-	s.render(w, "connections.html", map[string]any{
-		"Title": productName + " — connections", "Nav": "connections", "Connectors": offered, "Person": person,
-		"Refused": s.refusal(r), "Done": s.message(r, "connected"),
-	})
 }
 
 // offeredConnector is the connector of that id, when an admin has turned it on and people can sign in to it.
@@ -151,7 +155,7 @@ func (s *Server) connect(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, connectionsPath, "Sign in as yourself to connect your own accounts: the shared sign-in has none.")
 		return
 	}
-	address, err := s.connectors.Begin(r.Context(), who, entry)
+	address, err := s.connectors.Begin(r.Context(), who, s.workspaceOf(r), entry)
 	if err != nil {
 		s.turnAway(w, r, connectionsPath, "Signing in to "+entry.Name+" could not start: "+err.Error())
 		return
@@ -166,14 +170,14 @@ func (s *Server) finishConnecting(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, connectionsPath, "The app did not sign you in: "+cmp.Or(query.Get("error_description"), why))
 		return
 	}
-	id, err := s.connectors.Finish(r.Context(), s.keeper.who(r), query.Get("state"), query.Get("code"))
+	id, space, err := s.connectors.Finish(r.Context(), s.keeper.who(r), query.Get("state"), query.Get("code"))
 	if err != nil {
 		s.turnAway(w, r, connectionsPath, err.Error())
 		return
 	}
 	// A connection starts from the person's default for their agents, and a disconnect made before choices were forgotten with it
 	// left some.
-	if err := s.forgetAgentChoices(s.keeper.who(r), id); err != nil {
+	if err := s.forgetAgentChoices(s.keeper.who(r), space, id); err != nil {
 		s.turnAway(w, r, connectionsPath, err.Error())
 		return
 	}
@@ -182,6 +186,8 @@ func (s *Server) finishConnecting(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.withMessage(connectionsPath, "connected", entry.Name), http.StatusSeeOther)
 }
 
+// disconnect ends a person's own sign-in to an app, whether or not an admin has turned the app off since: connecting is the admin's
+// to allow, and taking back what one gave is always the person's.
 func (s *Server) disconnect(w http.ResponseWriter, r *http.Request) {
 	entry, known := s.connectors.App(r.PathValue("id"))
 	if !known {
@@ -190,12 +196,12 @@ func (s *Server) disconnect(w http.ResponseWriter, r *http.Request) {
 	}
 	// What the person chose for their agents goes first, so a disconnect that fails leaves them connected on their default, and
 	// never ends a connection whose choices a later one would find.
-	who := s.keeper.who(r)
-	if err := s.forgetAgentChoices(who, entry.ID); err != nil {
+	who, space := s.keeper.who(r), s.workspaceOf(r)
+	if err := s.forgetAgentChoices(who, space, entry.ID); err != nil {
 		s.turnAway(w, r, connectionsPath, err.Error())
 		return
 	}
-	if err := s.connectors.Disconnect(who, entry.ID); err != nil {
+	if err := s.connectors.Disconnect(who, space, entry.ID); err != nil {
 		s.turnAway(w, r, connectionsPath, err.Error())
 		return
 	}
@@ -204,7 +210,7 @@ func (s *Server) disconnect(w http.ResponseWriter, r *http.Request) {
 }
 
 // turnConnector lets people sign in to a connector and give it to their agents, or stops them: their agents are not given it
-// from their next task, and what they signed in to stays theirs to end.
+// from their next task, and Connections stops listing it.
 func (s *Server) turnConnector(on bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		entry, known := s.connectors.App(r.PathValue("id"))
@@ -247,7 +253,7 @@ func (s *Server) turnConnector(on bool) http.HandlerFunc {
 // person's own task is given them. A room's agent works for everybody in the room, so a room turn is given them only when its
 // asker has let that agent use an app, and then only the asker's apps they let it use. An agent that cannot reach the gateway is given
 // none, and runs as it would without them.
-func (s *Server) giveConnectors(spec *job.Spec, dir job.Dir, record jobs.Record) error {
+func (s *Server) giveConnectors(spec *task.Spec, dir task.Dir, record tasks.Record) error {
 	if !s.hasConnectors() {
 		return nil
 	}
@@ -268,8 +274,8 @@ func (s *Server) giveConnectors(spec *job.Spec, dir job.Dir, record jobs.Record)
 		if !settings.ConnectorOn(entry.ID) || slices.Contains(taken, entry.ID) || !s.appAllowed(record, entry.ID) {
 			continue
 		}
-		if _, connected := s.connectors.Connected(record.Asked, entry.ID); connected {
-			servers = append(servers, gateway.Server{Name: entry.ID, URL: entry.URL, Connector: entry.ID, Person: record.Asked})
+		if _, connected := s.connectors.Connected(record.Asked, record.Workspace, entry.ID); connected {
+			servers = append(servers, gateway.Server{Name: entry.ID, URL: entry.URL, Connector: entry.ID, Person: record.Asked, Workspace: record.Workspace})
 			given = append(given, entry.ID)
 		}
 	}
@@ -277,7 +283,7 @@ func (s *Server) giveConnectors(spec *job.Spec, dir job.Dir, record jobs.Record)
 		return nil
 	}
 	if spec.Setup == nil {
-		spec.Setup = &job.Setup{}
+		spec.Setup = &task.Setup{}
 	}
 	spec.Setup.Gateway = append(spec.Setup.Gateway, given...)
 	spec.Setup.Connectors = given

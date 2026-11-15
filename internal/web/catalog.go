@@ -6,7 +6,7 @@ import (
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/industry"
 	"github.com/getlatentic/gusto/internal/instance"
-	"github.com/getlatentic/gusto/internal/jobs"
+	"github.com/getlatentic/gusto/internal/tasks"
 )
 
 // yours is an instance as the home page lists it: what it is, what was last
@@ -15,45 +15,45 @@ type yours struct {
 	agent
 	Threads int
 	Where   string
-	Latest  jobs.Record
+	Latest  tasks.Record
 	// Active is when it was last spoken to, or started when it never was.
 	Active int64
 }
 
-// presetsPage is where a new agent is chosen: set up for a field of work,
-// or blank.
-func (s *Server) presetsPage(w http.ResponseWriter, r *http.Request) {
+// presetsData is where a new agent is chosen: the person's own presets, then each ready-made kind of work and the fields of work
+// they come under, in order.
+func (s *Server) presetsData(r *http.Request) (map[string]any, error) {
 	roles, fields := s.rolesToChoose()
-	s.render(w, "catalog.html", map[string]any{
-		"Title":   productName + " — presets",
-		"Nav":     "presets",
+	return map[string]any{
 		"Roles":   roles,
 		"Fields":  fields,
-		"Presets": s.presetRows(r),
+		"Presets": orNone(s.presetRows(r)),
 		"Refused": s.refusal(r),
-	})
+	}, nil
 }
 
-// role is a ready-made kind of work as the new-agent page offers it: what it does, and whether it can be started here.
+// role is a ready-made kind of work as the presets page offers it: what it does, what to try asking, and why it cannot be started
+// here when it cannot.
 type role struct {
-	industry.Template
-	Fit     []catalog.Entry
-	Blocked string
+	Name, Title, Industry, Summary string
+	Skills                         []roleSkill
+	Starters                       []string
+	Blocked                        string
 }
+
+// roleSkill is what one of a role's skills does, in the words of the person choosing.
+type roleSkill struct{ Title, Blurb string }
 
 // rolesToChoose is every template with what is needed to start it, and the fields of work they come under, in order.
 func (s *Server) rolesToChoose() ([]role, []string) {
-	var roles []role
-	var fields []string
+	roles := []role{}
+	fields := []string{}
 	seen := map[string]bool{}
 	for _, held := range industry.All() {
-		runners := s.runnersOf(held)
-		each := role{Template: held, Fit: runners}
-		switch {
-		case held.Restricted() && !s.inBuilding.Load():
-			each.Blocked = "This work only goes to models in your own network, and this deployment has none."
-		case len(runners) == 0:
-			each.Blocked = "No agent here can take this work yet."
+		each := role{Name: held.Name, Title: held.Title, Industry: held.Industry, Summary: held.Summary, Skills: []roleSkill{},
+			Starters: orNone(held.Starters), Blocked: s.blocked(held)}
+		for _, skill := range held.Skills {
+			each.Skills = append(each.Skills, roleSkill{Title: skill.Title, Blurb: skill.Blurb})
 		}
 		roles = append(roles, each)
 		if !seen[held.Industry] {
@@ -62,6 +62,17 @@ func (s *Server) rolesToChoose() ([]role, []string) {
 		}
 	}
 	return roles, fields
+}
+
+// blocked is why a template cannot be started here, or nothing when it can.
+func (s *Server) blocked(held industry.Template) string {
+	switch {
+	case held.Restricted() && !s.inBuilding.Load():
+		return "This work only goes to models in your own network, and this deployment has none."
+	case len(s.runnersOf(held)) == 0:
+		return "No agent here can take this work yet."
+	}
+	return ""
 }
 
 // readyEngines is the agents this deployment can start now.
@@ -75,16 +86,20 @@ func (s *Server) readyEngines() []catalog.Entry {
 	return ready
 }
 
-// blankPage starts an agent with nothing set up: a name, and the engine
-// and skill set for whoever wants to choose them.
-func (s *Server) blankPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "blank.html", map[string]any{
-		"Title":   productName + " — new agent",
-		"Nav":     "presets",
-		"Engines": s.readyEngines(),
-		"Setups":  s.setupsList(),
-		"Refused": s.refusal(r),
-	})
+// blankEngine is an agent type a blank agent may be started as.
+type blankEngine struct{ Name, Title, What string }
+
+// blankData starts an agent with nothing set up: a name, and the engine and skill set for whoever wants to choose them.
+func (s *Server) blankData(r *http.Request) (map[string]any, error) {
+	engines := []blankEngine{}
+	for _, entry := range s.readyEngines() {
+		engines = append(engines, blankEngine{Name: entry.Name, Title: entry.Title, What: entry.What})
+	}
+	setups := []string{}
+	for _, held := range s.setupsList() {
+		setups = append(setups, held.Name)
+	}
+	return map[string]any{"Engines": engines, "Setups": setups, "Refused": s.refusal(r)}, nil
 }
 
 // lately is where to pick an instance up and what it was last doing. Every
