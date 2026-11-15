@@ -108,7 +108,7 @@ function Usage({ view, base }: { view: UsageView; base: string }) {
           base={base}
         />
       )}
-      <Figures>
+      <Figures className="grid-cols-3">
         <Figure
           value={priced ? figures.Spent : "—"}
           label="Spent"
@@ -117,10 +117,7 @@ function Usage({ view, base }: { view: UsageView; base: string }) {
           }
           headline
         />
-        <Figure value={String(figures.Calls)} label="Model calls" />
-        <Figure value={figures.In} label="Tokens in" />
-        <Figure value={figures.Cache} label="Cached" />
-        <Figure value={figures.Out} label="Tokens out" />
+        <Figure value={String(figures.Calls)} label="Calls" />
         <Figure
           value={String(figures.Refused)}
           label="Refused"

@@ -102,6 +102,10 @@ describe("the usage", () => {
     expect(screen.getByText("Bob")).toBeTruthy()
     expect(screen.getByText(/Nova/).textContent).toContain("Nova · Alice's")
     expect(screen.getByText("· 2 turns")).toBeTruthy()
+    for (const label of ["Spent", "Calls", "Refused"]) {
+      expect(screen.getByText(label)).toBeTruthy()
+    }
+    expect(screen.queryByText("Tokens in")).toBeNull()
     expect(
       screen.getByRole("button", { name: "Failed2" }).getAttribute("title")
     ).toBe("Failed: 2 this week")
