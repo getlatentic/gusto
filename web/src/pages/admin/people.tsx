@@ -98,20 +98,22 @@ function People({ page }: { page: PeopleData }) {
 
 function Invited({ page }: { page: PeopleData }) {
   return (
-    <Card className="gap-0 overflow-hidden py-0">
+    <Card className="@container gap-0 overflow-hidden py-0">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Invited</TableHead>
-            <TableHead>By</TableHead>
+            <TableHead className="@max-md:hidden">By</TableHead>
             <TableHead className="text-right">Link works until</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {page.Invited?.map((invite) => (
             <TableRow key={invite.Email}>
-              <TableCell>{invite.Email}</TableCell>
-              <TableCell className="text-muted-foreground">
+              <TableCell className="w-full max-w-0 truncate">
+                {invite.Email}
+              </TableCell>
+              <TableCell className="text-muted-foreground @max-md:hidden">
                 {invite.By}
               </TableCell>
               <TableCell className="text-right whitespace-nowrap text-muted-foreground">
@@ -129,7 +131,7 @@ function Invited({ page }: { page: PeopleData }) {
 function Members({ page }: { page: PeopleData }) {
   return (
     <>
-      <Card className="gap-0 overflow-hidden py-0">
+      <Card className="@container gap-0 overflow-hidden py-0">
         <Table>
           <TableHeader>
             <TableRow>
@@ -147,23 +149,25 @@ function Members({ page }: { page: PeopleData }) {
                   "Spent this month"
                 )}
               </TableHead>
-              <TableHead className="text-right">Last in</TableHead>
+              <TableHead className="text-right @max-lg:hidden">
+                Last in
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {page.People?.map((person) => (
               <TableRow key={person.Email}>
-                <TableCell>
-                  <span className="flex items-center gap-3">
+                <TableCell className="w-full max-w-0">
+                  <span className="flex min-w-0 items-center gap-3">
                     <span
                       className="grid size-8 flex-none place-items-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground"
                       aria-hidden="true"
                     >
                       {initial(person.Name)}
                     </span>
-                    <span className="grid">
-                      <span>{person.Name}</span>
-                      <span className="text-xs text-muted-foreground">
+                    <span className="grid min-w-0">
+                      <span className="truncate">{person.Name}</span>
+                      <span className="truncate text-xs text-muted-foreground">
                         {person.Email}
                       </span>
                     </span>
@@ -175,7 +179,7 @@ function Members({ page }: { page: PeopleData }) {
                 <TableCell className="text-right whitespace-nowrap tabular-nums">
                   <Spent person={person} />
                 </TableCell>
-                <TableCell className="text-right whitespace-nowrap text-muted-foreground">
+                <TableCell className="text-right whitespace-nowrap text-muted-foreground @max-lg:hidden">
                   {person.LastSignIn ? (
                     <span title={when(person.LastSignIn)}>
                       {ago(person.LastSignIn)}

@@ -18,6 +18,20 @@ import {
 } from "@/components/ui/table"
 import { usePageData } from "@/lib/api"
 import type { SessionData } from "@/lib/types"
+import { cn } from "@/lib/utils"
+
+// The columns a narrow table leaves out, the least needed first, by the width of the table's own card. When, which task, how many
+// what it cost always stay.
+const hides = {
+  translated: "@max-6xl:hidden",
+  refused: "@max-5xl:hidden",
+  key: "@max-4xl:hidden",
+  provider: "@max-3xl:hidden",
+  cache: "@max-2xl:hidden",
+  model: "@max-xl:hidden",
+  status: "@max-lg:hidden",
+  tokens: "@max-md:hidden",
+}
 
 // One conversation's model calls, the latest first.
 export function UsageSessionPage() {
@@ -83,28 +97,32 @@ function Session({ page }: { page: SessionData }) {
           </AppLink>
         )}
       </form>
-      <Card className="gap-0 overflow-hidden py-0">
+      <Card className="@container gap-0 overflow-hidden py-0">
         <Table className="[&_td]:whitespace-nowrap">
           <TableHeader>
             <TableRow>
               <TableHead>Time (UTC)</TableHead>
               <TableHead>Task</TableHead>
-              <TableHead>Model</TableHead>
-              <TableHead>Provider</TableHead>
-              <TableHead>Key</TableHead>
-              <TableHead className="text-right">Tokens</TableHead>
-              <TableHead className="text-right">Cache</TableHead>
+              <TableHead className={hides.model}>Model</TableHead>
+              <TableHead className={hides.provider}>Provider</TableHead>
+              <TableHead className={hides.key}>Key</TableHead>
+              <TableHead className={cn("text-right", hides.tokens)}>
+                Tokens
+              </TableHead>
+              <TableHead className={cn("text-right", hides.cache)}>
+                Cache
+              </TableHead>
               <TableHead className="text-right">Cost</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Refused by</TableHead>
-              <TableHead>Translated</TableHead>
+              <TableHead className={hides.status}>Status</TableHead>
+              <TableHead className={hides.refused}>Refused by</TableHead>
+              <TableHead className={hides.translated}>Translated</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {session.Calls.map((call, index) => (
               <TableRow key={`${call.Task}-${index}`}>
                 <TableCell title={call.AtFull}>{call.At}</TableCell>
-                <TableCell className="max-w-48 truncate">
+                <TableCell className="w-full max-w-0 truncate">
                   <a
                     href={call.Record}
                     title={`Details of ${call.Task}`}
@@ -113,15 +131,24 @@ function Session({ page }: { page: SessionData }) {
                     {call.Task}
                   </a>
                 </TableCell>
-                <TableCell className="max-w-48 truncate" title={call.Model}>
+                <TableCell
+                  className={cn("max-w-48 truncate", hides.model)}
+                  title={call.Model}
+                >
                   {call.Model}
                 </TableCell>
-                <TableCell>{call.Provider}</TableCell>
-                <TableCell>{call.Key || "—"}</TableCell>
-                <TableCell className="text-right tabular-nums">
+                <TableCell className={hides.provider}>
+                  {call.Provider}
+                </TableCell>
+                <TableCell className={hides.key}>{call.Key || "—"}</TableCell>
+                <TableCell
+                  className={cn("text-right tabular-nums", hides.tokens)}
+                >
                   {call.In} in, {call.Out} out
                 </TableCell>
-                <TableCell className="text-right tabular-nums">
+                <TableCell
+                  className={cn("text-right tabular-nums", hides.cache)}
+                >
                   {call.Cache}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
@@ -131,7 +158,7 @@ function Session({ page }: { page: SessionData }) {
                     call.Cost
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className={hides.status}>
                   {call.Refused ? (
                     <Badge variant="destructive">
                       {call.Status || "refused"}
@@ -140,8 +167,12 @@ function Session({ page }: { page: SessionData }) {
                     call.Status || "—"
                   )}
                 </TableCell>
-                <TableCell>{call.Refused || "—"}</TableCell>
-                <TableCell>{call.Translated || "—"}</TableCell>
+                <TableCell className={hides.refused}>
+                  {call.Refused || "—"}
+                </TableCell>
+                <TableCell className={hides.translated}>
+                  {call.Translated || "—"}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -44,6 +44,17 @@ import { usePageData } from "@/lib/api"
 import type { UsageData, UsageView } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
+const askedBy = "Asked by"
+const agentOwner = "Agent · owner"
+
+// The columns a narrow table leaves out, the least needed first, by the width of the table's own card: the model under 56rem, who
+// asked under 48rem, and whose agent under 36rem. The conversation, when, and what it cost always stay.
+const narrowHides: Record<string, string> = {
+  Model: "@max-4xl:hidden",
+  [askedBy]: "@max-3xl:hidden",
+  [agentOwner]: "@max-xl:hidden",
+}
+
 // Every conversation, what it cost, and whether it worked: a page of the usage index, narrowed and sorted by its address.
 export function UsagePage() {
   const loaded = usePageData<UsageData>()
@@ -144,7 +155,7 @@ function Usage({ view, base }: { view: UsageView; base: string }) {
 
       {view.Rows?.length ? (
         <>
-          <Card className="gap-0 overflow-hidden py-0">
+          <Card className="@container gap-0 overflow-hidden py-0">
             <Table className="[&_td]:whitespace-nowrap">
               <TableHeader>
                 <TableRow>
@@ -154,7 +165,8 @@ function Usage({ view, base }: { view: UsageView; base: string }) {
                       aria-sort={column.Sorted ? "descending" : undefined}
                       className={cn(
                         column.Num && "text-right",
-                        column.Sorted && "text-foreground"
+                        column.Sorted && "text-foreground",
+                        narrowHides[column.Label]
                       )}
                     >
                       {column.Href ? (
@@ -192,11 +204,21 @@ function Usage({ view, base }: { view: UsageView; base: string }) {
                       </span>
                     </TableCell>
                     {view.ShowWho && (
-                      <TableCell className="max-w-40 truncate">
+                      <TableCell
+                        className={cn(
+                          "max-w-40 truncate",
+                          narrowHides[askedBy]
+                        )}
+                      >
                         {row.Asked}
                       </TableCell>
                     )}
-                    <TableCell className="max-w-56 truncate">
+                    <TableCell
+                      className={cn(
+                        "max-w-48 truncate",
+                        narrowHides[agentOwner]
+                      )}
+                    >
                       <span
                         className="flex min-w-0 items-center gap-2"
                         title={row.Engine || undefined}
@@ -230,7 +252,10 @@ function Usage({ view, base }: { view: UsageView; base: string }) {
                       )}
                     </TableCell>
                     <TableCell
-                      className="max-w-48 truncate text-muted-foreground"
+                      className={cn(
+                        "max-w-40 truncate text-muted-foreground",
+                        narrowHides.Model
+                      )}
                       title={row.Models}
                     >
                       {row.Models}
