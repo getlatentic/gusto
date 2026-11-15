@@ -10,7 +10,8 @@
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10",
+    "@playwright/test": "1.64.1",
     "@tailwindcss/typography": "0.5.20",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.10",

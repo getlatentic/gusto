@@ -41,7 +41,10 @@ export function MembersDialog({
   if (!members) return null
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="grid gap-1 sm:max-w-108">
+      <DialogContent
+        data-testid="members-dialog"
+        className="grid gap-1 sm:max-w-108"
+      >
         <DialogHeader className="mb-3">
           <DialogTitle>Room members</DialogTitle>
         </DialogHeader>
@@ -53,7 +56,12 @@ export function MembersDialog({
             {page.Refused}
           </p>
         )}
-        <Button variant="ghost" className="justify-start px-1" onClick={onAdd}>
+        <Button
+          variant="ghost"
+          className="justify-start px-1"
+          data-testid="add-member"
+          onClick={onAdd}
+        >
           <PlusIcon /> {members.Runs ? "Add member" : "Propose an agent"}
         </Button>
         <ul aria-label="People" className="m-0 grid list-none p-0">
@@ -83,6 +91,7 @@ function ChoiceForm({
   label,
   choices,
   hidden,
+  testId,
 }: {
   action: string
   name: string
@@ -90,6 +99,7 @@ function ChoiceForm({
   label: string
   choices: { value: string; label: string }[]
   hidden?: Record<string, string>
+  testId?: string
 }) {
   const { submit } = useConversation()
   const form = useRef<HTMLFormElement>(null)
@@ -118,13 +128,19 @@ function ChoiceForm({
         <SelectTrigger
           size="sm"
           aria-label={label}
+          data-testid={testId}
           className="border-0 shadow-none"
         >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           {choices.map((choice) => (
-            <SelectItem key={choice.value} value={choice.value}>
+            <SelectItem
+              key={choice.value}
+              value={choice.value}
+              data-testid="choice-option"
+              data-value={choice.value}
+            >
               {choice.label}
             </SelectItem>
           ))}
@@ -138,7 +154,7 @@ function Person({ person, runs }: { person: RoomPerson; runs: boolean }) {
   const { page, submit } = useConversation()
   const room = `/rooms/${encodeURIComponent(page.Instance.ID)}`
   return (
-    <div className={row}>
+    <div className={row} data-testid="room-person" data-who={person.Who}>
       <span className={face} aria-hidden="true">
         {initial(person.Name) || <UserIcon className="size-3.5" />}
       </span>
@@ -152,6 +168,7 @@ function Person({ person, runs }: { person: RoomPerson; runs: boolean }) {
           name="role"
           value={person.Role === "admin" ? "admin" : "member"}
           label={`Role of ${person.Name}`}
+          testId="room-role"
           hidden={{ who: person.Who }}
           choices={[
             { value: "admin", label: "Admin" },
@@ -164,7 +181,10 @@ function Person({ person, runs }: { person: RoomPerson; runs: boolean }) {
         />
       ) : (
         <>
-          <span className="text-sm text-muted-foreground">
+          <span
+            className="text-sm text-muted-foreground"
+            data-testid="room-role"
+          >
             {person.Role === "admin" ? "Admin" : "Member"}
           </span>
           {person.Me && (

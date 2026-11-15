@@ -23,6 +23,7 @@ export function SideRow({
   return (
     <AppLink
       href={chat.Where}
+      data-testid="side-row"
       className={sideItem}
       aria-current={chat.Where === here ? "page" : undefined}
       title={chat.Name}
@@ -56,6 +57,7 @@ export function SideRow({
         <span
           className="grid h-4.5 min-w-4.5 flex-none place-items-center rounded-full bg-foreground px-1.5 text-[0.6875rem] leading-none font-semibold text-background tabular-nums"
           aria-label={`${unread} unread`}
+          data-testid="unread-count"
         >
           {unread}
         </span>

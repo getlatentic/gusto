@@ -37,6 +37,7 @@ export function TurnItem({
   return (
     <article
       id={turn.ID}
+      data-testid="turn"
       data-pending={turn.Kind === "turn" && !turn.Done ? "" : undefined}
     >
       {turn.Divider && (
@@ -125,6 +126,7 @@ function Said({ turn }: { turn: TurnView }) {
           "col-start-2 m-0 max-w-full text-sm wrap-anywhere whitespace-pre-wrap",
           mentions
         )}
+        data-testid="said"
         data-msg-body
         // The server escapes the message and marks only its mentions.
         dangerouslySetInnerHTML={{
@@ -141,7 +143,12 @@ const escapeText = (text: string) =>
 function Reply({ turn, progress }: { turn: TurnView; progress?: string }) {
   const { page, admin, openFile } = useConversation()
   return (
-    <div className={cn(block, turn.ReplyJoins ? "mt-1.5" : "mt-3")} data-msg>
+    <div
+      className={cn(block, turn.ReplyJoins ? "mt-1.5" : "mt-3")}
+      data-msg
+      data-testid="reply"
+      data-done={turn.Done ? "" : undefined}
+    >
       {turn.Done && (
         <MessageTools copy={() => textOf(turn.ReplyHTML)} answer={turn.By} />
       )}

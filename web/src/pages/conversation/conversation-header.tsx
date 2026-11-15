@@ -31,12 +31,14 @@ export function ConversationActions({
       {here.length > 0 && (
         <ul
           aria-label="In this room now"
+          data-testid="here"
           className="m-0 mr-2 flex list-none items-center -space-x-1.5 p-0"
         >
           {here.map((person) => (
             <li
               key={person.user}
               title={`${person.name} is here`}
+              data-testid="here-person"
               className="grid size-6 place-items-center rounded-full bg-sunken text-[0.625rem] font-medium text-muted-foreground ring-2 ring-background"
             >
               {person.short}

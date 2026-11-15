@@ -35,6 +35,7 @@ export function FolderChip({
         size="sm"
         className="min-w-0 rounded-full text-xs font-medium text-muted-foreground"
         aria-haspopup="dialog"
+        data-testid="folder-chip"
         title={chosen ? folder.label : undefined}
         onClick={onOpen}
       >

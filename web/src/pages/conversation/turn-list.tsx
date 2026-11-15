@@ -64,7 +64,11 @@ export function TurnList({
         )}
         {running && <RunningReply page={page} />}
         {page.Stream && (
-          <p className="m-0 mt-2 h-5 text-xs text-subtle" aria-hidden="true">
+          <p
+            className="m-0 mt-2 h-5 text-xs text-subtle"
+            aria-hidden="true"
+            data-testid="typing"
+          >
             {words}
           </p>
         )}

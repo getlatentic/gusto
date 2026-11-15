@@ -290,7 +290,10 @@ function StopReply({
 // Archived says nobody can say anything in the room until an admin brings it back, and offers that to one who can.
 function Archived({ page }: { page: ConversationData }) {
   return (
-    <div className="mx-auto flex w-full max-w-208 items-center gap-3 rounded-md border bg-sunken py-3 pr-3 pl-5 text-sm text-muted-foreground max-nav:flex-wrap">
+    <div
+      data-testid="archived"
+      className="mx-auto flex w-full max-w-208 items-center gap-3 rounded-md border bg-sunken py-3 pr-3 pl-5 text-sm text-muted-foreground max-nav:flex-wrap"
+    >
       <span className="min-w-0 flex-1">
         This room is archived. Nobody can say anything in it until an admin
         brings it back.
@@ -302,7 +305,12 @@ function Archived({ page }: { page: ConversationData }) {
           className="m-0"
         >
           <input type="hidden" name="archive" value="off" />
-          <Button type="submit" variant="outline" size="sm">
+          <Button
+            type="submit"
+            variant="outline"
+            size="sm"
+            data-testid="unarchive"
+          >
             Unarchive
           </Button>
         </form>

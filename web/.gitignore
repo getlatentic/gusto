@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright's end-to-end runs: signed-in states, the server's log, reports and traces
+/e2e/.auth/
+/e2e/.run/
+/playwright-report/
+/test-results/

@@ -44,7 +44,7 @@ export function AddDialog({
         : "Every agent of yours is in this room already."
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="sm:max-w-120">
+      <DialogContent data-testid="add-dialog" className="sm:max-w-120">
         <form
           method="post"
           action={`/rooms/${encodeURIComponent(page.Instance.ID)}/members/add`}
@@ -64,6 +64,7 @@ export function AddDialog({
           {page.AddRefused && (
             <p
               role="alert"
+              data-testid="add-refused"
               className="m-0 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad"
             >
               {page.AddRefused}
@@ -157,6 +158,7 @@ export function AddDialog({
               </Label>
               <Input
                 id="room-people"
+                data-testid="add-people"
                 name="who"
                 placeholder="name@example.com"
                 autoComplete="off"
@@ -176,7 +178,9 @@ export function AddDialog({
             <DialogClose render={<Button variant="outline" type="button" />}>
               Cancel
             </DialogClose>
-            <Button type="submit">{runs ? "Add" : "Propose"}</Button>
+            <Button type="submit" data-testid="add-submit">
+              {runs ? "Add" : "Propose"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

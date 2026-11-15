@@ -62,6 +62,7 @@ export function RoomMenu({
               variant="ghost"
               size="icon-sm"
               aria-label="More for this room"
+              data-testid="room-menu"
               title="More"
             />
           }
@@ -89,6 +90,7 @@ export function RoomMenu({
           </DropdownMenuItem>
           {settings.In && (
             <DropdownMenuItem
+              data-testid="room-mute"
               onClick={() =>
                 void post(`${room}/mute`, {
                   mute: settings.Muted ? "off" : "on",
@@ -101,6 +103,7 @@ export function RoomMenu({
           )}
           {settings.Runs && !page.Instance.Direct && (
             <DropdownMenuItem
+              data-testid="room-archive"
               onClick={() =>
                 settings.Archived
                   ? void post(`${room}/archive`, { archive: "off" })
@@ -155,7 +158,7 @@ export function RoomMenu({
         open={Boolean(asking)}
         onOpenChange={(open) => !open && setAsking(undefined)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent data-testid="room-confirm">
           <AlertDialogHeader>
             <AlertDialogTitle>{asking?.title}</AlertDialogTitle>
             <AlertDialogDescription>{asking?.words}</AlertDialogDescription>
@@ -163,6 +166,7 @@ export function RoomMenu({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
+              data-testid="room-confirm-action"
               variant={
                 asking?.doing === "Delete room" ? "destructive" : "default"
               }

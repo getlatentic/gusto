@@ -58,6 +58,7 @@ export function ChoiceSelect({
       <SelectTrigger
         size="sm"
         aria-label={`${label}: ${chosen?.label ?? "none"}`}
+        data-testid={`choose-${label.toLowerCase()}`}
         title={fixedBy || undefined}
         className="max-w-60 rounded-full border-0 bg-transparent text-xs font-medium text-muted-foreground shadow-none hover:bg-hover hover:text-foreground data-[popup-open]:bg-hover [&>svg:last-child]:hidden"
       >
@@ -74,6 +75,8 @@ export function ChoiceSelect({
               <SelectItem
                 key={choice.value}
                 value={choice.value}
+                data-testid="choice-option"
+                data-value={choice.value}
                 className="items-start py-2"
               >
                 {choice.icon && <AgentIcon src={choice.icon} />}

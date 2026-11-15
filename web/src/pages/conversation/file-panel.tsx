@@ -48,6 +48,7 @@ export function FilePanel({
   return (
     <aside
       aria-label="Files from this chat"
+      data-testid="file-panel"
       className="relative flex min-h-0 min-w-0 flex-none flex-col border-l bg-surface max-[72rem]:hidden"
       style={{ width: `${width}rem` }}
     >
@@ -109,6 +110,7 @@ export function FilePanel({
       ) : (
         <iframe
           key={current}
+          data-testid="file-frame"
           title={open.find((file) => file.href === current)?.name ?? "File"}
           src={`${current}&embed=1`}
           className="min-h-0 w-full flex-1 border-0"

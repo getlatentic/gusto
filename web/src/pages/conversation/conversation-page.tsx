@@ -98,6 +98,7 @@ function Conversation({ page }: { page: ConversationData }) {
         >
           <PageBar
             title={page.Named}
+            titleTestId="conversation-title"
             lead={
               direct && (
                 <span

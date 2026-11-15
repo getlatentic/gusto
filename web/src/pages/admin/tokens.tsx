@@ -58,7 +58,7 @@ export function TokensPage() {
     <>
       <PageBar title="API tokens">
         {page && page.Tokens.length > 0 && !making && (
-          <Button onClick={() => setMaking(true)}>
+          <Button data-testid="new-token" onClick={() => setMaking(true)}>
             <PlusIcon /> New token
           </Button>
         )}
@@ -99,7 +99,10 @@ function Secret({ made }: { made: MadeToken }) {
         <p className="m-0">
           Copy it now. This page is the only place it is ever shown.
         </p>
-        <code className="block overflow-x-auto rounded-sm bg-muted px-3 py-2 font-mono text-sm">
+        <code
+          data-testid="token-secret"
+          className="block overflow-x-auto rounded-sm bg-muted px-3 py-2 font-mono text-sm"
+        >
           {made.Secret}
         </code>
         <p className="m-0 text-muted-foreground">
@@ -150,6 +153,7 @@ function MakeToken({
             <Label htmlFor="token-name">Name</Label>
             <Input
               id="token-name"
+              data-testid="token-name"
               name="name"
               placeholder="ci-nightly"
               pattern="[a-z0-9][a-z0-9\-]*"
@@ -170,7 +174,7 @@ function MakeToken({
             ))}
           </fieldset>
           <div>
-            <Button type="submit" disabled={sending}>
+            <Button type="submit" disabled={sending} data-testid="make-token">
               Make token
             </Button>
           </div>
@@ -205,7 +209,7 @@ function Tokens({ tokens }: { tokens: TokenRow[] }) {
           </TableHeader>
           <TableBody>
             {tokens.map((token) => (
-              <TableRow key={token.ID}>
+              <TableRow key={token.ID} data-testid="token-row">
                 <TableCell className="font-medium whitespace-nowrap">
                   {token.Name}
                 </TableCell>

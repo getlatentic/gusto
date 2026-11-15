@@ -90,6 +90,7 @@ export function MentionBox({
       </div>
       <textarea
         ref={box}
+        data-testid="message-box"
         name="said"
         value={text}
         rows={1}
@@ -134,6 +135,7 @@ function MentionMenu({
   return (
     <ul
       id="mention-menu"
+      data-testid="mention-menu"
       role="listbox"
       aria-label="Mention"
       className="absolute bottom-full left-0 z-30 mb-3 grid w-80 max-w-full list-none gap-0.5 rounded-lg border bg-popover p-1 shadow-md"
@@ -150,6 +152,7 @@ function MentionMenu({
           )}
           <span
             id={`mention-${index}`}
+            data-testid="mention-option"
             role="option"
             aria-selected={index === active}
             className={cn(

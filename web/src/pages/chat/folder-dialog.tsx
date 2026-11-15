@@ -64,7 +64,10 @@ export function FolderDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="grid h-[min(34rem,100%)] w-[min(48rem,100%)] max-w-none grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:max-w-none">
+      <DialogContent
+        data-testid="folder-dialog"
+        className="grid h-[min(34rem,100%)] w-[min(48rem,100%)] max-w-none grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:max-w-none"
+      >
         <DialogHeader className="px-5 pt-4 pb-3">
           <DialogTitle>Choose a folder</DialogTitle>
         </DialogHeader>
@@ -185,6 +188,7 @@ function Browser({
           <Button
             variant="outline"
             size="sm"
+            data-testid="new-folder"
             onClick={() => move({ type: "make" })}
           >
             {shown.at ? "New Folder" : "New Project"}
@@ -210,6 +214,7 @@ function Browser({
           </Button>
           <Button
             size="sm"
+            data-testid="choose-folder"
             disabled={!chosenPlace(state)}
             onClick={() => void choose()}
           >
@@ -484,6 +489,7 @@ function NewFolder({
           maxLength={80}
           placeholder={top ? "New project" : "New folder"}
           aria-label="Name of the new folder"
+          data-testid="new-folder-name"
           aria-invalid={Boolean(problem) || undefined}
           aria-describedby={problem ? "new-folder-problem" : undefined}
           className="h-8"

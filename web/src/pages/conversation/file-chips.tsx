@@ -38,6 +38,7 @@ function Chip({
     <a
       href={href}
       title={chip.Path}
+      data-testid="file-chip"
       className="inline-flex h-8 max-w-full min-w-0 items-center gap-2 rounded-md border border-input bg-surface px-3 text-sm text-foreground no-underline hover:bg-muted [&>svg]:size-4 [&>svg]:flex-none [&>svg]:text-subtle"
       onClick={(event) => {
         if (onOpen(href, chip.Name)) event.preventDefault()

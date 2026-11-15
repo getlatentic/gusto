@@ -25,7 +25,11 @@ export function ProjectGroups({
   return (
     <ul className="m-0 grid list-none gap-px p-0">
       {groups.map((group, index) => (
-        <li key={group.ID} className="group/proj relative min-w-0">
+        <li
+          key={group.ID}
+          className="group/proj relative min-w-0"
+          data-testid="side-project"
+        >
           <Collapsible defaultOpen={isOpen(group, index, here)}>
             <CollapsibleTrigger
               className="flex min-h-9 w-full cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent py-1 pr-8 pl-3 text-left text-sm font-medium text-foreground hover:bg-hover [&>svg]:size-4 [&>svg]:flex-none [&>svg]:text-subtle"
@@ -47,6 +51,7 @@ export function ProjectGroups({
                   <li key={chat.Where}>
                     <AppLink
                       href={chat.Where}
+                      data-testid="side-row"
                       className={cn(sideItem, "pl-9")}
                       aria-current={chat.Where === here ? "page" : undefined}
                       title={chat.Name}

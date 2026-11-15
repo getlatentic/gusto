@@ -12,12 +12,14 @@ export function PageBar({
   title,
   lead,
   crumbs = [],
+  titleTestId = "page-title",
   children,
 }: {
   title: ReactNode
   // lead is drawn before the title, as the agent's mark is for a conversation with one agent.
   lead?: ReactNode
   crumbs?: { label: string; href: string }[]
+  titleTestId?: string
   children?: ReactNode
 }) {
   const navigation = useNavigation()
@@ -56,6 +58,7 @@ export function PageBar({
         )}
         {lead}
         <h1
+          data-testid={titleTestId}
           className="m-0 min-w-0 truncate font-sans text-sm font-semibold"
           title={typeof title === "string" ? title : undefined}
         >

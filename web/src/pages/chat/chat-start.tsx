@@ -90,7 +90,12 @@ export function ChatStart({ page }: { page: ChatData }) {
   }
   return (
     <div className="flex w-full max-w-208 flex-col">
-      <form method="post" action="/chat" className="order-2">
+      <form
+        method="post"
+        action="/chat"
+        className="order-2"
+        data-testid="new-chat-box"
+      >
         <input type="hidden" name="choice" value={choices.preset} />
         <input type="hidden" name="role" value={roleOf(offer, choices)} />
         <input type="hidden" name="harness" value={choices.harness} />

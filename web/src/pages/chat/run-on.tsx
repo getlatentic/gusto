@@ -27,6 +27,7 @@ export function RunOn({
       className="max-w-[min(22rem,100%)] min-w-0 rounded-full text-xs font-medium text-muted-foreground"
       aria-expanded={open}
       aria-controls="chat-choices"
+      data-testid="run-on"
       aria-label={words}
       title={words}
       onClick={onToggle}

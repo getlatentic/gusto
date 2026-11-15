@@ -64,6 +64,7 @@ export function SideList({
         keepTab(next)
       }}
       className="flex min-h-0 flex-1 flex-col gap-2"
+      data-testid="side-list"
     >
       <TabsList
         aria-label="Which conversations"
@@ -174,7 +175,11 @@ function Home({
           <Rows chats={rail.Direct ?? []} here={here} onGo={onGo} empty="" />
         </section>
       )}
-      <section aria-labelledby="side-rooms" className="grid gap-px">
+      <section
+        aria-labelledby="side-rooms"
+        className="grid gap-px"
+        data-testid="side-rooms"
+      >
         <header className="flex h-9 items-center justify-between pr-1 pl-3">
           <h2 id="side-rooms" className="m-0 text-sm font-semibold">
             Rooms
@@ -194,7 +199,10 @@ function Home({
         )}
       </section>
       {archived.length > 0 && (
-        <Collapsible defaultOpen={holds(archived, here)}>
+        <Collapsible
+          defaultOpen={holds(archived, here)}
+          data-testid="side-archived"
+        >
           <CollapsibleTrigger
             className={`${sideItem} cursor-pointer justify-between border-0 bg-transparent`}
           >

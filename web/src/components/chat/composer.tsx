@@ -68,6 +68,7 @@ export function Composer({
       {field ?? (
         <textarea
           ref={boxRef}
+          data-testid="message-box"
           name="said"
           rows={1}
           aria-label={label}
@@ -91,6 +92,7 @@ export function Composer({
         {actions}
         <Button
           type="submit"
+          data-testid="send"
           size="icon-sm"
           className="rounded-full"
           disabled={!canSend}
