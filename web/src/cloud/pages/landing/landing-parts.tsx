@@ -26,9 +26,21 @@ export function Cta({
   )
 }
 
-export function StartCta({ className }: { className?: string }) {
+// StartCta leads a visitor to sign up, and a person already signed in into gusto.
+export function StartCta({
+  page,
+  className,
+}: {
+  page: CloudPage
+  className?: string
+}) {
   return (
-    <Cta solid href="/signup" className={className} data-testid="start">
+    <Cta
+      solid
+      href={page.SignedIn ? "/app" : "/signup"}
+      className={className}
+      data-testid="start"
+    >
       Get started
     </Cta>
   )
