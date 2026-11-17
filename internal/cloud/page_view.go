@@ -39,17 +39,12 @@ type pageView struct {
 	Workspaces []spaceView
 	Link       string
 
-	DemoLeft, DemoLeftLong             string
-	DemoWords                          string
-	Steps                              []Step
-	Book, BookFrame, TurnstileSite     string
-	Extendable, Ended, Ending          bool
-	DemoPublic                         bool
-	StartingCredit                     float64
-	Video, VideoPoster, Shot, ShotDark string
-	VideoFile                          bool
-	// Record is the landing page's picture of what one reply cost, light and dark.
-	Record, RecordDark string
+	DemoLeft, DemoLeftLong         string
+	DemoWords                      string
+	Steps                          []Step
+	Book, BookFrame, TurnstileSite string
+	Extendable, Ended, Ending      bool
+	StartingCredit                 float64
 
 	Lease *leaseView
 }
@@ -106,8 +101,7 @@ func pageOf(name string, v view) pageView {
 		Computers: v.Computers, Server: v.Server, CanOpen: v.CanOpen,
 		Admins: v.Admins, IsAdmin: v.IsAdmin, CanInvite: v.CanInvite, Link: v.Link,
 		DemoWords: v.DemoWords, Steps: v.Steps, Book: v.Book, BookFrame: v.BookFrame, TurnstileSite: v.TurnstileSite,
-		Extendable: v.Extendable, Ended: v.Ended, Ending: v.Ending, DemoPublic: v.DemoPublic, StartingCredit: v.StartingCredit,
-		Video: v.Video, VideoPoster: v.VideoPoster, Shot: v.Shot, ShotDark: v.ShotDark, VideoFile: v.VideoFile,
+		Extendable: v.Extendable, Ended: v.Ended, Ending: v.Ending, StartingCredit: v.StartingCredit,
 	}
 	page.addPeople(v)
 	if v.DemoLeft > 0 {
@@ -115,9 +109,6 @@ func pageOf(name string, v view) pageView {
 	}
 	if name == "lease" {
 		page.Lease = leaseOf(v)
-	}
-	if name == "landing" {
-		page.Record, page.RecordDark = fingerprinted("/static/shots/record-light.webp"), fingerprinted("/static/shots/record-dark.webp")
 	}
 	return page
 }

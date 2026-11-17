@@ -111,13 +111,6 @@ export interface CloudPage {
   Ending: boolean
   DemoPublic: boolean
   StartingCredit: number
-  Video: string
-  VideoPoster: string
-  Shot: string
-  ShotDark: string
-  VideoFile: boolean
-  Record: string
-  RecordDark: string
 
   Lease: { Left: string; Ends: string; Step: string; CanExtend: boolean } | null
 }

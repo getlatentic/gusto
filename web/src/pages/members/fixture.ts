@@ -95,7 +95,6 @@ export function agentPageOf(
   change: (page: AgentData) => void = () => {}
 ): AgentData {
   const page: AgentData = {
-    ...membersOf(),
     Agent: agentOf(),
     Apps: null,
     Skills: {
@@ -108,6 +107,7 @@ export function agentPageOf(
       Skills: [],
     },
     Rooms: [{ Name: "Launch", Where: "/instances/r1/threads/t1" }],
+    Refused: "",
   }
   change(page)
   return page
@@ -117,11 +117,11 @@ export function personPageOf(
   change: (page: PersonData) => void = () => {}
 ): PersonData {
   const page: PersonData = {
-    ...membersOf(),
     Person: ada,
     Bio: { Text: "I run launches.", Mine: true, Max: 1000 },
     Rooms: [{ Name: "Launch", Where: "/instances/r1/threads/t1" }],
     Made: [atlas],
+    Refused: "",
   }
   change(page)
   return page

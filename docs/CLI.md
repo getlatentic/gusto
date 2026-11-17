@@ -959,7 +959,6 @@ Environment:
 - `GUSTO_CLOUD_DEMO_PER_PERSON`: the most demos one address may start in a day, until the operator's page sets it (default 2)
 - `GUSTO_CLOUD_DEMO_PER_COMPANY`: the most demos one company may start in a day, until the operator's page sets it (default 6)
 - `GUSTO_CLOUD_BOOK_URL`: where a visitor books a call
-- `GUSTO_CLOUD_DEMO_VIDEO`: the video the landing page shows: an https address of a file or of a page to embed
 - `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo
 - `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
 - `GUSTO_CLOUD_STRIPE_KEY`: the Stripe secret API key organizations are billed by the seat with; the key, the price and the webhook secret are set together or not at all
@@ -1113,7 +1112,6 @@ Environment:
 - `GUSTO_CLOUD_DEMO_PER_PERSON`: the most demos one address may start in a day, until the operator's page sets it (default 2)
 - `GUSTO_CLOUD_DEMO_PER_COMPANY`: the most demos one company may start in a day, until the operator's page sets it (default 6)
 - `GUSTO_CLOUD_BOOK_URL`: where a visitor books a call
-- `GUSTO_CLOUD_DEMO_VIDEO`: the video the landing page shows: an https address of a file or of a page to embed
 - `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo
 - `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
 - `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH was its name

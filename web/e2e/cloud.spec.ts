@@ -20,14 +20,14 @@ async function signUp(page: Page, email: string) {
 }
 
 test.describe("gusto cloud", () => {
-  test("the landing page says what gusto is and leads to a demo and a call", async ({
+  test("the landing page says what gusto is and leads to sign-up and a call", async ({
     page,
   }) => {
     await page.goto(cloudURL)
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "One workspace for every AI agent your team uses.",
+        name: "Bring your team and AI agents together.",
       })
     ).toBeVisible()
     await expect(page).toHaveTitle(/gusto/)
@@ -37,16 +37,15 @@ test.describe("gusto cloud", () => {
     )
     await expect(page.getByTestId("start").first()).toHaveAttribute(
       "href",
-      "/demo"
+      "/signup"
     )
     await expect(page.getByTestId("book").first()).toHaveAttribute(
       "href",
       bookURL
     )
-    await page.getByRole("button", { name: "Agents" }).click()
-    await expect(
-      page.getByTestId("works-with").getByRole("listitem")
-    ).toHaveCount(6)
+    await expect(page.getByTestId("agents").getByRole("listitem")).toHaveCount(
+      6
+    )
     await page.getByTestId("sign-in").click()
     await expect(page).toHaveURL(`${cloudURL}/signin`)
   })

@@ -6,9 +6,9 @@ gusto runs as a service of one person, on the loopback, in a folder of their own
 
 ```bash
 # macOS and Linux
-curl -fsSL https://github.com/getlatentic/gusto/releases/latest/download/install.sh | sh
+curl -fsSL https://gusto.getlatentic.com/install.sh | sh
 # Windows, in PowerShell (in the Command Prompt, run it through: powershell -ExecutionPolicy ByPass -c "...")
-irm https://github.com/getlatentic/gusto/releases/latest/download/install.ps1 | iex
+irm https://gusto.getlatentic.com/install.ps1 | iex
 ```
 
 The script installs `gusto` and `gusto-helper` ([DESKTOP.md](DESKTOP.md#installing-the-helper)). It runs `gusto local install`, which makes gusto a service that starts at login, starts it, and opens it in the browser, signed in. `GUSTO_NO_START=1` installs without starting. While the releases are private, the script needs the GitHub command line, signed in. The desktop app uses this gusto when no organization is set ([desktop/README.md](../desktop/README.md)).

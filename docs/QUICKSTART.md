@@ -8,13 +8,13 @@ running on the same computer.
 macOS and Linux:
 
 ```bash
-curl -fsSL https://github.com/getlatentic/gusto/releases/download/v0.1.0-rc.2/install.sh | sh -s -- v0.1.0-rc.2
+curl -fsSL https://gusto.getlatentic.com/install.sh | sh
 ```
 
 Windows, in PowerShell:
 
 ```powershell
-$env:GUSTO_TAG = "v0.1.0-rc.2"; irm https://github.com/getlatentic/gusto/releases/download/v0.1.0-rc.2/install.ps1 | iex
+irm https://gusto.getlatentic.com/install.ps1 | iex
 ```
 
 It puts gusto in `~/.local/bin` (Windows: `%LOCALAPPDATA%\gusto`), starts it as a service that runs at login, and opens it in your browser, signed in.

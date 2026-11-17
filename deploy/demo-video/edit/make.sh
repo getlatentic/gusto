@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Edits the recording into a video for a landing page whose operator sets one (GUSTO_CLOUD_DEMO_VIDEO): the camera moves in on what each caption is about, captions are
+# Edits the recording into a demo video: the camera moves in on what each caption is about, captions are
 # drawn over it, and a title and an end card are added. Run record.mjs with CAPTIONS=off, then ../encode.sh, first.
 # Writes out/demo.mp4 (1920 by 1080) and, with MASTER=1, out/demo-4k.mp4 (3840 by 2160), and out/poster.jpg.
 set -euo pipefail

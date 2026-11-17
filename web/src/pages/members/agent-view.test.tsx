@@ -2,14 +2,22 @@ import { fireEvent, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import { agentOf, agentPageOf } from "@/pages/members/fixture"
-import { MembersPage } from "@/pages/members/members-page"
+import {
+  agentOf,
+  agentPageOf,
+  membersOf,
+  personPageOf,
+} from "@/pages/members/fixture"
+import { membersRoute } from "@/pages/members/members-routes"
 import type { AgentApp, AgentData } from "@/pages/members/types"
-import { renderPage } from "@/test/render"
+import { renderRoutes } from "@/test/render"
 
 function draw(page: AgentData, query = "") {
   const at = `/members/agents/a1${query}`
-  return renderPage(at, "/members/*", <MembersPage />, { [at]: page })
+  return renderRoutes(at, membersRoute, {
+    "/members": membersOf(),
+    [at]: page,
+  })
 }
 
 const field = (form: Element, name: string) =>
@@ -327,9 +335,38 @@ describe("the apps tab", () => {
 
 describe("a missing agent", () => {
   it("says there is nothing here", async () => {
-    renderPage("/members/agents/gone", "/members/*", <MembersPage />, {})
+    renderRoutes("/members/agents/gone", membersRoute, {
+      "/members": membersOf(),
+    })
     expect((await screen.findByRole("alert")).textContent).toBe(
       "There is nothing here."
     )
+    expect(screen.getByTestId("members-list")).toBeTruthy()
+  })
+})
+
+describe("the members layout", () => {
+  it("reads the list once while whoever is open beside it changes", async () => {
+    const drawn = renderRoutes("/members/agents/a1", membersRoute, {
+      "/members": membersOf(),
+      "/members/agents/a1": agentPageOf(),
+      "/members/people/ada@acme.com": personPageOf(),
+    })
+    await screen.findByTestId("agent-page")
+    const list = screen.getByTestId("members-list")
+    fireEvent.click(
+      within(list)
+        .getAllByTestId("member-row")
+        .find(
+          (row) => row.getAttribute("href") === "/members/people/ada@acme.com"
+        )!
+    )
+    await screen.findByTestId("person-page")
+    expect(screen.getByTestId("members-list")).toBe(list)
+    expect(drawn.asked).toEqual([
+      "/app/api/members",
+      "/app/api/members/agents/a1",
+      "/app/api/members/people/ada@acme.com",
+    ])
   })
 })

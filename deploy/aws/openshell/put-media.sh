@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Puts files where the front door serves them, at https://<demo name>/media/<file name>: the bucket's media/, which the
-# front door copies at its next upgrade. The landing page's video is one, named in demo.env as DEMO_VIDEO_URL.
+# front door copies at its next upgrade.
 #   ./put-media.sh gusto-demo.mp4
 set -euo pipefail
 source "$(dirname "$0")/env.sh"

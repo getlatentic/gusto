@@ -94,9 +94,7 @@ type view struct {
 	Book       string
 	Extendable bool
 	Ended      bool
-	// DemoPublic says a visitor may start a demo; where only the team gives them, the landing page leads to sign-up, with the
-	// StartingCredit an organization begins with.
-	DemoPublic     bool
+	// StartingCredit is what an organization begins with, which the landing page offers to whoever signs up.
 	StartingCredit float64
 	// BookFrame is the booking page shown in the page, where the booking service may be framed, and Wide gives a page the room
 	// for it.
@@ -106,16 +104,8 @@ type view struct {
 	Console bool
 	// Ending is a demo that has been stopped and is being deleted.
 	Ending bool
-	// Video is the landing page's video, and VideoFile says it is a file and not a page to embed. Shot is the picture shown when there is no video.
-	Video string
-	Shot  string
-	// ShotDark is the picture shown instead of Shot where the visitor prefers a dark page.
-	ShotDark string
 	// TurnstileSite is the public key of the bot check, which the demo form carries when there is one.
 	TurnstileSite string
-	VideoFile     bool
-	// VideoPoster is the picture a video file is shown with before it plays.
-	VideoPoster string
 	// Name is who a demo is for.
 	Name string
 }

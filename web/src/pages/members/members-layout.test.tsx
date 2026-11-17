@@ -2,14 +2,12 @@ import { fireEvent, screen, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it } from "vitest"
 
 import { kindOf, membersOf } from "@/pages/members/fixture"
-import { MembersPage } from "@/pages/members/members-page"
+import { membersRoute } from "@/pages/members/members-routes"
 import type { MembersData } from "@/pages/members/types"
-import { renderPage } from "@/test/render"
-
-const route = "/members/*"
+import { renderRoutes } from "@/test/render"
 
 function draw(page: MembersData, at = "/members") {
-  return renderPage(at, route, <MembersPage />, { [at]: page })
+  return renderRoutes(at, membersRoute, { [at]: page })
 }
 
 const field = (form: Element, name: string) =>
