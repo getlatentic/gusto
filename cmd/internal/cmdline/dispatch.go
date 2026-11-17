@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/getlatentic/gusto/internal/settings"
 )
 
 // Run is the program: it finds the command the arguments name and runs it, and answers help, a wrong name and a wrong
@@ -45,6 +47,11 @@ func (p *Program) dispatch(chain []*Command, rest []string) int {
 	}
 	if command.Run == nil {
 		return p.usageError(chain, "needs one of: "+strings.Join(names(command.Subs), ", "))
+	}
+	// The table declared every command's settings when it was made, so the file is read against all of them.
+	if err := settings.ApplyFile(os.Getenv, os.Setenv); err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", p.Name, err)
+		return 1
 	}
 	return command.Run(rest)
 }

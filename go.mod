@@ -4,6 +4,7 @@ go 1.26.8
 
 require (
 	fyne.io/systray v1.12.2
+	github.com/BurntSushi/toml v1.5.0
 	github.com/aws/aws-sdk-go-v2 v1.47.4
 	github.com/aws/aws-sdk-go-v2/config v1.33.6
 	github.com/aws/aws-sdk-go-v2/service/kms v1.61.1

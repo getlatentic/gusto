@@ -63,6 +63,10 @@ gusto runs the AI agents you already use, each in a sandbox, on a task.
 - `0`: success
 - `1`: failure, including a check that failed
 - `2`: usage error
+## Settings file
+
+Every setting a command lists under Environment, except a secret, may be written in a TOML file named by `GUSTO_SETTINGS_FILE`. A setting's key there is its name without `GUSTO_`, in lower case: `GUSTO_CLOUD_URL` is `cloud_url`. A value is a string, a whole number, `true` or `false`, or a list of strings. A setting in the environment is read over the same one in the file. A secret, a key that is no setting, or an old name in the file stops the command.
+
 
 ## `gusto new`
 

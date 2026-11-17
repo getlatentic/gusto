@@ -250,6 +250,24 @@ docker build -t gusto:dev \
 
 `gusto serve` reads every setting it uses when it starts, and a value that does not read, such as a word where a number goes, stops it with the setting's name. `gusto help serve` lists them all with their defaults.
 
+### Settings file
+
+Keep the settings that are not secret in a TOML file, and name it with `GUSTO_SETTINGS_FILE`. Keep secrets, such as `GUSTO_PASSWORD` and `GUSTO_MODEL_KEY`, in the environment.
+
+- A setting's key is its name without `GUSTO_`, in lower case: `GUSTO_TASK_CONCURRENCY` is `task_concurrency`.
+- A value is a string, a whole number, `true` or `false`, or a list of strings.
+- A setting in the environment is read over the same one in the file.
+- One file may hold the settings of every gusto command on a host. A key that no gusto setting has stops the command, and so does a secret or an old name. A file that `GUSTO_SETTINGS_FILE` names and that is not there stops it too.
+
+```toml
+# /etc/gusto/serve.toml, with GUSTO_SETTINGS_FILE=/etc/gusto/serve.toml
+addr = "0.0.0.0:8040"
+tasks = "/var/lib/gusto/tasks"
+task_concurrency = 4
+models = ["anthropic/claude-sonnet-5-5", "openai/gpt-5"]
+behind_proxy = true
+```
+
 | Name | What it does |
 | --- | --- |
 | `GUSTO_HARNESSES` | a directory of adapter files that override the built-in ones |

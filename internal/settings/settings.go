@@ -48,6 +48,7 @@ func (s *Set) declare(e *entry) {
 	}
 	s.entries = append(s.entries, e)
 	s.byName[e.name] = e
+	remember(e)
 }
 
 // Renamed says that the setting declared as is was called was. A value set under the old name is refused, naming the new one,
@@ -59,6 +60,7 @@ func (s *Set) Renamed(is, was string) {
 		panic("settings: " + is + " is not declared, or was renamed already")
 	}
 	e.was = was
+	remember(e)
 }
 
 // String is a setting of any text, with fallback when it is not set.
