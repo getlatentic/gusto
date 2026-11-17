@@ -58,6 +58,7 @@ func (r cloudRecords) accounts() cloud.Settings {
 // frontSettings is where gusto cloud listens and is reached, how it sends mail, and what it asks of a visitor.
 type frontSettings struct {
 	addr, url, domain, orgsAt       string
+	appsDomain                      string
 	trustProxy                      bool
 	mail, mailToken                 string
 	leaseFile                       string
@@ -73,6 +74,9 @@ func (f *frontSettings) declare(set *settings.Set) {
 	set.String(&f.url, "GUSTO_CLOUD_URL", "", "the address links in mail begin with, such as https://cloud.example.com (default http:// and GUSTO_CLOUD_ADDR)")
 	set.String(&f.domain, "GUSTO_CLOUD_DOMAIN", "localhost", "the domain organizations are served under, as <slug>.<domain>, "+
 		"when GUSTO_CLOUD_ORGS_AT is host")
+	set.String(&f.appsDomain, "GUSTO_CLOUD_APPS_DOMAIN", "", "the domain shared apps are served under, as <slug>--<app>.<domain>, "+
+		"which needs a wildcard name and certificate; a domain of its own, such as example-apps.com for cloud.example.com, keeps "+
+		"an app's pages from setting a cookie gusto's own pages are sent (default GUSTO_CLOUD_DOMAIN)")
 	set.Choice(&f.orgsAt, "GUSTO_CLOUD_ORGS_AT", "path", []string{"path", "host"}, "where each organization is reached: path is "+
 		"/workspace/<slug> on GUSTO_CLOUD_URL's own name; host is <slug>.<domain>, which keeps each organization's pages apart in the browser "+
 		"and needs a wildcard name and certificate")

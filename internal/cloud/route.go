@@ -60,7 +60,7 @@ func (s *Server) appHost(host string) (slug, id string, ok bool) {
 	if name, _, err := net.SplitHostPort(host); err == nil {
 		host = name
 	}
-	label, found := strings.CutSuffix(strings.ToLower(host), "."+s.Domain)
+	label, found := strings.CutSuffix(strings.ToLower(host), "."+s.AppsDomain)
 	if !found || strings.Contains(label, ".") {
 		return "", "", false
 	}
@@ -73,11 +73,18 @@ func (s *Server) appHost(host string) (slug, id string, ok bool) {
 
 // appURL is the address of a shared app as a browser reaches it.
 func (s *Server) appURL(slug, id string) string {
-	host := slug + "--" + id + "." + s.Domain
-	if port := s.URL.Port(); port != "" {
+	apps, _ := url.Parse(AppsAddress(s.URL, s.AppsDomain))
+	return apps.Scheme + "://" + slug + "--" + id + "." + apps.Host
+}
+
+// AppsAddress is where shared apps are, with no app's name in front: the domain they are served under, with gusto cloud's
+// own scheme and port.
+func AppsAddress(public *url.URL, appsDomain string) string {
+	host := appsDomain
+	if port := public.Port(); port != "" {
 		host += ":" + port
 	}
-	return s.URL.Scheme + "://" + host
+	return public.Scheme + "://" + host
 }
 
 // orgURL is the address of an organization's server as a browser reaches it.

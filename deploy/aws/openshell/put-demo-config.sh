@@ -13,6 +13,7 @@ import json, os, urllib.parse
 mail = "cloudflare://%s?from=%s" % (os.environ["DEMO_ACCOUNT_ID"], urllib.parse.quote(os.environ["DEMO_MAIL_FROM"]))
 print(json.dumps({
     "demo_name": os.environ["DEMO_NAME"], "demo_zone": os.environ["DEMO_ZONE"], "demo_mail": mail,
+    "demo_apps_name": os.environ.get("DEMO_APPS_NAME", ""), "demo_apps_zone": os.environ.get("DEMO_APPS_ZONE", ""),
     "demo_cert_email": os.environ["DEMO_CERT_EMAIL"], "demo_free_mail": os.environ.get("DEMO_FREE_MAIL", "allow"),
     "demo_models": os.environ.get("DEMO_MODELS", "gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b,deepseek/deepseek-flash,meta/muse-spark-1.3"),
     "demo_computer_memory": os.environ.get("DEMO_COMPUTER_MEMORY", "3Gi"),

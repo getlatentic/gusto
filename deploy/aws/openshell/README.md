@@ -168,14 +168,16 @@ workflows described in `../platform/README.md`.
 
 
 `demo-up.sh` makes a host that serves the public cloud at `https://<name>` for the front
-door and `https://<name>/workspace/<slug>` for each organization, with a certificate and mail that
-arrive. An old link to `https://<slug>.<name>` is sent on to the organization's path. It costs nothing beyond the host: DNS records are not proxied through Cloudflare,
+door, `https://<name>/workspace/<slug>` for each organization, and `https://<slug>--<app>.<apps name>`
+for each app a person shares, with a certificate and mail that arrive. The apps name is `DEMO_APPS_NAME`
+in `demo.env`, a domain of its own in the Cloudflare zone `DEMO_APPS_ZONE`, and `<name>` when it is empty. An old link to
+`https://<slug>.<name>` is sent on to the organization's path. It costs nothing beyond the host: DNS records are not proxied through Cloudflare,
 Let's Encrypt is free, and the store bucket costs cents.
 
 | Piece | How |
 | --- | --- |
-| Name | An A record for `<name>` and one for `*.<name>`, set by `gusto-dns` when the host starts, 60 s TTL. |
-| Certificate | Let's Encrypt, for `<name>` and `*.<name>`, by a DNS challenge through Cloudflare. It is kept in the store bucket and reused until it has under 30 days left. |
+| Name | An A record for `<name>` and one for `*.<name>`, and the same for the apps name, set by `gusto-dns` when the host starts, 60 s TTL. The DNS token must be able to edit both zones. |
+| Certificate | Let's Encrypt, for `<name>` and `*.<name>`, and one for the apps name and every name under it, by a DNS challenge through Cloudflare. Each is kept in the store bucket and reused until it has under 30 days left. |
 | Web server | nginx on the host passes to gusto cloud on `127.0.0.1:8050`, and answers no name that is not this one. |
 | Mail | Cloudflare Email Sending, `GUSTO_CLOUD_MAIL=cloudflare://<account id>?from=...`. |
 | Image | Built on the first run, ten minutes, and kept in the store bucket. |

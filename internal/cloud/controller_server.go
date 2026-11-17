@@ -106,6 +106,7 @@ func (c *Controller) serverSettings(slug, name string, runtime Runtime, node Nod
 		"GUSTO_ORG":        slug,
 		"GUSTO_ORG_NAME":   name,
 		"GUSTO_CLOUD_URL":  c.CloudURL,
+		"GUSTO_APPS_URL":   c.AppsURL,
 		"GUSTO_NODE":       node.Name(),
 	}
 }

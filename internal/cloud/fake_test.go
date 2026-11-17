@@ -66,7 +66,7 @@ func fakeOrgServer() {
 			"path": r.URL.RequestURI(), "prefix": r.Header.Get("X-Forwarded-Prefix"),
 			"jobs": os.Getenv("GUSTO_TASKS"), "quota": os.Getenv("GUSTO_QUOTA"), "members": os.Getenv("GUSTO_MEMBERS"), "inbox": os.Getenv("GUSTO_INBOX"), "orgSettings": os.Getenv("GUSTO_ORG_SETTINGS"), "home": os.Getenv("HOME"),
 			"entryKey": os.Getenv("GUSTO_ENTRY_KEY"), "signingKey": os.Getenv("GUSTO_SIGNING_KEY"),
-			"proxyAddr": os.Getenv("GUSTO_PROXY_ADDR"), "front": os.Getenv("GUSTO_CLOUD_URL"), "orgName": os.Getenv("GUSTO_ORG_NAME"), "concurrency": os.Getenv("GUSTO_TASK_CONCURRENCY"),
+			"proxyAddr": os.Getenv("GUSTO_PROXY_ADDR"), "front": os.Getenv("GUSTO_CLOUD_URL"), "apps": os.Getenv("GUSTO_APPS_URL"), "orgName": os.Getenv("GUSTO_ORG_NAME"), "concurrency": os.Getenv("GUSTO_TASK_CONCURRENCY"),
 			"mailVisible": os.Getenv("GUSTO_CLOUD_MAIL") != "", "operatorSetting": os.Getenv("OPERATOR_SETTING"),
 		})
 	})

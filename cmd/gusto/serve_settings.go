@@ -108,7 +108,7 @@ type accessSettings struct {
 	scopes                                                []string
 	allowed, runnerGroups, adminGroups, admins            []string
 	foundKeys, localRepos                                 []string
-	cloudURL, entryKey, orgName                           string
+	cloudURL, appsURL, entryKey, orgName                  string
 }
 
 func (a *accessSettings) declare(set *settings.Set) {
@@ -126,6 +126,8 @@ func (a *accessSettings) declare(set *settings.Set) {
 	set.List(&a.localRepos, "GUSTO_LOCAL_REPOS", "the repositories on a person's own computer a task may start from")
 	set.String(&a.cloudURL, "GUSTO_CLOUD_URL", "", "the address of the gusto cloud that sends people here")
 	set.Renamed("GUSTO_CLOUD_URL", "GUSTO_FRONT_DOOR")
+	set.String(&a.appsURL, "GUSTO_APPS_URL", "", "where gusto cloud serves shared apps, as https://example-apps.com, each at "+
+		"<org>--<app> in front of its name (default GUSTO_CLOUD_URL)")
 	set.String(&a.entryKey, "GUSTO_ENTRY_KEY", "", "the file of the key gusto cloud signs a person's entry with")
 	set.String(&a.orgName, "GUSTO_ORG_NAME", "", "what the organization is called, which its pages show")
 }
