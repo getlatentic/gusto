@@ -71,6 +71,18 @@ lead_hook() {
   fi
 }
 
+# The OAuth client at Google that people sign in with, which the front door's own service reads as its environment. A host
+# without both parameters offers email alone, which a visitor sees as no Google button.
+google() {
+  local id secret
+  rm -f "$run/secrets/google.env"
+  if id=$(param "$GOOGLE_CLIENT_ID_PARAMETER" 2>/dev/null) && secret=$(param "$GOOGLE_SECRET_PARAMETER" 2>/dev/null) && [ -n "$id" ] && [ -n "$secret" ]; then
+    (umask 077; printf 'GUSTO_CLOUD_GOOGLE_CLIENT_ID=%s\nGUSTO_CLOUD_GOOGLE_SECRET=%s\n' "$id" "$secret" > "$run/secrets/google.env")
+  else
+    echo "gusto-boot: no Google sign-in, since $GOOGLE_CLIENT_ID_PARAMETER and $GOOGLE_SECRET_PARAMETER are not both stored"
+  fi
+}
+
 certificate() {
   local live=$le/live/$NAME fetched kept
   if [ ! -e "$live/fullchain.pem" ]; then
@@ -173,9 +185,9 @@ install -d -m 0755 "$run" "$lib"
 install -d -m 0700 "$run/secrets"
 case "$role" in
 all)
-  tokens; turnstile; lead_hook; certificate; image; credentials; lease; point_the_name_here ;;
+  tokens; turnstile; lead_hook; google; certificate; image; credentials; lease; point_the_name_here ;;
 orchestrator)
-  tokens; turnstile; lead_hook; cell_secret; certificate; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
+  tokens; turnstile; lead_hook; google; cell_secret; certificate; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
 cell)
   cell_secret; image; credentials; cell_identity
   echo "gusto-boot: this host is a host of gusto cloud" ;;

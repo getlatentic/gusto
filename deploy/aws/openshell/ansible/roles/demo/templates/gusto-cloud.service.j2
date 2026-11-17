@@ -15,6 +15,7 @@ EnvironmentFile=/etc/gusto/cloud.env
 EnvironmentFile=/run/gusto/secrets/mail.env
 EnvironmentFile=-/run/gusto/secrets/turnstile.env
 EnvironmentFile=-/run/gusto/secrets/leadhook.env
+EnvironmentFile=-/run/gusto/secrets/google.env
 ExecStart=/usr/local/bin/gusto cloud
 Restart={{ "always" if demo_live | bool else "on-failure" }}
 LimitNOFILE=65536

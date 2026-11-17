@@ -81,6 +81,7 @@ func newHost(t *testing.T) *host {
 		"MODEL_PARAMETER=/gusto/poc/model-key", "DEEPSEEK_PARAMETER=/gusto/poc/deepseek-key", "LEASE_MINUTES=30", "MAX_HOURS=4",
 		"CELL_SECRET_PARAMETER=/gusto/poc/cell-secret", "TURNSTILE_PARAMETER=/gusto/poc/turnstile-secret",
 		"LEAD_HOOK_URL_PARAMETER=/gusto/poc/lead-hook-url", "LEAD_HOOK_SECRET_PARAMETER=/gusto/poc/lead-hook-secret",
+		"GOOGLE_CLIENT_ID_PARAMETER=/gusto/poc/google-client-id", "GOOGLE_SECRET_PARAMETER=/gusto/poc/google-secret",
 	}, "\n")+"\n"), 0o644)
 	h.env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"GUSTO_CONF="+h.conf, "GUSTO_RUN="+filepath.Join(dir, "run"), "GUSTO_LE="+filepath.Join(dir, "le"), "GUSTO_LIB="+filepath.Join(dir, "lib"),

@@ -213,3 +213,35 @@ func TestTheLeadHooksAddressAndSecretAreKeptForGustoCloudAloneAndBothAreNeeded(t
 		t.Error("a cell, which runs other people's code, holds the lead hook")
 	}
 }
+
+func TestTheGoogleClientIsKeptForGustoCloudAloneAndBothItsPartsAreNeeded(t *testing.T) {
+	for _, role := range []string{"all", "orchestrator"} {
+		h := newHost(t)
+		h.put("image/key1.tar.gz", "x")
+		h.as(role)
+		if _, err := h.boot(); err != nil {
+			t.Fatal(err)
+		}
+		path := filepath.Join(h.dir, "run", "secrets", "google.env")
+		info, err := os.Stat(path)
+		want := "GUSTO_CLOUD_GOOGLE_CLIENT_ID=value-of-/gusto/poc/google-client-id\nGUSTO_CLOUD_GOOGLE_SECRET=value-of-/gusto/poc/google-secret\n"
+		if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, path) != want {
+			t.Errorf("%s: %v %v", role, info, err)
+		}
+		if _, err := h.boot("FAKE_MISSING=/gusto/poc/google-secret"); err != nil {
+			t.Fatalf("a host with no Google sign-in is still a host: %v", err)
+		}
+		if h.has("run/secrets/google.env") {
+			t.Errorf("%s: a client without its secret, or one no longer stored, is still on the host", role)
+		}
+	}
+	node := newHost(t)
+	node.put("image/key1.tar.gz", "x")
+	node.as("cell")
+	if _, err := node.boot(); err != nil {
+		t.Fatal(err)
+	}
+	if node.has("run/secrets/google.env") {
+		t.Error("a cell, which runs other people's code, holds the Google client's secret")
+	}
+}
