@@ -280,7 +280,7 @@ func (s *Server) demoLeaseJSON(ctx context.Context, w http.ResponseWriter, slug 
 // landing is what a visitor sees first: what gusto is, the product at work, and where to sign up or book a call. Everything
 // it shows is its own, so its policy opens nothing beyond this server.
 func (s *Server) landing(w http.ResponseWriter, signedIn bool) {
-	page := view{Title: landingTitle, Book: s.Store.set.Demo.BookURL, StartingCredit: StartingCredit, SignedIn: signedIn}
+	page := view{Title: landingTitle, Book: s.Store.set.Demo.BookURL, SignedIn: signedIn}
 	page = s.seen(page, "/", landingDescription)
 	page.LD = s.structured(landingDescription)
 	w.Header().Set("Content-Security-Policy",

@@ -34,6 +34,11 @@ export function DemoCursor({
     if (!root || !at || !element) return
     const from = root.getBoundingClientRect()
     const box = element.getBoundingClientRect()
+    // A phone page has no side panel, so a step that clicks in it has nothing to point at.
+    if (box.width === 0 && box.height === 0) {
+      at.style.opacity = "0"
+      return
+    }
     const x = Math.round((box.left - from.left + box.width / 2) / scale)
     at.style.left = `${x}px`
     at.style.top = `${Math.round((box.top - from.top + box.height / 2) / scale)}px`

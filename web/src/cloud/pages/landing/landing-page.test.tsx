@@ -5,7 +5,6 @@ import { cloudPage } from "@/cloud/fixture"
 import { LandingPage } from "@/cloud/pages/landing/landing-page"
 
 const landing = cloudPage("landing", {
-  StartingCredit: 5,
   Book: "https://cal.example/gusto",
 })
 
@@ -38,9 +37,6 @@ describe("the landing page", () => {
     expect(starts.every((a) => a.textContent === "Get started")).toBe(true)
     expect(screen.getAllByTestId("book")[0].getAttribute("href")).toBe(
       "https://cal.example/gusto"
-    )
-    expect(screen.getByTestId("offer-terms").textContent).toBe(
-      "Free to start with $5 of model credit. No credit card."
     )
     expect(screen.getByTestId("sign-in").getAttribute("href")).toBe("/signin")
   })

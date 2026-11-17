@@ -34,7 +34,7 @@ func TestOnlyTheStaffMayStartADemoWhereStaffAreNamed(t *testing.T) {
 func TestWhereOnlyTheStaffGiveDemosTheLandingPageLeadsToSignUp(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		status, page, _ := landingAt(t, staffSet())
-		if got := shown(t, page); status != http.StatusOK || got.Page != "landing" || got.Book != "https://cal.example/gusto" || got.StartingCredit != StartingCredit {
+		if got := shown(t, page); status != http.StatusOK || got.Page != "landing" || got.Book != "https://cal.example/gusto" {
 			t.Errorf("%d: the landing page does not lead to sign-up and booking a demo: %+v", status, got)
 		}
 

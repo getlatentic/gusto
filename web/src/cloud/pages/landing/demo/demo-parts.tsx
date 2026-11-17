@@ -14,13 +14,15 @@ import { cn } from "@/lib/utils"
 
 // The parts the demo's scenes are drawn with, styled as gusto's own pages are: the icon rail, the side panel beside it, faces
 // and messages. On a wide page every scene is drawn at one size, demoWidth by demoHeight, and scaled to fit. On a page narrower
-// than compactWidth it is drawn at the page's own width and compactHeight tall, as gusto's phone pages are: the page alone,
-// without the rail and side panel, its text at its usual size.
+// than compactWidth it is drawn compactHeight tall, as gusto's phone pages are: the page alone, without the rail and side panel,
+// its text at its usual size. It is drawn at the page's own width, but never narrower than phoneWidth, and is scaled to fit a
+// narrower page, so a small phone sees the same page smaller rather than squeezed.
 
 export const demoWidth = 1112
 export const demoHeight = 580
 export const compactWidth = 640
 export const compactHeight = 560
+export const phoneWidth = 400
 
 const Compact = createContext(false)
 export const CompactDemo = Compact.Provider

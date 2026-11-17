@@ -94,8 +94,6 @@ type view struct {
 	Book       string
 	Extendable bool
 	Ended      bool
-	// StartingCredit is what an organization begins with, which the landing page offers to whoever signs up.
-	StartingCredit float64
 	// BookFrame is the booking page shown in the page, where the booking service may be framed, and Wide gives a page the room
 	// for it.
 	BookFrame string
