@@ -134,10 +134,9 @@ func (a *accessSettings) declare(set *settings.Set) {
 
 // newsSettings is what the server says and to whom: routine results by webhook and mail, and what its pages show of it.
 type newsSettings struct {
-	webhook, webhookSecret     string
-	mail, mailToken, outbox    string
-	chatDefault, deployResult  string
-	retentionMinutes, liveConn int
+	webhook, webhookSecret    string
+	mail, mailToken, outbox   string
+	chatDefault, deployResult string
 }
 
 func (n *newsSettings) declare(set *settings.Set) {
@@ -148,6 +147,4 @@ func (n *newsSettings) declare(set *settings.Set) {
 	set.String(&n.outbox, "GUSTO_MAIL_OUTBOX", "outbox", "the directory mail is written to when it is not sent")
 	set.String(&n.chatDefault, "GUSTO_CHAT_DEFAULT", "", "what a new chat runs on, as agent=model")
 	set.String(&n.deployResult, "GUSTO_DEPLOY_RESULT", "", "how the last deploy went, which the health page shows")
-	set.Int(&n.retentionMinutes, "GUSTO_RETENTION_MINUTES", 60, 1, "how often retention removes what its policy says, in minutes")
-	set.Int(&n.liveConn, "GUSTO_LIVE_CONNECTIONS", 10000, 1, "the most rooms' pages followed live at once")
 }

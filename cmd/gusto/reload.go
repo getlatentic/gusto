@@ -18,7 +18,7 @@ import (
 // liveSettings is what a server reads again while it runs, so that a change takes effect within a minute and nobody mid-task is
 // sent away for a restart. GUSTO_LIVE holds the limits and the models, GUSTO_SPEND_POLICY the prices and caps, GUSTO_TOOL_POLICY the
 // tool rules, and GUSTO_CREDENTIALS the credentials. A task already running keeps the credential it began with and asks the gateway's
-// policy at each call. GUSTO_RELOAD_SECONDS is how often they are looked at, twenty by default, and a change is taken when it is the same at two looks, so it shows within a minute.
+// policy at each call. reloadEvery is how often they are looked at, and a change is taken when it is the same at two looks, so it shows within a minute.
 //
 // When the organization has a registry its administrators change the models, the credentials and the prices from the console, and
 // those are theirs: the files here change what the registry does not hold.
@@ -39,6 +39,9 @@ type liveSettings struct {
 	offered atomic.Pointer[web.Models]
 }
 
+// reloadEvery is how often the files read as they change are looked at.
+var reloadEvery = 20 * time.Second
+
 // startLive reads the settings file as the server starts and watches the others until the context ends.
 func startLive(ctx context.Context, way *WayOut, index *tasks.Index, pages pageHooks, managed bool) (*liveSettings, error) {
 	l := &liveSettings{way: way, index: index, pages: pages, managed: managed}
@@ -54,8 +57,7 @@ func startLive(ctx context.Context, way *WayOut, index *tasks.Index, pages pageH
 	if !managed {
 		pages.UseLiveModels(func() web.Models { return *l.offered.Load() })
 	}
-	every := time.Duration(way.cfg.reloadSeconds) * time.Second
-	go live.Watch(ctx, every, l.sources(), l.told)
+	go live.Watch(ctx, reloadEvery, l.sources(), l.told)
 	return l, nil
 }
 

@@ -57,16 +57,15 @@ func (r cloudRecords) accounts() cloud.Settings {
 
 // frontSettings is where gusto cloud listens and is reached, how it sends mail, and what it asks of a visitor.
 type frontSettings struct {
-	addr, url, domain, orgsAt       string
-	appsDomain                      string
-	trustProxy                      bool
-	mail, mailToken                 string
-	leaseFile                       string
-	leaseStepMinutes, leaderSeconds int
-	leadHookURL, leadHookSecret     string
-	turnstileSite, turnstileSecret  string
-	googleID, googleSecret          string
-	perAddress, perMailbox, inAll   int
+	addr, url, domain, orgsAt      string
+	appsDomain                     string
+	trustProxy                     bool
+	mail, mailToken                string
+	leaseFile                      string
+	leaseStepMinutes               int
+	leadHookURL, leadHookSecret    string
+	turnstileSite, turnstileSecret string
+	googleID, googleSecret         string
 }
 
 func (f *frontSettings) declare(set *settings.Set) {
@@ -87,7 +86,6 @@ func (f *frontSettings) declare(set *settings.Set) {
 	set.String(&f.leaseFile, "GUSTO_CLOUD_LEASE_FILE", "", "the file that says when a demo host removes itself; a person signed in at /lease extends it, "+
 		"and without it there is no lease")
 	set.Int(&f.leaseStepMinutes, "GUSTO_CLOUD_LEASE_STEP_MINUTES", 30, 1, "how much each extension of the lease adds, in minutes")
-	set.Int(&f.leaderSeconds, "GUSTO_CLOUD_LEADER_SECONDS", 30, 1, "how long the lease that makes one gusto cloud server the leader lasts unrenewed, in seconds")
 	set.String(&f.leadHookURL, "GUSTO_CLOUD_LEAD_HOOK_URL", "", "the address each demo lead is sent to, by a signed request")
 	set.Secret(&f.leadHookSecret, "GUSTO_CLOUD_LEAD_HOOK_SECRET", "the secret the lead hook's requests are signed with")
 	set.String(&f.turnstileSite, "GUSTO_CLOUD_TURNSTILE_SITE", "", "the Cloudflare Turnstile site key of the bot check on the demo form, which fails closed")
@@ -95,9 +93,6 @@ func (f *frontSettings) declare(set *settings.Set) {
 	set.String(&f.googleID, "GUSTO_CLOUD_GOOGLE_CLIENT_ID", "", "the OAuth client at Google that people sign in and sign up with; "+
 		"it lists <GUSTO_CLOUD_URL>"+cloud.GoogleBack+" as a redirect address, and is set with its secret or not at all")
 	set.Secret(&f.googleSecret, "GUSTO_CLOUD_GOOGLE_SECRET", "the secret of the OAuth client at Google")
-	set.Int(&f.perAddress, "GUSTO_CLOUD_PER_ADDRESS", 10, 1, "the most sign-ups, sign-ins and demo requests from one network address in an hour")
-	set.Int(&f.perMailbox, "GUSTO_CLOUD_PER_MAILBOX", 3, 1, "the most mail sent to one address in an hour")
-	set.Int(&f.inAll, "GUSTO_CLOUD_IN_ALL", 200, 1, "the most sign-ups, and the most demo requests, in all in an hour")
 }
 
 // public is the address links in mail begin with, which is also what gusto cloud's cookies are scoped by.
@@ -125,7 +120,6 @@ func (f frontSettings) lease() *cloud.Lease {
 type signupSettings struct {
 	freeMail                              string
 	refusedDomains                        []string
-	perDomain                             int
 	trialTasks, trialConcurrent           int
 	tasks, concurrent, members, computers int
 	paidTasksPerSeat, paidMembers         int
@@ -135,7 +129,6 @@ func (s *signupSettings) declare(set *settings.Set) {
 	d := cloud.DefaultLimits()
 	set.Choice(&s.freeMail, "GUSTO_CLOUD_FREE_MAIL", "refuse", []string{"allow", "refuse"}, "whether free mail providers may sign up; allow is for a demonstration")
 	set.List(&s.refusedDomains, "GUSTO_CLOUD_REFUSED_DOMAINS", "more mail domains to turn away, beside the built-in ones, comma-separated")
-	set.Int(&s.perDomain, "GUSTO_CLOUD_PER_DOMAIN", 3, 1, "how many organizations one mail domain may make")
 	set.Int(&s.trialTasks, "GUSTO_CLOUD_TRIAL_TASKS", d.Trial.Tasks, 1, "the tasks in all an organization may run before its admin's address is confirmed")
 	set.Renamed("GUSTO_CLOUD_TRIAL_TASKS", "GUSTO_CLOUD_TRIAL_JOBS")
 	set.Int(&s.trialConcurrent, "GUSTO_CLOUD_TRIAL_CONCURRENT", d.Trial.Concurrent, 1, "the tasks at once an organization may run before its admin's address is confirmed")
@@ -160,20 +153,13 @@ func (s signupSettings) limits() cloud.Limits {
 
 // demoSettings is the demo gusto cloud offers at /demo, which it offers only when GUSTO_CLOUD_DEMO_MINUTES is set.
 type demoSettings struct {
-	minutes, extendMinutes, patienceMinutes int
-	max, perDay, perPerson, perCompany      int
-	bookURL, notify                         string
-	staff                                   []string
+	minutes         int
+	bookURL, notify string
+	staff           []string
 }
 
 func (d *demoSettings) declare(set *settings.Set) {
 	set.Int(&d.minutes, "GUSTO_CLOUD_DEMO_MINUTES", 0, 0, "the minutes a demo lasts from when it is ready (default 0, no demo)")
-	set.Int(&d.extendMinutes, "GUSTO_CLOUD_DEMO_EXTEND_MINUTES", 10, 1, "the minutes a demo's one extension adds")
-	set.Int(&d.patienceMinutes, "GUSTO_CLOUD_DEMO_PATIENCE_MINUTES", 15, 1, "the minutes a demo has to be ready before it is deleted")
-	set.Int(&d.max, "GUSTO_CLOUD_DEMO_MAX", 5, 1, "the most demos at once, until the operator's page sets it")
-	set.Int(&d.perDay, "GUSTO_CLOUD_DEMO_PER_DAY", 40, 1, "the most demos started in a day, until the operator's page sets it")
-	set.Int(&d.perPerson, "GUSTO_CLOUD_DEMO_PER_PERSON", 2, 1, "the most demos one address may start in a day, until the operator's page sets it")
-	set.Int(&d.perCompany, "GUSTO_CLOUD_DEMO_PER_COMPANY", 6, 1, "the most demos one company may start in a day, until the operator's page sets it")
 	set.String(&d.bookURL, "GUSTO_CLOUD_BOOK_URL", "", "where a visitor books a call")
 	set.String(&d.notify, "GUSTO_CLOUD_DEMO_NOTIFY", "", "an address mailed when a visitor starts a demo")
 	set.List(&d.staff, "GUSTO_CLOUD_DEMO_STAFF", "the addresses and domains whose people alone may start a demo, comma-separated (default anyone)")
@@ -185,12 +171,12 @@ func (d demoSettings) forCloud() cloud.DemoSettings {
 	}
 	return cloud.DemoSettings{
 		Length:     time.Duration(d.minutes) * time.Minute,
-		Extend:     time.Duration(d.extendMinutes) * time.Minute,
-		Patience:   time.Duration(d.patienceMinutes) * time.Minute,
-		MaxOrgs:    d.max,
-		PerDay:     d.perDay,
-		PerPerson:  d.perPerson,
-		PerCompany: d.perCompany,
+		Extend:     10 * time.Minute,
+		Patience:   15 * time.Minute,
+		MaxOrgs:    5,
+		PerDay:     40,
+		PerPerson:  2,
+		PerCompany: 6,
 		BookURL:    d.bookURL,
 		Staff:      lowered(d.staff),
 	}
@@ -224,9 +210,9 @@ func (b billingSettings) stripe() (*cloud.Stripe, error) {
 
 // orgServerSettings is how gusto cloud starts each organization's gusto serve.
 type orgServerSettings struct {
-	run                        string
-	orgEnv, demoEnv, indexDir  string
-	portFrom, startWaitSeconds int
+	run                       string
+	orgEnv, demoEnv, indexDir string
+	portFrom                  int
 }
 
 func (o *orgServerSettings) declare(set *settings.Set) {
@@ -237,5 +223,4 @@ func (o *orgServerSettings) declare(set *settings.Set) {
 	set.String(&o.indexDir, "GUSTO_CLOUD_INDEX_DIR", "", "where organizations' indexes are kept when that address is not Postgres: a directory for each, "+
 		"on the local disk of the host its server runs on (default index under GUSTO_CLOUD_ROOT)")
 	set.Int(&o.portFrom, "GUSTO_CLOUD_PORT_FROM", 9100, 1, "the first port an organization's server gets, two each")
-	set.Int(&o.startWaitSeconds, "GUSTO_CLOUD_START_WAIT_SECONDS", 120, 1, "how long a server has to answer once started, in seconds")
 }

@@ -197,7 +197,9 @@ func TestACapChangeKeepsWhatWasSpentAndAppliesFromTheNextCall(t *testing.T) {
 }
 
 func TestTheWatcherTakesAChangeWithoutAnyoneAskingForIt(t *testing.T) {
-	t.Setenv("GUSTO_RELOAD_SECONDS", "1")
+	was := reloadEvery
+	reloadEvery = time.Second
+	t.Cleanup(func() { reloadEvery = was })
 	r := newReloading(t)
 	time.Sleep(200 * time.Millisecond)
 	os.WriteFile(r.liveFile, []byte(`{"limitPerson": 7}`), 0o644)

@@ -105,8 +105,8 @@ func TestGustoCloudHasNoPoolUntilItIsToldWhereNodesRegisterAndIsThisMachineANode
 	if pool.GoneAfter != 30*time.Minute {
 		t.Errorf("a cell is gone after half an hour unless it is said otherwise: %s", pool.GoneAfter)
 	}
-	pooled["GUSTO_CLOUD_LOCAL_NODE"], pooled["GUSTO_CLOUD_NODE_MIN_FREE_MIB"], pooled["GUSTO_CLOUD_NODE_GONE_MINUTES"] = "on", "6000", "5"
-	if pool, _ := nodePool(cloudFrom(t, pooled).nodes, local); pool.Local != local || pool.MinFreeMiB != 6000 || pool.GoneAfter != 5*time.Minute {
+	pooled["GUSTO_CLOUD_LOCAL_NODE"], pooled["GUSTO_CLOUD_NODE_GONE_MINUTES"] = "on", "5"
+	if pool, _ := nodePool(cloudFrom(t, pooled).nodes, local); pool.Local != local || pool.GoneAfter != 5*time.Minute {
 		t.Errorf("%+v", pool)
 	}
 }

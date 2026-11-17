@@ -80,7 +80,6 @@ func (s *openShellSettings) declare(set *settings.Set) {
 	set.String(&s.cfg.Host, "GUSTO_OPENSHELL_HOST", "host.openshell.internal", "the name a sandbox uses for the machine the gateway runs on")
 	set.String(&s.cfg.CPU, "GUSTO_OPENSHELL_CPU", "1", "the CPUs one sandbox may use")
 	set.String(&s.cfg.Memory, "GUSTO_OPENSHELL_MEMORY", "3Gi", "the memory one sandbox may use")
-	set.Int(&s.cfg.Processes, "GUSTO_OPENSHELL_PROCESSES", openshell.DefaultProcesses, 1, "the most processes an agent may have running in a sandbox at once")
 	set.Bool(&s.cfg.Remote, "GUSTO_OPENSHELL_REMOTE", "the gateway runs on another machine, so this one needs no hardware virtualization")
 }
 

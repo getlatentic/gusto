@@ -19,7 +19,6 @@ print(json.dumps({
     "demo_computer_memory": os.environ.get("DEMO_COMPUTER_MEMORY", "3Gi"),
     "demo_turnstile_site": os.environ.get("DEMO_TURNSTILE_SITE", ""),
     "demo_visitor_minutes": int(os.environ.get("DEMO_VISITOR_MINUTES", "0")),
-    "demo_visitor_max": int(os.environ.get("DEMO_VISITOR_MAX", "5")),
     "demo_book_url": os.environ.get("DEMO_BOOK_URL", ""),
     "demo_notify": os.environ.get("DEMO_NOTIFY", ""),
     "demo_staff": os.environ.get("DEMO_STAFF", ""),

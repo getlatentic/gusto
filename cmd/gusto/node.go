@@ -90,19 +90,18 @@ func nodeSecret(name, path string) ([]byte, error) {
 
 // nodePoolSettings is the nodes gusto cloud may place organizations on.
 type nodePoolSettings struct {
-	dir, secretFile         string
-	minFreeMiB, goneMinutes int
-	local                   bool
+	dir, secretFile string
+	goneMinutes     int
+	local           bool
 }
 
 func (c *nodePoolSettings) declare(set *settings.Set) {
 	set.String(&c.dir, "GUSTO_CLOUD_NODES_DIR", "", "the directory nodes register in; unset, this machine runs every organization's server")
 	set.String(&c.secretFile, "GUSTO_CLOUD_NODE_SECRET_FILE", "", "the file with the secret gusto cloud and the nodes sign with")
-	set.Int(&c.minFreeMiB, "GUSTO_CLOUD_NODE_MIN_FREE_MIB", 4096, 1, "the memory a node must have free for an organization to be placed on it, in MiB")
 	set.Int(&c.goneMinutes, "GUSTO_CLOUD_NODE_GONE_MINUTES", 30, 1, "how long a node may be silent before it is taken to be gone and its organizations are placed on another, in minutes")
 	set.Bool(&c.local, "GUSTO_CLOUD_LOCAL_NODE", "this machine is a node too")
-	renamedFromCell(set, "GUSTO_CLOUD_NODES_DIR", "GUSTO_CLOUD_NODE_SECRET_FILE", "GUSTO_CLOUD_NODE_MIN_FREE_MIB",
-		"GUSTO_CLOUD_NODE_GONE_MINUTES", "GUSTO_CLOUD_LOCAL_NODE")
+	renamedFromCell(set, "GUSTO_CLOUD_NODES_DIR", "GUSTO_CLOUD_NODE_SECRET_FILE", "GUSTO_CLOUD_NODE_GONE_MINUTES",
+		"GUSTO_CLOUD_LOCAL_NODE")
 }
 
 // nodePool is the nodes gusto cloud may place organizations on, or nothing when there is one machine.
@@ -114,7 +113,7 @@ func nodePool(cfg nodePoolSettings, local *cloud.LocalNode) (*node.Pool, error) 
 	if err != nil {
 		return nil, err
 	}
-	pool := &node.Pool{Dir: cfg.dir, Secret: secret, MaxAge: 30 * time.Second, MinFreeMiB: cfg.minFreeMiB,
+	pool := &node.Pool{Dir: cfg.dir, Secret: secret, MaxAge: 30 * time.Second, MinFreeMiB: 4096,
 		GoneAfter: time.Duration(cfg.goneMinutes) * time.Minute}
 	if cfg.local {
 		pool.Local = local
@@ -149,10 +148,10 @@ func (l *launchSettings) declare(set *settings.Set) {
 // scalerSettings is how gusto cloud starts and stops nodes: what a node is made from, and how many may run.
 type scalerSettings struct {
 	launchSettings
-	template, userData, imageParameter      string
-	settings                                []string
-	max, idleMinutes, bootMinutes, prewarms int
-	keep                                    int
+	template, userData, imageParameter string
+	settings                           []string
+	max, idleMinutes, prewarms         int
+	keep                               int
 }
 
 func (s *scalerSettings) declare(set *settings.Set) {
@@ -163,13 +162,12 @@ func (s *scalerSettings) declare(set *settings.Set) {
 	set.String(&s.imageParameter, "GUSTO_CLOUD_NODE_IMAGE_PARAMETER", "", "the parameter the template reads its image from, so a kept node of an older image is replaced and not started again")
 	set.Int(&s.max, "GUSTO_CLOUD_NODE_MAX", 3, 1, "the most nodes")
 	set.Int(&s.idleMinutes, "GUSTO_CLOUD_NODE_IDLE_MINUTES", 10, 1, "how long a node may have nothing on it before it is stopped, in minutes")
-	set.Int(&s.bootMinutes, "GUSTO_CLOUD_NODE_BOOT_MINUTES", 10, 1, "how long a node has to come up, in minutes")
 	// A visitor who types in the demo form and never sends it costs a node until it is idle.
 	set.Int(&s.prewarms, "GUSTO_CLOUD_NODE_PREWARMS", 20, 1, "the most nodes started in a day for a visitor still filling in the demo form")
 	// A kept node is stopped when idle and started again, which is faster than a new one; its disk costs while it waits.
 	set.Int(&s.keep, "GUSTO_CLOUD_NODE_KEEP", 0, 0, "how many idle nodes are stopped and kept, rather than removed")
 	renamedFromCell(set, "GUSTO_CLOUD_NODE_TEMPLATE", "GUSTO_CLOUD_NODE_USERDATA", "GUSTO_CLOUD_NODE_SETTINGS",
-		"GUSTO_CLOUD_NODE_IMAGE_PARAMETER", "GUSTO_CLOUD_NODE_MAX", "GUSTO_CLOUD_NODE_IDLE_MINUTES", "GUSTO_CLOUD_NODE_BOOT_MINUTES",
+		"GUSTO_CLOUD_NODE_IMAGE_PARAMETER", "GUSTO_CLOUD_NODE_MAX", "GUSTO_CLOUD_NODE_IDLE_MINUTES",
 		"GUSTO_CLOUD_NODE_PREWARMS", "GUSTO_CLOUD_NODE_KEEP")
 }
 
@@ -202,7 +200,7 @@ func nodeScaler(cfg scalerSettings, controller *cloud.Controller) (*node.Scaler,
 		Launcher: &node.EC2{Template: cfg.template, UserData: cfg.userData, Settings: filled, Project: cfg.project, ImageParameter: cfg.imageParameter},
 		Max:      cfg.max,
 		Idle:     time.Duration(cfg.idleMinutes) * time.Minute,
-		Boot:     time.Duration(cfg.bootMinutes) * time.Minute,
+		Boot:     10 * time.Minute,
 		Prewarms: cfg.prewarms,
 		Keep:     cfg.keep,
 	}, nil

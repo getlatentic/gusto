@@ -134,7 +134,7 @@ An agent keeps what it remembers of a conversation in its own state folder, `age
 
 ## What it costs
 
-- Every turn of a room copies the folder. Over `GUSTO_ROOM_COPY_MB` (4096 by default) or `GUSTO_ROOM_COPY_FILES` (200,000) a turn is refused, and its record says so. Take files out of the room, or raise the limits.
+- Every turn of a room copies the folder. Over 4 GB or 200,000 files a turn is refused, and its record says so. Take files out of the room.
 - Each running turn holds a copy. Where the file system cannot share blocks, that is the folder's size on disk for each turn that runs.
 - A file two agents changed in the same lines needs a person to pick one.
 - A commit a turn made is not in the room's `.git`.

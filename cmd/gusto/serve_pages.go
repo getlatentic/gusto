@@ -188,7 +188,7 @@ func (s *server) startBackground() error {
 			return err
 		}
 		s.pages.UseRetention(dir, policy)
-		go s.pages.RunRetention(background, time.Duration(s.cfg.news.retentionMinutes)*time.Minute)
+		go s.pages.RunRetention(background, time.Hour)
 	}
 	if dir := s.cfg.served.inbox; dir != "" {
 		s.pages.UseInbox(dir)
@@ -205,7 +205,7 @@ func (s *server) openDoors() error {
 	}
 	s.pages.UseSettings(governing(s.set, s.cfg))
 	// A room's page follows the room over a WebSocket, and falls back to asking every few seconds when it has none.
-	if err := s.pages.UseLive(roomlive.Options{MaxConnections: s.cfg.news.liveConn}); err != nil {
+	if err := s.pages.UseLive(roomlive.Options{MaxConnections: 10000}); err != nil {
 		return err
 	}
 	front, err := cloudOf(s.cfg.access, s.cfg.core.org)

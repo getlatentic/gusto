@@ -199,7 +199,7 @@ With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a 
 
 - The landing page at `/` is shown to everybody, signed in or not. Its header offers Sign in, or Open gusto (`/app`) to a person who is signed in. A gusto cloud server with no demos has no landing page, and `/` is the way in.
 - Set `GUSTO_CLOUD_TURNSTILE_SITE` and `GUSTO_CLOUD_TURNSTILE_SECRET` to add a Cloudflare Turnstile bot check. It fails closed.
-- At most `GUSTO_CLOUD_DEMO_MAX` demos run at once, and `GUSTO_CLOUD_DEMO_PER_DAY` (40) start in a day.
+- At most 5 demos run at once, and 40 start in a day, until the operator's page sets other limits.
 - Pause new demos on the operator's page. Resume there. Running demos continue.
 - Each visitor is kept as a lead in the database, which stays after the demo ends.
 - A demo's agents run in an OpenShell microVM for each person (`demo_sandbox: openshell` in `deploy/aws/openshell/ansible/roles/demo/defaults/main.yml`). Gusto cloud gives a demo's server the lines of `GUSTO_CLOUD_DEMO_ENV` on top of `GUSTO_CLOUD_ORG_ENV`, so a demo and a sign-up on the same node run their agents in different sandboxes.
