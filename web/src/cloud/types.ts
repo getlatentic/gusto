@@ -109,8 +109,6 @@ export interface CloudPage {
   Extendable: boolean
   Ended: boolean
   Ending: boolean
-  DemoPublic: boolean
-  StartingCredit: number
 
   Lease: { Left: string; Ends: string; Step: string; CanExtend: boolean } | null
 }

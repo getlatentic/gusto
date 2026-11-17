@@ -5,6 +5,7 @@ import {
   compactWidth,
   demoHeight,
   demoWidth,
+  phoneWidth,
 } from "@/cloud/pages/landing/demo/demo-parts"
 
 // useOnScreen is whether enough of the element is in view, in a tab the person is looking at, for the demo to be worth playing.
@@ -37,12 +38,13 @@ export interface DemoSize {
   compact: boolean
   width: number
   height: number
-  // scale is how much a demo drawn at full size is shrunk to fit; a compact one is not.
+  // scale is how much the demo, drawn at width by height, is shrunk to fit.
   scale: number
 }
 
 // useDemoSize is how the demo fits the element: at full size, shrunk to the element's width, or, on a page narrower than
-// compactWidth, drawn as a phone page at the element's own width. It never grows past its full size.
+// compactWidth, drawn as a phone page at the element's own width, and at phoneWidth shrunk to fit where the element is narrower.
+// It never grows past its full size.
 export function useDemoSize(element: RefObject<HTMLElement | null>): DemoSize {
   // The first guess is the window's width less the page's margins, so the demo is drawn to fit before the element has been
   // measured, which in a browser that holds back resize notices may be a while.
@@ -59,7 +61,13 @@ export function useDemoSize(element: RefObject<HTMLElement | null>): DemoSize {
     return () => watch.disconnect()
   }, [element])
   if (width > 0 && width < compactWidth) {
-    return { compact: true, width, height: compactHeight, scale: 1 }
+    const drawn = Math.max(width, phoneWidth)
+    return {
+      compact: true,
+      width: drawn,
+      height: compactHeight,
+      scale: width / drawn,
+    }
   }
   return {
     compact: false,

@@ -15,7 +15,6 @@ import {
 import { ProductDemo } from "@/cloud/pages/landing/demo/product-demo"
 import { Features } from "@/cloud/pages/landing/features"
 import type { CloudPage } from "@/cloud/types"
-import { offerTerms } from "@/domain/landing"
 
 const LandingMotion = lazy(() =>
   import("@/cloud/pages/landing/landing-motion").then((m) => ({
@@ -38,7 +37,7 @@ export function LandingPage({ page }: { page: CloudPage }) {
           <h2 id="demo-title" className="sr-only">
             See gusto at work
           </h2>
-          <div className="mx-auto max-w-6xl px-5">
+          <div className="mx-auto max-w-6xl px-5 max-[30rem]:px-3">
             <ProductDemo />
           </div>
         </section>
@@ -63,7 +62,7 @@ function LandingHeader({ page }: { page: CloudPage }) {
   return (
     <header className="border-line bg-canvas sticky top-0 z-50 flex items-center justify-between gap-4 border-b px-[max(1.25rem,calc((100vw-69.5rem)/2))] py-4">
       <a
-        className="flex items-center gap-3 font-heading text-lg leading-none font-semibold tracking-[-0.01em] no-underline"
+        className="flex shrink-0 items-center gap-3 font-heading text-lg leading-none font-semibold tracking-[-0.01em] no-underline"
         href="/"
       >
         <img className="h-auto w-7" src="/static/mark.svg" alt="" /> gusto
@@ -79,7 +78,7 @@ function LandingHeader({ page }: { page: CloudPage }) {
           </a>
         ))}
         <a
-          className="text-quiet hover:text-ink inline-flex items-center"
+          className="text-quiet hover:text-ink inline-flex items-center max-[30rem]:hidden"
           href={repository}
           aria-label="gusto on GitHub"
         >
@@ -124,17 +123,17 @@ function HeroBackdrop() {
   )
 }
 
-// Hero is the promise, centred, with the ways to start under it and what starting costs. The product itself is shown straight after, at full width.
+// Hero is the promise, centred, with the ways to start under it. The product itself is shown straight after, at full width.
 function Hero({ page }: { page: CloudPage }) {
   return (
     // The hero is isolated so its backdrop stays behind it.
     <section className="relative isolate">
       <HeroBackdrop />
-      <div className="mx-auto grid max-w-3xl justify-items-center gap-4 px-5 pt-12 pb-8 text-center min-[44rem]:pt-16 min-[44rem]:pb-10">
-        <h1 className="m-0 text-[length:clamp(2.25rem,5vw,3rem)] leading-[1.08] font-semibold tracking-[-0.02em] text-balance">
+      <div className="mx-auto grid max-w-3xl justify-items-center gap-4 px-5 pt-10 pb-8 text-center min-[44rem]:pt-16 min-[44rem]:pb-10">
+        <h1 className="m-0 text-[length:clamp(1.875rem,5vw,3rem)] leading-[1.1] font-semibold tracking-[-0.02em] text-balance">
           Bring your team and AI agents together.
         </h1>
-        <p className="text-quiet m-0 max-w-2xl text-base leading-snug text-balance min-[44rem]:text-lg min-[44rem]:leading-normal">
+        <p className="text-quiet m-0 max-w-2xl text-[15px] leading-snug text-balance min-[30rem]:text-base min-[44rem]:text-lg min-[44rem]:leading-normal">
           Collaborate in one workspace. Run your chosen agents in gusto’s AI
           agent cloud, with control over spending, models and integrations.
         </p>
@@ -142,9 +141,6 @@ function Hero({ page }: { page: CloudPage }) {
           <StartCta />
           <BookCta page={page} />
         </div>
-        <p className="text-quiet m-0 text-sm" data-testid="offer-terms">
-          {offerTerms(page.StartingCredit)}
-        </p>
       </div>
     </section>
   )

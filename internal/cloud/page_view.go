@@ -44,7 +44,6 @@ type pageView struct {
 	Steps                          []Step
 	Book, BookFrame, TurnstileSite string
 	Extendable, Ended, Ending      bool
-	StartingCredit                 float64
 
 	Lease *leaseView
 }
@@ -101,7 +100,7 @@ func pageOf(name string, v view) pageView {
 		Computers: v.Computers, Server: v.Server, CanOpen: v.CanOpen,
 		Admins: v.Admins, IsAdmin: v.IsAdmin, CanInvite: v.CanInvite, Link: v.Link,
 		DemoWords: v.DemoWords, Steps: v.Steps, Book: v.Book, BookFrame: v.BookFrame, TurnstileSite: v.TurnstileSite,
-		Extendable: v.Extendable, Ended: v.Ended, Ending: v.Ending, StartingCredit: v.StartingCredit,
+		Extendable: v.Extendable, Ended: v.Ended, Ending: v.Ending,
 	}
 	page.addPeople(v)
 	if v.DemoLeft > 0 {

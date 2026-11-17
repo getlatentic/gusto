@@ -216,7 +216,7 @@ func landingAt(t *testing.T, set Settings) (int, string, http.Header) {
 func TestWhereADemoIsOfferedTheFrontPageIsTheLandingPageAndSignUpMovesToItsOwnAddress(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		status, page, header := landingAt(t, demoSet)
-		if got := shown(t, page); got.Page != "landing" || got.Book != "https://cal.example/gusto" || got.StartingCredit != StartingCredit {
+		if got := shown(t, page); got.Page != "landing" || got.Book != "https://cal.example/gusto" {
 			t.Errorf("the landing page does not offer sign-up and a call: %+v", got)
 		}
 		if csp := header.Get("Content-Security-Policy"); status != http.StatusOK || strings.Contains(csp, "frame-src") || strings.Contains(csp, "media-src") || strings.Contains(csp, "https:") || !strings.Contains(csp, "frame-ancestors 'none'") {

@@ -61,8 +61,6 @@ export function cloudPage(
     Extendable: false,
     Ended: false,
     Ending: false,
-    DemoPublic: false,
-    StartingCredit: 0,
     Lease: null,
     ...set,
   }
