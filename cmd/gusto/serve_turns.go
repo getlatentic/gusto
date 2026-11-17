@@ -16,7 +16,7 @@ import (
 // openRecords opens the tasks and the instances. An organization's gusto cloud writes what the organization may run, and this
 // server reads it as it goes; one that cannot read it does not start.
 func (s *server) openRecords() error {
-	index, err := tasks.Open(s.cfg.stores.tasks)
+	index, err := tasks.Open(s.cfg.stores.tasks())
 	if err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func (s *server) openRecords() error {
 	}
 	// The directory keeps the name it was written under: what is in it is the same thing, read now as an instance with
 	// threads rather than as one conversation.
-	instances, err := instance.Open(s.cfg.stores.sessions)
+	instances, err := instance.Open(s.cfg.stores.sessions())
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func (s *server) openWayOut() error {
 // startTurns makes the boxes turns run in, starts the proxy where they reach it, and starts the queue that runs the turns.
 // Pages an agent built are shared wherever it works; an app with a command of its own needs the agent's computer.
 func (s *server) startTurns() error {
-	shared, err := apps.Open(s.cfg.served.apps)
+	shared, err := apps.Open(s.cfg.stores.in("apps"))
 	if err != nil {
 		return err
 	}

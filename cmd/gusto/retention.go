@@ -15,9 +15,9 @@ type retentionFlags struct{ tasks, dir, sessions string }
 
 func declareRetention(set *flag.FlagSet) *retentionFlags {
 	f := &retentionFlags{}
-	set.StringVar(&f.tasks, "tasks", "", "the `directory` the server keeps tasks in (default $GUSTO_TASKS, else jobs)")
+	set.StringVar(&f.tasks, "tasks", "", "the `directory` the server keeps tasks in (default jobs in $GUSTO_DATA)")
 	set.StringVar(&f.dir, "dir", "", "the retention `directory`, with policy.json and the holds (default $GUSTO_RETENTION)")
-	set.StringVar(&f.sessions, "sessions", "", "the `directory` the server keeps rooms in, whose turns stay while the room does (default $GUSTO_SESSIONS, else sessions)")
+	set.StringVar(&f.sessions, "sessions", "", "the `directory` the server keeps rooms in, whose turns stay while the room does (default sessions in $GUSTO_DATA)")
 	return f
 }
 
@@ -34,7 +34,7 @@ func retentionCommand(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	dir, tasksDir := firstOf(f.dir, stores.retention), firstOf(f.tasks, stores.tasks)
+	dir, tasksDir := firstOf(f.dir, stores.retention), firstOf(f.tasks, stores.tasks())
 	if set.NArg() > 0 || dir == "" {
 		return usageError("retention", "name the retention directory with -dir or GUSTO_RETENTION")
 	}
@@ -46,7 +46,7 @@ func retentionCommand(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	sessions := firstOf(f.sessions, stores.sessions)
+	sessions := firstOf(f.sessions, stores.sessions())
 	kept := func(room string) bool {
 		_, err := os.Stat(filepath.Join(sessions, room))
 		return err == nil

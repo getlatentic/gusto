@@ -19,11 +19,12 @@ A tag needs a section here named for it, or the release workflow stops and copie
 
 **Changed**
 
+- One setting, `GUSTO_DATA`, names the folder gusto keeps its data in, the current directory by default. Each store is a fixed folder of it: `jobs`, `sessions`, `setups`, `comparisons`, `integrations`, `presets`, `crew`, `changes/changes.jsonl`, `apps`, `outbox`, `agents`, and `sessions/.keeper.json` for sign-ins. `GUSTO_TASKS`, `GUSTO_SESSIONS`, `GUSTO_SETUPS`, `GUSTO_COMPARISONS`, `GUSTO_INTEGRATIONS`, `GUSTO_PRESETS`, `GUSTO_CREW`, `GUSTO_CHANGES`, `GUSTO_APPS`, `GUSTO_MAIL_OUTBOX`, `GUSTO_KEEPER` and `GUSTO_AGENTS` are refused, each saying to set `GUSTO_DATA`. The compose file, the Helm chart and gusto cloud already kept every store under one folder, and set `GUSTO_DATA` now. An install that points one of these settings elsewhere moves that folder under `GUSTO_DATA` before upgrading.
 - Settings named after the old words are refused, and the server says the new name ([TERMS.md](TERMS.md)). Rename them before upgrading:
 
   | Was | Is |
   | --- | --- |
-  | `GUSTO_JOBS` | `GUSTO_TASKS` |
+  | `GUSTO_JOBS` | `GUSTO_DATA`, whose `jobs` folder holds the tasks |
   | `GUSTO_JOB_NETWORK`, `GUSTO_JOB_CONCURRENCY`, `GUSTO_JOB_CPUS`, `GUSTO_JOB_MEMORY` | `GUSTO_TASK_NETWORK`, `GUSTO_TASK_CONCURRENCY`, `GUSTO_TASK_CPUS`, `GUSTO_TASK_MEMORY` |
   | `GUSTO_CLOUD_JOBS`, `GUSTO_CLOUD_TRIAL_JOBS`, `GUSTO_CLOUD_PAID_JOBS_PER_SEAT` | `GUSTO_CLOUD_TASKS`, `GUSTO_CLOUD_TRIAL_TASKS`, `GUSTO_CLOUD_PAID_TASKS_PER_SEAT` |
   | `GUSTO_CELL`, and each `GUSTO_CELL_*` and `GUSTO_CELLS_DIR` | `GUSTO_NODE`, `GUSTO_NODE_*` and `GUSTO_NODES_DIR` |

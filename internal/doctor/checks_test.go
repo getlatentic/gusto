@@ -143,7 +143,7 @@ func TestATasksDirectoryThatIsNotThereIsNamed(t *testing.T) {
 	s := healthy(t)
 	s.Tasks = filepath.Join(t.TempDir(), "absent")
 	printed, _ := examine(machineWith(answering().commands), s)
-	failed(t, printed, "tasks directory", "set GUSTO_TASKS")
+	failed(t, printed, "tasks directory", "set GUSTO_DATA")
 }
 
 func TestAWritableTasksDirectoryIsWritable(t *testing.T) {

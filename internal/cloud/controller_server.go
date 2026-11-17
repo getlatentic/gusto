@@ -115,14 +115,7 @@ func (c *Controller) serverSettings(slug, name string, runtime Runtime, node Nod
 func (c *Controller) dataSettings(slug string) map[string]string {
 	data := c.Store.DataDir(slug)
 	return map[string]string{
-		"GUSTO_TASKS":        filepath.Join(data, "jobs"),
-		"GUSTO_SESSIONS":     filepath.Join(data, "sessions"),
-		"GUSTO_SETUPS":       filepath.Join(data, "setups"),
-		"GUSTO_CREW":         filepath.Join(data, "crew"),
-		"GUSTO_PRESETS":      filepath.Join(data, "presets"),
-		"GUSTO_INTEGRATIONS": filepath.Join(data, "integrations"),
-		"GUSTO_COMPARISONS":  filepath.Join(data, "comparisons"),
-		"GUSTO_CHANGES":      filepath.Join(data, "changes", "changes.jsonl"),
+		"GUSTO_DATA":         data,
 		"GUSTO_RETENTION":    filepath.Join(data, "retention"),
 		signing.KeyEnv:       filepath.Join(data, "keys", slug+".key"),
 		signing.KeyringEnv:   filepath.Join(data, "keys"),
@@ -134,6 +127,5 @@ func (c *Controller) dataSettings(slug string) map[string]string {
 		"GUSTO_INBOX":        c.Store.InboxDir(slug),
 		"GUSTO_ENTRY_KEY":    c.entryKeyFile(slug),
 		"GUSTO_COMPUTERS":    filepath.Join(data, "computers"),
-		"GUSTO_APPS":         filepath.Join(data, "apps"),
 	}
 }

@@ -19,8 +19,7 @@ import (
 func withUsageData(t *testing.T) (data string) {
 	t.Helper()
 	data = t.TempDir()
-	t.Setenv("GUSTO_TASKS", filepath.Join(data, "jobs"))
-	t.Setenv("GUSTO_SESSIONS", filepath.Join(data, "sessions"))
+	t.Setenv("GUSTO_DATA", data)
 	t.Setenv("GUSTO_DATABASE_URL", "")
 	t.Setenv("GUSTO_REGISTRY", "")
 	return data
@@ -55,7 +54,7 @@ func TestTheUsageCommandsHelpSaysWhatTheyReadAndHowTheyEnd(t *testing.T) {
 			t.Fatalf("%v: exit code %d", path, code)
 		}
 		if len(path) == 2 {
-			for _, want := range []string{"GUSTO_DATABASE_URL", "GUSTO_TASKS", "Examples", "Exit codes"} {
+			for _, want := range []string{"GUSTO_DATABASE_URL", "GUSTO_DATA", "Examples", "Exit codes"} {
 				if !strings.Contains(out, want) {
 					t.Errorf("%v: help lacks %q:\n%s", path, want, out)
 				}

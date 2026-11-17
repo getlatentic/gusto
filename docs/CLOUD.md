@@ -145,7 +145,7 @@ A person has one computer in each team they are in, made the first time they run
 - A person past the organization's number of computers is refused in the task's record, and nothing is made.
 - A computer idle for half an hour with no task running is stopped, which keeps its files. Set `GUSTO_COMPUTER_IDLE_MINUTES` to change it. The next task starts it. Removing a person from a team marks their computer in it, removing them from the organization marks all of theirs, and the organization's server removes what is marked.
 - A turn that leaves an `index.html` in the agent's folder gets a Preview button. The server serves that folder as a page, at once, at `<org>--<id>.<domain>`. On a host name of its own the page keeps what it saves in the browser, and it reaches nothing of the organization's pages.
-- Where agents run on computers, a person can also share an app with a command of its own from the agent's page ([OPENSHELL.md](OPENSHELL.md)). `GUSTO_APPS` is where the server keeps its record of both.
+- Where agents run on computers, a person can also share an app with a command of its own from the agent's page ([OPENSHELL.md](OPENSHELL.md)). The `apps` folder of `GUSTO_DATA` is where the server keeps its record of both.
 - An app's host name is the same site as the organization's, so the server refuses any browser request that changes something unless it comes from its own pages.
 - A text file shown whole has Edit, in its page and in its tab beside a chat. A save is refused when the file changed after it was opened. In a room, the room says who changed the file.
 - `gusto cloud computers` lists every computer on the node with its organization, team and person. It also reports a sandbox with no record, or a record with no sandbox.

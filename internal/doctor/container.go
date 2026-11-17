@@ -62,7 +62,7 @@ func limitsAccepted(machine Machine, box sandbox.Containers) Verdict {
 func mountShows(machine Machine, box sandbox.Containers, tasks string) Verdict {
 	absolute, err := filepath.Abs(tasks)
 	if err != nil {
-		return fail(err.Error(), "set GUSTO_TASKS to a path this user can resolve")
+		return fail(err.Error(), "set GUSTO_DATA to a path this user can resolve")
 	}
 	marker, err := os.CreateTemp(absolute, ".doctor-*")
 	if err != nil {
@@ -77,7 +77,7 @@ func mountShows(machine Machine, box sandbox.Containers, tasks string) Verdict {
 		return pass("the container sees what is in " + absolute)
 	case 1:
 		return fail("the container sees an empty directory at "+absolute,
-			"share "+absolute+" with the container runtime, or set GUSTO_TASKS to a path it shares")
+			"share "+absolute+" with the container runtime, or set GUSTO_DATA to a path it shares")
 	default:
 		return fail(fmt.Sprintf("a container with %s mounted exited %d: %s", absolute, outcome.Code, lastLine(outcome.Output)),
 			"run the same mount by hand with "+box.Runtime+" and read what it says")

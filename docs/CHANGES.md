@@ -30,7 +30,7 @@ A change is applied and then recorded. When the record cannot be written, the se
 
 ## Where it is
 
-`GUSTO_CHANGES` names the file.
+The file is `changes/changes.jsonl` in `GUSTO_DATA`.
 
 - Compose and the chart: `$GUSTO_DATA/changes/changes.jsonl` on the volume.
 

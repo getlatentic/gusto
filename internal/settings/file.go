@@ -33,7 +33,8 @@ var known = struct {
 	sync.Mutex
 	secret  map[string]bool   // by name, whether it is a secret
 	renamed map[string]string // an old name, to the name it has now
-}{secret: map[string]bool{}, renamed: map[string]string{}}
+	removed map[string]string // a name no longer read, to what does its job
+}{secret: map[string]bool{}, renamed: map[string]string{}, removed: map[string]string{}}
 
 func remember(e *entry) {
 	known.Lock()
@@ -42,6 +43,12 @@ func remember(e *entry) {
 	if e.was != "" {
 		known.renamed[e.was] = e.name
 	}
+}
+
+func forget(name, instead string) {
+	known.Lock()
+	defer known.Unlock()
+	known.removed[name] = instead
 }
 
 // ApplyFile reads the settings file lookup names, if any, and sets each setting in it that lookup has nothing for. lookup and
@@ -101,6 +108,9 @@ func fileValue(key string, value any) (string, error) {
 func fileMay(name string) error {
 	known.Lock()
 	defer known.Unlock()
+	if instead, gone := known.removed[name]; gone {
+		return fmt.Errorf("is no longer read: %s", instead)
+	}
 	if now, old := known.renamed[name]; old {
 		return fmt.Errorf("is now called %s", Key(now))
 	}
