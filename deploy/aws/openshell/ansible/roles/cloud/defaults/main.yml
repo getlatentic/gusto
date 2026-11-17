@@ -1,0 +1,108 @@
+---
+# The name organizations are served under, and the zone in Cloudflare it belongs to.
+cloud_region: us-east-1
+cloud_domain: ""
+cloud_zone: ""
+# The name shared apps are served under, as <org>--<app>.<name>, and its zone in Cloudflare: a domain of their own, so an app's
+# pages cannot set a cookie that gusto's own pages are sent. Empty serves them under cloud_domain.
+cloud_apps_domain: ""
+cloud_apps_zone: ""
+cloud_bucket: ""
+# cloudflare://<account id>?from=..., or smtp://..., or outbox.
+cloud_mail: ""
+cloud_cert_email: ""
+cloud_free_mail: allow
+cloud_image_key: ""
+# Every model is offered to every engine, and the person chooses: gusto does not decide which pairs may be tried. A new chat starts on
+# cloud_chat_default, a pair measured to finish (docs/MATRIX.md), as engine=model. Claude Code reaches DeepSeek Flash at the
+# deepseek credential's Anthropic address.
+cloud_models: gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b,deepseek/deepseek-flash,meta/muse-spark-1.3
+cloud_chat_default: claude=gemma/google.gemma-4-26b-a4b
+# How far one model call may run. The cap stops a model that writes on to the end of its context, and is still room for an
+# agent to write a whole page in one call; the silence ends a stream that stops sending without ending (planning#749).
+cloud_max_output_tokens: 16384
+cloud_model_silence_seconds: 60
+# What an organization's agents run in: container, a Docker container for each task on the cell's kernel, with a home kept for
+# each person; or openshell, a microVM for each person. A sign-up's run in public_sandbox and a demo's in cloud_demo_sandbox, and a
+# cell has every kind of the two.
+public_sandbox: container
+cloud_demo_sandbox: openshell
+cloud_sandboxes: "{{ [public_sandbox, cloud_demo_sandbox] | unique }}"
+cloud_computer_memory: 3Gi
+cloud_computer_cpu: "2"
+cloud_dns_token_parameter: /gusto/poc/cloudflare-dns-token
+cloud_mail_token_parameter: /gusto/poc/cloudflare-mail-token
+cloud_model_parameter: /gusto/poc/model-key
+cloud_deepseek_parameter: /gusto/poc/deepseek-key
+# Meta's Model API key, for the meta credential. A host where it is not stored offers no Muse model.
+cloud_meta_parameter: /gusto/poc/meta-key
+# How long a host has when it starts, and each extension adds, and the most a host may ever be up.
+cloud_lease_minutes: 30
+cloud_max_hours: 4
+cloud_user: ubuntu
+cloud_state: /var/lib/gusto-cloud
+# The files the front door serves at /media/, such as the landing page's video, kept in the bucket under media/ by put-media.sh.
+cloud_media: /var/www/gusto-media
+cloud_lib: /var/lib/gusto
+# all is one host that is the front door and runs the organizations' servers. orchestrator is the front door
+# alone, and a cell is a host that runs servers for it; the orchestrator and every cell of one cloud share
+# cloud_efs, the address of a shared file system, and the directory cloud_run of it, where the organizations' data is.
+cloud_role: all
+cloud_efs: ""
+cloud_run: ""
+cloud_cell_secret_parameter: /gusto/poc/cell-secret
+cloud_cell_gone_minutes: 5
+cloud_cell_port: 8060
+# A visitor may start a demo, which lasts this many minutes from when it is ready, at /demo. Zero offers none.
+# The front door that stays up: no lease, what is on the file system kept, and hosts for cells started when
+# organizations need one, from the launch template cloud_cell_template, tagged cloud_project.
+cloud_live: false
+cloud_release: ""
+cloud_bundle_dir: /opt/gusto-bundle
+# The start-up script a cell is made from, where the front door can read it: the bundle is root's.
+cloud_cell_userdata: /usr/local/lib/gusto/user-data.sh
+cloud_cell_template: gusto-poc-demo-host-cell-live
+# The parameter that template reads its image from, so a kept cell of an older image is replaced rather than started again.
+cloud_cell_image_parameter: /gusto/poc/cell-ami
+cloud_cell_max: 3
+cloud_cell_idle_minutes: 10
+# The most cells a day started for visitors who began the demo form, before they sent it.
+cloud_cell_prewarms: 20
+# How many cells are stopped when idle, and started again when one is needed, rather than removed: a stopped cell costs its root
+# disk, about 3.20 dollars a month, and starts in about 11 seconds where a new one takes about 17.
+cloud_cell_keep: 1
+cloud_cell_max_hours: 12
+cloud_project: gusto-live
+cloud_demo_minutes: 0
+# The public key of the bot check on the demo form, and where its secret is kept. Without the key there is no check.
+cloud_turnstile_site: ""
+cloud_turnstile_parameter: /gusto/poc/turnstile-secret
+cloud_lead_hook_url_parameter: /gusto/poc/lead-hook-url
+cloud_lead_hook_secret_parameter: /gusto/poc/lead-hook-secret
+# The OAuth client at Google that people sign in with, stored by put-google.sh. Without both there is no Google sign-in.
+cloud_google_client_id_parameter: /gusto/poc/google-client-id
+cloud_google_secret_parameter: /gusto/poc/google-secret
+# The OAuth clients registered with the connector apps that need one, as {"github": {"id", "secret"}}: put-connector-client.sh.
+cloud_connector_clients_parameter: /gusto/poc/connector-clients
+cloud_demo_max: 5
+cloud_book_url: ""
+# The addresses and domains, comma-separated, whose people alone may start a demo, which then is a sales call and not open to
+# visitors, who sign up instead. Empty is anyone.
+cloud_demo_staff: ""
+# Mailed when a visitor starts a demo. Nothing is sent when it is empty.
+cloud_demo_notify: ""
+
+# Where the files of a host are written: the host's own root, or a directory a cell's kit is made from.
+cloud_root: ""
+# The SHA-256 of the kit a front door makes for its cells, and the key of the image it is made for. A cell from that image
+# configures itself from the kit; without one it runs the playbook.
+cloud_cell_kit: ""
+cloud_cell_kit_file: /usr/local/lib/gusto/cell-kit.tgz
+cloud_bake_key: ""
+cloud_cell_lease_minutes: 30
+
+# Whether this host is made to have an image taken of it, and so is not started as a cell.
+cloud_bake: false
+
+# Whether this host was made from the image of a cell that has what the release installs, so that it is not installed again.
+cloud_baked: false

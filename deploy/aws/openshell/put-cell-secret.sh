@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Makes the secret the front door of a demo and its cells sign their requests with, and stores it where the
-# hosts read it. It is made here, never shown, and not made again when there is one: a demo that is up
+# Makes the secret the front door of a cloud and its cells sign their requests with, and stores it where the
+# hosts read it. It is made here, never shown, and not made again when there is one: a cloud that is up
 # uses the one it started with.
 source "$(dirname "$0")/env.sh"
 name=/gusto/poc/cell-secret

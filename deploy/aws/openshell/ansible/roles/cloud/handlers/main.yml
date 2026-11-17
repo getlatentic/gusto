@@ -1,0 +1,24 @@
+---
+- name: Restart the front door
+  ansible.builtin.systemd:
+    name: gusto-cloud
+    state: restarted
+    daemon_reload: true
+
+- name: Restart the operator's page
+  ansible.builtin.systemd:
+    name: gusto-owner
+    state: restarted
+    daemon_reload: true
+
+- name: Reload nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded
+
+- name: Restart the cell
+  ansible.builtin.systemd:
+    name: gusto-cell
+    state: restarted
+    daemon_reload: true
+  when: not (cloud_bake | bool) and cloud_root == ''
