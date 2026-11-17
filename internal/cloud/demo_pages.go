@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
-	"path"
 	"strings"
 	"time"
 )
@@ -279,53 +277,13 @@ func (s *Server) demoLeaseJSON(ctx context.Context, w http.ResponseWriter, slug 
 	return true
 }
 
-// landing is what a visitor sees first where a demo is offered: what gusto is, the video if there is one, and where
-// to start a demo or book a call.
+// landing is what a visitor sees first: what gusto is, the product at work, and where to sign up or book a call. Everything
+// it shows is its own, so its policy opens nothing beyond this server.
 func (s *Server) landing(w http.ResponseWriter, signedIn bool) {
-	demo := s.Store.set.Demo
-	page := view{Title: landingTitle, DemoLeft: demo.Length, Book: demo.BookURL, DemoPublic: demo.Public(), StartingCredit: StartingCredit, SignedIn: signedIn}
-	description := landingDescription(page)
-	page = s.seen(page, "/", description)
-	page.LD = s.structured(description)
-	images := "'self' data:"
-	csp := "default-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
-	if demo.VideoURL == "" {
-		// Two people and their agents in one room is what is shown unless an operator names a video of their own.
-		page.Shot, page.ShotDark = fingerprinted("/static/hero-light.webp"), fingerprinted("/static/hero-dark.webp")
-	} else if video, file, frame := videoOf(demo.VideoURL); video != "" {
-		page.Video, page.VideoFile = video, file
-		if file {
-			page.VideoPoster, images = posterOf(video), images+" https:"
-			csp += "; media-src 'self' https:"
-		} else {
-			csp += "; frame-src " + frame
-		}
-	}
-	w.Header().Set("Content-Security-Policy", csp+"; img-src "+images)
+	page := view{Title: landingTitle, Book: s.Store.set.Demo.BookURL, StartingCredit: StartingCredit, SignedIn: signedIn}
+	page = s.seen(page, "/", landingDescription)
+	page.LD = s.structured(landingDescription)
+	w.Header().Set("Content-Security-Policy",
+		"default-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; img-src 'self' data:")
 	s.render(w, http.StatusOK, "landing", page)
-}
-
-// posterOf is the picture a video file is shown with before it plays: a .jpg of the same name beside it. Without one the
-// player shows the video's first frame.
-func posterOf(video string) string {
-	parsed, err := url.Parse(video)
-	if err != nil {
-		return ""
-	}
-	parsed.Path = strings.TrimSuffix(parsed.Path, path.Ext(parsed.Path)) + ".jpg"
-	return parsed.String()
-}
-
-// videoOf is the video to show for an address, whether it is a file, and the origin a page for it is embedded from. An
-// address that is not https is not shown.
-func videoOf(address string) (video string, file bool, origin string) {
-	parsed, err := url.Parse(strings.TrimSpace(address))
-	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil {
-		return "", false, ""
-	}
-	path := strings.ToLower(parsed.Path)
-	if strings.HasSuffix(path, ".mp4") || strings.HasSuffix(path, ".webm") {
-		return parsed.String(), true, ""
-	}
-	return parsed.String(), false, parsed.Scheme + "://" + parsed.Host
 }

@@ -10,7 +10,7 @@ import (
 
 const (
 	siteName        = "gusto"
-	landingTitle    = siteName + " — one workspace for every AI agent your team uses"
+	landingTitle    = siteName + " — bring your team and AI agents together"
 	demoFormTitle   = "Start a demo of " + siteName
 	bookDemoTitle   = "Book a demo of " + siteName
 	organizationURL = "https://getlatentic.com"
@@ -24,13 +24,7 @@ func (s *Server) seen(page view, path, description string) view {
 }
 
 // landingDescription is what the landing page says it is, for the page's description and for a link to it.
-func landingDescription(page view) string {
-	about := "Your team and its AI agents, from Claude Code to Codex and OpenCode, work together in shared rooms, with each person's apps kept their own, approved models only, and budgets that stop spend."
-	if page.DemoPublic {
-		return about + " Try it for " + minutes(page.DemoLeft) + "."
-	}
-	return about + " Free to start."
-}
+const landingDescription = "Your team and its AI agents, from Claude Code to Codex and OpenCode, work together in shared rooms, with each person's apps kept their own, approved models only, and budgets that stop spend. Free to start."
 
 // structured is what the landing page says about who makes it and what it is, as data a search engine reads. It says only what the
 // page says: there is no price, rating or count in it.

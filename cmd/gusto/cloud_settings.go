@@ -150,7 +150,7 @@ func (s signupSettings) limits() cloud.Limits {
 type demoSettings struct {
 	minutes, extendMinutes, patienceMinutes int
 	max, perDay, perPerson, perCompany      int
-	bookURL, video, notify                  string
+	bookURL, notify                         string
 	staff                                   []string
 }
 
@@ -163,7 +163,6 @@ func (d *demoSettings) declare(set *settings.Set) {
 	set.Int(&d.perPerson, "GUSTO_CLOUD_DEMO_PER_PERSON", 2, 1, "the most demos one address may start in a day, until the operator's page sets it")
 	set.Int(&d.perCompany, "GUSTO_CLOUD_DEMO_PER_COMPANY", 6, 1, "the most demos one company may start in a day, until the operator's page sets it")
 	set.String(&d.bookURL, "GUSTO_CLOUD_BOOK_URL", "", "where a visitor books a call")
-	set.String(&d.video, "GUSTO_CLOUD_DEMO_VIDEO", "", "the video the landing page shows: an https address of a file or of a page to embed")
 	set.String(&d.notify, "GUSTO_CLOUD_DEMO_NOTIFY", "", "an address mailed when a visitor starts a demo")
 	set.List(&d.staff, "GUSTO_CLOUD_DEMO_STAFF", "the addresses and domains whose people alone may start a demo, comma-separated (default anyone)")
 }
@@ -181,7 +180,6 @@ func (d demoSettings) forCloud() cloud.DemoSettings {
 		PerPerson:  d.perPerson,
 		PerCompany: d.perCompany,
 		BookURL:    d.bookURL,
-		VideoURL:   d.video,
 		Staff:      lowered(d.staff),
 	}
 }

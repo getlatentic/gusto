@@ -14,7 +14,7 @@ import (
 	"github.com/getlatentic/gusto/internal/web"
 )
 
-//go:embed static/hero-light.webp static/hero-dark.webp static/shots/*.webp static/og.png
+//go:embed static/og.png
 var files embed.FS
 
 // Config is what a gusto cloud server is made from.
@@ -240,9 +240,6 @@ func (s *Server) routes() http.Handler {
 
 // fileRoutes are the files the front door serves as they are: its pictures, the app's code, and the script that installs gusto.
 func (s *Server) fileRoutes(mux *http.ServeMux) {
-	mux.Handle("GET /static/shots/", cached(http.FileServerFS(files)))
-	mux.Handle("GET /static/hero-light.webp", cached(http.FileServerFS(files)))
-	mux.Handle("GET /static/hero-dark.webp", cached(http.FileServerFS(files)))
 	mux.Handle("GET /static/og.png", cached(http.FileServerFS(files)))
 	mux.Handle("GET /app/assets/", web.AppAssets())
 	mux.Handle("GET /install.sh", installer(install.Script, "text/x-shellscript"))

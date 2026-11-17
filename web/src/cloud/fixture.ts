@@ -63,13 +63,6 @@ export function cloudPage(
     Ending: false,
     DemoPublic: false,
     StartingCredit: 0,
-    Video: "",
-    VideoPoster: "",
-    Shot: "",
-    ShotDark: "",
-    VideoFile: false,
-    Record: "",
-    RecordDark: "",
     Lease: null,
     ...set,
   }

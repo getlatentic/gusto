@@ -23,13 +23,13 @@ func TestTheLandingPageTellsASearchEngineWhatItIsAndWhereItLives(t *testing.T) {
 			`<meta property="og:image" content="http://cloud.test/static/og.png">`,
 			`<meta property="og:image:width" content="1200">`,
 			`<meta name="twitter:card" content="summary_large_image">`,
-			`<meta property="og:title" content="gusto — one workspace for every AI agent your team uses">`,
+			`<meta property="og:title" content="gusto — bring your team and AI agents together">`,
 		} {
 			if !strings.Contains(page, want) {
 				t.Errorf("the landing page lacks %s", want)
 			}
 		}
-		if description := regexp.MustCompile(`<meta name="description" content="([^"]*)"`).FindStringSubmatch(page); description == nil || !strings.Contains(html.UnescapeString(description[1]), "Try it for 30 minutes") {
+		if description := regexp.MustCompile(`<meta name="description" content="([^"]*)"`).FindStringSubmatch(page); description == nil || !strings.Contains(html.UnescapeString(description[1]), "Free to start.") {
 			t.Errorf("the description: %v", description)
 		}
 		if got := header.Get("Content-Security-Policy"); !strings.Contains(got, "default-src 'self'") {
