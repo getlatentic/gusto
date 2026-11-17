@@ -104,6 +104,16 @@ func (g *fakeGoogle) says(email, hosted string, verified bool) {
 	}
 }
 
+// named makes the next token also carry the person's first and whole name, as Google's does when it is asked for a profile.
+func (g *fakeGoogle) named(given, whole string) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if given != "" {
+		g.claims["given_name"] = given
+	}
+	g.claims["name"] = whole
+}
+
 // googleFront is gusto cloud with a client at the fake Google.
 func googleFront(t *testing.T, set Settings) (*front, *fakeGoogle) {
 	t.Helper()
@@ -183,32 +193,65 @@ func TestSomebodyWithAnAccountSignsInWithGoogle(t *testing.T) {
 	})
 }
 
-// Where the address's domain cannot name the organization, the form asks for its name, and sending it signs the person up as
-// the address Google confirmed, still with no mail to confirm it.
-func TestAGoogleSignUpThatNeedsTheOrganizationsNameIsFinishedOnTheForm(t *testing.T) {
+// A personal Google account makes a workspace of the person's own, named after the first name Google gives, with no form
+// to fill in and no mail to confirm the address.
+func TestAPersonalGoogleAccountMakesAWorkspaceNamedAfterItsPerson(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f, g := googleFront(t, Settings{AllowFreeMail: true})
 		g.says("ada@gmail.com", "", true)
+		g.named("Ada", "Ada Lovelace")
 		b := f.browser()
-		status, page, _ := b.throughGoogle(g)
-		if got := shown(t, page); status != http.StatusOK || got.Page != "signup" || !got.More || got.Email != "ada@gmail.com" || got.Ask == "" || got.Error != "" {
-			t.Fatalf("%d: %+v", status, got)
-		}
-		if status, _, header := b.post("/signup", signup("ada@gmail.com", "Ada's team")); status != http.StatusSeeOther || header.Get("Location") != "/open" {
+		if status, _, header := b.throughGoogle(g); status != http.StatusSeeOther || header.Get("Location") != "/open" {
 			t.Fatalf("%d to %q", status, header.Get("Location"))
+		}
+		if got := shownAt(t, b, "/org"); got.Org == nil || got.Org.Name != "Ada's workspace" || got.Domain != "" || !workspaceHost.MatchString(got.Address) {
+			t.Errorf("%+v", got)
 		}
 		if f.personOf("ada@gmail.com").Trial() {
 			t.Error("the address Google confirmed is still on trial")
 		}
-		if mails := f.mails(); len(mails) != 0 {
-			t.Errorf("a confirmation was mailed anyway: %q", mails)
+		// With no first name, Google's whole name does.
+		g.says("bea@gmail.com", "", true)
+		g.named("", "Bea")
+		other := f.browser()
+		if status, _, _ := other.throughGoogle(g); status != http.StatusSeeOther {
+			t.Fatal(status)
+		}
+		if got := shownAt(t, other, "/org"); got.Org == nil || got.Org.Name != "Bea's workspace" {
+			t.Errorf("%+v", got)
+		}
+	})
+}
+
+// A second person at a company that has an organization is asked to name theirs, and sending the form signs them up as the
+// address Google confirmed, still with no mail to confirm it.
+func TestAGoogleSignUpThatNeedsTheOrganizationsNameIsFinishedOnTheForm(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		f, g := googleFront(t, Settings{})
+		f.signedUp("ada@acme.com")
+		g.says("bob@acme.com", "acme.com", true)
+		b := f.browser()
+		status, page, _ := b.throughGoogle(g)
+		if got := shown(t, page); status != http.StatusOK || got.Page != "signup" || !got.More || got.Email != "bob@acme.com" || got.Ask == "" || got.Error != "" {
+			t.Fatalf("%d: %+v", status, got)
+		}
+		if status, _, header := b.post("/signup", signup("bob@acme.com", "Acme Labs")); status != http.StatusSeeOther || header.Get("Location") != "/open" {
+			t.Fatalf("%d to %q", status, header.Get("Location"))
+		}
+		if f.personOf("bob@acme.com").Trial() {
+			t.Error("the address Google confirmed is still on trial")
+		}
+		for _, mail := range f.mails() {
+			if strings.Contains(mail, "To: bob@acme.com") {
+				t.Errorf("a confirmation was mailed anyway: %q", mail)
+			}
 		}
 
 		other := f.browser()
-		if status, _, _ := other.post("/signup", signup("bea@gmail.com", "Bea's team")); status != http.StatusSeeOther {
+		if status, _, _ := other.post("/signup", signup("cat@acme.com", "Acme Insurance")); status != http.StatusSeeOther {
 			t.Fatalf("%d", status)
 		}
-		if !f.personOf("bea@gmail.com").Trial() {
+		if !f.personOf("cat@acme.com").Trial() {
 			t.Error("an address Google did not confirm in this browser was taken as confirmed")
 		}
 	})

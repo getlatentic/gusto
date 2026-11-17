@@ -48,7 +48,7 @@ func NewGoogle(ctx context.Context, issuer, clientID, secret, redirect string) (
 	}
 	return &Google{
 		config: oauth2.Config{ClientID: clientID, ClientSecret: secret, RedirectURL: redirect,
-			Endpoint: provider.Endpoint(), Scopes: []string{oidc.ScopeOpenID, "email"}},
+			Endpoint: provider.Endpoint(), Scopes: []string{oidc.ScopeOpenID, "email", "profile"}},
 		verifier: provider.Verifier(&oidc.Config{ClientID: clientID}),
 	}, nil
 }
@@ -57,39 +57,49 @@ func NewGoogle(ctx context.Context, issuer, clientID, secret, redirect string) (
 // answer to this browser, the nonce Google signs into its token, and the PKCE verifier only this server holds.
 type googleAsk struct{ state, nonce, verifier string }
 
-// googleAddress exchanges the code Google sent back and reads the address out of the token Google signed, checking that
+// googlePerson is who Google says came back: an address Google speaks for, and the first name the person goes by, which
+// names a workspace that no company's domain names.
+type googlePerson struct{ email, name string }
+
+// googleWho exchanges the code Google sent back and reads the person out of the token Google signed, checking that
 // signature, that the token answers this sign-in, and that Google may speak for the address.
-func (g *Google) googleAddress(ctx context.Context, code string, ask googleAsk) (string, error) {
+func (g *Google) googleWho(ctx context.Context, code string, ask googleAsk) (googlePerson, error) {
 	ctx, cancel := context.WithTimeout(ctx, googleWait)
 	defer cancel()
 	token, err := g.config.Exchange(ctx, code, oauth2.VerifierOption(ask.verifier))
 	if err != nil {
-		return "", err
+		return googlePerson{}, err
 	}
 	raw, carried := token.Extra("id_token").(string)
 	if !carried {
-		return "", errors.New("Google returned no identity token")
+		return googlePerson{}, errors.New("Google returned no identity token")
 	}
 	checked, err := g.verifier.Verify(ctx, raw)
 	if err != nil {
-		return "", err
+		return googlePerson{}, err
 	}
 	if subtle.ConstantTimeCompare([]byte(checked.Nonce), []byte(ask.nonce)) != 1 {
-		return "", errors.New("the identity token was not issued for this sign-in")
+		return googlePerson{}, errors.New("the identity token was not issued for this sign-in")
 	}
 	var claims struct {
 		Email    string `json:"email"`
 		Verified bool   `json:"email_verified"`
 		Hosted   string `json:"hd"`
+		Given    string `json:"given_name"`
+		Name     string `json:"name"`
 	}
 	if err := checked.Claims(&claims); err != nil {
-		return "", err
+		return googlePerson{}, err
 	}
 	email, err := NormalEmail(claims.Email)
 	if err != nil || !claims.Verified || !googleOwns(email, claims.Hosted) {
-		return "", fmt.Errorf("Google does not speak for %q", claims.Email)
+		return googlePerson{}, fmt.Errorf("Google does not speak for %q", claims.Email)
 	}
-	return email, nil
+	name := claims.Given
+	if strings.TrimSpace(name) == "" {
+		name = claims.Name
+	}
+	return googlePerson{email: email, name: name}, nil
 }
 
 // googleOwns says whether Google is the authority for an address: a Gmail address, or one of the Google Workspace domain the
@@ -142,35 +152,37 @@ func (s *Server) googleBack(w http.ResponseWriter, r *http.Request) {
 		s.signInRefused(w, http.StatusTooManyRequests, "That is a lot of attempts from one place. Try again later.")
 		return
 	}
-	email, err := s.Google.googleAddress(r.Context(), query.Get("code"), ask)
+	who, err := s.Google.googleWho(r.Context(), query.Get("code"), ask)
 	if err != nil {
 		slog.Warn("a Google sign-in was refused", "error", err)
 		s.signInRefused(w, http.StatusBadRequest, "Google could not confirm a work address gusto can use. Sign in with your email instead.")
 		return
 	}
-	found, err := s.Store.HasAccount(r.Context(), email)
+	found, err := s.Store.HasAccount(r.Context(), who.email)
 	if err != nil {
 		slog.Error("an account could not be looked up", "error", err)
 		s.signInRefused(w, http.StatusInternalServerError, "Something went wrong on our side. Try again.")
 		return
 	}
 	if found {
-		s.confirmed(r.Context(), email)
-		s.signedIn(w, r, email)
+		s.confirmed(r.Context(), who.email)
+		s.signedIn(w, r, who.email)
 		return
 	}
-	s.googleSignUp(w, r, email)
+	s.googleSignUp(w, r, who)
 }
 
-// googleSignUp makes the organization of an address Google confirmed. Where its domain cannot name the organization, the
-// sign-up form asks for the name, and remembers for a while that Google confirmed the address.
-func (s *Server) googleSignUp(w http.ResponseWriter, r *http.Request, email string) {
+// googleSignUp makes the organization of a person Google confirmed: their company's, or a workspace of their own named
+// after them. Where their company has an organization already, the sign-up form asks for a name for this one, and
+// remembers for a while that Google confirmed the address.
+func (s *Server) googleSignUp(w http.ResponseWriter, r *http.Request, who googlePerson) {
+	email := who.email
 	if !s.all.Allow(r.Context(), "all") {
 		s.render(w, http.StatusServiceUnavailable, "signup", view{Title: "Get started", Email: email,
 			Error: "Sign-ups are busy right now. Try again in a little while."})
 		return
 	}
-	person, org, err := s.Store.SignUp(r.Context(), Signup{Email: email})
+	person, org, err := s.Store.SignUp(r.Context(), Signup{Email: email, Person: who.name})
 	if err != nil {
 		more := asksForMore(err)
 		if more {

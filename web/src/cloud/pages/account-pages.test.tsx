@@ -62,18 +62,17 @@ describe("signing up", () => {
       <SignUpPage
         page={cloudPage("signup", {
           More: true,
-          Email: "ada@gmail.com",
-          OrgName: "Acme",
-          Slug: "acme",
-          Error: "That address is taken.",
+          Email: "bob@acme.com",
+          OrgName: "A",
+          Error: "An organization's name is 2 to 80 characters.",
         })}
       />
     )
-    expect(field("email").value).toBe("ada@gmail.com")
-    expect(field("org-name").value).toBe("Acme")
-    expect(field("org-slug").value).toBe("acme")
+    expect(field("email").value).toBe("bob@acme.com")
+    expect(field("org-name").value).toBe("A")
+    expect(screen.queryByTestId("org-slug")).toBeNull()
     expect(screen.getByTestId("refusal").textContent).toBe(
-      "That address is taken."
+      "An organization's name is 2 to 80 characters."
     )
   })
 
@@ -82,17 +81,17 @@ describe("signing up", () => {
       <SignUpPage
         page={cloudPage("signup", {
           More: true,
-          Email: "ada@gmail.com",
-          Ask: "What should your organization be called? Your team sees this name.",
+          Email: "bob@acme.com",
+          Ask: "Your company already has an organization on gusto. Name this one, or ask its admin to invite you.",
         })}
       />
     )
     expect(screen.getByTestId("sign-up-ask").textContent).toMatch(
-      /^What should your organization be called\?/
+      /^Your company already has an organization on gusto\./
     )
     expect(screen.queryByTestId("refusal")).toBeNull()
     expect(document.activeElement).toBe(screen.getByTestId("org-name"))
-    expect(screen.getByLabelText("Web address, optional")).toBeTruthy()
+    expect(screen.queryByTestId("org-slug")).toBeNull()
   })
 
   it("offers a sign-in, and no second form, to an address that has an account", () => {

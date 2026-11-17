@@ -13,7 +13,9 @@ import (
 // Signup is what a person gives to start an organization.
 type Signup struct {
 	Email, OrgName string
-	// Slug is the organization's address. Left out, it is made from the name.
+	// Person is the person's own name, which names their workspace when no company's domain names it and they gave no name.
+	Person string
+	// Slug is the organization's address. Left out, it comes from the company's domain, or is a random one.
 	Slug string
 }
 
@@ -79,46 +81,37 @@ func (s *Store) signUpIn(ctx context.Context, tx dbkit.Tx, in Signup, email, dom
 	return person, org, err
 }
 
-// identify is the organization's name and address. The first at a company's
-// domain has the address that domain gives, so no company is put behind another
-// by arriving later. A company can have more than one organization, a subsidiary or
-// a team, and each after the first is named by whoever makes it and has an address
-// from that name. An address at a free mail provider has only a name to go on.
+// identify is the organization's name and address. The first at a company's domain has the address that domain gives, so
+// no company is put behind another by arriving later. A company can have more than one organization, a subsidiary or a
+// team, and each after the first is named by whoever makes it. An address at a free mail provider makes a workspace named
+// after its person. Every address no domain gives is a random one, so there is no name to race for.
 func (s *Store) identify(in Signup, email, domain string, existing int) (name, slug string, derived bool, err error) {
-	given := strings.TrimSpace(in.OrgName) != ""
 	slug = strings.ToLower(strings.TrimSpace(in.Slug))
+	if domain != "" && existing > 0 && slug == "" && strings.TrimSpace(in.OrgName) == "" {
+		return "", "", false, ErrSameCompany
+	}
+	if name, err = OrgName(nameFor(in, email)); err != nil {
+		return "", "", false, err
+	}
 	switch {
 	case slug != "":
-		name, err = s.nameFor(in.OrgName, email)
-	case domain == "":
-		if name, err = s.nameFor(in.OrgName, email); err == nil {
-			slug = SlugFor(name)
-		}
-	case existing == 0:
-		if name, err = s.nameFor(in.OrgName, email); err == nil {
-			slug, derived = AddressFor(domain), true
-		}
-	case !given:
-		err = ErrSameCompany
+	case domain != "" && existing == 0:
+		slug, derived = AddressFor(domain), true
 	default:
-		if name, err = OrgName(in.OrgName); err == nil {
-			slug = SlugFor(name)
-		}
+		slug, err = WorkspaceAddress()
 	}
 	return name, slug, derived, err
 }
 
-// nameFor is the organization's name: the one given, or the one the company's
-// domain suggests.
-func (s *Store) nameFor(given, email string) (string, error) {
-	if strings.TrimSpace(given) != "" {
-		return OrgName(given)
+// nameFor is the organization's name: the one given, the one the company's domain suggests, or the person's own.
+func nameFor(in Signup, email string) string {
+	if strings.TrimSpace(in.OrgName) != "" {
+		return in.OrgName
 	}
-	suggested, err := FromDomain(DomainOf(email))
-	if err != nil {
-		return "", err
+	if suggested, ok := FromDomain(DomainOf(email)); ok {
+		return suggested
 	}
-	return OrgName(suggested)
+	return PersonalName(in.Person, email)
 }
 
 // companyDomain is the company's domain an address is at: the registrable part,

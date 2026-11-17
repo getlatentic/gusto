@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -71,7 +72,7 @@ func TestGustoCloudIsMadeFromItsSettings(t *testing.T) {
 	}
 	_, data, _ := strings.Cut(page.Body.String(), `<script id="gusto-data" type="application/json">`)
 	data, _, _ = strings.Cut(data, "</script>")
-	if err := json.Unmarshal([]byte(data), &shown); err != nil || shown.Address != "acme.example.com" || shown.Quota.Tasks != 7 || shown.Quota.Monthly {
+	if err := json.Unmarshal([]byte(data), &shown); err != nil || !regexp.MustCompile(`^[0-9a-f]{12}\.example\.com$`).MatchString(shown.Address) || shown.Quota.Tasks != 7 || shown.Quota.Monthly {
 		t.Errorf("the page should show the organization's address and the trial from the settings: %+v %v", shown, err)
 	}
 }

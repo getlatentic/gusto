@@ -38,7 +38,7 @@ func TestACompanyAddressIsAskedForAndAFreeOneIsTurnedAwayUnlessAllowed(t *testin
 	}
 }
 
-func TestAnOrganizationsNameIsTextAndItsAddressIsMadeFromIt(t *testing.T) {
+func TestAnOrganizationsNameIsText(t *testing.T) {
 	name, err := OrgName("  Acme   Research  ")
 	if err != nil || name != "Acme Research" {
 		t.Fatalf("%q %v", name, err)
@@ -48,13 +48,35 @@ func TestAnOrganizationsNameIsTextAndItsAddressIsMadeFromIt(t *testing.T) {
 			t.Errorf("%q should not be a name", bad)
 		}
 	}
-	for name, want := range map[string]string{
-		"Acme Research": "acme-research", "  --Acme!! & Sons--": "acme-sons", "Åcme Ltd": "cme-ltd",
-		"A": "a", strings.Repeat("ab ", 20): "ab-ab-ab-ab-ab-ab-ab-ab-ab-ab-ab",
+}
+
+func TestAWorkspaceNoCompanyNamesIsNamedAfterItsPerson(t *testing.T) {
+	for _, c := range []struct{ person, email, want string }{
+		{"Ada", "ada.l@gmail.com", "Ada's workspace"},
+		{"  Ada   Lovelace ", "ada@gmail.com", "Ada Lovelace's workspace"},
+		{"", "ada.l+gusto@gmail.com", "ada.l's workspace"},
+		{"<\u202e>", "bob@gmail.com", "bob's workspace"},
+		{"", "+x@gmail.com", "My workspace"},
+		{strings.Repeat("é", 70), "e@gmail.com", strings.Repeat("é", 60) + "'s workspace"},
 	} {
-		if got := SlugFor(name); got != want {
-			t.Errorf("SlugFor(%q) = %q, want %q", name, got, want)
+		got := PersonalName(c.person, c.email)
+		if got != c.want {
+			t.Errorf("PersonalName(%q, %q) = %q, want %q", c.person, c.email, got, c.want)
 		}
+		if _, err := OrgName(got); err != nil {
+			t.Errorf("%q is not a name an organization can have: %v", got, err)
+		}
+	}
+}
+
+func TestAWorkspaceAddressIsRandomAndOneAHostNameCanTake(t *testing.T) {
+	seen := map[string]bool{}
+	for range 100 {
+		address, err := WorkspaceAddress()
+		if err != nil || ValidSlug(address) != nil || len(address) != 12 || seen[address] {
+			t.Fatalf("%q %v", address, err)
+		}
+		seen[address] = true
 	}
 }
 
@@ -81,19 +103,14 @@ func TestACompanyDomainNamesItsOrganizationAndAFreeOneDoesNot(t *testing.T) {
 		"acme.com": "Acme", "acme-research.com": "Acme Research", "mail.acme.co.uk": "Acme", "acme.io": "Acme",
 		"corp.local": "Corp", "a-b-c.org": "A B C", "team.a-b-c.org": "A B C", "a-b-c.example.org": "Example",
 	} {
-		if got, err := FromDomain(domain); err != nil || got != want {
-			t.Errorf("FromDomain(%q) = %q, %v, want %q", domain, got, err, want)
+		if got, ok := FromDomain(domain); !ok || got != want {
+			t.Errorf("FromDomain(%q) = %q, %v, want %q", domain, got, ok, want)
 		}
 	}
 	for _, domain := range []string{"gmail.com", "outlook.com", "mailinator.com"} {
-		if _, err := FromDomain(domain); !errors.Is(err, ErrNeedName) {
-			t.Errorf("%s names no company: %v", domain, err)
+		if name, ok := FromDomain(domain); ok {
+			t.Errorf("%s names no company, not %q", domain, name)
 		}
-	}
-	// What the domain gives is a name that makes an address.
-	name, _ := FromDomain("mail.acme-research.co.uk")
-	if SlugFor(name) != "acme-research" {
-		t.Errorf("%q gives %q", name, SlugFor(name))
 	}
 }
 
@@ -103,15 +120,15 @@ func TestADomainWrittenWithAnotherAlphabetIsTheDifferentDomainItIs(t *testing.T)
 	if err != nil || got == "ada@acme.com" || !strings.HasPrefix(DomainOf(got), "xn--") {
 		t.Fatalf("%q %v", got, err)
 	}
-	if _, err := FromDomain(DomainOf(got)); !errors.Is(err, ErrNeedName) {
-		t.Errorf("a lookalike gives no name to show: %v", err)
+	if name, ok := FromDomain(DomainOf(got)); ok {
+		t.Errorf("a lookalike gives no name to show, not %q", name)
 	}
 	if again, _ := NormalEmail("ADA@\u0430cme.com"); again != got {
 		t.Errorf("the same lookalike is the same address: %q %q", again, got)
 	}
 	// And a name drawn from a domain is never cut through the middle of a letter.
-	if name, err := FromDomain("\u00e9cole.fr"); err != nil || !strings.HasPrefix(name, "\u00c9") {
-		t.Errorf("%q %v", name, err)
+	if name, ok := FromDomain("\u00e9cole.fr"); !ok || !strings.HasPrefix(name, "\u00c9") {
+		t.Errorf("%q %v", name, ok)
 	}
 	// A letter that cannot be seen is dropped, so it is the real domain and no lookalike of it.
 	if same, err := NormalEmail("ada@exa\u200bmple.com"); err != nil || same != "ada@example.com" {
