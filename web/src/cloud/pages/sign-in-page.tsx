@@ -7,9 +7,11 @@ import {
   TextLink,
 } from "@/cloud/components/cloud-card"
 import { Field, Submit } from "@/cloud/components/forms"
+import { ContinueWithGoogle } from "@/cloud/components/google-sign-in"
 import type { CloudPage } from "@/cloud/types"
 
-// SignInPage asks for an email address and mails a code to it; once sent, it takes the code.
+// SignInPage offers Google where gusto cloud has it, and asks for an email address and mails a code to it; once sent, it takes
+// the code.
 export function SignInPage({ page }: { page: CloudPage }) {
   return (
     <CloudCard>
@@ -24,6 +26,7 @@ function AskForCode({ page }: { page: CloudPage }) {
     <>
       <Heading>Sign in</Heading>
       <Refusal>{page.Error}</Refusal>
+      <ContinueWithGoogle page={page} />
       <form className="grid gap-3" method="post" action="/signin">
         <Field
           label="Email"
