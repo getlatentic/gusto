@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { Outlet, useLocation } from "react-router"
 import { PlusIcon } from "lucide-react"
 
@@ -8,6 +8,8 @@ import { SkipLink } from "@/components/skip-link"
 import { EmailReminder } from "@/components/person/email-reminder"
 import { usePanelWidth } from "@/components/panel-resize"
 import { sidePanel } from "@/domain/panel-width"
+import { usePageEnter } from "@/motion/use-page-enter"
+import { useChildPath } from "@/router/use-child-path"
 import { PlacesRail } from "@/components/person/places-rail"
 import { showsConversations } from "@/components/person/places"
 import { SideList } from "@/components/person/side-list"
@@ -21,6 +23,8 @@ export function PersonShell() {
   const shell = useShell().data
   const here = useLocation().pathname
   const [open, setOpen] = useState(false)
+  const main = useRef<HTMLElement>(null)
+  usePageEnter(main, useChildPath("person"))
   const navigation = useMemo(() => ({ open: () => setOpen(true) }), [])
   // The panel is beside the rail, which is 3.25rem wide, so it is as wide as the pointer is from the rail's edge.
   const { width, divider } = usePanelWidth(
@@ -75,6 +79,7 @@ export function PersonShell() {
           </SheetContent>
         </Sheet>
         <main
+          ref={main}
           id="main"
           tabIndex={-1}
           className="flex min-h-0 min-w-0 flex-col overflow-y-auto"

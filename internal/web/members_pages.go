@@ -9,9 +9,9 @@ import (
 	"github.com/getlatentic/gusto/internal/instance"
 )
 
-// The members pages' data, in the shapes web/src/pages/members/types.ts names. Every members page carries the list and what the
-// new agent dialog offers, as the list and the dialog are on each of them; an agent's page and a person's page add whoever is
-// open.
+// The members pages' data, in the shapes web/src/pages/members/types.ts names. /members is the list and its dialogs, which the
+// app reads once and keeps drawn; an agent's page and a person's page are only whoever is open, with anything a form sent there
+// was refused for.
 
 const (
 	agentRoute  = "/members/agents/{id}"
@@ -62,23 +62,18 @@ type givenSkill struct{ Name, Description string }
 // roomLink is a room the page links to.
 type roomLink struct{ Name, Where string }
 
-// membersData is the members list's page.
+// membersData is the members list and the dialogs that add to it, which every members page shows.
 func (s *Server) membersData(r *http.Request) (map[string]any, error) {
-	return s.membersParts(r, s.workspacePeople(r)), nil
-}
-
-// membersParts is what every members page shows: the list, and the dialogs that add to it.
-func (s *Server) membersParts(r *http.Request, people []listedPerson) map[string]any {
 	invite := s.inviteOffered(r)
 	return map[string]any{
-		"People":   people,
+		"People":   s.workspacePeople(r),
 		"Agents":   s.workspaceAgents(r, ""),
 		"Keeps":    s.crew != nil,
 		"NewAgent": s.newAgentOf(r),
 		"Invite":   invite,
 		"Sent":     invite != nil && invitationSent(r),
 		"Refused":  s.refusal(r),
-	}
+	}, nil
 }
 
 func (s *Server) newAgentOf(r *http.Request) newAgentView {
@@ -114,14 +109,15 @@ func (s *Server) agentData(r *http.Request) (map[string]any, error) {
 	if !found {
 		return nil, failed{http.StatusNotFound, "there is no such agent"}
 	}
-	page := s.membersParts(r, s.workspacePeople(r))
-	page["Agent"] = s.agentPageOf(r, member)
-	page["Apps"] = s.agentAppsFor(r, member.ID)
-	page["Skills"] = s.agentSkillsOf(member.Setup)
-	page["Rooms"] = s.roomsWith(r, func(held instance.Instance) bool {
-		return slices.ContainsFunc(held.Agents, func(agent instance.Agent) bool { return agent.Member == member.ID })
-	})
-	return page, nil
+	return map[string]any{
+		"Agent":  s.agentPageOf(r, member),
+		"Apps":   s.agentAppsFor(r, member.ID),
+		"Skills": s.agentSkillsOf(member.Setup),
+		"Rooms": s.roomsWith(r, func(held instance.Instance) bool {
+			return slices.ContainsFunc(held.Agents, func(agent instance.Agent) bool { return agent.Member == member.ID })
+		}),
+		"Refused": s.refusal(r),
+	}, nil
 }
 
 func (s *Server) agentPageOf(r *http.Request, member crew.Agent) agentPageView {
@@ -168,12 +164,13 @@ func (s *Server) personData(r *http.Request) (map[string]any, error) {
 	if !found {
 		return nil, failed{http.StatusNotFound, "there is nobody of that address here"}
 	}
-	page := s.membersParts(r, people)
-	page["Person"] = person
-	page["Bio"] = s.bioOf(r, person.Who)
-	page["Rooms"] = s.roomsWith(r, func(held instance.Instance) bool { return held.RoleOf(person.Who) != "" })
-	page["Made"] = s.workspaceAgents(r, person.Who)
-	return page, nil
+	return map[string]any{
+		"Person":  person,
+		"Bio":     s.bioOf(r, person.Who),
+		"Rooms":   s.roomsWith(r, func(held instance.Instance) bool { return held.RoleOf(person.Who) != "" }),
+		"Made":    s.workspaceAgents(r, person.Who),
+		"Refused": s.refusal(r),
+	}, nil
 }
 
 // roomsWith is each room the person asking is in that keep says to show.

@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-// membersJSON is a members page's data, as web/src/pages/members/types.ts names it: the list and the dialogs on every page, and
-// whoever the page is of.
+// membersJSON is a members page's data, as web/src/pages/members/types.ts names it: the list and its dialogs at /members, or
+// whoever an agent's or a person's page is of.
 type membersJSON struct {
 	People   []listedPerson
 	Agents   []listedAgent

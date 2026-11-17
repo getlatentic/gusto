@@ -19,6 +19,7 @@ export function RunLine({ run }: { run: Run }) {
     <li
       data-testid="run"
       data-id={run.ID}
+      data-flip-id={run.ID}
       className="grid min-h-16 grid-cols-[0.5rem_minmax(0,1fr)_auto_11rem] items-center gap-4 px-5 py-3 hover:bg-muted/50 max-md:grid-cols-[0.5rem_minmax(0,1fr)_auto] max-md:gap-3 max-md:px-4"
     >
       <span

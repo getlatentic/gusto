@@ -1,17 +1,28 @@
 import type { ReactNode } from "react"
 import { render } from "@testing-library/react"
 import { Provider } from "react-redux"
-import { MemoryRouter, Route, Routes } from "react-router"
+import { createMemoryRouter, type RouteObject } from "react-router"
+import { RouterProvider } from "react-router/dom"
 import { vi } from "vitest"
 
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { makeStore } from "@/store"
+import { makeStore, type AppStore } from "@/store"
 
 // renderPage draws a page at an address, with the server answering /app/api from the data given, keyed by the page address.
 export function renderPage(
   at: string,
   route: string,
   page: ReactNode,
+  data: Record<string, unknown>
+) {
+  return renderRoutes(at, () => ({ path: route, element: page }), data)
+}
+
+// renderRoutes draws the route given at an address, as renderPage does a page. The route is made with the test's store, as
+// the app's are, so its loaders read into it.
+export function renderRoutes(
+  at: string,
+  route: (store: AppStore) => RouteObject,
   data: Record<string, unknown>
 ) {
   const asked: string[] = []
@@ -27,14 +38,12 @@ export function renderPage(
       })
     })
   )
+  const store = makeStore()
+  const router = createMemoryRouter([route(store)], { initialEntries: [at] })
   const drawn = render(
-    <Provider store={makeStore()}>
+    <Provider store={store}>
       <TooltipProvider>
-        <MemoryRouter initialEntries={[at]}>
-          <Routes>
-            <Route path={route} element={page} />
-          </Routes>
-        </MemoryRouter>
+        <RouterProvider router={router} />
       </TooltipProvider>
     </Provider>
   )

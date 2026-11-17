@@ -8,6 +8,7 @@ import { usePageData } from "@/lib/api"
 import { ActivityFilters } from "@/pages/work/activity-filters"
 import { RunLine } from "@/pages/work/run-line"
 import type { ActivityData, Board } from "@/pages/work/types"
+import { FlipList } from "@/motion/flip-list"
 
 // ActivityPage is every task agents ran that the person may read, newest first, a page at a time, with what is going on now
 // counted across the top as the filters it stands for. It starts nothing itself; a run happens on an agent.
@@ -43,26 +44,28 @@ function ActivityBoard({ board }: { board: Board }) {
       <ActivityFilters board={board} />
       {days.length > 0 ? (
         <>
-          {days.map((day, at) => (
-            <section
-              key={`${day.Named}-${at}`}
-              className="mb-6"
-              aria-label={day.Named || undefined}
-            >
-              <Card className="gap-0 py-0">
-                {day.Named && (
-                  <h2 className="m-0 border-b bg-muted/50 px-5 py-3 text-xs font-medium text-muted-foreground">
-                    {day.Named}
-                  </h2>
-                )}
-                <ol className="m-0 list-none divide-y p-0">
-                  {day.Runs.map((run) => (
-                    <RunLine key={run.ID} run={run} />
-                  ))}
-                </ol>
-              </Card>
-            </section>
-          ))}
+          <FlipList>
+            {days.map((day, at) => (
+              <section
+                key={`${day.Named}-${at}`}
+                className="mb-6"
+                aria-label={day.Named || undefined}
+              >
+                <Card className="gap-0 py-0">
+                  {day.Named && (
+                    <h2 className="m-0 border-b bg-muted/50 px-5 py-3 text-xs font-medium text-muted-foreground">
+                      {day.Named}
+                    </h2>
+                  )}
+                  <ol className="m-0 list-none divide-y p-0">
+                    {day.Runs.map((run) => (
+                      <RunLine key={run.ID} run={run} />
+                    ))}
+                  </ol>
+                </Card>
+              </section>
+            ))}
+          </FlipList>
           <Pages board={board} />
         </>
       ) : (

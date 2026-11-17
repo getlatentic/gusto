@@ -1,6 +1,11 @@
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import { Provider } from "react-redux"
-import { MemoryRouter, Route, Routes } from "react-router"
+import {
+  createMemoryRouter,
+  createRoutesFromElements,
+  Route,
+} from "react-router"
+import { RouterProvider } from "react-router/dom"
 import { describe, expect, it, vi } from "vitest"
 
 import { PersonShell } from "@/components/person/person-shell"
@@ -66,13 +71,18 @@ function draw(at: string) {
   render(
     <Provider store={makeStore()}>
       <TooltipProvider>
-        <MemoryRouter initialEntries={[at]}>
-          <Routes>
-            <Route element={<PersonShell />}>
-              <Route path="*" element={<p>page</p>} />
-            </Route>
-          </Routes>
-        </MemoryRouter>
+        <RouterProvider
+          router={createMemoryRouter(
+            createRoutesFromElements(
+              <>
+                <Route element={<PersonShell />}>
+                  <Route path="*" element={<p>page</p>} />
+                </Route>
+              </>
+            ),
+            { initialEntries: [at] }
+          )}
+        />
       </TooltipProvider>
     </Provider>
   )

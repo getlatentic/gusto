@@ -6,7 +6,9 @@ import {
   appChoices,
   emailWords,
   kindNotes,
+  listSearch,
   memberTabOf,
+  openIn,
   shownIn,
   skillGroups,
 } from "@/domain/members"
@@ -111,5 +113,25 @@ describe("words of the members pages", () => {
     ])
     expect(groups.roles.map((each) => each.Name)).toEqual(["health"])
     expect(groups.sets.map((each) => each.Name)).toEqual(["launch"])
+  })
+})
+
+describe("the members layout", () => {
+  it("reads the list with the address's words only on the list's own page", () => {
+    expect(listSearch({ pathname: "/members", search: "?sent=1" })).toBe(
+      "?sent=1"
+    )
+    expect(
+      listSearch({ pathname: "/members/agents/a1", search: "?tab=skills" })
+    ).toBe("")
+  })
+
+  it("finds whoever the address is the page of", () => {
+    const listed = [
+      { Name: "Ada", Where: "/members/people/ada@acme.com" },
+      { Name: "Atlas", Where: "/members/agents/a1" },
+    ]
+    expect(openIn(listed, "/members/agents/a1")?.Name).toBe("Atlas")
+    expect(openIn(listed, "/members")).toBeUndefined()
   })
 })

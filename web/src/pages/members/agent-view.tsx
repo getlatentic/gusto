@@ -3,17 +3,36 @@ import { useSearchParams } from "react-router"
 import { AppLink } from "@/components/app-link"
 import { Notice } from "@/components/page"
 import { agentTabOf, agentTabs, type AgentTab } from "@/domain/members"
+import { usePageData } from "@/lib/api"
 import { AgentAccess } from "@/pages/members/agent-access"
 import { AgentApps } from "@/pages/members/agent-apps"
 import { AgentHeader } from "@/pages/members/agent-header"
 import { AgentProfile } from "@/pages/members/agent-profile"
 import { AgentSkills } from "@/pages/members/agent-skills"
-import { BackToMembers, RoomLinks } from "@/pages/members/member-parts"
-import type { AgentData } from "@/pages/members/types"
+import { BackToMembers, Opening, RoomLinks } from "@/pages/members/member-parts"
+import { useMembersOutlet } from "@/pages/members/members-layout"
+import type { AgentData, ModelOption } from "@/pages/members/types"
+
+// OpenAgent is the agent the address names, beside the members list.
+export function OpenAgent() {
+  const loaded = usePageData<AgentData>()
+  const offered = useMembersOutlet().list.NewAgent.Offered
+  return (
+    <Opening loaded={loaded}>
+      {(page) => <AgentView page={page} offered={offered} />}
+    </Opening>
+  )
+}
 
 // AgentView is one agent: who it is, and its tabs, each its own address: its profile, who may work with it, its skills, and the
 // person's apps it may use where the server offers apps.
-export function AgentView({ page }: { page: AgentData }) {
+export function AgentView({
+  page,
+  offered,
+}: {
+  page: AgentData
+  offered: ModelOption[]
+}) {
   const [params] = useSearchParams()
   const agent = page.Agent
   const tab = agentTabOf(params.get("tab"), page.Apps !== null)
@@ -41,12 +60,20 @@ export function AgentView({ page }: { page: AgentData }) {
           ))}
         </ul>
       </nav>
-      <TabBody page={page} tab={tab} />
+      <TabBody page={page} tab={tab} offered={offered} />
     </article>
   )
 }
 
-function TabBody({ page, tab }: { page: AgentData; tab: AgentTab }) {
+function TabBody({
+  page,
+  tab,
+  offered,
+}: {
+  page: AgentData
+  tab: AgentTab
+  offered: ModelOption[]
+}) {
   const agent = page.Agent
   switch (tab) {
     case "access":
@@ -58,7 +85,7 @@ function TabBody({ page, tab }: { page: AgentData; tab: AgentTab }) {
     default:
       return (
         <>
-          <AgentProfile agent={agent} offered={page.NewAgent.Offered} />
+          <AgentProfile agent={agent} offered={offered} />
           <RoomLinks title="In your rooms" rooms={page.Rooms} />
         </>
       )
