@@ -220,11 +220,16 @@ func frontOf(ctx context.Context, store *cloud.Store, public *url.URL, stripe *c
 		return nil, nil, err
 	}
 	f := cfg.front
+	google, err := cloud.NewGoogle(ctx, cloud.GoogleIssuer, f.googleID, f.googleSecret, public.JoinPath(cloud.GoogleBack).String())
+	if err != nil {
+		return nil, nil, err
+	}
 	front, err := cloud.New(cloud.Config{
 		Lease: f.lease(), Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
 		Domain: f.domain, TrustProxy: f.trustProxy, Notify: cfg.demo.notify,
 		Leads:      &cloud.LeadHook{URL: f.leadHookURL, Secret: f.leadHookSecret, Dir: filepath.Join(cfg.records.root, "leadhook")},
 		Turnstile:  cloud.Turnstile{Site: f.turnstileSite, Secret: f.turnstileSecret},
+		Google:     google,
 		PerAddress: f.perAddress, PerMailbox: f.perMailbox, InAll: f.inAll,
 		Stripe: stripe,
 	})

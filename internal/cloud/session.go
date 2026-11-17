@@ -86,15 +86,25 @@ func (s *Sessions) sign(payload string) string {
 
 // Issue signs a person in.
 func (s *Sessions) Issue(w http.ResponseWriter, email string) {
-	expires := s.now().Add(s.life)
-	payload := base64.RawURLEncoding.EncodeToString([]byte(email + "|" + strconv.FormatInt(expires.Unix(), 10)))
-	http.SetCookie(w, &http.Cookie{Name: s.name(), Value: payload + "." + s.sign(payload), Path: "/",
-		Expires: expires, HttpOnly: true, Secure: s.secure, SameSite: http.SameSiteLaxMode})
+	s.setSigned(w, s.name(), email, s.life)
 }
 
 // Who is the address a request is signed in as.
 func (s *Sessions) Who(r *http.Request) (string, bool) {
-	cookie, err := r.Cookie(s.name())
+	return s.readSigned(r, s.name())
+}
+
+// setSigned sets a cookie that holds an address and when it expires, signed so that only this server can have made it.
+func (s *Sessions) setSigned(w http.ResponseWriter, name, email string, life time.Duration) {
+	expires := s.now().Add(life)
+	payload := base64.RawURLEncoding.EncodeToString([]byte(email + "|" + strconv.FormatInt(expires.Unix(), 10)))
+	http.SetCookie(w, &http.Cookie{Name: name, Value: payload + "." + s.sign(payload), Path: "/",
+		Expires: expires, HttpOnly: true, Secure: s.secure, SameSite: http.SameSiteLaxMode})
+}
+
+// readSigned is the address a cookie setSigned made holds, while it has not expired.
+func (s *Sessions) readSigned(r *http.Request, name string) (string, bool) {
+	cookie, err := r.Cookie(name)
 	if err != nil {
 		return "", false
 	}
@@ -114,9 +124,37 @@ func (s *Sessions) Who(r *http.Request) (string, bool) {
 	return email, true
 }
 
+// vouchedName is the cookie that says Google confirmed an address that is still to sign up, because its organization needs a
+// name the address's domain could not give.
+func (s *Sessions) vouchedName() string {
+	if s.secure {
+		return "__Host-gusto_vouched"
+	}
+	return "gusto_vouched"
+}
+
+// vouchedFor is how long the sign-up form may take to finish after Google confirmed the address.
+const vouchedFor = 30 * time.Minute
+
+// Vouch remembers, for a while, that Google confirmed this address.
+func (s *Sessions) Vouch(w http.ResponseWriter, email string) {
+	s.setSigned(w, s.vouchedName(), email, vouchedFor)
+}
+
+// Vouched says whether Google confirmed this address in this browser a short while ago.
+func (s *Sessions) Vouched(r *http.Request, email string) bool {
+	vouched, ok := s.readSigned(r, s.vouchedName())
+	return ok && vouched == email
+}
+
+// Unvouch forgets what Google confirmed, once the address has signed up.
+func (s *Sessions) Unvouch(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{Name: s.vouchedName(), Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: s.secure, SameSite: http.SameSiteLaxMode})
+}
+
 // Clear signs a person out, and forgets which of their organizations they were in.
 func (s *Sessions) Clear(w http.ResponseWriter) {
-	for _, name := range []string{s.name(), s.orgName()} {
+	for _, name := range []string{s.name(), s.orgName(), s.vouchedName()} {
 		http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: s.secure, SameSite: http.SameSiteLaxMode})
 	}
 }
@@ -176,7 +214,8 @@ func linkHash(secret string) string {
 // ownCookie says whether a cookie is gusto cloud's, over https or not, which no organization's server is sent.
 func ownCookie(name string) bool {
 	switch name {
-	case "gusto_cloud", "__Host-gusto_cloud", "gusto_org", "__Host-gusto_org", "gusto_joined", "__Host-gusto_joined":
+	case "gusto_cloud", "__Host-gusto_cloud", "gusto_org", "__Host-gusto_org", "gusto_joined", "__Host-gusto_joined",
+		"gusto_vouched", "__Host-gusto_vouched", "gusto_google", "__Host-gusto_google":
 		return true
 	}
 	return false

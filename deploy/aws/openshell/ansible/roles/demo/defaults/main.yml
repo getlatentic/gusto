@@ -75,6 +75,9 @@ demo_turnstile_site: ""
 demo_turnstile_parameter: /gusto/poc/turnstile-secret
 demo_lead_hook_url_parameter: /gusto/poc/lead-hook-url
 demo_lead_hook_secret_parameter: /gusto/poc/lead-hook-secret
+# The OAuth client at Google that people sign in with, stored by put-google.sh. Without both there is no Google sign-in.
+demo_google_client_id_parameter: /gusto/poc/google-client-id
+demo_google_secret_parameter: /gusto/poc/google-secret
 # The OAuth clients registered with the connector apps that need one, as {"github": {"id", "secret"}}: put-connector-client.sh.
 demo_connector_clients_parameter: /gusto/poc/connector-clients
 demo_visitor_max: 5

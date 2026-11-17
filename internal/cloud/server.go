@@ -37,6 +37,8 @@ type Config struct {
 	Controller *Controller
 	// Lease, when there is one, is how long this host has before it removes itself.
 	Lease *Lease
+	// Google is signing in with a Google account, when gusto cloud has a client at Google.
+	Google *Google
 	// Turnstile is the bot check on the demo form, when it is set.
 	Turnstile Turnstile
 	// Leads sends each lead to where it is followed up, when it is set.
@@ -203,6 +205,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /signin/link", s.confirmPage(SignIn, "Sign in to gusto", "Continue"))
 	mux.HandleFunc("POST /signin/link", s.useLink(SignIn))
 	mux.HandleFunc("POST /signin/code", s.signInWithCode)
+	s.googleRoutes(mux)
 	mux.HandleFunc("GET /orgs", s.orgsPage)
 	mux.HandleFunc("GET /orgs.json", s.orgsJSON)
 	mux.HandleFunc("GET /account.json", s.accountJSON)

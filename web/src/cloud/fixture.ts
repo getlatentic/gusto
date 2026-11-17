@@ -25,6 +25,7 @@ export function cloudPage(
     More: false,
     Taken: false,
     WorkOnly: false,
+    Google: false,
     SignedIn: false,
     Sent: false,
     Token: "",

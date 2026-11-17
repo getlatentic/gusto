@@ -91,6 +91,39 @@ describe("signing up", () => {
   })
 })
 
+describe("Google", () => {
+  it("is offered above the email form on both ways in where gusto cloud has it", () => {
+    for (const page of [
+      <SignInPage key="in" page={cloudPage("signin", { Google: true })} />,
+      <SignUpPage key="up" page={cloudPage("signup", { Google: true })} />,
+    ]) {
+      const { unmount } = render(page)
+      expect(screen.getByTestId("google").getAttribute("href")).toBe(
+        "/signin/google"
+      )
+      expect(screen.getByTestId("google").textContent).toBe(
+        "Continue with Google"
+      )
+      unmount()
+    }
+  })
+
+  it("is not offered where gusto cloud has no client at Google, or once the sign-up asks for the organization", () => {
+    render(<SignInPage page={cloudPage("signin")} />)
+    expect(screen.queryByTestId("google")).toBeNull()
+    render(
+      <SignUpPage
+        page={cloudPage("signup", {
+          Google: true,
+          More: true,
+          Email: "ada@gmail.com",
+        })}
+      />
+    )
+    expect(screen.queryByTestId("google")).toBeNull()
+  })
+})
+
 describe("confirming a link", () => {
   it("sends its form once, and says it is working", () => {
     render(

@@ -7,6 +7,7 @@ import {
   TextLink,
 } from "@/cloud/components/cloud-card"
 import { Field, Submit } from "@/cloud/components/forms"
+import { ContinueWithGoogle } from "@/cloud/components/google-sign-in"
 import type { CloudPage } from "@/cloud/types"
 
 // SignUpPage makes an organization from an email address. It asks for the organization's name and address too when the address's
@@ -50,6 +51,7 @@ function GetStarted({ page }: { page: CloudPage }) {
           Enter your email and gusto sets up a workspace for your team.
         </Quiet>
       )}
+      {!page.More && <ContinueWithGoogle page={page} />}
       <form className="grid gap-3" method="post" action="/signup">
         <Field
           label={page.WorkOnly ? "Work email" : "Email"}

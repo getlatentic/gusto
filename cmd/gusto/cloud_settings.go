@@ -64,6 +64,7 @@ type frontSettings struct {
 	leaseStepMinutes, leaderSeconds int
 	leadHookURL, leadHookSecret     string
 	turnstileSite, turnstileSecret  string
+	googleID, googleSecret          string
 	perAddress, perMailbox, inAll   int
 }
 
@@ -83,6 +84,9 @@ func (f *frontSettings) declare(set *settings.Set) {
 	set.Secret(&f.leadHookSecret, "GUSTO_CLOUD_LEAD_HOOK_SECRET", "the secret the lead hook's requests are signed with")
 	set.String(&f.turnstileSite, "GUSTO_CLOUD_TURNSTILE_SITE", "", "the Cloudflare Turnstile site key of the bot check on the demo form, which fails closed")
 	set.Secret(&f.turnstileSecret, "GUSTO_CLOUD_TURNSTILE_SECRET", "the Cloudflare Turnstile secret of the bot check")
+	set.String(&f.googleID, "GUSTO_CLOUD_GOOGLE_CLIENT_ID", "", "the OAuth client at Google that people sign in and sign up with; "+
+		"it lists <GUSTO_CLOUD_URL>"+cloud.GoogleBack+" as a redirect address, and is set with its secret or not at all")
+	set.Secret(&f.googleSecret, "GUSTO_CLOUD_GOOGLE_SECRET", "the secret of the OAuth client at Google")
 	set.Int(&f.perAddress, "GUSTO_CLOUD_PER_ADDRESS", 10, 1, "the most sign-ups, sign-ins and demo requests from one network address in an hour")
 	set.Int(&f.perMailbox, "GUSTO_CLOUD_PER_MAILBOX", 3, 1, "the most mail sent to one address in an hour")
 	set.Int(&f.inAll, "GUSTO_CLOUD_IN_ALL", 200, 1, "the most sign-ups, and the most demo requests, in all in an hour")
