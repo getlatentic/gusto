@@ -11,8 +11,8 @@ type pageView struct {
 	Page  string
 	Title string
 
-	Error, Ask, Email, OrgName, Slug, Name, Notice string
-	More, Taken, WorkOnly, SignedIn, Sent, Google  bool
+	Error, Ask, Email, OrgName, Name, Notice      string
+	More, Taken, WorkOnly, SignedIn, Sent, Google bool
 
 	Token, Action, Button, Inviter string
 
@@ -91,7 +91,7 @@ func quotaOf(q quota.Quota) quotaView {
 func pageOf(name string, v view) pageView {
 	page := pageView{
 		Page: name, Title: v.Title,
-		Error: v.Error, Ask: v.Ask, Email: v.Email, OrgName: v.OrgName, Slug: v.Slug, Name: v.Name, Notice: v.Notice,
+		Error: v.Error, Ask: v.Ask, Email: v.Email, OrgName: v.OrgName, Name: v.Name, Notice: v.Notice,
 		More: v.More, Taken: v.Taken, WorkOnly: v.WorkOnly, SignedIn: v.SignedIn, Sent: v.Sent, Google: v.Google,
 		Token: v.Token, Action: v.Action, Button: v.Button, Inviter: v.Inviter,
 		Several: v.Several, Person: personView{Email: v.Person.Email, Trial: v.Person.Trial()},

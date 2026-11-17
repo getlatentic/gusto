@@ -28,11 +28,9 @@ type view struct {
 	// Error is a sentence for the person, and Email and OrgName are what they
 	// typed, so a refused form is not typed again.
 	Error, Email, OrgName string
-	// More says the form also asks for the organization's name and address: a
-	// person is asked when the domain could not name it, and keeps being asked
-	// after they have been.
+	// More says the form also asks for the organization's name: a person is asked when their company has an organization
+	// already, and keeps being asked after they have been.
 	More bool
-	Slug string
 	// Ask is the question the form asks next when nothing was wrong, only missing, so it is not shown as a refusal.
 	Ask string
 	// Taken says the address a person signed up with has an account, so they are offered a sign-in link to it.

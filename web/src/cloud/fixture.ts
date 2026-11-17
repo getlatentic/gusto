@@ -20,7 +20,6 @@ export function cloudPage(
     Ask: "",
     Email: "",
     OrgName: "",
-    Slug: "",
     Name: "",
     Notice: "",
     More: false,

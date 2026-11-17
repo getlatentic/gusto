@@ -84,10 +84,10 @@ func TestASignUpThatIsRefusedLeavesNothingBehind(t *testing.T) {
 				t.Errorf("%s: %v, want %v", name, err, in.want)
 			}
 		}
-		// A free mail address has only its name to make an address from.
+		// A name given that will not do is refused, and not swapped for the person's own.
 		free := open(t, Settings{AllowFreeMail: true})
-		if _, _, err := free.SignUp(t.Context(), Signup{Email: "bob@gmail.com", OrgName: "!!"}); !errors.Is(err, ErrBadSlug) {
-			t.Errorf("a name with no letters gives no address: %v", err)
+		if _, _, err := free.SignUp(t.Context(), Signup{Email: "bob@gmail.com", OrgName: "!"}); !errors.Is(err, ErrBadOrgName) {
+			t.Errorf("a name too short is refused: %v", err)
 		}
 		// A slug taken by a refused sign-up is not held by it.
 		if _, _, err := s.SignUp(t.Context(), Signup{Email: "ada@acme.com", OrgName: "Elsewhere", Slug: "elsewhere"}); !errors.Is(err, ErrEmailTaken) {
@@ -265,15 +265,12 @@ func TestAnOrganizationIsNamedFromTheCompanysDomainWhenTheAdminGivesNoName(t *te
 	})
 }
 
-func TestAFreeMailAddressHasNoCompanyToNameItAndClaimsNoDomain(t *testing.T) {
+func TestAFreeMailAddressMakesAWorkspaceNamedAfterItsPersonAndClaimsNoDomain(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{AllowFreeMail: true})
-		if _, _, err := s.SignUp(t.Context(), Signup{Email: "ada@gmail.com"}); !errors.Is(err, ErrNeedName) {
-			t.Fatalf("a name is asked for: %v", err)
-		}
-		_, org, err := s.SignUp(t.Context(), Signup{Email: "ada@gmail.com", OrgName: "Ada's Lab"})
-		if err != nil || org.Domain != "" {
-			t.Fatalf("%+v %v", org, err)
+		_, org, err := s.SignUp(t.Context(), Signup{Email: "ada@gmail.com", Person: "Ada"})
+		if err != nil || org.Domain != "" || org.Name != "Ada's workspace" || ValidSlug(org.Slug) != nil || len(org.Slug) != 12 {
+			t.Fatalf("a workspace named after its person: %+v %v", org, err)
 		}
 		if err := s.Verify(t.Context(), "ada@gmail.com"); err != nil {
 			t.Fatal(err)
@@ -326,7 +323,7 @@ func TestAnAddressFromAVeryLongDomainStaysWithinWhatAHostNameTakesAndDifferentFr
 
 // A company is more than one organization when it has subsidiaries or teams that
 // keep apart. The first has the address its domain gives, and each after it is
-// named by whoever makes it and has an address from that name.
+// named by whoever makes it and has a random address, so no name is first come.
 func TestACompanyCanHaveSeveralOrganizationsAndEachAfterTheFirstIsNamedByItsCreator(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{PerDomain: 10})
@@ -338,15 +335,15 @@ func TestACompanyCanHaveSeveralOrganizationsAndEachAfterTheFirstIsNamedByItsCrea
 			t.Fatalf("a second with no name is asked for one: %v", err)
 		}
 		_, bank, err := s.SignUp(t.Context(), Signup{Email: "bob@acme.com", OrgName: "Acme Bank"})
-		if err != nil || bank.Slug != "acme-bank" || bank.Name != "Acme Bank" || bank.Domain != "acme.com" {
+		if err != nil || len(bank.Slug) != 12 || bank.Name != "Acme Bank" || bank.Domain != "acme.com" {
 			t.Fatalf("%+v %v", bank, err)
 		}
 		_, insurance, err := s.SignUp(t.Context(), Signup{Email: "cy@mail.acme.com", OrgName: "Acme Insurance"})
-		if err != nil || insurance.Slug != "acme-insurance" || insurance.Domain != "acme.com" {
+		if err != nil || len(insurance.Slug) != 12 || insurance.Slug == bank.Slug || insurance.Domain != "acme.com" {
 			t.Fatalf("an address at a subdomain is the same company: %+v %v", insurance, err)
 		}
-		if _, _, err := s.SignUp(t.Context(), Signup{Email: "di@acme.com", OrgName: "Acme Bank"}); !errors.Is(err, ErrSlugTaken) {
-			t.Errorf("a name that gives a taken address is refused as taken: %v", err)
+		if _, again, err := s.SignUp(t.Context(), Signup{Email: "di@acme.com", OrgName: "Acme Bank"}); err != nil || again.Slug == bank.Slug {
+			t.Errorf("a name already in use is not an address already in use: %+v %v", again, err)
 		}
 		if _, org, err := s.SignUp(t.Context(), Signup{Email: "ed@acme.com", OrgName: "Acme Labs", Slug: "labs"}); err != nil || org.Slug != "labs" {
 			t.Errorf("an address chosen on purpose is used: %+v %v", org, err)

@@ -59,7 +59,6 @@ export interface CloudPage {
   Ask: string
   Email: string
   OrgName: string
-  Slug: string
   Name: string
   Notice: string
   More: boolean

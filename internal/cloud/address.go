@@ -4,6 +4,7 @@
 package cloud
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -27,9 +28,6 @@ var (
 	ErrEmailTaken   = errors.New("that address already has an account, so sign in instead")
 	ErrSlugTaken    = errors.New("that organization address is taken, so pick another")
 	ErrDomainFull   = errors.New("this company already has the most organizations it may make, so ask an admin there to invite you")
-	// ErrNeedName is a sign-up with no name for an organization, from an address
-	// that is not a company's, so its name cannot come from the domain.
-	ErrNeedName = errors.New("that address is not a company's, so give your organization a name")
 	// ErrSameCompany is a sign-up at a domain that has an organization already,
 	// with no name for this one: a company can have several, a subsidiary or a
 	// team, and each has a name of its own.
@@ -123,16 +121,6 @@ var reserved = setOf("www", "api", "app", "admin", "cloud", "static", "mail", "s
 	"status", "docs", "help", "support", "billing", "login", "signin", "signup", "auth", "console", "dashboard",
 	"root", "gusto", "latentic", "getlatentic", "staging", "demo", "test", "localhost", "security", "abuse", "postmaster")
 
-// SlugFor is the address a name suggests: its letters and digits, joined by
-// hyphens. It may be too short to use, and then a person picks one.
-func SlugFor(name string) string {
-	slug := slugify(name)
-	if len(slug) > 32 {
-		slug = strings.Trim(slug[:32], "-")
-	}
-	return slug
-}
-
 // slugify is a name's letters and digits, lower case, joined by single hyphens.
 func slugify(name string) string {
 	var out strings.Builder
@@ -173,18 +161,16 @@ func company(domain string) string {
 	return name
 }
 
-// FromDomain is the name an organization is given when its admin gave none, and
-// the address that follows from it: acme-research.com is "Acme Research" at
-// acme-research. An address at a free mail provider names nobody's company, so
-// the admin is asked.
-func FromDomain(domain string) (name string, err error) {
+// FromDomain is the name an organization is given when its admin gave none:
+// acme-research.com is "Acme Research". An address at a free mail provider, or at a
+// company written in another alphabet, names no company it can show, and gives none.
+func FromDomain(domain string) (name string, ok bool) {
 	if freeMail[domain] || disposable[domain] {
-		return "", ErrNeedName
+		return "", false
 	}
 	label := company(domain)
-	// A company written in another alphabet has a label that is not a name to show.
 	if strings.HasPrefix(label, "xn--") {
-		return "", ErrNeedName
+		return "", false
 	}
 	words := strings.Split(label, "-")
 	for i, word := range words {
@@ -192,7 +178,47 @@ func FromDomain(domain string) (name string, err error) {
 			words[i] = string(unicode.ToUpper(r[0])) + string(r[1:])
 		}
 	}
-	return strings.Join(strings.Fields(strings.Join(words, " ")), " "), nil
+	return strings.Join(strings.Fields(strings.Join(words, " ")), " "), true
+}
+
+// PersonalName is the name of a workspace that no company's domain names, after the person who made it: their own name
+// when they gave one, or else the part of their address before the @, as "Ada's workspace". What OrgName would refuse is
+// left out, so the name always does.
+func PersonalName(person, email string) string {
+	who := shownText(person)
+	if who == "" {
+		local, _, _ := strings.Cut(email, "@")
+		local, _, _ = strings.Cut(local, "+")
+		who = shownText(local)
+	}
+	if who == "" {
+		return "My workspace"
+	}
+	if r := []rune(who); len(r) > 60 {
+		who = strings.TrimSpace(string(r[:60]))
+	}
+	return who + "'s workspace"
+}
+
+// shownText is text with its spaces collapsed and without the characters a name may not have.
+func shownText(text string) string {
+	kept := strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) || unicode.Is(unicode.Cf, r) || r == '<' || r == '>' {
+			return -1
+		}
+		return r
+	}, text)
+	return strings.Join(strings.Fields(kept), " ")
+}
+
+// WorkspaceAddress is the address of an organization that no company's domain gives one: twelve random hexadecimal digits,
+// which say nothing of who made it and leave no name to be the first to take.
+func WorkspaceAddress() (string, error) {
+	raw := make([]byte, 6)
+	if _, err := rand.Read(raw); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(raw), nil
 }
 
 // AddressFor is the address a company's domain gives its organization: the whole
