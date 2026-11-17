@@ -6,7 +6,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/dbkit"
 	"github.com/getlatentic/gusto/internal/quota"
-	"github.com/getlatentic/gusto/internal/workspace"
+	"github.com/getlatentic/gusto/internal/team"
 )
 
 const orgColumns = `slug, name, admin, domain, created, is_demo, demo_name, demo_company, demo_ready, demo_expires, demo_extended, demo_stopped, demo_ending`
@@ -76,8 +76,8 @@ func (s *Store) create(ctx context.Context, tx dbkit.Tx, person Person, org Org,
 	if _, err := tx.ExecContext(ctx, insertMembership.SQL(1), s.membershipArgs(person)...); err != nil {
 		return err
 	}
-	first := Workspace{ID: workspace.First, Name: org.Name, Created: org.Created}
-	if err := s.putWorkspace(ctx, tx, org.Slug, first, person.Email); err != nil {
+	first := Team{ID: team.First, Name: org.Name, Created: org.Created}
+	if err := s.putTeam(ctx, tx, org.Slug, first, person.Email); err != nil {
 		return err
 	}
 	return s.makeOrgDir(org.Slug, q)

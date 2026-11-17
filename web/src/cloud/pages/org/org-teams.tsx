@@ -12,22 +12,18 @@ import { FormSelect } from "@/components/form-select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-// OrgWorkspaces is the organization's workspaces and who is in each. An admin makes them, and renames, fills and empties each
+// OrgTeams is the organization's teams and who is in each. An admin makes them, and renames, fills and empties each
 // from its ⋯.
-export function OrgWorkspaces({ page }: { page: CloudPage }) {
+export function OrgTeams({ page }: { page: CloudPage }) {
   return (
-    <Section
-      title="Workspaces"
-      id="workspaces"
-      action={page.IsAdmin && <NewWorkspace />}
-    >
+    <Section title="Teams" id="teams" action={page.IsAdmin && <NewTeam />}>
       <p className="m-0 text-sm text-muted-foreground">
-        Each workspace has its own tasks, records, agents, connectors and
-        computers, which only its members reach. A person has a computer in each
-        workspace they are in.
+        Each team has its own tasks, records, agents, connectors and computers,
+        which only its members reach. A person has a computer in each team they
+        are in.
       </p>
-      <div className="grid gap-4" data-testid="workspaces">
-        {(page.Workspaces ?? []).map((space) => (
+      <div className="grid gap-4" data-testid="teams">
+        {(page.Teams ?? []).map((space) => (
           <Space key={space.ID} space={space} admin={page.IsAdmin} />
         ))}
       </div>
@@ -35,26 +31,24 @@ export function OrgWorkspaces({ page }: { page: CloudPage }) {
   )
 }
 
-function NewWorkspace() {
+function NewTeam() {
   return (
     <FormDialog
-      trigger={
-        <Button variant="outline" size="sm" data-testid="make-workspace" />
-      }
-      label="New workspace"
-      title="New workspace"
+      trigger={<Button variant="outline" size="sm" data-testid="make-team" />}
+      label="New team"
+      title="New team"
       words="Its tasks, records, agents and computers are its own. You are its first member."
-      action="/org/workspaces"
-      submit="Make the workspace"
+      action="/org/teams"
+      submit="Make the team"
     >
-      <Field id="workspace-name" label="Name">
+      <Field id="team-name" label="Name">
         <Input
-          id="workspace-name"
+          id="team-name"
           name="name"
           placeholder="Engineering"
           maxLength={60}
           required
-          data-testid="new-workspace"
+          data-testid="new-team"
         />
       </Field>
     </FormDialog>
@@ -98,9 +92,9 @@ function Space({ space, admin }: { space: CloudSpace; admin: boolean }) {
                   label={person.Email}
                   actions={[
                     {
-                      label: "Remove from workspace",
-                      action: "/org/workspaces/remove",
-                      fields: { workspace: space.ID, email: person.Email },
+                      label: "Remove from team",
+                      action: "/org/teams/remove",
+                      fields: { team: space.ID, email: person.Email },
                       destructive: true,
                     },
                   ]}
@@ -119,10 +113,10 @@ function Space({ space, admin }: { space: CloudSpace; admin: boolean }) {
             onOpenChange={setRenaming}
             title={`Rename ${space.Name}`}
             words="Its people, tasks and computers stay as they are."
-            action="/org/workspaces/rename"
+            action="/org/teams/rename"
             submit="Rename"
           >
-            <input type="hidden" name="workspace" value={space.ID} />
+            <input type="hidden" name="team" value={space.ID} />
             <Field id={`rename-${space.ID}`} label="Name">
               <Input
                 id={`rename-${space.ID}`}
@@ -138,11 +132,11 @@ function Space({ space, admin }: { space: CloudSpace; admin: boolean }) {
               open={adding}
               onOpenChange={setAdding}
               title={`Add a person to ${space.Name}`}
-              words="They get a computer in this workspace too."
-              action="/org/workspaces/add"
+              words="They get a computer in this team too."
+              action="/org/teams/add"
               submit="Add"
             >
-              <input type="hidden" name="workspace" value={space.ID} />
+              <input type="hidden" name="team" value={space.ID} />
               <Field id={`add-${space.ID}`} label="Person">
                 <FormSelect
                   id={`add-${space.ID}`}

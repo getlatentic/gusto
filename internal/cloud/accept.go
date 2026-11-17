@@ -90,11 +90,11 @@ func (s *Store) join(ctx context.Context, tx dbkit.Tx, org Org, invited link) (a
 	if !made {
 		return acceptance{refusal: ErrEmailTaken}, nil
 	}
-	space, err := joinWorkspace(ctx, tx, org.Slug, invited.Workspace)
+	space, err := joinTeam(ctx, tx, org.Slug, invited.Team)
 	if err != nil {
 		return acceptance{}, err
 	}
-	if err := s.putInWorkspace(ctx, tx, org.Slug, space, person.Email); err != nil {
+	if err := s.putInTeam(ctx, tx, org.Slug, space, person.Email); err != nil {
 		return acceptance{}, err
 	}
 	return acceptance{person: person, org: org}, nil

@@ -1,4 +1,4 @@
-// What an organization's page lets the person looking do to each member and workspace. Only an admin changes anything; the last
+// What an organization's page lets the person looking do to each member and team. Only an admin changes anything; the last
 // admin is not offered to be made a runner, and nobody is offered to remove themselves.
 
 export interface MemberLike {
@@ -33,9 +33,9 @@ export function memberActions(
   }
 }
 
-// showsWorkspaces says the page has a workspaces section: an admin may change them, or there are several to tell apart.
-export const showsWorkspaces = (viewer: OrgViewer, workspaces: number) =>
-  viewer.IsAdmin || workspaces > 1
+// showsTeams says the page has a teams section: an admin may change them, or there are several to tell apart.
+export const showsTeams = (viewer: OrgViewer, teams: number) =>
+  viewer.IsAdmin || teams > 1
 
 // currentStep is the stage a demo is at while it is made ready, or none once it is.
 export function currentStep<T extends { Mark: string }>(

@@ -33,8 +33,8 @@ type switchable struct {
 	Name string `json:"name"`
 	Slug string `json:"slug"`
 	Open string `json:"open"`
-	// Workspaces is the organization's workspaces the person is in, each with the address that opens it.
-	Workspaces []switchSpace `json:"workspaces"`
+	// Teams is the organization's teams the person is in, each with the address that opens it.
+	Teams []switchSpace `json:"teams"`
 }
 
 type switchSpace struct {
@@ -61,16 +61,16 @@ func (s *Server) orgsJSON(w http.ResponseWriter, r *http.Request) {
 	}
 	spaces, err := s.Store.SpacesOf(r.Context(), all[0].Email)
 	if err != nil {
-		slog.Error("a person's workspaces could not be read", "error", err)
-		http.Error(w, "the workspaces could not be read", http.StatusInternalServerError)
+		slog.Error("a person's teams could not be read", "error", err)
+		http.Error(w, "the teams could not be read", http.StatusInternalServerError)
 		return
 	}
 	list := make([]switchable, 0, len(orgs))
 	for _, org := range orgs {
 		open := s.URL.JoinPath("/open").String() + "?" + url.Values{"org": {org.Slug}}.Encode()
-		item := switchable{Name: org.Name, Slug: org.Slug, Open: open, Workspaces: []switchSpace{}}
+		item := switchable{Name: org.Name, Slug: org.Slug, Open: open, Teams: []switchSpace{}}
 		for _, space := range spaces[org.Slug] {
-			item.Workspaces = append(item.Workspaces, switchSpace{ID: space.ID, Name: space.Name, Open: open + "&" + url.Values{"workspace": {space.ID}}.Encode()})
+			item.Teams = append(item.Teams, switchSpace{ID: space.ID, Name: space.Name, Open: open + "&" + url.Values{"team": {space.ID}}.Encode()})
 		}
 		list = append(list, item)
 	}

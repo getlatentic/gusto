@@ -20,7 +20,7 @@ export function AgentSkills({
     <section aria-label="Skills" className="grid gap-3">
       <p className="m-0 text-sm text-muted-foreground">
         The skills {agent.Name} is given in every turn: one of the ready-made
-        roles, or a skill set made for this workspace.
+        roles, or a skill set made for this team.
       </p>
       {failed && (
         <p

@@ -93,7 +93,7 @@ func (s *Server) lineupOf(r *http.Request) (compare.Lineup, bool) {
 		return compare.Lineup{}, false
 	}
 	lineup, found := s.lineups.Get(r.PathValue("id"))
-	if !found || !s.inWorkspace(r, lineup.Workspace) || !s.mayUse(r, lineup.Who) {
+	if !found || !s.inTeam(r, lineup.Team) || !s.mayUse(r, lineup.Who) {
 		return compare.Lineup{}, false
 	}
 	return lineup, true

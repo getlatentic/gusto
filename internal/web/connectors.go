@@ -82,10 +82,10 @@ func (s *Server) appAllowed(record tasks.Record, app string) bool {
 	if allowed, chosen := member.AppChoice(record.Asked, app); chosen {
 		return allowed
 	}
-	return s.connectors.ForAgents(record.Asked, record.Workspace, app)
+	return s.connectors.ForAgents(record.Asked, record.Team, app)
 }
 
-// memberOf is the workspace agent that took a room turn.
+// memberOf is the team agent that took a room turn.
 func (s *Server) memberOf(record tasks.Record) (crew.Agent, bool) {
 	if s.instances == nil || s.crew == nil {
 		return crew.Agent{}, false
@@ -101,7 +101,7 @@ func (s *Server) memberOf(record tasks.Record) (crew.Agent, bool) {
 	return s.crew.Get(agent.Member)
 }
 
-// connectorViews is every connector in the catalog, as it stands for one person in one workspace, or for nobody on the admin's page.
+// connectorViews is every connector in the catalog, as it stands for one person in one team, or for nobody on the admin's page.
 func (s *Server) connectorViews(person, space string) ([]connectorView, error) {
 	settings, err := s.orgSettings.Read()
 	if err != nil {
@@ -155,7 +155,7 @@ func (s *Server) connect(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, connectionsPath, "Sign in as yourself to connect your own accounts: the shared sign-in has none.")
 		return
 	}
-	address, err := s.connectors.Begin(r.Context(), who, s.workspaceOf(r), entry)
+	address, err := s.connectors.Begin(r.Context(), who, s.teamOf(r), entry)
 	if err != nil {
 		s.turnAway(w, r, connectionsPath, "Signing in to "+entry.Name+" could not start: "+err.Error())
 		return
@@ -196,7 +196,7 @@ func (s *Server) disconnect(w http.ResponseWriter, r *http.Request) {
 	}
 	// What the person chose for their agents goes first, so a disconnect that fails leaves them connected on their default, and
 	// never ends a connection whose choices a later one would find.
-	who, space := s.keeper.who(r), s.workspaceOf(r)
+	who, space := s.keeper.who(r), s.teamOf(r)
 	if err := s.forgetAgentChoices(who, space, entry.ID); err != nil {
 		s.turnAway(w, r, connectionsPath, err.Error())
 		return
@@ -274,8 +274,8 @@ func (s *Server) giveConnectors(spec *task.Spec, dir task.Dir, record tasks.Reco
 		if !settings.ConnectorOn(entry.ID) || slices.Contains(taken, entry.ID) || !s.appAllowed(record, entry.ID) {
 			continue
 		}
-		if _, connected := s.connectors.Connected(record.Asked, record.Workspace, entry.ID); connected {
-			servers = append(servers, gateway.Server{Name: entry.ID, URL: entry.URL, Connector: entry.ID, Person: record.Asked, Workspace: record.Workspace})
+		if _, connected := s.connectors.Connected(record.Asked, record.Team, entry.ID); connected {
+			servers = append(servers, gateway.Server{Name: entry.ID, URL: entry.URL, Connector: entry.ID, Person: record.Asked, Team: record.Team})
 			given = append(given, entry.ID)
 		}
 	}

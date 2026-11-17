@@ -7,16 +7,16 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/getlatentic/gusto/internal/workspace"
+	"github.com/getlatentic/gusto/internal/team"
 
 	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/instance"
 )
 
-// A room's agents are workspace agents. The room keeps which ones it holds, and takes their name, agent type, model, skills and
-// persona from the workspace each time, so a change made to an agent reaches every room it is in.
+// A room's agents are team agents. The room keeps which ones it holds, and takes their name, agent type, model, skills and
+// persona from the team each time, so a change made to an agent reaches every room it is in.
 
-// liveRoom is a room with each of its agents as the workspace has it now. An agent the workspace no longer has stays as the room
+// liveRoom is a room with each of its agents as the team has it now. An agent the team no longer has stays as the room
 // last knew it, so what it said still reads.
 func (s *Server) liveRoom(held instance.Instance) instance.Instance {
 	if s.crew == nil {
@@ -37,7 +37,7 @@ func liveAgent(agent instance.Agent, member crew.Agent) instance.Agent {
 	return agent
 }
 
-// ownerOf is who made a room's agent, as the workspace has it now, or nobody for an agent the workspace no longer keeps or one
+// ownerOf is who made a room's agent, as the team has it now, or nobody for an agent the team no longer keeps or one
 // kept from before agents had owners.
 func (s *Server) ownerOf(agent instance.Agent) string {
 	if s.crew == nil {
@@ -58,14 +58,14 @@ func (s *Server) ownerLabel(owner, you string) string {
 	return s.personName(owner) + "'s agent"
 }
 
-// crewFor is every agent of a workspace the person asking may work with.
+// crewFor is every agent of a team the person asking may work with.
 func (s *Server) crewFor(who, space string) []crew.Agent {
 	if s.crew == nil {
 		return nil
 	}
 	var mine []crew.Agent
 	for _, member := range s.crew.List() {
-		if member.MayUse(who) && workspace.Same(member.Workspace, space) {
+		if member.MayUse(who) && team.Same(member.Team, space) {
 			mine = append(mine, member)
 		}
 	}

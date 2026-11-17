@@ -37,13 +37,13 @@ func sorted(ids ...string) []string {
 
 // Where agents run in containers a person has a home and no record of a computer, so leaving marks the home by its id
 // (getlatentic/planning#830).
-func TestLeavingAWorkspaceMarksTheHomeThereAndNoRecordIsNeeded(t *testing.T) {
+func TestLeavingATeamMarksTheHomeThereAndNoRecordIsNeeded(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f, ada := acme(t)
 		f.invitedAndJoined(ada, "bob@acme.com")
-		ada.post("/org/workspaces", url.Values{"name": {"Engineering"}})
-		ada.post("/org/workspaces/add", url.Values{"workspace": {"engineering"}, "email": {"bob@acme.com"}})
-		if status, _, _ := ada.post("/org/workspaces/remove", url.Values{"workspace": {"engineering"}, "email": {"bob@acme.com"}}); status != http.StatusSeeOther {
+		ada.post("/org/teams", url.Values{"name": {"Engineering"}})
+		ada.post("/org/teams/add", url.Values{"team": {"engineering"}, "email": {"bob@acme.com"}})
+		if status, _, _ := ada.post("/org/teams/remove", url.Values{"team": {"engineering"}, "email": {"bob@acme.com"}}); status != http.StatusSeeOther {
 			t.Fatalf("taking bob out of engineering: %d", status)
 		}
 		want := computer.ID("acme-com", "engineering", "bob@acme.com")
@@ -53,13 +53,13 @@ func TestLeavingAWorkspaceMarksTheHomeThereAndNoRecordIsNeeded(t *testing.T) {
 	})
 }
 
-func TestRemovingAPersonMarksTheirHomeInEveryWorkspaceTheyWereInWithNoRecord(t *testing.T) {
+func TestRemovingAPersonMarksTheirHomeInEveryTeamTheyWereInWithNoRecord(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f, ada := acme(t)
 		f.invitedAndJoined(ada, "bob@acme.com")
 		f.invitedAndJoined(ada, "cy@acme.com")
-		ada.post("/org/workspaces", url.Values{"name": {"Engineering"}})
-		ada.post("/org/workspaces/add", url.Values{"workspace": {"engineering"}, "email": {"bob@acme.com"}})
+		ada.post("/org/teams", url.Values{"name": {"Engineering"}})
+		ada.post("/org/teams/add", url.Values{"team": {"engineering"}, "email": {"bob@acme.com"}})
 		if status, _, _ := ada.post("/org/people/remove", url.Values{"email": {"bob@acme.com"}}); status != http.StatusSeeOther {
 			t.Fatalf("removing bob: %d", status)
 		}
@@ -70,8 +70,8 @@ func TestRemovingAPersonMarksTheirHomeInEveryWorkspaceTheyWereInWithNoRecord(t *
 	})
 }
 
-// The record of a computer in a workspace the person has since left is still marked when they leave the organization.
-func TestRemovingAPersonMarksARecordedComputerInAWorkspaceTheyHadLeft(t *testing.T) {
+// The record of a computer in a team the person has since left is still marked when they leave the organization.
+func TestRemovingAPersonMarksARecordedComputerInATeamTheyHadLeft(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f, ada := acme(t)
 		f.invitedAndJoined(ada, "bob@acme.com")
@@ -85,7 +85,7 @@ func TestRemovingAPersonMarksARecordedComputerInAWorkspaceTheyHadLeft(t *testing
 		}
 		retiring, _ := registry.Retiring()
 		if len(retiring) != 1 || retiring[0].ID != kept.ID {
-			t.Errorf("the computer in a workspace bob had left is marked: %+v", retiring)
+			t.Errorf("the computer in a team bob had left is marked: %+v", retiring)
 		}
 	})
 }

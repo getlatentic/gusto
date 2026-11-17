@@ -3,9 +3,10 @@ package taskindex
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/getlatentic/gusto/internal/workspace"
 	"strconv"
 	"strings"
+
+	"github.com/getlatentic/gusto/internal/team"
 )
 
 const fieldSeparator = "\x1f"
@@ -26,12 +27,8 @@ func (r Row) Matches(search string) bool {
 func (r Row) Sum() string {
 	h := sha256.New()
 	for _, s := range []string{r.ID, r.State, r.Brief, r.Repo, r.AgentType, r.Model, r.Instance, r.Thread, r.Asked,
-		r.RequestKey, r.StoppedBy, r.Team} {
+		r.RequestKey, r.StoppedBy, team.Of(r.Team)} {
 		h.Write([]byte(strconv.Itoa(len(s)) + ":" + s))
-	}
-	// A task in the first workspace sums as it did before workspaces, so the rows kept then still match their tasks.
-	if space := workspace.Of(r.Workspace); space != workspace.First {
-		h.Write([]byte("workspace " + strconv.Itoa(len(space)) + ":" + space))
 	}
 	// A task that is not a room agent's turn sums as it did before turns kept these.
 	if r.Agent != "" || r.HandedBy != "" || r.Answers != "" || r.Hops != 0 || r.PaidBy != "" {

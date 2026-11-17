@@ -63,7 +63,7 @@
 40 14 internal/integration/store.go:(*Integration).Compare
 50 13 internal/integration/store.go:(*Store).Import
 33 12 internal/isolation/backends.go:virtualMachine
-16 13 internal/tasks/limits.go:(*Index).hold
+16 12 internal/tasks/limits.go:(*Index).hold
 52 12 internal/tasks/queue.go:(*Queue).one
 42 13 internal/landlock/apply_linux.go:Apply
 42 12 internal/live/live.go:Fingerprint
@@ -95,7 +95,7 @@
 33 11 internal/vmwall/fetch.go:unpackInto
 36 11 internal/vmwall/fetch.go:unpackOne
 34 13 internal/vmwall/plan.go:Prepare
-63 13 internal/web/api.go:(*Server).accept
+57 13 internal/web/api.go:(*Server).accept
 39 13 internal/web/chat.go:(*Server).chatThread
 40 16 internal/web/cloudfolders.go:(*Server).cloudFolderThread
 36 13 internal/web/connectors.go:(*Server).giveConnectors

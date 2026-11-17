@@ -1,4 +1,4 @@
-// Package crew keeps a workspace's agents: each a member of the workspace with a name people mention it by, the agent type and
+// Package crew keeps a team's agents: each a member of the team with a name people mention it by, the agent type and
 // model it runs with, the skills it is given, and who may work with it. An agent is made once and added to as many rooms as it
 // is wanted in, so a change to it reaches every room it is in.
 package crew
@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/getlatentic/gusto/internal/workspace"
 	"maps"
 	"os"
 	"path/filepath"
@@ -19,9 +18,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/team"
 )
 
-// Agent is one of the workspace's agents.
+// Agent is one of the team's agents.
 type Agent struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -36,8 +37,8 @@ type Agent struct {
 	// Owner made it and decides who else may work with it; Access is everybody else who may.
 	Owner  string   `json:"owner"`
 	Access []string `json:"access,omitempty"`
-	// Workspace is the workspace of the organization the agent is in, and empty for the first. Only its members work with it.
-	Workspace string `json:"workspace,omitempty"`
+	// Team is the team of the organization the agent is in, and empty for the first. Only its members work with it.
+	Team string `json:"workspace,omitempty"`
 	// Apps is what each person chose for the agent, app by app: true lets it use that app of theirs, as them, for what they ask
 	// it, and false keeps it away. An app with no choice follows the person's default for their agents. Each person decides only
 	// for themselves.
@@ -129,7 +130,7 @@ func (held Agent) copied() Agent {
 	return held
 }
 
-// Make keeps a new agent for its owner. Its name must be one no other agent in its workspace has, since people mention agents by name.
+// Make keeps a new agent for its owner. Its name must be one no other agent in its team has, since people mention agents by name.
 func (s *Store) Make(wanted Agent) (Agent, error) {
 	s.guard.Lock()
 	defer s.guard.Unlock()
@@ -140,8 +141,8 @@ func (s *Store) Make(wanted Agent) (Agent, error) {
 	if wanted.Harness == "" {
 		return Agent{}, errors.New("choose how the agent runs")
 	}
-	wanted.Workspace = workspace.Stored(wanted.Workspace)
-	if err := s.nameFree(wanted.Name, wanted.Workspace, ""); err != nil {
+	wanted.Team = team.Stored(wanted.Team)
+	if err := s.nameFree(wanted.Name, wanted.Team, ""); err != nil {
 		return Agent{}, err
 	}
 	wanted.Name = strings.TrimSpace(wanted.Name)
@@ -155,7 +156,7 @@ func (s *Store) Make(wanted Agent) (Agent, error) {
 	return wanted.copied(), nil
 }
 
-// Change changes an agent and keeps it. The change cannot move its id, its owner, its workspace or when it was made.
+// Change changes an agent and keeps it. The change cannot move its id, its owner, its team or when it was made.
 func (s *Store) Change(id string, change func(*Agent) error) (Agent, error) {
 	s.guard.Lock()
 	defer s.guard.Unlock()
@@ -167,9 +168,9 @@ func (s *Store) Change(id string, change func(*Agent) error) (Agent, error) {
 	if err := change(&changed); err != nil {
 		return Agent{}, err
 	}
-	changed.ID, changed.Owner, changed.Created, changed.Workspace = held.ID, held.Owner, held.Created, held.Workspace
+	changed.ID, changed.Owner, changed.Created, changed.Team = held.ID, held.Owner, held.Created, held.Team
 	changed.Name = strings.TrimSpace(changed.Name)
-	if err := s.nameFree(changed.Name, changed.Workspace, id); err != nil {
+	if err := s.nameFree(changed.Name, changed.Team, id); err != nil {
 		return Agent{}, err
 	}
 	changed.Access = people(changed.Access, changed.Owner)
@@ -236,14 +237,14 @@ func (s *Store) SetAccess(id, who string, allowed bool) (Agent, error) {
 	})
 }
 
-// ForgetApp drops every choice a person made for one app of theirs, on every agent of a workspace, so that when they connect it
-// again in that workspace each agent follows their default. A sign-in is a workspace's, and so are the choices made for it.
+// ForgetApp drops every choice a person made for one app of theirs, on every agent of a team, so that when they connect it
+// again in that team each agent follows their default. A sign-in is a team's, and so are the choices made for it.
 func (s *Store) ForgetApp(who, space, app string) error {
 	who = strings.ToLower(strings.TrimSpace(who))
 	s.guard.Lock()
 	var chose []string
 	for id, held := range s.held {
-		if _, found := held.Apps[who][app]; found && workspace.Same(held.Workspace, space) {
+		if _, found := held.Apps[who][app]; found && team.Same(held.Team, space) {
 			chose = append(chose, id)
 		}
 	}
@@ -294,7 +295,7 @@ func (s *Store) nameFree(name, space, besides string) error {
 		return fmt.Errorf("%q cannot name an agent: start with a letter, and use up to 32 letters, digits and spaces", name)
 	}
 	for _, other := range s.held {
-		if other.ID != besides && workspace.Same(other.Workspace, space) && strings.EqualFold(other.Name, name) {
+		if other.ID != besides && team.Same(other.Team, space) && strings.EqualFold(other.Name, name) {
 			return fmt.Errorf("an agent is already called %s", other.Name)
 		}
 	}

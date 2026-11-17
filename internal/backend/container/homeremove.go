@@ -23,7 +23,7 @@ var ErrHomeBusy = errors.New("a turn is running in this home")
 var computerID = regexp.MustCompile(`^[0-9a-f]{8}$`)
 
 // tend removes the homes that were asked to be removed, once now and then every tendEvery, until ctx ends. done closes when it
-// has. A person who leaves the organization has a mark made for their computer in each workspace (`<id>.retire`, beside the
+// has. A person who leaves the organization has a mark made for their computer in each team (`<id>.retire`, beside the
 // homes), which is how the organization's server, which keeps the files, is told by gusto cloud, which does not.
 func (h *homes) tend(ctx context.Context) (done <-chan struct{}) {
 	ended := make(chan struct{})

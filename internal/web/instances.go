@@ -14,7 +14,7 @@ import (
 	"github.com/getlatentic/gusto/internal/repoaccess"
 	"github.com/getlatentic/gusto/internal/setup"
 	"github.com/getlatentic/gusto/internal/tasks"
-	"github.com/getlatentic/gusto/internal/workspace"
+	"github.com/getlatentic/gusto/internal/team"
 )
 
 // setUp is the step between picking a harness and having one: what it thinks with, and what it starts out working on. A harness
@@ -141,7 +141,7 @@ func (s *Server) beginInstance(r *http.Request, wanted instance.Instance) (start
 	if wanted.Model == "" {
 		wanted.Model = cmp.Or(s.modelToStartOn(r, wanted.Harness), first(s.offeredTo(r)))
 	}
-	wanted.Workspace = workspace.Stored(s.workspaceOf(r))
+	wanted.Team = team.Stored(s.teamOf(r))
 	started, err := s.instances.Start(tasks.Name(instanceName(wanted), time.Now()), wanted)
 	if err != nil {
 		return started, "/presets", err.Error()

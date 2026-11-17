@@ -39,7 +39,8 @@ func taskSpec(t *testing.T, site *site, id string) task.Spec {
 
 // The task form is the one way a page runs a task with a check, so it carries
 // everything the form it replaced did: the spend is counted against the team
-// and stopped at the cap, and the rules read the sensitivity.
+// the task is in and stopped at the cap, and the rules read the sensitivity. A
+// team typed into the form is not taken: the task is in its agent's team.
 func TestATaskCarriesItsSensitivityItsTeamAndItsCap(t *testing.T) {
 	site := open(t)
 	site.signIn(t)
@@ -51,7 +52,7 @@ func TestATaskCarriesItsSensitivityItsTeamAndItsCap(t *testing.T) {
 	if spec.Sensitivity != task.Restricted {
 		t.Errorf("sensitivity %q", spec.Sensitivity)
 	}
-	if spec.Team != "platform" || spec.Budget.USD == nil || *spec.Budget.USD != 2.5 {
+	if spec.Team != "" || spec.Budget.USD == nil || *spec.Budget.USD != 2.5 {
 		t.Errorf("team %q, cap %v", spec.Team, spec.Budget.USD)
 	}
 }

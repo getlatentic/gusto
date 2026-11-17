@@ -50,7 +50,7 @@ export function cloudPage(
     Admins: 0,
     IsAdmin: false,
     CanInvite: false,
-    Workspaces: null,
+    Teams: null,
     Link: "",
     DemoLeft: "",
     DemoLeftLong: "",

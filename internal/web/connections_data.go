@@ -19,7 +19,7 @@ type connectionRow struct {
 // asked, and the home their agents keep. The shared sign-in is nobody's own, so it holds no sign-ins and has no home.
 func (s *Server) connectionsData(r *http.Request) (map[string]any, error) {
 	who, person := s.connectingPerson(r)
-	space := s.workspaceOf(r)
+	space := s.teamOf(r)
 	views, err := s.connectorViews(who, space)
 	if err != nil {
 		return nil, failed{http.StatusInternalServerError, err.Error()}

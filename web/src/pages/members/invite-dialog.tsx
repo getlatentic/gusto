@@ -37,10 +37,10 @@ export function InviteDialog({
             <DialogTitle>Invite a person</DialogTitle>
             <DialogDescription>
               They are mailed a link that works once, for seven days. They join
-              this workspace when they open it.
+              this team when they open it.
             </DialogDescription>
           </DialogHeader>
-          <input type="hidden" name="workspace" value={invite.Workspace} />
+          <input type="hidden" name="team" value={invite.Team} />
           <input type="hidden" name="back" value={invite.Back} />
           <div className="grid gap-2">
             <Label htmlFor="invite-email">Email</Label>

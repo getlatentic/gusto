@@ -15,7 +15,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/filelock"
 	"github.com/getlatentic/gusto/internal/quota"
-	"github.com/getlatentic/gusto/internal/workspace"
+	"github.com/getlatentic/gusto/internal/team"
 )
 
 // Registry is one organization's computers, one file each. It belongs to that
@@ -81,8 +81,8 @@ func (r *Registry) UseQuota(q *quota.File) {
 
 func (r *Registry) file(id string) string { return filepath.Join(r.dir, id+".json") }
 
-// Ensure is the person's computer in a workspace, made when they have none. A person
-// has one in each workspace, so asking again finds it. Making a new one counts against
+// Ensure is the person's computer in a team, made when they have none. A person
+// has one in each team, so asking again finds it. Making a new one counts against
 // the organization's quota, and a computer that was deleted is made anew.
 func (r *Registry) Ensure(user, space, host string) (computer Computer, made bool, err error) {
 	return r.EnsureFrom(user, space, host, nil)
@@ -127,7 +127,7 @@ func (r *Registry) begin(id, user, space, host string, spares Spares) (Computer,
 		return Computer{}, err
 	}
 	now := r.now().UTC().Truncate(time.Second)
-	computer := Computer{ID: id, Org: r.org, User: user, Workspace: workspace.Stored(space), Sandbox: Name(r.org, space, user), Host: host, State: Creating, Created: now}
+	computer := Computer{ID: id, Org: r.org, User: user, Team: team.Stored(space), Sandbox: Name(r.org, space, user), Host: host, State: Creating, Created: now}
 	spare, spared := takeFrom(spares)
 	if spared {
 		computer.Sandbox = spare
@@ -141,13 +141,13 @@ func (r *Registry) begin(id, user, space, host string, spares Spares) (Computer,
 	return computer, nil
 }
 
-// sharedWith refuses a record that is another person's, or another workspace's, whose id a person's computer hashed to.
+// sharedWith refuses a record that is another person's, or another team's, whose id a person's computer hashed to.
 func sharedWith(found Computer, user, space string) error {
-	if found.User == user && workspace.Same(found.Workspace, space) {
+	if found.User == user && team.Same(found.Team, space) {
 		return nil
 	}
 	return fmt.Errorf("the record %s is of %s in %s, and %s in %s hashes to it too: no computer is shared",
-		found.ID, found.User, workspace.Of(found.Workspace), user, workspace.Of(space))
+		found.ID, found.User, team.Of(found.Team), user, team.Of(space))
 }
 
 // underLimit is a refusal when one more computer would pass the quota.
@@ -172,7 +172,7 @@ func (r *Registry) underLimit() error {
 	return q.RefuseComputers(live)
 }
 
-// Of is a person's computer in a workspace.
+// Of is a person's computer in a team.
 func (r *Registry) Of(user, space string) (Computer, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -285,7 +285,7 @@ func (r *Registry) write(computer Computer) error {
 // changing one record would lose a change.
 func (r *Registry) retireFile(id string) string { return filepath.Join(r.dir, id+".retire") }
 
-// RetireIn asks for a person's computer in a workspace to be removed. It marks the computer with or without a record, because
+// RetireIn asks for a person's computer in a team to be removed. It marks the computer with or without a record, because
 // where computers are containers the person's home is kept under the id and no record is made. It does nothing when the record
 // says the computer was removed already: a mark on a removed one would remove the next one made for them, and a mark with no
 // record is cleared by whatever removes the home, or by the person's next computer.
@@ -298,8 +298,8 @@ func (r *Registry) RetireIn(user, space string) error {
 	return r.markUnlessRemoved(ID(r.org, space, normal(user)))
 }
 
-// Retire asks for a person's computer in each of the workspaces to be removed, and for every other computer of theirs that has a
-// record, which is what leaving the organization does. spaces are the workspaces the person was in.
+// Retire asks for a person's computer in each of the teams to be removed, and for every other computer of theirs that has a
+// record, which is what leaving the organization does. spaces are the teams the person was in.
 func (r *Registry) Retire(user string, spaces ...string) error {
 	user = normal(user)
 	release, err := r.hold()

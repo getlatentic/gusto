@@ -12,7 +12,7 @@ import (
 )
 
 // A room's members are shown and changed in two dialogs over its conversation, as Kylon does: who is in it, and adding people and
-// the workspace's agents.
+// the team's agents.
 
 // memberView is a person of a room as its members dialog lists them.
 type memberView struct {
@@ -33,7 +33,7 @@ type memberAgentView struct {
 	Mine                      bool
 }
 
-// addableView is an agent of the workspace the add dialog offers.
+// addableView is an agent of the team the add dialog offers.
 type addableView struct {
 	ID, Name, Harness, Mark, MarkDark string
 	Engine, Specialty                 string
@@ -60,7 +60,7 @@ func (s *Server) roomMembersOf(r *http.Request, held instance.Instance) *members
 	for _, member := range held.Members {
 		shown.People = append(shown.People, memberView{Who: member.Who, Name: s.personName(member.Who), Role: member.Role, Me: strings.EqualFold(member.Who, you)})
 	}
-	for _, member := range s.crewFor(you, held.Workspace) {
+	for _, member := range s.crewFor(you, held.Team) {
 		in := slices.ContainsFunc(held.Agents, func(agent instance.Agent) bool { return agent.Member == member.ID })
 		// A member proposes only an agent of their own.
 		if !in && (shown.Runs || strings.EqualFold(member.Owner, you)) {
@@ -122,13 +122,13 @@ func (s *Server) membersPath(held instance.Instance) string {
 	return threadPath(s.instances.Latest(held.ID)) + "?members=1"
 }
 
-// cannotAdd is why one of the people cannot be added to a room: they are in it already, or not in its workspace.
+// cannotAdd is why one of the people cannot be added to a room: they are in it already, or not in its team.
 func (s *Server) cannotAdd(r *http.Request, held instance.Instance, people []string) string {
 	for _, who := range people {
 		if inRoom(held, who) {
 			return s.alreadyIn(r, who)
 		}
-		if why := s.outsideWorkspace(held, who); why != "" {
+		if why := s.outsideTeam(held, who); why != "" {
 			return why
 		}
 	}
@@ -191,7 +191,7 @@ func (s *Server) changeRoomRole(w http.ResponseWriter, r *http.Request) {
 	}
 	who, role := r.FormValue("who"), r.FormValue("role")
 	var err error
-	switch why := s.outsideWorkspace(held, who); {
+	switch why := s.outsideTeam(held, who); {
 	case role == "remove":
 		err = s.takeOutMember(held.ID, who, s.askerName(r))
 	case why != "":

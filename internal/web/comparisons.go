@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/workspace"
+	"github.com/getlatentic/gusto/internal/team"
 
 	"github.com/getlatentic/gusto/internal/catalog"
 	"github.com/getlatentic/gusto/internal/compare"
@@ -104,18 +104,18 @@ func (s *Server) lineUp(r *http.Request, brief, named string, harnesses []string
 		specs = append(specs, spec)
 	}
 	lineup := compare.Lineup{Brief: brief, Template: held.Name, Model: named, Commit: commit, Check: held.Check, At: time.Now().Unix(),
-		Who: s.keeper.who(r), Workspace: workspace.Stored(s.workspaceOf(r))}
+		Who: s.keeper.who(r), Team: team.Stored(s.teamOf(r))}
 	if lineup.ID, err = s.lineups.Reserve(tasks.Name("compare "+brief, time.Now()), lineup); err != nil {
 		return "", err
 	}
 	return lineup.ID, s.queueRuns(lineup, specs)
 }
 
-// queueRuns queues each run of a lineup, in its workspace. Each run is kept in the lineup as soon as it is queued, so a run
+// queueRuns queues each run of a lineup, in its team. Each run is kept in the lineup as soon as it is queued, so a run
 // queued before a failure is one the lineup shows.
 func (s *Server) queueRuns(lineup compare.Lineup, specs []task.Spec) error {
 	for _, spec := range specs {
-		spec.Workspace = lineup.Workspace
+		spec.Team = lineup.Team
 		run, err := s.queued(spec, nil, lineup.Who, "")
 		if err != nil {
 			return err

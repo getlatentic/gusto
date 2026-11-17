@@ -76,7 +76,7 @@ func (s *Store) InviteTo(ctx context.Context, slug string, by Person, address, s
 	}
 	err = s.db.InTx(ctx, func(tx dbkit.Tx) (err error) {
 		if space != "" {
-			if err := mustBeWorkspace(ctx, tx, slug, space); err != nil {
+			if err := mustBeTeam(ctx, tx, slug, space); err != nil {
 				return err
 			}
 		}
@@ -119,7 +119,7 @@ func (s *Store) invite(ctx context.Context, tx dbkit.Tx, slug, by, email, space 
 		return "", err
 	}
 	now := s.now().UTC().Truncate(time.Second)
-	secret, err := s.putLink(ctx, tx, link{Email: email, Purpose: Invite, Expires: now.Add(InviteLife), Org: slug, Role: Runner, By: by, Workspace: space})
+	secret, err := s.putLink(ctx, tx, link{Email: email, Purpose: Invite, Expires: now.Add(InviteLife), Org: slug, Role: Runner, By: by, Team: space})
 	if err != nil {
 		return "", err
 	}

@@ -90,7 +90,7 @@ export function appChoices(
   ]
 }
 
-// skillGroups splits what an agent can be given into the ready-made roles and the workspace's skill sets.
+// skillGroups splits what an agent can be given into the ready-made roles and the team's skill sets.
 export function skillGroups<T extends { Role: boolean }>(
   choices: T[]
 ): { roles: T[]; sets: T[] } {

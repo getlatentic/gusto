@@ -27,7 +27,7 @@ func TestAnAgentIsMadeInMembersAndStartsPrivate(t *testing.T) {
 		t.Fatalf("made %+v", member)
 	}
 	if !his.members(t, "/members").listsAgent("Atlas") {
-		t.Error("the members list does not show the workspace's agent to everybody")
+		t.Error("the members list does not show the team's agent to everybody")
 	}
 	if got := his.ask(t, "POST", where, url.Values{"name": {"Mine now"}}); got.Code != http.StatusForbidden {
 		t.Errorf("somebody else changed the agent: %d", got.Code)

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/workspace"
+	"github.com/getlatentic/gusto/internal/team"
 
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/runner"
@@ -22,7 +22,7 @@ import (
 // mostAllowance is the most a month's allowance may be, so a slip of the hand is caught.
 const mostAllowance = 100000.0
 
-// crewArrival is a workspace agent joining a room: at once when the person asking runs the room, and waiting for an admin when a
+// crewArrival is a team agent joining a room: at once when the person asking runs the room, and waiting for an admin when a
 // member proposes it. A member proposes only an agent of their own, and an agent's owner has to be in the room.
 func (s *Server) crewArrival(r *http.Request, held instance.Instance, memberID string) (instance.Arrival, error) {
 	if s.crew == nil {
@@ -30,7 +30,7 @@ func (s *Server) crewArrival(r *http.Request, held instance.Instance, memberID s
 	}
 	asker := s.askerName(r)
 	member, found := s.crew.Get(memberID)
-	if !found || !member.MayUse(asker) || !workspace.Same(member.Workspace, held.Workspace) {
+	if !found || !member.MayUse(asker) || !team.Same(member.Team, held.Team) {
 		return instance.Arrival{}, fmt.Errorf("that agent is not one you may work with")
 	}
 	runs := s.runsRoom(r, held)

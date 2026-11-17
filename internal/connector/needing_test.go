@@ -8,7 +8,7 @@ import (
 	"github.com/getlatentic/gusto/internal/connector/connectortest"
 )
 
-// An admin sees how many sign-ins to each app need making again, in every workspace, and not the ones that work.
+// An admin sees how many sign-ins to each app need making again, in every team, and not the ones that work.
 func TestTheAdminCanCountTheSignInsThatNeedMakingAgain(t *testing.T) {
 	a := connectortest.New(t)
 	c := connectors(t, "https://acme.gusto.test")

@@ -18,8 +18,8 @@ func atAPath(t *testing.T) *site {
 	here := open(t)
 	members := filepath.Join(t.TempDir(), "members.json")
 	list := roster.Roster{
-		Members:    []roster.Member{{Email: "ada@acme.com", Role: "admin"}, {Email: "bob@acme.com", Role: "runner"}},
-		Workspaces: []roster.Workspace{{ID: "main", Name: "Acme", Members: []string{"ada@acme.com", "bob@acme.com"}}},
+		Members: []roster.Member{{Email: "ada@acme.com", Role: "admin"}, {Email: "bob@acme.com", Role: "runner"}},
+		Teams:   []roster.Team{{ID: "main", Name: "Acme", Members: []string{"ada@acme.com", "bob@acme.com"}}},
 	}
 	if err := roster.Write(members, list); err != nil {
 		t.Fatal(err)
@@ -89,17 +89,17 @@ func TestAtAPathARequestIsWhoeverGustoCloudSaysItIs(t *testing.T) {
 	}
 }
 
-// Going in from gusto cloud at a path makes no session here, since every request says whose it is, and keeps the workspace
+// Going in from gusto cloud at a path makes no session here, since every request says whose it is, and keeps the team
 // the person chose to the organization's path, under a name a browser takes for it there.
-func TestAtAPathGoingInKeepsNothingButTheWorkspaceChosen(t *testing.T) {
+func TestAtAPathGoingInKeepsNothingButTheTeamChosen(t *testing.T) {
 	here := atAPath(t)
-	answer := here.serve(vouchedRequest("GET", "/auth/entry?workspace=main", vouchFor(t, "acme-com", "ada@acme.com", time.Now())))
+	answer := here.serve(vouchedRequest("GET", "/auth/entry?team=main", vouchFor(t, "acme-com", "ada@acme.com", time.Now())))
 	if answer.Code != http.StatusSeeOther || answer.Header().Get("Location") != "/" {
 		t.Fatalf("%d %v", answer.Code, answer.Header())
 	}
 	cookies := answer.Result().Cookies()
-	if len(cookies) != 1 || cookies[0].Name != "__Secure-"+workspaceCookie || cookies[0].Path != "/workspace/acme-com" || !cookies[0].Secure {
-		t.Errorf("only the workspace is kept, to the path: %+v", cookies)
+	if len(cookies) != 1 || cookies[0].Name != "__Secure-"+teamCookie || cookies[0].Path != "/workspace/acme-com" || !cookies[0].Secure {
+		t.Errorf("only the team is kept, to the path: %+v", cookies)
 	}
 	if refused := here.serve(vouchedRequest("GET", "/auth/entry", "")); refused.Code != http.StatusForbidden {
 		t.Errorf("going in with nothing to say who: %d", refused.Code)

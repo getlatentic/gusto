@@ -66,8 +66,8 @@ type roomLink struct{ Name, Where string }
 func (s *Server) membersData(r *http.Request) (map[string]any, error) {
 	invite := s.inviteOffered(r)
 	return map[string]any{
-		"People":   s.workspacePeople(r),
-		"Agents":   s.workspaceAgents(r, ""),
+		"People":   s.teamPeople(r),
+		"Agents":   s.teamAgents(r, ""),
 		"Keeps":    s.crew != nil,
 		"NewAgent": s.newAgentOf(r),
 		"Invite":   invite,
@@ -141,9 +141,9 @@ func (s *Server) agentSkillsOf(name string) agentSkillsView {
 	return shown
 }
 
-// hasPerson is whether the address names somebody in the workspace of the person asking.
+// hasPerson is whether the address names somebody in the team of the person asking.
 func (s *Server) hasPerson(r *http.Request) bool {
-	_, found := s.personAt(s.workspacePeople(r), r)
+	_, found := s.personAt(s.teamPeople(r), r)
 	return found
 }
 
@@ -159,7 +159,7 @@ func (s *Server) personAt(people []listedPerson, r *http.Request) (listedPerson,
 
 // personData is a person's page: who they are, their bio, the rooms the person asking shares with them, and the agents they made.
 func (s *Server) personData(r *http.Request) (map[string]any, error) {
-	people := s.workspacePeople(r)
+	people := s.teamPeople(r)
 	person, found := s.personAt(people, r)
 	if !found {
 		return nil, failed{http.StatusNotFound, "there is nobody of that address here"}
@@ -168,7 +168,7 @@ func (s *Server) personData(r *http.Request) (map[string]any, error) {
 		"Person":  person,
 		"Bio":     s.bioOf(r, person.Who),
 		"Rooms":   s.roomsWith(r, func(held instance.Instance) bool { return held.RoleOf(person.Who) != "" }),
-		"Made":    s.workspaceAgents(r, person.Who),
+		"Made":    s.teamAgents(r, person.Who),
 		"Refused": s.refusal(r),
 	}, nil
 }

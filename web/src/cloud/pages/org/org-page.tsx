@@ -1,15 +1,15 @@
 import { SignOut } from "@/cloud/components/cloud-card"
 import { Section } from "@/cloud/pages/org/org-parts"
 import { OrgPeople } from "@/cloud/pages/org/org-people"
-import { OrgWorkspaces } from "@/cloud/pages/org/org-workspaces"
+import { OrgTeams } from "@/cloud/pages/org/org-teams"
 import type { CloudPage } from "@/cloud/types"
 import { Figure, Figures } from "@/components/figures"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { showsWorkspaces } from "@/domain/cloud-org"
+import { showsTeams } from "@/domain/cloud-org"
 import { cn } from "@/lib/utils"
 
-// OrgPage is an organization as gusto cloud keeps it: what it may do, its details and plan, its people and its workspaces, in
+// OrgPage is an organization as gusto cloud keeps it: what it may do, its details and plan, its people and its teams, in
 // the admin layout with the organization's name down the side.
 export function OrgPage({ page }: { page: CloudPage }) {
   const org = page.Org
@@ -45,8 +45,8 @@ export function OrgPage({ page }: { page: CloudPage }) {
           <OrgFigures page={page} />
           <OrgDetails page={page} />
           <OrgPeople page={page} />
-          {showsWorkspaces(page, page.Workspaces?.length ?? 0) && (
-            <OrgWorkspaces page={page} />
+          {showsTeams(page, page.Teams?.length ?? 0) && (
+            <OrgTeams page={page} />
           )}
           <OrgFoot page={page} />
         </div>

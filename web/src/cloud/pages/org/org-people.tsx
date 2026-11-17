@@ -84,7 +84,7 @@ function memberMenu(member: CloudMember, page: CloudPage): RowAction[] {
 }
 
 function InviteDialog({ page }: { page: CloudPage }) {
-  const spaces = page.Workspaces ?? []
+  const spaces = page.Teams ?? []
   return (
     <FormDialog
       trigger={<Button variant="outline" size="sm" data-testid="invite" />}
@@ -106,10 +106,10 @@ function InviteDialog({ page }: { page: CloudPage }) {
         />
       </Field>
       {spaces.length > 1 && (
-        <Field id="invite-workspace" label="Workspace they join">
+        <Field id="invite-team" label="Team they join">
           <FormSelect
-            id="invite-workspace"
-            name="workspace"
+            id="invite-team"
+            name="team"
             groups={[
               {
                 choices: spaces.map((space) => ({

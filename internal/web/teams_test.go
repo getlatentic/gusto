@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -22,15 +23,15 @@ import (
 // cy is in Business only, bob in Engineering only, and alice, the admin, in both.
 const cy = "cy@example.com"
 
-// twoWorkspaces is an organization's server behind gusto cloud whose roster has two workspaces: Engineering, the first,
+// twoTeams is an organization's server behind gusto cloud whose roster has two teams: Engineering, the first,
 // with alice and bob, and Business with alice and cy. Its apps are offered and the one called tasks is on.
-func twoWorkspaces(t *testing.T) (*site, *connectortest.App) {
+func twoTeams(t *testing.T) (*site, *connectortest.App) {
 	t.Helper()
 	here, _, app := connected(t)
 	members := filepath.Join(t.TempDir(), "members.json")
 	list := roster.Roster{
 		Members: []roster.Member{{Email: alice, Role: "admin"}, {Email: bob, Role: "runner"}, {Email: cy, Role: "runner"}},
-		Workspaces: []roster.Workspace{
+		Teams: []roster.Team{
 			{ID: "main", Name: "Engineering", Members: []string{alice, bob}},
 			{ID: "business", Name: "Business", Members: []string{alice, cy}},
 		},
@@ -45,13 +46,13 @@ func twoWorkspaces(t *testing.T) (*site, *connectortest.App) {
 	return here, app
 }
 
-// inWorkspace is somebody's site with a workspace of theirs chosen.
-func (s *site) inWorkspace(t *testing.T, id string) *site {
+// inTeam is somebody's site with a team of theirs chosen.
+func (s *site) inTeam(t *testing.T, id string) *site {
 	t.Helper()
-	chosen := s.ask(t, "GET", "/workspace/"+id, nil)
+	chosen := s.ask(t, "GET", "/team/"+id, nil)
 	seen := *s
 	for _, cookie := range chosen.Result().Cookies() {
-		if cookie.Name == workspaceCookie {
+		if cookie.Name == teamCookie {
 			seen.extra = append(seen.extra, cookie)
 		}
 	}
@@ -75,11 +76,11 @@ func saidIn(t *testing.T, who *site) (where, thread, id string) {
 }
 
 func TestABusinessMemberIsRefusedEngineeringsTasksRecordsAndConversations(t *testing.T) {
-	here, _ := twoWorkspaces(t)
+	here, _ := twoTeams(t)
 	engineer, sales, admin := here.as(t, bob), here.as(t, cy), here.as(t, alice)
 	where, thread, id := saidIn(t, engineer)
-	if record, _ := here.index.Get(id); record.Workspace != "" {
-		t.Fatalf("a task in the first workspace names it: %q", record.Workspace)
+	if record, _ := here.index.Get(id); record.Team != "" {
+		t.Fatalf("a task in the first team names it: %q", record.Team)
 	}
 	for _, path := range []string{where, thread, "/jobs/" + id} {
 		if got := sales.ask(t, "GET", path, nil).Code; got != http.StatusNotFound {
@@ -94,21 +95,21 @@ func TestABusinessMemberIsRefusedEngineeringsTasksRecordsAndConversations(t *tes
 			t.Errorf("Engineering's task is listed to a Business member at %s", path)
 		}
 	}
-	if page := admin.inWorkspace(t, "business").ask(t, "GET", "/api/jobs", nil).Body.String(); strings.Contains(page, id) {
+	if page := admin.inTeam(t, "business").ask(t, "GET", "/api/jobs", nil).Body.String(); strings.Contains(page, id) {
 		t.Errorf("an admin in Business is listed Engineering's task:\n%s", page)
 	}
-	if page := admin.ask(t, "GET", "/api/jobs?workspace=business", nil).Body.String(); strings.Contains(page, id) {
+	if page := admin.ask(t, "GET", "/api/jobs?team=business", nil).Body.String(); strings.Contains(page, id) {
 		t.Errorf("a list that names Business holds Engineering's task:\n%s", page)
 	}
-	if page := sales.ask(t, "GET", "/api/jobs?workspace=main", nil).Body.String(); strings.Contains(page, id) {
+	if page := sales.ask(t, "GET", "/api/jobs?team=main", nil).Body.String(); strings.Contains(page, id) {
 		t.Errorf("a Business member who names Engineering is listed its task:\n%s", page)
 	}
 
-	_, _, theirs := saidIn(t, sales.inWorkspace(t, "business"))
+	_, _, theirs := saidIn(t, sales.inTeam(t, "business"))
 	record, _ := here.index.Get(theirs)
 	spec, err := task.Read(task.Dir(filepath.Join(here.index.Root(), theirs)))
-	if err != nil || record.Workspace != "business" || spec.Workspace != "business" {
-		t.Fatalf("a task in Business is kept in it: record %q, spec %q, %v", record.Workspace, spec.Workspace, err)
+	if err != nil || record.Team != "business" || spec.Team != "business" {
+		t.Fatalf("a task in Business is kept in it: record %q, spec %q, %v", record.Team, spec.Team, err)
 	}
 	for _, path := range []string{"/jobs/" + theirs, "/app/api/jobs/" + theirs} {
 		if got := engineer.ask(t, "GET", path, nil).Code; got != http.StatusNotFound {
@@ -117,10 +118,10 @@ func TestABusinessMemberIsRefusedEngineeringsTasksRecordsAndConversations(t *tes
 	}
 }
 
-func TestAConnectionIsMadeInOneWorkspaceAndReachesNothingInAnother(t *testing.T) {
-	here, app := twoWorkspaces(t)
+func TestAConnectionIsMadeInOneTeamAndReachesNothingInAnother(t *testing.T) {
+	here, app := twoTeams(t)
 	admin := here.as(t, alice)
-	business := admin.inWorkspace(t, "business")
+	business := admin.inTeam(t, "business")
 	if back := signInAt(t, business, app); back.StatusCode != http.StatusSeeOther {
 		t.Fatalf("connecting in Business: %d", back.StatusCode)
 	}
@@ -137,21 +138,21 @@ func TestAConnectionIsMadeInOneWorkspaceAndReachesNothingInAnother(t *testing.T)
 	if err != nil || (spec.Setup != nil && len(spec.Setup.Connectors) > 0) {
 		t.Fatalf("a task in Engineering was given Business's sign-ins: %+v, %v", spec.Setup, err)
 	}
-	dir := placed(t, here, "business", tasks.Record{Asked: alice, Workspace: "business"}, "opencode")
+	dir := placed(t, here, "business", tasks.Record{Asked: alice, Team: "business"}, "opencode")
 	spec, err = task.Read(dir)
 	if err != nil || spec.Setup == nil || strings.Join(spec.Setup.Connectors, ",") != "tasks" {
 		t.Fatalf("a task in Business was not given the sign-in made there: %+v, %v", spec.Setup, err)
 	}
 	var behind []gateway.Server
 	text, _ := os.ReadFile(filepath.Join(dir.SetupDir(), setup.GatewayFile))
-	if json.Unmarshal(text, &behind) != nil || len(behind) != 1 || behind[0].Person != alice || behind[0].Workspace != "business" {
+	if json.Unmarshal(text, &behind) != nil || len(behind) != 1 || behind[0].Person != alice || behind[0].Team != "business" {
 		t.Errorf("the gateway is not told to call the app with the sign-in made in Business: %s", text)
 	}
 }
 
-func TestAgentsAndRoomsStayInTheirWorkspace(t *testing.T) {
-	here, _ := twoWorkspaces(t)
-	business, engineer := here.as(t, alice).inWorkspace(t, "business"), here.as(t, bob)
+func TestAgentsAndRoomsStayInTheirTeam(t *testing.T) {
+	here, _ := twoTeams(t)
+	business, engineer := here.as(t, alice).inTeam(t, "business"), here.as(t, bob)
 	made := business.ask(t, "POST", "/members/agents", url.Values{"name": {"Closer"}, "harness": {"fixture"}})
 	agent := made.Header().Get("Location")
 	if !strings.HasPrefix(agent, "/members/agents/") {
@@ -181,48 +182,53 @@ func TestAgentsAndRoomsStayInTheirWorkspace(t *testing.T) {
 	}
 }
 
-func TestAPersonInOneWorkspaceIsShownNoWorkspacesAndCannotChooseAnother(t *testing.T) {
-	here, _ := twoWorkspaces(t)
+func TestAPersonInOneTeamIsShownNoTeamsAndCannotChooseAnother(t *testing.T) {
+	here, _ := twoTeams(t)
 	engineer, admin := here.as(t, bob), here.as(t, alice)
-	if shown := shellOf(t, engineer).Workspaces; shown != nil {
-		t.Errorf("a person in one workspace is shown its name: %+v", shown)
+	if shown := shellOf(t, engineer).Teams; shown != nil {
+		t.Errorf("a person in one team is shown its name: %+v", shown)
 	}
-	if shown := shellOf(t, admin).Workspaces; shown == nil || shown.Here.Name != "Engineering" || len(shown.Other) != 1 || shown.Other[0].ID != "business" {
-		t.Errorf("a person in two workspaces is not shown which one they are in: %+v", shown)
+	if shown := shellOf(t, admin).Teams; shown == nil || shown.Here.Name != "Engineering" || len(shown.Other) != 1 || shown.Other[0].ID != "business" {
+		t.Errorf("a person in two teams is not shown which one they are in: %+v", shown)
 	}
-	if shell := shellOf(t, admin.inWorkspace(t, "business")); shell.Workspace != "business" || shell.Workspaces == nil || shell.Workspaces.Here.Name != "Business" {
-		t.Errorf("choosing Business did not put the admin in it: %+v", shell.Workspaces)
+	if shell := shellOf(t, admin.inTeam(t, "business")); shell.Team != "business" || shell.Teams == nil || shell.Teams.Here.Name != "Business" {
+		t.Errorf("choosing Business did not put the admin in it: %+v", shell.Teams)
 	}
-	tried := engineer.ask(t, "GET", "/workspace/business", nil)
+	// The app reads the switcher's teams by these names.
+	if raw := admin.ask(t, "GET", "/app/api/shell", nil).Body.String(); !strings.Contains(raw, `"Here":{"ID":"main","Name":"Engineering"}`) ||
+		strings.Contains(raw, `"members"`) {
+		t.Errorf("the switcher's teams are not as the app reads them, or name who is in them: %s", raw)
+	}
+	tried := engineer.ask(t, "GET", "/team/business", nil)
 	for _, cookie := range tried.Result().Cookies() {
-		if cookie.Name == workspaceCookie {
-			t.Fatal("a person chose a workspace they are not in")
+		if cookie.Name == teamCookie {
+			t.Fatal("a person chose a team they are not in")
 		}
 	}
 }
 
-func TestGustoCloudsSignInLinkOpensTheWorkspaceItNames(t *testing.T) {
-	here, _ := twoWorkspaces(t)
-	entered := here.ask(t, "GET", "/auth/entry?"+url.Values{"t": {tokenFor(t, "acme-com", alice, "admin", time.Now())}, "workspace": {"business"}}.Encode(), nil)
+func TestGustoCloudsSignInLinkOpensTheTeamItNames(t *testing.T) {
+	here, _ := twoTeams(t)
+	entered := here.ask(t, "GET", "/auth/entry?"+url.Values{"t": {tokenFor(t, "acme-com", alice, "admin", time.Now())}, "team": {"business"}}.Encode(), nil)
 	chose := ""
 	for _, cookie := range entered.Result().Cookies() {
-		if cookie.Name == workspaceCookie {
+		if cookie.Name == teamCookie {
 			chose = cookie.Value
 		}
 	}
 	if entered.Code != http.StatusSeeOther || chose != "business" {
 		t.Fatalf("signing in to Business: %d, chose %q", entered.Code, chose)
 	}
-	entered = here.ask(t, "GET", "/auth/entry?"+url.Values{"t": {tokenFor(t, "acme-com", bob, "runner", time.Now())}, "workspace": {"business"}}.Encode(), nil)
+	entered = here.ask(t, "GET", "/auth/entry?"+url.Values{"t": {tokenFor(t, "acme-com", bob, "runner", time.Now())}, "team": {"business"}}.Encode(), nil)
 	for _, cookie := range entered.Result().Cookies() {
-		if cookie.Name == workspaceCookie {
-			t.Fatal("a sign-in link chose a workspace its person is not in")
+		if cookie.Name == teamCookie {
+			t.Fatal("a sign-in link chose a team its person is not in")
 		}
 	}
 }
 
-func TestAnOrganizationsTokenSendsOnlyIntoItsOwnWorkspace(t *testing.T) {
-	here, _ := twoWorkspaces(t)
+func TestAnOrganizationsTokenSendsOnlyIntoItsOwnTeam(t *testing.T) {
+	here, _ := twoTeams(t)
 	file := filepath.Join(t.TempDir(), "tokens.json")
 	store, err := apitoken.Open(file)
 	if err != nil {
@@ -237,12 +243,50 @@ func TestAnOrganizationsTokenSendsOnlyIntoItsOwnWorkspace(t *testing.T) {
 	if code != http.StatusCreated {
 		t.Fatalf("the token sent nothing: %d %+v", code, answer)
 	}
-	if record, _ := here.index.Get(answer.ID); record.Workspace != "business" {
-		t.Fatalf("a task the token sent is kept in %q, not its workspace", record.Workspace)
+	if record, _ := here.index.Get(answer.ID); record.Team != "business" {
+		t.Fatalf("a task the token sent is kept in %q, not its team", record.Team)
 	}
 	elsewhere := aSpec()
-	elsewhere.Workspace = "main"
+	elsewhere.Team = "main"
 	if code, answer := here.send(t, secret, Submission{Spec: elsewhere}); code != http.StatusForbidden || answer.ID != "" {
-		t.Fatalf("a token sent into a workspace that is not its own: %d %+v", code, answer)
+		t.Fatalf("a token sent into a team that is not its own: %d %+v", code, answer)
+	}
+}
+
+// A spec sent to the API names its team as team, or as workspace, its earlier name; the sender must be in it either way.
+func TestASentSpecNamesItsTeamAsTeamOrAsWorkspace(t *testing.T) {
+	here, _ := twoTeams(t)
+	store, err := apitoken.Open(filepath.Join(t.TempDir(), "tokens.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	here.server.UseTokens(store)
+	_, secret, err := store.CreateIn("sales-bot", []string{apitoken.Submit}, alice, "business")
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec, err := json.Marshal(aSpec())
+	if err != nil {
+		t.Fatal(err)
+	}
+	post := func(named string) (int, Answer) {
+		body := `{"spec":` + strings.TrimSuffix(string(spec), "}") + `,` + named + `}}`
+		request := httptest.NewRequest("POST", "/api/jobs", strings.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Authorization", "Bearer "+secret)
+		recorder := httptest.NewRecorder()
+		here.handler.ServeHTTP(recorder, request)
+		var answer Answer
+		json.Unmarshal(recorder.Body.Bytes(), &answer)
+		return recorder.Code, answer
+	}
+	for _, named := range []string{`"team":"business"`, `"workspace":"business"`} {
+		code, answer := post(named)
+		if record, _ := here.index.Get(answer.ID); code != http.StatusCreated || record.Team != "business" {
+			t.Errorf("%s: %d %+v, kept in %q", named, code, answer, record.Team)
+		}
+	}
+	if code, answer := post(`"team":"main"`); code != http.StatusForbidden || answer.ID != "" {
+		t.Errorf("a team the sender is not in: %d %+v", code, answer)
 	}
 }

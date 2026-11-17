@@ -99,7 +99,7 @@ export interface CloudPage {
   Admins: number
   IsAdmin: boolean
   CanInvite: boolean
-  Workspaces: CloudSpace[] | null
+  Teams: CloudSpace[] | null
   Link: string
 
   DemoLeft: string

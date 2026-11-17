@@ -40,7 +40,7 @@ func (s *Server) agentAppsFor(r *http.Request, member string) *agentApps {
 	if shown.Works = held.MayUse(who); !shown.Works {
 		return shown
 	}
-	views, err := s.connectorViews(who, held.Workspace)
+	views, err := s.connectorViews(who, held.Team)
 	if err != nil {
 		return shown
 	}
@@ -54,7 +54,7 @@ func (s *Server) agentAppsFor(r *http.Request, member string) *agentApps {
 
 // agentAppOf is one of a person's apps as an agent's Apps tab lists it.
 func (s *Server) agentAppOf(view connectorView, held crew.Agent, who string) agentApp {
-	app := agentApp{ID: view.ID, Name: view.Name, Choice: "inherit", Default: s.connectors.ForAgents(who, held.Workspace, view.ID), SignInAgain: view.SignInAgain}
+	app := agentApp{ID: view.ID, Name: view.Name, Choice: "inherit", Default: s.connectors.ForAgents(who, held.Team, view.ID), SignInAgain: view.SignInAgain}
 	if allowed, chosen := held.AppChoice(who, view.ID); chosen {
 		app.Choice = map[bool]string{true: "allow", false: "deny"}[allowed]
 	}
@@ -103,7 +103,7 @@ func (s *Server) setAppForAgents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	on := r.FormValue("on") == "on"
-	if err := s.connectors.SetForAgents(who, s.workspaceOf(r), entry.ID, on); err != nil {
+	if err := s.connectors.SetForAgents(who, s.teamOf(r), entry.ID, on); err != nil {
 		s.turnAway(w, r, connectionsPath, err.Error())
 		return
 	}

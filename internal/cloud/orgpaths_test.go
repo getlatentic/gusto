@@ -32,11 +32,11 @@ func TestAtAPathOpeningAnOrganizationNeedsNoSignInOfItsOwn(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := withServersAtPaths(t)
 		b := f.signedUp("ada@acme.com")
-		status, _, header := b.get2("/open?workspace=eng")
-		if location := header.Get("Location"); status != http.StatusSeeOther || location != "http://cloud.test/workspace/acme-com/auth/entry?workspace=eng" {
+		status, _, header := b.get2("/open?team=eng")
+		if location := header.Get("Location"); status != http.StatusSeeOther || location != "http://cloud.test/workspace/acme-com/auth/entry?team=eng" {
 			t.Fatalf("%d %q", status, location)
 		}
-		status, _, answer := b.do("GET", "/workspace/acme-com/auth/entry?workspace=eng", nil, nil)
+		status, _, answer := b.do("GET", "/workspace/acme-com/auth/entry?team=eng", nil, nil)
 		if status != http.StatusSeeOther || answer.Get("Location") != "/workspace/acme-com/" || answer.Get("Set-Cookie") != "" {
 			t.Errorf("the server lets the person in with no cookie of its own, and its redirect is under the path: %d %v", status, answer)
 		}

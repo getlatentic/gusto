@@ -138,7 +138,7 @@ func aRoom(t *testing.T, work *roomWork, agents ...[2]string) (*site, string, st
 	return site, id, threadPath(site.server.instances.Latest(held.ID))
 }
 
-// aCrewAgent is a workspace agent somebody made, whose specialty is "does" and its name.
+// aCrewAgent is a team agent somebody made, whose specialty is "does" and its name.
 func aCrewAgent(t *testing.T, site *site, owner, name, harness string) crew.Agent {
 	t.Helper()
 	made, err := site.server.crew.Make(crew.Agent{Name: name, Harness: harness, Specialty: "does " + name, Owner: owner})
@@ -412,7 +412,7 @@ func TestARoomCountsWhatAPersonHasNotReadAndWhatMentionsThem(t *testing.T) {
 	}
 }
 
-func TestAWorkspaceAgentAndAPersonAreAddedToARoomTogether(t *testing.T) {
+func TestATeamAgentAndAPersonAreAddedToARoomTogether(t *testing.T) {
 	work := &roomWork{}
 	here, id, thread := aRoom(t, work)
 	member := aCrewAgent(t, here, alice, "Tosin's Claude", "other")
@@ -451,7 +451,7 @@ func TestAWorkspaceAgentAndAPersonAreAddedToARoomTogether(t *testing.T) {
 	}
 }
 
-func TestARoomUsesItsAgentsAsTheWorkspaceHasThemNow(t *testing.T) {
+func TestARoomUsesItsAgentsAsTheTeamHasThemNow(t *testing.T) {
 	work := &roomWork{}
 	here, id, thread := aRoom(t, work, [2]string{"Scout", "fixture"})
 	held, _ := here.server.instances.Get(id)
