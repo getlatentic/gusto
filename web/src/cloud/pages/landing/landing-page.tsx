@@ -98,7 +98,7 @@ function LandingHeader({ page }: { page: CloudPage }) {
             >
               Sign in
             </a>
-            <StartCta />
+            <StartCta page={page} />
           </>
         )}
       </nav>
@@ -139,7 +139,7 @@ function Hero({ page }: { page: CloudPage }) {
           agent cloud, with control over spending, models and integrations.
         </p>
         <div className="mt-2 flex flex-wrap justify-center gap-3">
-          <StartCta />
+          <StartCta page={page} />
           <BookCta page={page} />
         </div>
         <p className="text-quiet m-0 text-sm" data-testid="offer-terms">

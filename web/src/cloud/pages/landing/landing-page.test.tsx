@@ -57,6 +57,9 @@ describe("the landing page", () => {
     render(<LandingPage page={{ ...landing, SignedIn: true }} />)
     expect(screen.getByTestId("open-gusto").getAttribute("href")).toBe("/app")
     expect(screen.queryByTestId("sign-in")).toBeNull()
+    const starts = screen.getAllByTestId("start")
+    expect(starts.length).toBeGreaterThan(0)
+    expect(starts.every((a) => a.getAttribute("href") === "/app")).toBe(true)
   })
 
   it("shows the product at work right under the promise", () => {

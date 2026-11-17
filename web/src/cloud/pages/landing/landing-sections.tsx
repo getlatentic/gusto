@@ -30,7 +30,7 @@ export function Plans({ page }: { page: CloudPage }) {
           price="$25"
           text="A person a month. We run it. Your own model key, or model credit from gusto."
         >
-          <StartCta />
+          <StartCta page={page} />
         </Plan>
         <Plan
           name="For your company"
@@ -80,7 +80,7 @@ export function TryWithYourTeam({ page }: { page: CloudPage }) {
       <div className="mx-auto grid max-w-6xl justify-items-center gap-6 px-5">
         <BandTitle>Try gusto with your team.</BandTitle>
         <div className="flex flex-wrap justify-center gap-3">
-          <StartCta />
+          <StartCta page={page} />
           <BookCta page={page} />
         </div>
       </div>
