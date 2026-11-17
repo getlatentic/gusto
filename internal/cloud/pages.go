@@ -39,6 +39,8 @@ type view struct {
 	Taken bool
 	// WorkOnly says only a work address may sign up or start a demo.
 	WorkOnly bool
+	// Google says a person may sign in and sign up with a Google account.
+	Google bool
 	// SignedIn says the person looking at the landing page is signed in, so it offers to open gusto rather than to sign in.
 	SignedIn bool
 	// Sent says a sign-in link was asked for.
@@ -96,10 +98,6 @@ type view struct {
 	Book       string
 	Extendable bool
 	Ended      bool
-	// DemoPublic says a visitor may start a demo; where only the team gives them, the landing page leads to sign-up, with the
-	// StartingCredit an organization begins with.
-	DemoPublic     bool
-	StartingCredit float64
 	// BookFrame is the booking page shown in the page, where the booking service may be framed, and Wide gives a page the room
 	// for it.
 	BookFrame string
@@ -108,16 +106,8 @@ type view struct {
 	Console bool
 	// Ending is a demo that has been stopped and is being deleted.
 	Ending bool
-	// Video is the landing page's video, and VideoFile says it is a file and not a page to embed. Shot is the picture shown when there is no video.
-	Video string
-	Shot  string
-	// ShotDark is the picture shown instead of Shot where the visitor prefers a dark page.
-	ShotDark string
 	// TurnstileSite is the public key of the bot check, which the demo form carries when there is one.
 	TurnstileSite string
-	VideoFile     bool
-	// VideoPoster is the picture a video file is shown with before it plays.
-	VideoPoster string
 	// Name is who a demo is for.
 	Name string
 }
@@ -127,6 +117,7 @@ type view struct {
 func (s *Server) render(w http.ResponseWriter, status int, page string, v view) {
 	v.Lease = s.Lease != nil
 	v.WorkOnly = s.Store != nil && !s.Store.FreeMailAllowed()
+	v.Google = s.Google != nil
 	data, err := json.Marshal(pageOf(page, v))
 	if err != nil {
 		http.Error(w, "that page could not be drawn", http.StatusInternalServerError)

@@ -186,8 +186,13 @@ Once, from your machine:
 ./put-key.sh            # the model key
 GUSTO_MODEL_PARAMETER=/gusto/poc/deepseek-key ./put-key.sh   # and the second
 ./put-cloudflare.sh     # the DNS token, then the mail token
+./put-google.sh         # optional: the OAuth client at Google, for Continue with Google
 cp demo.env.example demo.env   # and fill it in
 ```
+
+The Google client is a web application client made in the Google Cloud console. Its authorized
+redirect address is `https://<name>/signin/google/back`. A host reads the client when it boots, and a
+host without it offers sign-in by email alone.
 
 Each demo:
 

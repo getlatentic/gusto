@@ -10,10 +10,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getlatentic/gusto/deploy/install"
 	"github.com/getlatentic/gusto/internal/web"
 )
 
-//go:embed static/hero-light.webp static/hero-dark.webp static/shots/*.webp static/og.png
+//go:embed static/og.png
 var files embed.FS
 
 // Config is what a gusto cloud server is made from.
@@ -36,6 +37,8 @@ type Config struct {
 	Controller *Controller
 	// Lease, when there is one, is how long this host has before it removes itself.
 	Lease *Lease
+	// Google is signing in with a Google account, when gusto cloud has a client at Google.
+	Google *Google
 	// Turnstile is the bot check on the demo form, when it is set.
 	Turnstile Turnstile
 	// Leads sends each lead to where it is followed up, when it is set.
@@ -202,6 +205,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /signin/link", s.confirmPage(SignIn, "Sign in to gusto", "Continue"))
 	mux.HandleFunc("POST /signin/link", s.useLink(SignIn))
 	mux.HandleFunc("POST /signin/code", s.signInWithCode)
+	s.googleRoutes(mux)
 	mux.HandleFunc("GET /orgs", s.orgsPage)
 	mux.HandleFunc("GET /orgs.json", s.orgsJSON)
 	mux.HandleFunc("GET /account.json", s.accountJSON)
@@ -230,15 +234,29 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /signout", s.signOut)
 	mux.HandleFunc("GET /signout", s.signedOutThere)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok\n")) })
-	mux.Handle("GET /static/shots/", cached(http.FileServerFS(files)))
-	mux.Handle("GET /static/hero-light.webp", cached(http.FileServerFS(files)))
-	mux.Handle("GET /static/hero-dark.webp", cached(http.FileServerFS(files)))
-	mux.Handle("GET /static/og.png", cached(http.FileServerFS(files)))
-	mux.Handle("GET /app/assets/", web.AppAssets())
+	s.fileRoutes(mux)
 	mux.HandleFunc("GET /robots.txt", s.robots)
 	mux.HandleFunc("GET /sitemap.xml", s.sitemap)
 	mux.Handle("GET /static/", web.Static())
 	return s.secure(mux)
+}
+
+// fileRoutes are the files the front door serves as they are: its pictures, the app's code, and the script that installs gusto.
+func (s *Server) fileRoutes(mux *http.ServeMux) {
+	mux.Handle("GET /static/og.png", cached(http.FileServerFS(files)))
+	mux.Handle("GET /app/assets/", web.AppAssets())
+	mux.Handle("GET /install.sh", installer(install.Script, "text/x-shellscript"))
+	mux.Handle("GET /install.ps1", installer(install.PowerShell, "text/plain"))
+}
+
+// installer answers with an install script, so `curl -fsSL <front door>/install.sh | sh` installs the newest release: GitHub's own
+// latest-release address skips pre-releases.
+func installer(script []byte, kind string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", kind+"; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		w.Write(script)
+	})
 }
 
 // Wait returns when every mail started so far has been handed on, and every

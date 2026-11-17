@@ -99,3 +99,20 @@ export function skillGroups<T extends { Role: boolean }>(
     sets: choices.filter((choice) => !choice.Role),
   }
 }
+
+// listSearch is the part of the address the members list is read with: all of it on the list's own page, where a refusal or an
+// invitation sent is said, and none while somebody is open, so the list is read once and stays drawn as whoever is open changes.
+export function listSearch(where: {
+  pathname: string
+  search: string
+}): string {
+  return where.pathname === "/members" ? where.search : ""
+}
+
+// openIn is whoever of the members listed the address is the page of.
+export function openIn<T extends { Where: string }>(
+  members: T[],
+  pathname: string
+): T | undefined {
+  return members.find((member) => member.Where === pathname)
+}

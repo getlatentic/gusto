@@ -1,5 +1,10 @@
 import { render, screen } from "@testing-library/react"
-import { MemoryRouter, Route, Routes } from "react-router"
+import {
+  createMemoryRouter,
+  createRoutesFromElements,
+  Route,
+} from "react-router"
+import { RouterProvider } from "react-router/dom"
 import { describe, expect, it, vi } from "vitest"
 
 import { ConsoleShell } from "@/components/console-shell"
@@ -27,13 +32,18 @@ describe("the console", () => {
     render(
       <Provider store={makeStore()}>
         <TooltipProvider>
-          <MemoryRouter initialEntries={["/admin/budgets"]}>
-            <Routes>
-              <Route path="/admin" element={<ConsoleShell />}>
-                <Route path="budgets" element={<p>budgets</p>} />
-              </Route>
-            </Routes>
-          </MemoryRouter>
+          <RouterProvider
+            router={createMemoryRouter(
+              createRoutesFromElements(
+                <>
+                  <Route path="/admin" element={<ConsoleShell />}>
+                    <Route path="budgets" element={<p>budgets</p>} />
+                  </Route>
+                </>
+              ),
+              { initialEntries: ["/admin/budgets"] }
+            )}
+          />
         </TooltipProvider>
       </Provider>
     )
@@ -66,13 +76,18 @@ describe("the console", () => {
     render(
       <Provider store={makeStore()}>
         <TooltipProvider>
-          <MemoryRouter initialEntries={["/admin/records?tab=keeping"]}>
-            <Routes>
-              <Route path="/admin" element={<ConsoleShell />}>
-                <Route path="records" element={<p>records</p>} />
-              </Route>
-            </Routes>
-          </MemoryRouter>
+          <RouterProvider
+            router={createMemoryRouter(
+              createRoutesFromElements(
+                <>
+                  <Route path="/admin" element={<ConsoleShell />}>
+                    <Route path="records" element={<p>records</p>} />
+                  </Route>
+                </>
+              ),
+              { initialEntries: ["/admin/records?tab=keeping"] }
+            )}
+          />
         </TooltipProvider>
       </Provider>
     )
@@ -109,13 +124,18 @@ describe("a page under a section", () => {
       const drawn = render(
         <Provider store={makeStore()}>
           <TooltipProvider>
-            <MemoryRouter initialEntries={[at]}>
-              <Routes>
-                <Route path="/admin" element={<ConsoleShell />}>
-                  <Route path="*" element={<p>page</p>} />
-                </Route>
-              </Routes>
-            </MemoryRouter>
+            <RouterProvider
+              router={createMemoryRouter(
+                createRoutesFromElements(
+                  <>
+                    <Route path="/admin" element={<ConsoleShell />}>
+                      <Route path="*" element={<p>page</p>} />
+                    </Route>
+                  </>
+                ),
+                { initialEntries: [at] }
+              )}
+            />
           </TooltipProvider>
         </Provider>
       )

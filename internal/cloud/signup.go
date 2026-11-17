@@ -69,7 +69,17 @@ func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 		again(refusalStatus(err), refusalText(err), asksForMore(err))
 		return
 	}
-	s.mailVerification(r.Context(), person, org)
+	if s.Sessions.Vouched(r, person.Email) {
+		s.confirmed(r.Context(), person.Email)
+		s.Sessions.Unvouch(w)
+	} else {
+		s.mailVerification(r.Context(), person, org)
+	}
+	s.welcome(w, r, person, org)
+}
+
+// welcome starts a new organization's server and takes the person who made it in.
+func (s *Server) welcome(w http.ResponseWriter, r *http.Request, person Person, org Org) {
 	s.provision(r.Context(), org.Slug)
 	s.Sessions.Issue(w, person.Email)
 	s.Sessions.Choose(w, org.Slug)
@@ -89,6 +99,14 @@ func nextQuestion(refused error, in Signup) string {
 		return "Your company already has an organization on gusto. Name this one, or ask its admin to invite you."
 	}
 	return ""
+}
+
+// confirmed marks an address as read without mailing it, because Google vouched for it, which lifts the trial's limits as
+// following the mailed link does.
+func (s *Server) confirmed(ctx context.Context, email string) {
+	if err := s.Store.Verify(ctx, email); err != nil {
+		slog.Error("an address Google confirmed was not marked confirmed", "error", err)
+	}
 }
 
 // asksForMore says the form needs the organization's name and address, because

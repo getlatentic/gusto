@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { Outlet, useLocation } from "react-router"
 import { ArrowLeftIcon, LogOutIcon, SettingsIcon } from "lucide-react"
 
@@ -7,6 +7,8 @@ import { NavigationContext } from "@/components/navigation"
 import { SkipLink } from "@/components/skip-link"
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { useData } from "@/lib/api"
+import { usePageEnter } from "@/motion/use-page-enter"
+import { useChildPath } from "@/router/use-child-path"
 import type { ConsoleShell as Shell } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -15,6 +17,8 @@ import { cn } from "@/lib/utils"
 export function ConsoleShell() {
   const shell = useData<Shell>("/app/api/console")
   const [open, setOpen] = useState(false)
+  const main = useRef<HTMLElement>(null)
+  usePageEnter(main, useChildPath("admin"))
   const navigation = useMemo(() => ({ open: () => setOpen(true) }), [])
   const sections = shell.state === "ready" ? shell.data : undefined
   return (
@@ -31,6 +35,7 @@ export function ConsoleShell() {
           </SheetContent>
         </Sheet>
         <main
+          ref={main}
           id="main"
           className="min-h-0 min-w-0 overflow-y-auto"
           tabIndex={-1}

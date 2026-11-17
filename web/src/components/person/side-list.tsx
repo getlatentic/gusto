@@ -2,6 +2,7 @@ import { useState } from "react"
 import { PlusIcon } from "lucide-react"
 
 import { AppLink } from "@/components/app-link"
+import { FlipList } from "@/motion/flip-list"
 import { ProjectGroups } from "@/components/person/project-groups"
 import { SideRow, sideItem } from "@/components/person/side-row"
 import {
@@ -142,13 +143,15 @@ function Rows({
     return <p className="m-0 px-3 py-2 text-sm text-subtle">{empty}</p>
   }
   return (
-    <ul className="m-0 grid list-none gap-px p-0">
-      {chats.map((chat) => (
-        <li key={chat.Where}>
-          <SideRow chat={chat} here={here} onGo={onGo} />
-        </li>
-      ))}
-    </ul>
+    <FlipList>
+      <ul className="m-0 grid list-none gap-px p-0">
+        {chats.map((chat) => (
+          <li key={chat.Where} data-flip-id={chat.Where}>
+            <SideRow chat={chat} here={here} onGo={onGo} />
+          </li>
+        ))}
+      </ul>
+    </FlipList>
   )
 }
 

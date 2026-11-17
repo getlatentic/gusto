@@ -65,6 +65,8 @@ export interface CloudPage {
   More: boolean
   Taken: boolean
   WorkOnly: boolean
+  // Google says a person may sign in and sign up with a Google account.
+  Google: boolean
   SignedIn: boolean
   Sent: boolean
 
@@ -111,15 +113,6 @@ export interface CloudPage {
   Extendable: boolean
   Ended: boolean
   Ending: boolean
-  DemoPublic: boolean
-  StartingCredit: number
-  Video: string
-  VideoPoster: string
-  Shot: string
-  ShotDark: string
-  VideoFile: boolean
-  Record: string
-  RecordDark: string
 
   Lease: { Left: string; Ends: string; Step: string; CanExtend: boolean } | null
 }

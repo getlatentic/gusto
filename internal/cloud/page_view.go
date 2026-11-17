@@ -12,7 +12,7 @@ type pageView struct {
 	Title string
 
 	Error, Ask, Email, OrgName, Slug, Name, Notice string
-	More, Taken, WorkOnly, SignedIn, Sent          bool
+	More, Taken, WorkOnly, SignedIn, Sent, Google  bool
 
 	Token, Action, Button, Inviter string
 
@@ -39,17 +39,11 @@ type pageView struct {
 	Workspaces []spaceView
 	Link       string
 
-	DemoLeft, DemoLeftLong             string
-	DemoWords                          string
-	Steps                              []Step
-	Book, BookFrame, TurnstileSite     string
-	Extendable, Ended, Ending          bool
-	DemoPublic                         bool
-	StartingCredit                     float64
-	Video, VideoPoster, Shot, ShotDark string
-	VideoFile                          bool
-	// Record is the landing page's picture of what one reply cost, light and dark.
-	Record, RecordDark string
+	DemoLeft, DemoLeftLong         string
+	DemoWords                      string
+	Steps                          []Step
+	Book, BookFrame, TurnstileSite string
+	Extendable, Ended, Ending      bool
 
 	Lease *leaseView
 }
@@ -98,7 +92,7 @@ func pageOf(name string, v view) pageView {
 	page := pageView{
 		Page: name, Title: v.Title,
 		Error: v.Error, Ask: v.Ask, Email: v.Email, OrgName: v.OrgName, Slug: v.Slug, Name: v.Name, Notice: v.Notice,
-		More: v.More, Taken: v.Taken, WorkOnly: v.WorkOnly, SignedIn: v.SignedIn, Sent: v.Sent,
+		More: v.More, Taken: v.Taken, WorkOnly: v.WorkOnly, SignedIn: v.SignedIn, Sent: v.Sent, Google: v.Google,
 		Token: v.Token, Action: v.Action, Button: v.Button, Inviter: v.Inviter,
 		Several: v.Several, Person: personView{Email: v.Person.Email, Trial: v.Person.Trial()},
 		Address: v.Address, Domain: v.Domain, Credit: v.Credit, Plan: v.Plan,
@@ -106,8 +100,7 @@ func pageOf(name string, v view) pageView {
 		Computers: v.Computers, Server: v.Server, CanOpen: v.CanOpen,
 		Admins: v.Admins, IsAdmin: v.IsAdmin, CanInvite: v.CanInvite, Link: v.Link,
 		DemoWords: v.DemoWords, Steps: v.Steps, Book: v.Book, BookFrame: v.BookFrame, TurnstileSite: v.TurnstileSite,
-		Extendable: v.Extendable, Ended: v.Ended, Ending: v.Ending, DemoPublic: v.DemoPublic, StartingCredit: v.StartingCredit,
-		Video: v.Video, VideoPoster: v.VideoPoster, Shot: v.Shot, ShotDark: v.ShotDark, VideoFile: v.VideoFile,
+		Extendable: v.Extendable, Ended: v.Ended, Ending: v.Ending,
 	}
 	page.addPeople(v)
 	if v.DemoLeft > 0 {
@@ -115,9 +108,6 @@ func pageOf(name string, v view) pageView {
 	}
 	if name == "lease" {
 		page.Lease = leaseOf(v)
-	}
-	if name == "landing" {
-		page.Record, page.RecordDark = fingerprinted("/static/shots/record-light.webp"), fingerprinted("/static/shots/record-dark.webp")
 	}
 	return page
 }

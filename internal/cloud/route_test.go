@@ -227,20 +227,8 @@ func TestGustoCloudsStylesheetIsNamedByItsDigestSoANewReleaseIsFetched(t *testin
 		f := newFront(t, Settings{}, nil)
 		_, page := f.browser().get("/")
 		styled(t, f.browser(), "cloud.test", page)
-		address := fingerprinted("/static/hero-light.webp")
-		if len(address) != len("/static/hero-light.webp?v=")+10 {
-			t.Errorf("%q has no digest", address)
-		}
-		if fingerprinted("/static/nothing.css") != "/static/nothing.css" {
-			t.Error("a file that is not there has no digest")
-		}
-		if status, _, header := f.browser().get3(address); status != 200 || !strings.Contains(header.Get("Cache-Control"), "max-age") {
-			t.Errorf("the address with a digest is served: %d %v", status, header)
-		}
 	})
 }
-
-func (b *browser) get3(path string) (int, string, http.Header) { return b.do("GET", path, nil, nil) }
 
 // A room's page holds a WebSocket open through gusto cloud to its organization's server. The upgrade passes, the host the
 // browser used reaches the server as it was (the server checks the Origin against it), the cookie that is the server's passes

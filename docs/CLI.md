@@ -937,6 +937,8 @@ Environment:
 - `GUSTO_CLOUD_LEAD_HOOK_SECRET`: the secret the lead hook's requests are signed with
 - `GUSTO_CLOUD_TURNSTILE_SITE`: the Cloudflare Turnstile site key of the bot check on the demo form, which fails closed
 - `GUSTO_CLOUD_TURNSTILE_SECRET`: the Cloudflare Turnstile secret of the bot check
+- `GUSTO_CLOUD_GOOGLE_CLIENT_ID`: the OAuth client at Google that people sign in and sign up with; it lists <GUSTO_CLOUD_URL>/signin/google/back as a redirect address, and is set with its secret or not at all
+- `GUSTO_CLOUD_GOOGLE_SECRET`: the secret of the OAuth client at Google
 - `GUSTO_CLOUD_PER_ADDRESS`: the most sign-ups, sign-ins and demo requests from one network address in an hour (default 10)
 - `GUSTO_CLOUD_PER_MAILBOX`: the most mail sent to one address in an hour (default 3)
 - `GUSTO_CLOUD_IN_ALL`: the most sign-ups, and the most demo requests, in all in an hour (default 200)
@@ -959,7 +961,6 @@ Environment:
 - `GUSTO_CLOUD_DEMO_PER_PERSON`: the most demos one address may start in a day, until the operator's page sets it (default 2)
 - `GUSTO_CLOUD_DEMO_PER_COMPANY`: the most demos one company may start in a day, until the operator's page sets it (default 6)
 - `GUSTO_CLOUD_BOOK_URL`: where a visitor books a call
-- `GUSTO_CLOUD_DEMO_VIDEO`: the video the landing page shows: an https address of a file or of a page to embed
 - `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo
 - `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
 - `GUSTO_CLOUD_STRIPE_KEY`: the Stripe secret API key organizations are billed by the seat with; the key, the price and the webhook secret are set together or not at all
@@ -1113,7 +1114,6 @@ Environment:
 - `GUSTO_CLOUD_DEMO_PER_PERSON`: the most demos one address may start in a day, until the operator's page sets it (default 2)
 - `GUSTO_CLOUD_DEMO_PER_COMPANY`: the most demos one company may start in a day, until the operator's page sets it (default 6)
 - `GUSTO_CLOUD_BOOK_URL`: where a visitor books a call
-- `GUSTO_CLOUD_DEMO_VIDEO`: the video the landing page shows: an https address of a file or of a page to embed
 - `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo
 - `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
 - `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH was its name

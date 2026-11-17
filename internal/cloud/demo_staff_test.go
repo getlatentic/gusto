@@ -34,11 +34,8 @@ func TestOnlyTheStaffMayStartADemoWhereStaffAreNamed(t *testing.T) {
 func TestWhereOnlyTheStaffGiveDemosTheLandingPageLeadsToSignUp(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		status, page, _ := landingAt(t, staffSet())
-		if got := shown(t, page); status != http.StatusOK || got.Page != "landing" || got.DemoPublic || got.Book != "https://cal.example/gusto" || got.StartingCredit != StartingCredit {
+		if got := shown(t, page); status != http.StatusOK || got.Page != "landing" || got.Book != "https://cal.example/gusto" {
 			t.Errorf("%d: the landing page does not lead to sign-up and booking a demo: %+v", status, got)
-		}
-		if _, page, _ := landingAt(t, demoSet); !shown(t, page).DemoPublic {
-			t.Error("a host whose demos are open to anyone no longer offers them")
 		}
 
 		f := newFront(t, staffSet(), nil)
