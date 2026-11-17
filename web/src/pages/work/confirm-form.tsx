@@ -9,6 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { withBase } from "@/lib/base"
 
 // ConfirmForm is a form that asks first: sending it opens the question, and only a yes sends it.
 export function ConfirmForm({
@@ -33,7 +34,7 @@ export function ConfirmForm({
       <form
         ref={form}
         method="post"
-        action={action}
+        action={withBase(action)}
         className="m-0"
         data-testid={testId}
         onSubmit={(event) => {

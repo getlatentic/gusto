@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { AgentFace } from "@/pages/members/faces"
 import type { AgentPage } from "@/pages/members/types"
 import { useMembersForm } from "@/pages/members/use-members-form"
+import { withBase } from "@/lib/base"
 
 // AgentHeader is who the agent is, and what the person looking may do with it: message it in their own room with it, and, when
 // it is theirs, remove it, which is asked first.
@@ -41,7 +42,7 @@ export function AgentHeader({ agent }: { agent: AgentPage }) {
         {agent.Usable && (
           <form
             method="post"
-            action={`${at}/message`}
+            action={withBase(`${at}/message`)}
             onSubmit={form.submit}
             className="m-0"
             data-testid="message-agent-form"
@@ -81,7 +82,7 @@ function RemoveAgent({
       <form
         ref={remove}
         method="post"
-        action={`${at}/remove`}
+        action={withBase(`${at}/remove`)}
         className="m-0"
         data-testid="remove-agent-form"
         onSubmit={(event) => {

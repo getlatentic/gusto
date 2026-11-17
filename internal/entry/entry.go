@@ -1,7 +1,10 @@
 // Package entry is how a hosted organization's server knows who a person is
-// without a sign-in page of its own. Gusto cloud signs a person in, and then
-// hands their browser a token, good for a minute and for one use, that the
-// organization's server checks against a key only the two of them share.
+// without a sign-in page of its own. Gusto cloud signs a person in and says so
+// with a token that the organization's server checks against a key only the two
+// of them share. An organization at a host name of its own is handed one by the
+// person's browser, good for a minute and for one use. An organization at a path
+// on gusto cloud's own name is handed one with every request gusto cloud passes
+// on (Vouch).
 package entry
 
 import (
@@ -18,9 +21,9 @@ import (
 
 // Claims are what gusto cloud says: who this is, what they may do in the
 // organization, which organization it is, and until when the word is good.
-// Purpose is empty on a token to enter with, and exit on the one an
-// organization's server hands back when the person signs out, so neither
-// works as the other.
+// Purpose is empty on a token to enter with, exit on the one an
+// organization's server hands back when the person signs out, and request on
+// the one gusto cloud puts on a request it passes on, so none works as another.
 type Claims struct {
 	Email   string `json:"e"`
 	Role    string `json:"r"`
@@ -30,7 +33,10 @@ type Claims struct {
 	Purpose string `json:"p,omitempty"`
 }
 
-const exit = "exit"
+const (
+	exit    = "exit"
+	request = "request"
+)
 
 // Life is how long a token works. A browser follows it at once.
 const Life = time.Minute
@@ -47,6 +53,12 @@ func Mint(key []byte, org, email, role string, now time.Time) (string, error) {
 // gusto cloud with when they sign out, so that gusto cloud signs them out too.
 func MintExit(key []byte, org, email string, now time.Time) (string, error) {
 	return mint(key, Claims{Email: email, Org: org, Purpose: exit}, now)
+}
+
+// Vouch is what gusto cloud puts on a request it passes on to an organization's server, to say whose request it is. The
+// organization's server decides what that person may do there.
+func Vouch(key []byte, org, email string, now time.Time) (string, error) {
+	return mint(key, Claims{Email: email, Org: org, Purpose: request}, now)
 }
 
 func mint(key []byte, claims Claims, now time.Time) (string, error) {
@@ -80,6 +92,12 @@ func Verify(key []byte, org, token string, now time.Time) (Claims, error) {
 // VerifyExit is the claims in a token MintExit made, on the same terms.
 func VerifyExit(key []byte, org, token string, now time.Time) (Claims, error) {
 	return verify(key, org, token, exit, now)
+}
+
+// VerifyVouch is the claims in a token Vouch made, on the same terms. It is good for every request it comes with until it
+// runs out, so it is never to be shown to a browser.
+func VerifyVouch(key []byte, org, token string, now time.Time) (Claims, error) {
+	return verify(key, org, token, request, now)
 }
 
 func verify(key []byte, org, token, purpose string, now time.Time) (Claims, error) {

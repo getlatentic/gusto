@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { usePageData } from "@/lib/api"
 import { FormField } from "@/pages/setups/form-field"
 import type { BlankData } from "@/pages/setups/types"
+import { withBase } from "@/lib/base"
 
 const crumbs = [{ label: "New agent", href: "/presets" }]
 
@@ -49,7 +50,7 @@ function BlankForm({ page }: { page: BlankData }) {
         <form
           className="grid gap-4"
           method="post"
-          action="/instances"
+          action={withBase("/instances")}
           data-testid="blank-form"
         >
           <FormField id="blank-title" label="Name it">

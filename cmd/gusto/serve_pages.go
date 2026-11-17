@@ -178,6 +178,9 @@ func (s *server) startBackground() error {
 		return err
 	}
 	s.pages.UseRoutineNews(news, s.cfg.core.publicURL)
+	if err := s.pages.UseAddress(s.cfg.core.publicURL); err != nil {
+		return fmt.Errorf("GUSTO_PUBLIC_URL: %w", err)
+	}
 	go s.pages.RunRoutines(background, time.Minute)
 	if dir := s.cfg.stores.retention; dir != "" {
 		policy, err := retention.LoadPolicy(dir)

@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import type { Hold } from "@/pages/admin/records/types"
+import { withBase } from "@/lib/base"
 
 type Held = Record<string, Hold> | null
 
@@ -47,7 +48,7 @@ export function Holds({ tasks, people }: { tasks: Held; people: Held }) {
                 value={id}
               >
                 task{" "}
-                <a className="underline" href={`/jobs/${id}`}>
+                <a className="underline" href={withBase(`/jobs/${id}`)}>
                   {id}
                 </a>
               </HoldLine>
@@ -109,7 +110,7 @@ function HoldLine({
         {hold.why}
       </TableCell>
       <TableCell className="text-right">
-        <form method="post" action={release} className="m-0">
+        <form method="post" action={withBase(release)} className="m-0">
           <input type="hidden" name={field} value={value} />
           <Button size="sm" variant="outline" type="submit">
             Release
@@ -139,7 +140,7 @@ function HoldForm({
   return (
     <form
       method="post"
-      action={action}
+      action={withBase(action)}
       className="m-0 flex flex-wrap items-end gap-3"
     >
       <div className="grid min-w-40 flex-1 gap-2">

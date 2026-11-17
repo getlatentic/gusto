@@ -1,6 +1,7 @@
 import type { LoaderFunction } from "react-router"
 
 import { pagePath } from "@/lib/api"
+import { below } from "@/lib/base"
 import type { AppStore } from "@/store"
 import { api } from "@/store/api"
 
@@ -12,7 +13,10 @@ export function readAhead(
   pathOf: (url: URL) => string = pagePath
 ): LoaderFunction {
   return ({ request }) => {
-    store.dispatch(api.util.prefetch("page", pathOf(new URL(request.url)), {}))
+    // The router's request is for the whole address, base path and all; the page's data is read by the path below it.
+    const url = new URL(request.url)
+    url.pathname = below(url.pathname)
+    store.dispatch(api.util.prefetch("page", pathOf(url), {}))
     return null
   }
 }

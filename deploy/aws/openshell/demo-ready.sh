@@ -4,10 +4,13 @@
 # no sign-in mail failed in a day, and the organization's last tasks passed. It reads and
 # changes nothing, sends no mail and costs nothing.
 #   ./demo-ready.sh [org]      # org defaults to getlatentic-com; exits 1 when a check fails
+# An organization is at https://<site>/workspace/<org>, or at https://<org>.<site> with DEMO_ORGS_AT=host, as
+# GUSTO_CLOUD_ORGS_AT says on the front door. The wildcard certificate is checked either way: shared apps use it.
 source "$(dirname "$0")/env.sh"
 site="${DEMO_SITE:-gusto.getlatentic.com}"
 org="${1:-getlatentic-com}"
-front="https://$site" mine="https://$org.$site"
+front="https://$site" mine="https://$site/workspace/$org"
+[ "${DEMO_ORGS_AT:-path}" = host ] && mine="https://$org.$site"
 failed=0
 
 ok() { printf '  ok    %s\n' "$1"; }

@@ -80,7 +80,7 @@ The catalog, asked on 2026-10-31: Linear, Notion, Figma, Canva and Stripe need n
 To add GitHub to gusto cloud:
 
 1. Make an OAuth app under the organization's GitHub settings, Developer settings, OAuth Apps.
-2. Set the callback URL to `https://<GUSTO_CLOUD_DOMAIN>/connections/callback` and turn on wildcard matching for it, so that every organization's `<slug>.<domain>` matches.
+2. Set the callback URL to `https://<host of GUSTO_CLOUD_URL>/workspace/`. GitHub takes a redirect to any path below it, so each organization's `/workspace/<slug>/connections/callback` matches. With `GUSTO_CLOUD_ORGS_AT=host`, set it to `https://<GUSTO_CLOUD_DOMAIN>/connections/callback` and turn on wildcard matching for it, so that every organization's `<slug>.<domain>` matches.
 3. Make a client secret.
 4. Run `deploy/aws/openshell/put-connector-client.sh github <client id>` and type the secret at the prompt.
 5. Deploy. Each organization's server reads the clients when it starts, and its admin can then turn GitHub on.

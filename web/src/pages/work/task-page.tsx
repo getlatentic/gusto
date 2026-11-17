@@ -17,6 +17,7 @@ import type { TaskData } from "@/pages/work/types"
 import { useWatch, type Watched } from "@/pages/work/use-watch"
 import { useWorkForm } from "@/pages/work/use-work-form"
 import { FormFailed } from "@/pages/work/form-failed"
+import { withBase } from "@/lib/base"
 
 // TaskPage is one run and everything it left: what it said, what it did and changed, whether its check passed, what its calls
 // to a model cost, and the record that vouches for all of it. While it runs, its words arrive as it says them. A turn of a
@@ -137,7 +138,7 @@ function StopTask({ id }: { id: string }) {
   return (
     <form
       method="post"
-      action={`${at}/stop`}
+      action={withBase(`${at}/stop`)}
       onSubmit={form.submit}
       className="m-0"
       data-testid="stop-task"

@@ -57,7 +57,7 @@ func (r cloudRecords) accounts() cloud.Settings {
 
 // frontSettings is where gusto cloud listens and is reached, how it sends mail, and what it asks of a visitor.
 type frontSettings struct {
-	addr, url, domain               string
+	addr, url, domain, orgsAt       string
 	trustProxy                      bool
 	mail, mailToken                 string
 	leaseFile                       string
@@ -71,7 +71,11 @@ type frontSettings struct {
 func (f *frontSettings) declare(set *settings.Set) {
 	set.String(&f.addr, "GUSTO_CLOUD_ADDR", "127.0.0.1:8050", "where gusto cloud listens")
 	set.String(&f.url, "GUSTO_CLOUD_URL", "", "the address links in mail begin with, such as https://cloud.example.com (default http:// and GUSTO_CLOUD_ADDR)")
-	set.String(&f.domain, "GUSTO_CLOUD_DOMAIN", "localhost", "the domain organizations are served under, as <slug>.<domain>")
+	set.String(&f.domain, "GUSTO_CLOUD_DOMAIN", "localhost", "the domain organizations are served under, as <slug>.<domain>, "+
+		"when GUSTO_CLOUD_ORGS_AT is host")
+	set.Choice(&f.orgsAt, "GUSTO_CLOUD_ORGS_AT", "path", []string{"path", "host"}, "where each organization is reached: path is "+
+		"/workspace/<slug> on GUSTO_CLOUD_URL's own name; host is <slug>.<domain>, which keeps each organization's pages apart in the browser "+
+		"and needs a wildcard name and certificate")
 	set.Bool(&f.trustProxy, "GUSTO_CLOUD_TRUST_PROXY", "trust the address a proxy in front says a request came from")
 	set.String(&f.mail, "GUSTO_CLOUD_MAIL", "outbox", "how mail is sent: outbox writes it to files; smtp://user:pass@host:587?from=a@example.com "+
 		"sends it by SMTP; cloudflare://<account id>?from=a@example.com sends it by Cloudflare")

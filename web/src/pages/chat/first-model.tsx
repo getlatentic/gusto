@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { postForm } from "@/lib/http"
 import type { ChatData } from "@/pages/chat/types"
+import { withBase } from "@/lib/base"
 
 const field = "grid gap-2"
 const another = "another"
@@ -57,7 +58,7 @@ export function FirstModel({ page }: { page: ChatData }) {
       <form
         ref={form}
         method="post"
-        action="/setup/model"
+        action={withBase("/setup/model")}
         className="grid w-full max-w-136 gap-6"
       >
         <div className="grid gap-4">
@@ -166,7 +167,7 @@ export function FirstModel({ page }: { page: ChatData }) {
           key={agent.Name}
           id={`install-${agent.Name}`}
           method="post"
-          action={`/agents/${agent.Name}/install`}
+          action={withBase(`/agents/${agent.Name}/install`)}
           hidden
         >
           <input type="hidden" name="back" value="/chat" />

@@ -22,12 +22,10 @@ import (
 // workspaceCookie is where a browser keeps the workspace its person chose. It only chooses among the person's own.
 const workspaceCookie = "gusto-workspace"
 
-// workspaceCookieName is what the cookie is called over TLS, where a host name of a shared app cannot set it for this one.
-func workspaceCookieName(r *http.Request) string {
-	if overTLS(r) {
-		return "__Host-" + workspaceCookie
-	}
-	return workspaceCookie
+// workspaceCookieName is what the cookie is called for a request: over TLS, a name a host name of a shared app cannot set
+// for this one.
+func (s *Server) workspaceCookieName(r *http.Request) string {
+	return lockedName(r, s.cookieBase(r), workspaceCookie)
 }
 
 type workspaceKey struct{}
@@ -77,7 +75,7 @@ func (s *Server) workspaceOf(r *http.Request) string {
 	}
 	spaces := s.spacesFor(s.askerName(r))
 	named := []string{r.URL.Query().Get("workspace")}
-	if cookie, err := r.Cookie(workspaceCookieName(r)); err == nil {
+	if cookie, err := r.Cookie(s.workspaceCookieName(r)); err == nil {
 		named = append(named, cookie.Value)
 	}
 	for _, want := range named {
@@ -103,7 +101,7 @@ func (s *Server) keepWorkspace(w http.ResponseWriter, r *http.Request, who, spac
 		return
 	}
 	http.SetCookie(w, &http.Cookie{
-		Name: workspaceCookieName(r), Value: space, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode,
+		Name: s.workspaceCookieName(r), Value: space, Path: cookiePath(s.cookieBase(r), "/"), HttpOnly: true, SameSite: http.SameSiteLaxMode,
 		Secure: overTLS(r), MaxAge: 400 * 24 * 60 * 60,
 	})
 }

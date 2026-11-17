@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Loaded } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { withBase } from "@/lib/base"
 
 // LinkTabs are the views of one page, each its own address, drawn as shadcn's line tabs.
 export function LinkTabs({
@@ -68,14 +69,14 @@ export function AgentMark({
           "size-3.5 flex-none object-contain",
           markDark && "dark:hidden"
         )}
-        src={mark}
+        src={withBase(mark)}
         alt=""
         aria-hidden="true"
       />
       {markDark && (
         <img
           className="hidden size-3.5 flex-none object-contain dark:block"
-          src={markDark}
+          src={withBase(markDark)}
           alt=""
           aria-hidden="true"
         />

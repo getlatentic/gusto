@@ -11,6 +11,7 @@ import { SectionCard } from "@/pages/work/section-card"
 import { StateBadge } from "@/pages/work/state-badge"
 import type { ProjectData, Routine } from "@/pages/work/types"
 import { useWorkForm } from "@/pages/work/use-work-form"
+import { withBase } from "@/lib/base"
 
 const lastStates = { ok: "passed", warn: "queued", plain: "", bad: "failed" }
 
@@ -44,7 +45,7 @@ export function ProjectRoutines({ page }: { page: ProjectData }) {
       <Disclosure summary="Add a routine" testId="add-routine">
         <form
           method="post"
-          action={`${at}/routines`}
+          action={withBase(`${at}/routines`)}
           onSubmit={form.submit}
           className="grid gap-4"
         >
@@ -114,7 +115,7 @@ function RoutineLine({
       <div className="flex flex-none items-center gap-2">
         <form
           method="post"
-          action={`${mine}/${turn}`}
+          action={withBase(`${mine}/${turn}`)}
           className="m-0"
           onSubmit={(event) => {
             event.preventDefault()

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { usePageData, useRefreshAll } from "@/lib/api"
 import { sendForm } from "@/lib/forms"
+import { withBase } from "@/lib/base"
 
 interface NewRoomData {
   Refused: string
@@ -47,7 +48,7 @@ export function NewRoomPage() {
               <Card className="p-6">
                 <form
                   method="post"
-                  action="/rooms"
+                  action={withBase("/rooms")}
                   onSubmit={make}
                   className="grid gap-4"
                   data-testid="new-room-form"

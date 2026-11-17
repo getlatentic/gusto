@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Brings up a host that serves the public cloud at https://$DEMO_NAME, organizations at
-# https://<slug>.$DEMO_NAME. Read demo.env (see demo.env.example), and run ./put-key.sh for
+# https://$DEMO_NAME/workspace/<slug>. Read demo.env (see demo.env.example), and run ./put-key.sh for
 # both model keys and ./put-cloudflare.sh for both Cloudflare tokens first.
 #
 # The first run builds the runner image on the host, about ten minutes, and keeps it in the

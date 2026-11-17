@@ -168,8 +168,8 @@ workflows described in `../platform/README.md`.
 
 
 `demo-up.sh` makes a host that serves the public cloud at `https://<name>` for the front
-door and `https://<slug>.<name>` for each organization, with a certificate and mail that
-arrive. It costs nothing beyond the host: DNS records are not proxied through Cloudflare,
+door and `https://<name>/workspace/<slug>` for each organization, with a certificate and mail that
+arrive. An old link to `https://<slug>.<name>` is sent on to the organization's path. It costs nothing beyond the host: DNS records are not proxied through Cloudflare,
 Let's Encrypt is free, and the store bucket costs cents.
 
 | Piece | How |

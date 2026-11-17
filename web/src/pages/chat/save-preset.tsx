@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { withBase } from "@/lib/base"
 
 // SavePreset keeps the current agent, model and role as a preset under a name.
 export function SavePreset({
@@ -16,7 +17,11 @@ export function SavePreset({
 }) {
   return (
     <Card className="mt-3 p-3">
-      <form method="post" action="/presets" className="flex items-center gap-2">
+      <form
+        method="post"
+        action={withBase("/presets")}
+        className="flex items-center gap-2"
+      >
         <Input
           name="name"
           placeholder="Name this preset"

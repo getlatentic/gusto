@@ -17,6 +17,7 @@ import (
 	"github.com/getlatentic/gusto/internal/cloud/cloudtest"
 	"github.com/getlatentic/gusto/internal/entry"
 	"github.com/getlatentic/gusto/internal/signing"
+	"github.com/getlatentic/gusto/internal/web"
 )
 
 // The test binary is also the organization's server: a controller that is told to
@@ -52,10 +53,17 @@ func fakeOrgServer() {
 	}()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
+	// vouched is whose request gusto cloud says this is, checked as a real server checks it.
+	vouched := func(r *http.Request) string {
+		key, _ := os.ReadFile(os.Getenv("GUSTO_ENTRY_KEY"))
+		claims, _ := entry.VerifyVouch(key, org, r.Header.Get(web.PersonHeader), time.Now())
+		return claims.Email
+	}
 	mux.HandleFunc("/whoami", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{
-			"org": org, "pid": os.Getpid(), "addr": addr, "host": r.Host, "xff": r.Header.Get("X-Forwarded-For"),
+			"org": org, "person": vouched(r), "personHeader": r.Header.Get(web.PersonHeader), "pid": os.Getpid(), "addr": addr, "host": r.Host, "xff": r.Header.Get("X-Forwarded-For"),
 			"proto": r.Header.Get("X-Forwarded-Proto"), "cookie": r.Header.Get("Cookie"), "app": r.Header.Get("X-Gusto-App"),
+			"path": r.URL.RequestURI(), "prefix": r.Header.Get("X-Forwarded-Prefix"),
 			"jobs": os.Getenv("GUSTO_TASKS"), "quota": os.Getenv("GUSTO_QUOTA"), "members": os.Getenv("GUSTO_MEMBERS"), "inbox": os.Getenv("GUSTO_INBOX"), "orgSettings": os.Getenv("GUSTO_ORG_SETTINGS"), "home": os.Getenv("HOME"),
 			"entryKey": os.Getenv("GUSTO_ENTRY_KEY"), "signingKey": os.Getenv("GUSTO_SIGNING_KEY"),
 			"proxyAddr": os.Getenv("GUSTO_PROXY_ADDR"), "front": os.Getenv("GUSTO_CLOUD_URL"), "orgName": os.Getenv("GUSTO_ORG_NAME"), "concurrency": os.Getenv("GUSTO_TASK_CONCURRENCY"),
@@ -100,7 +108,16 @@ func fakeOrgServer() {
 			time.Sleep(150 * time.Millisecond)
 		}
 	})
+	// A cookie a server at a path keeps to its path, and a redirect to one of its own pages.
+	mux.HandleFunc("/kept-cookie", func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{Name: "__Secure-gusto-workspace", Value: "w", Path: r.Header.Get("X-Forwarded-Prefix"), Secure: true, HttpOnly: true})
+		http.Redirect(w, r, "/chat?x=1", http.StatusSeeOther)
+	})
 	mux.HandleFunc("/auth/entry", func(w http.ResponseWriter, r *http.Request) {
+		if vouched(r) != "" {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
 		key, _ := os.ReadFile(os.Getenv("GUSTO_ENTRY_KEY"))
 		claims, err := entry.Verify(key, org, r.URL.Query().Get("t"), time.Now())
 		if err != nil {

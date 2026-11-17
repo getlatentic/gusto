@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table"
 import type { ApprovedComputer } from "@/pages/account/types"
 import type { AccountForm } from "@/pages/account/use-account-form"
+import { withBase } from "@/lib/base"
 
 // ComputersTable is the computers a person approved: when, when each was last used, and the way to end one that is still live.
 // On a narrow page when goes under the computer's name.
@@ -53,7 +54,9 @@ export function ComputersTable({
               {computer.Live ? (
                 <form
                   method="post"
-                  action={`/device/${encodeURIComponent(computer.ID)}/revoke`}
+                  action={withBase(
+                    `/device/${encodeURIComponent(computer.ID)}/revoke`
+                  )}
                   onSubmit={form.submit}
                   className="m-0"
                 >

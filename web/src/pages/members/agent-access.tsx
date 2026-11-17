@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label"
 import { PersonFace } from "@/pages/members/faces"
 import type { AgentPage } from "@/pages/members/types"
 import { useMembersForm } from "@/pages/members/use-members-form"
+import { withBase } from "@/lib/base"
 
 const person = "flex h-11 items-center gap-3 px-2"
 
@@ -47,7 +48,7 @@ export function AgentAccess({ agent }: { agent: AgentPage }) {
             {agent.Mine ? (
               <form
                 method="post"
-                action={action}
+                action={withBase(action)}
                 onSubmit={submit}
                 className="m-0"
               >
@@ -77,7 +78,7 @@ export function AgentAccess({ agent }: { agent: AgentPage }) {
           // A person let in empties the field, since the form is drawn again for the longer list.
           key={agent.Access.length}
           method="post"
-          action={action}
+          action={withBase(action)}
           onSubmit={submit}
           className="flex items-end gap-2"
           data-testid="access-form"

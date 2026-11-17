@@ -19,6 +19,7 @@ import { AgentFace } from "@/pages/members/faces"
 import { FormSelect } from "@/components/form-select"
 import type { Kind, MembersData } from "@/pages/members/types"
 import { useMembersForm } from "@/pages/members/use-members-form"
+import { withBase } from "@/lib/base"
 
 const alert = "m-0 rounded-md bg-bad-wash px-3 py-2 text-sm text-bad"
 
@@ -46,7 +47,7 @@ export function NewAgentDialog({
       >
         <form
           method="post"
-          action="/members/agents"
+          action={withBase("/members/agents")}
           onSubmit={make.submit}
           className="grid gap-5"
           data-testid="new-agent-form"
@@ -131,7 +132,9 @@ export function NewAgentDialog({
             id={`install-${kind.Name}`}
             hidden
             method="post"
-            action={`/agents/${encodeURIComponent(kind.Name)}/install`}
+            action={withBase(
+              `/agents/${encodeURIComponent(kind.Name)}/install`
+            )}
             onSubmit={install.submit}
           >
             <input type="hidden" name="back" value="/members?new=1" />

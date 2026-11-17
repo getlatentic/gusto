@@ -226,7 +226,7 @@ func frontOf(ctx context.Context, store *cloud.Store, public *url.URL, stripe *c
 	}
 	front, err := cloud.New(cloud.Config{
 		Lease: f.lease(), Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
-		Domain: f.domain, TrustProxy: f.trustProxy, Notify: cfg.demo.notify,
+		Domain: f.domain, OrgPaths: f.orgsAt == "path", TrustProxy: f.trustProxy, Notify: cfg.demo.notify,
 		Leads:      &cloud.LeadHook{URL: f.leadHookURL, Secret: f.leadHookSecret, Dir: filepath.Join(cfg.records.root, "leadhook")},
 		Turnstile:  cloud.Turnstile{Site: f.turnstileSite, Secret: f.turnstileSecret},
 		Google:     google,
@@ -251,7 +251,9 @@ func controllerOf(store *cloud.Store, public *url.URL, cfg cloudSettings) (*clou
 	if err != nil {
 		return nil, err
 	}
-	controller.OrgURL = func(slug string) string { return cloud.OrgAddress(public, cfg.front.domain, slug) }
+	controller.OrgURL = func(slug string) string {
+		return cloud.OrgAddress(public, cfg.front.domain, cfg.front.orgsAt == "path", slug)
+	}
 	return controller, nil
 }
 

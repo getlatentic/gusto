@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { withBase } from "@/lib/base"
 
 // ConfirmForm is a form whose one button does what cannot be undone, so it asks first, and is sent only once the person says
 // yes. send is how it goes: by the page, or as the browser sends it, for a form that leads away from the app.
@@ -36,7 +37,7 @@ export function ConfirmForm({
       <form
         ref={form}
         method="post"
-        action={action}
+        action={withBase(action)}
         className="m-0"
         data-testid={testId}
         onSubmit={(event) => {

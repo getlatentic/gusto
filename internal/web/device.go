@@ -180,7 +180,7 @@ func (s *Server) startDevice(w http.ResponseWriter, r *http.Request) {
 	}
 	answerJSON(w, http.StatusOK, map[string]any{
 		"device_code": device, "user_code": user,
-		"verification_uri": scheme + "://" + r.Host + devicePath,
+		"verification_uri": scheme + "://" + r.Host + s.base + devicePath,
 		"expires_in":       int(deviceLife.Seconds()), "interval": deviceWait,
 	})
 }

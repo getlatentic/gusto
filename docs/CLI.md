@@ -926,7 +926,8 @@ Environment:
 - `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several gusto cloud servers can share
 - `GUSTO_CLOUD_ADDR`: where gusto cloud listens (default 127.0.0.1:8050)
 - `GUSTO_CLOUD_URL`: the address links in mail begin with, such as https://cloud.example.com (default http:// and GUSTO_CLOUD_ADDR)
-- `GUSTO_CLOUD_DOMAIN`: the domain organizations are served under, as <slug>.<domain> (default localhost)
+- `GUSTO_CLOUD_DOMAIN`: the domain organizations are served under, as <slug>.<domain>, when GUSTO_CLOUD_ORGS_AT is host (default localhost)
+- `GUSTO_CLOUD_ORGS_AT`: where each organization is reached: path is /workspace/<slug> on GUSTO_CLOUD_URL's own name; host is <slug>.<domain>, which keeps each organization's pages apart in the browser and needs a wildcard name and certificate (path, host) (default path)
 - `GUSTO_CLOUD_TRUST_PROXY`: trust the address a proxy in front says a request came from
 - `GUSTO_CLOUD_MAIL`: how mail is sent: outbox writes it to files; smtp://user:pass@host:587?from=a@example.com sends it by SMTP; cloudflare://<account id>?from=a@example.com sends it by Cloudflare (default outbox)
 - `GUSTO_CLOUD_MAIL_TOKEN`: the Cloudflare API token that may send mail, for cloudflare://

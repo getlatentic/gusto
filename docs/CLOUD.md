@@ -53,10 +53,11 @@ The counts are kept in the database, so gusto cloud servers that share it share 
 
 1. The person signs in at gusto cloud with what they are mailed: a 6-digit code to type on the page where they asked, or a link for the device they read mail on. Using either spends both, and both last 20 minutes. A code works only for the address it was mailed to. Asking is always answered the same way, and a code for an address with no account is answered as a wrong one, so neither shows who is a customer.
 2. gusto cloud sends the person to `/app`, which takes them into their organization through `/open`, or to `/orgs` to choose one. While the organization's server starts, `/open` shows what it is doing and looks again every few seconds. The organization's details, people and billing are at `/org`.
-3. Open makes a token, good for a minute and one use, signed with a key that only gusto cloud and that organization's server hold. It sends the browser to `<slug>.<domain>/auth/entry`.
-4. The server checks the token and signs the person in. It has no password page, and `/login` there sends people back to gusto cloud.
-5. The server trusts the token for an hour. Then the person goes back through gusto cloud, which asks whether they still belong.
-6. Sign out in the organization's server ends its session. It then sends the browser to gusto cloud's `/signout` with a token for that purpose only, signed with the same key and good for a minute, and gusto cloud signs the person out too. A link to `/signout` without that token signs nobody out.
+3. Open sends the browser to the organization's `/auth/entry`, which takes the person to the page they asked for, or to the workspace they chose. How the server knows who they are depends on [where the organization is](#where-an-organization-is):
+   - At a path, the organization shares gusto cloud's sign-in. On every request it passes on, gusto cloud adds `X-Gusto-Person`: a token that names the person, good for a minute, signed with a key that only gusto cloud and that organization's server hold. Gusto cloud drops whatever a client sent in it. The server keeps no session for the browser.
+   - At a host name, Open adds a token to the address, good for a minute and one use, signed with the same key. The server checks it and keeps a session of its own for an hour. Then the person goes back through gusto cloud.
+4. Either way, the server takes the person's role from `members.json` on every request, and a person who is not in it is signed in nowhere ([People](#people)). It has no password page, and `/login` there sends people back to gusto cloud.
+5. Sign out in the organization's server ends any session of its own. It then sends the browser to gusto cloud's `/signout` with a token for that purpose only, signed with the same key and good for a minute, and gusto cloud signs the person out too. A link to `/signout` without that token signs nobody out.
 
 gusto cloud's pages allow a form to end at any address under its domain (`form-action`), because sign-in, sign-up and joining redirect into an organization's server.
 

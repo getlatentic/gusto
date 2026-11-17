@@ -1,5 +1,6 @@
 import { markLook } from "@/domain/agent-marks"
 import { cn } from "@/lib/utils"
+import { withBase } from "@/lib/base"
 
 // AgentIcon is an agent's mark, drawn for the page's theme.
 export function AgentIcon({
@@ -15,10 +16,14 @@ export function AgentIcon({
     <span className="inline-flex flex-none" aria-hidden="true">
       {look.dark ? (
         <>
-          <img className={cn(size, "dark:hidden")} src={look.light} alt="" />
+          <img
+            className={cn(size, "dark:hidden")}
+            src={withBase(look.light)}
+            alt=""
+          />
           <img
             className={cn(size, "hidden dark:block")}
-            src={look.dark}
+            src={withBase(look.dark)}
             alt=""
           />
         </>
@@ -29,7 +34,7 @@ export function AgentIcon({
             look.invert && "dark:invert",
             look.blend && "mix-blend-multiply dark:mix-blend-screen"
           )}
-          src={look.light}
+          src={withBase(look.light)}
           alt=""
         />
       )}

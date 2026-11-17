@@ -12,6 +12,7 @@ import {
   SetSkills,
 } from "@/pages/admin/apps/skill-set-skills"
 import type { SkillSetData } from "@/pages/admin/apps/types"
+import { withBase } from "@/lib/base"
 
 const crumbs = [{ label: "Apps & skills", href: "/admin/apps?tab=skills" }]
 
@@ -49,7 +50,9 @@ function TurnSet({ name, off }: { name: string; off: boolean }) {
   return (
     <form
       method="post"
-      action={`/admin/skill-sets/${name}/${off ? "enable" : "disable"}`}
+      action={withBase(
+        `/admin/skill-sets/${name}/${off ? "enable" : "disable"}`
+      )}
       className="m-0 flex-none"
     >
       <Button type="submit" variant={off ? "default" : "outline"}>
@@ -80,7 +83,7 @@ function SkillSetParts({ page }: { page: SkillSetData }) {
             <p className="m-0 text-sm text-muted-foreground">
               <a
                 className="font-medium text-foreground"
-                href={`/admin/skill-sets/${set.Name}/plugin.zip`}
+                href={withBase(`/admin/skill-sets/${set.Name}/plugin.zip`)}
               >
                 Download as an Agent Plugin
               </a>

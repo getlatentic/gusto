@@ -13,6 +13,7 @@ import { FormDialog } from "@/components/form-dialog"
 import { PriceFields } from "./price-fields"
 import { providerAction } from "./provider-dialogs"
 import type { Provider, ProviderModel } from "./types"
+import { withBase } from "@/lib/base"
 
 // ModelMenu is what can be done to one model of the organization's provider: price it, turn it on or off, or retire it. Each
 // is a form of the row's own, which the menu sends.
@@ -96,7 +97,7 @@ function ModelForm({
   model: ProviderModel
 }) {
   return (
-    <form ref={form} method="post" action={action} hidden>
+    <form ref={form} method="post" action={withBase(action)} hidden>
       <input type="hidden" name="model" value={model.Name} />
     </form>
   )

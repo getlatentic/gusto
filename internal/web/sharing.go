@@ -430,7 +430,7 @@ func (s *Server) serveApp(w http.ResponseWriter, r *http.Request, id, prefix str
 			if r.URL.RawPath != "" {
 				pr.Out.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, prefix)
 			}
-			for _, header := range []string{"Authorization", "Proxy-Authorization", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "Forwarded", "X-Real-Ip", AppHeader} {
+			for _, header := range []string{"Authorization", "Proxy-Authorization", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "Forwarded", "X-Real-Ip", AppHeader, PersonHeader} {
 				pr.Out.Header.Del(header)
 			}
 			pr.Out.Header.Del("Cookie")

@@ -9,6 +9,7 @@ import { usePageData } from "@/lib/api"
 import { FormField } from "@/pages/setups/form-field"
 import type { SetUpData } from "@/pages/setups/types"
 import { WorkMark } from "@/pages/setups/work-mark"
+import { withBase } from "@/lib/base"
 
 const crumbs = [{ label: "Start an agent", href: "/presets" }]
 
@@ -52,7 +53,7 @@ function SetUpForm({ page }: { page: SetUpData }) {
         <form
           className="grid gap-4"
           method="post"
-          action="/instances"
+          action={withBase("/instances")}
           data-testid="set-up-form"
         >
           <input type="hidden" name="harness" value={page.Harness.Name} />

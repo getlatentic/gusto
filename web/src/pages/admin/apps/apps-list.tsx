@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { HowThisWorks } from "@/components/disclosure"
 import type { AppRow } from "@/pages/admin/apps/types"
+import { withBase } from "@/lib/base"
 
 // The apps an admin turns on for everyone. Each person then connects their own account to one, and their agents use it as them.
 export function AppsList({
@@ -84,7 +85,7 @@ function AppSwitch({ app }: { app: AppRow }) {
     <form
       ref={form}
       method="post"
-      action={`/admin/connectors/${app.ID}/${app.On ? "off" : "on"}`}
+      action={withBase(`/admin/connectors/${app.ID}/${app.On ? "off" : "on"}`)}
       className="m-0 flex flex-none"
     >
       <Switch

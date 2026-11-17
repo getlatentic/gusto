@@ -22,6 +22,7 @@ import {
 import { useData, usePageData } from "@/lib/api"
 import { ago, initial, usd, when } from "@/lib/format"
 import type { ConsoleShell, PeopleData, PersonRow } from "@/lib/types"
+import { withBase } from "@/lib/base"
 
 // Who is in the organization, what each may do, and what each spent this month.
 export function PeoplePage() {
@@ -33,7 +34,7 @@ export function PeoplePage() {
     <>
       <PageBar title="People">
         {manage && (
-          <a className={buttonVariants()} href={manage}>
+          <a className={buttonVariants()} href={withBase(manage)}>
             Invite people
           </a>
         )}
@@ -140,7 +141,7 @@ function Members({ page }: { page: PeopleData }) {
               <TableHead className="text-right">
                 {page.Budgets ? (
                   <a
-                    href="/admin/budgets"
+                    href={withBase("/admin/budgets")}
                     className="text-inherit no-underline hover:underline"
                   >
                     Spent
@@ -205,7 +206,7 @@ function Members({ page }: { page: PeopleData }) {
           Scripts and the command line sign in with{" "}
           <a
             className="font-medium text-foreground underline decoration-input underline-offset-2 hover:decoration-current"
-            href="/admin/tokens"
+            href={withBase("/admin/tokens")}
           >
             API tokens
           </a>
@@ -275,7 +276,12 @@ function Role({ person, page }: { person: PersonRow; page: PeopleData }) {
     form.current.submit()
   }
   return (
-    <form ref={form} method="post" action={page.RoleAction} className="m-0">
+    <form
+      ref={form}
+      method="post"
+      action={withBase(page.RoleAction)}
+      className="m-0"
+    >
       <input type="hidden" name="email" value={person.Email} />
       <input type="hidden" name="back" value={page.Back} />
       <input ref={role} type="hidden" name="role" defaultValue={current} />

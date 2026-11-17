@@ -9,6 +9,7 @@ import { fileHref, FileChips } from "@/pages/conversation/file-chips"
 import { MessageTools } from "@/pages/conversation/message-tools"
 import { ReplyResult } from "@/pages/conversation/reply-result"
 import type { TurnView } from "@/pages/conversation/types"
+import { withBase } from "@/lib/base"
 
 const block = "group/msg relative grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3"
 const label =
@@ -73,7 +74,7 @@ function Notice({ turn }: { turn: TurnView }) {
             {" "}
             <a
               className="font-medium text-inherit"
-              href={href}
+              href={withBase(href)}
               onClick={(event) =>
                 openFile(href, turn.File) && event.preventDefault()
               }
@@ -253,7 +254,7 @@ function Working({ turn, progress }: { turn: TurnView; progress?: string }) {
       )}
       <form
         method="post"
-        action={`/jobs/${encodeURIComponent(turn.ID)}/stop`}
+        action={withBase(`/jobs/${encodeURIComponent(turn.ID)}/stop`)}
         className="m-0 ml-2 flex-none"
         onSubmit={(event) => {
           event.preventDefault()

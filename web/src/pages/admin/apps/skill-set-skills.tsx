@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Field } from "@/pages/admin/apps/field"
 import type { EarlierSkill, SkillSetData } from "@/pages/admin/apps/types"
+import { withBase } from "@/lib/base"
 
 // SetSkills is each skill of the set, with the way to remove it.
 export function SetSkills({ set }: { set: SkillSetData["Set"] }) {
@@ -14,7 +15,9 @@ export function SetSkills({ set }: { set: SkillSetData["Set"] }) {
       control={(skill) => (
         <form
           method="post"
-          action={`/admin/skill-sets/${set.Name}/skills/${skill.Name}/drop`}
+          action={withBase(
+            `/admin/skill-sets/${set.Name}/skills/${skill.Name}/drop`
+          )}
           className="m-0"
         >
           <Button variant="destructive" size="sm" type="submit">
@@ -55,7 +58,9 @@ export function EarlierSkills({
             </span>
             <form
               method="post"
-              action={`/admin/skill-sets/${name}/skills/${kept.Skill}/restore`}
+              action={withBase(
+                `/admin/skill-sets/${name}/skills/${kept.Skill}/restore`
+              )}
               className="m-0 ml-auto"
             >
               <input type="hidden" name="at" value={kept.At} />
@@ -77,7 +82,7 @@ export function AddSkillToSet({ name }: { name: string }) {
       <form
         className="grid gap-4"
         method="post"
-        action={`/admin/skill-sets/${name}/skills`}
+        action={withBase(`/admin/skill-sets/${name}/skills`)}
       >
         <Field id="skill-name" label="Name">
           <Input

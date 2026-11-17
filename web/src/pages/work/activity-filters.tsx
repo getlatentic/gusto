@@ -10,6 +10,7 @@ import {
 } from "@/domain/work"
 import { FormSelect } from "@/components/form-select"
 import type { Board } from "@/pages/work/types"
+import { withBase } from "@/lib/base"
 
 // ActivityFilters narrow the list: a search and a person when the index is read, an agent type, and an order. The choices send
 // the form as soon as one is made, and the address the form makes is the page's, so the list is read again from it.
@@ -36,7 +37,7 @@ export function ActivityFilters({ board }: { board: Board }) {
     <form
       key={key}
       method="get"
-      action="/jobs"
+      action={withBase("/jobs")}
       onSubmit={search}
       data-testid="activity-filters"
       className="mb-5 flex flex-wrap items-center gap-2 text-sm"

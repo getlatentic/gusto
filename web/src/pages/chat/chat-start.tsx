@@ -23,6 +23,7 @@ import { RunOn } from "@/pages/chat/run-on"
 import { SavePreset } from "@/pages/chat/save-preset"
 import { Starters } from "@/pages/chat/starters"
 import type { ChatData } from "@/pages/chat/types"
+import { withBase } from "@/lib/base"
 
 function offerOf(page: ChatData): Offer {
   return {
@@ -92,7 +93,7 @@ export function ChatStart({ page }: { page: ChatData }) {
     <div className="flex w-full max-w-208 flex-col">
       <form
         method="post"
-        action="/chat"
+        action={withBase("/chat")}
         className="order-2"
         data-testid="new-chat-box"
       >

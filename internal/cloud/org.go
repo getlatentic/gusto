@@ -110,7 +110,7 @@ func (s *Server) drawOrg(ctx context.Context, w http.ResponseWriter, status int,
 	}
 	all, _ := s.Store.Memberships(ctx, person.Email)
 	v := view{ComputerOf: byAddress, Members: members, Workspaces: workspaceRows(spaces, members), Admins: admins, Invited: invited, IsAdmin: person.Role == Admin,
-		CanInvite: person.Role == Admin && quota.Invites && len(members)+len(invited) < quota.Members, Server: server, CanOpen: canOpen, Refresh: server != "" && !canOpen, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: org.Slug + "." + s.Domain, Quota: quota,
+		CanInvite: person.Role == Admin && quota.Invites && len(members)+len(invited) < quota.Members, Server: server, CanOpen: canOpen, Refresh: server != "" && !canOpen, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: s.orgShown(org.Slug), Quota: quota,
 		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice, Several: len(all) > 1, Credit: creditLeft(quota.CreditUSD, s.Store.CreditUsed(org.Slug)),
 		Plan: s.planOf(ctx, org, person), Console: true}
 	s.render(w, status, "org", v)

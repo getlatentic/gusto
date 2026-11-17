@@ -7,11 +7,12 @@ import { FormFailed } from "@/pages/work/form-failed"
 import { SectionCard } from "@/pages/work/section-card"
 import type { ProjectApp, ProjectData } from "@/pages/work/types"
 import { useWorkForm } from "@/pages/work/use-work-form"
+import { withBase } from "@/lib/base"
 
 // ProjectApps is the web apps the agent built that are shared, and, where this server runs them, the way to share another.
 export function ProjectApps({ page }: { page: ProjectData }) {
   const form = useWorkForm()
-  const at = `/instances/${encodeURIComponent(page.Instance.ID)}/apps`
+  const apps = `/instances/${encodeURIComponent(page.Instance.ID)}/apps`
   return (
     <SectionCard title="Web apps" id="apps" testId="apps">
       {page.Apps.length > 0 && (
@@ -25,7 +26,9 @@ export function ProjectApps({ page }: { page: ProjectData }) {
               <AppLine app={app} />
               <form
                 method="post"
-                action={`${at}/${encodeURIComponent(app.ID)}/remove`}
+                action={withBase(
+                  `${apps}/${encodeURIComponent(app.ID)}/remove`
+                )}
                 onSubmit={form.submit}
                 className="m-0"
               >
@@ -45,7 +48,7 @@ export function ProjectApps({ page }: { page: ProjectData }) {
         >
           <form
             method="post"
-            action={at}
+            action={withBase(apps)}
             onSubmit={form.submit}
             className="grid gap-4"
           >
@@ -94,7 +97,7 @@ function AppLine({ app }: { app: ProjectApp }) {
         {app.State === "live" ? (
           <a
             className="font-medium"
-            href={app.Link}
+            href={withBase(app.Link)}
             target="_blank"
             rel="noopener"
           >

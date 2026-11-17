@@ -43,9 +43,11 @@ type Server struct {
 	// routineNews is told how each run of a routine ended, and where the server says its own pages are.
 	routineNews notify.Every
 	publicURL   string
-	keeper      *keeper
-	identity    *Identity
-	catalog     []catalog.Entry
+	// base is the path the server's pages are under as people reach them, and "" at the root of a host (UseAddress).
+	base     string
+	keeper   *keeper
+	identity *Identity
+	catalog  []catalog.Entry
 	// liveCatalog, when set, is asked for the catalog each time a page wants it, as on a person's own computer, where they
 	// install a harness while the server runs.
 	liveCatalog func() []catalog.Entry
@@ -144,6 +146,7 @@ func New(index *tasks.Index, instances *instance.Store, queue *tasks.Queue, pass
 	}
 	s := &Server{index: index, instances: instances, queue: queue, keeper: keeper, identity: identity, catalog: offered, models: models}
 	keeper.now = s.memberNow
+	keeper.base = s.cookieBase
 	// A server made only to read who is who has no tasks, so nothing to hand on.
 	if index != nil {
 		index.OnFinish(s.handOff)

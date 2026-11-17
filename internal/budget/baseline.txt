@@ -96,7 +96,6 @@
 36 11 internal/vmwall/fetch.go:unpackOne
 34 13 internal/vmwall/plan.go:Prepare
 63 13 internal/web/api.go:(*Server).accept
-41 13 internal/web/auth.go:(*keeper).session
 39 13 internal/web/chat.go:(*Server).chatThread
 40 16 internal/web/cloudfolders.go:(*Server).cloudFolderThread
 36 13 internal/web/connectors.go:(*Server).giveConnectors

@@ -5,6 +5,7 @@ import { dataOf, useData, useRefreshAll } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { useArrivals } from "@/motion/use-arrivals"
 import type { ConversationData } from "@/pages/conversation/types"
+import { withBase } from "@/lib/base"
 
 interface LiveItem {
   kind: "said" | "step"
@@ -32,7 +33,9 @@ function elapsed(seconds: number): string {
 function useEnded(task: string, onEnded: () => void) {
   const ended = useEffectEvent(onEnded)
   useEffect(() => {
-    const watch = new EventSource(`/watch/${encodeURIComponent(task)}`)
+    const watch = new EventSource(
+      withBase(`/watch/${encodeURIComponent(task)}`)
+    )
     watch.addEventListener("ended", () => {
       watch.close()
       ended()

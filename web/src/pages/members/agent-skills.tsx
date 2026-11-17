@@ -4,6 +4,7 @@ import { FormSelect, type ChoiceGroup } from "@/components/form-select"
 import { emptyNote } from "@/pages/members/member-parts"
 import type { AgentPage, AgentSkills as Skills } from "@/pages/members/types"
 import { useMembersForm } from "@/pages/members/use-members-form"
+import { withBase } from "@/lib/base"
 
 // AgentSkills is the skills the agent is given in every turn. Its maker, or an admin, gives it a ready-made role or a skill set,
 // sent as soon as it is chosen.
@@ -32,7 +33,7 @@ export function AgentSkills({
       {agent.Mine && (
         <form
           method="post"
-          action={`/members/agents/${encodeURIComponent(agent.ID)}`}
+          action={withBase(`/members/agents/${encodeURIComponent(agent.ID)}`)}
           onSubmit={submit}
           className="grid gap-2"
           data-testid="skills-form"

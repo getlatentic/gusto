@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label"
 import { initial } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { useConversation } from "@/pages/conversation/conversation-context"
+import { withBase } from "@/lib/base"
 
 // AddDialog adds agents and people to a room. A member who does not run the room proposes an agent of theirs, which joins when
 // an admin accepts it.
@@ -47,7 +48,9 @@ export function AddDialog({
       <DialogContent data-testid="add-dialog" className="sm:max-w-120">
         <form
           method="post"
-          action={`/rooms/${encodeURIComponent(page.Instance.ID)}/members/add`}
+          action={withBase(
+            `/rooms/${encodeURIComponent(page.Instance.ID)}/members/add`
+          )}
           onSubmit={submit}
           className="grid gap-4"
         >
@@ -171,7 +174,7 @@ export function AddDialog({
                 buttonVariants({ variant: "link" }),
                 "mr-auto px-0"
               )}
-              href="/members?new=1"
+              href={withBase("/members?new=1")}
             >
               <PlusIcon /> New agent
             </a>

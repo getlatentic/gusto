@@ -50,7 +50,9 @@ type pageView struct {
 
 type orgView struct {
 	Slug, Name, Admin string
-	Demo              bool
+	// Address is where the organization is reached, as a person reads it.
+	Address string
+	Demo    bool
 }
 
 type personView struct {

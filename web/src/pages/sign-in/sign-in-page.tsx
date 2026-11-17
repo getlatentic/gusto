@@ -12,6 +12,7 @@ import { usePageData } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { ProviderIcon } from "@/pages/sign-in/provider-icon"
 import { PublicPanel } from "@/pages/sign-in/public-panel"
+import { withBase } from "@/lib/base"
 
 // SignInPage is where a person signs in: with the organization's identity provider, or the shared password where there is one.
 // The password is only ever posted, never put in an address. In the desktop app it continues in the person's browser.
@@ -20,7 +21,8 @@ export function SignInPage() {
   return (
     <PublicPanel>
       <p className="m-0 flex items-center gap-3 font-heading text-lg font-semibold">
-        <img className="h-auto w-7" src="/static/mark.svg" alt="" /> gusto
+        <img className="h-auto w-7" src={withBase("/static/mark.svg")} alt="" />{" "}
+        gusto
       </p>
       <Loading loaded={loaded}>{(page) => <Ways page={page.SignIn} />}</Loading>
     </PublicPanel>
@@ -48,7 +50,7 @@ function Ways({ page }: { page: SignIn }) {
         <>
           <a
             className={cn(buttonVariants(), "h-11")}
-            href="/auth/desktop/begin"
+            href={withBase("/auth/desktop/begin")}
           >
             Continue in your browser
           </a>
@@ -60,7 +62,7 @@ function Ways({ page }: { page: SignIn }) {
       {way === "provider" && (
         <a
           className={cn(buttonVariants(), "h-11")}
-          href="/auth/start"
+          href={withBase("/auth/start")}
           data-testid="provider-sign-in"
         >
           <ProviderIcon />
@@ -72,7 +74,7 @@ function Ways({ page }: { page: SignIn }) {
         <p className="m-0 text-center text-xs text-muted-foreground">
           <a
             className="no-underline hover:text-foreground"
-            href="/login?shared"
+            href={withBase("/login?shared")}
             data-testid="use-shared-password"
           >
             Use the shared password
@@ -88,7 +90,11 @@ function SharedPassword({ page }: { page: SignIn }) {
   return (
     <>
       {page.Provider && <Separator />}
-      <form className="grid gap-3" method="post" action={signInAction(page)}>
+      <form
+        className="grid gap-3"
+        method="post"
+        action={withBase(signInAction(page))}
+      >
         <Input
           className="h-11"
           type="password"

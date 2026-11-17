@@ -23,9 +23,11 @@ type Config struct {
 	Mail     Mailer
 	Sessions *Sessions
 	// URL is the address links in mail begin with, and Domain is the domain
-	// organizations are served under, as <slug>.<domain>.
+	// organizations are served under, as <slug>.<domain>, when they are not at paths.
 	URL    *url.URL
 	Domain string
+	// OrgPaths says organizations are reached at /workspace/<slug> on URL's own name, and not at host names of their own.
+	OrgPaths bool
 	// TrustProxy says the address of a request is the last one a proxy in front
 	// of this server wrote in X-Forwarded-For, and not the connection's own.
 	TrustProxy bool
@@ -136,19 +138,30 @@ func (s *Server) routeClass(r *http.Request) string {
 	if _, ok := s.orgSlug(r.Host); ok {
 		return "org"
 	}
+	if _, _, ok := s.orgAtPath(r.URL.Path); ok {
+		return "org"
+	}
 	return "unmatched"
 }
 
 func (s *Server) serve() http.Handler {
 	pages := s.routes()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if slug, rest, ok := s.orgAtPath(r.URL.Path); ok {
+			s.serveOrg(w, mountedRequest(r, slug, rest), pages, slug, orgPath+slug)
+			return
+		}
+		slug, atHost := s.orgSlug(r.Host)
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/.gusto/lease":
-			s.lease(w, r)
+			s.lease(w, r, slug)
 		case s.isAppHost(r.Host):
 			s.serveApp(w, r)
-		case s.isOrgHost(r.Host):
-			s.serveOrg(w, r, pages)
+		case atHost && s.OrgPaths:
+			// An organization's host name, from before organizations were at paths, is where a kept link still finds it.
+			http.Redirect(w, r, s.orgURL(slug)+r.URL.RequestURI(), http.StatusPermanentRedirect)
+		case atHost:
+			s.serveOrg(w, r, pages, slug, "")
 		default:
 			pages.ServeHTTP(w, r)
 		}
@@ -157,11 +170,10 @@ func (s *Server) serve() http.Handler {
 
 func (s *Server) isAppHost(host string) bool { _, _, ok := s.appHost(host); return ok }
 
-func (s *Server) isOrgHost(host string) bool { _, ok := s.orgSlug(host); return ok }
-
-// lease is asked on every host name, so a page of an organization can warn of the end of the host.
-func (s *Server) lease(w http.ResponseWriter, r *http.Request) {
-	if slug, ok := s.orgSlug(r.Host); ok && s.demoLeaseJSON(r.Context(), w, slug) {
+// lease is asked at every organization's address, so a page of an organization can warn of the end of the host. slug is the
+// organization asked at, and "" at gusto cloud's own pages.
+func (s *Server) lease(w http.ResponseWriter, r *http.Request, slug string) {
+	if slug != "" && s.demoLeaseJSON(r.Context(), w, slug) {
 		return
 	}
 	s.leaseJSON(w, r)
@@ -175,17 +187,22 @@ func (s *Server) serveApp(w http.ResponseWriter, r *http.Request) {
 	s.routeApp(w, r, slug, id)
 }
 
-func (s *Server) serveOrg(w http.ResponseWriter, r *http.Request, pages http.Handler) {
+// serveOrg answers a request for an organization's pages. prefix is the path the organization is at on gusto cloud's own
+// name, and "" when it has a host name of its own.
+func (s *Server) serveOrg(w http.ResponseWriter, r *http.Request, pages http.Handler, slug, prefix string) {
 	if unlisted(w, r) {
 		return
 	}
-	slug, _ := s.orgSlug(r.Host)
+	if prefix != "" && r.Method == http.MethodGet && r.URL.Path == "/.gusto/lease" {
+		s.lease(w, r, slug)
+		return
+	}
 	// The page of a demo that has ended is drawn by gusto cloud's own files and the app's, which the gone server cannot send.
 	if _, found := s.Store.LeadOf(r.Context(), slug); found && servedByCloud(r.URL.Path) && !s.orgExists(r.Context(), slug) {
 		pages.ServeHTTP(w, r)
 		return
 	}
-	s.route(w, r, slug)
+	s.route(w, r, slug, prefix)
 }
 
 func servedByCloud(path string) bool {

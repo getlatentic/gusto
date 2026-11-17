@@ -13,6 +13,7 @@ import { ProjectRoutines } from "@/pages/work/project-routines"
 import { ProjectTasks } from "@/pages/work/project-tasks"
 import type { ProjectData } from "@/pages/work/types"
 import { useWorkForm } from "@/pages/work/use-work-form"
+import { withBase } from "@/lib/base"
 
 // While an app is starting, the page reads itself again this often, until it answers.
 const startingEvery = 3000
@@ -47,14 +48,14 @@ function ProjectActions({ id }: { id: string }) {
   return (
     <>
       <a
-        href={`${at}/files`}
+        href={withBase(`${at}/files`)}
         className={buttonVariants({ variant: "ghost", size: "sm" })}
       >
         <FileIcon aria-hidden="true" /> Files
       </a>
       <form
         method="post"
-        action={`${at}/threads`}
+        action={withBase(`${at}/threads`)}
         onSubmit={form.submit}
         className="m-0 flex-none"
         data-testid="new-conversation"

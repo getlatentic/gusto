@@ -17,6 +17,7 @@ import { MentionBox } from "@/pages/conversation/mention-box"
 import type { ConversationData } from "@/pages/conversation/types"
 import type { RoomLive } from "@/pages/conversation/use-room-live"
 import { useRefreshAll } from "@/lib/api"
+import { withBase } from "@/lib/base"
 
 // ConversationComposer is where a person writes in a conversation. In a room, words alone go over the live socket when it is
 // up; anything else (files, or no socket) is sent by the form, as is everything in a conversation with one agent.
@@ -86,7 +87,7 @@ export function ConversationComposer({
   return (
     <form
       method="post"
-      action={`${page.Path}/say`}
+      action={withBase(`${page.Path}/say`)}
       encType={room ? "multipart/form-data" : undefined}
       onSubmit={send}
       className="relative mx-auto w-full max-w-208"
@@ -242,7 +243,9 @@ function ModelChoice({
       onChoose={(model) => {
         const form = document.createElement("form")
         form.method = "post"
-        form.action = `/instances/${encodeURIComponent(page.Instance.ID)}/model`
+        form.action = withBase(
+          `/instances/${encodeURIComponent(page.Instance.ID)}/model`
+        )
         for (const [name, value] of [
           ["model", model],
           ["back", page.Path],
@@ -274,7 +277,7 @@ function StopReply({
       onClick={() => {
         const form = document.createElement("form")
         form.method = "post"
-        form.action = `/jobs/${encodeURIComponent(page.Latest)}/stop`
+        form.action = withBase(`/jobs/${encodeURIComponent(page.Latest)}/stop`)
         const back = document.createElement("input")
         back.name = "back"
         back.value = page.Path
@@ -301,7 +304,9 @@ function Archived({ page }: { page: ConversationData }) {
       {page.Settings.Runs && (
         <form
           method="post"
-          action={`/rooms/${encodeURIComponent(page.Instance.ID)}/archive`}
+          action={withBase(
+            `/rooms/${encodeURIComponent(page.Instance.ID)}/archive`
+          )}
           className="m-0"
         >
           <input type="hidden" name="archive" value="off" />

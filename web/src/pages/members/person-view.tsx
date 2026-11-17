@@ -16,6 +16,7 @@ import {
 } from "@/pages/members/member-parts"
 import type { ListedAgent, PersonData } from "@/pages/members/types"
 import { useMembersForm } from "@/pages/members/use-members-form"
+import { withBase } from "@/lib/base"
 
 // OpenPerson is the person the address names, beside the members list.
 export function OpenPerson() {
@@ -93,7 +94,7 @@ function PersonBio({ page }: { page: PersonData }) {
       {bio.Mine && (
         <form
           method="post"
-          action={`${page.Person.Where}/bio`}
+          action={withBase(`${page.Person.Where}/bio`)}
           onSubmit={submit}
           className="m-0 grid gap-3"
           data-testid="bio-form"

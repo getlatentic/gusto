@@ -11,6 +11,7 @@ import type {
   ConversationData,
   RoomFilesData,
 } from "@/pages/conversation/types"
+import { withBase } from "@/lib/base"
 
 // RoomFiles is a room's files by who made them, newest day first, and the way for its people to add theirs.
 export function RoomFiles({
@@ -31,7 +32,7 @@ export function RoomFiles({
     for (const file of chosen) body.append("file", file)
     setAdding("Adding…")
     const answer = await fetch(
-      `/rooms/${encodeURIComponent(page.Instance.ID)}/files`,
+      withBase(`/rooms/${encodeURIComponent(page.Instance.ID)}/files`),
       {
         method: "POST",
         credentials: "same-origin",
@@ -109,7 +110,7 @@ export function RoomFiles({
                 return (
                   <li key={file.Path}>
                     <a
-                      href={href}
+                      href={withBase(href)}
                       title={file.Path}
                       className="flex min-h-9 items-center gap-2 rounded-md px-2 text-sm text-foreground no-underline hover:bg-muted"
                       onClick={(event) => {
@@ -145,7 +146,9 @@ export function RoomFiles({
       )}
       <a
         className="text-xs text-muted-foreground"
-        href={`/instances/${encodeURIComponent(page.Instance.ID)}/files?from=${encodeURIComponent(page.Path)}`}
+        href={withBase(
+          `/instances/${encodeURIComponent(page.Instance.ID)}/files?from=${encodeURIComponent(page.Path)}`
+        )}
       >
         Open the folder
       </a>
