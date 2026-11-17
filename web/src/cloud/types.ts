@@ -55,6 +55,8 @@ export interface CloudPage {
   Title: string
 
   Error: string
+  // Ask is the question the sign-up form asks next when nothing was wrong, only missing.
+  Ask: string
   Email: string
   OrgName: string
   Slug: string

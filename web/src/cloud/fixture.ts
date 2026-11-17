@@ -17,6 +17,7 @@ export function cloudPage(
     Page: name,
     Title: "gusto",
     Error: "",
+    Ask: "",
     Email: "",
     OrgName: "",
     Slug: "",

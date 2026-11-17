@@ -176,7 +176,11 @@ func (s *Server) googleSignUp(w http.ResponseWriter, r *http.Request, email stri
 		if more {
 			s.Sessions.Vouch(w, email)
 		}
-		s.render(w, refusalStatus(err), "signup", view{Title: "Get started", Email: email, Error: refusalText(err), More: more})
+		page, status := view{Title: "Get started", Email: email, Error: refusalText(err), More: more}, refusalStatus(err)
+		if ask := nextQuestion(err, Signup{Email: email}); ask != "" {
+			status, page.Error, page.Ask = http.StatusOK, "", ask
+		}
+		s.render(w, status, "signup", page)
 		return
 	}
 	s.confirmed(r.Context(), person.Email)

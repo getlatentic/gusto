@@ -191,7 +191,7 @@ func TestAGoogleSignUpThatNeedsTheOrganizationsNameIsFinishedOnTheForm(t *testin
 		g.says("ada@gmail.com", "", true)
 		b := f.browser()
 		status, page, _ := b.throughGoogle(g)
-		if got := shown(t, page); status != http.StatusUnprocessableEntity || got.Page != "signup" || !got.More || got.Email != "ada@gmail.com" {
+		if got := shown(t, page); status != http.StatusOK || got.Page != "signup" || !got.More || got.Email != "ada@gmail.com" || got.Ask == "" || got.Error != "" {
 			t.Fatalf("%d: %+v", status, got)
 		}
 		if status, _, header := b.post("/signup", signup("ada@gmail.com", "Ada's team")); status != http.StatusSeeOther || header.Get("Location") != "/open" {

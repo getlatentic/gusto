@@ -47,8 +47,9 @@ function GetStarted({ page }: { page: CloudPage }) {
       {page.Error ? (
         <Refusal>{page.Error}</Refusal>
       ) : (
-        <Quiet>
-          Enter your email and gusto sets up a workspace for your team.
+        <Quiet data-testid="sign-up-ask">
+          {page.Ask ||
+            "Enter your email and gusto sets up a workspace for your team."}
         </Quiet>
       )}
       {!page.More && <ContinueWithGoogle page={page} />}
@@ -59,7 +60,7 @@ function GetStarted({ page }: { page: CloudPage }) {
           name="email"
           defaultValue={page.Email}
           autoComplete="email"
-          autoFocus
+          autoFocus={!page.Ask}
           required
           data-testid="email"
         />
@@ -72,11 +73,12 @@ function GetStarted({ page }: { page: CloudPage }) {
               defaultValue={page.OrgName}
               maxLength={80}
               autoComplete="organization"
+              autoFocus={Boolean(page.Ask)}
               required
               data-testid="org-name"
             />
             <Field
-              label="Address"
+              label="Web address, optional"
               type="text"
               name="slug"
               defaultValue={page.Slug}

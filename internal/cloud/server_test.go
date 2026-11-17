@@ -445,12 +445,17 @@ func TestTheFormAsksForOnlyAWorkEmailAndTheCompanyNamesTheOrganization(t *testin
 	})
 }
 
+// A personal address cannot name an organization, so the form asks for a name as its next step. Nothing was wrong, so
+// it is not a refusal: the page asks, and puts the person in the name field (web/src/cloud/pages/sign-up-page.tsx).
 func TestAFreeMailSignUpIsAskedForANameAndKeepsTheEmailTyped(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{AllowFreeMail: true}, nil)
 		status, page, _ := f.browser().post("/signup", url.Values{"email": {"ada@gmail.com"}})
-		if got := shown(t, page); status != http.StatusUnprocessableEntity || !strings.Contains(got.Error, "give your organization a name") || !got.More || got.Email != "ada@gmail.com" {
+		if got := shown(t, page); status != http.StatusOK || !strings.Contains(got.Ask, "What should your organization be called?") || got.Error != "" || !got.More || got.Email != "ada@gmail.com" {
 			t.Fatalf("%d %+v", status, got)
+		}
+		if status, page, _ := f.browser().post("/signup", url.Values{"email": {"ada@gmail.com"}, "org": {"A"}}); status != http.StatusUnprocessableEntity || shown(t, page).Error == "" || shown(t, page).Ask != "" {
+			t.Errorf("a name that will not do is still refused: %d %+v", status, shown(t, page))
 		}
 		b := f.browser()
 		if status, _, _ := b.post("/signup", url.Values{"email": {"ada@gmail.com"}, "org": {"Ada's Lab"}}); status != http.StatusSeeOther {
@@ -505,7 +510,7 @@ func TestACompanyWithSubsidiariesHasAnOrganizationForEach(t *testing.T) {
 			t.Fatal(status)
 		}
 		status, page, _ := second.post("/signup", url.Values{"email": {"bob@acme.com"}})
-		if got := shown(t, page); status != http.StatusUnprocessableEntity || !strings.Contains(got.Error, "name this one") || !got.More || got.Email != "bob@acme.com" {
+		if got := shown(t, page); status != http.StatusOK || !strings.Contains(got.Ask, "Name this one") || got.Error != "" || !got.More || got.Email != "bob@acme.com" {
 			t.Fatalf("the second is asked for a name and keeps the email: %d %+v", status, got)
 		}
 		if status, _, _ := second.post("/signup", url.Values{"email": {"bob@acme.com"}, "org": {"Acme Insurance"}}); status != http.StatusSeeOther {

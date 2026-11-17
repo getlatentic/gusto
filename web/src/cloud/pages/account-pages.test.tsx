@@ -77,6 +77,24 @@ describe("signing up", () => {
     )
   })
 
+  it("asks for a name as the next step, without calling it a refusal", () => {
+    render(
+      <SignUpPage
+        page={cloudPage("signup", {
+          More: true,
+          Email: "ada@gmail.com",
+          Ask: "What should your organization be called? Your team sees this name.",
+        })}
+      />
+    )
+    expect(screen.getByTestId("sign-up-ask").textContent).toMatch(
+      /^What should your organization be called\?/
+    )
+    expect(screen.queryByTestId("refusal")).toBeNull()
+    expect(document.activeElement).toBe(screen.getByTestId("org-name"))
+    expect(screen.getByLabelText("Web address, optional")).toBeTruthy()
+  })
+
   it("offers a sign-in, and no second form, to an address that has an account", () => {
     render(
       <SignUpPage
