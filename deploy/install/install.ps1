@@ -3,8 +3,8 @@
 # when that is signed in, which a private release needs, and otherwise straight from the release's public address. It puts the
 # programs in %LOCALAPPDATA%\gusto and adds that folder to your PATH, which is the only thing it changes about your settings.
 #
-#   irm https://github.com/getlatentic/gusto/releases/latest/download/install.ps1 | iex      # in PowerShell
-#   powershell -ExecutionPolicy ByPass -c "irm https://github.com/getlatentic/gusto/releases/latest/download/install.ps1 | iex"   # in cmd
+#   irm https://gusto.getlatentic.com/install.ps1 | iex      # in PowerShell
+#   powershell -ExecutionPolicy ByPass -c "irm https://gusto.getlatentic.com/install.ps1 | iex"   # in cmd
 #   .\install.ps1                      # the newest release
 #   .\install.ps1 -Tag v0.1.0-rc.2
 #   .\install.ps1 -Programs gusto-helper
