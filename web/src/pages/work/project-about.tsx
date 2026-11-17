@@ -8,6 +8,7 @@ import { FormFailed } from "@/pages/work/form-failed"
 import { SectionCard } from "@/pages/work/section-card"
 import type { ProjectData } from "@/pages/work/types"
 import { useWorkForm } from "@/pages/work/use-work-form"
+import { withBase } from "@/lib/base"
 
 function Item({ term, children }: { term: string; children: ReactNode }) {
   return (
@@ -30,7 +31,7 @@ export function ProjectAbout({ page }: { page: ProjectData }) {
           {page.Models.length > 1 ? (
             <form
               method="post"
-              action={`${at}/model`}
+              action={withBase(`${at}/model`)}
               onSubmit={form.submit}
               className="m-0 flex items-center gap-2"
               data-testid="change-model"

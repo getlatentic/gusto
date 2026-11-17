@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { withBase } from "@/lib/base"
 
 // FormDialog is one form of the page in a dialog: what it is for, its fields, and the button that posts it to action. It opens
 // from its own trigger, or from whoever holds open.
@@ -45,7 +46,7 @@ export function FormDialog({
       <DialogContent
         className={cn("max-h-[calc(100dvh-4rem)] overflow-y-auto", className)}
       >
-        <form method="post" action={action} className="grid gap-4">
+        <form method="post" action={withBase(action)} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>{words}</DialogDescription>

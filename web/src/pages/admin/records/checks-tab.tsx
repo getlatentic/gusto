@@ -12,6 +12,7 @@ import {
 import { plural } from "@/lib/format"
 import { Figure, Figures } from "@/components/figures"
 import type { CheckedRun, RunChecks } from "@/pages/admin/records/types"
+import { withBase } from "@/lib/base"
 
 // The server's word for a run whose files no longer match; the page says it in one word.
 const failing = "does not check out"
@@ -72,7 +73,7 @@ function NeedsALook({ rows }: { rows: CheckedRun[] }) {
                 <TableCell className="w-full max-w-0 truncate">
                   <a
                     className="text-foreground no-underline underline-offset-4 hover:underline"
-                    href={`${run.Href}#proof`}
+                    href={withBase(`${run.Href}#proof`)}
                   >
                     {run.Brief}
                   </a>

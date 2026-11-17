@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/collapsible"
 import { plural } from "@/lib/format"
 import type { FileChip, TurnFiles } from "@/pages/conversation/types"
+import { withBase } from "@/lib/base"
 
 const looks = {
   image: FileImageIcon,
@@ -36,7 +37,7 @@ function Chip({
   const Look = looks[chip.Look as keyof typeof looks] ?? FileTextIcon
   return (
     <a
-      href={href}
+      href={withBase(href)}
       title={chip.Path}
       data-testid="file-chip"
       className="inline-flex h-8 max-w-full min-w-0 items-center gap-2 rounded-md border border-input bg-surface px-3 text-sm text-foreground no-underline hover:bg-muted [&>svg]:size-4 [&>svg]:flex-none [&>svg]:text-subtle"

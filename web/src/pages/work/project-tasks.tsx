@@ -11,6 +11,7 @@ import { SectionCard } from "@/pages/work/section-card"
 import { StateBadge } from "@/pages/work/state-badge"
 import type { ProjectData } from "@/pages/work/types"
 import { useWorkForm } from "@/pages/work/use-work-form"
+import { withBase } from "@/lib/base"
 
 const sensitivities = [
   { value: "internal", label: "internal" },
@@ -47,7 +48,9 @@ export function ProjectTasks({ page }: { page: ProjectData }) {
         )}
         <form
           method="post"
-          action={`/instances/${encodeURIComponent(page.Instance.ID)}/tasks`}
+          action={withBase(
+            `/instances/${encodeURIComponent(page.Instance.ID)}/tasks`
+          )}
           onSubmit={form.submit}
           className="grid gap-4"
         >

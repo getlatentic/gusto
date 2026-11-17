@@ -38,7 +38,7 @@ func (s *Server) personShellOf(r *http.Request) personShell {
 	if s.front != nil && s.front.Org != "" {
 		shell.Org = &orgLinks{
 			Slug: s.front.Org, Name: cmp.Or(s.front.Name, s.front.Org), Manage: s.front.URL + "/orgs",
-			OrgsFrom: s.front.URL + "/orgs.json", AccountFrom: s.front.URL + "/account.json", ConfirmAgain: s.front.URL + "/account/confirm",
+			OrgsFrom: s.front.page("/orgs.json", nil), AccountFrom: s.front.page("/account.json", nil), ConfirmAgain: s.front.page("/account/confirm", nil),
 		}
 	}
 	return shell

@@ -1,6 +1,7 @@
 import { FormSelect } from "@/components/form-select"
 import { Button } from "@/components/ui/button"
 import type { AgentType } from "@/pages/setups/types"
+import { withBase } from "@/lib/base"
 
 // ChooseAgent starts a template on an agent other than the one it starts on first.
 export function ChooseAgent({
@@ -14,7 +15,7 @@ export function ChooseAgent({
     <form
       className="grid gap-3"
       method="post"
-      action={`/templates/${encodeURIComponent(name)}`}
+      action={withBase(`/templates/${encodeURIComponent(name)}`)}
     >
       <FormSelect
         name="harness"

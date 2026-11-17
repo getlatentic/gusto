@@ -9,6 +9,7 @@ import { api } from "@/store/api"
 import { FileBody } from "@/pages/files/file-body"
 import { FileEditor, type Opened } from "@/pages/files/file-editor"
 import type { FileData } from "@/pages/files/types"
+import { withBase } from "@/lib/base"
 
 const action = buttonVariants({ variant: "outline", size: "sm" })
 
@@ -108,7 +109,7 @@ function FileActions({
         </Button>
       )}
       <a
-        href={page.File.Download}
+        href={withBase(page.File.Download)}
         download
         className={action}
         data-testid="file-download"

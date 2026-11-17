@@ -89,7 +89,7 @@ func (s *Server) desktopStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.SetCookie(w, &http.Cookie{
-		Name: desktopCookie, Value: challenge, Path: "/", HttpOnly: true,
+		Name: desktopCookie, Value: challenge, Path: cookiePath(s.cookieBase(r), "/"), HttpOnly: true,
 		SameSite: http.SameSiteLaxMode, Secure: overTLS(r), Expires: time.Now().Add(10 * time.Minute),
 	})
 	if s.keeper.knows(r) {
@@ -111,13 +111,13 @@ func (s *Server) afterSignIn(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/auth/desktop/handoff", http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, wantedPage(w, r), http.StatusSeeOther)
+	http.Redirect(w, r, s.wantedPage(w, r), http.StatusSeeOther)
 }
 
 // desktopHandoff is the page that sends the signed-in browser back to the app, when the app sent it here.
 func (s *Server) desktopHandoff(w http.ResponseWriter, r *http.Request) {
 	if !validChallenge(cookieValue(r, desktopCookie)) {
-		http.SetCookie(w, &http.Cookie{Name: desktopCookie, Value: "", Path: "/", MaxAge: -1})
+		http.SetCookie(w, &http.Cookie{Name: desktopCookie, Value: "", Path: cookiePath(s.cookieBase(r), "/"), MaxAge: -1})
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -130,7 +130,7 @@ type handoffView struct{ Link string }
 // desktopTicket gives the signed-in browser a ticket for the app, once: the hash it is for is forgotten as the ticket is made.
 func (s *Server) desktopTicket(w http.ResponseWriter, r *http.Request) {
 	challenge := cookieValue(r, desktopCookie)
-	http.SetCookie(w, &http.Cookie{Name: desktopCookie, Value: "", Path: "/", MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: desktopCookie, Value: "", Path: cookiePath(s.cookieBase(r), "/"), MaxAge: -1})
 	if !validChallenge(challenge) {
 		http.Error(w, "there is no sign-in here for the app to take", http.StatusNotFound)
 		return

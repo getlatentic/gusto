@@ -81,11 +81,14 @@ func (s *Server) appURL(slug, id string) string {
 }
 
 // orgURL is the address of an organization's server as a browser reaches it.
-func (s *Server) orgURL(slug string) string { return OrgAddress(s.URL, s.Domain, slug) }
+func (s *Server) orgURL(slug string) string { return OrgAddress(s.URL, s.Domain, s.OrgPaths, slug) }
 
-// OrgAddress is the address of an organization's server as a browser reaches it, under a gusto cloud server at public that serves
-// organizations on their own names in domain.
-func OrgAddress(public *url.URL, domain, slug string) string {
+// OrgAddress is the address of an organization's server as a browser reaches it through a gusto cloud server at public: at
+// /workspace/<slug> on public's own name when organizations are at paths, and at <slug>.<domain> otherwise.
+func OrgAddress(public *url.URL, domain string, paths bool, slug string) string {
+	if paths {
+		return strings.TrimRight(public.String(), "/") + orgPath + slug
+	}
 	host := slug + "." + domain
 	if port := public.Port(); port != "" {
 		host += ":" + port
@@ -93,23 +96,25 @@ func OrgAddress(public *url.URL, domain, slug string) string {
 	return public.Scheme + "://" + host
 }
 
-// route sends a request to the organization's server, or says why it cannot.
-func (s *Server) route(w http.ResponseWriter, r *http.Request, slug string) {
-	s.forward(w, r, slug, "")
+// route sends a request to the organization's server, or says why it cannot. prefix is the path the organization is reached
+// at on gusto cloud's own name, and "" when it has a host name of its own.
+func (s *Server) route(w http.ResponseWriter, r *http.Request, slug, prefix string) {
+	s.forward(w, r, slug, "", prefix)
 }
 
 // routeApp sends a request for an app's own host name to the organization's server, signed as
 // being for that app, which is all the request can then reach there.
 func (s *Server) routeApp(w http.ResponseWriter, r *http.Request, slug, id string) {
-	s.forward(w, r, slug, id)
+	s.forward(w, r, slug, id, "")
 }
 
 // upstream carries every request to an organization's server, a room's WebSocket among them: the proxy passes an upgrade through
 // and then copies bytes both ways, with no timeout of its own. It is shared, so the connections it keeps are reused.
 var upstream = &http.Transport{ResponseHeaderTimeout: 0, IdleConnTimeout: 90 * time.Second, MaxIdleConnsPerHost: 8}
 
-// forward sends a request to the organization's server, for one of its apps when an app is named.
-func (s *Server) forward(w http.ResponseWriter, r *http.Request, slug, app string) {
+// forward sends a request to the organization's server, for one of its apps when an app is named, and fits the answer to the
+// path the organization is reached at when there is one.
+func (s *Server) forward(w http.ResponseWriter, r *http.Request, slug, app, prefix string) {
 	address, state := s.Controller.Route(r.Context(), slug)
 	if state == "" {
 		if _, found, _ := s.Store.Org(r.Context(), slug); !found {
@@ -127,10 +132,17 @@ func (s *Server) forward(w http.ResponseWriter, r *http.Request, slug, app strin
 		w.Write([]byte(`<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="3"><title>gusto</title><p>` + stateWords(state) + `</p>`))
 		return
 	}
+	var fitted func(*http.Response) error
+	var person string
+	if prefix != "" {
+		fitted = mountedAnswer(prefix)
+		person = s.vouch(r, slug)
+	}
 	(&httputil.ReverseProxy{
-		Rewrite:       s.rewrite(address, s.appSignature(slug, app)),
-		FlushInterval: -1,
-		Transport:     upstream,
+		Rewrite:        s.rewrite(address, s.appSignature(slug, app), person, prefix),
+		ModifyResponse: fitted,
+		FlushInterval:  -1,
+		Transport:      upstream,
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 			slog.Warn("an organization's server did not answer", "org", slug, "error", err)
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -143,8 +155,9 @@ func (s *Server) forward(w http.ResponseWriter, r *http.Request, slug, app strin
 // rewrite sends a request on to the address as gusto cloud saw it: the client
 // is who gusto cloud says, and none of gusto cloud's own cookies go. What the
 // client claimed about itself is not believed, since the organization's server
-// writes down where a person signed in from.
-func (s *Server) rewrite(address, appSignature string) func(*httputil.ProxyRequest) {
+// writes down where a person signed in from. person is the token that says whose
+// request it is, for an organization at a path, and "" for any other.
+func (s *Server) rewrite(address, appSignature, person, prefix string) func(*httputil.ProxyRequest) {
 	target := &url.URL{Scheme: "http", Host: address}
 	scheme := "http"
 	if s.Sessions.secure {
@@ -156,11 +169,19 @@ func (s *Server) rewrite(address, appSignature string) func(*httputil.ProxyReque
 		pr.Out.Header.Set("X-Forwarded-For", s.source(pr.In))
 		pr.Out.Header.Set("X-Forwarded-Proto", scheme)
 		pr.Out.Header.Set("X-Forwarded-Host", pr.In.Host)
+		pr.Out.Header.Del("X-Forwarded-Prefix")
+		if prefix != "" {
+			pr.Out.Header.Set("X-Forwarded-Prefix", prefix)
+		}
 		// Which app a request is for is said by gusto cloud alone: whatever the client sent is
 		// dropped, and a request that is not for an app carries none.
 		pr.Out.Header.Del(web.AppHeader)
 		if appSignature != "" {
 			pr.Out.Header.Set(web.AppHeader, appSignature)
+		}
+		pr.Out.Header.Del(web.PersonHeader)
+		if person != "" {
+			pr.Out.Header.Set(web.PersonHeader, person)
 		}
 		pr.Out.Header.Del("Cookie")
 		for _, cookie := range pr.In.Cookies() {
@@ -185,9 +206,10 @@ func (s *Server) appSignature(slug, id string) string {
 	return web.SignApp(key, id)
 }
 
-// open signs a person in to their organization's server, with a token that server
-// checks, and sends their browser there. For an app it is the app's own host name they
-// are signed in on, which is a different origin from the organization's.
+// open takes a person into their organization's server and sends their browser there. At a path of gusto cloud's own name
+// the organization shares gusto cloud's sign-in, so the browser needs nothing more. At a host name of the organization's
+// own, it carries a token that server checks and signs the person in with. An app is always at a host name of its own, a
+// different origin from the organization's.
 func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 	if s.Controller == nil {
 		http.NotFound(w, r)
@@ -197,33 +219,74 @@ func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 		s.starting(w, r, person, state)
 		return
 	}
-	key, err := s.Controller.EntryKey(person.Org)
-	if err != nil {
-		slog.Error("an organization's entry key could not be read", "org", person.Org, "error", err)
-		http.Redirect(w, r, "/org", http.StatusSeeOther)
-		return
-	}
-	token, err := entry.Mint(key, person.Org, person.Email, string(person.Role), time.Now())
-	if err != nil {
-		http.Redirect(w, r, "/org", http.StatusSeeOther)
-		return
-	}
 	if id := r.URL.Query().Get("app"); id != "" {
-		if !apps.Valid(id) {
-			http.NotFound(w, r)
+		s.openApp(w, r, person, id)
+		return
+	}
+	into := url.Values{}
+	if !s.OrgPaths {
+		token, ok := s.entryToken(w, r, person)
+		if !ok {
 			return
 		}
-		http.Redirect(w, r, s.appURL(person.Org, id)+"/auth/entry?t="+url.QueryEscape(token), http.StatusSeeOther)
-		return
+		into.Set("t", token)
 	}
 	if err := s.Store.RecordSignIn(r.Context(), person.Email, person.Org); err != nil {
 		slog.Error("a sign-in to an organization was not recorded", "org", person.Org, "error", err)
 	}
-	into := url.Values{"t": {token}}
 	if space := r.URL.Query().Get("workspace"); workspace.Valid(space) == nil {
 		into.Set("workspace", space)
 	}
 	http.Redirect(w, r, s.orgURL(person.Org)+"/auth/entry?"+into.Encode(), http.StatusSeeOther)
+}
+
+// openApp sends a person to an app of their organization's, signed in on its own host name.
+func (s *Server) openApp(w http.ResponseWriter, r *http.Request, person Person, id string) {
+	if !apps.Valid(id) {
+		http.NotFound(w, r)
+		return
+	}
+	token, ok := s.entryToken(w, r, person)
+	if !ok {
+		return
+	}
+	http.Redirect(w, r, s.appURL(person.Org, id)+"/auth/entry?t="+url.QueryEscape(token), http.StatusSeeOther)
+}
+
+// entryToken is a token that signs a person in to their organization's server once. When none can be made, the person is
+// sent to their organization's page here.
+func (s *Server) entryToken(w http.ResponseWriter, r *http.Request, person Person) (string, bool) {
+	key, err := s.Controller.EntryKey(person.Org)
+	if err == nil {
+		var token string
+		if token, err = entry.Mint(key, person.Org, person.Email, string(person.Role), time.Now()); err == nil {
+			return token, true
+		}
+	}
+	slog.Error("a token to enter an organization with could not be made", "org", person.Org, "error", err)
+	http.Redirect(w, r, "/org", http.StatusSeeOther)
+	return "", false
+}
+
+// vouch is the token that says whose a request to an organization's pages at a path is: the person signed in to gusto
+// cloud, whose sign-in an organization at a path shares. What they may do there is the organization's server's to decide.
+// It is "" for a request with no sign-in, which the organization's server sends to sign in.
+func (s *Server) vouch(r *http.Request, slug string) string {
+	email, ok := s.Sessions.Who(r)
+	if !ok {
+		return ""
+	}
+	key, err := s.Controller.EntryKey(slug)
+	if err != nil {
+		slog.Error("an organization's entry key could not be read", "org", slug, "error", err)
+		return ""
+	}
+	token, err := entry.Vouch(key, slug, email, time.Now())
+	if err != nil {
+		slog.Error("a request could not be vouched for", "org", slug, "error", err)
+		return ""
+	}
+	return token
 }
 
 // starting is what a person going in sees while their organization's server is not ready: what it is doing, on a

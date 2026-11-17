@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { withBase } from "@/lib/base"
 
 // Opened is a text file as it was when the person opened it to change it: all of it, and its hash, which the save sends so the
 // server refuses it when the file has changed since, and nobody's change is put over without them seeing it.
@@ -12,7 +13,7 @@ export interface Opened {
 
 // saveText sends what the person wrote, and gives why it was not saved when it was not.
 async function saveText(save: string, form: HTMLFormElement): Promise<string> {
-  const answer = await fetch(save, {
+  const answer = await fetch(withBase(save), {
     method: "POST",
     credentials: "same-origin",
     headers: { Accept: "application/json" },
@@ -59,7 +60,7 @@ export function FileEditor({
     <form
       className="grid gap-3"
       method="post"
-      action={save}
+      action={withBase(save)}
       onSubmit={submit}
       data-testid="file-edit"
     >

@@ -208,8 +208,8 @@ func TestTheRailsMarkSwitchesBetweenThePersonsOrganizationsBehindGustoCloud(t *t
 	s.server.UseCloud(Cloud{Key: entryKey, Org: "acme-com", Name: "Acme Research", URL: "https://cloud.test"})
 	s.handler = s.server.Handler()
 	s.cookie = cookieOf(t, s.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "runner", time.Now())))
-	want := orgLinks{Slug: "acme-com", Name: "Acme Research", Manage: "https://cloud.test/orgs", OrgsFrom: "https://cloud.test/orgs.json",
-		AccountFrom: "https://cloud.test/account.json", ConfirmAgain: "https://cloud.test/account/confirm"}
+	want := orgLinks{Slug: "acme-com", Name: "Acme Research", Manage: "https://cloud.test/orgs", OrgsFrom: "https://cloud.test/orgs.json?org=acme-com",
+		AccountFrom: "https://cloud.test/account.json?org=acme-com", ConfirmAgain: "https://cloud.test/account/confirm?org=acme-com"}
 	if org := shellOf(t, s).Org; org == nil || *org != want {
 		t.Errorf("the shell does not lead to the person's organizations: %+v", org)
 	}

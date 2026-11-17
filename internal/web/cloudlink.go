@@ -11,9 +11,12 @@ import (
 )
 
 // Cloud makes this server one organization's in a hosted gusto. Nobody signs
-// in here: gusto cloud signs a person in, and hands their browser a token
-// that this server checks against a key only the two of them hold. An address
-// here that wants a sign-in sends the person to gusto cloud.
+// in here: gusto cloud signs a person in, and says so with a token that this
+// server checks against a key only the two of them hold. An organization at a
+// path of gusto cloud's own name is told on every request (PersonHeader); one at
+// a host name of its own is handed a token by the person's browser once, and
+// keeps a session of its own. An address here that wants a sign-in sends the
+// person to gusto cloud.
 type Cloud struct {
 	// Key is what tokens are made and checked with, Org is the address of the
 	// organization this server is and Name what it is called, and URL is where
@@ -23,6 +26,10 @@ type Cloud struct {
 	Name string
 	URL  string
 }
+
+// PersonHeader says whose request it is, on a request gusto cloud passes on to an organization at a path of its own name,
+// where gusto cloud holds the one sign-in. Gusto cloud drops whatever a client sent in it.
+const PersonHeader = "X-Gusto-Person"
 
 type cloudLink struct {
 	Cloud
@@ -38,6 +45,17 @@ const sessionLife = time.Hour
 func (s *Server) UseCloud(f Cloud) {
 	s.front = &cloudLink{Cloud: f, seen: &entry.Seen{}}
 	s.keeper.life = sessionLife
+	s.keeper.vouched = s.front.vouched
+}
+
+// vouched is whose request this is, when gusto cloud says so on it.
+func (f *cloudLink) vouched(r *http.Request) (string, bool) {
+	token := r.Header.Get(PersonHeader)
+	if token == "" {
+		return "", false
+	}
+	claims, err := entry.VerifyVouch(f.Key, f.Org, token, time.Now())
+	return claims.Email, err == nil
 }
 
 // page is the address of a page of gusto cloud, for this organization: a person who is in several
@@ -70,14 +88,16 @@ func (s *Server) toCloud(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.front.page("/open", nil), http.StatusSeeOther)
 }
 
-// enter signs a person in with a token gusto cloud made for them. A token that
-// is wrong, old, for another organization or already used gets a page that says
-// so and links to gusto cloud, and never a redirect there, which two
-// servers that disagreed about a key would follow for ever.
+// enter is where gusto cloud sends a person into this organization. A request gusto cloud says is theirs goes in as it is;
+// any other carries a token, and the person is signed in here with it. A token that is wrong, old, for another organization
+// or already used gets a page that says so and links to gusto cloud, and never a redirect there, which two servers that
+// disagreed about a key would follow for ever.
 func (s *Server) enter(w http.ResponseWriter, r *http.Request) {
-	now := time.Now()
-	claims, err := entry.Verify(s.front.Key, s.front.Org, r.URL.Query().Get("t"), now)
-	if err != nil || !s.front.seen.Use(claims, now) {
+	who, role, in := s.vouchedEntry(r)
+	if !in {
+		who, role, in = s.tokenEntry(w, r)
+	}
+	if !in {
 		s.noteRefused(r, "", "gusto cloud", "the sign-in link was wrong, old or used")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusForbidden)
@@ -85,14 +105,33 @@ func (s *Server) enter(w http.ResponseWriter, r *http.Request) {
 			html.EscapeString(s.front.page("/org", nil)) + `">Open your organization again.</a></p>`))
 		return
 	}
+	s.keepWorkspace(w, r, who, r.URL.Query().Get("workspace"))
+	s.noteSignIn(r, who, role, "gusto cloud")
+	s.afterSignIn(w, r)
+}
+
+// vouchedEntry is the person gusto cloud says a request is from, as they are in this organization.
+func (s *Server) vouchedEntry(r *http.Request) (string, Role, bool) {
+	who, ok := s.front.vouched(r)
+	if !ok {
+		return "", "", false
+	}
+	return s.keeper.member(who, Runner)
+}
+
+// tokenEntry signs in the person a token gusto cloud made names, once.
+func (s *Server) tokenEntry(w http.ResponseWriter, r *http.Request) (string, Role, bool) {
+	now := time.Now()
+	claims, err := entry.Verify(s.front.Key, s.front.Org, r.URL.Query().Get("t"), now)
+	if err != nil || !s.front.seen.Use(claims, now) {
+		return "", "", false
+	}
 	role := Runner
 	if claims.Role == string(Admin) {
 		role = Admin
 	}
 	s.keeper.issueFor(w, r, claims.Email, role)
-	s.keepWorkspace(w, r, claims.Email, r.URL.Query().Get("workspace"))
-	s.noteSignIn(r, claims.Email, role, "gusto cloud")
-	s.afterSignIn(w, r)
+	return claims.Email, role, true
 }
 
 // leaseExtend is where a person extends the host this organization runs on, or nothing

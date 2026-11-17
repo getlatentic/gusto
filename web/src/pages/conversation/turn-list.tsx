@@ -7,6 +7,7 @@ import { RunningReply } from "@/pages/conversation/running-reply"
 import { TurnItem } from "@/pages/conversation/turn-item"
 import type { ConversationData, TurnView } from "@/pages/conversation/types"
 import { useProgress } from "@/pages/conversation/use-progress"
+import { withBase } from "@/lib/base"
 
 // The page keeps following the end of the conversation while the person is within this many pixels of it.
 const followWithin = 96
@@ -151,7 +152,7 @@ function RoomGreeting({ page }: { page: ConversationData }) {
       This room has no agents yet.{" "}
       <a
         className="font-medium text-foreground underline"
-        href={`${page.Path}?add=1`}
+        href={withBase(`${page.Path}?add=1`)}
       >
         Add one
       </a>{" "}

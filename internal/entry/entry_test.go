@@ -119,3 +119,30 @@ func TestATokenToSignOutWithDoesNotLetAnybodyIn(t *testing.T) {
 		t.Errorf("a token to sign out of one organization is taken by another: %v", err)
 	}
 }
+
+func TestARequestsVouchSaysWhoseRequestItIsAndNothingElse(t *testing.T) {
+	now := time.Now()
+	vouch, err := Vouch(key, "acme-com", "ada@acme.com", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if claims, err := VerifyVouch(key, "acme-com", vouch, now); err != nil || claims.Email != "ada@acme.com" || claims.Role != "" {
+		t.Fatalf("%+v %v", claims, err)
+	}
+	if _, err := Verify(key, "acme-com", vouch, now); !errors.Is(err, ErrInvalid) {
+		t.Errorf("a request's vouch is taken as a token to enter with: %v", err)
+	}
+	if _, err := VerifyExit(key, "acme-com", vouch, now); !errors.Is(err, ErrInvalid) {
+		t.Errorf("a request's vouch signs somebody out: %v", err)
+	}
+	enter, _ := Mint(key, "acme-com", "ada@acme.com", "admin", now)
+	if _, err := VerifyVouch(key, "acme-com", enter, now); !errors.Is(err, ErrInvalid) {
+		t.Errorf("a token to enter with is taken as a request's vouch: %v", err)
+	}
+	if _, err := VerifyVouch(key, "globex-com", vouch, now); !errors.Is(err, ErrInvalid) {
+		t.Errorf("one organization's vouch is taken by another: %v", err)
+	}
+	if _, err := VerifyVouch(key, "acme-com", vouch, now.Add(Life)); !errors.Is(err, ErrInvalid) {
+		t.Errorf("a request's vouch does not run out: %v", err)
+	}
+}

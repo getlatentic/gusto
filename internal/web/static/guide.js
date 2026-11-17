@@ -3,6 +3,9 @@
 // what has been done is kept in this browser so a reload does not start over. A visitor who closes it does not see it again here.
 (function () {
   var KEY = "gusto-guide";
+  // The path the page's server is under, when a gusto cloud serves the organization at one; the tour's links begin with it.
+  var base = (document.querySelector('meta[name="gusto-base"]') || {}).content || "";
+  var details = 'a[href^="' + base + '/jobs/"]';
   var PROMPT = "Draft a one-page policy for how our 40-person company should use AI agents, and save it as policy.md.";
   var state = { done: {}, closed: false, dismissed: false };
   var panel = null, list = null, toggle = null, book = "";
@@ -13,21 +16,27 @@
   var steps = [
     { key: "ask", title: "Ask an agent",
       hint: "Send the suggested question. The agent works in its own sandbox and writes a file.",
-      label: "Start a chat", href: function () { return "/chat?prompt=" + encodeURIComponent(PROMPT); } },
+      label: "Start a chat", href: function () { return base + "/chat?prompt=" + encodeURIComponent(PROMPT); } },
     { key: "verify", title: "See what it did",
       hint: "Every reply has details: the files it changed, what it cost and the sites it was refused. Open them from the reply.",
-      label: "Open the details", href: function () { var a = document.querySelector('a[href^="/jobs/"]'); return a ? a.getAttribute("href") : ""; } },
+      label: "Open the details", href: function () { var a = document.querySelector(details); return a ? a.getAttribute("href") : ""; } },
     { key: "control", title: "See the controls",
       hint: "Spending limits, who can do what, and every model call, in one place for the admin.",
-      label: "Open the admin", href: function () { return "/admin"; } },
+      label: "Open the admin", href: function () { return base + "/admin"; } },
     { key: "talk", title: "Bring it to your team",
       hint: "Talk to the people who built it, or keep exploring until the demo ends.",
       label: "Book a call", href: function () { return book; }, external: true }
   ];
 
-  function observe() {
+  // here is the page's own path, below the path its server is under.
+  function here() {
     var path = location.pathname;
-    if (/^\/instances\/[^/]+\/threads\/[^/]+/.test(path) && document.querySelector('a[href^="/jobs/"]')) { state.done.ask = true; }
+    return base && path.indexOf(base) === 0 ? path.slice(base.length) || "/" : path;
+  }
+
+  function observe() {
+    var path = here();
+    if (/^\/instances\/[^/]+\/threads\/[^/]+/.test(path) && document.querySelector(details)) { state.done.ask = true; }
     if (/^\/jobs\/[^/]+/.test(path)) { state.done.ask = true; state.done.verify = true; }
     if (/^\/admin/.test(path)) { state.done.control = true; }
   }
@@ -56,10 +65,10 @@
       if (done) { mark.innerHTML = tick; } else { mark.textContent = String(steps.indexOf(step) + 1); }
       var body = make("div", "grid min-w-0 gap-1");
       body.appendChild(make("span", "text-sm font-semibold " + (done ? "text-muted-foreground" : "text-foreground"), step.title));
-      var hint = step.key === "ask" && location.pathname === "/chat" ? "The question is ready in the box. Press send and the agent starts." : step.hint;
+      var hint = step.key === "ask" && here() === "/chat" ? "The question is ready in the box. Press send and the agent starts." : step.hint;
       if (active || (!done && step.key === "talk")) { body.appendChild(make("span", "text-xs leading-relaxed text-muted-foreground", hint)); }
       var href = step.href();
-      if (step.key === "ask" && location.pathname === "/chat" && !done) { href = ""; }
+      if (step.key === "ask" && here() === "/chat" && !done) { href = ""; }
       if (!done && href && (active || step.key === "talk")) {
         var go = make("a", "mt-1 inline-flex h-8 w-fit items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground no-underline hover:bg-primary-hover", step.label);
         go.href = href;

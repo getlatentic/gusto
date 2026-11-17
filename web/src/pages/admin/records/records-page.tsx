@@ -15,6 +15,7 @@ import { ChecksTab } from "@/pages/admin/records/checks-tab"
 import { HealthLine } from "@/pages/admin/records/health-line"
 import { KeepingTab } from "@/pages/admin/records/keeping-tab"
 import type { RecordsData } from "@/pages/admin/records/types"
+import { withBase } from "@/lib/base"
 
 // A signed record of everything that happened, whether the finished runs still check out, and how long work is kept.
 export function RecordsPage() {
@@ -43,7 +44,9 @@ function RecordMenu() {
         <EllipsisIcon />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem render={<a href="/admin/activity.jsonl" />}>
+        <DropdownMenuItem
+          render={<a href={withBase("/admin/activity.jsonl")} />}
+        >
           <DownloadIcon /> Download the record
         </DropdownMenuItem>
       </DropdownMenuContent>

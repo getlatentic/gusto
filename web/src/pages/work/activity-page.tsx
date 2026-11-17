@@ -9,6 +9,7 @@ import { ActivityFilters } from "@/pages/work/activity-filters"
 import { RunLine } from "@/pages/work/run-line"
 import type { ActivityData, Board } from "@/pages/work/types"
 import { FlipList } from "@/motion/flip-list"
+import { withBase } from "@/lib/base"
 
 // ActivityPage is every task agents ran that the person may read, newest first, a page at a time, with what is going on now
 // counted across the top as the filters it stands for. It starts nothing itself; a run happens on an agent.
@@ -142,7 +143,10 @@ function Empty({ board }: { board: Board }) {
           <>
             Nothing has happened here yet. Everything an agent does shows up
             here:{" "}
-            <a className="font-medium text-foreground" href="/presets">
+            <a
+              className="font-medium text-foreground"
+              href={withBase("/presets")}
+            >
               start one
             </a>
             .

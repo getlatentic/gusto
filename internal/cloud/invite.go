@@ -114,7 +114,7 @@ func (s *Server) backTo(back string, person Person) string {
 	if err != nil || page.Scheme != "https" || page.User != nil || page.Opaque != "" {
 		return "/org"
 	}
-	if s.orgOf(page.Scheme+"://"+page.Host) != person.Org {
+	if slug, ok := s.orgAt(page); !ok || slug != person.Org {
 		return "/org"
 	}
 	return page.String()
@@ -122,11 +122,11 @@ func (s *Server) backTo(back string, person Person) string {
 
 // orgOf is the organization an origin is the address of, or nothing for an origin that is none of theirs.
 func (s *Server) orgOf(origin string) string {
-	if !s.isOrgOrigin(origin) {
+	parsed, err := url.Parse(origin)
+	if err != nil || parsed.Path != "" {
 		return ""
 	}
-	parsed, _ := url.Parse(origin)
-	slug, _ := s.orgSlug(parsed.Host)
+	slug, _ := s.orgAt(parsed)
 	return slug
 }
 

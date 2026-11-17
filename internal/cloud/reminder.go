@@ -3,7 +3,6 @@ package cloud
 import (
 	"encoding/json"
 	"net/http"
-	"net/url"
 	"slices"
 )
 
@@ -15,19 +14,26 @@ type confirmation struct {
 	Tasks     int    `json:"jobs"`
 }
 
-// allowOrgOrigin lets an organization's own address read the answer with the person's cookie, and says which
-// organization that is. Any other origin is told nothing.
+// allowOrgOrigin lets an organization's own pages read the answer with the person's cookie, and says which organization
+// that is. Any other page is told nothing. An organization with a host name of its own asks from its origin, which is let
+// read the answer. One at a path shares gusto cloud's origin, so the browser lets only gusto's own pages read the answer,
+// and the page names its organization (`org`, as cloudLink.page writes it); whether the person is in it is the caller's to
+// check.
 func (s *Server) allowOrgOrigin(w http.ResponseWriter, r *http.Request) (string, bool) {
 	w.Header().Set("Vary", "Origin")
 	w.Header().Set("Cache-Control", "no-store")
+	if s.OrgPaths {
+		slug := r.URL.Query().Get("org")
+		return slug, sameSite(r) && ValidSlug(slug) == nil
+	}
 	origin := r.Header.Get("Origin")
-	if !s.isOrgOrigin(origin) {
+	slug := s.orgOf(origin)
+	if slug == "" {
 		return "", false
 	}
 	w.Header().Set("Access-Control-Allow-Origin", origin)
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
-	parsed, _ := url.Parse(origin)
-	return s.orgSlug(parsed.Host)
+	return slug, true
 }
 
 // memberOf is the person signed in here as they are in the organization an origin is, when they are in it.

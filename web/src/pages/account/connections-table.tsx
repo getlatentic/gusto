@@ -19,6 +19,7 @@ import {
 import { ago } from "@/lib/format"
 import { FormSelect } from "@/components/form-select"
 import type { AccountForm } from "@/pages/account/use-account-form"
+import { withBase } from "@/lib/base"
 
 const forAgentsChoices = [
   {
@@ -82,7 +83,7 @@ function AppRow({ app, form }: { app: Connection; form: AccountForm }) {
         {actions.forAgents ? (
           <form
             method="post"
-            action={forAgentsPath(app.ID)}
+            action={withBase(forAgentsPath(app.ID))}
             onSubmit={form.submit}
             className="m-0"
           >
@@ -105,7 +106,7 @@ function AppRow({ app, form }: { app: Connection; form: AccountForm }) {
         <div className="flex flex-wrap justify-end gap-2">
           {actions.connect && (
             <a
-              href={connectPath(app.ID)}
+              href={withBase(connectPath(app.ID))}
               className={buttonVariants({ variant: "outline", size: "sm" })}
               data-testid="connect"
             >
@@ -115,7 +116,7 @@ function AppRow({ app, form }: { app: Connection; form: AccountForm }) {
           {actions.disconnect && (
             <form
               method="post"
-              action={disconnectPath(app.ID)}
+              action={withBase(disconnectPath(app.ID))}
               onSubmit={form.submit}
               className="m-0"
             >

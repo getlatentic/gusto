@@ -23,6 +23,7 @@ import { Field } from "@/pages/work/field"
 import { FormFailed } from "@/pages/work/form-failed"
 import type { CompareData } from "@/pages/work/types"
 import { useWorkForm } from "@/pages/work/use-work-form"
+import { withBase } from "@/lib/base"
 
 // ComparePage gives several agents the same task on the same code, and the project's own tests decide which of them did it.
 // The person's earlier comparisons are listed under it.
@@ -78,7 +79,7 @@ function StartComparison({
       <CardContent className="px-4">
         <form
           method="post"
-          action="/compare"
+          action={withBase("/compare")}
           onSubmit={form.submit}
           className="grid gap-4"
           data-testid="start-comparison"

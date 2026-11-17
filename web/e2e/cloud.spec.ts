@@ -118,6 +118,46 @@ test.describe("gusto cloud", () => {
   })
 })
 
+// gusto cloud serves each organization at /workspace/<slug> on its own name. Going in lands there with gusto cloud's sign-in
+// and no other, the app reads its data there and asks gusto cloud about the person, and its links, its forms and a reload
+// all stay there.
+test("an organization opens at its own path, and its pages stay under it", async ({
+  page,
+}) => {
+  test.setTimeout(120_000)
+  const failed: string[] = []
+  page.on("response", (answer) => {
+    const asked = answer.url()
+    if (
+      (asked.includes("/app/api/") || asked.includes(".json?org=")) &&
+      answer.status() >= 400
+    )
+      failed.push(`${answer.status()} ${asked}`)
+  })
+  await signUp(page, `ada@${company("paths")}.com`)
+  await page.goto(`${cloudURL}/open`)
+  const under = new RegExp(`^${cloudURL}/workspace/[a-z0-9-]+/`)
+  await expect(page).toHaveURL(under, { timeout: 90_000 })
+  const workspace = new URL(page.url()).pathname
+    .split("/")
+    .slice(0, 3)
+    .join("/")
+  await expect(page.getByRole("navigation").first()).toBeVisible()
+  const signIns = (await page.context().cookies())
+    .map((cookie) => cookie.name)
+    .filter((name) => /gusto(_cloud)?$/.test(name))
+  expect(signIns).toEqual(["gusto_cloud"])
+
+  const files = page.locator('a[href$="/files"]').first()
+  await expect(files).toHaveAttribute("href", `${workspace}/files`)
+  await files.click()
+  await expect(page).toHaveURL(`${cloudURL}${workspace}/files`)
+  await page.reload()
+  await expect(page).toHaveURL(`${cloudURL}${workspace}/files`)
+  await expect(page.getByRole("navigation").first()).toBeVisible()
+  expect(failed).toEqual([])
+})
+
 test.describe("the operator's page", () => {
   test("pauses new demos and takes them again", async ({ page }) => {
     await page.goto(operatorURL)

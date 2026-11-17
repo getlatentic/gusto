@@ -36,6 +36,7 @@ import { useAppDispatch } from "@/store"
 import { api } from "@/store/api"
 import { bytes, shortWhen } from "@/lib/format"
 import { cn } from "@/lib/utils"
+import { withBase } from "@/lib/base"
 
 const foldersAt = (at: string) => `/chat/folders?at=${encodeURIComponent(at)}`
 
@@ -198,7 +199,7 @@ function Browser({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.location.assign("/app/folder")}
+              onClick={() => window.location.assign(withBase("/app/folder"))}
             >
               Sync from this computer…
             </Button>

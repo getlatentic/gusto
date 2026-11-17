@@ -19,7 +19,7 @@ func (s *Server) inviteOffered(r *http.Request) *inviteOffer {
 	if s.front == nil || s.front.URL == "" || !s.admin(r) {
 		return nil
 	}
-	return &inviteOffer{Action: s.front.page("/org/invite", nil), Workspace: s.workspaceOf(r), Back: pageAddress(r)}
+	return &inviteOffer{Action: s.front.page("/org/invite", nil), Workspace: s.workspaceOf(r), Back: s.pageAddress(r)}
 }
 
 // invitationSent is whether gusto cloud has just sent the person back from an invitation it accepted.

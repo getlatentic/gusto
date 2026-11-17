@@ -11,9 +11,10 @@ import type {
   AgentPage,
 } from "@/pages/members/types"
 import { useMembersForm } from "@/pages/members/use-members-form"
+import { withBase } from "@/lib/base"
 
 const defaultLink = (
-  <a className="text-foreground underline" href="/connections">
+  <a className="text-foreground underline" href={withBase("/connections")}>
     default
   </a>
 )
@@ -47,7 +48,10 @@ function AppsList({ agent, apps }: { agent: AgentPage; apps: Apps }) {
     return (
       <p className={emptyNote}>
         No apps connected.{" "}
-        <a className="text-foreground underline" href="/connections">
+        <a
+          className="text-foreground underline"
+          href={withBase("/connections")}
+        >
           Connect one
         </a>
         .
@@ -86,7 +90,7 @@ function AppChoice({ agent, app }: { agent: AgentPage; app: AgentApp }) {
         </Badge>
         <a
           className={buttonVariants({ variant: "outline", size: "sm" })}
-          href={`/connections/${encodeURIComponent(app.ID)}/connect`}
+          href={withBase(`/connections/${encodeURIComponent(app.ID)}/connect`)}
         >
           Sign in
         </a>
@@ -96,7 +100,7 @@ function AppChoice({ agent, app }: { agent: AgentPage; app: AgentApp }) {
   return (
     <form
       method="post"
-      action={`/members/agents/${encodeURIComponent(agent.ID)}/apps`}
+      action={withBase(`/members/agents/${encodeURIComponent(agent.ID)}/apps`)}
       onSubmit={submit}
       className="m-0"
     >

@@ -43,6 +43,10 @@ type keeper struct {
 	// now is the role the person a session names has now, and whether they are still a member, when the server can ask;
 	// see Server.memberNow.
 	now func(who string) (role Role, in, checked bool)
+	// vouched is whose request this is, when the proxy in front of the server says so on the request (cloudLink.vouched).
+	vouched func(r *http.Request) (who string, ok bool)
+	// base is the path a request reached the server's pages under, which a session cookie is kept to (Server.cookieBase).
+	base func(r *http.Request) string
 }
 
 func newKeeper(password string) (*keeper, error) {
@@ -57,18 +61,21 @@ func newKeeper(password string) (*keeper, error) {
 
 const cookieName = "gusto"
 
-// secureCookieName is what the session cookie is called over TLS. A browser accepts a name with
+// secureCookieName is what the session cookie is called over TLS at the root of a host. A browser accepts a name with
 // this prefix only from the host itself, with Secure and no Domain, so a page on a sibling host
 // name, a shared app's for one, cannot set or overwrite it for this one.
 const secureCookieName = "__Host-gusto"
 
-// sessionCookie is the name of the session cookie for a request.
-func sessionCookie(r *http.Request) string {
-	if overTLS(r) {
-		return secureCookieName
+// at is the path a request reached the server's pages under.
+func (k *keeper) at(r *http.Request) string {
+	if k.base == nil {
+		return ""
 	}
-	return cookieName
+	return k.base(r)
 }
+
+// cookie is the name of the session cookie for a request.
+func (k *keeper) cookie(r *http.Request) string { return lockedName(r, k.at(r), cookieName) }
 
 func (k *keeper) admits(given string) bool {
 	return subtle.ConstantTimeCompare([]byte(given), []byte(k.password)) == 1
@@ -97,9 +104,9 @@ func (k *keeper) issueLasting(w http.ResponseWriter, r *http.Request, who string
 	until := now.Add(life).Unix()
 	value := strconv.FormatInt(until, 10) + "|" + string(role) + "|" + cookieWho(who) + "|" + strconv.FormatInt(now.UnixMilli(), 10)
 	http.SetCookie(w, &http.Cookie{
-		Name:     sessionCookie(r),
+		Name:     k.cookie(r),
 		Value:    value + "." + k.sign(value),
-		Path:     "/",
+		Path:     cookiePath(k.at(r), "/"),
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 		Secure:   r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https",
@@ -110,7 +117,7 @@ func (k *keeper) issueLasting(w http.ResponseWriter, r *http.Request, who string
 // end makes the session in this request's cookie stop working, and forgets
 // those that would have expired by now.
 func (k *keeper) end(r *http.Request) {
-	cookie, err := r.Cookie(sessionCookie(r))
+	cookie, err := r.Cookie(k.cookie(r))
 	if err != nil {
 		return
 	}
@@ -168,19 +175,47 @@ func (k *keeper) hasEnded(signature, who string, began int64) bool {
 }
 
 func (k *keeper) clear(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &http.Cookie{Name: sessionCookie(r), Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: overTLS(r)})
+	http.SetCookie(w, &http.Cookie{Name: k.cookie(r), Value: "", Path: cookiePath(k.at(r), "/"), MaxAge: -1, HttpOnly: true, Secure: overTLS(r)})
 }
 
-// session is who is in a signature this server made and has not yet expired,
-// and their role: the one gusto cloud's roster gives them now, behind a front
-// door, where a person it no longer has is signed in nowhere, and else the role
-// they signed in with.
+// session is who a request is from, and their role. Behind a front door that says whose request it is, that is the
+// person; otherwise it is who is in a signature this server made and has not yet expired. Their role is the one gusto
+// cloud's roster gives them now, behind a front door, where a person it no longer has is signed in nowhere, and else the
+// role they signed in with.
+func (k *keeper) session(r *http.Request) (who string, role Role, signed bool) {
+	if k.vouched != nil {
+		if who, ok := k.vouched(r); ok {
+			return k.member(who, Runner)
+		}
+	}
+	who, role, signed = k.cookieSession(r)
+	if !signed {
+		return "", "", false
+	}
+	return k.member(who, role)
+}
+
+// member is a signed-in person as they are now: their role in the roster when the server has one, where a person who is
+// no longer in it is signed in nowhere, and else the role they were given.
+func (k *keeper) member(who string, given Role) (string, Role, bool) {
+	if k.now != nil {
+		if now, in, checked := k.now(who); checked {
+			if !in {
+				return "", "", false
+			}
+			return who, now, true
+		}
+	}
+	return who, given, true
+}
+
+// cookieSession is who is in a session cookie this server made, which has not expired and was not signed out of.
 //
 // The signature is taken from the last dot rather than the first, because the
 // name is an address and an address has dots in it. A signature is base64url,
 // which has none, so the last dot is always the one that separates them.
-func (k *keeper) session(r *http.Request) (who string, role Role, signed bool) {
-	cookie, err := r.Cookie(sessionCookie(r))
+func (k *keeper) cookieSession(r *http.Request) (who string, role Role, signed bool) {
+	cookie, err := r.Cookie(k.cookie(r))
 	if err != nil {
 		return "", "", false
 	}
@@ -206,19 +241,11 @@ func (k *keeper) session(r *http.Request) (who string, role Role, signed bool) {
 	if len(parts) == 4 {
 		began, _ = strconv.ParseInt(parts[3], 10, 64)
 	}
-	who, role = whoInCookie(parts[2]), Role(parts[1])
+	who = whoInCookie(parts[2])
 	if k.hasEnded(signature, who, began) {
 		return "", "", false
 	}
-	if k.now != nil {
-		if now, in, checked := k.now(who); checked {
-			if !in {
-				return "", "", false
-			}
-			role = now
-		}
-	}
-	return who, role, true
+	return who, Role(parts[1]), true
 }
 
 // cookieWho is a name as a cookie can carry it. A cookie's value cannot hold a space, a quote, a comma, a backslash or a
@@ -260,7 +287,7 @@ func (s *Server) guard(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		if !s.keeper.knows(r) {
-			rememberWanted(w, r)
+			s.rememberWanted(w, r)
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}

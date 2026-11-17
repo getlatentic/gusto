@@ -4,6 +4,7 @@ import { useNavigate } from "react-router"
 import { sendForm } from "@/lib/forms"
 import type { ConversationData } from "@/pages/conversation/types"
 import { useRefreshAll } from "@/lib/api"
+import { withBase } from "@/lib/base"
 
 // useRoomForm sends one of the room's forms without leaving the page, then shows what the server said: it moves to where the
 // server sent the person (a refusal is said there, with its dialog open), and reads the room, its turns and the side list again.
@@ -34,7 +35,7 @@ export function useRoomForm(page: ConversationData) {
   const post = (action: string, fields: Record<string, string> = {}) => {
     const form = document.createElement("form")
     form.method = "post"
-    form.action = action
+    form.action = withBase(action)
     for (const [name, value] of Object.entries(fields)) {
       const field = document.createElement("input")
       field.name = name

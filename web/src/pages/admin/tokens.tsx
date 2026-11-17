@@ -20,6 +20,7 @@ import {
 import { usePageData, useRefreshPage } from "@/lib/api"
 import { postForm } from "@/lib/http"
 import { ago } from "@/lib/format"
+import { withBase } from "@/lib/base"
 
 export interface TokenRow {
   ID: string
@@ -241,7 +242,7 @@ function Tokens({ tokens }: { tokens: TokenRow[] }) {
                   {token.Live ? (
                     <form
                       method="post"
-                      action={`/admin/tokens/${token.ID}/revoke`}
+                      action={withBase(`/admin/tokens/${token.ID}/revoke`)}
                       className="m-0"
                     >
                       <Button variant="destructive" size="sm" type="submit">

@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useState } from "react"
 
 import { heard } from "@/domain/work"
+import { withBase } from "@/lib/base"
 
 // Watched is what a running task has said so far, and how it ended once it has.
 export interface Watched {
@@ -20,7 +21,7 @@ export function useWatch(
   const ended = useEffectEvent(onEnded)
   useEffect(() => {
     if (!live) return
-    const stream = new EventSource(`/watch/${encodeURIComponent(id)}`)
+    const stream = new EventSource(withBase(`/watch/${encodeURIComponent(id)}`))
     // A stream starts the task's words from their beginning, so the first line it gives starts what is shown.
     let first = true
     stream.onmessage = (event: MessageEvent<string>) => {

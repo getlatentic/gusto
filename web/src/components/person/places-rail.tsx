@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import type { PersonShell } from "@/domain/side-list"
+import { withBase } from "@/lib/base"
 
 const placeLink =
   "grid size-10 place-items-center rounded-md text-faint no-underline transition-colors hover:bg-hover hover:text-foreground aria-[current=page]:bg-hover aria-[current=page]:text-foreground [&_svg]:size-4"
@@ -45,7 +46,7 @@ export function PlacesRail({
           aria-label="gusto"
           className="mb-2 grid size-10 place-items-center"
         >
-          <img className="size-6" src="/static/mark.svg" alt="" />
+          <img className="size-6" src={withBase("/static/mark.svg")} alt="" />
         </AppLink>
       )}
       <PlaceLink

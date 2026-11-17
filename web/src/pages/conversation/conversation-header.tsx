@@ -10,6 +10,7 @@ import type { Present } from "@/lib/room-socket"
 import { useConversation } from "@/pages/conversation/conversation-context"
 import type { RoomDialog } from "@/pages/conversation/room-dialog"
 import { RoomMenu } from "@/pages/conversation/room-menu"
+import { withBase } from "@/lib/base"
 
 const labelled = "max-sm:[&>span]:sr-only"
 
@@ -51,7 +52,7 @@ export function ConversationActions({
         <a
           key={app.Link}
           className={buttonVariants({ variant: "ghost", size: "sm" })}
-          href={app.Link}
+          href={withBase(app.Link)}
           target="_blank"
           rel="noopener"
         >
@@ -75,7 +76,9 @@ export function ConversationActions({
       ) : (
         <a
           className={`${buttonVariants({ variant: "ghost", size: "sm" })} ${labelled}`}
-          href={`/instances/${encodeURIComponent(page.Instance.ID)}/files?from=${encodeURIComponent(page.Path)}`}
+          href={withBase(
+            `/instances/${encodeURIComponent(page.Instance.ID)}/files?from=${encodeURIComponent(page.Path)}`
+          )}
         >
           <FileTextIcon /> <span>Files</span>
         </a>

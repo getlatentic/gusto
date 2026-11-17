@@ -116,7 +116,11 @@ func (s *Server) render(w http.ResponseWriter, status int, page string, v view) 
 	v.Lease = s.Lease != nil
 	v.WorkOnly = s.Store != nil && !s.Store.FreeMailAllowed()
 	v.Google = s.Google != nil
-	data, err := json.Marshal(pageOf(page, v))
+	shown := pageOf(page, v)
+	for i := range shown.Orgs {
+		shown.Orgs[i].Address = s.orgShown(shown.Orgs[i].Slug)
+	}
+	data, err := json.Marshal(shown)
 	if err != nil {
 		http.Error(w, "that page could not be drawn", http.StatusInternalServerError)
 		return
