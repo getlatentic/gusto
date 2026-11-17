@@ -36,7 +36,7 @@ func (s *Server) runTask(w http.ResponseWriter, r *http.Request) {
 	record := tasks.Record{
 		ID: id, State: tasks.Queued,
 		Brief: spec.Brief, Repo: held.Repo, Harness: held.Harness, Model: held.Model,
-		Instance: held.ID, Asked: s.keeper.who(r), Team: spec.Team, Queued: tasks.Now(),
+		Instance: held.ID, Asked: s.keeper.who(r), Queued: tasks.Now(),
 	}
 	if err := s.place(spec, record); err != nil {
 		s.turnAway(w, r, where, err.Error())
@@ -58,7 +58,6 @@ func taskOn(held instance.Instance, r *http.Request) (task.Spec, error) {
 		Repo:        held.Repo,
 		Session:     held.ID,
 		Sensitivity: sensitivity(r.FormValue("sensitivity")),
-		Team:        strings.TrimSpace(r.FormValue("team")),
 		Setup:       setupOf(held),
 	}
 	if held.Sensitivity == string(task.Restricted) {

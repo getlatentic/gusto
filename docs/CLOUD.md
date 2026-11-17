@@ -53,7 +53,7 @@ The counts are kept in the database, so gusto cloud servers that share it share 
 
 1. The person signs in at gusto cloud with what they are mailed: a 6-digit code to type on the page where they asked, or a link for the device they read mail on. Using either spends both, and both last 20 minutes. A code works only for the address it was mailed to. Asking is always answered the same way, and a code for an address with no account is answered as a wrong one, so neither shows who is a customer.
 2. gusto cloud sends the person to `/app`, which takes them into their organization through `/open`, or to `/orgs` to choose one. While the organization's server starts, `/open` shows what it is doing and looks again every few seconds. The organization's details, people and billing are at `/org`.
-3. Open sends the browser to the organization's `/auth/entry`, which takes the person to the page they asked for, or to the workspace they chose. How the server knows who they are depends on [where the organization is](#where-an-organization-is):
+3. Open sends the browser to the organization's `/auth/entry`, which takes the person to the page they asked for, or to the team they chose. How the server knows who they are depends on [where the organization is](#where-an-organization-is):
    - At a path, the organization shares gusto cloud's sign-in. On every request it passes on, gusto cloud adds `X-Gusto-Person`: a token that names the person, good for a minute, signed with a key that only gusto cloud and that organization's server hold. Gusto cloud drops whatever a client sent in it. The server keeps no session for the browser.
    - At a host name, Open adds a token to the address, good for a minute and one use, signed with the same key. The server checks it and keeps a session of its own for an hour. Then the person goes back through gusto cloud.
 4. Either way, the server takes the person's role from `members.json` on every request, and a person who is not in it is signed in nowhere ([People](#people)). It has no password page, and `/login` there sends people back to gusto cloud.
@@ -86,34 +86,35 @@ An admin with a confirmed address invites people from the organization's page. A
 
 An invitation sent from the organization's own People page (`/org/invite` takes the same `back` address as the role form) sends the person back to that page with `sent=1`; sent from gusto cloud's page it goes to `/org?sent=1`. An admin can cancel an invitation, remove a person (not themselves or the last admin), and make a person an admin or a runner. A removed person keeps their other organizations. A person removed from their only organization loses their sign-in to gusto cloud at once. Their organization server reads `members.json` at every request, at most once a second: a removed person is signed out of it, their computers' tokens stop working, and a changed role holds, from their next request.
 
-gusto cloud tells the organization's server about people through two files in its data directory. `members.json` lists people, roles, last sign-in, unanswered invitations and the workspaces with who is in each. If the server cannot read it, the People page says so. `inbox/` holds one event per invitation, role change, removal and change to a workspace. The server is the only writer of the change record. It takes the events in order and removes each file. A file of another kind is set aside as `.rejected`.
+gusto cloud tells the organization's server about people through two files in its data directory. `members.json` lists people, roles, last sign-in, unanswered invitations and the teams with who is in each (under `workspaces`). If the server cannot read it, the People page says so. `inbox/` holds one event per invitation, role change, removal and change to a team. The server is the only writer of the change record. It takes the events in order and removes each file. A file of another kind is set aside as `.rejected`.
 
-## Workspaces
+## Teams
 
-An organization holds its billing, seats, model credit, signing key, sign-in and admins. A workspace is a team's space in it, such as Engineering or Business. A workspace holds its own members, tasks and their records, conversations and rooms, agents, connections to apps, shared apps, comparisons and computers. Only its members reach them, whatever their role in the organization.
+An organization holds its billing, seats, model credit, signing key, sign-in and admins. A team is a group of its people, such as Engineering or Business. A team holds its own members, tasks and their records, conversations and rooms, agents, connections to apps, shared apps, comparisons and computers. Only its members reach them, whatever their role in the organization.
 
 | Boundary | What keeps it |
 | --- | --- |
 | Between organizations | A server for each organization |
-| Between workspaces | A computer for each person in each workspace, and a check of the workspace on every task, record, conversation, agent, connection and app |
+| Between teams | A computer for each person in each team, and a check of the team on every task, record, conversation, agent, connection and app |
 | Between people | A computer for each person |
 | Between tasks | A sandbox for each task on the computer |
 
-- Every organization has the workspace `main`, named as the organization, with the admin who made it. Everything an organization kept before workspaces is in `main`, and so is everybody who was in it.
-- An admin makes a workspace, renames it, and adds and removes its people at `/org`. The one who makes a workspace is in it. A workspace's id comes from its first name and does not change.
-- An invitation names the workspace the person joins when the organization has more than one, and `main` otherwise.
-- A person stays in at least one workspace while they are in the organization. Removing them from a workspace marks their computer in it for removal and leaves their computers in other workspaces. Removing them from the organization takes them out of every workspace and marks every computer of theirs. The mark is `computers/<id>.retire` with the id of the computer in each workspace the person was in, made whether or not a record of the computer exists, because where agents run in containers there is none; a record in a workspace they had left is marked too.
-- An organization has at most 50 workspaces. A person is one seat however many workspaces they are in, and every workspace's computers count against `GUSTO_CLOUD_COMPUTERS`.
-- Gusto cloud lists the workspaces and who is in each in `members.json`. The server reads them there at most once a second, as it reads roles. A server that is not behind gusto cloud has one workspace, `main`, with everybody who signs in in it.
-- A request is in one workspace: an organization's API token's own, or the one the person chose in the switcher while they are still in it, or else their first. What the request makes goes there, and the pages list only what is there. Opening one thing is decided by the workspace that thing is in: a person not in it is answered 404, as for something that is not there.
-- A person in one workspace sees nothing of workspaces in the organization's pages. With two or more, the switcher behind the mark at the top of the rail lists them under their organization's name, and the rail names the one they are in. `/workspace/<id>` chooses one of theirs. Gusto cloud's `/orgs.json` lists each organization's workspaces the person is in, and `/open?org=<slug>&workspace=<id>` opens one.
-- A sign-in to an app is made in a workspace and used only by that workspace's tasks. A task sent to `POST /api/jobs` may name its workspace (`workspace` in `job.json`); a person's token may name any of theirs, and an organization's token only its own, which is the workspace its admin was in when they made it.
-- A room's people and agents are in the room's workspace: a person in no workspace of the room's, or an agent of another workspace, is refused. An agent's name is unique in its workspace.
-- The admin console is the organization's: spending, budgets, people, models and the change record count every workspace.
+- Every organization has the team `main`, named as the organization, with the admin who made it. Everything an organization kept before teams is in `main`, and so is everybody who was in it.
+- An admin makes a team, renames it, and adds and removes its people at `/org`. The one who makes a team is in it. A team's id comes from its first name and does not change.
+- An invitation names the team the person joins when the organization has more than one, and `main` otherwise.
+- A person stays in at least one team while they are in the organization. Removing them from a team marks their computer in it for removal and leaves their computers in other teams. Removing them from the organization takes them out of every team and marks every computer of theirs. The mark is `computers/<id>.retire` with the id of the computer in each team the person was in, made whether or not a record of the computer exists, because where agents run in containers there is none; a record in a team they had left is marked too.
+- An organization has at most 50 teams. A person is one seat however many teams they are in, and every team's computers count against `GUSTO_CLOUD_COMPUTERS`.
+- Gusto cloud lists the teams and who is in each in `members.json`. The server reads them there at most once a second, as it reads roles. A server that is not behind gusto cloud has one team, `main`, with everybody who signs in in it.
+- A request is in one team: an organization's API token's own, or the one the person chose in the switcher while they are still in it, or else their first. What the request makes goes there, and the pages list only what is there. Opening one thing is decided by the team that thing is in: a person not in it is answered 404, as for something that is not there.
+- A person in one team sees nothing of teams in the organization's pages. With two or more, the switcher behind the mark at the top of the rail lists them under their organization's name, and the rail names the one they are in. `/team/<id>` chooses one of theirs. Gusto cloud's `/orgs.json` lists each organization's teams the person is in, and `/open?org=<slug>&team=<id>` opens one.
+- A sign-in to an app is made in a team and used only by that team's tasks. A task sent to `POST /api/jobs` may name its team (`team` in the spec, or `workspace`, the name `job.json` keeps it under); a person's token may name any of theirs, and an organization's token only its own, which is the team its admin was in when they made it.
+- A room's people and agents are in the room's team: a person in no team of the room's, or an agent of another team, is refused. An agent's name is unique in its team.
+- A task's spending counts against the team it is in: the team limit (`GUSTO_LIMIT_TEAM`), a team's cap in the spend policy and the spending report go by team ([LIMITS.md](LIMITS.md), [REFERENCE.md](REFERENCE.md)).
+- The admin console is the organization's: spending, budgets, people, models and the change record count every team.
 
 ## Rooms
 
-A room is in one workspace and is shared by its people and agents. Its settings are kept in the room's `instance.json`; a change is written to a copy first and held in memory only once the write succeeded, so a write that fails changes nothing.
+A room is in one team and is shared by its people and agents. Its settings are kept in the room's `instance.json`; a change is written to a copy first and held in memory only once the write succeeded, so a write that fails changes nothing.
 
 - Guidelines are standing instructions of at most 2000 characters. Every person in the room can read them; only a room's admin (or an admin of the server) changes them. Every turn of every agent in the room starts with them, under "Standing instructions for this room". An empty text clears them.
 - Mute is a person's own. A muted room adds nothing to that person's unread counts, the Unread and @me tabs or the rail badges, and nobody else sees it.
@@ -137,17 +138,17 @@ In Stripe, make a product with a monthly per-unit price and give its id as `GUST
 
 ## Computers
 
-A person has one computer in each workspace they are in, made the first time they run a task there. Its record is in the organization's directory (`internal/computer`) with these fields: `user`, `org`, `workspace` (absent for `main`), `sandbox`, `host` (the host machine), `state` (`creating`, `running`, `stopped`, `failed` or `deleted`), `created` and `lastActive`. The `sandbox` name is `c-`, eight characters of a digest of the organization, and eight of the organization, the workspace and the person. A computer in `main` is hashed without the workspace, so a computer made before workspaces keeps its name.
+A person has one computer in each team they are in, made the first time they run a task there. Its record is in the organization's directory (`internal/computer`) with these fields: `user`, `org`, `workspace` (its team, absent for `main`), `sandbox`, `host` (the host machine), `state` (`creating`, `running`, `stopped`, `failed` or `deleted`), `created` and `lastActive`. The `sandbox` name is `c-`, eight characters of a digest of the organization, and eight of the organization, the team and the person. A computer in `main` is hashed without the team, so a computer made before teams keeps its name.
 
 - A task works in `/sandbox/jobs/<job>/workspace`, removed when the task ends. A turn in a conversation on an instance works in `/sandbox/jobs/instance-<id>/workspace`, kept between turns.
 - A task from a script or token has no person and runs in a sandbox of its own that goes with the task.
 - A person past the organization's number of computers is refused in the task's record, and nothing is made.
-- A computer idle for half an hour with no task running is stopped, which keeps its files. Set `GUSTO_COMPUTER_IDLE_MINUTES` to change it. The next task starts it. Removing a person from a workspace marks their computer in it, removing them from the organization marks all of theirs, and the organization's server removes what is marked.
+- A computer idle for half an hour with no task running is stopped, which keeps its files. Set `GUSTO_COMPUTER_IDLE_MINUTES` to change it. The next task starts it. Removing a person from a team marks their computer in it, removing them from the organization marks all of theirs, and the organization's server removes what is marked.
 - A turn that leaves an `index.html` in the agent's folder gets a Preview button. The server serves that folder as a page, at once, at `<org>--<id>.<domain>`. On a host name of its own the page keeps what it saves in the browser, and it reaches nothing of the organization's pages.
 - Where agents run on computers, a person can also share an app with a command of its own from the agent's page ([OPENSHELL.md](OPENSHELL.md)). `GUSTO_APPS` is where the server keeps its record of both.
 - An app's host name is the same site as the organization's, so the server refuses any browser request that changes something unless it comes from its own pages.
 - A text file shown whole has Edit, in its page and in its tab beside a chat. A save is refused when the file changed after it was opened. In a room, the room says who changed the file.
-- `gusto cloud computers` lists every computer on the node with its organization, workspace and person. It also reports a sandbox with no record, or a record with no sandbox.
+- `gusto cloud computers` lists every computer on the node with its organization, team and person. It also reports a sandbox with no record, or a record with no sandbox.
 
 ## The admin console
 

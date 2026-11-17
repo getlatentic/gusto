@@ -25,7 +25,7 @@ export function useMembersOutlet(): MembersOutlet {
   return useOutletContext<MembersOutlet>()
 }
 
-// MembersLayout is everybody in the workspace, people and agents, in a list beside whichever of them is open. The list and its
+// MembersLayout is everybody in the team, people and agents, in a list beside whichever of them is open. The list and its
 // dialogs are read once and stay drawn while the page beside them changes. An agent is made here once, and from here it is added
 // to rooms or talked to on its own.
 export function MembersLayout() {

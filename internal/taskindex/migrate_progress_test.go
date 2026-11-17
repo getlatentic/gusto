@@ -10,7 +10,7 @@ import (
 	"github.com/getlatentic/gusto/internal/taskindex"
 )
 
-// oldIndex makes a database as it was at schema version 2, with a row in each state.
+// oldIndex makes a database as it was at schema version 2, with a row in each state, two with a spending label as their team.
 func oldIndex(t *testing.T, driver, dialect, url string) {
 	t.Helper()
 	db, err := sql.Open(driver, url)
@@ -38,9 +38,10 @@ func oldIndex(t *testing.T, driver, dialect, url string) {
 			t.Fatalf("%s: %v", name, err)
 		}
 	}
-	insert := `INSERT INTO tasks (id, state, stopped_by, seq, queued, search, sum) VALUES `
-	if _, err := db.Exec(insert + `('q', 'queued', '', 1, 1, 'q', 's'), ('r', 'running', '', 2, 2, 'r', 's'),
-		('s', 'running', 'bob', 3, 3, 's', 's'), ('p', 'passed', '', 4, 4, 'p', 's'), ('i', 'interrupted', 'bob', 5, 5, 'i', 's')`); err != nil {
+	insert := `INSERT INTO tasks (id, state, stopped_by, team, workspace, seq, queued, search, sum) VALUES `
+	if _, err := db.Exec(insert + `('q', 'queued', '', '', 'main', 1, 1, 'q', 's'), ('r', 'running', '', '', 'main', 2, 2, 'r', 's'),
+		('s', 'running', 'bob', 'platform', 'main', 3, 3, 's', 's'), ('p', 'passed', '', 'platform', 'eng', 4, 4, 'p', 's'),
+		('i', 'interrupted', 'bob', '', 'main', 5, 5, 'i', 's')`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`CREATE TABLE tasks_schema_migrations (version BIGINT PRIMARY KEY, name TEXT NOT NULL, applied_at BIGINT NOT NULL);
@@ -60,6 +61,12 @@ func progressAfterMigration(t *testing.T, url, dir string) {
 		row, err := s.Get(ctx, id)
 		if err != nil || row.Progress() != want || row.Agent != "" || row.Hops != 0 {
 			t.Fatalf("%s: %+v %v", id, row, err)
+		}
+	}
+	// A task's team is the one the workspace column held, and the label once kept as its team is gone.
+	for id, want := range map[string]string{"s": "main", "p": "eng"} {
+		if row, _ := s.Get(ctx, id); row.Team != want {
+			t.Fatalf("%s is in team %q, not %q", id, row.Team, want)
 		}
 	}
 	// A row of the old index is behind a newer one, so a writer that is late with an old state cannot undo it.

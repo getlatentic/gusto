@@ -140,15 +140,15 @@ func TestAComputerWithAnAppPeopleUseIsNotIdle(t *testing.T) {
 	}
 }
 
-// A person's computer in one workspace is not kept awake by an app shared from their computer in another.
-func TestAnAppInOneWorkspaceDoesNotKeepAnotherWorkspacesComputerAwake(t *testing.T) {
+// A person's computer in one team is not kept awake by an app shared from their computer in another.
+func TestAnAppInOneTeamDoesNotKeepAnotherTeamsComputerAwake(t *testing.T) {
 	runner, _, _ := anAppsHost(t, 200)
-	runner.store.New(apps.Sharer{Instance: appsInstance, Owner: "ada@acme.com", Workspace: "engineering"}, "node a.js", 8080, 3)
+	runner.store.New(apps.Sharer{Instance: appsInstance, Owner: "ada@acme.com", Team: "engineering"}, "node a.js", 8080, 3)
 	if !runner.serving("ada@acme.com", "engineering") {
 		t.Error("the app's own computer is not kept awake")
 	}
 	if runner.serving("ada@acme.com", "") || runner.serving("ada@acme.com", "main") {
-		t.Error("an app of another workspace keeps the first workspace's computer awake")
+		t.Error("an app of another team keeps the first team's computer awake")
 	}
 }
 

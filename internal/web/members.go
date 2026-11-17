@@ -6,20 +6,20 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/getlatentic/gusto/internal/workspace"
+	"github.com/getlatentic/gusto/internal/team"
 
 	"github.com/getlatentic/gusto/internal/crew"
 	"github.com/getlatentic/gusto/internal/roster"
 )
 
-// Members is everybody in the workspace, people and agents, in a list beside whichever of them is open, as Kylon shows them. An
+// Members is everybody in the team, people and agents, in a list beside whichever of them is open, as Kylon shows them. An
 // agent is made here once, and from here it is added to rooms or talked to on its own.
 
-// UseCrew is where the workspace's agents are kept.
+// UseCrew is where the team's agents are kept.
 func (s *Server) UseCrew(store *crew.Store) { s.crew = store }
 
 func (s *Server) memberRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /workspace/{id}", s.guard(s.chooseWorkspace))
+	mux.HandleFunc("GET /team/{id}", s.guard(s.chooseTeam))
 	mux.HandleFunc("POST /members/people/{who}/bio", s.guard(s.setPersonBio))
 	mux.HandleFunc("POST /members/agents", s.guard(s.makeAgent))
 	mux.HandleFunc("POST /members/agents/{id}", s.guard(s.changeAgent))
@@ -47,9 +47,9 @@ func (s *Server) listedAgent(member crew.Agent) listedAgent {
 		Engine: s.engineName(member.Harness), Specialty: member.Specialty, Where: "/members/agents/" + member.ID}
 }
 
-// workspacePeople is everybody in the workspace: the organisation's people where it keeps a list of them, and otherwise the
+// teamPeople is everybody in the team: the organisation's people where it keeps a list of them, and otherwise the
 // people the person asking shares a room with, and themselves.
-func (s *Server) workspacePeople(r *http.Request) []listedPerson {
+func (s *Server) teamPeople(r *http.Request) []listedPerson {
 	seen := map[string]listedPerson{}
 	add := func(who, role string) {
 		who = strings.ToLower(strings.TrimSpace(who))
@@ -61,10 +61,10 @@ func (s *Server) workspacePeople(r *http.Request) []listedPerson {
 	for _, member := range s.rosterHere(r) {
 		add(member.Email, roleWord(member.Role))
 	}
-	me, here := s.askerName(r), s.workspaceOf(r)
+	me, here := s.askerName(r), s.teamOf(r)
 	add(me, map[bool]string{true: "Owner", false: "Member"}[me == sharedSignIn])
 	for _, held := range s.instances.RoomsOf(me) {
-		if !workspace.Same(held.Workspace, here) {
+		if !team.Same(held.Team, here) {
 			continue
 		}
 		for _, member := range held.Members {
@@ -79,7 +79,7 @@ func (s *Server) workspacePeople(r *http.Request) []listedPerson {
 	return people
 }
 
-// rosterHere is the people of the organization's roster who are in the workspace the request is in, and nobody where it
+// rosterHere is the people of the organization's roster who are in the team the request is in, and nobody where it
 // keeps no roster.
 func (s *Server) rosterHere(r *http.Request) []roster.Member {
 	if !s.hasRoster() {
@@ -89,7 +89,7 @@ func (s *Server) rosterHere(r *http.Request) []roster.Member {
 	if err != nil {
 		return nil
 	}
-	here, in := s.workspaceOf(r), map[string]bool{}
+	here, in := s.teamOf(r), map[string]bool{}
 	for _, space := range list.Spaces() {
 		for _, member := range space.Members {
 			in[strings.ToLower(member)] = in[strings.ToLower(member)] || space.ID == here
@@ -111,28 +111,28 @@ func roleWord(role string) string {
 	return strings.ToUpper(role[:1]) + role[1:]
 }
 
-// workspaceAgents is each agent kept in the workspace the request is in, made by the person given, or by anybody when none is.
-func (s *Server) workspaceAgents(r *http.Request, madeBy string) []listedAgent {
+// teamAgents is each agent kept in the team the request is in, made by the person given, or by anybody when none is.
+func (s *Server) teamAgents(r *http.Request, madeBy string) []listedAgent {
 	agents := []listedAgent{}
 	if s.crew == nil {
 		return agents
 	}
-	here := s.workspaceOf(r)
+	here := s.teamOf(r)
 	for _, member := range s.crew.List() {
-		if workspace.Same(member.Workspace, here) && (madeBy == "" || member.Owner == madeBy) {
+		if team.Same(member.Team, here) && (madeBy == "" || member.Owner == madeBy) {
 			agents = append(agents, s.listedAgent(member))
 		}
 	}
 	return agents
 }
 
-// crewAgent is the agent the path names, when it is in a workspace the person asking is in.
+// crewAgent is the agent the path names, when it is in a team the person asking is in.
 func (s *Server) crewAgent(r *http.Request) (crew.Agent, bool) {
 	if s.crew == nil {
 		return crew.Agent{}, false
 	}
 	member, found := s.crew.Get(r.PathValue("id"))
-	if !found || !s.inWorkspace(r, member.Workspace) {
+	if !found || !s.inTeam(r, member.Team) {
 		return crew.Agent{}, false
 	}
 	return member, true

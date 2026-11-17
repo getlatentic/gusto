@@ -293,7 +293,7 @@ describe("a project's page", () => {
     expect(screen.queryByTestId("apps")).toBeNull()
   })
 
-  it("lists its checked tasks and runs another with a check, a sensitivity, a team and a cap", async () => {
+  it("lists its checked tasks and runs another with a check, a sensitivity and a cap", async () => {
     draw(
       projectOf({
         Tasks: [
@@ -320,10 +320,10 @@ describe("a project's page", () => {
       .closest("form")!
     expect(run.getAttribute("action")).toBe("/instances/atlas-1/tasks")
     expect(
-      ["brief", "gate", "sensitivity", "team", "usd"].map((name) =>
+      ["brief", "gate", "sensitivity", "usd"].map((name) =>
         Boolean(field(run, name))
       )
-    ).toEqual([true, true, true, true, true])
+    ).toEqual([true, true, true, true])
     expect(field(run, "sensitivity")!.value).toBe("internal")
   })
 

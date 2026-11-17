@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/getlatentic/gusto/internal/workspace"
 	"io"
 	"log/slog"
 	"net/http"
@@ -18,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/team"
 	"github.com/getlatentic/gusto/pkg/gateway"
 )
 
@@ -79,12 +79,12 @@ type signInLock struct {
 
 // pending is a sign-in a person set out on and has not come back from.
 type pending struct {
-	Person, Workspace, Connector string
-	Verifier                     string
-	Client                       Client
-	Server                       Server
-	Redirect                     string
-	Started                      time.Time
+	Person, Team, Connector string
+	Verifier                string
+	Client                  Client
+	Server                  Server
+	Redirect                string
+	Started                 time.Time
 }
 
 // tokens is what an app gave a person, kept sealed.
@@ -198,7 +198,7 @@ func (c *Connectors) Begin(ctx context.Context, person, space string, entry Entr
 	}
 	state, verifier := randomText(), randomText()
 	sum := sha256.Sum256([]byte(verifier))
-	c.remember(state, pending{Person: strings.ToLower(person), Workspace: workspace.Of(space), Connector: entry.ID, Verifier: verifier, Client: client, Server: server,
+	c.remember(state, pending{Person: strings.ToLower(person), Team: team.Of(space), Connector: entry.ID, Verifier: verifier, Client: client, Server: server,
 		Redirect: c.redirect(), Started: c.now()})
 	query := url.Values{
 		"response_type": {"code"}, "client_id": {client.ID}, "redirect_uri": {c.redirect()}, "state": {state},
@@ -219,13 +219,13 @@ func (c *Connectors) Begin(ctx context.Context, person, space string, entry Entr
 }
 
 // Finish takes the code a sign-in came back with, for the person it was begun for, trades it for tokens and keeps them. It says
-// which connector the person is now signed in to, and in which workspace.
+// which connector the person is now signed in to, and in which team.
 func (c *Connectors) Finish(ctx context.Context, person, state, code string) (connector, space string, err error) {
 	begun, found := c.take(state, strings.ToLower(person))
 	if !found {
 		return "", "", errors.New("that sign-in is not one under way here: start it again")
 	}
-	name := tokenName(begun.Person, begun.Workspace, begun.Connector)
+	name := tokenName(begun.Person, begun.Team, begun.Connector)
 	seen := c.disconnectsOf(name)
 	form := url.Values{"grant_type": {"authorization_code"}, "code": {code}, "redirect_uri": {begun.Redirect},
 		"code_verifier": {begun.Verifier}, "resource": {begun.Server.Resource}}
@@ -242,7 +242,7 @@ func (c *Connectors) Finish(ctx context.Context, person, state, code string) (co
 	if held, found, err := c.load(name); err == nil && found {
 		got.ForAgents = held.ForAgents
 	}
-	return begun.Connector, begun.Workspace, c.save(name, got)
+	return begun.Connector, begun.Team, c.save(name, got)
 }
 
 // Token is the person's access token for a connector, refreshed first when it has run out or is about to.
@@ -536,11 +536,11 @@ func (c *Connectors) lock(name string) (unlock func()) {
 	}
 }
 
-// tokenName is where a person's tokens for a connector in a workspace are kept; the address is hashed, so the folder names
-// nobody, and the workspace and the connector's id are hashed too, so no id can name a place outside the folder. A sign-in in
-// the first workspace is kept where sign-ins were kept before workspaces.
+// tokenName is where a person's tokens for a connector in a team are kept; the address is hashed, so the folder names
+// nobody, and the team and the connector's id are hashed too, so no id can name a place outside the folder. A sign-in in
+// the first team is kept where sign-ins were kept before teams.
 func tokenName(person, space, connector string) string {
-	if space = workspace.Of(space); space != workspace.First {
+	if space = team.Of(space); space != team.First {
 		return "tokens/" + hashOf(person) + "/" + hashOf("workspace\x00"+space) + "/" + hashOf(connector) + ".json"
 	}
 	return "tokens/" + hashOf(person) + "/" + hashOf(connector) + ".json"

@@ -15,8 +15,8 @@ export function MembersIndex() {
         {refused && <Notice>{refused}</Notice>}
         <UsersIcon aria-hidden="true" className="size-10 text-faint" />
         <p className="m-0 text-sm text-muted-foreground">
-          Everybody in this workspace, people and agents. Open one to see who
-          they are and what they can do.
+          Everybody in this team, people and agents. Open one to see who they
+          are and what they can do.
         </p>
         {list.Keeps && (
           <Button onClick={() => showMaking(true)}>New agent</Button>

@@ -76,7 +76,7 @@ type Spec struct {
 	// conversation, handed back so it resumes rather than restarts.
 	Session string `json:"session,omitempty"`
 	Thread  string `json:"thread,omitempty"`
-	// Dir is the folder of the working folder the agent works in, from the workspace's root: a turn that was asked to work in one folder
+	// Dir is the folder of the working folder the agent works in, from the team's root: a turn that was asked to work in one folder
 	// of the agent's computer starts there. It is empty for the root.
 	Dir        string `json:"dir,omitempty"`
 	Remembered string `json:"remembered,omitempty"`
@@ -84,13 +84,10 @@ type Spec struct {
 	Agent       string      `json:"agent,omitempty"`
 	Sensitivity Sensitivity `json:"sensitivity"`
 	Budget      Budget      `json:"budget"`
-	// Team is who a task's spend counts against. It is a label the person
-	// asking chooses: nothing proves they belong to the team yet.
-	Team string `json:"team,omitempty"`
 	// Person is who asked for the task, whose own monthly budget it counts against.
 	Person string `json:"person,omitempty"`
-	// Workspace is the workspace of the organization the task is in, and empty for the first. Only its members reach the task.
-	Workspace string `json:"workspace,omitempty"`
+	// Team is the team of the organization the task is in, and empty for the first. Only its members reach the task.
+	Team string `json:"workspace,omitempty"`
 	// Setup is what the agent was configured with beyond its adapter: the
 	// skills it was given and the MCP servers it may call.
 	Setup *Setup `json:"setup,omitempty"`

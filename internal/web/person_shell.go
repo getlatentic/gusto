@@ -13,8 +13,8 @@ type personShell struct {
 	Admin       bool
 	Connections bool
 	Org         *orgLinks
-	Workspace   string
-	Workspaces  *shownWorkspace
+	Team        string
+	Teams       *shownTeam
 }
 
 // orgLinks is the organization a server is for, behind gusto cloud, and where its pages and the person's account are.
@@ -33,7 +33,7 @@ func (s *Server) personShellJSON(w http.ResponseWriter, r *http.Request) {
 func (s *Server) personShellOf(r *http.Request) personShell {
 	shell := personShell{
 		Rail: s.railFor(r, ""), SignedAs: s.signedAs(r), Admin: s.admin(r), Connections: s.hasConnectors(),
-		Workspace: s.workspaceOf(r), Workspaces: s.shownWorkspaces(r),
+		Team: s.teamOf(r), Teams: s.shownTeams(r),
 	}
 	if s.front != nil && s.front.Org != "" {
 		shell.Org = &orgLinks{

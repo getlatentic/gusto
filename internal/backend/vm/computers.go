@@ -24,7 +24,7 @@ func (b *Backend) inComputer(ctx context.Context, turn backend.Turn) (int, error
 	}
 	gw, port := b.cfg.Gateway, turn.Exit.Port
 	modelURL := "http://" + gw.Host + ":" + port + "/model/v1"
-	held, _, err := b.cfg.Computers.EnsureFrom(turn.Person, turn.Spec.Workspace, b.cfg.Node, b.spares.offerFor(gw, modelURL, configured.Adapter))
+	held, _, err := b.cfg.Computers.EnsureFrom(turn.Person, turn.Spec.Team, b.cfg.Node, b.spares.offerFor(gw, modelURL, configured.Adapter))
 	if err != nil {
 		return 0, runner.Refuse(dir, err)
 	}
@@ -184,7 +184,7 @@ func rest(cfg openshell.Config, registry *computer.Registry, use *computerUse, s
 			use.whenIdle(each.ID, func() {
 				failedBeforeStart(registry, each.ID, errors.New("making it did not finish: the server that began it ended first"))
 			})
-		case each.State == computer.Running && !each.LastActive.IsZero() && time.Since(each.LastActive) >= idle && !serving(each.User, each.Workspace):
+		case each.State == computer.Running && !each.LastActive.IsZero() && time.Since(each.LastActive) >= idle && !serving(each.User, each.Team):
 			use.whenIdle(each.ID, func() { stopIfStillIdle(cfg, registry, each, idle) })
 		}
 	}
@@ -193,7 +193,7 @@ func rest(cfg openshell.Config, registry *computer.Registry, use *computerUse, s
 // stopIfStillIdle stops a computer that was idle when the record was read, once nothing is in it. A task may have run and ended
 // since, so the record is read again under the computer's lock.
 func stopIfStillIdle(cfg openshell.Config, registry *computer.Registry, seen computer.Computer, idle time.Duration) {
-	current, err := registry.Of(seen.User, seen.Workspace)
+	current, err := registry.Of(seen.User, seen.Team)
 	if err != nil || current.State != computer.Running || time.Since(current.LastActive) < idle {
 		return
 	}

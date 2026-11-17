@@ -58,8 +58,8 @@ const shell: Shell = {
   Admin: true,
   Connections: false,
   Org: null,
-  Workspace: "",
-  Workspaces: null,
+  Team: "",
+  Teams: null,
 }
 
 function draw(at: string) {

@@ -107,7 +107,7 @@ func (s *Server) enter(w http.ResponseWriter, r *http.Request) {
 			html.EscapeString(s.front.page("/org", nil)) + `">Open your organization again.</a></p>`))
 		return
 	}
-	s.keepWorkspace(w, r, who, r.URL.Query().Get("workspace"))
+	s.keepTeam(w, r, who, r.URL.Query().Get("team"))
 	s.noteSignIn(r, who, role, "gusto cloud")
 	s.afterSignIn(w, r)
 }

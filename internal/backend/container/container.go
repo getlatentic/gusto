@@ -132,7 +132,7 @@ func (b *Backend) run(ctx context.Context, turn backend.Turn, mounts []sandbox.M
 func (b *Backend) owner(turn backend.Turn) sandbox.Owner {
 	owner := sandbox.Owner{Org: b.cfg.Org, Instance: turn.Spec.Session}
 	if turn.Person != "" {
-		owner.Person = computer.ID(b.cfg.Org, turn.Spec.Workspace, turn.Person)
+		owner.Person = computer.ID(b.cfg.Org, turn.Spec.Team, turn.Person)
 	}
 	return owner
 }
@@ -166,13 +166,13 @@ func (b *Backend) homeOf(turn backend.Turn) (id string, kept bool) {
 	if b.homes == nil || turn.Person == "" || turn.InRoom() {
 		return "", false
 	}
-	return computer.ID(b.cfg.Org, turn.Spec.Workspace, turn.Person), true
+	return computer.ID(b.cfg.Org, turn.Spec.Team, turn.Person), true
 }
 
 // KeepsHomes says whether this backend keeps a home for each person.
 func (b *Backend) KeepsHomes() bool { return b.homes != nil }
 
-// HomeUse is how much of its limit a person's kept home in a workspace took when it was last counted, and false when no turn
+// HomeUse is how much of its limit a person's kept home in a team took when it was last counted, and false when no turn
 // of theirs has ended in it yet.
 func (b *Backend) HomeUse(person, space string) (HomeUse, bool) {
 	if b.homes == nil {
@@ -181,7 +181,7 @@ func (b *Backend) HomeUse(person, space string) (HomeUse, bool) {
 	return b.homes.use(computer.ID(b.cfg.Org, space, strings.ToLower(person)))
 }
 
-// ResetHome removes a person's kept home in a workspace, which is how a person whose home is full starts again: no turn can
+// ResetHome removes a person's kept home in a team, which is how a person whose home is full starts again: no turn can
 // clear it while it is. It is refused while a turn of theirs is running in it.
 func (b *Backend) ResetHome(person, space string) error {
 	if b.homes == nil {

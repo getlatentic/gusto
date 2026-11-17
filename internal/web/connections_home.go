@@ -12,7 +12,7 @@ import (
 // connectionsHomePath is where a person resets the home their agents keep between tasks.
 const connectionsHomePath = connectionsPath + "/home/reset"
 
-// KeptHomes is a backend that keeps a home for each person in each workspace, which an agent's tasks reuse and which has a size
+// KeptHomes is a backend that keeps a home for each person in each team, which an agent's tasks reuse and which has a size
 // limit.
 type KeptHomes interface {
 	KeepsHomes() bool
@@ -36,7 +36,7 @@ type connectionsHome struct {
 	At int64
 }
 
-// connectionsHomeOf is the home of the person asking in the workspace they are in, or nil when this server keeps none or the
+// connectionsHomeOf is the home of the person asking in the team they are in, or nil when this server keeps none or the
 // shared sign-in, which is nobody, is asking.
 func (s *Server) connectionsHomeOf(person, space string) *connectionsHome {
 	if !s.hasKeptHomes() || person == "" {
@@ -57,7 +57,7 @@ func (s *Server) resetHome(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	space := s.workspaceOf(r)
+	space := s.teamOf(r)
 	held := s.connectionsHomeOf(who, space)
 	switch err := s.keptHomes.ResetHome(who, space); {
 	case errors.Is(err, container.ErrHomeBusy):

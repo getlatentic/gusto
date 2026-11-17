@@ -2,7 +2,7 @@
 // /app/api/members/agents/{id} and /app/api/members/people/{who} give them. The server builds these in Go (members.go and
 // members_pages.go); the two must stay the same shape.
 
-// ListedPerson is somebody in the workspace. SharedSignIn is the server's one shared sign-in, which has no email address.
+// ListedPerson is somebody in the team. SharedSignIn is the server's one shared sign-in, which has no email address.
 export interface ListedPerson {
   Who: string
   Name: string
@@ -12,7 +12,7 @@ export interface ListedPerson {
   SharedSignIn: boolean
 }
 
-// ListedAgent is an agent of the workspace: Engine is its agent type by name, and Mark that type's logo.
+// ListedAgent is an agent of the team: Engine is its agent type by name, and Mark that type's logo.
 export interface ListedAgent {
   ID: string
   Name: string
@@ -52,10 +52,10 @@ export interface NewAgent {
   Offered: ModelOption[]
 }
 
-// Invite is gusto cloud's form for inviting a person: where it is posted, the workspace they join, and this page, to come back to.
+// Invite is gusto cloud's form for inviting a person: where it is posted, the team they join, and this page, to come back to.
 export interface Invite {
   Action: string
-  Workspace: string
+  Team: string
   Back: string
 }
 
@@ -116,7 +116,7 @@ export interface AgentApps {
 export interface SkillChoice {
   Name: string
   Title: string
-  // Role is one of the ready-made roles, and otherwise a skill set made for the workspace.
+  // Role is one of the ready-made roles, and otherwise a skill set made for the team.
   Role: boolean
 }
 

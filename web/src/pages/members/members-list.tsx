@@ -33,7 +33,7 @@ function keepTab(tab: MemberTab) {
   }
 }
 
-// MembersList is everybody in the workspace, people and agents, with tabs that show everybody, only the people or only the agents.
+// MembersList is everybody in the team, people and agents, with tabs that show everybody, only the people or only the agents.
 // On a narrow window it folds away while somebody is open.
 export function MembersList({
   page,

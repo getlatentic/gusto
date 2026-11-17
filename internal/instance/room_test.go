@@ -47,7 +47,7 @@ func TestARoomKeepsItsMembersAndAlwaysAnAdmin(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := store.AddAgent(room.ID, Agent{Name: "Another", Harness: "codex", Member: "abc"}); err == nil {
-		t.Error("the same workspace agent joined twice")
+		t.Error("the same team agent joined twice")
 	}
 	if _, err := store.AddAgent(room.ID, Agent{Name: "tosin's claude", Harness: "codex"}); err == nil {
 		t.Error("two agents took the same name")

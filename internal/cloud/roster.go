@@ -49,13 +49,13 @@ func (s *Store) writeRoster(ctx context.Context, q dbkit.Querier, slug string) e
 	if err != nil {
 		return err
 	}
-	spaces, err := workspacesOf(ctx, q, slug)
+	spaces, err := teamsOf(ctx, q, slug)
 	if err != nil {
 		return err
 	}
-	list := roster.Roster{Written: s.now().UTC().Truncate(time.Second), Members: []roster.Member{}, Invited: []roster.Invited{}, Workspaces: []roster.Workspace{}}
+	list := roster.Roster{Written: s.now().UTC().Truncate(time.Second), Members: []roster.Member{}, Invited: []roster.Invited{}, Teams: []roster.Team{}}
 	for _, space := range spaces {
-		list.Workspaces = append(list.Workspaces, roster.Workspace{ID: space.ID, Name: space.Name, Members: space.Members})
+		list.Teams = append(list.Teams, roster.Team{ID: space.ID, Name: space.Name, Members: space.Members})
 	}
 	for _, person := range members {
 		list.Members = append(list.Members, roster.Member{

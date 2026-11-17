@@ -35,8 +35,8 @@ type link struct {
 	Org  string `json:"org,omitempty"`
 	Role Role   `json:"role,omitempty"`
 	By   string `json:"by,omitempty"`
-	// Workspace is the one an invited person joins, and empty for the first.
-	Workspace string `json:"workspace,omitempty"`
+	// Team is the one an invited person joins, and empty for the first.
+	Team string `json:"workspace,omitempty"`
 }
 
 // Lives are how long a link works.
@@ -59,14 +59,14 @@ var linkFields = []string{"hash", "email", "purpose", "expires", "org", "role", 
 var insertLink = dbkit.Upsert{Table: "links", Columns: linkFields, Conflict: []string{"hash"}}
 
 func (s *Store) linkArgs(hash string, l link) []any {
-	return []any{hash, l.Email, string(l.Purpose), s.stamp(l.Expires), l.Org, string(l.Role), l.By, l.Workspace}
+	return []any{hash, l.Email, string(l.Purpose), s.stamp(l.Expires), l.Org, string(l.Role), l.By, l.Team}
 }
 
 func scanLink(r rowScanner) (link, error) {
 	var l link
 	var purpose, role string
 	var expires dbkit.Time
-	if err := r.Scan(&l.Email, &purpose, &expires, &l.Org, &role, &l.By, &l.Workspace); err != nil {
+	if err := r.Scan(&l.Email, &purpose, &expires, &l.Org, &role, &l.By, &l.Team); err != nil {
 		return link{}, err
 	}
 	l.Purpose, l.Role, l.Expires = Purpose(purpose), Role(role), expires.Time

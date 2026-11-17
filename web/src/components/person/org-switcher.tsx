@@ -26,13 +26,13 @@ export function OrgSwitcher({ shell }: { shell: PersonShell }) {
   const listed = api.endpoints.cloud.useQuery(org.OrgsFrom, { skip: !asked })
   const orgs = (listed.data as { orgs?: CloudOrg[] } | undefined)?.orgs ?? []
   const lines = orgs.length
-    ? orgLines(orgs, org.Slug, shell.Workspace)
+    ? orgLines(orgs, org.Slug, shell.Team)
     : [
         {
           kind: "place" as const,
           key: org.Slug,
-          text: shell.Workspaces
-            ? `${org.Name} · ${shell.Workspaces.Here.Name}`
+          text: shell.Teams
+            ? `${org.Name} · ${shell.Teams.Here.Name}`
             : org.Name,
           href: "",
           current: true,

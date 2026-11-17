@@ -38,7 +38,7 @@ export interface RailList {
   Older: RailGroup[] | null
 }
 
-export interface Workspace {
+export interface Team {
   ID: string
   Name: string
 }
@@ -56,8 +56,8 @@ export interface PersonShell {
     AccountFrom: string
     ConfirmAgain: string
   } | null
-  Workspace: string
-  Workspaces: { Here: Workspace; Other: Workspace[] | null } | null
+  Team: string
+  Teams: { Here: Team; Other: Team[] | null } | null
 }
 
 export type SideTab = "home" | "recent" | "unread" | "me"

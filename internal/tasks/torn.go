@@ -49,8 +49,8 @@ func rebuild(root string, dir task.Dir) (Record, error) {
 	}
 	asked := Record{
 		ID: filepath.Base(dir.Path()), Brief: spec.Brief, Repo: spec.Repo, Harness: spec.Harness, Model: spec.Model,
-		Instance: spec.Session, Thread: spec.Thread, Agent: spec.Agent, Asked: spec.Person, Team: spec.Team,
-		Workspace: spec.Workspace, Queued: info.ModTime().Unix(), Started: info.ModTime().Unix(),
+		Instance: spec.Session, Thread: spec.Thread, Agent: spec.Agent, Asked: spec.Person,
+		Team: spec.Team, Queued: info.ModTime().Unix(), Started: info.ModTime().Unix(),
 	}
 	return ended(asked, root), nil
 }

@@ -64,7 +64,7 @@ func TestARoomSaysWhoseEachAgentIs(t *testing.T) {
 			t.Errorf("%s may mention Atlas as %+v", view.who, atlas)
 		}
 		if relic := mentions["Relic"]; relic.Role != "Fixture" || relic.Owner != "" || !relic.Agent {
-			t.Errorf("%s's view gives an owner to an agent the workspace does not keep: %+v", view.who, relic)
+			t.Errorf("%s's view gives an owner to an agent the team does not keep: %+v", view.who, relic)
 		}
 	}
 }

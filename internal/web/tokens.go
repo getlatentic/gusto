@@ -101,7 +101,7 @@ func (s *Server) makeToken(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	token, secret, err := s.tokens.CreateIn(r.FormValue("name"), r.Form["scope"], s.keeper.who(r), s.workspaceOf(r))
+	token, secret, err := s.tokens.CreateIn(r.FormValue("name"), r.Form["scope"], s.keeper.who(r), s.teamOf(r))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

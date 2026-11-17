@@ -20,7 +20,7 @@ func (s *Server) invite(w http.ResponseWriter, r *http.Request, person Person) {
 		return
 	}
 	address := r.PostFormValue("email")
-	secret, err := s.Store.InviteTo(r.Context(), person.Org, person, address, r.PostFormValue("workspace"))
+	secret, err := s.Store.InviteTo(r.Context(), person.Org, person, address, r.PostFormValue("team"))
 	if err != nil {
 		s.drawOrg(r.Context(), w, refusedStatus(err), person, sentence(err))
 		return
@@ -172,7 +172,7 @@ func (s *Server) acceptInvitation(w http.ResponseWriter, r *http.Request) {
 // sentence is what a person is told of a refusal we made, and nothing of one we did not.
 func sentence(err error) string {
 	for _, known := range []error{ErrBadEmail, ErrDisposable, ErrNoInvites, ErrLapsed, ErrFull, ErrCannotInvite, ErrNotAdmin, ErrLastAdmin, ErrNoMember, ErrBadRole, ErrLink,
-		ErrNoWorkspace, ErrManyWorkspaces, ErrWorkspaceName, ErrLastWorkspace, ErrInWorkspace, ErrNotInWorkspace} {
+		ErrNoTeam, ErrManyTeams, ErrTeamName, ErrLastTeam, ErrInTeam, ErrNotInTeam} {
 		if errors.Is(err, known) {
 			return refusalSentence(known)
 		}
@@ -186,10 +186,10 @@ func refusedStatus(err error) int {
 	case errors.Is(err, ErrNotAdmin):
 		return http.StatusForbidden
 	case errors.Is(err, ErrFull), errors.Is(err, ErrNoInvites), errors.Is(err, ErrLapsed), errors.Is(err, ErrCannotInvite), errors.Is(err, ErrLastAdmin),
-		errors.Is(err, ErrManyWorkspaces), errors.Is(err, ErrLastWorkspace), errors.Is(err, ErrInWorkspace):
+		errors.Is(err, ErrManyTeams), errors.Is(err, ErrLastTeam), errors.Is(err, ErrInTeam):
 		return http.StatusConflict
 	case errors.Is(err, ErrBadEmail), errors.Is(err, ErrDisposable), errors.Is(err, ErrNoMember), errors.Is(err, ErrBadRole),
-		errors.Is(err, ErrNoWorkspace), errors.Is(err, ErrWorkspaceName), errors.Is(err, ErrNotInWorkspace):
+		errors.Is(err, ErrNoTeam), errors.Is(err, ErrTeamName), errors.Is(err, ErrNotInTeam):
 		return http.StatusUnprocessableEntity
 	}
 	return http.StatusInternalServerError

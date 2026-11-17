@@ -50,7 +50,7 @@ func (s *Server) placeOf(r *http.Request) (shownFolders, bool) {
 		return s.topFolders(r), true
 	}
 	held, found := s.instances.Get(id)
-	if !found || !s.inWorkspace(r, held.Workspace) || !(s.mayUse(r, held.Who) || s.inRoom(r, held)) {
+	if !found || !s.inTeam(r, held.Team) || !(s.mayUse(r, held.Who) || s.inRoom(r, held)) {
 		return shownFolders{}, false
 	}
 	here, ok := s.agentFolderDir(id, dir)

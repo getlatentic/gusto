@@ -36,7 +36,7 @@ func TestWhoMadeATurnIsTheInstanceAndThreadAndWhoMadeATaskIsTheTaskItself(t *tes
 		t.Errorf("a turn was %+v", turn)
 	}
 	lone, _ := here.server.UsageWho("lone-task")
-	if lone != (usage.Who{Session: "lone-task", Person: "token:ci", Engine: here.server.engineName("fixture")}) {
+	if lone != (usage.Who{Session: "lone-task", Person: "token:ci", Team: "main", Engine: here.server.engineName("fixture")}) {
 		t.Errorf("a task in no conversation was %+v", lone)
 	}
 	if _, found := here.server.UsageWho("no-such-task"); found {

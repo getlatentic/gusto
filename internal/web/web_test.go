@@ -31,7 +31,7 @@ type site struct {
 	handler http.Handler
 	index   *tasks.Index
 	cookie  *http.Cookie
-	// extra is the cookies besides the session's that the browser sends, such as the workspace it chose.
+	// extra is the cookies besides the session's that the browser sends, such as the team it chose.
 	extra []*http.Cookie
 	ran   chan string
 }
@@ -343,7 +343,7 @@ func TestTwoThreadsOnOneInstanceAreSeparateConversations(t *testing.T) {
 	}
 }
 
-// The workspace's agents are its members, so every page names the way to the members. The members page's way on to the roles and
+// The team's agents are its members, so every page names the way to the members. The members page's way on to the roles and
 // presets is checked with that page, in web/src/pages/members, and the app's own rail in web/src/components/person.
 func TestEveryPageOffersTheWayToTheMembers(t *testing.T) {
 	site := open(t)

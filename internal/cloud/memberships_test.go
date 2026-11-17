@@ -286,9 +286,9 @@ func TestTheSwitcherListsAPersonsOrganizationsToTheirOrganizationsPagesOnly(t *t
 		}
 		want := []switchable{
 			{Name: "Acme", Slug: "acme-com", Open: "http://cloud.test/open?org=acme-com",
-				Workspaces: []switchSpace{{ID: "main", Name: "Acme", Open: "http://cloud.test/open?org=acme-com&workspace=main"}}},
+				Teams: []switchSpace{{ID: "main", Name: "Acme", Open: "http://cloud.test/open?org=acme-com&team=main"}}},
 			{Name: "Globex", Slug: "globex-com", Open: "http://cloud.test/open?org=globex-com",
-				Workspaces: []switchSpace{{ID: "main", Name: "Globex", Open: "http://cloud.test/open?org=globex-com&workspace=main"}}},
+				Teams: []switchSpace{{ID: "main", Name: "Globex", Open: "http://cloud.test/open?org=globex-com&team=main"}}},
 		}
 		if !reflect.DeepEqual(answer.Orgs, want) {
 			t.Errorf("their own organizations, each opened through gusto cloud: %+v", answer.Orgs)

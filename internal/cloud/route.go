@@ -14,8 +14,8 @@ import (
 
 	"github.com/getlatentic/gusto/internal/apps"
 	"github.com/getlatentic/gusto/internal/entry"
+	"github.com/getlatentic/gusto/internal/team"
 	"github.com/getlatentic/gusto/internal/web"
-	"github.com/getlatentic/gusto/internal/workspace"
 )
 
 // provision starts an organization's server, without making the person wait for it.
@@ -241,8 +241,8 @@ func (s *Server) open(w http.ResponseWriter, r *http.Request, person Person) {
 	if err := s.Store.RecordSignIn(r.Context(), person.Email, person.Org); err != nil {
 		slog.Error("a sign-in to an organization was not recorded", "org", person.Org, "error", err)
 	}
-	if space := r.URL.Query().Get("workspace"); workspace.Valid(space) == nil {
-		into.Set("workspace", space)
+	if space := r.URL.Query().Get("team"); team.Valid(space) == nil {
+		into.Set("team", space)
 	}
 	http.Redirect(w, r, s.orgURL(person.Org)+"/auth/entry?"+into.Encode(), http.StatusSeeOther)
 }

@@ -8,31 +8,31 @@ import (
 	"github.com/getlatentic/gusto/internal/quota"
 )
 
-func TestAPersonHasAComputerInEachWorkspaceAndTheFirstKeepsItsName(t *testing.T) {
+func TestAPersonHasAComputerInEachTeamAndTheFirstKeepsItsName(t *testing.T) {
 	r := open(t, "acme")
 	first, _, err := r.Ensure("ada@acme.com", "", "cell-1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if first.ID != digest("acme\x00ada@acme.com") || first.Workspace != "" || first.Sandbox != Name("acme", "main", "ada@acme.com") {
-		t.Fatalf("the first workspace's computer is %+v, not the name it had before workspaces", first)
+	if first.ID != digest("acme\x00ada@acme.com") || first.Team != "" || first.Sandbox != Name("acme", "main", "ada@acme.com") {
+		t.Fatalf("the first team's computer is %+v, not the name it had before teams", first)
 	}
 	business, made, err := r.Ensure("ada@acme.com", "business", "cell-1")
 	if err != nil || !made {
-		t.Fatalf("a second workspace made no computer of its own: made %v, %v", made, err)
+		t.Fatalf("a second team made no computer of its own: made %v, %v", made, err)
 	}
-	if business.ID == first.ID || business.Sandbox == first.Sandbox || business.Workspace != "business" || !strings.HasPrefix(business.Sandbox, Prefix("acme")) || len(business.Sandbox) > 19 {
+	if business.ID == first.ID || business.Sandbox == first.Sandbox || business.Team != "business" || !strings.HasPrefix(business.Sandbox, Prefix("acme")) || len(business.Sandbox) > 19 {
 		t.Fatalf("the business computer %+v is not its own, in the organization", business)
 	}
 	if got, err := r.Of("ada@acme.com", "business"); err != nil || got.ID != business.ID {
 		t.Fatalf("asking for the business computer found %+v, %v", got, err)
 	}
 	if _, err := r.Of("ada@acme.com", "engineering"); err != ErrNone {
-		t.Fatalf("a workspace the person has no computer in found one: %v", err)
+		t.Fatalf("a team the person has no computer in found one: %v", err)
 	}
 }
 
-func TestLeavingAWorkspaceRetiresOnlyItsComputerAndLeavingTheOrganizationRetiresAll(t *testing.T) {
+func TestLeavingATeamRetiresOnlyItsComputerAndLeavingTheOrganizationRetiresAll(t *testing.T) {
 	r := open(t, "acme")
 	first, _, _ := r.Ensure("ada@acme.com", "", "cell-1")
 	business, _, _ := r.Ensure("ada@acme.com", "business", "cell-1")
@@ -51,13 +51,13 @@ func TestLeavingAWorkspaceRetiresOnlyItsComputerAndLeavingTheOrganizationRetires
 	}
 }
 
-func TestEveryWorkspacesComputersCountAgainstTheOrganizationsQuota(t *testing.T) {
+func TestEveryTeamsComputersCountAgainstTheOrganizationsQuota(t *testing.T) {
 	r := open(t, "acme")
 	limited(t, r, quota.Quota{Computers: 2})
 	r.Ensure("ada@acme.com", "", "cell-1")
 	r.Ensure("ada@acme.com", "business", "cell-1")
 	if _, _, err := r.Ensure("ada@acme.com", "engineering", "cell-1"); err == nil {
-		t.Fatal("a third computer was made past an organization's quota of two, because it was in another workspace")
+		t.Fatal("a third computer was made past an organization's quota of two, because it was in another team")
 	}
 }
 
@@ -103,6 +103,6 @@ func TestLeavingMarksAHomeThatHasNoRecordAndNotOneThatWasRemoved(t *testing.T) {
 		t.Fatal(err)
 	}
 	if marked(r, gone.ID) || !marked(r, ID("acme", "engineering", "ada@acme.com")) {
-		t.Error("leaving the organization marks the homes of the workspaces the person was in, except a removed computer's")
+		t.Error("leaving the organization marks the homes of the teams the person was in, except a removed computer's")
 	}
 }

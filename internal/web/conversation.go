@@ -327,7 +327,7 @@ func (s *Server) startTurn(asked string, held instance.Instance, thread instance
 		ID: id, State: tasks.Queued,
 		Brief: brief, Repo: held.Repo, Harness: held.Harness, Model: held.Model,
 		Instance: held.ID, Thread: thread.ID,
-		Asked: asked, Key: key, Team: spec.Team, Queued: tasks.Now(),
+		Asked: asked, Key: key, Queued: tasks.Now(),
 	}
 	if err := s.place(spec, record); err != nil {
 		return tasks.Record{}, false, err

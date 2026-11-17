@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getlatentic/gusto/internal/team"
 	"github.com/getlatentic/gusto/pkg/task"
 )
 
@@ -91,7 +92,7 @@ func dated(path string) ([]Call, error) {
 // A task's project is the repository it worked in: the one thing every task
 // already names that a platform lead would group spend by.
 func TermsOf(spec task.Spec) Terms {
-	terms := Terms{Team: spec.Team, Project: spec.Repo, Harness: spec.Harness, CapUSD: spec.Budget.USD, Person: strings.ToLower(spec.Person)}
+	terms := Terms{Team: team.Of(spec.Team), Project: spec.Repo, Harness: spec.Harness, CapUSD: spec.Budget.USD, Person: strings.ToLower(spec.Person)}
 	if spec.Session != "" && spec.Agent != "" {
 		terms.Allowance, terms.AllowanceUSD = AllowanceOf(spec.Session, spec.Agent), spec.Budget.MonthUSD
 	}

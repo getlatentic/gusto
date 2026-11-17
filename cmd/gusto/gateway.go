@@ -14,6 +14,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/sandbox"
 	"github.com/getlatentic/gusto/internal/setup"
+	"github.com/getlatentic/gusto/internal/team"
 	tools "github.com/getlatentic/gusto/pkg/gateway"
 	"github.com/getlatentic/gusto/pkg/redact"
 	"github.com/getlatentic/gusto/pkg/task"
@@ -112,11 +113,11 @@ func (g *gateways) open(id string) (*tools.Session, bool) {
 			servers = append(servers, server)
 		}
 	}
-	caller := tools.Caller{Task: id, Team: spec.Team, Person: askerOf(dir)}
-	// An app is called with the sign-in the person who asked for the task made in its workspace, whatever the file says.
+	caller := tools.Caller{Task: id, Team: team.Of(spec.Team), Person: askerOf(dir)}
+	// An app is called with the sign-in the person who asked for the task made in its team, whatever the file says.
 	for i := range servers {
 		if servers[i].Connector != "" {
-			servers[i].Person, servers[i].Workspace = caller.Person, spec.Workspace
+			servers[i].Person, servers[i].Team = caller.Person, spec.Team
 		}
 	}
 	return tools.New(tools.Config{

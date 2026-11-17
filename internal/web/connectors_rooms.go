@@ -53,7 +53,7 @@ func (s *Server) roomAppsLine(record tasks.Record, spec task.Spec) string {
 // reconnectNote tells a room's agent whether anything of the asker's needs connecting again: only a sign-in that no longer
 // works does, and the rest is connected.
 func (s *Server) reconnectNote(record tasks.Record, asker string) string {
-	views, err := s.connectorViews(record.Asked, record.Workspace)
+	views, err := s.connectorViews(record.Asked, record.Team)
 	if err != nil {
 		return ""
 	}
@@ -72,7 +72,7 @@ func (s *Server) reconnectNote(record tasks.Record, asker string) string {
 
 // withheldApps is the name of each app the asker connected that an admin turned on and that this turn was not given.
 func (s *Server) withheldApps(record tasks.Record, given []string) []string {
-	views, err := s.connectorViews(record.Asked, record.Workspace)
+	views, err := s.connectorViews(record.Asked, record.Team)
 	if err != nil {
 		return nil
 	}

@@ -12,7 +12,7 @@ import (
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/setup"
 	"github.com/getlatentic/gusto/internal/tasks"
-	"github.com/getlatentic/gusto/internal/workspace"
+	"github.com/getlatentic/gusto/internal/team"
 )
 
 // templateView is a template as its page shows it: what it is for, the skills it brings with their instructions drawn from their
@@ -134,7 +134,7 @@ func (s *Server) startTemplate(w http.ResponseWriter, r *http.Request) {
 	wanted := instance.Instance{
 		Title:   held.Title,
 		Harness: chosen, Model: first(s.offeredTo(r)), Setup: held.Name,
-		Sensitivity: string(held.Sensitivity), Who: s.keeper.who(r), Workspace: workspace.Stored(s.workspaceOf(r)),
+		Sensitivity: string(held.Sensitivity), Who: s.keeper.who(r), Team: team.Stored(s.teamOf(r)),
 	}
 	started, err := s.instances.Start(tasks.Name(held.Name, time.Now()), wanted)
 	if err != nil {

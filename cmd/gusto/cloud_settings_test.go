@@ -35,7 +35,7 @@ func TestCloudsSettingsReadAsTheirTypesAndAWrongOneIsSaid(t *testing.T) {
 		t.Errorf("the settings read as %+v", cfg)
 	}
 	if cfg.signup.limits().Paid.Computers != cfg.signup.paidMembers {
-		t.Error("a paying organization's workspaces are as many as its people")
+		t.Error("a paying organization's computers are as many as its people")
 	}
 	wrong := map[string]string{
 		"GUSTO_CLOUD_DEMO_MAX": "five", "GUSTO_CLOUD_FREE_MAIL": "yes", "GUSTO_CLOUD_SERVERS": "no",

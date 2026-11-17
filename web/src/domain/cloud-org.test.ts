@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { currentStep, memberActions, showsWorkspaces } from "@/domain/cloud-org"
+import { currentStep, memberActions, showsTeams } from "@/domain/cloud-org"
 
 const admin = { IsAdmin: true, Admins: 1, Person: { Email: "ada@acme.com" } }
 
@@ -28,8 +28,8 @@ describe("what an organization's page offers", () => {
     expect(
       memberActions({ Email: "bob@acme.com", Role: "runner" }, runner)
     ).toEqual({ makeRunner: false, makeAdmin: false, remove: false })
-    expect(showsWorkspaces(runner, 1)).toBe(false)
-    expect(showsWorkspaces(runner, 2)).toBe(true)
+    expect(showsTeams(runner, 1)).toBe(false)
+    expect(showsTeams(runner, 2)).toBe(true)
   })
 
   it("names the stage a demo is at while it is made ready", () => {

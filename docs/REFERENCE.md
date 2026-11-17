@@ -100,7 +100,7 @@ gusto compare /tmp/fix-compare-1         # prints it again from the record
 
 ## Task directory
 
-`job.json` holds version, brief, repo, check, agent, model, sensitivity, budget and team. `harnesses/` holds an agent of your own. `workspace/` is the checkout. `out/` holds the record:
+`job.json` holds version, brief, repo, check, agent, model, sensitivity, budget and the team the task is in (`workspace`). `harnesses/` holds an agent of your own. `workspace/` is the checkout. `out/` holds the record:
 
 | File in `out/` | Holds |
 | --- | --- |
@@ -202,7 +202,7 @@ The proxy counts each call from the provider's `usage` object (`prompt_tokens`, 
 ```json
 {
   "prices": { "some-model": { "inputPerMillion": 2.5, "outputPerMillion": 10 } },
-  "teams": { "platform": { "usdPerMonth": 200 } }
+  "teams": { "engineering": { "usdPerMonth": 200 } }
 }
 ```
 
@@ -210,7 +210,7 @@ A field this build does not know stops the server, because a misspelt cap would 
 
 - A task's cap is `budget.usd` in `job.json`. Left out is no cap. Zero allows nothing.
 - `organisation` sets a monthly cap on the whole server, on the operator's keys only: a call on a key an organization's admin added is not counted or stopped by it. A hosted organization's one-time credit is its quota's `creditUsd` instead ([CLOUD.md](CLOUD.md#free-credit)).
-- A team's cap is per calendar month in UTC. A task counts against its `team` field, a label the person asking chooses. The cap holds against mistakes, not against a determined spender.
+- A team's cap is per calendar month in UTC, named by the team's id, such as `main` or `engineering`. A task counts against the team it is in, and a person sends a task only into a team they are in.
 - The proxy checks both before each call. When one is spent it answers `402` with the reason. A call in flight finishes.
 - Under a cap, a model with no price is refused. A successful answer with no usage stops the next call.
 - The agent is not killed. It loses the model, and the time budget ends it. The manifest records `stoppedByCap`, and `gusto show` names the cap.

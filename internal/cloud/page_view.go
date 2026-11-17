@@ -31,13 +31,13 @@ type pageView struct {
 	Server    string
 	CanOpen   bool
 
-	Members    []memberView
-	Invited    []string
-	Admins     int
-	IsAdmin    bool
-	CanInvite  bool
-	Workspaces []spaceView
-	Link       string
+	Members   []memberView
+	Invited   []string
+	Admins    int
+	IsAdmin   bool
+	CanInvite bool
+	Teams     []spaceView
+	Link      string
 
 	DemoLeft, DemoLeftLong         string
 	DemoWords                      string
@@ -114,7 +114,7 @@ func pageOf(name string, v view) pageView {
 	return page
 }
 
-// addPeople is the organizations, people, invitations and workspaces a page shows.
+// addPeople is the organizations, people, invitations and teams a page shows.
 func (page *pageView) addPeople(v view) {
 	if v.Org.Slug != "" || v.Org.Name != "" {
 		org := orgOf(v.Org)
@@ -129,8 +129,8 @@ func (page *pageView) addPeople(v view) {
 	for _, invited := range v.Invited {
 		page.Invited = append(page.Invited, invited.Email)
 	}
-	for _, row := range v.Workspaces {
-		page.Workspaces = append(page.Workspaces, spaceView{ID: row.ID, Name: row.Name, People: row.People, Others: row.Others})
+	for _, row := range v.Teams {
+		page.Teams = append(page.Teams, spaceView{ID: row.ID, Name: row.Name, People: row.People, Others: row.Others})
 	}
 }
 

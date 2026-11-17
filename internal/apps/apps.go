@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/getlatentic/gusto/internal/workspace"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -18,6 +17,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/team"
 )
 
 // State is what an app is doing.
@@ -56,11 +57,11 @@ var ErrTooMany = errors.New("the agent already shares as many apps as it may")
 type App struct {
 	ID       string `json:"id"`
 	Instance string `json:"instance"`
-	// Owner is the person whose agent and folder it is, and Workspace the workspace of their computer it runs on, empty for the first.
-	Owner     string `json:"owner"`
-	Workspace string `json:"workspace,omitempty"`
-	Command   string `json:"command"`
-	Port      int    `json:"port"`
+	// Owner is the person whose agent and folder it is, and Team the team of their computer it runs on, empty for the first.
+	Owner   string `json:"owner"`
+	Team    string `json:"workspace,omitempty"`
+	Command string `json:"command"`
+	Port    int    `json:"port"`
 	// Folder, for a page, is the folder of the agent's own that this server serves as it is, with no command run for it.
 	Folder  string `json:"folder,omitempty"`
 	Sandbox string `json:"sandbox,omitempty"`
@@ -102,11 +103,11 @@ func Valid(id string) bool {
 	return err == nil
 }
 
-// Sharer is whose agent an app is shared from: its instance, the person whose agent it is, and the workspace it is in.
-type Sharer struct{ Instance, Owner, Workspace string }
+// Sharer is whose agent an app is shared from: its instance, the person whose agent it is, and the team it is in.
+type Sharer struct{ Instance, Owner, Team string }
 
 func (who Sharer) app() App {
-	return App{Instance: who.Instance, Owner: strings.ToLower(who.Owner), Workspace: workspace.Stored(who.Workspace)}
+	return App{Instance: who.Instance, Owner: strings.ToLower(who.Owner), Team: team.Stored(who.Team)}
 }
 
 // New makes an app that is starting, when its agent has fewer than most starting or live.

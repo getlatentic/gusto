@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/atomicfile"
-	"github.com/getlatentic/gusto/internal/workspace"
+	"github.com/getlatentic/gusto/internal/team"
 )
 
 // Member is a person in the organization. Role is "admin" or "runner".
@@ -34,8 +34,8 @@ type Invited struct {
 	Expires time.Time `json:"expires"`
 }
 
-// Workspace is a team's space in the organization, and the addresses of the people in it.
-type Workspace struct {
+// Team is one of the organization's teams, and the addresses of the people in it.
+type Team struct {
 	ID      string   `json:"id"`
 	Name    string   `json:"name"`
 	Members []string `json:"members"`
@@ -43,27 +43,27 @@ type Workspace struct {
 
 // Roster is the whole list, and when gusto cloud wrote it.
 type Roster struct {
-	Written    time.Time   `json:"written"`
-	Members    []Member    `json:"members"`
-	Invited    []Invited   `json:"invited"`
-	Workspaces []Workspace `json:"workspaces,omitempty"`
+	Written time.Time `json:"written"`
+	Members []Member  `json:"members"`
+	Invited []Invited `json:"invited"`
+	Teams   []Team    `json:"workspaces,omitempty"`
 }
 
-// Spaces is the organization's workspaces. A roster that names none has the first, with everybody in it.
-func (r Roster) Spaces() []Workspace {
-	if len(r.Workspaces) > 0 {
-		return r.Workspaces
+// Spaces is the organization's teams. A roster that names none has the first, with everybody in it.
+func (r Roster) Spaces() []Team {
+	if len(r.Teams) > 0 {
+		return r.Teams
 	}
-	first := Workspace{ID: workspace.First, Members: make([]string, 0, len(r.Members))}
+	first := Team{ID: team.First, Members: make([]string, 0, len(r.Members))}
 	for _, member := range r.Members {
 		first.Members = append(first.Members, member.Email)
 	}
-	return []Workspace{first}
+	return []Team{first}
 }
 
-// SpacesOf is the workspaces a person is in, in the roster's order.
-func (r Roster) SpacesOf(email string) []Workspace {
-	var in []Workspace
+// SpacesOf is the teams a person is in, in the roster's order.
+func (r Roster) SpacesOf(email string) []Team {
+	var in []Team
 	for _, space := range r.Spaces() {
 		if slices.ContainsFunc(space.Members, func(member string) bool { return strings.EqualFold(member, email) }) {
 			in = append(in, space)

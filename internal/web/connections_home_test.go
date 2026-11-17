@@ -11,7 +11,7 @@ import (
 	"github.com/getlatentic/gusto/internal/changelog"
 )
 
-// connectionsHomes is a backend's kept homes, one for each person and workspace, that keeps what it was asked.
+// connectionsHomes is a backend's kept homes, one for each person and team, that keeps what it was asked.
 type connectionsHomes struct {
 	mu     sync.Mutex
 	uses   map[string]container.HomeUse
@@ -40,7 +40,7 @@ func (h *connectionsHomes) ResetHome(person, space string) error {
 }
 
 // A person sees how much of its limit their home takes, is told when it is full, and resets it themselves: only theirs, only in
-// the workspace they are in, and not while their agents work in it.
+// the team they are in, and not while their agents work in it.
 func TestAPersonSeesTheirHomeTakesAndResetsIt(t *testing.T) {
 	here, log, _ := connected(t)
 	homes := &connectionsHomes{uses: map[string]container.HomeUse{

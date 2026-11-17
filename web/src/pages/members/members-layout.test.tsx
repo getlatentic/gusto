@@ -16,7 +16,7 @@ const field = (form: Element, name: string) =>
 beforeEach(() => localStorage.clear())
 
 describe("the members list", () => {
-  it("lists the workspace's people and agents, each linking to their page, and the way to the roles and presets", async () => {
+  it("lists the team's people and agents, each linking to their page, and the way to the roles and presets", async () => {
     draw(membersOf())
     const list = await screen.findByRole("navigation", { name: "Members" })
     const rows = within(list).getAllByTestId("member-row")
@@ -179,11 +179,11 @@ describe("the new agent dialog", () => {
 describe("inviting a person", () => {
   const invite = {
     Action: "https://cloud.test/org/invite?org=acme-com",
-    Workspace: "main",
+    Team: "main",
     Back: "http://gusto.test/members",
   }
 
-  it("posts to gusto cloud's form from the + menu, naming the workspace and this page", async () => {
+  it("posts to gusto cloud's form from the + menu, naming the team and this page", async () => {
     draw(membersOf((page) => (page.Invite = invite)))
     fireEvent.click(await screen.findByRole("button", { name: "Add a member" }))
     fireEvent.click(
@@ -193,7 +193,7 @@ describe("inviting a person", () => {
       "invite-form"
     )
     expect(form.getAttribute("action")).toBe(invite.Action)
-    expect(field(form, "workspace")?.value).toBe("main")
+    expect(field(form, "team")?.value).toBe("main")
     expect(field(form, "back")?.value).toBe(invite.Back)
     expect(field(form, "email")?.type).toBe("email")
     expect(field(form, "email")?.required).toBe(true)
