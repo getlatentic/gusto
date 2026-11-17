@@ -1,11 +1,13 @@
 package cloud
 
 import (
+	"cmp"
 	"embed"
 	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +28,9 @@ type Config struct {
 	// organizations are served under, as <slug>.<domain>, when they are not at paths.
 	URL    *url.URL
 	Domain string
+	// AppsDomain is the domain shared apps are served under, as <slug>--<app>.<domain>, and Domain when it is not set. A
+	// domain of their own keeps an app's pages from setting a cookie that gusto's own pages are sent.
+	AppsDomain string
 	// OrgPaths says organizations are reached at /workspace/<slug> on URL's own name, and not at host names of their own.
 	OrgPaths bool
 	// TrustProxy says the address of a request is the last one a proxy in front
@@ -92,6 +97,7 @@ func New(c Config) (*Server, error) {
 	if c.Metrics == nil {
 		c.Metrics = NewMetrics()
 	}
+	c.AppsDomain = cmp.Or(c.AppsDomain, c.Domain)
 	if c.Controller != nil && c.Controller.Metrics == nil {
 		c.Controller.Metrics = c.Metrics
 		c.Metrics.watch(c.Controller)
@@ -323,12 +329,15 @@ var sentFromOrgs = map[string]bool{"/account/confirm": true, "/org/people/role":
 // orgsSource is every organization's and app's address, for the content security policy: signing in, signing up and
 // joining are forms whose redirects end in one, and a browser checks each redirect of a form against form-action.
 func (s *Server) orgsSource() string {
-	if s.Domain == "" {
-		return ""
-	}
-	source := " " + s.URL.Scheme + "://*." + s.Domain
-	if port := s.URL.Port(); port != "" {
-		source += ":" + port
+	source := ""
+	for _, domain := range slices.Compact([]string{s.Domain, s.AppsDomain}) {
+		if domain == "" {
+			continue
+		}
+		source += " " + s.URL.Scheme + "://*." + domain
+		if port := s.URL.Port(); port != "" {
+			source += ":" + port
+		}
 	}
 	return source
 }

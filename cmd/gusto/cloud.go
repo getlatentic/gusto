@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -226,7 +227,7 @@ func frontOf(ctx context.Context, store *cloud.Store, public *url.URL, stripe *c
 	}
 	front, err := cloud.New(cloud.Config{
 		Lease: f.lease(), Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
-		Domain: f.domain, OrgPaths: f.orgsAt == "path", TrustProxy: f.trustProxy, Notify: cfg.demo.notify,
+		Domain: f.domain, AppsDomain: f.appsDomain, OrgPaths: f.orgsAt == "path", TrustProxy: f.trustProxy, Notify: cfg.demo.notify,
 		Leads:      &cloud.LeadHook{URL: f.leadHookURL, Secret: f.leadHookSecret, Dir: filepath.Join(cfg.records.root, "leadhook")},
 		Turnstile:  cloud.Turnstile{Site: f.turnstileSite, Secret: f.turnstileSecret},
 		Google:     google,
@@ -280,7 +281,7 @@ func organizationServers(store *cloud.Store, public *url.URL, cfg cloudSettings)
 	local := &cloud.LocalNode{}
 	controller := &cloud.Controller{
 		Store: store, Node: local, Command: []string{exe, "serve"}, Env: env, DemoEnv: demoEnv,
-		CloudURL: public.Scheme + "://" + public.Host, PortFrom: cfg.servers.portFrom,
+		CloudURL: public.Scheme + "://" + public.Host, AppsURL: cloud.AppsAddress(public, cmp.Or(cfg.front.appsDomain, cfg.front.domain)), PortFrom: cfg.servers.portFrom,
 		Wait: time.Duration(cfg.servers.startWaitSeconds) * time.Second, Concurrent: cfg.signup.concurrent, IndexDir: indexDir,
 	}
 	pool, err := nodePool(cfg.nodes, local)

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -349,7 +350,7 @@ func (s *Server) appLink(app apps.App) string {
 	if s.front == nil {
 		return "/apps/" + app.ID + "/"
 	}
-	parsed, err := url.Parse(s.front.URL)
+	parsed, err := url.Parse(cmp.Or(s.front.Apps, s.front.URL))
 	if err != nil {
 		return "/apps/" + app.ID + "/"
 	}

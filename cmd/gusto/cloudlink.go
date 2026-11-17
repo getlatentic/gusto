@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"errors"
 	"net/url"
 	"os"
@@ -24,11 +25,24 @@ func cloudOf(access accessSettings, org string) (*web.Cloud, error) {
 	if err != nil {
 		return nil, err
 	}
-	parsed, err := url.Parse(access.cloudURL)
-	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
-		return nil, errors.New("GUSTO_CLOUD_URL is gusto cloud's address, as https://cloud.example.com")
+	cloud, err := origin(access.cloudURL, "GUSTO_CLOUD_URL is gusto cloud's address, as https://cloud.example.com")
+	if err != nil {
+		return nil, err
 	}
-	return &web.Cloud{Key: key, Org: org, Name: access.orgName, URL: parsed.Scheme + "://" + parsed.Host}, nil
+	apps, err := origin(cmp.Or(access.appsURL, access.cloudURL), "GUSTO_APPS_URL is where gusto cloud serves shared apps, as https://example-apps.com")
+	if err != nil {
+		return nil, err
+	}
+	return &web.Cloud{Key: key, Org: org, Name: access.orgName, URL: cloud, Apps: apps}, nil
+}
+
+// origin is the scheme and host of an http or https address, or the error that says what the address should be.
+func origin(address, want string) (string, error) {
+	parsed, err := url.Parse(address)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
+		return "", errors.New(want)
+	}
+	return parsed.Scheme + "://" + parsed.Host, nil
 }
 
 // setOf is how many of values say something.

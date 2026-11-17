@@ -61,6 +61,23 @@ The counts are kept in the database, so gusto cloud servers that share it share 
 
 gusto cloud's pages allow a form to end at any address under its domain (`form-action`), because sign-in, sign-up and joining redirect into an organization's server.
 
+## Where an organization is
+
+`GUSTO_CLOUD_ORGS_AT` chooses one of two addresses for each organization:
+
+| Setting | Address | Needs |
+| --- | --- | --- |
+| `path` (default) | `<GUSTO_CLOUD_URL>/workspace/<slug>` | nothing more |
+| `host` | `<slug>.<GUSTO_CLOUD_DOMAIN>` | a wildcard DNS name and certificate |
+
+At a path, gusto cloud asks the organization's server for the page below the path, and puts the path in front of each redirect to the server's own pages. The server reads the path from `GUSTO_PUBLIC_URL`. It names the path in its pages and keeps its cookies to it, and the app puts it in front of every address it gives the browser. A test in `web/src/lib/base.test.ts` fails on a link that does not. An organization's old host name sends a link on to its path.
+
+Each organization's pages ask gusto cloud's `/orgs.json`, `/account.json` and `/account/confirm` with `org=<slug>`. At a path, these are requests to the page's own origin, so the browser lets only gusto's own pages read the answers. At a host name, gusto cloud lets the organization's origin read them.
+
+At a path, the server keeps organizations apart, as one site with many workspaces does: each organization's server serves only its own members, whoever gusto cloud says a request is from. The browser does not keep one organization's pages apart from another's, so a fault in gusto's own pages could reach every organization a person is in. At `host`, each organization is also an origin of its own. Either way, an app a person shares is at `<slug>--<app>.<GUSTO_CLOUD_APPS_DOMAIN>`, an origin of its own, and a page an agent made is served in a sandbox. The apps' domain needs a wildcard DNS name and certificate. It is best a domain of its own, such as `example-apps.com` for `cloud.example.com`: an app's page under gusto cloud's own domain could set a cookie for that domain, which gusto's own pages would then be sent.
+
+A new organization's slug is the company's domain (`acme-com`) for the first at that domain, and twelve random hexadecimal digits for any other: a workspace of the person's own, or a second organization at a company. A person who signs up with a personal address has their workspace named for them, from the first name Google gives or the start of their address.
+
 One address is one sign-in, and a person can be in several organizations, with a role in each. A person in more than one chooses at `/orgs` after signing in, and the choice is remembered. Each row there goes into the organization, and its Settings link goes to `/org`. `/org?org=<slug>` and `/open?org=<slug>` choose one of theirs; a name of an organization they are not in chooses nothing. Each organization's server sends people back with its own name. The mark at the top of its rail opens a switcher: it lists the person's organizations from gusto cloud's `/orgs.json`, which answers an organization's own address and no other, and opens each through `/open`. A server knows only its own members, and its own name from `GUSTO_ORG_NAME`.
 
 ## People

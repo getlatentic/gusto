@@ -19,12 +19,14 @@ import (
 // person to gusto cloud.
 type Cloud struct {
 	// Key is what tokens are made and checked with, Org is the address of the
-	// organization this server is and Name what it is called, and URL is where
-	// gusto cloud is.
+	// organization this server is and Name what it is called, URL is where
+	// gusto cloud is, and Apps where it serves shared apps, each at
+	// <org>--<app> in front of its name (URL when it is not set).
 	Key  []byte
 	Org  string
 	Name string
 	URL  string
+	Apps string
 }
 
 // PersonHeader says whose request it is, on a request gusto cloud passes on to an organization at a path of its own name,

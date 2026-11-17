@@ -14,6 +14,7 @@ A tag needs a section here named for it, or the release workflow stops and copie
 - `job.json` may name its `workspace`. Its schema now also describes `person`, `agent` and `dir`, which tasks already carried.
 - gusto cloud serves each organization at `<GUSTO_CLOUD_URL>/workspace/<slug>` (`GUSTO_CLOUD_ORGS_AT`, `path` by default; `host` serves it at `<slug>.<GUSTO_CLOUD_DOMAIN>`). At a path the organization shares gusto cloud's one sign-in, and an old host name sends a link on to the path ([CLOUD.md](CLOUD.md#where-an-organization-is)).
 - A person who signs up with a personal address gets a workspace of their own, named for them, without a form to fill in.
+- `GUSTO_CLOUD_APPS_DOMAIN` is the domain shared apps are served under, `GUSTO_CLOUD_DOMAIN` by default. Give it a domain of its own, such as `example-apps.com`, with a wildcard name and certificate. The organization's server is told it as `GUSTO_APPS_URL`. A demo host takes it as `DEMO_APPS_NAME` and `DEMO_APPS_ZONE`.
 
 **Changed**
 

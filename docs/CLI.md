@@ -623,6 +623,7 @@ Environment:
 - `GUSTO_FOUND_KEYS`: the model keys found on a person's own computer
 - `GUSTO_LOCAL_REPOS`: the repositories on a person's own computer a task may start from
 - `GUSTO_CLOUD_URL`: the address of the gusto cloud that sends people here; GUSTO_FRONT_DOOR was its name
+- `GUSTO_APPS_URL`: where gusto cloud serves shared apps, as https://example-apps.com, each at <org>--<app> in front of its name (default GUSTO_CLOUD_URL)
 - `GUSTO_ENTRY_KEY`: the file of the key gusto cloud signs a person's entry with
 - `GUSTO_ORG_NAME`: what the organization is called, which its pages show
 - `GUSTO_MODEL_URL`: the model a task asks directly when this server holds no credential (default http://localhost:11434/v1)
@@ -927,6 +928,7 @@ Environment:
 - `GUSTO_CLOUD_ADDR`: where gusto cloud listens (default 127.0.0.1:8050)
 - `GUSTO_CLOUD_URL`: the address links in mail begin with, such as https://cloud.example.com (default http:// and GUSTO_CLOUD_ADDR)
 - `GUSTO_CLOUD_DOMAIN`: the domain organizations are served under, as <slug>.<domain>, when GUSTO_CLOUD_ORGS_AT is host (default localhost)
+- `GUSTO_CLOUD_APPS_DOMAIN`: the domain shared apps are served under, as <slug>--<app>.<domain>, which needs a wildcard name and certificate; a domain of its own, such as example-apps.com for cloud.example.com, keeps an app's pages from setting a cookie gusto's own pages are sent (default GUSTO_CLOUD_DOMAIN)
 - `GUSTO_CLOUD_ORGS_AT`: where each organization is reached: path is /workspace/<slug> on GUSTO_CLOUD_URL's own name; host is <slug>.<domain>, which keeps each organization's pages apart in the browser and needs a wildcard name and certificate (path, host) (default path)
 - `GUSTO_CLOUD_TRUST_PROXY`: trust the address a proxy in front says a request came from
 - `GUSTO_CLOUD_MAIL`: how mail is sent: outbox writes it to files; smtp://user:pass@host:587?from=a@example.com sends it by SMTP; cloudflare://<account id>?from=a@example.com sends it by Cloudflare (default outbox)

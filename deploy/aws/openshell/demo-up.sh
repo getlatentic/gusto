@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Brings up a host that serves the public cloud at https://$DEMO_NAME, organizations at
-# https://$DEMO_NAME/workspace/<slug>. Read demo.env (see demo.env.example), and run ./put-key.sh for
+# https://$DEMO_NAME/workspace/<slug> and the apps people share at https://<slug>--<app>.$DEMO_APPS_NAME ($DEMO_NAME when unset). Read demo.env (see demo.env.example), and run ./put-key.sh for
 # both model keys and ./put-cloudflare.sh for both Cloudflare tokens first.
 #
 # The first run builds the runner image on the host, about ten minutes, and keeps it in the
@@ -43,7 +43,8 @@ fi
 
 mail="cloudflare://$DEMO_ACCOUNT_ID?from=$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$DEMO_MAIL_FROM")"
 ansible-playbook -i "$state/inventory.ini" ansible/demo.yml \
-  -e demo_name="$DEMO_NAME" -e demo_zone="$DEMO_ZONE" -e demo_bucket="$bucket" -e demo_image_key="$image_key" \
+  -e demo_name="$DEMO_NAME" -e demo_zone="$DEMO_ZONE" -e demo_apps_name="${DEMO_APPS_NAME:-}" -e demo_apps_zone="${DEMO_APPS_ZONE:-}" \
+  -e demo_bucket="$bucket" -e demo_image_key="$image_key" \
   -e demo_mail="$mail" -e demo_cert_email="$DEMO_CERT_EMAIL" -e demo_free_mail="${DEMO_FREE_MAIL:-allow}" \
   -e demo_region="$AWS_REGION" -e demo_models="${DEMO_MODELS:-gemma/google.gemma-4-26b-a4b,gemma/google.gemma-4-31b,deepseek/deepseek-flash,meta/muse-spark-1.3}" \
   -e demo_computer_memory="${DEMO_COMPUTER_MEMORY:-3Gi}" \

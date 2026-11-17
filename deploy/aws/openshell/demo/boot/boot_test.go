@@ -153,6 +153,32 @@ func TestAFirstBootIssuesTheCertificateOnceKeepsItInTheStoreAndPointsTheNameLast
 	}
 }
 
+// Shared apps on a name of their own get a certificate of their own, and their name is pointed at the host too.
+func TestAnAppsNameOfItsOwnGetsItsOwnCertificateAndIsPointedHere(t *testing.T) {
+	h := newHost(t)
+	h.put("image/key1.tar.gz", "the image")
+	conf, _ := os.ReadFile(h.conf)
+	os.WriteFile(h.conf, append(conf, []byte("APPS_NAME=example-apps.com\nAPPS_ZONE=example-apps.com\n")...), 0o644)
+	done, err := h.boot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	all := strings.Join(done, "\n")
+	if count(done, "certbot ") != 2 || !strings.Contains(all, "--cert-name example-apps.com") || !strings.Contains(all, "-d example-apps.com -d *.example-apps.com") {
+		t.Errorf("a certificate for the apps' name and every name under it: %v", done)
+	}
+	if _, err := os.Stat(filepath.Join(h.store, "tls", "example-apps.com.tgz")); err != nil {
+		t.Error("the apps' certificate was not kept in the store")
+	}
+	token := filepath.Join(h.dir, "run", "secrets", "cf-dns-token")
+	if last := done[len(done)-1]; last != "gusto-dns -zone example-apps.com -name example-apps.com -ip 203.0.113.7 -token-file "+token {
+		t.Errorf("the apps' name is pointed at the host, after the certificates: %v", done)
+	}
+	if count(done, "gusto-dns ") != 2 {
+		t.Errorf("both names are pointed: %v", done)
+	}
+}
+
 func TestTheTokensAreKeptWhereOnlyTheOwnerCanReadThem(t *testing.T) {
 	h := newHost(t)
 	h.put("image/key1.tar.gz", "x")

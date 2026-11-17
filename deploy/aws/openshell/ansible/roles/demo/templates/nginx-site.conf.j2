@@ -1,4 +1,4 @@
-# TLS for the name and every name under it, passed to the front door on this host.
+# TLS for the name and every name under it, and for the shared apps' name when they have one, passed to the front door on this host.
 map $http_upgrade $connection_upgrade {
     default upgrade;
     ''      close;
@@ -10,12 +10,14 @@ server {
     ssl_reject_handshake on;
 }
 
+{# What every name is served with: TLS, and the front door on this host. #}
+{% macro front_door(names, certificate) %}
 server {
     listen 443 ssl;
-    server_name {{ demo_name }} *.{{ demo_name }};
+    server_name {{ names }};
 
-    ssl_certificate     /etc/letsencrypt/live/{{ demo_name }}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/{{ demo_name }}/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/{{ certificate }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ certificate }}/privkey.pem;
     ssl_protocols       TLSv1.2 TLSv1.3;
 
     add_header Strict-Transport-Security "max-age=31536000" always;
@@ -43,3 +45,10 @@ server {
         proxy_read_timeout 3600s;
     }
 }
+{% endmacro %}
+
+{{ front_door(demo_name ~ ' *.' ~ demo_name, demo_name) }}
+{% if demo_apps_name %}
+# Shared apps, on a name of their own with a certificate of its own.
+{{ front_door('*.' ~ demo_apps_name, demo_apps_name) }}
+{% endif %}

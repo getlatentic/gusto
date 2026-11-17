@@ -3,6 +3,10 @@
 demo_region: us-east-1
 demo_name: ""
 demo_zone: ""
+# The name shared apps are served under, as <org>--<app>.<name>, and its zone in Cloudflare: a domain of their own, so an app's
+# pages cannot set a cookie that gusto's own pages are sent. Empty serves them under demo_name.
+demo_apps_name: ""
+demo_apps_zone: ""
 demo_bucket: ""
 # cloudflare://<account id>?from=..., or smtp://..., or outbox.
 demo_mail: ""

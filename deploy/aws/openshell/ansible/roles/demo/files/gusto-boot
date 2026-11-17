@@ -11,7 +11,8 @@
 #
 # A certificate is kept in the store and reused until it has under 30 days left, because
 # Let's Encrypt allows five certificates a week for one set of names and a host that
-# asked for a new one at every start would run out of them.
+# asked for a new one at every start would run out of them. Shared apps are served under
+# APPS_NAME when it is set, a name of their own in APPS_ZONE, with a certificate of its own.
 #
 # The paths can be moved with GUSTO_RUN, GUSTO_LE, GUSTO_LIB, GUSTO_LEASE_FILE and GUSTO_CONF, and the owner of the
 # files with GUSTO_OWNER (empty leaves them alone), which is how a test runs it.
@@ -83,24 +84,30 @@ google() {
   fi
 }
 
+# certificate makes sure there is a certificate for a name and every name under it.
 certificate() {
-  local live=$le/live/$NAME fetched kept
+  local domain=$1 live=$le/live/$1 fetched kept
   if [ ! -e "$live/fullchain.pem" ]; then
     fetched=$(mktemp)
-    if aws s3 cp "s3://$BUCKET/tls/$NAME.tgz" "$fetched" >/dev/null 2>&1; then
+    if aws s3 cp "s3://$BUCKET/tls/$domain.tgz" "$fetched" >/dev/null 2>&1; then
       mkdir -p "$le" && tar xzf "$fetched" -C "$le"
     fi
     rm -f "$fetched"
   fi
   if ! openssl x509 -checkend $((30 * 86400)) -noout -in "$live/fullchain.pem" >/dev/null 2>&1; then
-    certbot certonly --non-interactive --agree-tos -m "$CERT_EMAIL" --cert-name "$NAME" \
+    certbot certonly --non-interactive --agree-tos -m "$CERT_EMAIL" --cert-name "$domain" \
       --dns-cloudflare --dns-cloudflare-credentials "$run/secrets/certbot-cf.ini" --dns-cloudflare-propagation-seconds 30 \
-      -d "$NAME" -d "*.$NAME"
+      -d "$domain" -d "*.$domain"
     kept=$(mktemp)
     tar czf "$kept" -C "$le" .
-    aws s3 cp "$kept" "s3://$BUCKET/tls/$NAME.tgz" >/dev/null
+    aws s3 cp "$kept" "s3://$BUCKET/tls/$domain.tgz" >/dev/null
     rm -f "$kept"
   fi
+}
+
+certificates() {
+  certificate "$NAME"
+  [ -z "${APPS_NAME:-}" ] || certificate "$APPS_NAME"
 }
 
 runner_image() {
@@ -179,15 +186,19 @@ point_the_name_here() {
   ip=$(metadata public-ipv4)
   gusto-dns -zone "$ZONE" -name "$NAME" -ip "$ip" -token-file "$run/secrets/cf-dns-token"
   echo "gusto-boot: $NAME and *.$NAME point at $ip"
+  if [ -n "${APPS_NAME:-}" ]; then
+    gusto-dns -zone "$APPS_ZONE" -name "$APPS_NAME" -ip "$ip" -token-file "$run/secrets/cf-dns-token"
+    echo "gusto-boot: $APPS_NAME and *.$APPS_NAME point at $ip"
+  fi
 }
 
 install -d -m 0755 "$run" "$lib"
 install -d -m 0700 "$run/secrets"
 case "$role" in
 all)
-  tokens; turnstile; lead_hook; google; certificate; image; credentials; lease; point_the_name_here ;;
+  tokens; turnstile; lead_hook; google; certificates; image; credentials; lease; point_the_name_here ;;
 orchestrator)
-  tokens; turnstile; lead_hook; google; cell_secret; certificate; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
+  tokens; turnstile; lead_hook; google; cell_secret; certificates; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
 cell)
   cell_secret; image; credentials; cell_identity
   echo "gusto-boot: this host is a host of gusto cloud" ;;
