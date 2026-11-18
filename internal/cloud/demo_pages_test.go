@@ -48,8 +48,9 @@ func TestAVisitorStartsADemoWaitsForItAndIsSentInOnceWhenItsTimeStarts(t *testin
 		}
 		b := startDemoAs(t, f, "Ada Lovelace", "ada@acme.com", "Acme Research")
 		_, waiting := b.get("/demo/wait")
-		if got := shown(t, waiting); got.Page != "demo-wait" || !strings.HasPrefix(got.DemoWords, "Getting your demo ready") || len(got.Steps) == 0 || got.CanOpen || !strings.Contains(waiting, `http-equiv="refresh" content="1"`) {
-			t.Errorf("a demo that is not ready says so and looks again: %+v", got)
+		if got := shown(t, waiting); got.Page != "demo-wait" || !strings.HasPrefix(got.DemoWords, "Getting your demo ready") || len(got.Steps) == 0 || got.CanOpen || got.Watch == nil || got.Watch.State == Ready ||
+			!strings.Contains(waiting, `<noscript><meta http-equiv="refresh"`) {
+			t.Errorf("a demo that is not ready says so and waits on its server: %+v", got)
 		}
 		org, _, _ := f.store.Org(t.Context(), demoSlugOf(t, f))
 		if org.Demo == nil || !org.Demo.Ready.IsZero() {

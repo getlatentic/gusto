@@ -21,6 +21,7 @@ A tag needs a section here named for it, or the release workflow stops and copie
 
 **Changed**
 
+- A gusto cloud node tells gusto cloud when it starts, at `<GUSTO_CLOUD_URL>/nodes/started`, and an organization waiting for room is placed on it at once rather than at the next look every half second. A node must reach gusto cloud's public address; nodes already do, for their models. A page waiting on an organization's server, such as a demo's wait page, is drawn again when the server's state changes, not every second ([CLOUD.md](CLOUD.md)).
 - An organization's pages at `/workspace/<slug>` load the app's files and `/static/` from under that path, from the organization's own server. During a deploy, a page no longer loads blank while gusto cloud is already on the new release and the organization's server is not yet.
 - An organization's server behind gusto cloud has connector sign-ins come back to `<GUSTO_CLOUD_URL>/connections/callback`, which hands each on to its organization by the sign-in's `state`. A GitHub, Asana or HubSpot client is registered with that one address ([GATEWAY.md](GATEWAY.md)).
 - gusto cloud starts an organization's server with its settings in `orgs/<slug>/server.toml` and only its secrets in its environment ([CLOUD.md](CLOUD.md)). The lines of `GUSTO_CLOUD_ORG_ENV` and `GUSTO_CLOUD_DEMO_ENV` go the same way: a setting into the file, a secret into the environment.

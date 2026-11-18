@@ -31,6 +31,7 @@ func (c *Controller) forget(slug string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	delete(c.orgs, slug)
+	c.changedNow()
 }
 
 // put holds a runtime for an organization. saved says the database has it. A failed organization is tried again after a
@@ -56,6 +57,9 @@ func (c *Controller) put(slug string, runtime Runtime, saved bool) {
 		next.retryAt = now.Add(c.waitEvery())
 	}
 	c.orgs[slug] = next
+	if before.runtime.State != runtime.State {
+		c.changedNow()
+	}
 }
 
 // update changes what is held of an organization the controller holds, and says whether it held it.
@@ -110,7 +114,7 @@ func (c *Controller) waitEvery() time.Duration {
 	if c.WaitEvery > 0 {
 		return c.WaitEvery
 	}
-	return 500 * time.Millisecond
+	return 5 * time.Second
 }
 
 // fail leaves an organization failed, with the reason, for the supervisor to try again. One that is gone is not failed: it is

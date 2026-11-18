@@ -1,13 +1,13 @@
 package cloud
 
 import (
-	"cmp"
 	"html"
-	"strconv"
 	"strings"
 
 	"github.com/getlatentic/gusto/internal/web"
 )
+
+const refresh = `<meta http-equiv="refresh" content="3">`
 
 // pageHead is what the server writes into a page's head, so it is there before any of the page's code runs: the title, what a
 // search engine and a link preview read, the head every page of the app shares, the refresh of a page that waits,
@@ -17,8 +17,12 @@ func pageHead(v view) string {
 	head.WriteString(`<title>` + html.EscapeString(v.Title) + `</title>`)
 	head.WriteString(seoTags(v))
 	head.WriteString(web.SharedHead())
-	if v.Refresh {
-		head.WriteString(`<meta http-equiv="refresh" content="` + strconv.Itoa(cmp.Or(v.RefreshEvery, 3)) + `">`)
+	switch {
+	case v.Refresh:
+		head.WriteString(refresh)
+	case v.Watch != nil:
+		// The page's code waits on the server and draws the page again when it changes; a browser running no code looks again.
+		head.WriteString(`<noscript>` + refresh + `</noscript>`)
 	}
 	if v.Lease {
 		head.WriteString(`<script src="` + web.Asset("/static/lease.js") + `" defer data-extend="/lease"></script>`)

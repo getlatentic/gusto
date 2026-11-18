@@ -2,6 +2,7 @@ import { lazy, Suspense, type ComponentType } from "react"
 
 import { LandingPage } from "@/cloud/pages/landing/landing-page"
 import type { CloudPage, CloudPageName, ServedPage } from "@/cloud/types"
+import { useServerWatch } from "@/cloud/use-server-watch"
 
 type PageComponent = ComponentType<{ page: CloudPage }>
 
@@ -64,6 +65,7 @@ const OperatorPage = lazy(() =>
 )
 
 export function CloudPageView({ page }: { page: ServedPage }) {
+  useServerWatch(page.Page === "operator" ? undefined : page)
   if (page.Page === "operator") {
     return (
       <Suspense fallback={null}>

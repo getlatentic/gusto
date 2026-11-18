@@ -307,10 +307,11 @@ func (s *Server) starting(w http.ResponseWriter, r *http.Request, person Person,
 	if err != nil {
 		slog.Error("an organization's record could not be read", "org", person.Org, "error", err)
 	}
+	watched := &watch{State: state}
 	if state == "" {
 		state = Provisioning
 	}
-	s.render(w, http.StatusOK, "starting", view{Title: cmp.Or(org.Name, person.Org), Org: org, Refresh: true, Notice: stateWords(state)})
+	s.render(w, http.StatusOK, "starting", view{Title: cmp.Or(org.Name, person.Org), Org: org, Watch: watched, Notice: stateWords(state)})
 }
 
 // stateWords is what a person is told of a server that is not ready.

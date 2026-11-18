@@ -57,6 +57,9 @@ type Config struct {
 	// Prewarm, when it is set, starts a node for a visitor who has begun the demo form, so it is up by the time they send it.
 	// It must not block, and must bound what it starts itself.
 	Prewarm func()
+	// NodeStarted, when it is set, is told by a node that has just started that it is there, so an organization waiting for one
+	// is placed at once. It checks the node's signature itself.
+	NodeStarted http.Handler
 	// Stripe bills organizations for their seats, when it is set up, and Seats keeps the seats billed equal to the members.
 	Stripe *Stripe
 	Seats  *SeatSync
@@ -236,15 +239,35 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /org", s.guard(s.org))
 	mux.HandleFunc("POST /org/verify", s.guard(s.resend))
 	mux.HandleFunc("GET /open", s.guard(s.open))
+	mux.HandleFunc("GET /org/server", s.guard(s.serverState))
 	s.peopleRoutes(mux)
 	mux.HandleFunc("POST /org/billing/subscribe", s.guard(s.subscribe))
 	mux.HandleFunc("POST /org/billing/manage", s.guard(s.manageBilling))
 	mux.HandleFunc("POST /stripe/webhook", s.stripeWebhook)
 	mux.HandleFunc("GET /invite", s.invitationPage)
 	mux.HandleFunc("POST /invite", s.acceptInvitation)
+	mux.HandleFunc("POST /contact", s.sendContact)
+	s.demoRoutes(mux)
+	mux.HandleFunc("GET /lease", s.guard(s.leasePage))
+	mux.HandleFunc("POST /lease/extend", s.guard(s.extendLease))
+	mux.HandleFunc("POST /signout", s.signOut)
+	mux.HandleFunc("GET /signout", s.signedOutThere)
+	mux.HandleFunc("GET /connections/callback", s.connectionBack)
+	if s.NodeStarted != nil {
+		mux.Handle("POST /nodes/started", s.NodeStarted)
+	}
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok\n")) })
+	s.fileRoutes(mux)
+	mux.HandleFunc("GET /robots.txt", s.robots)
+	mux.HandleFunc("GET /sitemap.xml", s.sitemap)
+	mux.Handle("GET /static/", web.Static())
+	return s.secure(mux)
+}
+
+// demoRoutes are a demo's pages: the form, the wait for its server, inviting a colleague, and its end.
+func (s *Server) demoRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /demo", s.demoForm)
 	mux.HandleFunc("POST /demo", s.startDemo)
-	mux.HandleFunc("POST /contact", s.sendContact)
 	mux.HandleFunc("POST /demo/warm", s.warmDemo)
 	mux.HandleFunc("GET /demo/wait", s.guard(s.demoWait))
 	mux.HandleFunc("POST /demo/extend", s.guard(s.extendDemo))
@@ -253,17 +276,6 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /demo/end", s.guard(s.stopDemoPage))
 	mux.HandleFunc("POST /demo/end", s.guard(s.stopDemo))
 	mux.HandleFunc("GET /demo/ended/{slug}", s.demoEndedPage)
-	mux.HandleFunc("GET /lease", s.guard(s.leasePage))
-	mux.HandleFunc("POST /lease/extend", s.guard(s.extendLease))
-	mux.HandleFunc("POST /signout", s.signOut)
-	mux.HandleFunc("GET /signout", s.signedOutThere)
-	mux.HandleFunc("GET /connections/callback", s.connectionBack)
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok\n")) })
-	s.fileRoutes(mux)
-	mux.HandleFunc("GET /robots.txt", s.robots)
-	mux.HandleFunc("GET /sitemap.xml", s.sitemap)
-	mux.Handle("GET /static/", web.Static())
-	return s.secure(mux)
 }
 
 // fileRoutes are the files the front door serves as they are: its pictures, the app's code, and the script that installs gusto.

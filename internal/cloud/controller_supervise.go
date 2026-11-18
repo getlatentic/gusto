@@ -19,6 +19,9 @@ func (c *Controller) Run(ctx context.Context, every time.Duration) {
 	for _, org := range orgs {
 		go c.Provision(ctx, org.Slug)
 	}
+	c.mu.Lock()
+	woken := c.wakeup()
+	c.mu.Unlock()
 	for {
 		// An organization that waits for a node is looked at often, since a visitor waits on it; otherwise every so often.
 		next := every
@@ -31,6 +34,9 @@ func (c *Controller) Run(ctx context.Context, every time.Duration) {
 			timer.Stop()
 			return
 		case <-timer.C:
+			c.supervise(ctx)
+		case <-woken:
+			timer.Stop()
 			c.supervise(ctx)
 		}
 	}
