@@ -9,7 +9,8 @@
   community.general.snap:
     name: aws-cli
     classic: true
-  failed_when: false
+  # A failure is kept, not hidden, so that the installer below runs when snap could not install it.
+  ignore_errors: true
   register: awscli
 
 - name: The AWS command, when snap could not install it
