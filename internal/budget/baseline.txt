@@ -4,7 +4,6 @@
 #   go test ./internal/budget -update
 93 1 cmd/gusto-helper/commands.go:program
 64 16 cmd/gusto/changes.go:changesVerify
-51 1 cmd/gusto/commands_account.go:otherCommands
 109 1 cmd/gusto/commands_account.go:recordCommands
 60 1 cmd/gusto/commands_run.go:localCommands
 82 1 cmd/gusto/commands_run.go:runCommands
@@ -22,7 +21,6 @@
 21 15 internal/cloud/address.go:NormalEmail
 41 11 internal/cloud/mail_cloudflare.go:(Cloudflare).once
 38 11 internal/cloud/memberships_sql.go:(*Store).Verify
-40 12 internal/cloud/org.go:(*Server).drawOrg
 31 11 internal/cloud/stripe_events.go:verifyStripe
 41 11 internal/cloud/turnstile.go:(Turnstile).Check
 40 13 internal/compare/board.go:(*Board).Sample

@@ -77,11 +77,11 @@ func newHost(t *testing.T) *host {
 	}
 	os.WriteFile(h.conf, []byte(strings.Join([]string{
 		"AWS_REGION=us-east-1", "NAME=gusto.example.com", "ZONE=example.com", "BUCKET=store", "CERT_EMAIL=ops@example.com", "IMAGE_KEY=key1",
-		"DNS_TOKEN_PARAMETER=/gusto/poc/cloudflare-dns-token", "MAIL_TOKEN_PARAMETER=/gusto/poc/cloudflare-mail-token",
-		"MODEL_PARAMETER=/gusto/poc/model-key", "DEEPSEEK_PARAMETER=/gusto/poc/deepseek-key", "LEASE_MINUTES=30", "MAX_HOURS=4",
-		"CELL_SECRET_PARAMETER=/gusto/poc/cell-secret", "TURNSTILE_PARAMETER=/gusto/poc/turnstile-secret",
-		"LEAD_HOOK_URL_PARAMETER=/gusto/poc/lead-hook-url", "LEAD_HOOK_SECRET_PARAMETER=/gusto/poc/lead-hook-secret",
-		"GOOGLE_CLIENT_ID_PARAMETER=/gusto/poc/google-client-id", "GOOGLE_SECRET_PARAMETER=/gusto/poc/google-secret",
+		"DNS_TOKEN_PARAMETER=/gusto/cloudflare-dns-token", "MAIL_TOKEN_PARAMETER=/gusto/cloudflare-mail-token",
+		"MODEL_PARAMETER=/gusto/model-key", "DEEPSEEK_PARAMETER=/gusto/deepseek-key", "LEASE_MINUTES=30", "MAX_HOURS=4",
+		"CELL_SECRET_PARAMETER=/gusto/cell-secret", "TURNSTILE_PARAMETER=/gusto/turnstile-secret",
+		"LEAD_HOOK_URL_PARAMETER=/gusto/lead-hook-url", "LEAD_HOOK_SECRET_PARAMETER=/gusto/lead-hook-secret",
+		"GOOGLE_CLIENT_ID_PARAMETER=/gusto/google-client-id", "GOOGLE_SECRET_PARAMETER=/gusto/google-secret",
 	}, "\n")+"\n"), 0o644)
 	h.env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"GUSTO_CONF="+h.conf, "GUSTO_RUN="+filepath.Join(dir, "run"), "GUSTO_LE="+filepath.Join(dir, "le"), "GUSTO_LIB="+filepath.Join(dir, "lib"),
@@ -148,7 +148,7 @@ func TestAFirstBootIssuesTheCertificateOnceKeepsItInTheStoreAndPointsTheNameLast
 	if got, _ := os.ReadFile(filepath.Join(h.dir, "lib", "runner-all-rootfs.tar.gz")); string(got) != "the image" {
 		t.Errorf("the image: %q", got)
 	}
-	if !strings.Contains(strings.Join(done, "\n"), "credentials /gusto/poc/model-key /gusto/poc/deepseek-key gusto param "+filepath.Join(h.dir, "run", "creds")) {
+	if !strings.Contains(strings.Join(done, "\n"), "credentials /gusto/model-key /gusto/deepseek-key gusto param "+filepath.Join(h.dir, "run", "creds")) {
 		t.Errorf("the credentials are built from the two model keys: %v", done)
 	}
 }
@@ -186,9 +186,9 @@ func TestTheTokensAreKeptWhereOnlyTheOwnerCanReadThem(t *testing.T) {
 		t.Fatal(err)
 	}
 	for file, want := range map[string]string{
-		"cf-dns-token":   "value-of-/gusto/poc/cloudflare-dns-token",
-		"certbot-cf.ini": "dns_cloudflare_api_token = value-of-/gusto/poc/cloudflare-dns-token\n",
-		"mail.env":       "GUSTO_CLOUD_MAIL_TOKEN=value-of-/gusto/poc/cloudflare-mail-token\n",
+		"cf-dns-token":   "value-of-/gusto/cloudflare-dns-token",
+		"certbot-cf.ini": "dns_cloudflare_api_token = value-of-/gusto/cloudflare-dns-token\n",
+		"mail.env":       "GUSTO_CLOUD_MAIL_TOKEN=value-of-/gusto/cloudflare-mail-token\n",
 	} {
 		path := filepath.Join(h.dir, "run", "secrets", file)
 		info, err := os.Stat(path)
@@ -290,7 +290,7 @@ func mustRead(t *testing.T, path string) string {
 func TestAMissingTokenStopsTheBootBeforeAnythingIsIssuedOrPointed(t *testing.T) {
 	h := newHost(t)
 	h.put("image/key1.tar.gz", "x")
-	done, err := h.boot("FAKE_MISSING=/gusto/poc/cloudflare-mail-token")
+	done, err := h.boot("FAKE_MISSING=/gusto/cloudflare-mail-token")
 	if err == nil {
 		t.Fatal("a token that is not stored fails the boot")
 	}

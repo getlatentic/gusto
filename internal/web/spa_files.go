@@ -35,20 +35,36 @@ func readOnce(entry Entry) func() ([]byte, error) {
 
 // WriteAppPage answers with an entry's page: the server's own head in place of <!--gusto-head-->, and the page's data, already
 // JSON, in place of <!--gusto-data--> where it is given. JSON from encoding/json writes < > & as escapes, so the data cannot end
-// the script that holds it.
-func WriteAppPage(w http.ResponseWriter, status int, entry Entry, head, data string) {
+// the script that holds it. A page under a path, base, loads its build and its static files from under that path (underBase).
+func WriteAppPage(w http.ResponseWriter, status int, entry Entry, base, head, data string) {
 	page, err := builtPages[entry]()
 	if err != nil {
 		http.Error(w, "this gusto was built without its web app: run web/build.sh, then build gusto again", http.StatusInternalServerError)
 		return
 	}
 	page = bytes.Replace(page, []byte("<!--gusto-head-->"), []byte(head), 1)
+	page = underBase(page, base)
 	if data != "" {
 		page = bytes.Replace(page, []byte("<!--gusto-data-->"), []byte(`<script id="gusto-data" type="application/json">`+data+`</script>`), 1)
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	_, _ = w.Write(page)
+}
+
+// underBase puts a path in front of every link a page makes to the app's built files and to /static. A server reached under a
+// path, as gusto cloud serves an organization at /workspace/<slug>, then answers for its own page's files, so a page is never
+// given another release's: in a deploy gusto cloud's own build is newer than an organization's server until that restarts. A
+// built file finds the files it loads beside itself (web/vite.config.ts, renderBuiltUrl), so the links in the page are all
+// that need the path.
+func underBase(page []byte, base string) []byte {
+	if base == "" {
+		return page
+	}
+	for _, root := range []string{"/app/assets/", "/static/"} {
+		page = bytes.ReplaceAll(page, []byte(`="`+root), []byte(`="`+base+root))
+	}
+	return page
 }
 
 // SharedHead is what every page of the app loads from /static before its own files, each named with its fingerprint: the icons,

@@ -1,6 +1,6 @@
 # One instance for trying OpenShell's VM driver. It is not the E2B POC in the
 # directory above: no DNS, no budget alarm, no E2B services, and its own state.
-# Everything carries project=gusto-poc, the tag ../down.sh and this directory's
+# Everything carries project=gusto, the tag ../down.sh and this directory's
 # down.sh look for.
 
 data "aws_ssm_parameter" "ubuntu" {
@@ -13,7 +13,7 @@ data "aws_vpc" "default" {
 
 locals {
   tags = {
-    project = "gusto-poc"
+    project = "gusto"
     name    = var.name
   }
 }
@@ -61,7 +61,7 @@ data "aws_caller_identity" "here" {}
 
 # The instance reads the model's key from Parameter Store itself, so no key is
 # ever an argument, a file on the machine that runs these scripts, or anything
-# the scripts hold. It may read what is under /gusto/poc/ and nothing else.
+# the scripts hold. It may read what is under /gusto/ and nothing else.
 resource "aws_iam_role" "spike" {
   name = var.name
   tags = local.tags
@@ -80,7 +80,7 @@ resource "aws_iam_role_policy" "spike" {
       [{
         Effect   = "Allow"
         Action   = ["ssm:GetParameter", "ssm:GetParameters"]
-        Resource = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.here.account_id}:parameter/gusto/poc/*"
+        Resource = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.here.account_id}:parameter/gusto/*"
       }],
       var.cloud_bucket == "" ? [] : [
         { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject"], Resource = "arn:aws:s3:::${var.cloud_bucket}/*" },

@@ -35,7 +35,7 @@ func TestAnOrchestratorHasTheNameAndTheLeaseAndNoImageOrCredentials(t *testing.T
 	}
 	secret := filepath.Join(h.dir, "run", "cell-secret")
 	info, err := os.Stat(secret)
-	if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, secret) != "value-of-/gusto/poc/cell-secret\n" {
+	if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, secret) != "value-of-/gusto/cell-secret\n" {
 		t.Errorf("the secret cells are told with is kept for its owner alone: %v %v", info, err)
 	}
 	if h.has("run/cell.env") {
@@ -123,7 +123,7 @@ func TestANodeWithNoSecretDoesNotStart(t *testing.T) {
 	h := newHost(t)
 	h.put("image/key1.tar.gz", "x")
 	h.as("cell")
-	if _, err := h.boot("FAKE_MISSING=/gusto/poc/cell-secret"); err == nil {
+	if _, err := h.boot("FAKE_MISSING=/gusto/cell-secret"); err == nil {
 		t.Fatal("a cell that cannot be told what to do by anyone must not start")
 	}
 	if h.has("run/cell.env") {
@@ -149,7 +149,7 @@ func TestTheBotChecksSecretIsKeptForGustoCloudToReadAsItsEnvironmentAndForNoOneE
 		}
 		path := filepath.Join(h.dir, "run", "secrets", "turnstile.env")
 		info, err := os.Stat(path)
-		if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, path) != "GUSTO_CLOUD_TURNSTILE_SECRET=value-of-/gusto/poc/turnstile-secret\n" {
+		if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, path) != "GUSTO_CLOUD_TURNSTILE_SECRET=value-of-/gusto/turnstile-secret\n" {
 			t.Errorf("%s: %v %v", role, info, err)
 		}
 	}
@@ -174,7 +174,7 @@ func TestAHostWhoseBotCheckSecretIsNotStoredStartsWithoutOneAndLeavesNoStaleSecr
 	if !h.has("run/secrets/turnstile.env") {
 		t.Fatal("the secret was not kept")
 	}
-	if _, err := h.boot("FAKE_MISSING=/gusto/poc/turnstile-secret"); err != nil {
+	if _, err := h.boot("FAKE_MISSING=/gusto/turnstile-secret"); err != nil {
 		t.Fatalf("a host with no bot check is still a host: %v", err)
 	}
 	if h.has("run/secrets/turnstile.env") {
@@ -192,11 +192,11 @@ func TestTheLeadHooksAddressAndSecretAreKeptForGustoCloudAloneAndBothAreNeeded(t
 		}
 		path := filepath.Join(h.dir, "run", "secrets", "leadhook.env")
 		info, err := os.Stat(path)
-		want := "GUSTO_CLOUD_LEAD_HOOK_URL=value-of-/gusto/poc/lead-hook-url\nGUSTO_CLOUD_LEAD_HOOK_SECRET=value-of-/gusto/poc/lead-hook-secret\n"
+		want := "GUSTO_CLOUD_LEAD_HOOK_URL=value-of-/gusto/lead-hook-url\nGUSTO_CLOUD_LEAD_HOOK_SECRET=value-of-/gusto/lead-hook-secret\n"
 		if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, path) != want {
 			t.Errorf("%s: %v %v", role, info, err)
 		}
-		if _, err := h.boot("FAKE_MISSING=/gusto/poc/lead-hook-secret"); err != nil {
+		if _, err := h.boot("FAKE_MISSING=/gusto/lead-hook-secret"); err != nil {
 			t.Fatalf("a host with no lead hook is still a host: %v", err)
 		}
 		if h.has("run/secrets/leadhook.env") {
@@ -224,11 +224,11 @@ func TestTheGoogleClientIsKeptForGustoCloudAloneAndBothItsPartsAreNeeded(t *test
 		}
 		path := filepath.Join(h.dir, "run", "secrets", "google.env")
 		info, err := os.Stat(path)
-		want := "GUSTO_CLOUD_GOOGLE_CLIENT_ID=value-of-/gusto/poc/google-client-id\nGUSTO_CLOUD_GOOGLE_SECRET=value-of-/gusto/poc/google-secret\n"
+		want := "GUSTO_CLOUD_GOOGLE_CLIENT_ID=value-of-/gusto/google-client-id\nGUSTO_CLOUD_GOOGLE_SECRET=value-of-/gusto/google-secret\n"
 		if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, path) != want {
 			t.Errorf("%s: %v %v", role, info, err)
 		}
-		if _, err := h.boot("FAKE_MISSING=/gusto/poc/google-secret"); err != nil {
+		if _, err := h.boot("FAKE_MISSING=/gusto/google-secret"); err != nil {
 			t.Fatalf("a host with no Google sign-in is still a host: %v", err)
 		}
 		if h.has("run/secrets/google.env") {

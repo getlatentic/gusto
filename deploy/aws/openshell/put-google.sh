@@ -7,7 +7,7 @@ read -r -p "The Google client id: " id
 read -r -s -p "The Google client secret: " secret
 echo
 [ -n "$id" ] && [ -n "$secret" ] || { echo "both the id and the secret are needed" >&2; exit 2; }
-aws ssm put-parameter --name /gusto/poc/google-client-id --type SecureString --overwrite --value "$id" --query Version --output text >/dev/null
-aws ssm put-parameter --name /gusto/poc/google-secret --type SecureString --overwrite --value "$secret" --query Version --output text >/dev/null
+aws ssm put-parameter --name /gusto/google-client-id --type SecureString --overwrite --value "$id" --query Version --output text >/dev/null
+aws ssm put-parameter --name /gusto/google-secret --type SecureString --overwrite --value "$secret" --query Version --output text >/dev/null
 unset secret
-echo "stored /gusto/poc/google-client-id and /gusto/poc/google-secret in $AWS_REGION; a front door reads them at its next boot"
+echo "stored /gusto/google-client-id and /gusto/google-secret in $AWS_REGION; a front door reads them at its next boot"

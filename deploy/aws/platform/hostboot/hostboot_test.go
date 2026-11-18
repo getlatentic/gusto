@@ -142,7 +142,7 @@ func TestAHostIsMadeFromTheReleaseWithItsLeaseAndADeadmanScheduledBeforeAnything
 	if play < 0 {
 		t.Fatalf("nothing was configured: %v", lines)
 	}
-	for _, want := range []string{"-c local", "-i spike,", "cloud_bucket=store", "cloud_region=us-east-1", "cloud_image_key=imagekey0123456", "cloud_lease_minutes=25", "cloud_max_hours=3", "cloud_check_public=false",
+	for _, want := range []string{"-c local", "-i host,", "cloud_bucket=store", "cloud_region=us-east-1", "cloud_image_key=imagekey0123456", "cloud_lease_minutes=25", "cloud_max_hours=3", "cloud_check_public=false",
 		"@" + filepath.Join(b.dir, "bundle", "cloud-vars.json"), filepath.Join(b.dir, "bundle", "ansible", "site.yml") + " " + filepath.Join(b.dir, "bundle", "ansible", "cloud.yml")} {
 		if !strings.Contains(lines[play], want) {
 			t.Errorf("the playbooks were run without %q:\n%s", want, lines[play])

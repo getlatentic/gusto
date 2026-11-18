@@ -1,19 +1,11 @@
 import { lazy, Suspense, type CSSProperties } from "react"
 
-import {
-  BookCta,
-  Cta,
-  StartCta,
-  docs,
-  repository,
-} from "@/cloud/pages/landing/landing-parts"
-import {
-  Footer,
-  Plans,
-  TryWithYourTeam,
-} from "@/cloud/pages/landing/landing-sections"
+import { BookCta, StartCta } from "@/cloud/pages/landing/landing-parts"
+import { Plans, TryWithYourTeam } from "@/cloud/pages/landing/landing-sections"
+import { Footer, SiteHeader } from "@/cloud/pages/site-page"
 import { ProductDemo } from "@/cloud/pages/landing/demo/product-demo"
 import { Features } from "@/cloud/pages/landing/features"
+import { Contact } from "@/cloud/pages/landing/contact"
 import type { CloudPage } from "@/cloud/types"
 
 const LandingMotion = lazy(() =>
@@ -23,11 +15,11 @@ const LandingMotion = lazy(() =>
 )
 
 // LandingPage is what a visitor sees first: what gusto is worth to a team, the product in use, what comes with it, how to start,
-// and the three ways to run it with what each costs.
+// the three ways to run it with what each costs, and a note to the team.
 export function LandingPage({ page }: { page: CloudPage }) {
   return (
     <div className="bg-canvas text-ink scroll-pt-18 text-base">
-      <LandingHeader page={page} />
+      <SiteHeader page={page} />
       <main>
         <Hero page={page} />
         <section
@@ -44,64 +36,13 @@ export function LandingPage({ page }: { page: CloudPage }) {
       </main>
       <Features />
       <Plans page={page} />
+      <Contact page={page} />
       <TryWithYourTeam page={page} />
       <Footer />
       <Suspense>
         <LandingMotion />
       </Suspense>
     </div>
-  )
-}
-
-function LandingHeader({ page }: { page: CloudPage }) {
-  const links: [string, string][] = [
-    ["#features", "Features"],
-    ["#pricing", "Pricing"],
-    [`${docs}/QUICKSTART.md`, "Docs"],
-  ]
-  return (
-    <header className="border-line bg-canvas sticky top-0 z-50 flex items-center justify-between gap-4 border-b px-[max(1.25rem,calc((100vw-69.5rem)/2))] py-4">
-      <a
-        className="flex shrink-0 items-center gap-3 font-heading text-lg leading-none font-semibold tracking-[-0.01em] no-underline"
-        href="/"
-      >
-        <img className="h-auto w-7" src="/static/mark.svg" alt="" /> gusto
-      </a>
-      <nav className="flex items-center gap-5 text-sm" aria-label="gusto">
-        {links.map(([href, label]) => (
-          <a
-            key={href}
-            className="text-quiet hover:text-ink no-underline max-[48rem]:hidden"
-            href={href}
-          >
-            {label}
-          </a>
-        ))}
-        <a
-          className="text-quiet hover:text-ink inline-flex items-center max-[30rem]:hidden"
-          href={repository}
-          aria-label="gusto on GitHub"
-        >
-          <GitHubMark />
-        </a>
-        {page.SignedIn ? (
-          <Cta solid href="/app" data-testid="open-gusto">
-            Open gusto
-          </Cta>
-        ) : (
-          <>
-            <a
-              className="text-quiet hover:text-ink whitespace-nowrap no-underline"
-              href="/signin"
-              data-testid="sign-in"
-            >
-              Sign in
-            </a>
-            <StartCta page={page} />
-          </>
-        )}
-      </nav>
-    </header>
   )
 }
 
@@ -143,19 +84,5 @@ function Hero({ page }: { page: CloudPage }) {
         </div>
       </div>
     </section>
-  )
-}
-
-function GitHubMark() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      width="22"
-      height="22"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
-    </svg>
   )
 }

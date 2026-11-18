@@ -667,6 +667,7 @@ Environment:
 - `GUSTO_OPENSHELL_REMOTE`: the gateway runs on another machine, so this one needs no hardware virtualization
 - `GUSTO_COMPUTERS`: the directory of the records of the computers an organization's people have
 - `GUSTO_NODE`: the node new computers are made on (default local); GUSTO_CELL was its name
+- `GUSTO_APP_SOCKETS`: the folder on this machine's own disk that the sockets of apps shared from containers are made in (default app-sockets in GUSTO_DATA)
 - `GUSTO_SPARE_COMPUTER`: keep one blank computer ready for the next person who has none
 - `GUSTO_COMPUTER_IDLE_MINUTES`: how long a computer nobody uses runs before it is stopped, in minutes (default 30)
 - `GUSTO_HOME_LIMIT_MB`: the most a person's kept home may take in a container, in megabytes; with GUSTO_COMPUTERS, a turn over it is refused until the person resets the home (default 5120)
@@ -940,7 +941,7 @@ Environment:
 - `GUSTO_CLOUD_PAID_MEMBERS`: the people, and the computers, a paying organization may have (default 50)
 - `GUSTO_CLOUD_DEMO_MINUTES`: the minutes a demo lasts from when it is ready (default 0, no demo)
 - `GUSTO_CLOUD_BOOK_URL`: where a visitor books a call
-- `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo
+- `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo or sends a note from the landing page
 - `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
 - `GUSTO_CLOUD_STRIPE_KEY`: the Stripe secret API key organizations are billed by the seat with; the key, the price and the webhook secret are set together or not at all
 - `GUSTO_CLOUD_STRIPE_PRICE`: the Stripe price of one seat for a month
@@ -1088,7 +1089,7 @@ Environment:
 - `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several gusto cloud servers can share
 - `GUSTO_CLOUD_DEMO_MINUTES`: the minutes a demo lasts from when it is ready (default 0, no demo)
 - `GUSTO_CLOUD_BOOK_URL`: where a visitor books a call
-- `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo
+- `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo or sends a note from the landing page
 - `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
 - `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH was its name
 - `GUSTO_CLOUD_NODE_PROJECT`: the project tag of the nodes' machines; GUSTO_CLOUD_CELL_PROJECT was its name
@@ -1135,7 +1136,7 @@ Prints one parameter, decrypted, with the credentials the AWS configuration find
 
 Arguments:
 
-- `<name>`: the parameter's name, as /gusto/poc/cell-secret
+- `<name>`: the parameter's name, as /gusto/cell-secret
 
 Flags:
 
@@ -1144,7 +1145,7 @@ Flags:
 Examples:
 
 ```sh
-gusto param /gusto/poc/cell-secret
+gusto param /gusto/cell-secret
 ```
 
 ## `gusto doctor`
@@ -1195,6 +1196,7 @@ Environment:
 - `GUSTO_OPENSHELL_REMOTE`: the gateway runs on another machine, so this one needs no hardware virtualization
 - `GUSTO_COMPUTERS`: the directory of the records of the computers an organization's people have
 - `GUSTO_NODE`: the node new computers are made on (default local); GUSTO_CELL was its name
+- `GUSTO_APP_SOCKETS`: the folder on this machine's own disk that the sockets of apps shared from containers are made in (default app-sockets in GUSTO_DATA)
 - `GUSTO_SPARE_COMPUTER`: keep one blank computer ready for the next person who has none
 - `GUSTO_COMPUTER_IDLE_MINUTES`: how long a computer nobody uses runs before it is stopped, in minutes (default 30)
 - `GUSTO_HOME_LIMIT_MB`: the most a person's kept home may take in a container, in megabytes; with GUSTO_COMPUTERS, a turn over it is refused until the person resets the home (default 5120)

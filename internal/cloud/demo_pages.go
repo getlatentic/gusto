@@ -49,6 +49,7 @@ func (s *Server) warmDemo(w http.ResponseWriter, r *http.Request) {
 // drawDemoForm draws the form. Where there is a bot check its widget is on the form, and the page may load its script and
 // frame its answer, from Cloudflare and from nowhere else.
 func (s *Server) drawDemoForm(w http.ResponseWriter, status int, page view) {
+	page.ForTeam = !s.Store.set.Demo.Public()
 	if s.Turnstile.Enabled() {
 		page.TurnstileSite = s.Turnstile.Site
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; "+
@@ -157,8 +158,8 @@ func (s *Server) demoWait(w http.ResponseWriter, r *http.Request, person Person)
 		Book: s.Store.set.Demo.BookURL, Extendable: !demo.Extended && s.Store.set.Demo.Extend > 0 && !demo.Expires.IsZero(),
 		Notice: r.URL.Query().Get("notice")}
 	if state != Ready {
-		// A visitor is waiting on this page, and a demo that is ready is seen at the next look.
-		page.Refresh, page.RefreshEvery, page.DemoWords = true, 1, waitingWords(state)
+		// A visitor is waiting on this page, which is drawn again the moment the demo's state changes.
+		page.Watch, page.DemoWords = &watch{State: state}, waitingWords(state)
 		page.Steps = demoSteps(state)
 		if lead, found := s.Store.LeadOf(r.Context(), person.Org); found {
 			page.Waited = waited(lead.Requested, time.Now())
@@ -277,13 +278,19 @@ func (s *Server) demoLeaseJSON(ctx context.Context, w http.ResponseWriter, slug 
 	return true
 }
 
-// landing is what a visitor sees first: what gusto is, the product at work, and where to sign up or book a call. Everything
-// it shows is its own, so its policy opens nothing beyond this server.
-func (s *Server) landing(w http.ResponseWriter, signedIn bool) {
-	page := view{Title: landingTitle, Book: s.Store.set.Demo.BookURL, SignedIn: signedIn}
+// landing is what a visitor sees first: what gusto is, the product at work, where to sign up or book a call, and a note to the
+// team. Everything it shows is its own, so its policy opens nothing beyond this server but the bot check on the note, when
+// there is one.
+func (s *Server) landing(w http.ResponseWriter, status int, signedIn bool, contact contactForm) {
+	page := view{Title: landingTitle, Book: s.Store.set.Demo.BookURL, SignedIn: signedIn, Contact: &contact}
 	page = s.seen(page, "/", landingDescription)
 	page.LD = s.structured(landingDescription)
-	w.Header().Set("Content-Security-Policy",
-		"default-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; img-src 'self' data:")
-	s.render(w, http.StatusOK, "landing", page)
+	policy := "default-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; img-src 'self' data:"
+	if s.Turnstile.Enabled() {
+		page.TurnstileSite = s.Turnstile.Site
+		policy += "; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; " +
+			"style-src 'self' 'unsafe-inline'; connect-src 'self' https://challenges.cloudflare.com"
+	}
+	w.Header().Set("Content-Security-Policy", policy)
+	s.render(w, status, "landing", page)
 }

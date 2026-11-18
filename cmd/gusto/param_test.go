@@ -42,14 +42,14 @@ func opening(s *storedParameters) func(context.Context) (parameterReader, error)
 }
 
 func TestAParameterIsPrintedDecryptedAndAMissingOneIsAnErrorThatIsNotReadAgain(t *testing.T) {
-	stored := &storedParameters{held: map[string]string{"/gusto/poc/cell-secret": "s3cret"}}
+	stored := &storedParameters{held: map[string]string{"/gusto/cell-secret": "s3cret"}}
 	var out bytes.Buffer
-	if err := printParameter(context.Background(), opening(stored), "/gusto/poc/cell-secret", &out, 0); err != nil || out.String() != "s3cret\n" {
+	if err := printParameter(context.Background(), opening(stored), "/gusto/cell-secret", &out, 0); err != nil || out.String() != "s3cret\n" {
 		t.Errorf("printed %q: %v", out.String(), err)
 	}
 	out.Reset()
 	stored.reads = 0
-	if err := printParameter(context.Background(), opening(stored), "/gusto/poc/none", &out, 0); err == nil || !strings.Contains(err.Error(), "no parameter /gusto/poc/none") || out.Len() != 0 {
+	if err := printParameter(context.Background(), opening(stored), "/gusto/none", &out, 0); err == nil || !strings.Contains(err.Error(), "no parameter /gusto/none") || out.Len() != 0 {
 		t.Errorf("a missing parameter printed %q: %v", out.String(), err)
 	}
 	if stored.reads != 1 {

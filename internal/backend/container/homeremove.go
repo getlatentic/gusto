@@ -60,7 +60,7 @@ func (h *homes) removeMarked() {
 
 func (h *homes) removeMarkedHome(id string) {
 	switch err := h.remove(id); {
-	case errors.Is(err, ErrHomeBusy):
+	case errors.Is(err, ErrHomeBusy), errors.Is(err, ErrHomeInApp):
 	case err != nil:
 		slog.Error("a home asked to be removed could not be", "home", id, "error", err)
 	default:
@@ -77,6 +77,9 @@ func (h *homes) remove(id string) error {
 		return err
 	}
 	defer h.doneRemoving(id)
+	if err := h.noAppOn(id); err != nil {
+		return err
+	}
 	err := os.RemoveAll(h.dir(id))
 	if errors.Is(err, fs.ErrPermission) {
 		err = h.trash(id)
@@ -96,6 +99,9 @@ func (h *homes) startRemoving(id string) error {
 	defer h.mu.Unlock()
 	if h.active[id] > 0 {
 		return ErrHomeBusy
+	}
+	if h.starting[id] > 0 {
+		return ErrHomeInApp
 	}
 	h.removing[id] = true
 	return nil

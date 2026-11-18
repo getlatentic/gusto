@@ -1,7 +1,9 @@
 package main
 
 import (
+	"cmp"
 	"context"
+	"path/filepath"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/apps"
@@ -25,6 +27,7 @@ import (
 // the computers its people have.
 type sandboxSettings struct {
 	sandbox, taskNetwork, computers, node string
+	appSockets                            string
 	spare                                 bool
 	idleMinutes, concurrency              int
 	homeLimitMB                           int
@@ -45,6 +48,8 @@ func (b *sandboxSettings) declare(set *settings.Set) {
 	b.openShell.declare(set)
 	set.String(&b.computers, "GUSTO_COMPUTERS", "", "the directory of the records of the computers an organization's people have")
 	set.String(&b.node, "GUSTO_NODE", "local", "the node new computers are made on")
+	set.String(&b.appSockets, "GUSTO_APP_SOCKETS", "",
+		"the folder on this machine's own disk that the sockets of apps shared from containers are made in (default app-sockets in GUSTO_DATA)")
 	set.Renamed("GUSTO_NODE", "GUSTO_CELL")
 	set.Bool(&b.spare, "GUSTO_SPARE_COMPUTER", "keep one blank computer ready for the next person who has none")
 	set.Int(&b.idleMinutes, "GUSTO_COMPUTER_IDLE_MINUTES", 30, 1, "how long a computer nobody uses runs before it is stopped, in minutes")
@@ -72,9 +77,9 @@ func (b sandboxSettings) here() bool { return b.sandbox == "here" || b.sandbox =
 
 // openBackend is the sandbox turns run in, as GUSTO_SANDBOX names it: here and process run a turn in this process, openshell in
 // a virtual machine on a gateway, and container in a container. It is the one place a backend is made. signs stands behind each
-// turn's record, shared is where the apps agents built are kept, and proxyPort is the proxy's port; a benchmark passes no apps and
-// no port.
-func openBackend(cfg serveSettings, signs signing.Identity, shared *apps.Store, proxyPort string) (backend.Backend, error) {
+// turn's record, shared is where the apps agents built are kept, instances is the agents whose folders those apps start in, and
+// proxyPort is the proxy's port; a benchmark passes no apps, no agents and no port.
+func openBackend(cfg serveSettings, signs signing.Identity, shared *apps.Store, instances *instance.Store, proxyPort string) (backend.Backend, error) {
 	boxes, org := cfg.boxes, cfg.core.org
 	agents, open := harness.Names(), boxes.taskNetwork == "open"
 	switch boxes.sandbox {
@@ -90,7 +95,15 @@ func openBackend(cfg serveSettings, signs signing.Identity, shared *apps.Store, 
 			Apps: shared, Spare: boxes.spare, ProxyPort: proxyPort, Idle: time.Duration(boxes.idleMinutes) * time.Minute, Signing: signs,
 		}), nil
 	}
-	return container.New(container.Config{Agents: agents, Org: org, Homes: boxes.computers, HomeLimit: int64(boxes.homeLimitMB) << 20, Open: open, Containers: boxes.containers.signedBy(signs)}), nil
+	built := container.Config{Agents: agents, Org: org, Homes: boxes.computers, HomeLimit: int64(boxes.homeLimitMB) << 20, Open: open, Containers: boxes.containers.signedBy(signs)}
+	if shared != nil && instances != nil {
+		sockets, err := filepath.Abs(cmp.Or(boxes.appSockets, cfg.stores.in("app-sockets")))
+		if err != nil {
+			return nil, err
+		}
+		built.AgentFolder, built.AppSockets = instances.AgentFolder, sockets
+	}
+	return container.New(built), nil
 }
 
 // turns runs each task as a turn in the backend's boxes. The checkout happens here, outside any box, so a repository credential

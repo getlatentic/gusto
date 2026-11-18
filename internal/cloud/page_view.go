@@ -13,6 +13,7 @@ type pageView struct {
 
 	Error, Ask, Email, OrgName, Name, Notice      string
 	More, Taken, WorkOnly, SignedIn, Sent, Google bool
+	ForTeam                                       bool
 
 	Token, Action, Button, Inviter string
 
@@ -30,6 +31,8 @@ type pageView struct {
 	Computers int
 	Server    string
 	CanOpen   bool
+	// Watch is the state of the organization's server a waiting page was drawn in.
+	Watch *watch `json:",omitempty"`
 
 	Members   []memberView
 	Invited   []string
@@ -43,7 +46,9 @@ type pageView struct {
 	DemoWords                      string
 	Steps                          []Step
 	Book, BookFrame, TurnstileSite string
-	Extendable, Ended, Ending      bool
+	// Contact is the landing page's note to the team.
+	Contact                   *contactForm `json:",omitempty"`
+	Extendable, Ended, Ending bool
 
 	Lease *leaseView
 }
@@ -94,15 +99,15 @@ func pageOf(name string, v view) pageView {
 	page := pageView{
 		Page: name, Title: v.Title,
 		Error: v.Error, Ask: v.Ask, Email: v.Email, OrgName: v.OrgName, Name: v.Name, Notice: v.Notice,
-		More: v.More, Taken: v.Taken, WorkOnly: v.WorkOnly, SignedIn: v.SignedIn, Sent: v.Sent, Google: v.Google,
+		More: v.More, Taken: v.Taken, WorkOnly: v.WorkOnly, SignedIn: v.SignedIn, Sent: v.Sent, Google: v.Google, ForTeam: v.ForTeam,
 		Token: v.Token, Action: v.Action, Button: v.Button, Inviter: v.Inviter,
 		Several: v.Several, Person: personView{Email: v.Person.Email, Trial: v.Person.Trial()},
 		Address: v.Address, Domain: v.Domain, Credit: v.Credit, Billing: billingPageOf(v.Billing),
 		Quota: quotaOf(v.Quota), Verified: quotaOf(v.Verified),
-		Computers: v.Computers, Server: v.Server, CanOpen: v.CanOpen,
+		Computers: v.Computers, Server: v.Server, CanOpen: v.CanOpen, Watch: v.Watch,
 		Admins: v.Admins, IsAdmin: v.IsAdmin, CanInvite: v.CanInvite, Link: v.Link,
 		DemoWords: v.DemoWords, Steps: v.Steps, Book: v.Book, BookFrame: v.BookFrame, TurnstileSite: v.TurnstileSite,
-		Extendable: v.Extendable, Ended: v.Ended, Ending: v.Ending,
+		Extendable: v.Extendable, Ended: v.Ended, Ending: v.Ending, Contact: v.Contact,
 	}
 	page.addPeople(v)
 	if v.DemoLeft > 0 {

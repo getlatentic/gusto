@@ -87,14 +87,7 @@ func (s *Server) drawOrg(ctx context.Context, w http.ResponseWriter, status int,
 		slog.Error("an organization is missing its quota", "error", err)
 	}
 	computers, byAddress := s.computersOf(org.Slug)
-	server, canOpen := "", false
-	if s.Controller != nil {
-		_, state := s.Controller.Route(ctx, org.Slug)
-		if state == "" {
-			state = Provisioning
-		}
-		server, canOpen = string(state), state == Ready
-	}
+	server, canOpen, watched := s.serverShown(ctx, org.Slug)
 	members, _ := s.Store.Members(ctx, org.Slug)
 	admins := 0
 	for _, member := range members {
@@ -110,10 +103,27 @@ func (s *Server) drawOrg(ctx context.Context, w http.ResponseWriter, status int,
 	}
 	all, _ := s.Store.Memberships(ctx, person.Email)
 	v := view{ComputerOf: byAddress, Members: members, Teams: teamRows(spaces, members), Admins: admins, Invited: invited, IsAdmin: person.Role == Admin,
-		CanInvite: person.Role == Admin && quota.Invites && len(members)+len(invited) < quota.Members, Server: server, CanOpen: canOpen, Refresh: server != "" && !canOpen, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: s.orgShown(org.Slug), Quota: quota,
+		CanInvite: person.Role == Admin && quota.Invites && len(members)+len(invited) < quota.Members, Server: server, CanOpen: canOpen, Watch: watched, Computers: computers, Domain: org.Domain, Title: org.Name, Org: org, Person: person, Address: s.orgShown(org.Slug), Quota: quota,
 		Trial: s.Store.set.Limits.Trial, Verified: s.Store.set.Limits.Verified, Notice: notice, Several: len(all) > 1, Credit: creditLeft(quota.CreditUSD, s.Store.CreditUsed(org.Slug)),
 		Billing: s.billingViewOf(ctx, org, person, len(members)), Console: true}
 	s.render(w, status, "org", v)
+}
+
+// serverShown is an organization's server as its page shows it: its state, whether it can be opened, and, while it cannot, the
+// state the page waits to change. With no controller there is no server to show.
+func (s *Server) serverShown(ctx context.Context, slug string) (server string, canOpen bool, watched *watch) {
+	if s.Controller == nil {
+		return "", false, nil
+	}
+	_, state := s.Controller.Route(ctx, slug)
+	if state == Ready {
+		return string(Ready), true, nil
+	}
+	watched = &watch{State: state}
+	if state == "" {
+		state = Provisioning
+	}
+	return string(state), false, watched
 }
 
 // computersOf is how many computers an organization has, and the state of one of each person's, by address.

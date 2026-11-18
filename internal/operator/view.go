@@ -17,6 +17,7 @@ type page struct {
 	Running             []runningRow
 	Hosts               hostsView
 	Leads               []leadRow
+	Contacts            []contactRow
 }
 
 type runningRow struct {
@@ -94,5 +95,5 @@ func draw(w http.ResponseWriter, view page) {
 		return
 	}
 	head := `<title>gusto operator</title><meta name="robots" content="noindex,nofollow">` + web.SharedHead()
-	web.WriteAppPage(w, http.StatusOK, web.CloudEntry, head, string(data))
+	web.WriteAppPage(w, http.StatusOK, web.CloudEntry, "", head, string(data))
 }

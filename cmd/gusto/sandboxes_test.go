@@ -26,7 +26,7 @@ func TestEachSandboxSettingMakesItsBackend(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		boxes, err := openBackend(cfg, signing.Identity{}, nil, "8041")
+		boxes, err := openBackend(cfg, signing.Identity{}, nil, nil, "8041")
 		if err != nil {
 			t.Fatalf("%q: %v", setting, err)
 		}

@@ -3,7 +3,7 @@
 # the settings a front door starts its cells with. A front door makes it once a release, so that a cell made from the image
 # unpacks it and starts rather than running the playbook.
 - name: The kit a cell configures itself from
-  hosts: spike
+  hosts: host
   become: true
   gather_facts: false
   vars_files:

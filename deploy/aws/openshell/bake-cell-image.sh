@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Makes the machine image a host of the live gusto cloud starts from, and points /gusto/poc/cell-ami at it. A cold start spends its first
+# Makes the machine image a host of the live gusto cloud starts from, and points /gusto/cell-ami at it. A cold start spends its first
 # minutes installing packages and running the playbook, and then, once per host, the gateway turns the 1.7 GB runner image into the disk
 # a sandbox starts from, which was 139 of 270 seconds. A host made from this image has all of that done and goes straight to
 # configuring itself from the release it is told to be.
@@ -13,7 +13,7 @@ cd "$(dirname "$0")"
 : "${AWS_PROFILE:=gusto-poc}" "${AWS_REGION:=us-east-1}"
 export AWS_PROFILE AWS_REGION AWS_DEFAULT_REGION="$AWS_REGION"
 root="$(git rev-parse --show-toplevel)"
-param=/gusto/poc/cell-ami
+param=/gusto/cell-ami
 
 key="$(./bake-key.sh)"
 
@@ -41,7 +41,7 @@ fi
 
 # CI names the bucket; making it and closing it to the public is for whoever sets the cloud up, which CI is not.
 bucket="${BUCKET:-$(./cloud-store.sh)}"
-[[ "$bucket" =~ ^gusto-poc-demo-[0-9]{12}$ ]] || { echo "cloud-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
+[[ "$bucket" =~ ^gusto-store-[0-9]{12}$ ]] || { echo "cloud-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
 efs="$(aws efs describe-file-systems --query 'FileSystems[0].FileSystemId' --output text)"
 base="$(aws ssm get-parameter --name /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id --query Parameter.Value --output text)"
 
@@ -57,9 +57,9 @@ cleanup() { [ -z "$host" ] || aws ec2 terminate-instances --instance-ids "$host"
 trap cleanup EXIT
 
 started="$(date +%s)"
-host="$(aws ec2 run-instances --launch-template LaunchTemplateName=gusto-poc-demo-host-cell-live,Version='$Latest' --image-id "$base" \
+host="$(aws ec2 run-instances --launch-template LaunchTemplateName=gusto-host-cell-live,Version='$Latest' --image-id "$base" \
   --user-data "file://$userdata" \
-  --tag-specifications "ResourceType=instance,Tags=[{Key=project,Value=gusto-poc},{Key=name,Value=cell-bake}]" "ResourceType=volume,Tags=[{Key=project,Value=gusto-poc},{Key=name,Value=cell-bake}]" \
+  --tag-specifications "ResourceType=instance,Tags=[{Key=project,Value=gusto},{Key=name,Value=cell-bake}]" "ResourceType=volume,Tags=[{Key=project,Value=gusto},{Key=name,Value=cell-bake}]" \
   --query 'Instances[0].InstanceId' --output text)"
 echo "the host to make the image from is $host"
 
@@ -94,7 +94,7 @@ aws ec2 stop-instances --instance-ids "$host" >/dev/null
 aws ec2 wait instance-stopped --instance-ids "$host"
 name="gusto-cell-$key-$(date -u +%Y%m%d%H%M)"
 image="$(aws ec2 create-image --instance-id "$host" --name "$name" --description "A host of the public cloud with its runner image prepared" \
-  --tag-specifications "ResourceType=image,Tags=[{Key=gusto-bake-key,Value=$key},{Key=project,Value=gusto-poc}]" "ResourceType=snapshot,Tags=[{Key=gusto-bake-key,Value=$key},{Key=project,Value=gusto-poc}]" \
+  --tag-specifications "ResourceType=image,Tags=[{Key=gusto-bake-key,Value=$key},{Key=project,Value=gusto}]" "ResourceType=snapshot,Tags=[{Key=gusto-bake-key,Value=$key},{Key=project,Value=gusto}]" \
   --query ImageId --output text)"
 echo "making the image $image"
 wait_for_image "$image"

@@ -2,6 +2,7 @@ import { lazy, Suspense, type ComponentType } from "react"
 
 import { LandingPage } from "@/cloud/pages/landing/landing-page"
 import type { CloudPage, CloudPageName, ServedPage } from "@/cloud/types"
+import { useServerWatch } from "@/cloud/use-server-watch"
 
 type PageComponent = ComponentType<{ page: CloudPage }>
 
@@ -20,16 +21,16 @@ const account = (
     import("@/cloud/pages/account-pages").then((m) => ({ default: m[name] }))
   )
 const demo = (
-  name:
-    | "DemoWaitPage"
-    | "DemoBookPage"
-    | "DemoColleaguePage"
-    | "DemoStopPage"
-    | "DemoEndPage"
+  name: "DemoWaitPage" | "DemoColleaguePage" | "DemoStopPage" | "DemoEndPage"
 ) =>
   lazy(() =>
     import("@/cloud/pages/demo-pages").then((m) => ({ default: m[name] }))
   )
+const demoBook = lazy(() =>
+  import("@/cloud/pages/demo-book-page").then((m) => ({
+    default: m.DemoBookPage,
+  }))
+)
 const demoForm = lazy(() =>
   import("@/cloud/pages/demo-form-page").then((m) => ({
     default: m.DemoFormPage,
@@ -50,7 +51,7 @@ export const pages: Record<CloudPageName, PageComponent> = {
   lease: account("LeasePage"),
   demo: demoForm,
   "demo-wait": demo("DemoWaitPage"),
-  "demo-book": demo("DemoBookPage"),
+  "demo-book": demoBook,
   "demo-colleague": demo("DemoColleaguePage"),
   "demo-stop": demo("DemoStopPage"),
   "demo-end": demo("DemoEndPage"),
@@ -64,6 +65,7 @@ const OperatorPage = lazy(() =>
 )
 
 export function CloudPageView({ page }: { page: ServedPage }) {
+  useServerWatch(page.Page === "operator" ? undefined : page)
   if (page.Page === "operator") {
     return (
       <Suspense fallback={null}>

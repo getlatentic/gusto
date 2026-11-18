@@ -37,6 +37,8 @@ type view struct {
 	Taken bool
 	// WorkOnly says only a work address may sign up or start a demo.
 	WorkOnly bool
+	// ForTeam says the demo form is the team's, where only the team starts demos, for a call with someone else.
+	ForTeam bool
 	// Google says a person may sign in and sign up with a Google account.
 	Google bool
 	// SignedIn says the person looking at the landing page is signed in, so it offers to open gusto rather than to sign in.
@@ -64,13 +66,12 @@ type view struct {
 	Computers int
 	// Domain is the company's.
 	Domain string
-	// The organization's server: how it is, whether a person can open it, and
-	// whether the page should look again in a moment.
+	// The organization's server: how it is, and whether a person can open it. Watch is set on a page that waits on the server,
+	// which is drawn again when its state changes, and Refresh on one that looks again every few seconds.
 	Server  string
 	CanOpen bool
+	Watch   *watch
 	Refresh bool
-	// RefreshEvery is how many seconds the page waits to look again, three when it is not set.
-	RefreshEvery int
 	// Steps and Waited say how far a demo is from ready.
 	Steps  []Step
 	Waited string
@@ -108,6 +109,8 @@ type view struct {
 	TurnstileSite string
 	// Name is who a demo is for.
 	Name string
+	// Contact is the landing page's note to the team.
+	Contact *contactForm
 }
 
 // render answers with a page of the web app's cloud entry, drawn from the view as JSON inside it, so a refused form is answered
@@ -125,7 +128,7 @@ func (s *Server) render(w http.ResponseWriter, status int, page string, v view) 
 		http.Error(w, "that page could not be drawn", http.StatusInternalServerError)
 		return
 	}
-	web.WriteAppPage(w, status, web.CloudEntry, pageHead(v), string(data))
+	web.WriteAppPage(w, status, web.CloudEntry, "", pageHead(v), string(data))
 }
 
 // link is the address a mailed link points at.

@@ -121,6 +121,9 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* A scrollable area's bar is thin and quiet, as macOS draws it when scroll bars are not always shown, also where they are. */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
   /* The page is as tall as the window less the lease banner gusto cloud may show; keyboard.js shortens it while a phone's
      keyboard is open, and the shells fill it. */

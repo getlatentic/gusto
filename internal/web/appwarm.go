@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"errors"
 	"net"
 	"net/http"
@@ -23,6 +24,9 @@ const (
 // appTransport is how a request is sent on to an app: patiently for one that has been up a while, which may be slow for
 // reasons of its own, and by asking again for a young one.
 func (s *Server) appTransport(app apps.App) http.RoundTripper {
+	if socket, onSocket := app.Socket(); onSocket {
+		return socketTransport(socket)
+	}
 	if time.Since(time.Unix(app.Started, 0)) > youngApp {
 		return http.DefaultTransport
 	}
@@ -35,6 +39,18 @@ func (s *Server) appTransport(app apps.App) http.RoundTripper {
 		ResponseHeaderTimeout: wait,
 		DisableKeepAlives:     true,
 	}}
+}
+
+// socketTransport sends every request to the socket an app in a container is reached through, whatever its address says. No
+// gateway stands between, so nothing needs asking again.
+func socketTransport(socket string) http.RoundTripper {
+	dialer := &net.Dialer{Timeout: 3 * time.Second}
+	return &http.Transport{
+		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return dialer.DialContext(ctx, "unix", socket)
+		},
+		DisableKeepAlives: true,
+	}
 }
 
 // askingAgain asks again, on a new connection, a request that reads and does not change anything, when it gets no

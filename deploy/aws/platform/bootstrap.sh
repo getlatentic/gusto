@@ -3,7 +3,7 @@
 # to make IAM roles: the role a host has, the launch template a host is made from, and the role GitHub
 # Actions takes. Applying it again changes what changed. After it, hosts are made and removed by the
 # workflows in .github/workflows and nothing runs from a laptop. The CI role can launch and remove
-# hosts tagged project=gusto-poc and put objects in the bucket, and has no IAM right, so it cannot
+# hosts tagged project=gusto and put objects in the bucket, and has no IAM right, so it cannot
 # widen itself: a change to this stack is made here, by a person.
 set -euo pipefail
 cd "$(dirname "$0")"

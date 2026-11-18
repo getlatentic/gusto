@@ -25,6 +25,13 @@ function gustoHeadInDev(): Plugin {
 
 export default defineConfig({
   base: "/app/",
+  experimental: {
+    // A page's own links to its files are written by the server, which puts an organization's path in front of them
+    // (internal/web/spa_files.go, underBase). Every file a built file loads is found beside it, so a page under a path loads its
+    // whole build from its own server, and never another release's.
+    renderBuiltUrl: (filename, { hostType }) =>
+      hostType === "html" ? `/app/${filename}` : { relative: true },
+  },
   plugins: [react(), tailwindcss(), gustoHeadInDev()],
   resolve: {
     alias: {

@@ -159,11 +159,21 @@ if [ "$ROLE" = cell ] && [ -n "$KIT" ] && [ -e "$baked_marker" ] && [ "$(cat "$b
   echo "gusto-bootstrap: the kit $KIT is not there or not the one asked for, so the playbook configures the host"
 fi
 
+# AWS's own installer is used when snap cannot download the AWS command, which it sometimes cannot. The steps are joined with &&
+# because set -e does not hold in a function run after ||.
+install_aws() {
+  local status=0
+  curl -fsSL --retry 3 "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "$tmp/awscli.zip" \
+    && unzip -qo "$tmp/awscli.zip" -d "$tmp" && "$tmp/aws/install" --update || status=$?
+  rm -rf "$tmp/awscli.zip" "$tmp/aws"
+  return "$status"
+}
+
 # A host made from the image of a cell has these, and the packages are not fetched again.
 if [ ! -e "$baked_marker" ]; then
   apt-get update -qq
   apt-get install -y -qq ansible unzip curl ca-certificates
-  command -v aws >/dev/null || snap install aws-cli --classic
+  command -v aws >/dev/null || snap install aws-cli --classic || install_aws
 fi
 
 # The newest release is the one CI last made, for a host that is started by hand.
@@ -175,7 +185,7 @@ aws s3 cp "s3://$BUCKET/releases/$RELEASE/bundle.tgz" "$tmp/bundle.tgz" --only-s
 aws s3 cp "s3://$BUCKET/releases/$RELEASE/bundle.tgz.sha256" "$tmp/bundle.tgz.sha256" --only-show-errors & sum=$!
 # The AWS command, a snap, writes nothing to a file it is redirected to when it is run over SSM, so it is read
 # into a variable.
-cloud_vars=$(aws ssm get-parameter --name /gusto/poc/cloud-config --query Parameter.Value --output text)
+cloud_vars=$(aws ssm get-parameter --name /gusto/cloud-config --query Parameter.Value --output text)
 wait "$bundle"; wait "$sum"
 # Nothing of the bundle is run until it is the one CI made.
 (cd "$tmp" && sha256sum -c bundle.tgz.sha256)
@@ -202,7 +212,7 @@ shared=()
 # The front door that starts cells writes the files of its cells once, here, and starts each with the kit's sum.
 if [ "$ROLE" = orchestrator ] && [ "$LIVE" = on ] && [ -f "$dir/bake.key" ]; then
   kit_root=$(mktemp -d "$tmp/cell-kit.XXXXXX")
-  ansible-playbook -c local -i 'spike,' \
+  ansible-playbook -c local -i 'host,' \
     -e "@$dir/cloud-vars.json" -e "cloud_bucket=$BUCKET" -e "cloud_region=$REGION" -e "cloud_image_key=$(cat "$dir/image.key")" \
     -e "cloud_release=$RELEASE" -e "cloud_root=$kit_root" ${shared[@]+"${shared[@]}"} "$dir/ansible/cell-kit.yml"
   kit_file=${GUSTO_KIT_FILE:-/usr/local/lib/gusto/cell-kit.tgz}
@@ -212,7 +222,7 @@ if [ "$ROLE" = orchestrator ] && [ "$LIVE" = on ] && [ -f "$dir/bake.key" ]; the
   shared+=(-e "cloud_cell_kit=$(sha256sum "$kit_file" | cut -d' ' -f1)" -e "cloud_cell_kit_file=$kit_file" -e "cloud_bake_key=$(cat "$dir/bake.key")")
 fi
 
-ansible-playbook -c local -i 'spike,' \
+ansible-playbook -c local -i 'host,' \
   -e "@$dir/cloud-vars.json" -e "cloud_bucket=$BUCKET" -e "cloud_region=$REGION" -e "cloud_image_key=$(cat "$dir/image.key")" \
   -e "cloud_baked=$cloud_baked" -e "cloud_bake=$([ "$BAKE" = on ] && echo true || echo false)" -e "cloud_lease_minutes=$LEASE_MINUTES" -e "cloud_max_hours=$MAX_HOURS" -e cloud_check_public=false -e "cloud_role=$ROLE" -e "cloud_live=$([ "$LIVE" = on ] && echo true || echo false)" -e "cloud_release=$RELEASE" ${shared[@]+"${shared[@]}"} \
   "${playbooks[@]}"

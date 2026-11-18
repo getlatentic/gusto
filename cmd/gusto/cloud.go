@@ -95,11 +95,25 @@ func (d *cloudService) startBackground(ctx context.Context, nodesDir string) {
 		d.front.Prewarm = d.scaler.Prewarm
 	}
 	if nodesDir != "" && d.controller != nil {
-		go beatForNodes(ctx, nodesDir)
+		d.hearNodes(ctx, nodesDir)
 	}
 	go d.front.RunLeads(ctx, 30*time.Second)
 	if d.front.Seats != nil {
 		go d.front.Seats.Run(ctx, time.Minute)
+	}
+}
+
+// hearNodes says to the nodes, in the directory they register in, that gusto cloud is there and where a node that starts tells
+// it so, and listens for that, so an organization waiting for room is placed on a new node at once.
+func (d *cloudService) hearNodes(ctx context.Context, nodesDir string) {
+	go beatForNodes(ctx, nodesDir)
+	pool, ok := d.controller.Nodes.(*node.Pool)
+	if !ok {
+		return
+	}
+	d.front.NodeStarted = pool.Started(d.controller.Wake)
+	if err := node.TellStartedAt(nodesDir, node.StartedAddress(d.front.URL.String())); err != nil {
+		slog.Error("the nodes were not told where to say they started", "error", err)
 	}
 }
 

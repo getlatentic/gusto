@@ -45,7 +45,7 @@ func (s *server) openWayOut() error {
 	if err != nil {
 		return err
 	}
-	if s.connect, err = openConnectors(s.cfg.way, s.cfg.core.publicURL); err != nil {
+	if s.connect, err = openConnectors(s.cfg.way, s.cfg.core.publicURL, cloudSign{url: s.cfg.access.cloudURL, org: s.cfg.core.org}); err != nil {
 		return err
 	}
 	// A deployment that holds no credential has no proxy and so no gateway, and its tasks are given no app to call.
@@ -69,7 +69,7 @@ func (s *server) startTurns() error {
 	if err != nil {
 		return err
 	}
-	boxes, err := openBackend(s.cfg, s.signs, shared, s.way.proxyPort())
+	boxes, err := openBackend(s.cfg, s.signs, shared, s.instances, s.way.proxyPort())
 	if err != nil {
 		return err
 	}

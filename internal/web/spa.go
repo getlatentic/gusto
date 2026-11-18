@@ -167,13 +167,13 @@ func appHead(lease string) string {
 
 // appPage is the React app's one page, which draws whichever of its pages the address names.
 func (s *Server) appPage(w http.ResponseWriter, _ *http.Request) {
-	WriteAppPage(w, http.StatusOK, ProductEntry, baseHead(s.base)+appHead(s.leaseExtend()), "")
+	WriteAppPage(w, http.StatusOK, ProductEntry, s.base, baseHead(s.base)+appHead(s.leaseExtend()), "")
 }
 
 // publicPage is the app's page for a page served before anybody is signed in. It loads nothing that a session gives, so not the
 // lease banner, which asks for the host the organization runs on.
 func (s *Server) publicPage(w http.ResponseWriter, _ *http.Request) {
-	WriteAppPage(w, http.StatusOK, ProductEntry, baseHead(s.base)+appHead(""), "")
+	WriteAppPage(w, http.StatusOK, ProductEntry, s.base, baseHead(s.base)+appHead(""), "")
 }
 
 // appData answers a page's data as JSON.

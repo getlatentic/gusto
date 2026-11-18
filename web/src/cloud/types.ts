@@ -89,6 +89,7 @@ export interface CloudPage {
   More: boolean
   Taken: boolean
   WorkOnly: boolean
+  ForTeam: boolean
   // Google says a person may sign in and sign up with a Google account.
   Google: boolean
   SignedIn: boolean
@@ -113,6 +114,8 @@ export interface CloudPage {
   Computers: number
   Server: string
   CanOpen: boolean
+  // Watch is set on a page that waits on the organization's server: the state it was drawn in.
+  Watch?: { State: string }
 
   Members: CloudMember[] | null
   Invited: string[] | null
@@ -129,11 +132,22 @@ export interface CloudPage {
   Book: string
   BookFrame: string
   TurnstileSite: string
+  Contact: CloudContact | null
   Extendable: boolean
   Ended: boolean
   Ending: boolean
 
   Lease: { Left: string; Ends: string; Step: string; CanExtend: boolean } | null
+}
+
+// CloudContact is the landing page's note to the team (internal/cloud/contact_page.go): what was typed, why it was refused, or
+// that it was sent.
+export interface CloudContact {
+  Error: string
+  Email: string
+  Company: string
+  Note: string
+  Sent: boolean
 }
 
 // The operator's page (internal/operator/view.go), which the same entry draws on the operator's own server.
@@ -164,6 +178,15 @@ export interface OperatorView {
         Email: string
         Company: string
         Outcome: string
+      }[]
+    | null
+  Contacts:
+    | {
+        Sent: string
+        SentAt: string
+        Email: string
+        Company: string
+        Note: string
       }[]
     | null
 }

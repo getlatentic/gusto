@@ -1,7 +1,7 @@
 ---
 # OpenShell's gateway with the VM driver on the instance up.sh made.
 - name: OpenShell on a nested-virtualization instance
-  hosts: spike
+  hosts: host
   become: true
   roles:
     - openshell

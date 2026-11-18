@@ -21,7 +21,7 @@ fi
 [ -f "$M/keys/e2e.key" ] || "$E/gusto" keygen e2e -dir "$M/keys" >/dev/null 2>&1
 
 bash "$E/credentials.sh" "$M/creds"
-[ -s "$M/creds/deepseek.json" ] || { echo "no credentials: is /gusto/poc/deepseek-key stored? (./put-key.sh)"; touch "$M/done"; exit 1; }
+[ -s "$M/creds/deepseek.json" ] || { echo "no credentials: is /gusto/deepseek-key stored? (./put-key.sh)"; touch "$M/done"; exit 1; }
 
 # The one job every pair is given, with a time limit a hung harness cannot outlast.
 [ -d "$M/one-line-fix" ] || "$E/gusto" new "$M/one-line-fix" -repo "$M/sample" -brief "The discount is a hundred times too large. Fix invoice.js so the tests in this project pass, and change nothing else." \

@@ -49,19 +49,19 @@ func TestSigningUpStartsTheOrganizationsServerAndThePageOffersToOpenIt(t *testin
 	})
 }
 
-func TestWhileTheServerIsStartingThePageSaysSoAndLooksAgain(t *testing.T) {
+func TestWhileTheServerIsStartingThePageSaysSoAndWaitsOnIt(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := withServers(t, "FAKE_DELAY=1500ms")
 		b := f.browser()
 		b.post("/signup", url.Values{"email": {"ada@acme.com"}})
 		_, page := b.get("/org")
-		if got := shown(t, page); got.Server == string(Ready) || got.Server == "" || got.CanOpen || !strings.Contains(page, `http-equiv="refresh"`) {
-			t.Errorf("a server that is starting says so and the page looks again: %+v", got)
+		if got := shown(t, page); got.Server == string(Ready) || got.Server == "" || got.CanOpen || got.Watch == nil || got.Watch.State == Ready {
+			t.Errorf("a server that is starting says so and the page waits on it: %+v", got)
 		}
 		status, page, _ := b.get2("/open")
 		got := shown(t, page)
-		if status != http.StatusOK || got.Page != "starting" || !strings.Contains(page, `http-equiv="refresh"`) || !strings.Contains(got.Notice, "is being set up") && !strings.Contains(got.Notice, "is starting") {
-			t.Errorf("going in waits on a page that looks again, with the settings a click away: %d %+v", status, got)
+		if status != http.StatusOK || got.Page != "starting" || got.Watch == nil || !strings.Contains(got.Notice, "is being set up") && !strings.Contains(got.Notice, "is starting") {
+			t.Errorf("going in waits on a page that waits on the server, with the settings a click away: %d %+v", status, got)
 		}
 		f.server.Wait()
 		if status, _, header := b.get2("/open"); status != http.StatusSeeOther || !strings.Contains(header.Get("Location"), "/auth/entry?t=") {

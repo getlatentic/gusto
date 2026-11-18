@@ -23,4 +23,4 @@ fi
 done)
 ssh "${ssh_options[@]}" "ubuntu@$address" 'mkdir -p ~/e2e/cloud; pkill -f "[g]usto cloud"; pkill -f "[g]usto serve"; sleep 1; true'
 scp -q "${ssh_options[@]}" "$state/gusto" "$state/drive" e2e/cloud-on-host.sh e2e/credentials.sh e2e/isolation-on-host.sh "ubuntu@$address:e2e/cloud/"
-ssh "${ssh_options[@]}" "ubuntu@$address" "export SANDBOX=${SANDBOX:-openshell} MODEL=${MODEL:-} AWS_REGION=$AWS_REGION BEDROCK_PARAMETER=${GUSTO_MODEL_PARAMETER:-/gusto/poc/model-key} DEEPSEEK_PARAMETER=${GUSTO_DEEPSEEK_PARAMETER:-/gusto/poc/deepseek-key}; bash ~/e2e/cloud/cloud-on-host.sh" 2>&1 | tee out/e2e-cloud.txt
+ssh "${ssh_options[@]}" "ubuntu@$address" "export SANDBOX=${SANDBOX:-openshell} MODEL=${MODEL:-} AWS_REGION=$AWS_REGION BEDROCK_PARAMETER=${GUSTO_MODEL_PARAMETER:-/gusto/model-key} DEEPSEEK_PARAMETER=${GUSTO_DEEPSEEK_PARAMETER:-/gusto/deepseek-key}; bash ~/e2e/cloud/cloud-on-host.sh" 2>&1 | tee out/e2e-cloud.txt

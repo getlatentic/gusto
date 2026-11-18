@@ -70,9 +70,9 @@ export function ProjectApps({ page }: { page: ProjectData }) {
             </div>
           </form>
           <p className="m-0 mt-3 text-xs text-muted-foreground">
-            It runs on your computer, in this agent&apos;s folder, with the port
-            in <code>$PORT</code>. It has to listen on <code>0.0.0.0</code> and
-            use links that are relative, such as <code>style.css</code> and not{" "}
+            It runs in this agent&apos;s folder, with the port in{" "}
+            <code>$PORT</code>. It has to listen on <code>0.0.0.0</code> and use
+            links that are relative, such as <code>style.css</code> and not{" "}
             <code>/style.css</code>. Colleagues signed in to this organization
             open it here, and nobody else can. The page it draws runs with no
             access to your account.

@@ -279,12 +279,12 @@ func TestTheSweepRemovesAKeptHostOfAnOlderImageAndLeavesOneOfTheCurrent(t *testi
 func TestTheCurrentImageIsReadFromTheTemplatesParameter(t *testing.T) {
 	var asked string
 	answer := "ami-0abc12345\n"
-	e := &EC2{ImageParameter: "/gusto/poc/cell-ami", Run: func(args ...string) ([]byte, error) {
+	e := &EC2{ImageParameter: "/gusto/cell-ami", Run: func(args ...string) ([]byte, error) {
 		asked = strings.Join(args, " ")
 		return []byte(answer), nil
 	}}
 	image, err := e.CurrentImage()
-	if err != nil || image != "ami-0abc12345" || asked != "ssm get-parameter --name /gusto/poc/cell-ami --query Parameter.Value --output text" {
+	if err != nil || image != "ami-0abc12345" || asked != "ssm get-parameter --name /gusto/cell-ami --query Parameter.Value --output text" {
 		t.Fatalf("%q %v %q", image, err, asked)
 	}
 	answer = "None\n"

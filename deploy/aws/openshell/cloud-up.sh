@@ -15,12 +15,12 @@ for need in GUSTO_CLOUD_DOMAIN GUSTO_CLOUD_ZONE GUSTO_CLOUDFLARE_ACCOUNT_ID GUST
   [ -n "${!need:-}" ] || { echo "$need is not set in cloud.env" >&2; exit 2; }
 done
 for parameter in cloudflare-dns-token cloudflare-mail-token model-key deepseek-key; do
-  aws ssm get-parameter --name "/gusto/poc/$parameter" --query Parameter.Name --output text >/dev/null 2>&1 \
-    || { echo "/gusto/poc/$parameter is not stored: run ./put-key.sh or ./put-cloudflare.sh" >&2; exit 2; }
+  aws ssm get-parameter --name "/gusto/$parameter" --query Parameter.Name --output text >/dev/null 2>&1 \
+    || { echo "/gusto/$parameter is not stored: run ./put-key.sh or ./put-cloudflare.sh" >&2; exit 2; }
 done
 
 bucket="$(./cloud-store.sh)"
-[[ "$bucket" =~ ^gusto-poc-demo-[0-9]{12}$ ]] || { echo "cloud-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
+[[ "$bucket" =~ ^gusto-store-[0-9]{12}$ ]] || { echo "cloud-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
 root="$(git rev-parse --show-toplevel)"
 harnesses="$(./harnesses.sh)"
 image_key="$(./image-key.sh)"
