@@ -25,7 +25,7 @@ export function ProjectGroups({
 }) {
   return (
     <FlipList>
-      <ul className="m-0 grid list-none gap-px p-0">
+      <ul className="m-0 grid list-none grid-cols-[minmax(0,1fr)] gap-px p-0">
         {groups.map((group, index) => (
           <li
             key={group.ID}

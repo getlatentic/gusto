@@ -41,7 +41,8 @@ function keepTab(tab: SideTab) {
   }
 }
 
-const panel = "m-0 grid min-h-0 flex-1 content-start gap-px overflow-y-auto"
+const panel =
+  "m-0 grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] content-start gap-px overflow-y-auto"
 
 // SideList is a person's conversations: their rooms and projects, every conversation newest first, the rooms with something
 // unread, and those that mention them.
@@ -144,7 +145,7 @@ function Rows({
   }
   return (
     <FlipList>
-      <ul className="m-0 grid list-none gap-px p-0">
+      <ul className="m-0 grid list-none grid-cols-[minmax(0,1fr)] gap-px p-0">
         {chats.map((chat) => (
           <li key={chat.Where} data-flip-id={chat.Where}>
             <SideRow chat={chat} here={here} onGo={onGo} />
@@ -166,9 +167,15 @@ function Home({
 }) {
   const archived = rail.Archived ?? []
   return (
-    <nav aria-label="Conversations" className="grid content-start gap-2">
+    <nav
+      aria-label="Conversations"
+      className="grid grid-cols-[minmax(0,1fr)] content-start gap-2"
+    >
       {(rail.Direct ?? []).length > 0 && (
-        <section aria-labelledby="side-direct" className="grid gap-px">
+        <section
+          aria-labelledby="side-direct"
+          className="grid grid-cols-[minmax(0,1fr)] gap-px"
+        >
           <h2
             id="side-direct"
             className="m-0 flex h-9 items-center px-3 text-sm font-semibold"
@@ -180,7 +187,7 @@ function Home({
       )}
       <section
         aria-labelledby="side-rooms"
-        className="grid gap-px"
+        className="grid grid-cols-[minmax(0,1fr)] gap-px"
         data-testid="side-rooms"
       >
         <header className="flex h-9 items-center justify-between pr-1 pl-3">
@@ -217,7 +224,10 @@ function Home({
           </CollapsibleContent>
         </Collapsible>
       )}
-      <section aria-labelledby="side-projects" className="grid gap-px">
+      <section
+        aria-labelledby="side-projects"
+        className="grid grid-cols-[minmax(0,1fr)] gap-px"
+      >
         <h2
           id="side-projects"
           className="m-0 flex h-9 items-center px-3 text-sm font-semibold"
