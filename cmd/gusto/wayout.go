@@ -33,7 +33,7 @@ type wayOutSettings struct {
 	toolPolicy, gatewayMode                              string
 	gatewayPrivate                                       bool
 	redaction, live                                      string
-	reloadSeconds, limitPerson, limitTeam                int
+	limitPerson, limitTeam                               int
 	models                                               []string
 	registry, registryPrivate, keychain                  string
 	registryKeys                                         []string
@@ -60,7 +60,7 @@ func (w *wayOutSettings) declareModels(set *settings.Set) {
 
 func (w *wayOutSettings) declareProxy(set *settings.Set) {
 	set.String(&w.allowedHosts, "GUSTO_ALLOWED_HOSTS", "", "every other host a task may reach through the proxy, comma-separated")
-	set.String(&w.proxySocket, "GUSTO_PROXY_SOCKET", "", "the socket a box with no network reaches the proxy on (default .proxy.sock in GUSTO_TASKS)")
+	set.String(&w.proxySocket, "GUSTO_PROXY_SOCKET", "", "the socket a box with no network reaches the proxy on (default .proxy.sock in the tasks folder)")
 	set.String(&w.proxyAddr, "GUSTO_PROXY_ADDR", "", "where the proxy listens for a box on a network (default port 8041, on every interface for containers and the loopback otherwise)")
 	set.Int(&w.maxOutput, "GUSTO_PROXY_MAX_OUTPUT_TOKENS", 0, 1, "the most output tokens one model call may ask for (default no limit)")
 	set.Int(&w.silenceSeconds, "GUSTO_PROXY_SILENCE_SECONDS", 0, 1, "how long a model may send nothing before its call is ended, in seconds (default no limit)")
@@ -75,7 +75,6 @@ func (w *wayOutSettings) declareTools(set *settings.Set) {
 func (w *wayOutSettings) declareLive(set *settings.Set) {
 	set.String(&w.redaction, "GUSTO_REDACTION", "", "the file of what the proxy and the gateway mask in what passes through")
 	set.String(&w.live, "GUSTO_LIVE", "", "the file of limits and models read again as it changes")
-	set.Int(&w.reloadSeconds, "GUSTO_RELOAD_SECONDS", 20, 1, "how often the files read as they change are looked at, in seconds")
 	set.Int(&w.limitPerson, "GUSTO_LIMIT_PERSON", 0, 0, "the most tasks one person may have running (default no limit)")
 	set.Int(&w.limitTeam, "GUSTO_LIMIT_TEAM", 0, 0, "the most tasks may run for the whole team (default no limit)")
 }

@@ -1,0 +1,247 @@
+package boot
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func (h *host) as(role string) {
+	h.t.Helper()
+	os.WriteFile(h.conf, []byte(mustRead(h.t, h.conf)+"ROLE="+role+"\n"), 0o644)
+}
+
+func (h *host) has(path string) bool {
+	_, err := os.Stat(filepath.Join(h.dir, path))
+	return err == nil
+}
+
+func TestAnOrchestratorHasTheNameAndTheLeaseAndNoImageOrCredentials(t *testing.T) {
+	h := newHost(t)
+	h.as("orchestrator")
+	done, err := h.boot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count(done, "certbot ") != 1 || count(done, "gusto-dns ") != 1 {
+		t.Errorf("gusto cloud has a certificate and the name: %v", done)
+	}
+	if count(done, "credentials ") != 0 || h.has("lib/runner-all-rootfs.tar.gz") {
+		t.Errorf("it runs no computer, so it has no image and no model credentials: %v", done)
+	}
+	if !h.has("lease/lease.json") {
+		t.Error("the lease is gusto cloud's")
+	}
+	secret := filepath.Join(h.dir, "run", "cell-secret")
+	info, err := os.Stat(secret)
+	if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, secret) != "value-of-/gusto/poc/cell-secret\n" {
+		t.Errorf("the secret cells are told with is kept for its owner alone: %v %v", info, err)
+	}
+	if h.has("run/cell.env") {
+		t.Error("an orchestrator is not a cell")
+	}
+}
+
+func TestANodeHasTheImageTheCredentialsAndAnIdentityAndNeverTheNameOrTheTokens(t *testing.T) {
+	h := newHost(t)
+	h.put("image/key1.tar.gz", "the image")
+	h.as("cell")
+	done, err := h.boot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count(done, "certbot ") != 0 || count(done, "gusto-dns ") != 0 {
+		t.Errorf("a cell does not take the name: %v", done)
+	}
+	if got, _ := os.ReadFile(filepath.Join(h.dir, "lib", "runner-all-rootfs.tar.gz")); string(got) != "the image" {
+		t.Errorf("the image: %q", got)
+	}
+	if count(done, "credentials ") != 1 {
+		t.Errorf("computers on a cell reach the models: %v", done)
+	}
+	identity := mustRead(t, filepath.Join(h.dir, "run", "cell.env"))
+	if want := "GUSTO_NODE_NAME=cell-0abc123def4567890\nGUSTO_NODE_PRIVATE=10.0.7.21\n"; identity != want {
+		t.Errorf("who it is: %q", identity)
+	}
+	if h.has("run/secrets/cf-dns-token") || h.has("run/secrets/mail.env") || h.has("lease/lease.json") {
+		t.Error("a cell holds neither the Cloudflare tokens nor a lease")
+	}
+	if name := strings.Split(strings.Split(identity, "\n")[0], "=")[1]; len(name) > 31 {
+		t.Errorf("%q is too long to be a cell's name", name)
+	}
+}
+
+func TestANodeWhoseAgentsRunInContainersHasTheImageInDockerUnderItsKeyAndNoOther(t *testing.T) {
+	h := newHost(t)
+	h.put("image/key1.docker.tar.gz", "the archive")
+	h.as("cell")
+	os.WriteFile(h.conf, []byte(mustRead(t, h.conf)+"SANDBOXES=container\n"), 0o644)
+	os.MkdirAll(filepath.Join(h.dir, "docker"), 0o755)
+	os.WriteFile(filepath.Join(h.dir, "docker", "key0"), nil, 0o644)
+	done, err := h.boot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count(done, "docker load ") != 1 || !h.has("docker/key1") || h.has("docker/key0") || h.has("docker/latest") {
+		t.Errorf("the image is loaded once, tagged with its key, and an older one removed: %v", done)
+	}
+	if h.has("lib/runner-all-rootfs.tar.gz") || h.has("lib/runner.docker.tar.gz.part") {
+		t.Errorf("no root file system, and no archive left on the disk: %v", done)
+	}
+	if again, err := h.boot(); err != nil || count(again, "aws ") != 0 || count(again, "docker load ") != 0 {
+		t.Errorf("a restart loads nothing it has: %v %v", again, err)
+	}
+}
+
+// A node runs a sign-up's agents in containers and a demo's in microVMs, so it has both images.
+func TestANodeOfBothSandboxesHasTheContainerImageAndTheRootFileSystem(t *testing.T) {
+	h := newHost(t)
+	h.put("image/key1.docker.tar.gz", "the archive")
+	h.put("image/key1.tar.gz", "the root file system")
+	h.as("cell")
+	os.WriteFile(h.conf, []byte(mustRead(t, h.conf)+"SANDBOXES=\"container openshell\"\n"), 0o644)
+	done, err := h.boot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count(done, "docker load ") != 1 || !h.has("docker/key1") || !h.has("lib/runner-all-rootfs.tar.gz") {
+		t.Errorf("both images: %v", done)
+	}
+}
+
+func TestAHostOfAnotherSandboxIsRefused(t *testing.T) {
+	h := newHost(t)
+	h.as("cell")
+	os.WriteFile(h.conf, []byte(mustRead(t, h.conf)+"SANDBOXES=\"container chroot\"\n"), 0o644)
+	if _, err := h.boot(); err == nil {
+		t.Fatal("a sandbox the boot does not know must stop it")
+	}
+}
+
+func TestANodeWithNoSecretDoesNotStart(t *testing.T) {
+	h := newHost(t)
+	h.put("image/key1.tar.gz", "x")
+	h.as("cell")
+	if _, err := h.boot("FAKE_MISSING=/gusto/poc/cell-secret"); err == nil {
+		t.Fatal("a cell that cannot be told what to do by anyone must not start")
+	}
+	if h.has("run/cell.env") {
+		t.Error("the host said who it was before it had a secret")
+	}
+}
+
+func TestAnUnknownRoleIsRefused(t *testing.T) {
+	h := newHost(t)
+	h.as("both")
+	if _, err := h.boot(); err == nil {
+		t.Fatal("a role that is not one is refused")
+	}
+}
+
+func TestTheBotChecksSecretIsKeptForGustoCloudToReadAsItsEnvironmentAndForNoOneElse(t *testing.T) {
+	for _, role := range []string{"all", "orchestrator"} {
+		h := newHost(t)
+		h.put("image/key1.tar.gz", "x")
+		h.as(role)
+		if _, err := h.boot(); err != nil {
+			t.Fatal(err)
+		}
+		path := filepath.Join(h.dir, "run", "secrets", "turnstile.env")
+		info, err := os.Stat(path)
+		if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, path) != "GUSTO_CLOUD_TURNSTILE_SECRET=value-of-/gusto/poc/turnstile-secret\n" {
+			t.Errorf("%s: %v %v", role, info, err)
+		}
+	}
+	node := newHost(t)
+	node.put("image/key1.tar.gz", "x")
+	node.as("cell")
+	if _, err := node.boot(); err != nil {
+		t.Fatal(err)
+	}
+	if node.has("run/secrets/turnstile.env") {
+		t.Error("a cell, which runs other people's code, holds the bot check's secret")
+	}
+}
+
+func TestAHostWhoseBotCheckSecretIsNotStoredStartsWithoutOneAndLeavesNoStaleSecretBehind(t *testing.T) {
+	h := newHost(t)
+	h.put("image/key1.tar.gz", "x")
+	h.as("orchestrator")
+	if _, err := h.boot(); err != nil {
+		t.Fatal(err)
+	}
+	if !h.has("run/secrets/turnstile.env") {
+		t.Fatal("the secret was not kept")
+	}
+	if _, err := h.boot("FAKE_MISSING=/gusto/poc/turnstile-secret"); err != nil {
+		t.Fatalf("a host with no bot check is still a host: %v", err)
+	}
+	if h.has("run/secrets/turnstile.env") {
+		t.Error("a secret that is no longer stored is still on the host")
+	}
+}
+
+func TestTheLeadHooksAddressAndSecretAreKeptForGustoCloudAloneAndBothAreNeeded(t *testing.T) {
+	for _, role := range []string{"all", "orchestrator"} {
+		h := newHost(t)
+		h.put("image/key1.tar.gz", "x")
+		h.as(role)
+		if _, err := h.boot(); err != nil {
+			t.Fatal(err)
+		}
+		path := filepath.Join(h.dir, "run", "secrets", "leadhook.env")
+		info, err := os.Stat(path)
+		want := "GUSTO_CLOUD_LEAD_HOOK_URL=value-of-/gusto/poc/lead-hook-url\nGUSTO_CLOUD_LEAD_HOOK_SECRET=value-of-/gusto/poc/lead-hook-secret\n"
+		if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, path) != want {
+			t.Errorf("%s: %v %v", role, info, err)
+		}
+		if _, err := h.boot("FAKE_MISSING=/gusto/poc/lead-hook-secret"); err != nil {
+			t.Fatalf("a host with no lead hook is still a host: %v", err)
+		}
+		if h.has("run/secrets/leadhook.env") {
+			t.Errorf("%s: half a hook, or a hook no longer stored, is still on the host", role)
+		}
+	}
+	node := newHost(t)
+	node.put("image/key1.tar.gz", "x")
+	node.as("cell")
+	if _, err := node.boot(); err != nil {
+		t.Fatal(err)
+	}
+	if node.has("run/secrets/leadhook.env") {
+		t.Error("a cell, which runs other people's code, holds the lead hook")
+	}
+}
+
+func TestTheGoogleClientIsKeptForGustoCloudAloneAndBothItsPartsAreNeeded(t *testing.T) {
+	for _, role := range []string{"all", "orchestrator"} {
+		h := newHost(t)
+		h.put("image/key1.tar.gz", "x")
+		h.as(role)
+		if _, err := h.boot(); err != nil {
+			t.Fatal(err)
+		}
+		path := filepath.Join(h.dir, "run", "secrets", "google.env")
+		info, err := os.Stat(path)
+		want := "GUSTO_CLOUD_GOOGLE_CLIENT_ID=value-of-/gusto/poc/google-client-id\nGUSTO_CLOUD_GOOGLE_SECRET=value-of-/gusto/poc/google-secret\n"
+		if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, path) != want {
+			t.Errorf("%s: %v %v", role, info, err)
+		}
+		if _, err := h.boot("FAKE_MISSING=/gusto/poc/google-secret"); err != nil {
+			t.Fatalf("a host with no Google sign-in is still a host: %v", err)
+		}
+		if h.has("run/secrets/google.env") {
+			t.Errorf("%s: a client without its secret, or one no longer stored, is still on the host", role)
+		}
+	}
+	node := newHost(t)
+	node.put("image/key1.tar.gz", "x")
+	node.as("cell")
+	if _, err := node.boot(); err != nil {
+		t.Fatal(err)
+	}
+	if node.has("run/secrets/google.env") {
+		t.Error("a cell, which runs other people's code, holds the Google client's secret")
+	}
+}

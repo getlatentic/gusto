@@ -33,8 +33,12 @@ type Controller struct {
 	// DemoEnv is what a demo organization's server has on top of Env, and wins over it: a demo's agents can run in a sandbox
 	// of another kind than a sign-up's, such as a microVM for each person where a sign-up has a container.
 	DemoEnv []string
-	// CloudURL is gusto cloud's public address, which a server sends people to.
-	CloudURL string
+	// CloudURL is gusto cloud's public address, which a server sends people to, and AppsURL is where shared apps are, with no
+	// app's name in front (AppsAddress).
+	CloudURL, AppsURL string
+	// InFile says a setting goes in an organization server's settings file, which is everything but its secrets. With none,
+	// every setting is in the server's environment.
+	InFile func(name string) bool
 	// OrgURL is the address each organization's server is reached at, which an app a person signs in to sends them back to. With
 	// none, people sign in to no apps.
 	OrgURL func(slug string) string

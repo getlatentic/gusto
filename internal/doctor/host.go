@@ -20,9 +20,9 @@ func tasksWritable(machine Machine, dir string) Verdict {
 	info, err := os.Stat(dir)
 	switch {
 	case err != nil:
-		return fail(dir+" does not exist", "create it, or set GUSTO_TASKS to the directory tasks should live in")
+		return fail(dir+" does not exist", "create it, or set GUSTO_DATA to the folder whose jobs folder tasks should live in")
 	case !info.IsDir():
-		return fail(dir+" is not a directory", "set GUSTO_TASKS to a directory")
+		return fail(dir+" is not a directory", "set GUSTO_DATA to a folder")
 	}
 	if err := machine.Writable(dir); err != nil {
 		return fail(dir+" is not writable by this user: "+err.Error(),

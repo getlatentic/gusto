@@ -15,6 +15,7 @@ import {
 } from "@/pages/admin/apps/integration-versions"
 import { OnBadge } from "@/pages/admin/apps/on-badge"
 import type { Integration, IntegrationData } from "@/pages/admin/apps/types"
+import { withBase } from "@/lib/base"
 
 const crumbs = [{ label: "Apps & skills", href: "/admin/apps?tab=skills" }]
 
@@ -53,14 +54,22 @@ function IntegrationActions({ held }: { held: Integration }) {
   return (
     <div className="flex flex-none items-center gap-2">
       {held.On && (
-        <form method="post" action={`${base}/disable`} className="m-0">
+        <form
+          method="post"
+          action={withBase(`${base}/disable`)}
+          className="m-0"
+        >
           <Button variant="outline" size="sm" type="submit">
             Turn off
           </Button>
         </form>
       )}
       {held.Before && (
-        <form method="post" action={`${base}/restore`} className="m-0">
+        <form
+          method="post"
+          action={withBase(`${base}/restore`)}
+          className="m-0"
+        >
           <Button
             variant="outline"
             size="sm"

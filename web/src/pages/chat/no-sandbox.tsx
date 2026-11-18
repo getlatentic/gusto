@@ -1,12 +1,17 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import type { ChatData } from "@/pages/chat/types"
+import { withBase } from "@/lib/base"
 
 // NoSandbox asks a person to agree, once, before agents run on a computer that cannot put them in a sandbox.
 export function NoSandbox({ wall }: { wall: NonNullable<ChatData["Wall"]> }) {
   return (
     <Card className="w-full max-w-136 p-6">
-      <form method="post" action="/setup/no-sandbox" className="grid gap-6">
+      <form
+        method="post"
+        action={withBase("/setup/no-sandbox")}
+        className="grid gap-6"
+      >
         <div className="grid gap-3">
           <p className="m-0">{wall.Words}</p>
           <p className="m-0 text-sm text-muted-foreground">

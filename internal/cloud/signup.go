@@ -45,11 +45,15 @@ func (s *Server) signUpPage(w http.ResponseWriter, r *http.Request) {
 // the link that lifts the trial. A person who was refused sees why and keeps
 // what they typed.
 func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
-	in := Signup{Email: r.PostFormValue("email"), OrgName: r.PostFormValue("org"), Slug: r.PostFormValue("slug")}
+	in := Signup{Email: r.PostFormValue("email"), OrgName: r.PostFormValue("org")}
 	var refused error
 	again := func(status int, why string, more bool) {
-		s.render(w, status, "signup", view{Title: "Get started", Error: why, Email: in.Email, OrgName: in.OrgName, Slug: in.Slug, Taken: errors.Is(refused, ErrEmailTaken),
-			More: more || in.OrgName != "" || in.Slug != ""})
+		page := view{Title: "Get started", Error: why, Email: in.Email, OrgName: in.OrgName, Taken: errors.Is(refused, ErrEmailTaken),
+			More: more || in.OrgName != ""}
+		if ask := nextQuestion(refused, in); ask != "" {
+			status, page.Error, page.Ask = http.StatusOK, "", ask
+		}
+		s.render(w, status, "signup", page)
 	}
 	if !s.all.Allow(r.Context(), "all") {
 		again(http.StatusServiceUnavailable, "Sign-ups are busy right now. Try again in a little while.", false)
@@ -65,17 +69,43 @@ func (s *Server) signUp(w http.ResponseWriter, r *http.Request) {
 		again(refusalStatus(err), refusalText(err), asksForMore(err))
 		return
 	}
-	s.mailVerification(r.Context(), person, org)
+	if s.Sessions.Vouched(r, person.Email) {
+		s.confirmed(r.Context(), person.Email)
+		s.Sessions.Unvouch(w)
+	} else {
+		s.mailVerification(r.Context(), person, org)
+	}
+	s.welcome(w, r, person, org)
+}
+
+// welcome starts a new organization's server and takes the person who made it in.
+func (s *Server) welcome(w http.ResponseWriter, r *http.Request, person Person, org Org) {
 	s.provision(r.Context(), org.Slug)
 	s.Sessions.Issue(w, person.Email)
 	s.Sessions.Choose(w, org.Slug)
 	http.Redirect(w, r, "/open", http.StatusSeeOther)
 }
 
-// asksForMore says the form needs the organization's name and address, because
-// the domain could not give them or gave ones that will not do.
+// nextQuestion is what the form asks when a sign-up only lacks a name for a second organization at a company's domain.
+// It is "" for every other refusal, and once a name was given.
+func nextQuestion(refused error, in Signup) string {
+	if strings.TrimSpace(in.OrgName) != "" || !errors.Is(refused, ErrSameCompany) {
+		return ""
+	}
+	return "Your company already has an organization on gusto. Name this one, or ask its admin to invite you."
+}
+
+// confirmed marks an address as read without mailing it, because Google vouched for it, which lifts the trial's limits as
+// following the mailed link does.
+func (s *Server) confirmed(ctx context.Context, email string) {
+	if err := s.Store.Verify(ctx, email); err != nil {
+		slog.Error("an address Google confirmed was not marked confirmed", "error", err)
+	}
+}
+
+// asksForMore says the form needs the organization's name, because the domain's is taken or the one given will not do.
 func asksForMore(err error) bool {
-	for _, known := range []error{ErrNeedName, ErrSameCompany, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrSlugTaken} {
+	for _, known := range []error{ErrSameCompany, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrSlugTaken} {
 		if errors.Is(err, known) {
 			return true
 		}
@@ -91,7 +121,7 @@ func refusalSentence(known error) string {
 // refusalText is what a person is told when a sign-up cannot go ahead. An
 // error that is not one of ours is ours to log, and says nothing of itself.
 func refusalText(err error) string {
-	for _, known := range []error{ErrBadEmail, ErrFreeMail, ErrDisposable, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrEmailTaken, ErrSlugTaken, ErrDomainFull, ErrNeedName, ErrSameCompany} {
+	for _, known := range []error{ErrBadEmail, ErrFreeMail, ErrDisposable, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrEmailTaken, ErrSlugTaken, ErrDomainFull, ErrSameCompany} {
 		if errors.Is(err, known) {
 			return refusalSentence(known)
 		}
@@ -106,7 +136,7 @@ func refusalStatus(err error) int {
 			return http.StatusConflict
 		}
 	}
-	for _, known := range []error{ErrBadEmail, ErrFreeMail, ErrDisposable, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrNeedName, ErrSameCompany} {
+	for _, known := range []error{ErrBadEmail, ErrFreeMail, ErrDisposable, ErrBadOrgName, ErrBadSlug, ErrReservedSlug, ErrSameCompany} {
 		if errors.Is(err, known) {
 			return http.StatusUnprocessableEntity
 		}

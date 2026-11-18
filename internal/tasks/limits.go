@@ -1,6 +1,10 @@
 package tasks
 
-import "sort"
+import (
+	"sort"
+
+	"github.com/getlatentic/gusto/internal/team"
+)
 
 // Limits are how much one person or team may run at once. Zero is no limit.
 // Slots is how many tasks the whole server runs at once, which the queue sets.
@@ -84,9 +88,7 @@ func (i *Index) running() running {
 		if !record.InRoom() {
 			now.byPerson[record.Asked]++
 		}
-		if record.Team != "" {
-			now.byTeam[record.Team]++
-		}
+		now.byTeam[team.Of(record.Team)]++
 	}
 	return now
 }
@@ -99,8 +101,8 @@ func (i *Index) hold(record Record, now running) (Wait, bool) {
 		return Wait{Reason: AgentBusy}, true
 	case i.limits.Person > 0 && !record.InRoom() && record.Asked != "" && now.byPerson[record.Asked] >= i.limits.Person:
 		return Wait{Reason: PersonAtLimit, Running: now.byPerson[record.Asked], Limit: i.limits.Person, Who: record.Asked}, true
-	case i.limits.Team > 0 && record.Team != "" && now.byTeam[record.Team] >= i.limits.Team:
-		return Wait{Reason: TeamAtLimit, Running: now.byTeam[record.Team], Limit: i.limits.Team, Who: record.Team}, true
+	case i.limits.Team > 0 && now.byTeam[team.Of(record.Team)] >= i.limits.Team:
+		return Wait{Reason: TeamAtLimit, Running: now.byTeam[team.Of(record.Team)], Limit: i.limits.Team, Who: team.Of(record.Team)}, true
 	case i.orgFull(now.total):
 		limit, _ := i.orgLimit()
 		return Wait{Reason: OrgAtLimit, Running: now.total, Limit: limit}, true

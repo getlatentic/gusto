@@ -19,6 +19,7 @@ import type {
   Source,
   VersionRow,
 } from "@/pages/admin/apps/types"
+import { withBase } from "@/lib/base"
 
 // OnFor chooses who the plugin is on for, by the addresses people sign in with.
 export function OnFor({ held }: { held: Integration }) {
@@ -39,7 +40,7 @@ export function OnFor({ held }: { held: Integration }) {
         <form
           className="grid max-w-prose gap-3"
           method="post"
-          action={`/admin/integrations/${held.Name}/for`}
+          action={withBase(`/admin/integrations/${held.Name}/for`)}
         >
           <Textarea
             name="for"
@@ -130,7 +131,11 @@ function VersionLine({
       </TableCell>
       <TableCell className="text-right">
         {version.ID !== held.On && (
-          <form method="post" action={`${base}/enable`} className="m-0">
+          <form
+            method="post"
+            action={withBase(`${base}/enable`)}
+            className="m-0"
+          >
             <input type="hidden" name="version" value={version.ID} />
             <Button variant="outline" size="sm" type="submit">
               Turn on

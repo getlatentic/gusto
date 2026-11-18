@@ -1,6 +1,9 @@
 package usage
 
-import "github.com/getlatentic/gusto/internal/tasks"
+import (
+	"github.com/getlatentic/gusto/internal/tasks"
+	"github.com/getlatentic/gusto/internal/team"
+)
 
 // WhoOfTask is who made a task's calls, from the task's record: the person who asked, the team and repository,
 // the agent type that ran it, and the conversation, or the task itself when it is in none. engine gives the name a
@@ -8,7 +11,7 @@ import "github.com/getlatentic/gusto/internal/tasks"
 // took the turn, by its id in the room.
 // The server and the commands that run without one both find who made a call here.
 func WhoOfTask(record tasks.Record, engine func(harness string) string, agent func(instance, roomAgent string) (string, bool)) Who {
-	who := Who{Session: SessionOf(record), Person: record.Payer(), Team: record.Team, Project: record.Repo, Engine: engine(record.Harness)}
+	who := Who{Session: SessionOf(record), Person: record.Payer(), Team: team.Of(record.Team), Project: record.Repo, Engine: engine(record.Harness)}
 	if record.Instance == "" {
 		return who
 	}

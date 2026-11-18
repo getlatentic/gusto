@@ -2,10 +2,12 @@ import { useLayoutEffect, useRef } from "react"
 
 import { Notice } from "@/components/page"
 import { pending, typingWords } from "@/domain/live-room"
+import { useArrivals } from "@/motion/use-arrivals"
 import { RunningReply } from "@/pages/conversation/running-reply"
 import { TurnItem } from "@/pages/conversation/turn-item"
 import type { ConversationData, TurnView } from "@/pages/conversation/types"
 import { useProgress } from "@/pages/conversation/use-progress"
+import { withBase } from "@/lib/base"
 
 // The page keeps following the end of the conversation while the person is within this many pixels of it.
 const followWithin = 96
@@ -26,6 +28,10 @@ export function TurnList({
   onStarter: (said: string) => void
 }) {
   const region = useRef<HTMLDivElement>(null)
+  useArrivals(
+    region,
+    turns.map((turn) => turn.ID)
+  )
   const following = useRef(true)
   const progress = useProgress(page.Path, page.Instance.Room && pending(turns))
   const last = turns[turns.length - 1]
@@ -54,7 +60,7 @@ export function TurnList({
         {turns.length > 0 ? (
           <ol aria-label="Messages" className="m-0 list-none p-0">
             {turns.map((turn) => (
-              <li key={turn.ID}>
+              <li key={turn.ID} data-arrive-id={turn.ID}>
                 <TurnItem turn={turn} progress={progress[turn.ID]} />
               </li>
             ))}
@@ -146,7 +152,7 @@ function RoomGreeting({ page }: { page: ConversationData }) {
       This room has no agents yet.{" "}
       <a
         className="font-medium text-foreground underline"
-        href={`${page.Path}?add=1`}
+        href={withBase(`${page.Path}?add=1`)}
       >
         Add one
       </a>{" "}

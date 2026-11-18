@@ -11,8 +11,8 @@ type pageView struct {
 	Page  string
 	Title string
 
-	Error, Email, OrgName, Slug, Name, Notice string
-	More, Taken, WorkOnly, SignedIn, Sent     bool
+	Error, Ask, Email, OrgName, Name, Notice      string
+	More, Taken, WorkOnly, SignedIn, Sent, Google bool
 
 	Token, Action, Button, Inviter string
 
@@ -31,32 +31,28 @@ type pageView struct {
 	Server    string
 	CanOpen   bool
 
-	Members    []memberView
-	Invited    []string
-	Admins     int
-	IsAdmin    bool
-	CanInvite  bool
-	Workspaces []spaceView
-	Link       string
+	Members   []memberView
+	Invited   []string
+	Admins    int
+	IsAdmin   bool
+	CanInvite bool
+	Teams     []spaceView
+	Link      string
 
-	DemoLeft, DemoLeftLong             string
-	DemoWords                          string
-	Steps                              []Step
-	Book, BookFrame, TurnstileSite     string
-	Extendable, Ended, Ending          bool
-	DemoPublic                         bool
-	StartingCredit                     float64
-	Video, VideoPoster, Shot, ShotDark string
-	VideoFile                          bool
-	// Record is the landing page's picture of what one reply cost, light and dark.
-	Record, RecordDark string
+	DemoLeft, DemoLeftLong         string
+	DemoWords                      string
+	Steps                          []Step
+	Book, BookFrame, TurnstileSite string
+	Extendable, Ended, Ending      bool
 
 	Lease *leaseView
 }
 
 type orgView struct {
 	Slug, Name, Admin string
-	Demo              bool
+	// Address is where the organization is reached, as a person reads it.
+	Address string
+	Demo    bool
 }
 
 type personView struct {
@@ -97,8 +93,8 @@ func quotaOf(q quota.Quota) quotaView {
 func pageOf(name string, v view) pageView {
 	page := pageView{
 		Page: name, Title: v.Title,
-		Error: v.Error, Email: v.Email, OrgName: v.OrgName, Slug: v.Slug, Name: v.Name, Notice: v.Notice,
-		More: v.More, Taken: v.Taken, WorkOnly: v.WorkOnly, SignedIn: v.SignedIn, Sent: v.Sent,
+		Error: v.Error, Ask: v.Ask, Email: v.Email, OrgName: v.OrgName, Name: v.Name, Notice: v.Notice,
+		More: v.More, Taken: v.Taken, WorkOnly: v.WorkOnly, SignedIn: v.SignedIn, Sent: v.Sent, Google: v.Google,
 		Token: v.Token, Action: v.Action, Button: v.Button, Inviter: v.Inviter,
 		Several: v.Several, Person: personView{Email: v.Person.Email, Trial: v.Person.Trial()},
 		Address: v.Address, Domain: v.Domain, Credit: v.Credit, Billing: billingPageOf(v.Billing),
@@ -106,8 +102,7 @@ func pageOf(name string, v view) pageView {
 		Computers: v.Computers, Server: v.Server, CanOpen: v.CanOpen,
 		Admins: v.Admins, IsAdmin: v.IsAdmin, CanInvite: v.CanInvite, Link: v.Link,
 		DemoWords: v.DemoWords, Steps: v.Steps, Book: v.Book, BookFrame: v.BookFrame, TurnstileSite: v.TurnstileSite,
-		Extendable: v.Extendable, Ended: v.Ended, Ending: v.Ending, DemoPublic: v.DemoPublic, StartingCredit: v.StartingCredit,
-		Video: v.Video, VideoPoster: v.VideoPoster, Shot: v.Shot, ShotDark: v.ShotDark, VideoFile: v.VideoFile,
+		Extendable: v.Extendable, Ended: v.Ended, Ending: v.Ending,
 	}
 	page.addPeople(v)
 	if v.DemoLeft > 0 {
@@ -116,13 +111,10 @@ func pageOf(name string, v view) pageView {
 	if name == "lease" {
 		page.Lease = leaseOf(v)
 	}
-	if name == "landing" {
-		page.Record, page.RecordDark = fingerprinted("/static/shots/record-light.webp"), fingerprinted("/static/shots/record-dark.webp")
-	}
 	return page
 }
 
-// addPeople is the organizations, people, invitations and workspaces a page shows.
+// addPeople is the organizations, people, invitations and teams a page shows.
 func (page *pageView) addPeople(v view) {
 	if v.Org.Slug != "" || v.Org.Name != "" {
 		org := orgOf(v.Org)
@@ -137,8 +129,8 @@ func (page *pageView) addPeople(v view) {
 	for _, invited := range v.Invited {
 		page.Invited = append(page.Invited, invited.Email)
 	}
-	for _, row := range v.Workspaces {
-		page.Workspaces = append(page.Workspaces, spaceView{ID: row.ID, Name: row.Name, People: row.People, Others: row.Others})
+	for _, row := range v.Teams {
+		page.Teams = append(page.Teams, spaceView{ID: row.ID, Name: row.Name, People: row.People, Others: row.Others})
 	}
 }
 

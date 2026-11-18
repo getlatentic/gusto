@@ -9,7 +9,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/getlatentic/gusto/internal/workspace"
+	"github.com/getlatentic/gusto/internal/team"
 
 	"github.com/getlatentic/gusto/internal/instance"
 	"github.com/getlatentic/gusto/internal/tasks"
@@ -110,9 +110,9 @@ func (s *Server) archivedRoomsFor(r *http.Request) []railChat { return s.roomRow
 func (s *Server) roomRows(r *http.Request, archived bool) []railChat {
 	who := s.askerName(r)
 	var rooms []railChat
-	here := s.workspaceOf(r)
+	here := s.teamOf(r)
 	for _, held := range s.instances.RoomsOf(who) {
-		if !workspace.Same(held.Workspace, here) || (held.Archived != 0) != archived {
+		if !team.Same(held.Team, here) || (held.Archived != 0) != archived {
 			continue
 		}
 		thread := s.instances.Latest(held.ID)

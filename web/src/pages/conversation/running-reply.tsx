@@ -1,9 +1,11 @@
-import { useEffect, useEffectEvent, useState } from "react"
+import { useEffect, useEffectEvent, useRef, useState } from "react"
 import { CheckIcon } from "lucide-react"
 
 import { dataOf, useData, useRefreshAll } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { useArrivals } from "@/motion/use-arrivals"
 import type { ConversationData } from "@/pages/conversation/types"
+import { withBase } from "@/lib/base"
 
 interface LiveItem {
   kind: "said" | "step"
@@ -31,7 +33,9 @@ function elapsed(seconds: number): string {
 function useEnded(task: string, onEnded: () => void) {
   const ended = useEffectEvent(onEnded)
   useEffect(() => {
-    const watch = new EventSource(`/watch/${encodeURIComponent(task)}`)
+    const watch = new EventSource(
+      withBase(`/watch/${encodeURIComponent(task)}`)
+    )
     watch.addEventListener("ended", () => {
       watch.close()
       ended()
@@ -55,11 +59,20 @@ export function RunningReply({ page }: { page: ConversationData }) {
   }, [])
   useEnded(page.Latest, refreshAll)
   const items = live?.items ?? []
+  const done = useRef<HTMLElement>(null)
+  useArrivals(
+    done,
+    items.map((_, index) => String(index))
+  )
   const steps = items.filter((item) => item.kind === "step")
   const latest = steps[steps.length - 1]
   const doing = live?.holding || page.Holding || latest?.what || "Working"
   return (
-    <section aria-label="The reply so far" className="mt-5 ml-10.5 grid gap-3">
+    <section
+      ref={done}
+      aria-label="The reply so far"
+      className="mt-5 ml-10.5 grid gap-3"
+    >
       <p className="m-0 flex items-center gap-3 text-sm font-medium">
         <span
           className="size-3.5 flex-none animate-spin rounded-full border-2 border-input border-t-foreground"
@@ -82,12 +95,17 @@ export function RunningReply({ page }: { page: ConversationData }) {
           )}
           {items.map((item, index) =>
             item.kind === "said" ? (
-              <li key={index} className="text-sm whitespace-pre-wrap">
+              <li
+                key={index}
+                data-arrive-id={index}
+                className="text-sm whitespace-pre-wrap"
+              >
                 {item.text}
               </li>
             ) : (
               <li
                 key={index}
+                data-arrive-id={index}
                 className={cn(
                   "flex items-start gap-2 text-xs",
                   item === latest ? "text-foreground" : "text-muted-foreground"

@@ -11,6 +11,7 @@ import { orgLines, type CloudOrg } from "@/domain/orgs"
 import { api } from "@/store/api"
 import type { PersonShell } from "@/domain/side-list"
 import { cn } from "@/lib/utils"
+import { withBase } from "@/lib/base"
 
 const line = cn(
   buttonVariants({ variant: "ghost", size: "sm" }),
@@ -25,13 +26,13 @@ export function OrgSwitcher({ shell }: { shell: PersonShell }) {
   const listed = api.endpoints.cloud.useQuery(org.OrgsFrom, { skip: !asked })
   const orgs = (listed.data as { orgs?: CloudOrg[] } | undefined)?.orgs ?? []
   const lines = orgs.length
-    ? orgLines(orgs, org.Slug, shell.Workspace)
+    ? orgLines(orgs, org.Slug, shell.Team)
     : [
         {
           kind: "place" as const,
           key: org.Slug,
-          text: shell.Workspaces
-            ? `${org.Name} · ${shell.Workspaces.Here.Name}`
+          text: shell.Teams
+            ? `${org.Name} · ${shell.Teams.Here.Name}`
             : org.Name,
           href: "",
           current: true,
@@ -44,7 +45,7 @@ export function OrgSwitcher({ shell }: { shell: PersonShell }) {
         className="mb-2 grid size-10 cursor-pointer place-items-center rounded-md hover:bg-hover"
         aria-label="Organizations"
       >
-        <img className="size-6" src="/static/mark.svg" alt="" />
+        <img className="size-6" src={withBase("/static/mark.svg")} alt="" />
       </PopoverTrigger>
       <PopoverContent
         side="right"
@@ -76,7 +77,7 @@ export function OrgSwitcher({ shell }: { shell: PersonShell }) {
                 ) : (
                   <a
                     className={cn(line, each.inset && "pl-6")}
-                    href={each.href}
+                    href={withBase(each.href)}
                   >
                     <span className="min-w-0 flex-1 truncate">{each.text}</span>
                   </a>
@@ -86,7 +87,7 @@ export function OrgSwitcher({ shell }: { shell: PersonShell }) {
           )}
         </ul>
         <hr className="my-1 border-border" />
-        <a className={line} href={org.Manage}>
+        <a className={line} href={withBase(org.Manage)}>
           <ArrowUpRightIcon /> Manage organizations
         </a>
       </PopoverContent>

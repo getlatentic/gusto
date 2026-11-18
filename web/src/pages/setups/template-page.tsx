@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils"
 import { ChooseAgent } from "@/pages/setups/choose-agent"
 import type { TemplateData } from "@/pages/setups/types"
 import { WorkMark } from "@/pages/setups/work-mark"
+import { withBase } from "@/lib/base"
 
 const crumbs = [{ label: "Presets", href: "/presets" }]
 
@@ -96,7 +97,7 @@ function StartTemplate({ page }: { page: TemplateData }) {
   return (
     <form
       method="post"
-      action={`/templates/${encodeURIComponent(template.Name)}`}
+      action={withBase(`/templates/${encodeURIComponent(template.Name)}`)}
       className="m-0"
     >
       <input type="hidden" name="harness" value={page.Harnesses[0].Name} />

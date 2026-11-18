@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -30,6 +31,36 @@ type Submission struct {
 	Adapter *harness.Adapter `json:"adapter,omitempty"`
 }
 
+// received is a Submission as it arrives. Its spec may name the team the task is sent into as team, or as workspace, the
+// name a spec keeps it under on disk.
+type received struct {
+	Spec struct {
+		task.Spec
+		Team string `json:"team,omitempty"`
+	} `json:"spec"`
+	Adapter *harness.Adapter `json:"adapter,omitempty"`
+}
+
+// receive reads the Submission a request carries. A spec is a few hundred bytes, so a body that is not one is refused
+// rather than held in memory. A field this server does not know is refused too: a spec written for a newer runner would
+// otherwise run here with part of itself quietly dropped.
+func receive(w http.ResponseWriter, r *http.Request) (Submission, error) {
+	var arrived received
+	body := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20))
+	body.DisallowUnknownFields()
+	if err := body.Decode(&arrived); err != nil {
+		return Submission{}, err
+	}
+	return arrived.submission(), nil
+}
+
+// submission is what was received, with its team said once.
+func (r received) submission() Submission {
+	spec := r.Spec.Spec
+	spec.Team = cmp.Or(r.Spec.Team, spec.Team)
+	return Submission{Spec: spec, Adapter: r.Adapter}
+}
+
 // Answer is the id of the task this server took, or the reason it took none.
 type Answer struct {
 	ID      string `json:"id,omitempty"`
@@ -41,14 +72,8 @@ type Answer struct {
 // answer, and a task that cannot run should not become a failed task to go and
 // read.
 func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
-	var sent Submission
-	// A spec is a few hundred bytes, so a body that is not one is refused
-	// rather than held in memory. A field this server does not know is refused
-	// too: a spec written for a newer runner would otherwise run here with part
-	// of itself quietly dropped.
-	body := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20))
-	body.DisallowUnknownFields()
-	if err := body.Decode(&sent); err != nil {
+	sent, err := receive(w, r)
+	if err != nil {
 		reply(w, http.StatusBadRequest, Answer{Refused: "this is not a task spec: " + err.Error()})
 		return
 	}
@@ -86,12 +111,12 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusBadRequest, Answer{Refused: err.Error()})
 		return
 	}
-	space, err := s.sentInto(r, sent.Spec.Workspace)
+	space, err := s.sentInto(r, sent.Spec.Team)
 	if err != nil {
 		reply(w, http.StatusForbidden, Answer{Refused: err.Error()})
 		return
 	}
-	sent.Spec.Workspace = space
+	sent.Spec.Team = space
 	id, err := s.queued(sent.Spec, sent.Adapter, callerOf(r), key)
 	if err != nil {
 		status := http.StatusInternalServerError
@@ -151,7 +176,7 @@ func (s *Server) queued(spec task.Spec, carried *harness.Adapter, asked, key str
 	}
 	record := tasks.Record{
 		ID: id, State: tasks.Queued, Brief: spec.Brief, Repo: spec.Repo,
-		Harness: spec.Harness, Model: spec.Model, Asked: asked, Key: key, Team: spec.Team, Workspace: spec.Workspace,
+		Harness: spec.Harness, Model: spec.Model, Asked: asked, Key: key, Team: spec.Team,
 		Queued: tasks.Now(),
 	}
 	if err := s.index.Add(record); err != nil {

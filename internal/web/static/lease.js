@@ -5,6 +5,8 @@
 // says so.
 (function () {
   var extend = document.currentScript && document.currentScript.getAttribute("data-extend");
+  // The path the page's server is under, when a gusto cloud serves the organization at one: the host's lease is asked there.
+  var base = (document.querySelector('meta[name="gusto-base"]') || {}).content || "";
   var warnAt = 300, every = 30000, left = null, bar = null, link = null, text = null, book = null, stop = null, invite = null, demo = false, strip = "2rem";
 
   // The bar is drawn on the app's pages and on gusto cloud's, whose stylesheets differ, so it styles itself from the tokens
@@ -77,7 +79,7 @@
   }
 
   function ask() {
-    fetch("/.gusto/lease", { cache: "no-store", credentials: "omit" })
+    fetch(base + "/.gusto/lease", { cache: "no-store", credentials: "omit" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         if (d && d.ended === true) { location.reload(); return; }

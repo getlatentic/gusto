@@ -37,18 +37,19 @@ func TestASpareMadeWithAReplacedProxyPortIsRemovedAndRemadeWithTheNewOne(t *test
 	}
 	defer stop()
 
+	// The fake gateway makes a sandbox's directory before it writes the sandbox's policy, so the new spare is whole once its
+	// policy is there.
 	var now []string
+	var policy []byte
 	for deadline := time.Now().Add(20 * time.Second); time.Now().Before(deadline); time.Sleep(50 * time.Millisecond) {
 		if now = sparesIn(t, root); len(now) == 1 && now[0] != old[0] {
-			break
+			if policy, err = os.ReadFile(filepath.Join(root, now[0], "policy.json")); err == nil {
+				break
+			}
 		}
 	}
-	if len(now) != 1 || now[0] == old[0] {
-		t.Fatalf("the gateway holds %v, want one new spare in place of %v", now, old)
-	}
-	policy, err := os.ReadFile(filepath.Join(root, now[0], "policy.json"))
-	if err != nil {
-		t.Fatal(err)
+	if len(now) != 1 || now[0] == old[0] || policy == nil {
+		t.Fatalf("the gateway holds %v, want one whole new spare in place of %v: %v", now, old, err)
 	}
 	if !strings.Contains(string(policy), "7002") || strings.Contains(string(policy), "7001") {
 		t.Errorf("the new spare's policy does not name only the new proxy port:\n%s", policy)

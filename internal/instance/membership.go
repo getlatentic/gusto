@@ -2,8 +2,9 @@ package instance
 
 import (
 	"fmt"
-	"github.com/getlatentic/gusto/internal/workspace"
 	"strings"
+
+	"github.com/getlatentic/gusto/internal/team"
 )
 
 // Arrival is an agent joining a room, and the person whose agent it is, who has to be in the room.
@@ -89,7 +90,7 @@ func (s *Store) RemoveMember(id, who string, theirs func(Agent) bool) ([]Agent, 
 	return gone, nil
 }
 
-// DirectRoom is the room of two a person keeps with a workspace agent, when there is one.
+// DirectRoom is the room of two a person keeps with a team agent, when there is one.
 func (s *Store) DirectRoom(who, member string) (Instance, bool) {
 	for _, held := range s.RoomsOf(who) {
 		if held.Direct && len(held.Members) == 1 && len(held.Agents) == 1 && held.Agents[0].Member == member {
@@ -99,7 +100,7 @@ func (s *Store) DirectRoom(who, member string) (Instance, bool) {
 	return Instance{}, false
 }
 
-// StartDirect is a person's own room with a workspace agent: the one they have, or a new one, made whole in one step and named
+// StartDirect is a person's own room with a team agent: the one they have, or a new one, made whole in one step and named
 // for the agent.
 func (s *Store) StartDirect(who, space string, agent Agent) (Instance, error) {
 	if err := checkAgent(&agent); err != nil {
@@ -113,7 +114,7 @@ func (s *Store) StartDirect(who, space string, agent Agent) (Instance, error) {
 	}
 	agent.ID = "a1"
 	held, err := s.Start(slug(agent.Name), Instance{
-		Title: agent.Name, Who: who, Workspace: workspace.Stored(space), Room: true, Direct: true,
+		Title: agent.Name, Who: who, Team: team.Stored(space), Room: true, Direct: true,
 		Members: []Member{{Who: who, Role: RoleAdmin}}, Agents: []Agent{agent},
 	})
 	if err != nil {

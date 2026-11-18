@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/getlatentic/gusto/internal/dbkit"
-	"github.com/getlatentic/gusto/internal/workspace"
+	"github.com/getlatentic/gusto/internal/team"
 )
 
 // Remove takes a person out of an organization, and leaves them in any other they are in.
@@ -28,7 +28,7 @@ func (s *Store) Remove(ctx context.Context, slug string, by Person, address stri
 		return err
 	}
 	s.publishRoster(ctx, slug)
-	// Their computer in each workspace they were in is marked, with or without a record, and the organization's server, which
+	// Their computer in each team they were in is marked, with or without a record, and the organization's server, which
 	// keeps the files and reaches the gateway, removes it.
 	registry, err := s.Computers(slug)
 	if err != nil {
@@ -37,7 +37,7 @@ func (s *Store) Remove(ctx context.Context, slug string, by Person, address stri
 	return registry.Retire(email, spaces...)
 }
 
-// removeIn drops the person and says which workspaces they were in.
+// removeIn drops the person and says which teams they were in.
 func (s *Store) removeIn(ctx context.Context, tx dbkit.Tx, slug, by, email string) ([]string, error) {
 	if err := s.lock(ctx, tx, "org:"+slug); err != nil {
 		return nil, err
@@ -58,21 +58,21 @@ func (s *Store) removeIn(ctx context.Context, tx dbkit.Tx, slug, by, email strin
 			return nil, ErrLastAdmin
 		}
 	}
-	spaces, err := workspaceIDsOf(ctx, tx, slug, email)
+	spaces, err := teamIDsOf(ctx, tx, slug, email)
 	if err != nil {
 		return nil, err
 	}
 	return spaces, dropMember(ctx, tx, email, slug)
 }
 
-// workspaceIDsOf is the workspaces a person is in, as the ids their computers are named by. A person in none is in the first.
-func workspaceIDsOf(ctx context.Context, q dbkit.Querier, slug, email string) ([]string, error) {
+// teamIDsOf is the teams a person is in, as the ids their computers are named by. A person in none is in the first.
+func teamIDsOf(ctx context.Context, q dbkit.Querier, slug, email string) ([]string, error) {
 	spaces, err := collect(ctx, q, func(r rowScanner) (string, error) {
 		var id string
 		return id, r.Scan(&id)
 	}, `SELECT workspace FROM workspace_members WHERE org = ? AND email = ?`, slug, email)
 	if err == nil && len(spaces) == 0 {
-		spaces = []string{workspace.First}
+		spaces = []string{team.First}
 	}
 	return spaces, err
 }

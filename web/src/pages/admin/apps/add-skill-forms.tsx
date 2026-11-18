@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Choices, Field } from "@/pages/admin/apps/field"
 import type { ImportedChoice } from "@/pages/admin/apps/types"
+import { withBase } from "@/lib/base"
 
 // The forms that add a skill, each posted as the browser sends it; the server answers with the new skill set's or plugin's page.
 
@@ -19,7 +20,7 @@ export function WriteSkillSetForm({
     <form
       className="grid max-w-xl gap-4"
       method="post"
-      action="/admin/skill-sets"
+      action={withBase("/admin/skill-sets")}
     >
       <Field id="add-name" label="Name">
         <Input
@@ -71,7 +72,7 @@ export function GitImportForm() {
     <form
       className="grid max-w-xl gap-4"
       method="post"
-      action="/admin/integrations/import"
+      action={withBase("/admin/integrations/import")}
       encType="multipart/form-data"
     >
       <input type="hidden" name="kind" value="git" />
@@ -113,7 +114,7 @@ export function UploadImportForm() {
     <form
       className="grid max-w-xl gap-4"
       method="post"
-      action="/admin/integrations/import"
+      action={withBase("/admin/integrations/import")}
       encType="multipart/form-data"
     >
       <input type="hidden" name="kind" value="upload" />

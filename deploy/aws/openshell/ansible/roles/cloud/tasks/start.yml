@@ -1,0 +1,56 @@
+---
+# A cell's start-up script starts these, after it has mounted the shared file system, so they are not started with the host.
+- name: The host's start-up work runs now, which gets the certificate or the image and points the name here
+  ansible.builtin.systemd:
+    name: gusto-boot
+    state: restarted
+    enabled: "{{ cloud_role != 'cell' }}"
+    daemon_reload: true
+
+- name: The lease is watched
+  ansible.builtin.systemd:
+    name: gusto-lease.timer
+    state: started
+    enabled: true
+    daemon_reload: true
+  when: not cloud_live | bool
+
+- name: The web server and gusto cloud are running, and the trash is emptied
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+    daemon_reload: true
+  loop: [nginx, gusto-cloud, gusto-owner, gusto-trash.timer]
+  when: cloud_role != 'cell'
+
+# nginx starts when it is installed, with its default site, and a play that fails drops
+# the reloads it had queued, so the site is loaded here every time, once its certificate is there.
+- name: The web server loads the site
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded
+  when: cloud_role != 'cell'
+
+# A changed setting restarts the cell, which is done before it is started here, so that it is not started and then stopped mid-scan.
+- name: The changes are applied
+  ansible.builtin.meta: flush_handlers
+
+# A host an image is made from is not started as a cell, which would register it and give it organizations.
+- name: The host is running
+  ansible.builtin.systemd:
+    name: gusto-cell
+    state: started
+    enabled: false
+  when: cloud_role == 'cell' and not (cloud_bake | bool)
+
+- name: The name resolves from here, and the web server answers for it with a certificate that holds
+  ansible.builtin.uri:
+    url: "https://{{ cloud_domain }}/healthz"
+  delegate_to: localhost
+  become: false
+  when: cloud_role != 'cell' and (cloud_check_public | default(true) | bool)
+  register: answered
+  until: answered.status == 200
+  retries: 30
+  delay: 10

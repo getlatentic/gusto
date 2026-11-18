@@ -25,12 +25,6 @@
   --color-accent-ink: var(--gu-accent-text);
 }
 
-@theme {
-  --text-md: 0.9375rem;
-  --text-copy: 1rem;
-  --text-lead: 1.1875rem;
-}
-
 /* A band that is dark in both themes: it re-points the tokens its utilities read. */
 @utility carbon {
   --gu-bg: #0e1511;
@@ -45,4 +39,16 @@
   --gu-accent-solid-hover: #00743f;
   --gu-on-accent-solid: #ffffff;
   --gu-focus: #d8ff36;
+}
+
+/* A part of the landing page's demo that has just appeared rises into place. The reduced-motion rule in index.css stops it. */
+@keyframes demo-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

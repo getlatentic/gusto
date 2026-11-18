@@ -21,6 +21,7 @@ import {
 import { initial } from "@/lib/format"
 import { useConversation } from "@/pages/conversation/conversation-context"
 import type { RoomAgent, RoomPerson } from "@/pages/conversation/types"
+import { withBase } from "@/lib/base"
 
 const row = "flex min-h-10 items-center gap-3 px-1"
 const face =
@@ -108,7 +109,7 @@ function ChoiceForm({
     <form
       ref={form}
       method="post"
-      action={action}
+      action={withBase(action)}
       onSubmit={submit}
       className="m-0"
     >
@@ -190,7 +191,7 @@ function Person({ person, runs }: { person: RoomPerson; runs: boolean }) {
           {person.Me && (
             <form
               method="post"
-              action={`${room}/members/remove`}
+              action={withBase(`${room}/members/remove`)}
               onSubmit={submit}
               className="m-0"
             >
@@ -248,7 +249,7 @@ function Agent({ agent, runs }: { agent: RoomAgent; runs: boolean }) {
           <>
             <form
               method="post"
-              action={`${at}/accept`}
+              action={withBase(`${at}/accept`)}
               onSubmit={submit}
               className="m-0"
             >
@@ -258,7 +259,7 @@ function Agent({ agent, runs }: { agent: RoomAgent; runs: boolean }) {
             </form>
             <form
               method="post"
-              action={`${at}/remove`}
+              action={withBase(`${at}/remove`)}
               onSubmit={submit}
               className="m-0"
             >
@@ -298,7 +299,7 @@ function Agent({ agent, runs }: { agent: RoomAgent; runs: boolean }) {
       {(runs || agent.Mine) && (
         <form
           method="post"
-          action={`${at}/allowance`}
+          action={withBase(`${at}/allowance`)}
           onSubmit={submit}
           className="m-0 flex items-center gap-2 pb-2 pl-11"
         >

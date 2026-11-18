@@ -9,7 +9,9 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 
+	"github.com/getlatentic/gusto/internal/settings"
 	"github.com/getlatentic/gusto/internal/signing"
 )
 
@@ -91,11 +93,43 @@ func (c *Controller) environment(ctx context.Context, slug string, runtime Runti
 	if database != "" {
 		own[databaseURLEnv] = database
 	}
-	env := withoutSetting(operator, databaseURLEnv)
+	env := withoutSetting(withoutSetting(operator, databaseURLEnv), settings.FileEnv)
 	for name, value := range own {
 		env = append(env, name+"="+value)
 	}
-	return env, nil
+	return c.toFile(slug, env)
+}
+
+// toFile moves the settings a settings file holds out of a server's environment and into the file, which is in the
+// organization's own directory, where every node the server may run on reads it. The environment keeps the secrets and
+// what is not a setting, such as HOME and PATH, and names the file.
+func (c *Controller) toFile(slug string, env []string) ([]string, error) {
+	if c.InFile == nil {
+		return env, nil
+	}
+	kept := make([]string, 0, len(env))
+	filed := map[string]string{}
+	for _, each := range env {
+		name, value, _ := strings.Cut(each, "=")
+		if c.InFile(name) {
+			filed[name] = value
+			continue
+		}
+		kept = append(kept, each)
+	}
+	path := c.settingsFile(slug)
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return nil, err
+	}
+	if err := settings.WriteFile(path, filed); err != nil {
+		return nil, err
+	}
+	return append(kept, settings.FileEnv+"="+path), nil
+}
+
+// settingsFile is the settings an organization's server starts with, but for its secrets.
+func (c *Controller) settingsFile(slug string) string {
+	return filepath.Join(c.orgDir(slug), "server.toml")
 }
 
 // serverSettings is where an organization's server listens, which organization it is, and the gusto cloud and node it is on.
@@ -106,6 +140,7 @@ func (c *Controller) serverSettings(slug, name string, runtime Runtime, node Nod
 		"GUSTO_ORG":        slug,
 		"GUSTO_ORG_NAME":   name,
 		"GUSTO_CLOUD_URL":  c.CloudURL,
+		"GUSTO_APPS_URL":   c.AppsURL,
 		"GUSTO_NODE":       node.Name(),
 	}
 }
@@ -114,14 +149,7 @@ func (c *Controller) serverSettings(slug, name string, runtime Runtime, node Nod
 func (c *Controller) dataSettings(slug string) map[string]string {
 	data := c.Store.DataDir(slug)
 	return map[string]string{
-		"GUSTO_TASKS":        filepath.Join(data, "jobs"),
-		"GUSTO_SESSIONS":     filepath.Join(data, "sessions"),
-		"GUSTO_SETUPS":       filepath.Join(data, "setups"),
-		"GUSTO_CREW":         filepath.Join(data, "crew"),
-		"GUSTO_PRESETS":      filepath.Join(data, "presets"),
-		"GUSTO_INTEGRATIONS": filepath.Join(data, "integrations"),
-		"GUSTO_COMPARISONS":  filepath.Join(data, "comparisons"),
-		"GUSTO_CHANGES":      filepath.Join(data, "changes", "changes.jsonl"),
+		"GUSTO_DATA":         data,
 		"GUSTO_RETENTION":    filepath.Join(data, "retention"),
 		signing.KeyEnv:       filepath.Join(data, "keys", slug+".key"),
 		signing.KeyringEnv:   filepath.Join(data, "keys"),
@@ -133,6 +161,5 @@ func (c *Controller) dataSettings(slug string) map[string]string {
 		"GUSTO_INBOX":        c.Store.InboxDir(slug),
 		"GUSTO_ENTRY_KEY":    c.entryKeyFile(slug),
 		"GUSTO_COMPUTERS":    filepath.Join(data, "computers"),
-		"GUSTO_APPS":         filepath.Join(data, "apps"),
 	}
 }

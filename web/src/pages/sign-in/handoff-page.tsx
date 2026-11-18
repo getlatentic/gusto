@@ -5,6 +5,7 @@ import { leaveFor } from "@/lib/leave"
 import { api } from "@/store/api"
 import { cn } from "@/lib/utils"
 import { PublicPanel } from "@/pages/sign-in/public-panel"
+import { withBase } from "@/lib/base"
 
 const ticketPath = "/app/api/auth/desktop/handoff"
 
@@ -34,7 +35,7 @@ export function HandoffPage() {
       ) : (
         <a
           className={cn(buttonVariants(), "h-11")}
-          href={link}
+          href={withBase(link)}
           aria-disabled={!link}
           data-testid="open-app"
         >

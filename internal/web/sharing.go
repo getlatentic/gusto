@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -83,7 +84,7 @@ func (s *Server) publishApp(w http.ResponseWriter, r *http.Request) {
 		s.turnAway(w, r, back, "the port is a number from 1024 to 65535, the one the app listens on")
 		return
 	}
-	app, err := s.apps.New(apps.Sharer{Instance: held.ID, Owner: held.Who, Workspace: held.Workspace}, command, port, appsPerAgent)
+	app, err := s.apps.New(apps.Sharer{Instance: held.ID, Owner: held.Who, Team: held.Team}, command, port, appsPerAgent)
 	if errors.Is(err, apps.ErrTooMany) {
 		s.turnAway(w, r, back, tooManyApps)
 		return
@@ -114,7 +115,7 @@ func (s *Server) publishPage(w http.ResponseWriter, r *http.Request, instance, o
 		}
 	}
 	held, _ := s.instances.Get(instance)
-	_, err := s.apps.NewPage(apps.Sharer{Instance: instance, Owner: owner, Workspace: held.Workspace}, folder, appsPerAgent)
+	_, err := s.apps.NewPage(apps.Sharer{Instance: instance, Owner: owner, Team: held.Team}, folder, appsPerAgent)
 	if errors.Is(err, apps.ErrTooMany) {
 		s.turnAway(w, r, back, tooManyApps)
 		return
@@ -349,17 +350,17 @@ func (s *Server) appLink(app apps.App) string {
 	if s.front == nil {
 		return "/apps/" + app.ID + "/"
 	}
-	parsed, err := url.Parse(s.front.URL)
+	parsed, err := url.Parse(cmp.Or(s.front.Apps, s.front.URL))
 	if err != nil {
 		return "/apps/" + app.ID + "/"
 	}
 	return parsed.Scheme + "://" + s.front.Org + "--" + app.ID + "." + parsed.Host + "/"
 }
 
-// appFor is the app an id names, when it is in a workspace the request is in.
+// appFor is the app an id names, when it is in a team the request is in.
 func (s *Server) appFor(r *http.Request, id string) (apps.App, bool) {
 	app, err := s.apps.Get(id)
-	return app, err == nil && s.inWorkspace(r, app.Workspace)
+	return app, err == nil && s.inTeam(r, app.Team)
 }
 
 // app is the path an app is opened at on a server with no gusto cloud. Behind one, an app has a host
@@ -430,7 +431,7 @@ func (s *Server) serveApp(w http.ResponseWriter, r *http.Request, id, prefix str
 			if r.URL.RawPath != "" {
 				pr.Out.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, prefix)
 			}
-			for _, header := range []string{"Authorization", "Proxy-Authorization", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "Forwarded", "X-Real-Ip", AppHeader} {
+			for _, header := range []string{"Authorization", "Proxy-Authorization", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "Forwarded", "X-Real-Ip", AppHeader, PersonHeader} {
 				pr.Out.Header.Del(header)
 			}
 			pr.Out.Header.Del("Cookie")

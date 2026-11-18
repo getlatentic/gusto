@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { Outlet, useLocation } from "react-router"
 import { ArrowLeftIcon, LogOutIcon, SettingsIcon } from "lucide-react"
 
@@ -7,14 +7,19 @@ import { NavigationContext } from "@/components/navigation"
 import { SkipLink } from "@/components/skip-link"
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { useData } from "@/lib/api"
+import { usePageEnter } from "@/motion/use-page-enter"
+import { useChildPath } from "@/router/use-child-path"
 import type { ConsoleShell as Shell } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { withBase } from "@/lib/base"
 
 // The console is the admin's own place: its sections down the side, one way back to the pages everybody uses, and no other
 // link between the two.
 export function ConsoleShell() {
   const shell = useData<Shell>("/app/api/console")
   const [open, setOpen] = useState(false)
+  const main = useRef<HTMLElement>(null)
+  usePageEnter(main, useChildPath("admin"))
   const navigation = useMemo(() => ({ open: () => setOpen(true) }), [])
   const sections = shell.state === "ready" ? shell.data : undefined
   return (
@@ -31,6 +36,7 @@ export function ConsoleShell() {
           </SheetContent>
         </Sheet>
         <main
+          ref={main}
           id="main"
           className="min-h-0 min-w-0 overflow-y-auto"
           tabIndex={-1}
@@ -49,7 +55,11 @@ function ConsoleNav({ shell, onGo }: { shell?: Shell; onGo?: () => void }) {
   return (
     <nav className="flex min-h-0 flex-1 flex-col gap-1" aria-label="Admin">
       <div className="flex min-h-12 items-center gap-3 px-3">
-        <img className="size-8 flex-none" src="/static/mark.svg" alt="" />
+        <img
+          className="size-8 flex-none"
+          src={withBase("/static/mark.svg")}
+          alt=""
+        />
         <span className="grid leading-tight">
           <strong className="font-heading text-sm font-semibold">Admin</strong>
           {shell?.orgName && (
@@ -72,14 +82,14 @@ function ConsoleNav({ shell, onGo }: { shell?: Shell; onGo?: () => void }) {
       ))}
       <span className="flex-1" />
       {shell?.orgPage && (
-        <a className={item} href={shell.orgPage}>
+        <a className={item} href={withBase(shell.orgPage)}>
           <SettingsIcon /> Organization and billing
         </a>
       )}
-      <a className={item} href="/">
+      <a className={item} href={withBase("/")}>
         <ArrowLeftIcon /> Back to gusto
       </a>
-      <form method="post" action="/logout" className="m-0">
+      <form method="post" action={withBase("/logout")} className="m-0">
         <button
           type="submit"
           className={cn(item, "cursor-pointer border-0 bg-transparent")}

@@ -1,19 +1,22 @@
 package cloud
 
 import (
+	"cmp"
 	"embed"
 	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/getlatentic/gusto/deploy/install"
 	"github.com/getlatentic/gusto/internal/web"
 )
 
-//go:embed static/hero-light.webp static/hero-dark.webp static/shots/*.webp static/og.png
+//go:embed static/og.png
 var files embed.FS
 
 // Config is what a gusto cloud server is made from.
@@ -22,9 +25,14 @@ type Config struct {
 	Mail     Mailer
 	Sessions *Sessions
 	// URL is the address links in mail begin with, and Domain is the domain
-	// organizations are served under, as <slug>.<domain>.
+	// organizations are served under, as <slug>.<domain>, when they are not at paths.
 	URL    *url.URL
 	Domain string
+	// AppsDomain is the domain shared apps are served under, as <slug>--<app>.<domain>, and Domain when it is not set. A
+	// domain of their own keeps an app's pages from setting a cookie that gusto's own pages are sent.
+	AppsDomain string
+	// OrgPaths says organizations are reached at /workspace/<slug> on URL's own name, and not at host names of their own.
+	OrgPaths bool
 	// TrustProxy says the address of a request is the last one a proxy in front
 	// of this server wrote in X-Forwarded-For, and not the connection's own.
 	TrustProxy bool
@@ -36,6 +44,8 @@ type Config struct {
 	Controller *Controller
 	// Lease, when there is one, is how long this host has before it removes itself.
 	Lease *Lease
+	// Google is signing in with a Google account, when gusto cloud has a client at Google.
+	Google *Google
 	// Turnstile is the bot check on the demo form, when it is set.
 	Turnstile Turnstile
 	// Leads sends each lead to where it is followed up, when it is set.
@@ -90,6 +100,7 @@ func New(c Config) (*Server, error) {
 	if c.Metrics == nil {
 		c.Metrics = NewMetrics()
 	}
+	c.AppsDomain = cmp.Or(c.AppsDomain, c.Domain)
 	if c.Controller != nil && c.Controller.Metrics == nil {
 		c.Controller.Metrics = c.Metrics
 		c.Metrics.watch(c.Controller)
@@ -138,19 +149,30 @@ func (s *Server) routeClass(r *http.Request) string {
 	if _, ok := s.orgSlug(r.Host); ok {
 		return "org"
 	}
+	if _, _, ok := s.orgAtPath(r.URL.Path); ok {
+		return "org"
+	}
 	return "unmatched"
 }
 
 func (s *Server) serve() http.Handler {
 	pages := s.routes()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if slug, rest, ok := s.orgAtPath(r.URL.Path); ok {
+			s.serveOrg(w, mountedRequest(r, slug, rest), pages, slug, orgPath+slug)
+			return
+		}
+		slug, atHost := s.orgSlug(r.Host)
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/.gusto/lease":
-			s.lease(w, r)
+			s.lease(w, r, slug)
 		case s.isAppHost(r.Host):
 			s.serveApp(w, r)
-		case s.isOrgHost(r.Host):
-			s.serveOrg(w, r, pages)
+		case atHost && s.OrgPaths:
+			// An organization's host name, from before organizations were at paths, is where a kept link still finds it.
+			http.Redirect(w, r, s.orgURL(slug)+r.URL.RequestURI(), http.StatusPermanentRedirect)
+		case atHost:
+			s.serveOrg(w, r, pages, slug, "")
 		default:
 			pages.ServeHTTP(w, r)
 		}
@@ -159,11 +181,10 @@ func (s *Server) serve() http.Handler {
 
 func (s *Server) isAppHost(host string) bool { _, _, ok := s.appHost(host); return ok }
 
-func (s *Server) isOrgHost(host string) bool { _, ok := s.orgSlug(host); return ok }
-
-// lease is asked on every host name, so a page of an organization can warn of the end of the host.
-func (s *Server) lease(w http.ResponseWriter, r *http.Request) {
-	if slug, ok := s.orgSlug(r.Host); ok && s.demoLeaseJSON(r.Context(), w, slug) {
+// lease is asked at every organization's address, so a page of an organization can warn of the end of the host. slug is the
+// organization asked at, and "" at gusto cloud's own pages.
+func (s *Server) lease(w http.ResponseWriter, r *http.Request, slug string) {
+	if slug != "" && s.demoLeaseJSON(r.Context(), w, slug) {
 		return
 	}
 	s.leaseJSON(w, r)
@@ -177,17 +198,22 @@ func (s *Server) serveApp(w http.ResponseWriter, r *http.Request) {
 	s.routeApp(w, r, slug, id)
 }
 
-func (s *Server) serveOrg(w http.ResponseWriter, r *http.Request, pages http.Handler) {
+// serveOrg answers a request for an organization's pages. prefix is the path the organization is at on gusto cloud's own
+// name, and "" when it has a host name of its own.
+func (s *Server) serveOrg(w http.ResponseWriter, r *http.Request, pages http.Handler, slug, prefix string) {
 	if unlisted(w, r) {
 		return
 	}
-	slug, _ := s.orgSlug(r.Host)
+	if prefix != "" && r.Method == http.MethodGet && r.URL.Path == "/.gusto/lease" {
+		s.lease(w, r, slug)
+		return
+	}
 	// The page of a demo that has ended is drawn by gusto cloud's own files and the app's, which the gone server cannot send.
 	if _, found := s.Store.LeadOf(r.Context(), slug); found && servedByCloud(r.URL.Path) && !s.orgExists(r.Context(), slug) {
 		pages.ServeHTTP(w, r)
 		return
 	}
-	s.route(w, r, slug)
+	s.route(w, r, slug, prefix)
 }
 
 func servedByCloud(path string) bool {
@@ -207,6 +233,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /signin/link", s.confirmPage(SignIn, "Sign in to gusto", "Continue"))
 	mux.HandleFunc("POST /signin/link", s.useLink(SignIn))
 	mux.HandleFunc("POST /signin/code", s.signInWithCode)
+	s.googleRoutes(mux)
 	mux.HandleFunc("GET /orgs", s.orgsPage)
 	mux.HandleFunc("GET /orgs.json", s.orgsJSON)
 	mux.HandleFunc("GET /account.json", s.accountJSON)
@@ -233,15 +260,29 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /signout", s.signOut)
 	mux.HandleFunc("GET /signout", s.signedOutThere)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok\n")) })
-	mux.Handle("GET /static/shots/", cached(http.FileServerFS(files)))
-	mux.Handle("GET /static/hero-light.webp", cached(http.FileServerFS(files)))
-	mux.Handle("GET /static/hero-dark.webp", cached(http.FileServerFS(files)))
-	mux.Handle("GET /static/og.png", cached(http.FileServerFS(files)))
-	mux.Handle("GET /app/assets/", web.AppAssets())
+	s.fileRoutes(mux)
 	mux.HandleFunc("GET /robots.txt", s.robots)
 	mux.HandleFunc("GET /sitemap.xml", s.sitemap)
 	mux.Handle("GET /static/", web.Static())
 	return s.secure(mux)
+}
+
+// fileRoutes are the files the front door serves as they are: its pictures, the app's code, and the script that installs gusto.
+func (s *Server) fileRoutes(mux *http.ServeMux) {
+	mux.Handle("GET /static/og.png", cached(http.FileServerFS(files)))
+	mux.Handle("GET /app/assets/", web.AppAssets())
+	mux.Handle("GET /install.sh", installer(install.Script, "text/x-shellscript"))
+	mux.Handle("GET /install.ps1", installer(install.PowerShell, "text/plain"))
+}
+
+// installer answers with an install script, so `curl -fsSL <front door>/install.sh | sh` installs the newest release: GitHub's own
+// latest-release address skips pre-releases.
+func installer(script []byte, kind string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", kind+"; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		w.Write(script)
+	})
 }
 
 // Wait returns when every mail started so far has been handed on, and every
@@ -291,12 +332,15 @@ var sentFromOrgs = map[string]bool{"/account/confirm": true, "/org/people/role":
 // orgsSource is every organization's and app's address, for the content security policy: signing in, signing up and
 // joining are forms whose redirects end in one, and a browser checks each redirect of a form against form-action.
 func (s *Server) orgsSource() string {
-	if s.Domain == "" {
-		return ""
-	}
-	source := " " + s.URL.Scheme + "://*." + s.Domain
-	if port := s.URL.Port(); port != "" {
-		source += ":" + port
+	source := ""
+	for _, domain := range slices.Compact([]string{s.Domain, s.AppsDomain}) {
+		if domain == "" {
+			continue
+		}
+		source += " " + s.URL.Scheme + "://*." + domain
+		if port := s.URL.Port(); port != "" {
+			source += ":" + port
+		}
 	}
 	return source
 }

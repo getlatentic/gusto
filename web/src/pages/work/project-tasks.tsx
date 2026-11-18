@@ -11,6 +11,7 @@ import { SectionCard } from "@/pages/work/section-card"
 import { StateBadge } from "@/pages/work/state-badge"
 import type { ProjectData } from "@/pages/work/types"
 import { useWorkForm } from "@/pages/work/use-work-form"
+import { withBase } from "@/lib/base"
 
 const sensitivities = [
   { value: "internal", label: "internal" },
@@ -47,7 +48,9 @@ export function ProjectTasks({ page }: { page: ProjectData }) {
         )}
         <form
           method="post"
-          action={`/instances/${encodeURIComponent(page.Instance.ID)}/tasks`}
+          action={withBase(
+            `/instances/${encodeURIComponent(page.Instance.ID)}/tasks`
+          )}
           onSubmit={form.submit}
           className="grid gap-4"
         >
@@ -61,7 +64,7 @@ export function ProjectTasks({ page }: { page: ProjectData }) {
           <Field label="Check" hint="the command that says it worked">
             <Input name="gate" placeholder="sh test.sh" required />
           </Field>
-          <div className="grid grid-cols-3 gap-4 max-md:grid-cols-1">
+          <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
             <Field label="Sensitivity">
               <FormSelect
                 name="sensitivity"
@@ -69,9 +72,6 @@ export function ProjectTasks({ page }: { page: ProjectData }) {
                 value="internal"
                 groups={[{ choices: sensitivities }]}
               />
-            </Field>
-            <Field label="Team" hint="optional">
-              <Input name="team" placeholder="platform" />
             </Field>
             <Field label="Cap in dollars" hint="optional">
               <Input name="usd" inputMode="decimal" placeholder="5.00" />

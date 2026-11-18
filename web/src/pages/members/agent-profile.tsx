@@ -10,6 +10,7 @@ import { FormSelect } from "@/components/form-select"
 import { Fact, Facts, sectionTitle } from "@/pages/members/member-parts"
 import type { AgentPage, ModelOption } from "@/pages/members/types"
 import { useMembersForm } from "@/pages/members/use-members-form"
+import { withBase } from "@/lib/base"
 
 const row =
   "grid grid-cols-[9rem_minmax(0,1fr)] items-center gap-3 max-sm:grid-cols-1 max-sm:gap-1.5"
@@ -49,7 +50,7 @@ export function AgentProfile({
   return (
     <form
       method="post"
-      action={`/members/agents/${encodeURIComponent(agent.ID)}`}
+      action={withBase(`/members/agents/${encodeURIComponent(agent.ID)}`)}
       onSubmit={submit}
       className="grid gap-8"
       data-testid="agent-profile-form"

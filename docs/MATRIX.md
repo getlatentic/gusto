@@ -74,7 +74,7 @@ All runs used the one-line-fix task in an OpenShell sandbox on one `m8i.xlarge`.
 - `codex` makes one model call and then has its requests denied, on every model here. It finished on DeepSeek Flash and Pro through DeepSeek's own API.
 - `hermes` ends without a fix on `gemma-4-e2b`.
 
-Prices from [aws.amazon.com/bedrock/pricing](https://aws.amazon.com/bedrock/pricing/) on 2026-10-01 are in `deploy/aws/openshell/ansible/roles/demo/files/spend-policy.json`. A new chat starts on `claude` with `google.gemma-4-26b-a4b` (`GUSTO_CHAT_DEFAULT`). Per million tokens, input and output: `google.gemma-4-26b-a4b` $0.13 and $0.40, `google.gemma-4-31b` $0.14 and $0.40, `google.gemma-4-e2b` $0.04 and $0.08.
+Prices from [aws.amazon.com/bedrock/pricing](https://aws.amazon.com/bedrock/pricing/) on 2026-10-01 are in `deploy/aws/openshell/ansible/roles/cloud/files/spend-policy.json`. A new chat starts on `claude` with `google.gemma-4-26b-a4b` (`GUSTO_CHAT_DEFAULT`). Per million tokens, input and output: `google.gemma-4-26b-a4b` $0.13 and $0.40, `google.gemma-4-31b` $0.14 and $0.40, `google.gemma-4-e2b` $0.04 and $0.08.
 
 DeepSeek Flash on every agent, on 2026-10-02 (plan: [`matrix/flash.json`](matrix/flash.json)). `claude` uses `https://api.deepseek.com/anthropic`, the others `https://api.deepseek.com`. All finished. Cost read "unmeasured" for `codex`, `claude` and `dsh`, and the host's spend policy had no DeepSeek prices. Wall clock and model calls: `opencode` 2 m 46 s and 8, `codex` 35 s and 6, `claude` 30 s and 5, `pi` 28 s and 6, `dsh` 39 s and 7, `hermes` 40 s and 8.
 

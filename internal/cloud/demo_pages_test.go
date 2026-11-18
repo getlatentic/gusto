@@ -216,14 +216,11 @@ func landingAt(t *testing.T, set Settings) (int, string, http.Header) {
 func TestWhereADemoIsOfferedTheFrontPageIsTheLandingPageAndSignUpMovesToItsOwnAddress(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		status, page, header := landingAt(t, demoSet)
-		if got := shown(t, page); got.Page != "landing" || !got.DemoPublic || got.Book != "https://cal.example/gusto" || got.DemoLeft != "30 minutes" {
-			t.Errorf("the landing page does not offer a demo and a call: %+v", got)
+		if got := shown(t, page); got.Page != "landing" || got.Book != "https://cal.example/gusto" {
+			t.Errorf("the landing page does not offer sign-up and a call: %+v", got)
 		}
-		if got := shown(t, page); status != http.StatusOK || !strings.HasPrefix(got.Shot, "/static/hero-light.webp?v=") || !strings.HasPrefix(got.ShotDark, "/static/hero-dark.webp?v=") || got.Video != "" {
-			t.Errorf("%d: a finished task is what the landing page shows when there is no video: %+v", status, got)
-		}
-		if csp := header.Get("Content-Security-Policy"); strings.Contains(csp, "frame-src") || strings.Contains(csp, "media-src") || !strings.Contains(csp, "frame-ancestors 'none'") {
-			t.Errorf("a video of its own opens nothing up: %s", csp)
+		if csp := header.Get("Content-Security-Policy"); status != http.StatusOK || strings.Contains(csp, "frame-src") || strings.Contains(csp, "media-src") || strings.Contains(csp, "https:") || !strings.Contains(csp, "frame-ancestors 'none'") {
+			t.Errorf("%d: the landing page opens up more than its own: %s", status, csp)
 		}
 		f := newFront(t, demoSet, nil)
 		if status, page := f.browser().get("/signup"); status != http.StatusOK || shown(t, page).Page != "signup" {
@@ -232,35 +229,6 @@ func TestWhereADemoIsOfferedTheFrontPageIsTheLandingPageAndSignUpMovesToItsOwnAd
 		styled(t, f.browser(), "cloud.test", page)
 		if status, page, _ := landingAt(t, Settings{}); status != http.StatusOK || shown(t, page).Page != "signup" {
 			t.Errorf("a host that offers no demo still has the sign-up page at the front: %d", status)
-		}
-	})
-}
-
-func TestTheLandingPageShowsAVideoFileOrAnEmbeddedPageAndOpensUpOnlyWhatItNeedsAndNeverAnAddressThatIsNotHttps(t *testing.T) {
-	onEachDatabase(t, func(t *testing.T) {
-		for name, tc := range map[string]struct {
-			video, poster string
-			file          bool
-			csp           string
-		}{
-			"a file":          {"https://media.example/gusto.mp4", "https://media.example/gusto.jpg", true, "media-src 'self' https:; img-src 'self' data: https:"},
-			"a page to embed": {"https://www.loom.com/embed/abc123", "", false, "frame-src https://www.loom.com; img-src 'self' data:"},
-		} {
-			set := demoSet
-			set.Demo.VideoURL = tc.video
-			_, page, header := landingAt(t, set)
-			got := shown(t, page)
-			if got.Video != tc.video || got.VideoFile != tc.file || got.VideoPoster != tc.poster || got.Shot != "" || !strings.Contains(header.Get("Content-Security-Policy"), tc.csp) {
-				t.Errorf("%s: %s %+v", name, header.Get("Content-Security-Policy"), got)
-			}
-		}
-		for _, bad := range []string{"http://media.example/gusto.mp4", "javascript:alert(1)", "//media.example/x.mp4", "https://user:pw@media.example/x.mp4", "not a url"} {
-			set := demoSet
-			set.Demo.VideoURL = bad
-			_, page, header := landingAt(t, set)
-			if got := shown(t, page); got.Video != "" || got.VideoFile || strings.Contains(header.Get("Content-Security-Policy"), "frame-src") || strings.Contains(header.Get("Content-Security-Policy"), "media-src") {
-				t.Errorf("%q was shown: %+v", bad, got)
-			}
 		}
 	})
 }
@@ -283,15 +251,6 @@ func TestASignedInVisitorSeesTheLandingPageAndOpensTheirDemoFromIt(t *testing.T)
 			t.Errorf("a visitor opening gusto was sent to %d %v", status, header)
 		}
 		f.server.Wait()
-	})
-}
-
-func TestThePictureOfAFinishedTaskIsServed(t *testing.T) {
-	onEachDatabase(t, func(t *testing.T) {
-		f := newFront(t, demoSet, nil)
-		if status, body, header := f.browser().do("GET", "/static/hero-light.webp", nil, nil); status != http.StatusOK || len(body) < 1000 || header.Get("Content-Type") != "image/webp" {
-			t.Errorf("%d %d bytes %q", status, len(body), header.Get("Content-Type"))
-		}
 	})
 }
 

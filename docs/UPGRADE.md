@@ -6,16 +6,18 @@ A release never costs you conversations, tasks or records. Each data directory c
 
 Each store has a format number in `.gusto-format` in its directory. A directory with data and no stamp is format 1. Every store is at format 1 in this release. Files inside the stores have their own versions ([FORMATS.md](FORMATS.md)); a reader refuses a version newer than it knows.
 
+Every store but the last two is a folder of `GUSTO_DATA`, the current directory by default.
+
 | Store | Directory | Holds |
 | --- | --- | --- |
-| tasks | `GUSTO_TASKS` | each task's directory, with its signed record |
-| sessions | `GUSTO_SESSIONS` | agents, their threads and transcripts |
-| setups | `GUSTO_SETUPS` | skill sets |
-| comparisons | `GUSTO_COMPARISONS` | comparisons started from the pages |
-| integrations | `GUSTO_INTEGRATIONS` | plugins an administrator imported, a folder for each version |
-| presets | `GUSTO_PRESETS` | what each person saved to start a chat again, a file each |
-| crew | `GUSTO_CREW` | the workspace's agents, which rooms add, a file each |
-| changes | the directory of `GUSTO_CHANGES` | the change record |
+| tasks | `jobs` | each task's directory, with its signed record |
+| sessions | `sessions` | agents, their threads and transcripts |
+| setups | `setups` | skill sets |
+| comparisons | `comparisons` | comparisons started from the pages |
+| integrations | `integrations` | plugins an administrator imported, a folder for each version |
+| presets | `presets` | what each person saved to start a chat again, a file each |
+| crew | `crew` | the team's agents, which rooms add, a file each |
+| changes | `changes` | the change record, `changes.jsonl` |
 | tokens | the directory of `GUSTO_API_TOKENS` | API tokens |
 | retention | `GUSTO_RETENTION` | the policy, the holds and the last sweep |
 

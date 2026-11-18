@@ -5,6 +5,7 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { Disclosure } from "@/pages/work/disclosure"
 import { SectionCard } from "@/pages/work/section-card"
 import type { Proof, TaskData } from "@/pages/work/types"
+import { withBase } from "@/lib/base"
 
 // TaskProof is what the page found checking the record the way `gusto verify` does, and how to check it again without this
 // server. An admin is shown it; anybody is shown a record that does not check out, open.
@@ -12,7 +13,7 @@ export function TaskProof({ page }: { page: TaskData }) {
   const proof = page.Proof
   if (!proof || (!page.Admin && proof.Holds)) return null
   const files = (page.Files ?? []).filter((file) => file.SHA256)
-  const at = `/jobs/${encodeURIComponent(page.Job.ID)}/files/`
+  const fileAt = `/jobs/${encodeURIComponent(page.Job.ID)}/files/`
   return (
     <SectionCard id="proof" testId="task-proof">
       <Disclosure
@@ -33,7 +34,7 @@ export function TaskProof({ page }: { page: TaskData }) {
         <p className="m-0 mb-3 flex flex-wrap gap-2">
           <a
             className={buttonVariants({ size: "sm" })}
-            href={proof.Bundle}
+            href={withBase(proof.Bundle)}
             download
           >
             The record
@@ -41,7 +42,7 @@ export function TaskProof({ page }: { page: TaskData }) {
           {proof.Key && (
             <a
               className={buttonVariants({ variant: "outline", size: "sm" })}
-              href={proof.Key}
+              href={withBase(proof.Key)}
               download
             >
               The signing key
@@ -55,7 +56,7 @@ export function TaskProof({ page }: { page: TaskData }) {
               <li key={file.Name} className="grid gap-0.5">
                 <a
                   className="no-underline underline-offset-4 hover:underline"
-                  href={at + encodeURIComponent(file.Name)}
+                  href={withBase(fileAt + encodeURIComponent(file.Name))}
                 >
                   {file.Name}
                 </a>

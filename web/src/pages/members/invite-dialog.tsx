@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { Invite } from "@/pages/members/types"
+import { withBase } from "@/lib/base"
 
 // InviteDialog invites a person to the organization. The form goes to gusto cloud, which keeps who is in it, as the browser sends
 // it: gusto cloud asks again whether the person may invite, and sends them back to this page saying the invitation went.
@@ -28,7 +29,7 @@ export function InviteDialog({
       <DialogContent className="sm:max-w-108" data-testid="invite-dialog">
         <form
           method="post"
-          action={invite.Action}
+          action={withBase(invite.Action)}
           className="grid gap-5"
           data-testid="invite-form"
         >
@@ -36,10 +37,10 @@ export function InviteDialog({
             <DialogTitle>Invite a person</DialogTitle>
             <DialogDescription>
               They are mailed a link that works once, for seven days. They join
-              this workspace when they open it.
+              this team when they open it.
             </DialogDescription>
           </DialogHeader>
-          <input type="hidden" name="workspace" value={invite.Workspace} />
+          <input type="hidden" name="team" value={invite.Team} />
           <input type="hidden" name="back" value={invite.Back} />
           <div className="grid gap-2">
             <Label htmlFor="invite-email">Email</Label>

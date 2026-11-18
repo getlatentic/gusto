@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card"
 import { usePageData } from "@/lib/api"
 import { RolePicker } from "@/pages/setups/role-picker"
 import type { PresetRow, PresetsData } from "@/pages/setups/types"
+import { withBase } from "@/lib/base"
 
 // PresetsPage is where a new agent is chosen: the person's own presets, each ready-made kind of work, or a skill set of their own.
 export function PresetsPage() {
@@ -72,7 +73,9 @@ function YourPresets({ presets }: { presets: PresetRow[] }) {
               </AppLink>
               <form
                 method="post"
-                action={`/presets/${encodeURIComponent(preset.ID)}/delete`}
+                action={withBase(
+                  `/presets/${encodeURIComponent(preset.ID)}/delete`
+                )}
                 className="m-0"
               >
                 <Button

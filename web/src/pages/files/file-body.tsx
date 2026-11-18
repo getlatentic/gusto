@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { CodeView } from "@/pages/files/code-view"
 import type { FileData, OfficePart, ViewedFile } from "@/pages/files/types"
+import { withBase } from "@/lib/base"
 
 const frame = "h-[72vh] w-full rounded-md border [color-scheme:light]"
 const stage = "m-0 grid place-items-center rounded-md bg-muted p-4"
@@ -44,26 +45,28 @@ function Shown({ page }: { page: FileData }) {
         <figure className={stage}>
           <img
             className="max-h-[70vh] max-w-full rounded-sm"
-            src={file.Raw}
+            src={withBase(file.Raw)}
             alt={file.Name}
           />
         </figure>
       )
     case "pdf":
-      return <iframe className={frame} src={file.Raw} title={file.Name} />
+      return (
+        <iframe className={frame} src={withBase(file.Raw)} title={file.Name} />
+      )
     case "html":
       return (
         <iframe
           className={frame}
           sandbox="allow-scripts allow-forms allow-modals"
-          src={file.Raw}
+          src={withBase(file.Raw)}
           title={file.Name}
         />
       )
     case "audio":
       return (
         <figure className={stage}>
-          <audio controls src={file.Raw} />
+          <audio controls src={withBase(file.Raw)} />
         </figure>
       )
     case "video":
@@ -72,7 +75,7 @@ function Shown({ page }: { page: FileData }) {
           <video
             className="max-h-[70vh] max-w-full rounded-sm"
             controls
-            src={file.Raw}
+            src={withBase(file.Raw)}
           />
         </figure>
       )
@@ -166,7 +169,7 @@ function NotShown({ file }: { file: ViewedFile }) {
       <p className="m-0">This kind of file cannot be shown here.</p>
       <a
         className={buttonVariants({ variant: "outline", size: "sm" })}
-        href={file.Download}
+        href={withBase(file.Download)}
         download
       >
         <DownloadIcon aria-hidden="true" />

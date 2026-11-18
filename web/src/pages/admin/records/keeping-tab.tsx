@@ -12,6 +12,7 @@ import { Figure, Figures } from "@/components/figures"
 import { Section } from "@/pages/admin/records/section"
 import { Holds } from "@/pages/admin/records/holds"
 import type { Keeping, PolicyRow } from "@/pages/admin/records/types"
+import { withBase } from "@/lib/base"
 
 // KeepingTab is what the tasks take on disk, the policy that removes finished work, the next sweep, and what is held from it.
 export function KeepingTab({ keeping }: { keeping: Keeping }) {
@@ -29,7 +30,7 @@ export function KeepingTab({ keeping }: { keeping: Keeping }) {
             keeping.Oldest ? (
               <a
                 className="text-inherit no-underline underline-offset-4 hover:underline"
-                href={`/jobs/${keeping.Oldest}`}
+                href={withBase(`/jobs/${keeping.Oldest}`)}
                 title={keeping.Oldest}
               >
                 {keeping.OldestAt}
@@ -120,7 +121,10 @@ function NextSweep({ keeping }: { keeping: Keeping }) {
               {upcoming.map((action) => (
                 <TableRow key={`${action.job} ${action.kind}`}>
                   <TableCell className="w-full max-w-0 truncate">
-                    <a className="underline" href={`/jobs/${action.job}`}>
+                    <a
+                      className="underline"
+                      href={withBase(`/jobs/${action.job}`)}
+                    >
                       {action.brief}
                     </a>
                   </TableCell>
@@ -141,7 +145,11 @@ function NextSweep({ keeping }: { keeping: Keeping }) {
       ) : (
         <p className="m-0 text-muted-foreground">Nothing is due.</p>
       )}
-      <form method="post" action="/admin/retention/sweep" className="m-0">
+      <form
+        method="post"
+        action={withBase("/admin/retention/sweep")}
+        className="m-0"
+      >
         <Button size="sm" variant="outline" type="submit">
           Sweep now
         </Button>

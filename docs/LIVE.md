@@ -1,7 +1,7 @@
 # Settings that change while the server runs
 
 A change to what people are offered, or to their limits, takes effect without a restart, so nobody in the middle of a task is sent
-away for one. The server looks at the files below every `GUSTO_RELOAD_SECONDS` (20 by default). A change is taken when the same new
+away for one. The server looks at the files below every 20 seconds. A change is taken when the same new
 content is there at two looks in a row, so a file that an editor has emptied and not yet filled is never the setting: it shows within
 a minute at the default.
 
@@ -24,7 +24,7 @@ console, and those changes were already live. The registry decides them, and the
 
 A change to these needs a restart, and the change record notes it at the next start:
 
-- where things are kept: `GUSTO_ADDR`, `GUSTO_TASKS`, `GUSTO_SESSIONS`, `GUSTO_SETUPS`, `GUSTO_INTEGRATIONS`, `GUSTO_PRESETS`, `GUSTO_CREW`, `GUSTO_CHANGES`, `GUSTO_RETENTION`
+- where things are kept: `GUSTO_ADDR`, `GUSTO_DATA`, `GUSTO_RETENTION`
 - who may sign in and who is an administrator: `GUSTO_ALLOWED`, `GUSTO_ADMINS`, the groups and the identity provider's settings
 - how tasks run: `GUSTO_SANDBOX`, `GUSTO_TASK_NETWORK`, `GUSTO_CONTAINER`, `GUSTO_TASK_CONCURRENCY`, `GUSTO_ALLOWED_HOSTS`
 - the tool servers an operator offers (`GUSTO_MCP`) and the gateway's mode and network rule

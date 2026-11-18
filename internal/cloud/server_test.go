@@ -209,12 +209,11 @@ func TestASignUpThatIsRefusedSaysWhyAndKeepsWhatWasTyped(t *testing.T) {
 			status int
 			says   string
 		}{
-			"free mail":       {signup("bob@gmail.com", "Bob Ltd"), 422, "email address your company gave you"},
-			"disposable":      {signup("bob@mailinator.com", "Bob Ltd"), 422, "expire"},
-			"not an email":    {signup("bob", "Bob Ltd"), 422, "not an email address"},
-			"a taken address": {url.Values{"email": {"bob@bob.com"}, "org": {"Bob Ltd"}, "slug": {"acme-com"}}, 409, "is taken"},
-			"a taken email":   {signup("ada@acme.com", "Another"), 409, "already has an account"},
-			"a bad name":      {signup("bob@bob.com", "x"), 422, "2 to 80 characters"},
+			"free mail":     {signup("bob@gmail.com", "Bob Ltd"), 422, "email address your company gave you"},
+			"disposable":    {signup("bob@mailinator.com", "Bob Ltd"), 422, "expire"},
+			"not an email":  {signup("bob", "Bob Ltd"), 422, "not an email address"},
+			"a taken email": {signup("ada@acme.com", "Another"), 409, "already has an account"},
+			"a bad name":    {signup("bob@bob.com", "x"), 422, "2 to 80 characters"},
 		} {
 			status, page, _ := f.browser().post("/signup", c.form)
 			got := shown(t, page)
@@ -445,22 +444,32 @@ func TestTheFormAsksForOnlyAWorkEmailAndTheCompanyNamesTheOrganization(t *testin
 	})
 }
 
-func TestAFreeMailSignUpIsAskedForANameAndKeepsTheEmailTyped(t *testing.T) {
+// A personal address names no company, so it makes a workspace of the person's own, named after them, at a random
+// address, with nothing more to fill in.
+func TestAFreeMailSignUpMakesAWorkspaceOfThePersonsOwn(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{AllowFreeMail: true}, nil)
-		status, page, _ := f.browser().post("/signup", url.Values{"email": {"ada@gmail.com"}})
-		if got := shown(t, page); status != http.StatusUnprocessableEntity || !strings.Contains(got.Error, "give your organization a name") || !got.More || got.Email != "ada@gmail.com" {
-			t.Fatalf("%d %+v", status, got)
-		}
 		b := f.browser()
-		if status, _, _ := b.post("/signup", url.Values{"email": {"ada@gmail.com"}, "org": {"Ada's Lab"}}); status != http.StatusSeeOther {
-			t.Errorf("%d", status)
+		if status, _, header := b.post("/signup", url.Values{"email": {"ada@gmail.com"}}); status != http.StatusSeeOther || header.Get("Location") != "/open" {
+			t.Fatalf("%d %v", status, header)
 		}
-		if got := shownAt(t, b, "/org"); got.Org == nil || got.Org.Name != "Ada's Lab" || got.Address != "ada-s-lab.cloud.test" {
+		got := shownAt(t, b, "/org")
+		if got.Org == nil || got.Org.Name != "ada's workspace" || got.Domain != "" || !workspaceHost.MatchString(got.Address) {
+			t.Errorf("%+v", got)
+		}
+		// A name given is kept, and the address is still a random one.
+		other := f.browser()
+		if status, _, _ := other.post("/signup", url.Values{"email": {"bob@gmail.com"}, "org": {"Bob's Lab"}}); status != http.StatusSeeOther {
+			t.Fatal(status)
+		}
+		if got := shownAt(t, other, "/org"); got.Org == nil || got.Org.Name != "Bob's Lab" || !workspaceHost.MatchString(got.Address) {
 			t.Errorf("%+v", got)
 		}
 	})
 }
+
+// workspaceHost is the host name of an organization no company's domain gives an address.
+var workspaceHost = regexp.MustCompile(`^[0-9a-f]{12}\.cloud\.test$`)
 
 // Two companies whose domains differ by a suffix have the same name and each has an
 // address of its own. Neither is put ahead of the other for arriving first, and
@@ -487,16 +496,11 @@ func TestTwoCompaniesWithAlikeNamesAreTreatedTheSame(t *testing.T) {
 		if strings.Contains(comPage, "acme-research-co.") || strings.Contains(coPage, "acme-research-com.") {
 			t.Error("a page shows the other company's address")
 		}
-		// An address chosen on purpose that is taken is refused, and the form asks for another.
-		status, page, _ := f.browser().post("/signup", url.Values{"email": {"carol@example.org"}, "org": {"Carol"}, "slug": {"acme-research-com"}})
-		if got := shown(t, page); status != http.StatusConflict || !strings.Contains(got.Error, "is taken") || !got.More || got.Slug != "acme-research-com" {
-			t.Errorf("%d %+v", status, got)
-		}
 	})
 }
 
 // A company with subsidiaries has an organization for each. The second at a domain is
-// asked what to call it, and then has an address from that name.
+// asked what to call it, and then has a random address, since a name is nobody's to claim.
 func TestACompanyWithSubsidiariesHasAnOrganizationForEach(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
@@ -505,7 +509,7 @@ func TestACompanyWithSubsidiariesHasAnOrganizationForEach(t *testing.T) {
 			t.Fatal(status)
 		}
 		status, page, _ := second.post("/signup", url.Values{"email": {"bob@acme.com"}})
-		if got := shown(t, page); status != http.StatusUnprocessableEntity || !strings.Contains(got.Error, "name this one") || !got.More || got.Email != "bob@acme.com" {
+		if got := shown(t, page); status != http.StatusOK || !strings.Contains(got.Ask, "Name this one") || got.Error != "" || !got.More || got.Email != "bob@acme.com" {
 			t.Fatalf("the second is asked for a name and keeps the email: %d %+v", status, got)
 		}
 		if status, _, _ := second.post("/signup", url.Values{"email": {"bob@acme.com"}, "org": {"Acme Insurance"}}); status != http.StatusSeeOther {
@@ -513,8 +517,8 @@ func TestACompanyWithSubsidiariesHasAnOrganizationForEach(t *testing.T) {
 		}
 		_, firstPage := first.get("/org")
 		_, secondPage := second.get("/org")
-		for page, want := range map[string][3]string{firstPage: {"Acme", "acme-com.cloud.test", "ada@acme.com"}, secondPage: {"Acme Insurance", "acme-insurance.cloud.test", "bob@acme.com"}} {
-			if got := shown(t, page); got.Org == nil || got.Org.Name != want[0] || got.Address != want[1] || got.Person.Email != want[2] || got.Domain != "acme.com" {
+		for page, want := range map[string][3]string{firstPage: {"Acme", `^acme-com\.cloud\.test$`, "ada@acme.com"}, secondPage: {"Acme Insurance", workspaceHost.String(), "bob@acme.com"}} {
+			if got := shown(t, page); got.Org == nil || got.Org.Name != want[0] || !regexp.MustCompile(want[1]).MatchString(got.Address) || got.Person.Email != want[2] || got.Domain != "acme.com" {
 				t.Errorf("a page does not show %v: %+v", want, got)
 			}
 		}

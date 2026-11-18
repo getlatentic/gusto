@@ -40,8 +40,8 @@ if [ "$existing" != None ] && [ -z "${FORCE:-}" ]; then
 fi
 
 # CI names the bucket; making it and closing it to the public is for whoever sets the cloud up, which CI is not.
-bucket="${BUCKET:-$(./demo-store.sh)}"
-[[ "$bucket" =~ ^gusto-poc-demo-[0-9]{12}$ ]] || { echo "demo-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
+bucket="${BUCKET:-$(./cloud-store.sh)}"
+[[ "$bucket" =~ ^gusto-poc-demo-[0-9]{12}$ ]] || { echo "cloud-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
 efs="$(aws efs describe-file-systems --query 'FileSystems[0].FileSystemId' --output text)"
 base="$(aws ssm get-parameter --name /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id --query Parameter.Value --output text)"
 

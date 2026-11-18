@@ -64,7 +64,7 @@
       }
     },
     "team": {
-      "description": "Who the job's spend counts against. A team named in the operator's spend policy has a monthly cap its jobs share. It is a label the person asking chooses; nothing yet proves they belong to the team.",
+      "description": "In a job made before teams, a label the person asking typed for its spending. It is read for nothing now: a job's spending counts against the team it is in (workspace).",
       "type": "string"
     },
     "person": {
@@ -72,7 +72,7 @@
       "type": "string"
     },
     "workspace": {
-      "description": "The workspace of the organization the job is in. Only the workspace's members reach the job and its record. Absent for the organization's first workspace.",
+      "description": "The team of the organization the job is in, kept under the name teams had when jobs began naming them. Only the team's members reach the job and its record, and its spending counts against the team. Absent for the organization's first team, main.",
       "type": "string"
     },
     "agent": {

@@ -1,6 +1,7 @@
 import { Centrifuge, type ClientInfo, type Subscription } from "centrifuge"
 
 import type { LiveFrame } from "@/pages/conversation/types"
+import { withBase } from "@/lib/base"
 
 // A room, live. One WebSocket carries what others say and what agents do into the page as it happens, who is here and who is
 // typing, and sends what the person says, stops and has read. It is Centrifuge's client over the server's /live.
@@ -64,11 +65,14 @@ export class RoomSocket {
     this.place = place
     this.events = events
     const scheme = location.protocol === "https:" ? "wss://" : "ws://"
-    this.client = new Centrifuge(scheme + location.host + place.stream.Path, {
-      minReconnectDelay: 500,
-      maxReconnectDelay: 10_000,
-      timeout: 8_000,
-    })
+    this.client = new Centrifuge(
+      scheme + location.host + withBase(place.stream.Path),
+      {
+        minReconnectDelay: 500,
+        maxReconnectDelay: 10_000,
+        timeout: 8_000,
+      }
+    )
     this.stream = this.client.newSubscription(`room:${place.room}`, {
       positioned: true,
       recoverable: true,
@@ -138,7 +142,7 @@ export class RoomSocket {
   private checkSignedIn() {
     this.failures += 1
     if (this.failures % 3 !== 0) return
-    fetch(this.place.versionPath, {
+    fetch(withBase(this.place.versionPath), {
       credentials: "same-origin",
       redirect: "manual",
     })

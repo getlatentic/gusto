@@ -32,9 +32,8 @@ type Row struct {
 	// RequestKey is the id the asker gave the request, so that a send made twice is one task.
 	RequestKey string `json:"requestId,omitempty"`
 	StoppedBy  string `json:"stoppedBy,omitempty"`
-	Team       string `json:"team,omitempty"`
-	// Workspace is the workspace of the organization the task is in.
-	Workspace string `json:"workspace"`
+	// Team is the team of the organization the task is in.
+	Team string `json:"team"`
 	// Agent, HandedBy, Answers, Hops and PaidBy are set when the task is a turn of a room's agent, and say whose turn it is, who
 	// handed it on, which turn it also answers, how many agents handed it on, and whose spending it counts against.
 	Agent    string `json:"agent,omitempty"`
@@ -57,7 +56,6 @@ type Filter struct {
 	States    []string
 	Asked     string
 	Team      string
-	Workspace string
 	Repo      string
 	AgentType string
 	Instance  string

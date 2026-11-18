@@ -12,7 +12,7 @@ func TestAnOrganizationsServerKnowsItsOwnAddressAndWhereItsSignInsAre(t *testing
 	store := open(t, Settings{})
 	public, _ := url.Parse("https://gusto.example:8443")
 	c := &Controller{Store: store, Node: &LocalNode{}, CloudURL: "https://gusto.example:8443",
-		OrgURL: func(slug string) string { return OrgAddress(public, "gusto.example", slug) }}
+		OrgURL: func(slug string) string { return OrgAddress(public, "gusto.example", false, slug) }}
 	env, err := c.environment(t.Context(), "acme", Runtime{Port: 1, ProxyPort: 2}, c.Node)
 	if err != nil {
 		t.Fatal(err)
@@ -25,5 +25,9 @@ func TestAnOrganizationsServerKnowsItsOwnAddressAndWhereItsSignInsAre(t *testing
 	}
 	if _, count := settingOf(environmentFor(t, nil, "acme"), "GUSTO_CONNECTORS"); count != 0 {
 		t.Error("a server with no address of its own is offered sign-ins to apps")
+	}
+	// At a path, the address is gusto cloud's own with the organization's path, which the server takes its pages to be under.
+	if got := OrgAddress(public, "gusto.example", true, "3fa9c2e1d0ab"); got != "https://gusto.example:8443/workspace/3fa9c2e1d0ab" {
+		t.Errorf("the address at a path is %q", got)
 	}
 }

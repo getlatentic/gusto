@@ -26,7 +26,7 @@ const adminView = (set: Partial<CloudPage> = {}) =>
       { Email: "bob@acme.com", Role: "runner", Computer: "i-1" },
     ],
     Invited: ["cy@acme.com"],
-    Workspaces: [
+    Teams: [
       {
         ID: "w1",
         Name: "Acme",
@@ -117,14 +117,12 @@ describe("an organization's page", () => {
       within(screen.getByTestId("people")).queryAllByRole("button")
     ).toHaveLength(0)
     expect(screen.queryByTestId("invite")).toBeNull()
-    expect(screen.queryByTestId("workspaces")).toBeNull()
+    expect(screen.queryByTestId("teams")).toBeNull()
   })
 
-  it("lets an admin make a workspace, and rename and fill one from its menu", async () => {
+  it("lets an admin make a team, and rename and fill one from its menu", async () => {
     render(<OrgPage page={adminView()} />)
-    expect(screen.getByTestId("make-workspace").textContent).toBe(
-      "New workspace"
-    )
+    expect(screen.getByTestId("make-team").textContent).toBe("New team")
     fireEvent.click(screen.getByRole("button", { name: "More for Acme" }))
     const items = (await screen.findAllByRole("menuitem")).map(
       (item) => item.textContent

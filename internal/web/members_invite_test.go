@@ -10,7 +10,7 @@ func TestAnAdminInvitesAPersonFromMembersByPostingToGustoCloud(t *testing.T) {
 	admin := behindCloud(t)
 	admin.cookie = cookieOf(t, admin.enterWith(t, tokenFor(t, "acme-com", "ada@acme.com", "admin", time.Now())))
 	invite := admin.members(t, "/members").Invite
-	if invite == nil || invite.Action != "https://cloud.test/org/invite?org=acme-com" || invite.Workspace != "main" {
+	if invite == nil || invite.Action != "https://cloud.test/org/invite?org=acme-com" || invite.Team != "main" {
 		t.Errorf("an admin's Members page does not invite to gusto cloud's form: %+v", invite)
 	}
 }

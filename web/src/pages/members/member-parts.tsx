@@ -2,6 +2,8 @@ import type { ReactNode } from "react"
 import { ArrowLeftIcon, UsersIcon } from "lucide-react"
 
 import { AppLink } from "@/components/app-link"
+import { Loading } from "@/components/controls"
+import { dataOf, type Loaded } from "@/lib/api"
 import type { RoomLink } from "@/pages/members/types"
 
 // The parts an agent's page and a person's page are both made of.
@@ -9,6 +11,25 @@ import type { RoomLink } from "@/pages/members/types"
 export const sectionTitle = "m-0 text-sm font-semibold"
 export const emptyNote =
   "m-0 rounded-lg border border-dashed px-5 py-8 text-center text-sm text-subtle"
+
+// Opening draws whoever the address names once their page is read, keeping the one before on screen while the next is read.
+export function Opening<T>({
+  loaded,
+  children,
+}: {
+  loaded: Loaded<T>
+  children: (page: T) => ReactNode
+}) {
+  const page = dataOf(loaded)
+  if (page === undefined) {
+    return (
+      <div className="mx-auto max-w-3xl px-8 py-8 max-nav:px-4">
+        <Loading loaded={loaded}>{() => null}</Loading>
+      </div>
+    )
+  }
+  return <div aria-busy={loaded.state === "loading"}>{children(page)}</div>
+}
 
 // BackToMembers is the way back to the list on a narrow window, where the list folds away while somebody is open.
 export function BackToMembers() {

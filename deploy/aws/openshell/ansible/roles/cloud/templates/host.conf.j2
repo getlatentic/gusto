@@ -1,0 +1,25 @@
+# Read by /usr/local/bin/gusto-boot.
+AWS_REGION={{ cloud_region }}
+NAME={{ cloud_domain }}
+ZONE={{ cloud_zone }}
+APPS_NAME={{ cloud_apps_domain }}
+APPS_ZONE={{ cloud_apps_zone }}
+BUCKET={{ cloud_bucket }}
+CERT_EMAIL={{ cloud_cert_email }}
+IMAGE_KEY={{ cloud_image_key }}
+SANDBOXES="{{ cloud_sandboxes | join(' ') }}"
+LEASE_MINUTES={{ cloud_lease_minutes }}
+MAX_HOURS={{ cloud_max_hours }}
+DNS_TOKEN_PARAMETER={{ cloud_dns_token_parameter }}
+MAIL_TOKEN_PARAMETER={{ cloud_mail_token_parameter }}
+MODEL_PARAMETER={{ cloud_model_parameter }}
+DEEPSEEK_PARAMETER={{ cloud_deepseek_parameter }}
+META_PARAMETER={{ cloud_meta_parameter }}
+ROLE={{ cloud_role }}
+LIVE={{ "on" if cloud_live | bool else "off" }}
+CELL_SECRET_PARAMETER={{ cloud_cell_secret_parameter }}
+TURNSTILE_PARAMETER={{ cloud_turnstile_parameter if cloud_demo_minutes | int > 0 else '' }}
+LEAD_HOOK_URL_PARAMETER={{ cloud_lead_hook_url_parameter }}
+LEAD_HOOK_SECRET_PARAMETER={{ cloud_lead_hook_secret_parameter }}
+GOOGLE_CLIENT_ID_PARAMETER={{ cloud_google_client_id_parameter }}
+GOOGLE_SECRET_PARAMETER={{ cloud_google_secret_parameter }}

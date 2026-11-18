@@ -100,7 +100,7 @@ gusto compare /tmp/fix-compare-1         # prints it again from the record
 
 ## Task directory
 
-`job.json` holds version, brief, repo, check, agent, model, sensitivity, budget and team. `harnesses/` holds an agent of your own. `workspace/` is the checkout. `out/` holds the record:
+`job.json` holds version, brief, repo, check, agent, model, sensitivity, budget and the team the task is in (`workspace`). `harnesses/` holds an agent of your own. `workspace/` is the checkout. `out/` holds the record:
 
 | File in `out/` | Holds |
 | --- | --- |
@@ -202,7 +202,7 @@ The proxy counts each call from the provider's `usage` object (`prompt_tokens`, 
 ```json
 {
   "prices": { "some-model": { "inputPerMillion": 2.5, "outputPerMillion": 10 } },
-  "teams": { "platform": { "usdPerMonth": 200 } }
+  "teams": { "engineering": { "usdPerMonth": 200 } }
 }
 ```
 
@@ -210,14 +210,14 @@ A field this build does not know stops the server, because a misspelt cap would 
 
 - A task's cap is `budget.usd` in `job.json`. Left out is no cap. Zero allows nothing.
 - `organisation` sets a monthly cap on the whole server, on the operator's keys only: a call on a key an organization's admin added is not counted or stopped by it. A hosted organization's one-time credit is its quota's `creditUsd` instead ([CLOUD.md](CLOUD.md#free-credit)).
-- A team's cap is per calendar month in UTC. A task counts against its `team` field, a label the person asking chooses. The cap holds against mistakes, not against a determined spender.
+- A team's cap is per calendar month in UTC, named by the team's id, such as `main` or `engineering`. A task counts against the team it is in, and a person sends a task only into a team they are in.
 - The proxy checks both before each call. When one is spent it answers `402` with the reason. A call in flight finishes.
 - Under a cap, a model with no price is refused. A successful answer with no usage stops the next call.
 - The agent is not killed. It loses the model, and the time budget ends it. The manifest records `stoppedByCap`, and `gusto show` names the cap.
 - A restarted server rebuilds each team's month from the tasks' `out/proxy.jsonl`.
 
 ```bash
-gusto spend                   # this month, from GUSTO_TASKS
+gusto spend                   # this month, from the jobs folder of GUSTO_DATA
 gusto spend -month 2026-08    # another month
 gusto spend -json             # for a script
 ```
@@ -244,11 +244,29 @@ docker build -t gusto:dev \
 - A bind mount of a path the runtime does not share gives an empty directory. `run` refuses by name. Docker on a Mac shares `/Users`, not `/private/tmp`.
 - A model on the host must listen on more than loopback. For Ollama, set `OLLAMA_HOST=0.0.0.0` and restart.
 
-`gusto doctor` checks the machine before a task. It prints one line per check, gives the fix under a failure, and exits 1 when any fails. It checks the container command, the image, the task's `--memory` and `--cpus`, the tasks directory mount, rootless podman's runtime directory, `git`, `GUSTO_TASKS`, `GUSTO_MODEL_URL`, `GUSTO_HARNESSES` and the index of model calls (it opens, and at what schema version). It reports whether `GUSTO_PASSWORD` is set, never its value.
+`gusto doctor` checks the machine before a task. It prints one line per check, gives the fix under a failure, and exits 1 when any fails. It checks the container command, the image, the task's `--memory` and `--cpus`, the tasks directory mount, rootless podman's runtime directory, `git`, `GUSTO_DATA`, `GUSTO_MODEL_URL`, `GUSTO_HARNESSES` and the index of model calls (it opens, and at what schema version). It reports whether `GUSTO_PASSWORD` is set, never its value.
 
 ## Environment
 
 `gusto serve` reads every setting it uses when it starts, and a value that does not read, such as a word where a number goes, stops it with the setting's name. `gusto help serve` lists them all with their defaults.
+
+### Settings file
+
+Keep the settings that are not secret in a TOML file, and name it with `GUSTO_SETTINGS_FILE`. Keep secrets, such as `GUSTO_PASSWORD` and `GUSTO_MODEL_KEY`, in the environment.
+
+- A setting's key is its name without `GUSTO_`, in lower case: `GUSTO_TASK_CONCURRENCY` is `task_concurrency`.
+- A value is a string, a whole number, `true` or `false`, or a list of strings.
+- A setting in the environment is read over the same one in the file.
+- One file may hold the settings of every gusto command on a host. A key that no gusto setting has stops the command, and so does a secret or an old name. A file that `GUSTO_SETTINGS_FILE` names and that is not there stops it too.
+
+```toml
+# /etc/gusto/serve.toml, with GUSTO_SETTINGS_FILE=/etc/gusto/serve.toml
+addr = "0.0.0.0:8040"
+tasks = "/var/lib/gusto/tasks"
+task_concurrency = 4
+models = ["anthropic/claude-sonnet-5-5", "openai/gpt-5"]
+behind_proxy = true
+```
 
 | Name | What it does |
 | --- | --- |
@@ -259,8 +277,7 @@ docker build -t gusto:dev \
 | `GUSTO_TASK_MEMORY`, `GUSTO_TASK_CPUS` | memory and CPU for one task, `3g` and `1` by default |
 | `GUSTO_HOME_LIMIT_MB` | the most a person's kept home may take in a container, in megabytes, `5120` by default. With `GUSTO_COMPUTERS`, a turn over it is refused until the person resets the home on Connections. [CLOUD.md](CLOUD.md) |
 | `GUSTO_TASK_CONCURRENCY` | how many tasks run at once. A room's agents run at the same time only when this is more than 1 |
-| `GUSTO_LIVE_CONNECTIONS` | the most WebSockets open at once, 10000 by default. A room's page keeps one open at `/live` to be told what others say and what agents do, and asks every few seconds instead when it has none. A proxy in front must pass the upgrade and not buffer or cut off a quiet connection: the server pings every 30 seconds |
-| `GUSTO_ROOM_COPY_MB`, `GUSTO_ROOM_COPY_FILES` | the most a room's folder may hold for a turn to work on a copy of it, `4096` MB and `200000` files by default. [ROOM-WORK.md](ROOM-WORK.md) |
+| `/live` | at most 10,000 WebSockets are open at once. A room's page keeps one open at `/live` to be told what others say and what agents do, and asks every few seconds instead when it has none. A proxy in front must pass the upgrade and not buffer or cut off a quiet connection: the server pings every 30 seconds |
 | `GUSTO_LIMIT_PERSON`, `GUSTO_LIMIT_TEAM` | the most one person or team runs at once. A task over its limit waits. 0 or unset is no limit. [LIMITS.md](LIMITS.md) |
 | `GUSTO_SANDBOX` | how a task runs: unset is a container, `here` is this process, `openshell` is an OpenShell sandbox. [OPENSHELL.md](OPENSHELL.md) lists the `GUSTO_OPENSHELL*` settings |
 | `GUSTO_OPENSHELL_REMOTE` | `1` when the OpenShell gateway is on another machine. Without it, `gusto serve` and `gusto doctor` refuse `GUSTO_SANDBOX=openshell` on Linux with no `/dev/kvm` |
@@ -270,7 +287,7 @@ docker build -t gusto:dev \
 | `GUSTO_MODEL_KEY` | the credential the proxy adds. It never reaches a container |
 | `GUSTO_MODEL_NAME` | what the record calls that credential |
 | `GUSTO_CREDENTIALS` | a directory with one `<name>.json` per credential: address, key, presentation and the API shapes it answers. [GATEWAY.md](GATEWAY.md) |
-| `GUSTO_PROXY_SOCKET` | the socket a sealed container reaches the proxy through, `.proxy.sock` in `GUSTO_TASKS` by default |
+| `GUSTO_PROXY_SOCKET` | the socket a sealed container reaches the proxy through, `.proxy.sock` in the tasks folder by default |
 | `GUSTO_ALLOWED_HOSTS` | hosts besides the model a task may reach, comma separated |
 | `GUSTO_TASK_NETWORK` | `open` gives containers the runtime's network and the proxy on `GUSTO_PROXY_ADDR` |
 | `GUSTO_PROXY_ADDR` | where the proxy listens when `GUSTO_TASK_NETWORK=open`, `0.0.0.0:8041` by default |
@@ -286,14 +303,14 @@ docker build -t gusto:dev \
 | `GUSTO_SIGNING_KEY` | the private key the runner signs with, from `gusto keygen`, or `awskms://<key>`. It stays on the host. [KEYS.md](KEYS.md) |
 | `GUSTO_KEYRING` | a directory of `<name>.pub` keys that `verify`, `show`, `serve`, `pr open` and `export` trust, retired keys included |
 | `GUSTO_SIGNER` | who the manifest names. This is the runner's own word |
-| `GUSTO_CHANGES` | the file recording platform changes: sign-ins, refusals, role, setup and settings changes. Hash-chained, and signed when a key is set. `gusto changes verify` checks it. [CHANGES.md](CHANGES.md) |
-| `GUSTO_RETENTION` | the directory holding `policy.json`, the holds and the last sweep. A task's working folder is removed first, its signed record later. `GUSTO_RETENTION_MINUTES` sets the interval, 60 by default. `gusto retention` lists what a sweep would remove. [RETENTION.md](RETENTION.md) |
+| `changes/changes.jsonl` | the file in `GUSTO_DATA` recording platform changes: sign-ins, refusals, role, setup and settings changes. Hash-chained, and signed when a key is set. `gusto changes verify` checks it. [CHANGES.md](CHANGES.md) |
+| `GUSTO_RETENTION` | the directory holding `policy.json`, the holds and the last sweep. A task's working folder is removed first, its signed record later. A sweep runs every hour. `gusto retention` lists what a sweep would remove. [RETENTION.md](RETENTION.md) |
 | `GUSTO_GITHUB_TOKEN` | the token `gusto pr open` pushes and opens pull requests with. `GUSTO_GITHUB_API` overrides the API address |
 | `GUSTO_GITHUB_APP_ID`, `GUSTO_GITHUB_APP_KEY` | a GitHub App that reaches the repositories tasks name. Each task gets a token for one repository, revoked when the work is done. Set both or neither. [REPOS.md](REPOS.md) |
 | `GUSTO_GITHUB_URL` | a GitHub Enterprise Server's address, with `GUSTO_GITHUB_API`. github.com when unset |
 | `GUSTO_ADDR` | where `gusto serve` listens, `127.0.0.1:8040` by default |
-| `GUSTO_TASKS` | the directory `gusto serve` keeps tasks in |
-| `GUSTO_DATABASE_URL` | where the indexes are kept: the index of model calls and the index of tasks. Unset, they are `usage.db` and `tasks.db` in the directory that holds `GUSTO_TASKS`. A `postgres://` address keeps both in Postgres, and its `search_path` parameter names the schema, which is how organizations that share a database stay apart. The tasks' `out/proxy.jsonl` and `state.json` stay the record: the indexes are built from them, and `gusto usage reindex` and `gusto tasks reindex` rebuild them. Retention leaves the model calls' rows, which hold no content, and removes a removed task's row. [USAGE.md](USAGE.md), [TASKS.md](TASKS.md) |
+| `GUSTO_DATA` | the folder gusto keeps its data in, the current directory by default: tasks in `jobs`, and `sessions`, `setups`, `comparisons`, `integrations`, `presets`, `crew`, `changes`, `apps`, `outbox` and `agents`. A setting that named one of these folders is refused, saying to set `GUSTO_DATA` |
+| `GUSTO_DATABASE_URL` | where the indexes are kept: the index of model calls and the index of tasks. Unset, they are `usage.db` and `tasks.db` in `GUSTO_DATA`. A `postgres://` address keeps both in Postgres, and its `search_path` parameter names the schema, which is how organizations that share a database stay apart. The tasks' `out/proxy.jsonl` and `state.json` stay the record: the indexes are built from them, and `gusto usage reindex` and `gusto tasks reindex` rebuild them. Retention leaves the model calls' rows, which hold no content, and removes a removed task's row. [USAGE.md](USAGE.md), [TASKS.md](TASKS.md) |
 | `GUSTO_PASSWORD` | the shared sign-in. `gusto serve` refuses to start without it |
 | `GUSTO_OIDC_ISSUER`, `GUSTO_OIDC_CLIENT_ID`, `GUSTO_OIDC_CLIENT_SECRET`, `GUSTO_OIDC_REDIRECT` | sign in with the company's identity provider. Naming an issuer turns it on. It needs the other three, and `GUSTO_RUNNER_GROUPS`, `GUSTO_ADMIN_GROUPS` or `GUSTO_ALLOWED`, or the server refuses to start. [SSO.md](SSO.md) |
 | `GUSTO_OIDC_SCOPES`, `GUSTO_OIDC_GROUPS_CLAIM` | scopes to ask for besides `openid` and `email`, and the claim the groups arrive in (`groups` by default) |
@@ -306,9 +323,7 @@ docker build -t gusto:dev \
 | `GUSTO_SERVER` | where `gusto submit` sends a task, with its scheme |
 | `GUSTO_TOKEN` | the API token `gusto submit` sends, made at `/admin/tokens`. `GUSTO_PASSWORD` is sent when it is unset |
 | `GUSTO_MEMBERS`, `GUSTO_INBOX` | `GUSTO_MEMBERS` is the file of people the console shows at `/admin/people`. `GUSTO_INBOX` is where gusto cloud leaves what its admins did to those people |
-| `GUSTO_CLOUD_DEMO_MINUTES` | turns on the demo at `/demo`. A visitor gives a name, work email and company and gets an organization with a timer of this many minutes. The timer starts when the server is ready and ends by deleting it |
-| `GUSTO_CLOUD_DEMO_EXTEND_MINUTES`, `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES` | the demo's one extension (10), and how long a visitor waits to be ready (15) |
-| `GUSTO_CLOUD_DEMO_MAX`, `GUSTO_CLOUD_DEMO_PER_DAY`, `GUSTO_CLOUD_DEMO_PER_PERSON`, `GUSTO_CLOUD_DEMO_PER_COMPANY` | the most demos at once (5), in a day (40), and that one address (2) and one company (6) may start in 24 hours |
+| `GUSTO_CLOUD_DEMO_MINUTES` | turns on the demo at `/demo`. A visitor gives a name, work email and company and gets an organization with a timer of this many minutes. The timer starts when the server is ready and ends by deleting it. A demo has one 10-minute extension, and is deleted when it is not ready in 15 minutes. At most 5 run at once, 40 start in a day, and one address may start 2 and one company 6 in 24 hours; the operator's page changes these four |
 | `GUSTO_CLOUD_BOOK_URL` | where a call is booked, linked from the end page |
 | `GUSTO_CLOUD_DEMO_NOTIFY` | an address mailed when a visitor starts a demo: name, work email, company and time. Nothing is sent when unset |
 | `GUSTO_CLOUD_DEMO_STAFF` | comma-separated addresses and domains whose people alone may start a demo. With it set, demos are a sales call: the landing page leads to sign-up and to booking a demo, and `/demo` offers to book one (the form is at `/demo?team=1`). Unset, anyone may start one |

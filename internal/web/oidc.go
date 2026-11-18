@@ -86,7 +86,7 @@ func (s *Server) start(w http.ResponseWriter, r *http.Request) {
 	verifier := oauth2.GenerateVerifier()
 	for name, value := range map[string]string{stateCookie: state, verifierCookie: verifier, nonceCookie: nonce} {
 		http.SetCookie(w, &http.Cookie{
-			Name: name, Value: value, Path: "/auth", HttpOnly: true,
+			Name: name, Value: value, Path: cookiePath(s.cookieBase(r), "/auth"), HttpOnly: true,
 			SameSite: http.SameSiteLaxMode, Secure: overTLS(r), Expires: time.Now().Add(10 * time.Minute),
 		})
 	}
@@ -110,7 +110,7 @@ func (s *Server) back(w http.ResponseWriter, r *http.Request) {
 	verifier, nonce := cookieValue(r, verifierCookie), cookieValue(r, nonceCookie)
 	// Each sign-in is one try: whatever happens next, the values are spent.
 	for _, name := range []string{stateCookie, verifierCookie, nonceCookie} {
-		http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/auth", MaxAge: -1})
+		http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: cookiePath(s.cookieBase(r), "/auth"), MaxAge: -1})
 	}
 	who, err := s.identity.person(r.Context(), r.URL.Query().Get("code"), verifier, nonce)
 	if err != nil {

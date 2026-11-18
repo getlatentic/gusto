@@ -12,6 +12,7 @@ import {
 } from "@/domain/mentions"
 import { cn } from "@/lib/utils"
 import type { Mentionable } from "@/pages/conversation/types"
+import { withBase } from "@/lib/base"
 
 // MentionBox is a room's message box: mentions show in colour as they are typed, and an @ offers the room's agents and people.
 // The box's own text is clear, and a copy behind it shows through with its mentions coloured.
@@ -167,7 +168,7 @@ function MentionMenu({
             <span className="grid size-5 flex-none place-items-center overflow-hidden rounded-full border bg-surface text-[0.625rem] font-medium text-muted-foreground">
               {each.icon ? (
                 <img
-                  src={each.icon}
+                  src={withBase(each.icon)}
                   alt=""
                   className="size-3.5 object-contain"
                 />

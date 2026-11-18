@@ -3,7 +3,7 @@
 # release's checksums, and checks the checksums' signature when cosign is installed. It downloads with the GitHub command line
 # when that is signed in, which a private release needs, and otherwise straight from the release's public address.
 #
-#   curl -fsSL https://github.com/getlatentic/gusto/releases/latest/download/install.sh | sh
+#   curl -fsSL https://gusto.getlatentic.com/install.sh | sh
 #   deploy/install/install.sh                                  # the newest release, an alpha included
 #   deploy/install/install.sh v0.1.0-rc.2
 #   GUSTO_INSTALL_DIR=/usr/local/bin deploy/install/install.sh  # where to put them; ~/.local/bin by default

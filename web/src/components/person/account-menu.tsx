@@ -18,6 +18,7 @@ import {
   type Theme,
 } from "@/lib/look"
 import { cn } from "@/lib/utils"
+import { withBase } from "@/lib/base"
 
 const themes: { value: Theme; label: string }[] = [
   { value: "system", label: "System" },
@@ -51,11 +52,11 @@ export function AccountMenu({ shell }: { shell: PersonShell }) {
       </PopoverTrigger>
       <PopoverContent side="right" align="end" className="grid w-64 gap-4">
         <nav aria-label="Account" className="grid gap-0.5">
-          <a className={item} href="/jobs">
+          <a className={item} href={withBase("/jobs")}>
             <ActivityIcon /> Activity
           </a>
           {shell.Admin && (
-            <a className={item} href="/admin">
+            <a className={item} href={withBase("/admin")}>
               <SlidersHorizontalIcon /> Admin
             </a>
           )}
@@ -131,7 +132,11 @@ export function AccountMenu({ shell }: { shell: PersonShell }) {
             ))}
           </div>
         </fieldset>
-        <form method="post" action="/logout" className="m-0 border-t pt-3">
+        <form
+          method="post"
+          action={withBase("/logout")}
+          className="m-0 border-t pt-3"
+        >
           <button type="submit" className={item}>
             <LogOutIcon /> Sign out
           </button>

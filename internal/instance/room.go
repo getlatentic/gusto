@@ -3,12 +3,13 @@ package instance
 import (
 	"errors"
 	"fmt"
-	"github.com/getlatentic/gusto/internal/workspace"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/team"
 )
 
 // Roles a person holds in a room. An admin changes who and what is in it; a member talks in it.
@@ -32,9 +33,9 @@ type Agent struct {
 	Harness string `json:"harness"`
 	Model   string `json:"model,omitempty"`
 	Job     string `json:"job,omitempty"`
-	// Member is the workspace agent this is, whose name, agent type, model, skills and persona the room uses as they are now.
+	// Member is the team agent this is, whose name, agent type, model, skills and persona the room uses as they are now.
 	Member string `json:"member,omitempty"`
-	// Setup and Persona are the skills it is given and how it works, which come from the workspace agent.
+	// Setup and Persona are the skills it is given and how it works, which come from the team agent.
 	Setup   string `json:"-"`
 	Persona string `json:"-"`
 	// Pending is an agent a member proposed that no admin of the room has accepted. It is not mentioned and runs nothing.
@@ -64,14 +65,14 @@ type Note struct {
 // agentName is what an agent may be called: a letter first, then letters, digits, spaces and a few marks, as people write names.
 var agentName = regexp.MustCompile(`^[\p{L}][\p{L}\p{N} '’._-]{0,31}$`)
 
-// StartRoom makes a room in a workspace, whose first member, its admin, is the person who made it.
+// StartRoom makes a room in a team, whose first member, its admin, is the person who made it.
 func (s *Store) StartRoom(name, who, space string) (Instance, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return Instance{}, fmt.Errorf("a room needs a name")
 	}
 	who = strings.ToLower(strings.TrimSpace(who))
-	return s.Start(slug(name), Instance{Title: name, Who: who, Workspace: workspace.Stored(space), Room: true, Members: []Member{{Who: who, Role: RoleAdmin}}})
+	return s.Start(slug(name), Instance{Title: name, Who: who, Team: team.Stored(space), Room: true, Members: []Member{{Who: who, Role: RoleAdmin}}})
 }
 
 // RoleOf is the role a person holds in a room, or nothing when they are not in it.

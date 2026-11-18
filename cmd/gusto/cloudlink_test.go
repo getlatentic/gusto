@@ -12,8 +12,12 @@ func TestAServerIsAnOrganizationsWhenAllThreeSettingsAreGiven(t *testing.T) {
 	key := filepath.Join(t.TempDir(), "entry.key")
 	os.WriteFile(key, []byte(strings.Repeat("k", 32)), 0o600)
 	front, err := cloudOf(accessSettings{entryKey: key, cloudURL: "https://cloud.example.com/some/path"}, "acme-com")
-	if err != nil || front == nil || front.Org != "acme-com" || front.URL != "https://cloud.example.com" || len(front.Key) != 32 {
+	if err != nil || front == nil || front.Org != "acme-com" || front.URL != "https://cloud.example.com" || front.Apps != front.URL || len(front.Key) != 32 {
 		t.Fatalf("%+v %v", front, err)
+	}
+	apart, err := cloudOf(accessSettings{entryKey: key, cloudURL: "https://cloud.example.com", appsURL: "https://example-apps.com:8443/x"}, "acme-com")
+	if err != nil || apart.Apps != "https://example-apps.com:8443" {
+		t.Errorf("shared apps on a domain of their own: %+v %v", apart, err)
 	}
 }
 
@@ -36,11 +40,12 @@ func TestSomeOfTheSettingsOrBadOnesRefuseToStart(t *testing.T) {
 		access accessSettings
 		org    string
 	}{
-		"only the org":               {accessSettings{}, "acme-com"},
-		"no gusto cloud":             {accessSettings{entryKey: good}, "acme-com"},
-		"a key that is gone":         {accessSettings{entryKey: filepath.Join(dir, "gone"), cloudURL: "https://x.example.com"}, "acme-com"},
-		"a short key":                {accessSettings{entryKey: short, cloudURL: "https://x.example.com"}, "acme-com"},
-		"an address that is not one": {accessSettings{entryKey: good, cloudURL: "cloud.example.com"}, "acme-com"},
+		"only the org":                    {accessSettings{}, "acme-com"},
+		"no gusto cloud":                  {accessSettings{entryKey: good}, "acme-com"},
+		"a key that is gone":              {accessSettings{entryKey: filepath.Join(dir, "gone"), cloudURL: "https://x.example.com"}, "acme-com"},
+		"a short key":                     {accessSettings{entryKey: short, cloudURL: "https://x.example.com"}, "acme-com"},
+		"an address that is not one":      {accessSettings{entryKey: good, cloudURL: "cloud.example.com"}, "acme-com"},
+		"an apps address that is not one": {accessSettings{entryKey: good, cloudURL: "https://x.example.com", appsURL: "apps.example.com"}, "acme-com"},
 	} {
 		if front, err := cloudOf(each.access, each.org); err == nil {
 			t.Errorf("%s: %+v", name, front)

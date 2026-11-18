@@ -12,6 +12,7 @@ import {
   useAccountForm,
   type AccountForm,
 } from "@/pages/account/use-account-form"
+import { withBase } from "@/lib/base"
 
 // DevicePage is where a person approves a computer that asks to sign in as them, by the code it shows, and ends the ones they
 // approved, or every sign-in of theirs at once.
@@ -76,7 +77,7 @@ function OwnComputers({ page, form }: { page: DeviceData; form: AccountForm }) {
           <form
             key={page.Code + page.Approved}
             method="post"
-            action="/device"
+            action={withBase("/device")}
             onSubmit={form.submit}
             className="m-0 flex flex-wrap items-end gap-3"
             data-testid="approve-form"

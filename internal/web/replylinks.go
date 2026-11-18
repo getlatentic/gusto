@@ -31,6 +31,8 @@ var hasScheme = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
 type fileLinks struct {
 	id, dir, back string
 	folder        string
+	// base is the path the server's pages are under, which a link drawn here begins with.
+	base string
 }
 
 // replyIn is a reply as HTML, with its links to the agent's files made to open them.
@@ -41,7 +43,7 @@ func (s *Server) replyIn(text, id, dir, back string) template.HTML {
 		goldmark.WithExtensions(extension.GFM),
 		goldmark.WithRendererOptions(
 			html.WithHardWraps(),
-			renderer.WithNodeRenderers(util.Prioritized(untrusted{}, 100), util.Prioritized(fileLinks{id: id, dir: dir, back: back, folder: s.instances.AgentFolder(id)}, 99)),
+			renderer.WithNodeRenderers(util.Prioritized(untrusted{}, 100), util.Prioritized(fileLinks{id: id, dir: dir, back: back, folder: s.instances.AgentFolder(id), base: s.base}, 99)),
 		),
 	)
 	var drawn bytes.Buffer
@@ -129,7 +131,7 @@ func (f fileLinks) address(destination string) (string, bool) {
 	case err != nil:
 		return "", false
 	case info.IsDir():
-		return "/instances/" + f.id + "/files?from=" + url.QueryEscape(f.back), true
+		return f.base + "/instances/" + f.id + "/files?from=" + url.QueryEscape(f.back), true
 	}
-	return "/instances/" + f.id + "/file?path=" + url.QueryEscape(joined) + "&from=" + url.QueryEscape(f.back), true
+	return f.base + "/instances/" + f.id + "/file?path=" + url.QueryEscape(joined) + "&from=" + url.QueryEscape(f.back), true
 }

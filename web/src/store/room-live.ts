@@ -5,6 +5,7 @@ import { RoomSocket } from "@/lib/room-socket"
 import type { LiveFrame, TurnsData } from "@/pages/conversation/types"
 import { api } from "@/store/api"
 import { rooms } from "@/store/rooms"
+import { withBase } from "@/lib/base"
 
 // RoomArg is the conversation whose turns are read: its page's address, and for a room with a live layer, where its stream
 // stood when the page was read. The turns are kept by address alone, so reading the page again does not open a second socket.
@@ -71,7 +72,7 @@ export const roomApi = api.injectEndpoints({
                 dispatch(rooms.actions.connected({ room: arg.room, live })),
               onRemoved: () => {
                 dispatch(rooms.actions.removed(arg.room))
-                window.location.assign("/chat")
+                window.location.assign(withBase("/chat"))
               },
               onPresence: (here) =>
                 dispatch(rooms.actions.present({ room: arg.room, here })),
@@ -92,7 +93,7 @@ export const roomApi = api.injectEndpoints({
         const known = () => getCacheEntry().data?.Version
         const check = async () => {
           if (document.hidden) return
-          const answer = await fetch(`${arg.path}/version`, {
+          const answer = await fetch(withBase(`${arg.path}/version`), {
             credentials: "same-origin",
             cache: "no-store",
           }).catch(() => null)

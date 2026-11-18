@@ -4,6 +4,7 @@ import { useNavigate } from "react-router"
 import { isAppPage } from "@/components/app-link"
 import { useRefreshAll } from "@/lib/api"
 import { sendForm } from "@/lib/forms"
+import { withBase } from "@/lib/base"
 
 // useWorkForm sends one of the work pages' forms without leaving the page, then goes where the server sent the person, where
 // any refusal is said: within the app when the app draws that page, and by loading it when the server does. Every page's data
@@ -28,7 +29,7 @@ export function useWorkForm() {
     refreshAll()
     if (!landed) return
     if (isAppPage(landed)) navigate(landed)
-    else window.location.assign(landed)
+    else window.location.assign(withBase(landed))
   }
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()

@@ -28,6 +28,7 @@ import { TurnList } from "@/pages/conversation/turn-list"
 import type { ConversationData } from "@/pages/conversation/types"
 import { useRoomForm } from "@/pages/conversation/use-room-form"
 import { useRoomLive } from "@/pages/conversation/use-room-live"
+import { withBase } from "@/lib/base"
 
 // ConversationPage is one conversation: with one agent, or a room of people and agents.
 export function ConversationPage() {
@@ -130,7 +131,9 @@ function Conversation({ page }: { page: ConversationData }) {
               onFiles={() => {
                 if (!openFile(roomFilesTab, "Files"))
                   window.location.assign(
-                    `/instances/${encodeURIComponent(page.Instance.ID)}/files?from=${encodeURIComponent(page.Path)}`
+                    withBase(
+                      `/instances/${encodeURIComponent(page.Instance.ID)}/files?from=${encodeURIComponent(page.Path)}`
+                    )
                   )
               }}
             />

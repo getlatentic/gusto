@@ -3,14 +3,14 @@ import { describe, expect, it } from "vitest"
 import { orgLines } from "@/domain/orgs"
 
 describe("the organization switcher", () => {
-  it("lists an organization with one workspace as one line, and one with more under its name", () => {
+  it("lists an organization with one team as one line, and one with more under its name", () => {
     const lines = orgLines(
       [
         {
           slug: "acme",
           name: "Acme",
           open: "https://cloud/acme",
-          workspaces: [
+          teams: [
             { id: "w1", name: "Research", open: "https://cloud/acme/w1" },
             { id: "w2", name: "Sales", open: "https://cloud/acme/w2" },
           ],
@@ -26,7 +26,7 @@ describe("the organization switcher", () => {
         kind: "place",
         key: "acme w1",
         text: "Research",
-        href: "/workspace/w1",
+        href: "/team/w1",
         current: false,
         inset: true,
       },
@@ -34,7 +34,7 @@ describe("the organization switcher", () => {
         kind: "place",
         key: "acme w2",
         text: "Sales",
-        href: "/workspace/w2",
+        href: "/team/w2",
         current: true,
         inset: true,
       },

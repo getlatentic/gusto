@@ -28,15 +28,17 @@ type view struct {
 	// Error is a sentence for the person, and Email and OrgName are what they
 	// typed, so a refused form is not typed again.
 	Error, Email, OrgName string
-	// More says the form also asks for the organization's name and address: a
-	// person is asked when the domain could not name it, and keeps being asked
-	// after they have been.
+	// More says the form also asks for the organization's name: a person is asked when their company has an organization
+	// already, and keeps being asked after they have been.
 	More bool
-	Slug string
+	// Ask is the question the form asks next when nothing was wrong, only missing, so it is not shown as a refusal.
+	Ask string
 	// Taken says the address a person signed up with has an account, so they are offered a sign-in link to it.
 	Taken bool
 	// WorkOnly says only a work address may sign up or start a demo.
 	WorkOnly bool
+	// Google says a person may sign in and sign up with a Google account.
+	Google bool
 	// SignedIn says the person looking at the landing page is signed in, so it offers to open gusto rather than to sign in.
 	SignedIn bool
 	// Sent says a sign-in link was asked for.
@@ -75,11 +77,11 @@ type view struct {
 	// The people: who is in, who has been invited and has not answered, whether the
 	// person looking is an admin, and whether they may invite one more.
 	Members []Person
-	// Workspaces is the organization's workspaces, shown on its page when an admin may change them or there are several.
-	Workspaces []workspaceRow
-	Invited    []Invitation
-	IsAdmin    bool
-	CanInvite  bool
+	// Teams is the organization's teams, shown on its page when an admin may change them or there are several.
+	Teams     []teamRow
+	Invited   []Invitation
+	IsAdmin   bool
+	CanInvite bool
 	// Admins is how many of the members are admins, since the last one cannot be made
 	// a runner and is not offered it.
 	Admins int
@@ -94,10 +96,6 @@ type view struct {
 	Book       string
 	Extendable bool
 	Ended      bool
-	// DemoPublic says a visitor may start a demo; where only the team gives them, the landing page leads to sign-up, with the
-	// StartingCredit an organization begins with.
-	DemoPublic     bool
-	StartingCredit float64
 	// BookFrame is the booking page shown in the page, where the booking service may be framed, and Wide gives a page the room
 	// for it.
 	BookFrame string
@@ -106,16 +104,8 @@ type view struct {
 	Console bool
 	// Ending is a demo that has been stopped and is being deleted.
 	Ending bool
-	// Video is the landing page's video, and VideoFile says it is a file and not a page to embed. Shot is the picture shown when there is no video.
-	Video string
-	Shot  string
-	// ShotDark is the picture shown instead of Shot where the visitor prefers a dark page.
-	ShotDark string
 	// TurnstileSite is the public key of the bot check, which the demo form carries when there is one.
 	TurnstileSite string
-	VideoFile     bool
-	// VideoPoster is the picture a video file is shown with before it plays.
-	VideoPoster string
 	// Name is who a demo is for.
 	Name string
 }
@@ -125,7 +115,12 @@ type view struct {
 func (s *Server) render(w http.ResponseWriter, status int, page string, v view) {
 	v.Lease = s.Lease != nil
 	v.WorkOnly = s.Store != nil && !s.Store.FreeMailAllowed()
-	data, err := json.Marshal(pageOf(page, v))
+	v.Google = s.Google != nil
+	shown := pageOf(page, v)
+	for i := range shown.Orgs {
+		shown.Orgs[i].Address = s.orgShown(shown.Orgs[i].Slug)
+	}
+	data, err := json.Marshal(shown)
 	if err != nil {
 		http.Error(w, "that page could not be drawn", http.StatusInternalServerError)
 		return

@@ -44,7 +44,7 @@ func (s *Server) peopleData(r *http.Request) (map[string]any, error) {
 	page := map[string]any{"Title": productName + " — people", "Refused": s.refusal(r)}
 	if s.front != nil && s.front.URL != "" {
 		page["Manage"] = s.front.page("/org", nil)
-		page["RoleAction"], page["Back"] = s.front.page("/org/people/role", nil), pageAddress(r)
+		page["RoleAction"], page["Back"] = s.front.page("/org/people/role", nil), s.pageAddress(r)
 	}
 	list, err := roster.Read(s.rosterPath)
 	if err != nil {
@@ -75,13 +75,13 @@ func (s *Server) peopleData(r *http.Request) (map[string]any, error) {
 
 // pageAddress is the page a request is for, as a browser outside reads its address, for a page elsewhere to send the
 // person back to.
-func pageAddress(r *http.Request) string {
+func (s *Server) pageAddress(r *http.Request) string {
 	scheme := "http"
 	if overTLS(r) {
 		scheme = "https"
 	}
 	// The app reads a page's data at /app/api followed by the page's address; the person goes back to the page.
-	return scheme + "://" + r.Host + strings.TrimPrefix(r.URL.Path, "/app/api")
+	return scheme + "://" + r.Host + s.base + strings.TrimPrefix(r.URL.Path, "/app/api")
 }
 
 func adminsIn(list roster.Roster) int {

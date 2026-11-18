@@ -163,17 +163,17 @@ var eventWords = map[string]func(e changelog.Event, w map[string]string) string{
 	changelog.MemberRemoved: func(e changelog.Event, w map[string]string) string {
 		return fmt.Sprintf("removed %s, who was %s", w["email"], or(w["role"], "a member"))
 	},
-	changelog.WorkspaceMade: func(e changelog.Event, w map[string]string) string {
-		return fmt.Sprintf("made the workspace %s", w["name"])
+	changelog.TeamMade: func(e changelog.Event, w map[string]string) string {
+		return fmt.Sprintf("made the team %s", w["name"])
 	},
-	changelog.WorkspaceRenamed: func(e changelog.Event, w map[string]string) string {
-		return fmt.Sprintf("renamed the workspace %s to %s", w["workspace"], w["name"])
+	changelog.TeamRenamed: func(e changelog.Event, w map[string]string) string {
+		return fmt.Sprintf("renamed the team %s to %s", w["workspace"], w["name"])
 	},
-	changelog.WorkspaceAdded: func(e changelog.Event, w map[string]string) string {
-		return fmt.Sprintf("added %s to the workspace %s", w["email"], w["workspace"])
+	changelog.TeamAdded: func(e changelog.Event, w map[string]string) string {
+		return fmt.Sprintf("added %s to the team %s", w["email"], w["workspace"])
 	},
-	changelog.WorkspaceLeft: func(e changelog.Event, w map[string]string) string {
-		return fmt.Sprintf("removed %s from the workspace %s", w["email"], w["workspace"])
+	changelog.TeamLeft: func(e changelog.Event, w map[string]string) string {
+		return fmt.Sprintf("removed %s from the team %s", w["email"], w["workspace"])
 	},
 	changelog.RoomGuidelines: func(e changelog.Event, w map[string]string) string {
 		if w["now"] == "" {
@@ -194,7 +194,7 @@ var eventWords = map[string]func(e changelog.Event, w map[string]string) string{
 		return "unmuted the room " + w["room"]
 	},
 	changelog.HomeReset: func(e changelog.Event, w map[string]string) string {
-		said := "reset the home their agents keep in the workspace " + or(w["workspace"], "main")
+		said := "reset the home their agents keep in the team " + or(w["workspace"], "main")
 		if w["used"] != "" {
 			said += ", which held " + w["used"]
 		}

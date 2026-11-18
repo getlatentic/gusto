@@ -1,0 +1,17 @@
+[Unit]
+Description=Certificate, image, credentials and DNS for a gusto host
+After=network-online.target{{ (' ' + cloud_sandboxes | map('extract', {'container': 'docker.service', 'openshell': 'openshell-gateway.service'}) | join(' ')) if cloud_role != 'orchestrator' else '' }}
+Wants=network-online.target
+Before=nginx.service gusto-cloud.service gusto-cell.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/gusto-boot
+{% if cloud_role != 'cell' and not cloud_live | bool %}
+ExecStop=/usr/local/bin/gusto-dns -zone {{ cloud_zone }} -name {{ cloud_domain }} -remove -token-file /run/gusto/secrets/cf-dns-token
+{% endif %}
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

@@ -6,9 +6,9 @@ import "net/http"
 // and its link. This server keeps no list of its own, so the form is posted to gusto cloud, which asks again whether the person
 // sending it may invite, and sends them to its page for the organization with the invitation said to be sent.
 type inviteOffer struct {
-	// Action is where gusto cloud takes the form, and Workspace the one the person invited joins.
-	Action    string
-	Workspace string
+	// Action is where gusto cloud takes the form, and Team the one the person invited joins.
+	Action string
+	Team   string
 	// Back is this page, which gusto cloud sends the person back to.
 	Back string
 }
@@ -19,7 +19,7 @@ func (s *Server) inviteOffered(r *http.Request) *inviteOffer {
 	if s.front == nil || s.front.URL == "" || !s.admin(r) {
 		return nil
 	}
-	return &inviteOffer{Action: s.front.page("/org/invite", nil), Workspace: s.workspaceOf(r), Back: pageAddress(r)}
+	return &inviteOffer{Action: s.front.page("/org/invite", nil), Team: s.teamOf(r), Back: s.pageAddress(r)}
 }
 
 // invitationSent is whether gusto cloud has just sent the person back from an invitation it accepted.

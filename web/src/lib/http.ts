@@ -1,5 +1,7 @@
 // Asking this server for a page's data, and sending it a form whose answer the page reads itself.
 
+import { withBase } from "@/lib/base"
+
 export class Failure extends Error {
   readonly status: number
   constructor(status: number, message: string) {
@@ -12,7 +14,7 @@ export async function getJSON<T>(
   path: string,
   signal?: AbortSignal
 ): Promise<T> {
-  const answer = await fetch(path, {
+  const answer = await fetch(withBase(path), {
     credentials: "same-origin",
     headers: { Accept: "application/json" },
     signal,
@@ -38,7 +40,7 @@ export async function postForm<T>(path: string, form: FormData): Promise<T> {
   for (const [key, value] of form) {
     if (typeof value === "string") fields.append(key, value)
   }
-  const answer = await fetch(path, {
+  const answer = await fetch(withBase(path), {
     method: "POST",
     credentials: "same-origin",
     headers: { Accept: "application/json" },

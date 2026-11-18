@@ -25,7 +25,7 @@ func (s *Server) orgsPage(w http.ResponseWriter, r *http.Request) {
 		s.render(w, http.StatusInternalServerError, "signin", view{Title: "Sign in", Error: "Something went wrong on our side. Try again."})
 		return
 	}
-	s.render(w, http.StatusOK, "orgs", view{Title: "Choose an organization", Email: all[0].Email, Orgs: orgs, Address: s.Domain})
+	s.render(w, http.StatusOK, "orgs", view{Title: "Choose an organization", Email: all[0].Email, Orgs: orgs})
 }
 
 // switchable is one of a person's organizations as the switcher on an organization's pages lists it.
@@ -33,8 +33,8 @@ type switchable struct {
 	Name string `json:"name"`
 	Slug string `json:"slug"`
 	Open string `json:"open"`
-	// Workspaces is the organization's workspaces the person is in, each with the address that opens it.
-	Workspaces []switchSpace `json:"workspaces"`
+	// Teams is the organization's teams the person is in, each with the address that opens it.
+	Teams []switchSpace `json:"teams"`
 }
 
 type switchSpace struct {
@@ -61,16 +61,16 @@ func (s *Server) orgsJSON(w http.ResponseWriter, r *http.Request) {
 	}
 	spaces, err := s.Store.SpacesOf(r.Context(), all[0].Email)
 	if err != nil {
-		slog.Error("a person's workspaces could not be read", "error", err)
-		http.Error(w, "the workspaces could not be read", http.StatusInternalServerError)
+		slog.Error("a person's teams could not be read", "error", err)
+		http.Error(w, "the teams could not be read", http.StatusInternalServerError)
 		return
 	}
 	list := make([]switchable, 0, len(orgs))
 	for _, org := range orgs {
 		open := s.URL.JoinPath("/open").String() + "?" + url.Values{"org": {org.Slug}}.Encode()
-		item := switchable{Name: org.Name, Slug: org.Slug, Open: open, Workspaces: []switchSpace{}}
+		item := switchable{Name: org.Name, Slug: org.Slug, Open: open, Teams: []switchSpace{}}
 		for _, space := range spaces[org.Slug] {
-			item.Workspaces = append(item.Workspaces, switchSpace{ID: space.ID, Name: space.Name, Open: open + "&" + url.Values{"workspace": {space.ID}}.Encode()})
+			item.Teams = append(item.Teams, switchSpace{ID: space.ID, Name: space.Name, Open: open + "&" + url.Values{"team": {space.ID}}.Encode()})
 		}
 		list = append(list, item)
 	}
@@ -78,12 +78,6 @@ func (s *Server) orgsJSON(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]any{"orgs": list})
 }
 
-// isOrgOrigin says an origin is an organization's address on this gusto cloud server, by the scheme gusto cloud is on.
-func (s *Server) isOrgOrigin(origin string) bool {
-	parsed, err := url.Parse(origin)
-	if err != nil || parsed.Scheme != s.URL.Scheme || parsed.Path != "" {
-		return false
-	}
-	_, ok := s.orgSlug(parsed.Host)
-	return ok && parsed.Port() == s.URL.Port()
-}
+// isOrgOrigin says an origin is an organization's own host name on this gusto cloud server, by the scheme gusto cloud is on.
+// Organizations at paths share gusto cloud's own origin, and have none of their own.
+func (s *Server) isOrgOrigin(origin string) bool { return s.orgOf(origin) != "" }

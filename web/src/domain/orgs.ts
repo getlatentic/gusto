@@ -1,11 +1,11 @@
-// The organizations and workspaces a person is in, as gusto cloud lists them, made into the switcher's lines. An organization
-// the person is in two or more workspaces of is a heading over one line per workspace; one with a single workspace is one line.
+// The organizations and teams a person is in, as gusto cloud lists them, made into the switcher's lines. An organization
+// the person is in two or more teams of is a heading over one line per team; one with a single team is one line.
 
 export interface CloudOrg {
   slug: string
   name: string
   open: string
-  workspaces?: { id: string; name: string; open: string }[]
+  teams?: { id: string; name: string; open: string }[]
 }
 
 export type OrgLine =
@@ -22,11 +22,11 @@ export type OrgLine =
 export function orgLines(
   orgs: CloudOrg[],
   current: string,
-  workspace: string
+  team: string
 ): OrgLine[] {
   return orgs.flatMap((org): OrgLine[] => {
     const here = org.slug === current
-    const spaces = org.workspaces ?? []
+    const spaces = org.teams ?? []
     if (spaces.length < 2) {
       return [
         {
@@ -45,9 +45,9 @@ export function orgLines(
         kind: "place",
         key: `${org.slug} ${space.id}`,
         text: space.name,
-        // A workspace of this organization is switched to here; another organization's is opened at its own address.
-        href: here ? `/workspace/${encodeURIComponent(space.id)}` : space.open,
-        current: here && space.id === workspace,
+        // A team of this organization is switched to here; another organization's is opened at its own address.
+        href: here ? `/team/${encodeURIComponent(space.id)}` : space.open,
+        current: here && space.id === team,
         inset: true,
       })),
     ]

@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/collapsible"
 import { plural } from "@/lib/format"
 import type { ConversationData, TurnView } from "@/pages/conversation/types"
+import { withBase } from "@/lib/base"
 
 const alert = "m-0 rounded-sm bg-bad-wash px-4 py-3 text-sm text-bad"
 const disclosure =
@@ -42,7 +43,7 @@ export function ReplyResult({
           <form
             key={preview}
             method="post"
-            action={`/instances/${page.Instance.ID}/apps`}
+            action={withBase(`/instances/${page.Instance.ID}/apps`)}
             className="m-0"
           >
             <input type="hidden" name="preview" value={preview} />
@@ -102,7 +103,7 @@ function Capped({ turn, admin }: { turn: TurnView; admin: boolean }) {
           <>
             <a
               className="font-medium text-foreground underline"
-              href="/admin/models"
+              href={withBase("/admin/models")}
             >
               Add your organization&apos;s own model key
             </a>{" "}
@@ -129,7 +130,10 @@ function Ended({ turn }: { turn: TurnView }) {
         Your agents&apos; home is full: it takes {turn.Home.Used} of the{" "}
         {turn.Home.Limit} it may, so this turn was{" "}
         {turn.Home.Outcome || "ended"}. Reset it on{" "}
-        <a className="font-medium text-bad underline" href="/connections">
+        <a
+          className="font-medium text-bad underline"
+          href={withBase("/connections")}
+        >
           Connections
         </a>{" "}
         to start again.

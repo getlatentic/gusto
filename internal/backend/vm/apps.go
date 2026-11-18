@@ -11,7 +11,7 @@ import (
 	"github.com/getlatentic/gusto/internal/apps"
 	"github.com/getlatentic/gusto/internal/computer"
 	"github.com/getlatentic/gusto/internal/openshell"
-	"github.com/getlatentic/gusto/internal/workspace"
+	"github.com/getlatentic/gusto/internal/team"
 )
 
 // sharedApps runs the web apps that agents built in the computers of the people whose agents they
@@ -37,7 +37,7 @@ func serviceName(app apps.App) string { return "a" + app.ID }
 // Start has the app running and answering, or says why it does not. What it started is stopped
 // when it did not answer, so a failed app leaves nothing running.
 func (a *sharedApps) Start(ctx context.Context, app apps.App) (apps.App, error) {
-	held, err := a.registry.Of(app.Owner, app.Workspace)
+	held, err := a.registry.Of(app.Owner, app.Team)
 	if err != nil {
 		return apps.App{}, errors.New("the person this agent belongs to has no computer to run it on")
 	}
@@ -107,7 +107,7 @@ func (a *sharedApps) answers(ctx context.Context, app apps.App, address openshel
 func (a *sharedApps) Stop(ctx context.Context, app apps.App) error {
 	if app.Sandbox == "" {
 		// An app still starting has its sandbox named only once it answers; it runs in its owner's computer.
-		held, err := a.registry.Of(app.Owner, app.Workspace)
+		held, err := a.registry.Of(app.Owner, app.Team)
 		if err != nil {
 			return nil
 		}
@@ -124,14 +124,14 @@ func (a *sharedApps) Answers(ctx context.Context, app apps.App) error {
 	return a.answers(ctx, app, openshell.Address{Host: app.Host, Target: app.Target})
 }
 
-// serving is whether a person's computer in a workspace has an app that people use, which is why it is not stopped for being idle.
+// serving is whether a person's computer in a team has an app that people use, which is why it is not stopped for being idle.
 func (a *sharedApps) serving(person, space string) bool {
 	all, err := a.store.All()
 	if err != nil {
 		return false
 	}
 	for _, app := range all {
-		if strings.EqualFold(app.Owner, person) && workspace.Same(app.Workspace, space) && (app.State == apps.Live || app.State == apps.Starting) {
+		if strings.EqualFold(app.Owner, person) && team.Same(app.Team, space) && (app.State == apps.Live || app.State == apps.Starting) {
 			return true
 		}
 	}

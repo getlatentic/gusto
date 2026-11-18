@@ -9,7 +9,7 @@
 
 Zero or unset is no limit. Compose takes the two variables in `.env`.
 
-A person is the signed-in address, the shared sign-in (one person), or `token:<name>` for a task an API token sent. A team is the `team` the task names, which is also what spending groups by. A task with no team is held by no team limit.
+A person is the signed-in address, the shared sign-in (one person), or `token:<name>` for a task an API token sent. A team is the team the task is in, which is also what spending groups by. Every task is in a team, the first one, `main`, unless it names another.
 
 A limit is a hard cap. With two runners and a person limit of one, a second runner stays idle when nobody else waits. Set the person limit to the share of runners one person should hold. Leave it unset on a server with one user.
 

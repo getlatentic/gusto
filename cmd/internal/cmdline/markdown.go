@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/getlatentic/gusto/internal/settings"
 )
 
 // WriteMarkdown is the whole reference: every command that is not hidden, with its subcommands, in the order help lists them.
@@ -23,6 +25,7 @@ func (p *Program) WriteMarkdown(w io.Writer) {
 	}
 	fmt.Fprintf(w, "## Exit codes\n\n")
 	writeMarkdownParams(w, p.Exit)
+	writeMarkdownSettingsFile(w)
 	for _, group := range p.Groups {
 		for _, command := range visible(p.Commands) {
 			if command.Group == group {
@@ -30,6 +33,16 @@ func (p *Program) WriteMarkdown(w io.Writer) {
 			}
 		}
 	}
+}
+
+// writeMarkdownSettingsFile says once how the settings each command lists may be written in a file.
+func writeMarkdownSettingsFile(w io.Writer) {
+	fmt.Fprintf(w, "## Settings file\n\n")
+	fmt.Fprintf(w, "Every setting a command lists under Environment, except a secret, may be written in a TOML file named by `%s`. "+
+		"A setting's key there is its name without `GUSTO_`, in lower case: `GUSTO_CLOUD_URL` is `cloud_url`. "+
+		"A value is a string, a whole number, `true` or `false`, or a list of strings. "+
+		"A setting in the environment is read over the same one in the file. "+
+		"A secret, a key that is no setting, or an old name in the file stops the command.\n\n", settings.FileEnv)
 }
 
 func (p *Program) writeMarkdownCommand(w io.Writer, chain []*Command, level int) {

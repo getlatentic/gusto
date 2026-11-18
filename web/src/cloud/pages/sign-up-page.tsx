@@ -7,10 +7,11 @@ import {
   TextLink,
 } from "@/cloud/components/cloud-card"
 import { Field, Submit } from "@/cloud/components/forms"
+import { ContinueWithGoogle } from "@/cloud/components/google-sign-in"
 import type { CloudPage } from "@/cloud/types"
 
-// SignUpPage makes an organization from an email address. It asks for the organization's name and address too when the address's
-// domain could not name it, and offers a sign-in to an address that already has an account.
+// SignUpPage makes an organization from an email address: the company's, or a workspace of the person's own. It asks for a
+// name only when the company has an organization already, and offers a sign-in to an address that already has an account.
 export function SignUpPage({ page }: { page: CloudPage }) {
   return (
     <CloudCard>
@@ -46,10 +47,12 @@ function GetStarted({ page }: { page: CloudPage }) {
       {page.Error ? (
         <Refusal>{page.Error}</Refusal>
       ) : (
-        <Quiet>
-          Enter your email and gusto sets up a workspace for your team.
+        <Quiet data-testid="sign-up-ask">
+          {page.Ask ||
+            "Enter your email and gusto sets up a workspace for your team."}
         </Quiet>
       )}
+      {!page.More && <ContinueWithGoogle page={page} />}
       <form className="grid gap-3" method="post" action="/signup">
         <Field
           label={page.WorkOnly ? "Work email" : "Email"}
@@ -57,33 +60,22 @@ function GetStarted({ page }: { page: CloudPage }) {
           name="email"
           defaultValue={page.Email}
           autoComplete="email"
-          autoFocus
+          autoFocus={!page.Ask}
           required
           data-testid="email"
         />
         {page.More && (
-          <>
-            <Field
-              label="Organization name"
-              type="text"
-              name="org"
-              defaultValue={page.OrgName}
-              maxLength={80}
-              autoComplete="organization"
-              required
-              data-testid="org-name"
-            />
-            <Field
-              label="Address"
-              type="text"
-              name="slug"
-              defaultValue={page.Slug}
-              maxLength={32}
-              autoComplete="off"
-              placeholder="made from the name"
-              data-testid="org-slug"
-            />
-          </>
+          <Field
+            label="Organization name"
+            type="text"
+            name="org"
+            defaultValue={page.OrgName}
+            maxLength={80}
+            autoComplete="organization"
+            autoFocus={Boolean(page.Ask)}
+            required
+            data-testid="org-name"
+          />
         )}
         <Submit data-testid="sign-up">Continue</Submit>
       </form>

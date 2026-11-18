@@ -17,7 +17,7 @@ Four views show the system. Each answers one question.
 
 ```mermaid
 flowchart LR
-  O[Organization] --> W[Workspace]
+  O[Organization] --> W[Team]
   W --> P[Person]
   P --> M[Computer]
   M --> T[Task]
@@ -26,7 +26,7 @@ flowchart LR
   T --> R[Record]
 ```
 
-An organization is a company, or one person. It has settings, a spend limit and its own server. A workspace is a team's space in it, such as Engineering or Business, and every organization has at least one. Each person has a computer in each workspace they are in, where their agents run and keep their files. A person gives a task to an agent. The check says whether the task passed. The record keeps what changed and can be re-checked by anyone.
+An organization is a company, or one person. It has settings, a spend limit and its own server. A team is a group of its people, such as Engineering or Business, and every organization has at least one. Each person has a computer in each team they are in, where their agents run and keep their files. A person gives a task to an agent. The check says whether the task passed. The record keeps what changed and can be re-checked by anyone.
 
 ## The components
 
@@ -69,7 +69,7 @@ flowchart TB
     O1[Roles] --- O2[Limits] --- O3[Catalog: agents, models] --- O4[Tools: MCP gateway]
   end
   subgraph work["Work"]
-    W1[Workspaces] --- W2[Tasks and queue] --- W3[Runner: agent, then check] --- W4[Shared apps]
+    W1[Teams] --- W2[Tasks and queue] --- W3[Runner: agent, then check] --- W4[Shared apps]
   end
   subgraph ctl["Control"]
     C1[Model proxy] --- C2[Spend caps] --- C3[Redaction] --- C4[Retention]
@@ -88,7 +88,7 @@ The agent reaches a model only through the proxy, which adds the key and counts 
 | --- | --- | --- |
 | Organization | One `gusto serve` process with its own data directory, signing key, spend ledger and change log | The organization's server |
 | Person and role | An account and a sign-in: password, SSO or token | The server, or gusto cloud in the hosted cloud |
-| Workspace | Its members, tasks and records, conversations, agents, connections to apps and computers | Gusto cloud (who is in it), the organization's server (what it holds) |
+| Team | Its members, tasks and records, conversations, agents, connections to apps and computers | Gusto cloud (who is in it), the organization's server (what it holds) |
 | Computer | One sandbox per person that keeps their files | The node that runs the organization's server |
 | Task | A directory holding the brief, the repository, the check and the spend limit | The organization's data directory |
 | Agent | A harness and its adapter, a small JSON file, with the skills and prompt a person chose | Inside the sandbox |

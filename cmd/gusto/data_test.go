@@ -20,10 +20,8 @@ import (
 func installed(t *testing.T) map[datadir.Store]string {
 	t.Helper()
 	root := t.TempDir()
-	for name, path := range map[string]string{
-		"GUSTO_TASKS": "jobs", "GUSTO_SESSIONS": "sessions", "GUSTO_SETUPS": "setups", "GUSTO_COMPARISONS": "comparisons", "GUSTO_INTEGRATIONS": "integrations", "GUSTO_PRESETS": "presets", "GUSTO_CREW": "crew",
-		"GUSTO_CHANGES": "changes/changes.jsonl", "GUSTO_API_TOKENS": "tokens/tokens.json", "GUSTO_RETENTION": "retention",
-	} {
+	t.Setenv("GUSTO_DATA", root)
+	for name, path := range map[string]string{"GUSTO_API_TOKENS": "tokens/tokens.json", "GUSTO_RETENTION": "retention"} {
 		t.Setenv(name, filepath.Join(root, path))
 	}
 	return dataDirs(fromEnv(t).stores)

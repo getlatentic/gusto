@@ -10,6 +10,7 @@ import {
   type MemberTab,
 } from "@/domain/members"
 import { cn } from "@/lib/utils"
+import { FlipList } from "@/motion/flip-list"
 import { AgentFace, PersonFace } from "@/pages/members/faces"
 import type { MembersData } from "@/pages/members/types"
 
@@ -32,7 +33,7 @@ function keepTab(tab: MemberTab) {
   }
 }
 
-// MembersList is everybody in the workspace, people and agents, with tabs that show everybody, only the people or only the agents.
+// MembersList is everybody in the team, people and agents, with tabs that show everybody, only the people or only the agents.
 // On a narrow window it folds away while somebody is open.
 export function MembersList({
   page,
@@ -68,30 +69,32 @@ export function MembersList({
           ))}
         </TabsList>
         <TabsContent value={tab} className="-mx-1 min-h-0 overflow-y-auto px-1">
-          <ul className="m-0 grid list-none gap-px p-0">
-            {shown.people &&
-              page.People.map((person) => (
-                <li key={person.Who}>
-                  <MemberLink href={person.Where} here={here}>
-                    <PersonFace initials={person.Initials} />
-                    <Lines name={person.Name} under={person.Role} />
-                  </MemberLink>
-                </li>
-              ))}
-            {shown.agents &&
-              page.Agents.map((agent) => (
-                <li key={agent.ID}>
-                  <MemberLink href={agent.Where} here={here}>
-                    <AgentFace mark={agent.Mark} name={agent.Name} />
-                    <Lines
-                      name={agent.Name}
-                      under={agent.Specialty || agent.Engine}
-                      agent
-                    />
-                  </MemberLink>
-                </li>
-              ))}
-          </ul>
+          <FlipList>
+            <ul className="m-0 grid list-none gap-px p-0">
+              {shown.people &&
+                page.People.map((person) => (
+                  <li key={person.Who} data-flip-id={person.Who}>
+                    <MemberLink href={person.Where} here={here}>
+                      <PersonFace initials={person.Initials} />
+                      <Lines name={person.Name} under={person.Role} />
+                    </MemberLink>
+                  </li>
+                ))}
+              {shown.agents &&
+                page.Agents.map((agent) => (
+                  <li key={agent.ID} data-flip-id={agent.ID}>
+                    <MemberLink href={agent.Where} here={here}>
+                      <AgentFace mark={agent.Mark} name={agent.Name} />
+                      <Lines
+                        name={agent.Name}
+                        under={agent.Specialty || agent.Engine}
+                        agent
+                      />
+                    </MemberLink>
+                  </li>
+                ))}
+            </ul>
+          </FlipList>
         </TabsContent>
       </Tabs>
       <AppLink

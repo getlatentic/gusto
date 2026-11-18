@@ -7,7 +7,7 @@ terraform {
       version = ">= 6.33"
     }
   }
-  # The bucket is the one demo-store.sh makes, which no stack here removes. bootstrap.sh
+  # The bucket is the one cloud-store.sh makes, which no stack here removes. bootstrap.sh
   # gives the bucket's name at init.
   backend "s3" {
     key          = "terraform/platform.tfstate"

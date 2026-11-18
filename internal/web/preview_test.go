@@ -135,6 +135,11 @@ func TestAPageBehindGustoCloudIsItsOwnSite(t *testing.T) {
 	if link := site.server.appLink(app); link != "https://acme-com--"+app.ID+".cloud.test/" {
 		t.Errorf("the page's address is %q", link)
 	}
+	site.server.front.Apps = "https://apps.test"
+	if link := site.server.appLink(app); link != "https://acme-com--"+app.ID+".apps.test/" {
+		t.Errorf("on a domain of the apps' own, the page's address is %q", link)
+	}
+	site.server.front.Apps = ""
 	if stranger := site.appRequest(t, app.ID, "GET", "/"); stranger.Code != http.StatusSeeOther {
 		t.Errorf("somebody not signed in on the page's host name was answered %d", stranger.Code)
 	}

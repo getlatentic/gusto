@@ -1,7 +1,8 @@
-// The members pages' data, as /app/api/members, /app/api/members/agents/{id} and /app/api/members/people/{who} give it. The
-// server builds these in Go (members.go and members_pages.go); the two must stay the same shape.
+// The members pages' data: the list and its dialogs as /app/api/members gives it, and whoever is open as
+// /app/api/members/agents/{id} and /app/api/members/people/{who} give them. The server builds these in Go (members.go and
+// members_pages.go); the two must stay the same shape.
 
-// ListedPerson is somebody in the workspace. SharedSignIn is the server's one shared sign-in, which has no email address.
+// ListedPerson is somebody in the team. SharedSignIn is the server's one shared sign-in, which has no email address.
 export interface ListedPerson {
   Who: string
   Name: string
@@ -11,7 +12,7 @@ export interface ListedPerson {
   SharedSignIn: boolean
 }
 
-// ListedAgent is an agent of the workspace: Engine is its agent type by name, and Mark that type's logo.
+// ListedAgent is an agent of the team: Engine is its agent type by name, and Mark that type's logo.
 export interface ListedAgent {
   ID: string
   Name: string
@@ -51,14 +52,14 @@ export interface NewAgent {
   Offered: ModelOption[]
 }
 
-// Invite is gusto cloud's form for inviting a person: where it is posted, the workspace they join, and this page, to come back to.
+// Invite is gusto cloud's form for inviting a person: where it is posted, the team they join, and this page, to come back to.
 export interface Invite {
   Action: string
-  Workspace: string
+  Team: string
   Back: string
 }
 
-// MembersData is what every members page carries: the list, and the dialogs that add to it.
+// MembersData is the list and the dialogs that add to it, which every members page shows.
 export interface MembersData {
   People: ListedPerson[]
   Agents: ListedAgent[]
@@ -115,7 +116,7 @@ export interface AgentApps {
 export interface SkillChoice {
   Name: string
   Title: string
-  // Role is one of the ready-made roles, and otherwise a skill set made for the workspace.
+  // Role is one of the ready-made roles, and otherwise a skill set made for the team.
   Role: boolean
 }
 
@@ -132,12 +133,14 @@ export interface RoomLink {
   Where: string
 }
 
-export interface AgentData extends MembersData {
+// AgentData is an agent's page. Refused is what a form sent to it was refused for.
+export interface AgentData {
   Agent: AgentPage
   // Apps is null where this server offers no apps.
   Apps: AgentApps | null
   Skills: AgentSkills
   Rooms: RoomLink[]
+  Refused: string
 }
 
 export interface Bio {
@@ -146,12 +149,11 @@ export interface Bio {
   Max: number
 }
 
-export interface PersonData extends MembersData {
+// PersonData is a person's page. Refused is what a form sent to it was refused for.
+export interface PersonData {
   Person: ListedPerson
   Bio: Bio
   Rooms: RoomLink[]
   Made: ListedAgent[]
+  Refused: string
 }
-
-// MembersPageData is any of the three: the list alone, an agent's page, or a person's.
-export type MembersPageData = MembersData | AgentData | PersonData

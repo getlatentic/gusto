@@ -19,6 +19,7 @@ import {
 import { usePageData } from "@/lib/api"
 import type { SessionData } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { withBase } from "@/lib/base"
 
 // The columns a narrow table leaves out, the least needed first, by the width of the table's own card. When, which task and what it
 // cost always stay.
@@ -118,7 +119,7 @@ function Session({ page }: { page: SessionData }) {
                 <TableCell title={call.AtFull}>{call.At}</TableCell>
                 <TableCell className="w-full max-w-0 truncate">
                   <a
-                    href={call.Record}
+                    href={withBase(call.Record)}
                     title={`Details of ${call.Task}`}
                     className="no-underline underline-offset-4 hover:underline"
                   >

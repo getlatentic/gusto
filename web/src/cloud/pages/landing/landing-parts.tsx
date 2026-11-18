@@ -1,13 +1,12 @@
 import type { ComponentProps, ReactNode } from "react"
 
 import type { CloudPage } from "@/cloud/types"
-import { bookLabel, startHref, startLabel } from "@/domain/landing"
 import { cn } from "@/lib/utils"
 
 export const repository = "https://github.com/getlatentic/gusto"
 export const docs = `${repository}/blob/main/docs`
 
-// Cta is one of the landing page's calls to act: solid for starting, outlined for the rest.
+// Cta is one of the landing page's calls to act, all one size: solid for starting, outlined for the rest.
 export function Cta({
   solid,
   className,
@@ -16,10 +15,10 @@ export function Cta({
   return (
     <a
       className={cn(
-        "inline-block rounded-sm px-5 py-3 font-semibold no-underline",
+        "inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium whitespace-nowrap no-underline",
         solid
           ? "bg-solid text-on-solid hover:bg-solid-hover"
-          : "border-line-strong hover:bg-wash border",
+          : "border-line-strong text-ink hover:bg-wash border bg-surface",
         className
       )}
       {...props}
@@ -27,6 +26,7 @@ export function Cta({
   )
 }
 
+// StartCta leads a visitor to sign up, and a person already signed in into gusto.
 export function StartCta({
   page,
   className,
@@ -35,8 +35,13 @@ export function StartCta({
   className?: string
 }) {
   return (
-    <Cta solid href={startHref(page)} className={className} data-testid="start">
-      {startLabel(page)}
+    <Cta
+      solid
+      href={page.SignedIn ? "/app" : "/signup"}
+      className={className}
+      data-testid="start"
+    >
+      Get started
     </Cta>
   )
 }
@@ -51,7 +56,7 @@ export function BookCta({
   if (!page.Book) return null
   return (
     <Cta href={page.Book} className={className} data-testid="book">
-      {bookLabel(page)}
+      Talk to us
     </Cta>
   )
 }
@@ -77,42 +82,22 @@ export function Band({
         className
       )}
     >
-      <div className="mx-auto max-w-5xl px-5">{children}</div>
+      <div className="mx-auto max-w-6xl px-5">{children}</div>
     </section>
   )
 }
 
 export function BandTitle({ children }: { children: ReactNode }) {
   return (
-    <h2 className="m-0 text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold">
+    <h2
+      className="m-0 text-[length:clamp(1.5rem,3vw,2rem)] leading-[1.25] font-semibold"
+      data-reveal
+    >
       {children}
     </h2>
   )
 }
 
-// Tile is one card in a band's grid: a title and a line or two.
-export function Tile({
-  title,
-  children,
-  className,
-}: {
-  title: ReactNode
-  children?: ReactNode
-  className?: string
-}) {
-  return (
-    <li
-      className={cn(
-        "border-line-strong grid content-start gap-3 rounded-lg border bg-surface p-6",
-        className
-      )}
-    >
-      <h3 className="m-0 text-lg leading-[1.3] font-semibold">{title}</h3>
-      {children}
-    </li>
-  )
-}
-
-export function TileText({ children }: { children: ReactNode }) {
-  return <p className="text-md text-quiet m-0 leading-[1.6]">{children}</p>
+export function BandText({ children }: { children: ReactNode }) {
+  return <p className="text-quiet m-0 text-sm">{children}</p>
 }

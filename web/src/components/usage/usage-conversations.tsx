@@ -33,6 +33,7 @@ import { budgetLine, type MemberBudget } from "@/domain/usage-budget"
 import { usePageData } from "@/lib/api"
 import type { UsageData, UsageView } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { withBase } from "@/lib/base"
 
 const askedBy = "Asked by"
 const agentOwner = "Agent · owner"
@@ -63,7 +64,7 @@ export function UsageConversations({ place }: { place: UsagePlace }) {
               <EllipsisIcon />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem render={<a href={view.Export} />}>
+              <DropdownMenuItem render={<a href={withBase(view.Export)} />}>
                 <DownloadIcon /> Download CSV
               </DropdownMenuItem>
             </DropdownMenuContent>

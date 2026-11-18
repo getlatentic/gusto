@@ -1,5 +1,6 @@
 import type { ComponentProps } from "react"
 import { Link } from "react-router"
+import { withBase } from "@/lib/base"
 
 // The pages this app draws. A link to one of them moves within the app; a link anywhere else is a page the server still
 // draws, and loads it.
@@ -50,6 +51,6 @@ export function AppLink({
   return isAppPage(href) ? (
     <Link to={href} {...props} />
   ) : (
-    <a href={href} {...props} />
+    <a href={withBase(href)} {...props} />
   )
 }

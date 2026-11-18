@@ -27,7 +27,7 @@ type taskQuery struct {
 var taskStates = []string{"queued", "running", "passed", "failed", "interrupted"}
 
 // taskFields are the query parameters that filter the list.
-var taskFields = []string{"q", "state", "person", "agent_type", "team", "repo", "instance", "thread", "from", "to"}
+var taskFields = []string{"q", "state", "person", "agent_type", "repo", "instance", "thread", "from", "to"}
 
 // taskScope is whose tasks the request may read: nobody's name for all of them, and otherwise the one person. It
 // is the rule ownTasks applies to a list in memory, so that the same person sees the same tasks either way.
@@ -39,8 +39,8 @@ func (s *Server) taskScope(r *http.Request) (asked string, none bool) {
 	return name, name == "" || (name == sharedSignIn && !s.soleOwner())
 }
 
-// readTaskQuery reads the filter from the query and forces its person to the one the request may read, and its workspace to
-// the one the request is in, whoever asks: a workspace's tasks are its members' alone. forPage
+// readTaskQuery reads the filter from the query and forces its person to the one the request may read, and its team to
+// the one the request is in, whoever asks: a team's tasks are its members' alone. forPage
 // makes the state failed stand for the tasks that did not pass, as the list page counts them, and a state that
 // is none of the five match nothing, where the API refuses it.
 func (s *Server) readTaskQuery(r *http.Request, forPage bool) (taskQuery, error) {
@@ -60,8 +60,8 @@ func (s *Server) readTaskQuery(r *http.Request, forPage bool) (taskQuery, error)
 		made.Values.Set("person", person)
 	}
 	f := &made.Filter
-	f.Search, f.Asked, f.Team, f.Repo = made.Values.Get("q"), made.Values.Get("person"), made.Values.Get("team"), made.Values.Get("repo")
-	f.AgentType, f.Instance, f.Thread, f.Workspace = made.Values.Get("agent_type"), made.Values.Get("instance"), made.Values.Get("thread"), s.workspaceOf(r)
+	f.Search, f.Asked, f.Repo = made.Values.Get("q"), made.Values.Get("person"), made.Values.Get("repo")
+	f.AgentType, f.Instance, f.Thread, f.Team = made.Values.Get("agent_type"), made.Values.Get("instance"), made.Values.Get("thread"), s.teamOf(r)
 	made.State = made.Values.Get("state")
 	var err error
 	if f.States, err = taskStatesOf(made.State, forPage); err != nil {

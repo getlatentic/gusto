@@ -1,7 +1,8 @@
+import { below } from "@/lib/base"
 import { Failure } from "@/lib/http"
 
 // sendForm sends a form as the browser would, without leaving the page, and gives the address the server sent the person on to
-// (its path and query), which is where any refusal is said. The page then moves there in the app instead of loading it again.
+// (its path below the base path, and query), which is where any refusal is said. The page then moves there in the app instead of loading it again.
 // files are sent as the form's "file" field, for a form whose files are kept by the page rather than by its input.
 export async function sendForm(
   form: HTMLFormElement,
@@ -29,6 +30,6 @@ export async function sendForm(
   }
   const landed = new URL(answer.url)
   return landed.origin === location.origin
-    ? landed.pathname + landed.search + landed.hash
+    ? below(landed.pathname) + landed.search + landed.hash
     : ""
 }

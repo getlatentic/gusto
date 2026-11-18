@@ -37,7 +37,7 @@ const (
 	Integrations Store = "integrations"
 	// Presets is what each person saved to start a chat the same way again. A release before it never reads the directory.
 	Presets Store = "presets"
-	// Crew is the workspace's agents, which rooms add. A release before it never reads the directory.
+	// Crew is the team's agents, which rooms add. A release before it never reads the directory.
 	Crew Store = "crew"
 )
 

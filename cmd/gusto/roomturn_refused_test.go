@@ -10,7 +10,9 @@ import (
 )
 
 func TestARoomTooBigToCopyRefusesTheTurnAndSaysWhy(t *testing.T) {
-	t.Setenv("GUSTO_ROOM_COPY_MB", "1")
+	was := roomCopyLimits
+	roomCopyLimits.Bytes = 1 << 20
+	t.Cleanup(func() { roomCopyLimits = was })
 	rooms, held := aRoomWithTwoAgents(t, map[string]string{"big.bin": strings.Repeat("x", 2<<20)})
 	dir, spec := aRoomTurn(t, rooms, held, "a1")
 	ran := false

@@ -4,16 +4,27 @@ import { AppLink } from "@/components/app-link"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { emailWords } from "@/domain/members"
+import { usePageData } from "@/lib/api"
 import { AgentFace, PersonFace } from "@/pages/members/faces"
 import {
   BackToMembers,
   Fact,
   Facts,
+  Opening,
   RoomLinks,
   sectionTitle,
 } from "@/pages/members/member-parts"
 import type { ListedAgent, PersonData } from "@/pages/members/types"
 import { useMembersForm } from "@/pages/members/use-members-form"
+import { withBase } from "@/lib/base"
+
+// OpenPerson is the person the address names, beside the members list.
+export function OpenPerson() {
+  const loaded = usePageData<PersonData>()
+  return (
+    <Opening loaded={loaded}>{(page) => <PersonView page={page} />}</Opening>
+  )
+}
 
 // PersonView is one person: who they are, the bio they wrote, the rooms the person looking shares with them, and the agents
 // they made.
@@ -83,7 +94,7 @@ function PersonBio({ page }: { page: PersonData }) {
       {bio.Mine && (
         <form
           method="post"
-          action={`${page.Person.Where}/bio`}
+          action={withBase(`${page.Person.Where}/bio`)}
           onSubmit={submit}
           className="m-0 grid gap-3"
           data-testid="bio-form"

@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -71,8 +72,27 @@ func TestGustoCloudIsMadeFromItsSettings(t *testing.T) {
 	}
 	_, data, _ := strings.Cut(page.Body.String(), `<script id="gusto-data" type="application/json">`)
 	data, _, _ = strings.Cut(data, "</script>")
-	if err := json.Unmarshal([]byte(data), &shown); err != nil || shown.Address != "acme.example.com" || shown.Quota.Tasks != 7 || shown.Quota.Monthly {
+	if err := json.Unmarshal([]byte(data), &shown); err != nil || !regexp.MustCompile(`^cloud\.example\.com/workspace/[0-9a-f]{12}$`).MatchString(shown.Address) || shown.Quota.Tasks != 7 || shown.Quota.Monthly {
 		t.Errorf("the page should show the organization's address and the trial from the settings: %+v %v", shown, err)
+	}
+}
+
+// Organizations are at paths on gusto cloud's own name unless the operator gives each a host name of its own.
+func TestOrganizationsAreAtPathsUnlessTheOperatorSaysHostNames(t *testing.T) {
+	t.Parallel()
+	for at, paths := range map[string]bool{"": true, "path": true, "host": false} {
+		set := map[string]string{"GUSTO_CLOUD_URL": "https://cloud.example.com", "GUSTO_CLOUD_DOMAIN": "example.com"}
+		if at != "" {
+			set["GUSTO_CLOUD_ORGS_AT"] = at
+		}
+		front, _, err := openCloud(t.Context(), cloudFrom(t, set))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if front.OrgPaths != paths {
+			t.Errorf("GUSTO_CLOUD_ORGS_AT=%q: at paths is %v", at, front.OrgPaths)
+		}
+		front.Store.Close()
 	}
 }
 
@@ -194,7 +214,7 @@ func TestTheOperatorSeesEveryComputerWithItsOrganizationAndPerson(t *testing.T) 
 		t.Fatal(err)
 	}
 	text := out.String()
-	for _, want := range []string{"ORGANIZATION", "WORKSPACE", "main", "acme-com", "ada@acme.com", "globex-com", "eve@globex.com", "cell-1", "creating", "never", "2 computers in 3 organizations"} {
+	for _, want := range []string{"ORGANIZATION", "TEAM", "main", "acme-com", "ada@acme.com", "globex-com", "eve@globex.com", "cell-1", "creating", "never", "2 computers in 3 organizations"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("%q is not in:\n%s", want, text)
 		}

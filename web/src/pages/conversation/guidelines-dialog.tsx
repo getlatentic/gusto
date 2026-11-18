@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { useConversation } from "@/pages/conversation/conversation-context"
+import { withBase } from "@/lib/base"
 
 // GuidelinesDialog is what every agent in the room is told at the start of each turn: everybody reads them, admins change them.
 export function GuidelinesDialog({
@@ -26,7 +27,9 @@ export function GuidelinesDialog({
       <DialogContent className="sm:max-w-120">
         <form
           method="post"
-          action={`/rooms/${encodeURIComponent(page.Instance.ID)}/guidelines`}
+          action={withBase(
+            `/rooms/${encodeURIComponent(page.Instance.ID)}/guidelines`
+          )}
           onSubmit={submit}
           className="grid gap-4"
         >

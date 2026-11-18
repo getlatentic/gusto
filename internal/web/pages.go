@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlatentic/gusto/internal/workspace"
+	"github.com/getlatentic/gusto/internal/team"
 
 	"github.com/getlatentic/gusto/internal/changelog"
 	"github.com/getlatentic/gusto/internal/tasks"
@@ -105,12 +105,12 @@ func (s *Server) signOut(w http.ResponseWriter, r *http.Request) {
 // place writes a task's directory and takes it into the index. It is the same
 // sequence whichever page asked for the task, and the caller wakes the queue
 // once it has recorded whatever else the task belongs to. A turn is in the
-// workspace of its instance.
+// team of its instance.
 func (s *Server) place(spec task.Spec, record tasks.Record) error {
 	if held, found := s.instances.Get(record.Instance); found {
-		record.Workspace = workspace.Stored(held.Workspace)
+		record.Team = team.Stored(held.Team)
 	}
-	spec.Workspace = record.Workspace
+	spec.Team = record.Team
 	dir := task.Dir(filepath.Join(s.index.Root(), record.ID))
 	if err := dir.Make(); err != nil {
 		return err

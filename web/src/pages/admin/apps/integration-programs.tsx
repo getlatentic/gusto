@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import type { Integration, ShownServer } from "@/pages/admin/apps/types"
+import { withBase } from "@/lib/base"
 
 // Programs are the servers a version brought to run itself. They run only once an admin allows them, for that version only.
 export function Programs({
@@ -39,7 +40,11 @@ export function Programs({
           <p className="m-0">
             <strong>Allowed.</strong>
           </p>
-          <form method="post" action={`${base}/refuse`} className="m-0">
+          <form
+            method="post"
+            action={withBase(`${base}/refuse`)}
+            className="m-0"
+          >
             <Button variant="outline" size="sm" type="submit">
               Stop allowing them
             </Button>
@@ -49,7 +54,7 @@ export function Programs({
         <form
           className="grid max-w-prose gap-3"
           method="post"
-          action={`${base}/allow`}
+          action={withBase(`${base}/allow`)}
         >
           <input type="hidden" name="version" value={version} />
           <Label className="items-start font-normal">

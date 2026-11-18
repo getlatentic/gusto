@@ -41,7 +41,7 @@ A git address must be https with no user name or password. Its host must not res
 
 The Skills tab of Apps & skills (`/admin/apps?tab=skills`) is for administrators. It imports from a git address or an upload, lists each integration's versions and sources, shows what a version holds and leaves out, and turns a version on, turns the integration off, or restores the earlier version. Choosing another version shows what would change. Each import and change is in the change record.
 
-`GUSTO_INTEGRATIONS` is the directory, a stamped data directory ([UPGRADE.md](UPGRADE.md)). `GUSTO_INTEGRATIONS_PRIVATE=1` lets a git address be on a private network. The server needs `git`, which its image has.
+The `integrations` folder of `GUSTO_DATA` holds them, a stamped data directory ([UPGRADE.md](UPGRADE.md)). `GUSTO_INTEGRATIONS_PRIVATE=1` lets a git address be on a private network. The server needs `git`, which its image has.
 
 A setup names the integrations it is given. For each one that is on, a task gets:
 

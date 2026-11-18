@@ -18,8 +18,8 @@ type rosterBook struct {
 	stamp   time.Time
 	size    int64
 	byEmail map[string]roster.Member
-	// spaces is the organization's workspaces, and read whether a roster has been read at all.
-	spaces []roster.Workspace
+	// spaces is the organization's teams, and read whether a roster has been read at all.
+	spaces []roster.Team
 	read   bool
 }
 
@@ -45,15 +45,15 @@ func (b *rosterBook) lookAgain(path string) {
 	}
 }
 
-// spacesOf is the workspaces a person is in, as the newest roster that could be read says, and false before any could be.
-func (b *rosterBook) spacesOf(path, who string) ([]roster.Workspace, bool) {
+// spacesOf is the teams a person is in, as the newest roster that could be read says, and false before any could be.
+func (b *rosterBook) spacesOf(path, who string) ([]roster.Team, bool) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.lookAgain(path)
 	if !b.read {
 		return nil, false
 	}
-	return roster.Roster{Workspaces: b.spaces}.SpacesOf(who), true
+	return roster.Roster{Teams: b.spaces}.SpacesOf(who), true
 }
 
 // of is the name the roster gives a person, when it gives one.

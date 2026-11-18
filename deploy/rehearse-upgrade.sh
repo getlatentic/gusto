@@ -29,8 +29,7 @@ data="$work/data"
 echo "copying $source_dir to a scratch directory"
 cp -R "$source_dir" "$data"
 
-export GUSTO_TASKS="$data/jobs" GUSTO_SESSIONS="$data/sessions" GUSTO_SETUPS="$data/setups" GUSTO_INTEGRATIONS="$data/integrations" GUSTO_PRESETS="$data/presets" GUSTO_CREW="$data/crew" \
-  GUSTO_COMPARISONS="$data/comparisons" GUSTO_CHANGES="$data/changes/changes.jsonl"
+export GUSTO_DATA="$data"
 [ -z "${GUSTO_KEYRING:-}" ] && [ -d "$data/keys" ] && export GUSTO_KEYRING="$data/keys"
 
 echo "== what the new binary would migrate"

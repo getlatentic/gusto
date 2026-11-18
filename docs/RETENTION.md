@@ -31,7 +31,7 @@ The server refuses a policy that sets a record to go before its working folder, 
 
 ## Sweeps
 
-The server sweeps every 60 minutes. Set `GUSTO_RETENTION_MINUTES` to change the interval. An admin can sweep at once from `/admin/records?tab=keeping`.
+The server sweeps every hour. An admin can sweep at once from `/admin/records?tab=keeping`.
 
 A sweep touches only tasks that have ended. A turn in a room is kept while the room is. Once the room is removed, its turns are swept like any other task. A queued or running task is never touched.
 

@@ -62,19 +62,36 @@ describe("signing up", () => {
       <SignUpPage
         page={cloudPage("signup", {
           More: true,
-          Email: "ada@gmail.com",
-          OrgName: "Acme",
-          Slug: "acme",
-          Error: "That address is taken.",
+          Email: "bob@acme.com",
+          OrgName: "A",
+          Error: "An organization's name is 2 to 80 characters.",
         })}
       />
     )
-    expect(field("email").value).toBe("ada@gmail.com")
-    expect(field("org-name").value).toBe("Acme")
-    expect(field("org-slug").value).toBe("acme")
+    expect(field("email").value).toBe("bob@acme.com")
+    expect(field("org-name").value).toBe("A")
+    expect(screen.queryByTestId("org-slug")).toBeNull()
     expect(screen.getByTestId("refusal").textContent).toBe(
-      "That address is taken."
+      "An organization's name is 2 to 80 characters."
     )
+  })
+
+  it("asks for a name as the next step, without calling it a refusal", () => {
+    render(
+      <SignUpPage
+        page={cloudPage("signup", {
+          More: true,
+          Email: "bob@acme.com",
+          Ask: "Your company already has an organization on gusto. Name this one, or ask its admin to invite you.",
+        })}
+      />
+    )
+    expect(screen.getByTestId("sign-up-ask").textContent).toMatch(
+      /^Your company already has an organization on gusto\./
+    )
+    expect(screen.queryByTestId("refusal")).toBeNull()
+    expect(document.activeElement).toBe(screen.getByTestId("org-name"))
+    expect(screen.queryByTestId("org-slug")).toBeNull()
   })
 
   it("offers a sign-in, and no second form, to an address that has an account", () => {
@@ -88,6 +105,39 @@ describe("signing up", () => {
       screen.getByTestId("send-code").closest("form")?.getAttribute("action")
     ).toBe("/signin")
     expect(screen.queryByTestId("sign-up")).toBeNull()
+  })
+})
+
+describe("Google", () => {
+  it("is offered above the email form on both ways in where gusto cloud has it", () => {
+    for (const page of [
+      <SignInPage key="in" page={cloudPage("signin", { Google: true })} />,
+      <SignUpPage key="up" page={cloudPage("signup", { Google: true })} />,
+    ]) {
+      const { unmount } = render(page)
+      expect(screen.getByTestId("google").getAttribute("href")).toBe(
+        "/signin/google"
+      )
+      expect(screen.getByTestId("google").textContent).toBe(
+        "Continue with Google"
+      )
+      unmount()
+    }
+  })
+
+  it("is not offered where gusto cloud has no client at Google, or once the sign-up asks for the organization", () => {
+    render(<SignInPage page={cloudPage("signin")} />)
+    expect(screen.queryByTestId("google")).toBeNull()
+    render(
+      <SignUpPage
+        page={cloudPage("signup", {
+          Google: true,
+          More: true,
+          Email: "ada@gmail.com",
+        })}
+      />
+    )
+    expect(screen.queryByTestId("google")).toBeNull()
   })
 })
 

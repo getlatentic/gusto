@@ -1,14 +1,17 @@
 import { screen, within } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-import { ada, personPageOf } from "@/pages/members/fixture"
-import { MembersPage } from "@/pages/members/members-page"
+import { ada, membersOf, personPageOf } from "@/pages/members/fixture"
+import { membersRoute } from "@/pages/members/members-routes"
 import type { PersonData } from "@/pages/members/types"
-import { renderPage } from "@/test/render"
+import { renderRoutes } from "@/test/render"
 
 function draw(page: PersonData) {
   const at = page.Person.Where
-  return renderPage(at, "/members/*", <MembersPage />, { [at]: page })
+  return renderRoutes(at, membersRoute, {
+    "/members": membersOf(),
+    [at]: page,
+  })
 }
 
 describe("a person's page", () => {

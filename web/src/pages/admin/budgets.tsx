@@ -34,6 +34,7 @@ import {
 import { usePageData } from "@/lib/api"
 import { initial, usd } from "@/lib/format"
 import { cn } from "@/lib/utils"
+import { withBase } from "@/lib/base"
 
 // The organization's budgets as the server keeps them. Each person's budget stops their agents; the organization's only warns.
 export interface OrgBudget {
@@ -287,7 +288,7 @@ function OwnBudget({ row }: { row: BudgetRow }) {
       <PopoverContent align="end" className="w-72">
         <form
           method="post"
-          action="/admin/member-budget"
+          action={withBase("/admin/member-budget")}
           className="grid gap-2"
         >
           <input type="hidden" name="who" value={budget.Who} />
@@ -333,7 +334,11 @@ function BudgetsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-testid="budgets-dialog">
-        <form method="post" action="/admin/budget" className="grid gap-4">
+        <form
+          method="post"
+          action={withBase("/admin/budget")}
+          className="grid gap-4"
+        >
           <DialogHeader>
             <DialogTitle>Budgets</DialogTitle>
             <DialogDescription>

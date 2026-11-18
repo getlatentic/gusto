@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -20,6 +21,16 @@ import (
 	"github.com/getlatentic/gusto/internal/accesslog"
 	"github.com/getlatentic/gusto/internal/cloud"
 	"github.com/getlatentic/gusto/internal/node"
+	"github.com/getlatentic/gusto/internal/settings"
+)
+
+const (
+	// leaderLease is how long the lease that makes one gusto cloud server the leader lasts unrenewed.
+	leaderLease = 30 * time.Second
+	// serverStartWait is how long an organization's server has to answer once started.
+	serverStartWait = 2 * time.Minute
+	// orgsPerMailDomain is how many organizations one mail domain may make.
+	orgsPerMailDomain = 3
 )
 
 // cloudComputers lists every computer on this node.
@@ -60,7 +71,7 @@ func cloudCommand() int {
 	}
 	door := &cloudService{front: front, controller: controller, scaler: scaler}
 	door.startBackground(ctx, cfg.nodes.dir)
-	controlled := door.leadInTurn(ctx, time.Duration(cfg.front.leaderSeconds)*time.Second)
+	controlled := door.leadInTurn(ctx, leaderLease)
 	if err := serveCloud(ctx, cfg.front.addr, front); err != nil {
 		return fail(err)
 	}
@@ -194,7 +205,7 @@ func openAccounts(ctx context.Context, cfg cloudSettings) (*cloud.Store, error) 
 	accounts := cfg.records.accounts()
 	accounts.AllowFreeMail = cfg.signup.freeMail == "allow"
 	accounts.RefusedDomains = lowered(cfg.signup.refusedDomains)
-	accounts.PerDomain = cfg.signup.perDomain
+	accounts.PerDomain = orgsPerMailDomain
 	accounts.Limits = cfg.signup.limits()
 	accounts.Demo = cfg.demo.forCloud()
 	store, err := cloud.Open(cfg.records.root, accounts)
@@ -224,12 +235,17 @@ func frontOf(ctx context.Context, store *cloud.Store, public *url.URL, billing *
 		return nil, nil, err
 	}
 	f := cfg.front
+	google, err := cloud.NewGoogle(ctx, cloud.GoogleIssuer, f.googleID, f.googleSecret, public.JoinPath(cloud.GoogleBack).String())
+	if err != nil {
+		return nil, nil, err
+	}
 	front, err := cloud.New(cloud.Config{
 		Lease: f.lease(), Store: store, Mail: mail, Sessions: sessions, URL: public, Controller: controller,
-		Domain: f.domain, TrustProxy: f.trustProxy, Notify: cfg.demo.notify,
+		Domain: f.domain, AppsDomain: f.appsDomain, OrgPaths: f.orgsAt == "path", TrustProxy: f.trustProxy, Notify: cfg.demo.notify,
 		Leads:      &cloud.LeadHook{URL: f.leadHookURL, Secret: f.leadHookSecret, Dir: filepath.Join(cfg.records.root, "leadhook")},
 		Turnstile:  cloud.Turnstile{Site: f.turnstileSite, Secret: f.turnstileSecret},
-		PerAddress: f.perAddress, PerMailbox: f.perMailbox, InAll: f.inAll,
+		Google:     google,
+		PerAddress: 10, PerMailbox: 3, InAll: 200,
 		Billing: billing,
 	})
 	if err != nil {
@@ -250,7 +266,9 @@ func controllerOf(store *cloud.Store, public *url.URL, cfg cloudSettings) (*clou
 	if err != nil {
 		return nil, err
 	}
-	controller.OrgURL = func(slug string) string { return cloud.OrgAddress(public, cfg.front.domain, slug) }
+	controller.OrgURL = func(slug string) string {
+		return cloud.OrgAddress(public, cfg.front.domain, cfg.front.orgsAt == "path", slug)
+	}
 	return controller, nil
 }
 
@@ -277,8 +295,8 @@ func organizationServers(store *cloud.Store, public *url.URL, cfg cloudSettings)
 	local := &cloud.LocalNode{}
 	controller := &cloud.Controller{
 		Store: store, Node: local, Command: []string{exe, "serve"}, Env: env, DemoEnv: demoEnv,
-		CloudURL: public.Scheme + "://" + public.Host, PortFrom: cfg.servers.portFrom,
-		Wait: time.Duration(cfg.servers.startWaitSeconds) * time.Second, Concurrent: cfg.signup.concurrent, IndexDir: indexDir,
+		CloudURL: public.Scheme + "://" + public.Host, AppsURL: cloud.AppsAddress(public, cmp.Or(cfg.front.appsDomain, cfg.front.domain)), PortFrom: cfg.servers.portFrom,
+		Wait: serverStartWait, Concurrent: cfg.signup.concurrent, IndexDir: indexDir, InFile: settings.FileHolds,
 	}
 	pool, err := nodePool(cfg.nodes, local)
 	if err != nil || pool == nil {

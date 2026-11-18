@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// NeedingSignIn is, for each connector, how many sign-ins across every person and workspace need signing in again. It opens
+// NeedingSignIn is, for each connector, how many sign-ins across every person and team need signing in again. It opens
 // every sign-in kept, so it is for a page an admin opens, and not for a request each person makes.
 func (c *Connectors) NeedingSignIn() map[string]int {
 	byHash := make(map[string]string, len(c.config.Apps))

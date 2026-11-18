@@ -58,7 +58,7 @@ Settings: `GUSTO_TOOL_POLICY` is the policy file. `GUSTO_GATEWAY_MODE` is `disco
 
 ### Connectors
 
-A connector is an app's MCP server that asks for OAuth. Each person signs in to it with their own account, in a workspace, and their agents in that workspace call it as them (`internal/connector`). A sign-in made in one workspace is not used in another. A sign-in is signed in, not signed in, or needs signing in again: the app stopped renewing it, or its access token ran out with no refresh token to renew it. A sign-in that needs signing in again is not connected and is given to no agent. Connections, an agent's Apps tab and the admin's Apps page say "sign in again" for it (the admin sees how many people), and a room's agent is told it cannot use that app and why. A person can only connect an app an admin has turned on, but may always disconnect their own sign-in: when an admin turns an app off, Connections still lists it for the people signed in to it, marked "turned off", with only Disconnect, and agents are no longer given it. When a renewed refresh token cannot be written, the server holds it in memory until it can be, since the app has retired the old one.
+A connector is an app's MCP server that asks for OAuth. Each person signs in to it with their own account, in a team, and their agents in that team call it as them (`internal/connector`). A sign-in made in one workspace is not used in another. A sign-in is signed in, not signed in, or needs signing in again: the app stopped renewing it, or its access token ran out with no refresh token to renew it. A sign-in that needs signing in again is not connected and is given to no agent. Connections, an agent's Apps tab and the admin's Apps page say "sign in again" for it (the admin sees how many people), and a room's agent is told it cannot use that app and why. A person can only connect an app an admin has turned on, but may always disconnect their own sign-in: when an admin turns an app off, Connections still lists it for the people signed in to it, marked "turned off", with only Disconnect, and agents are no longer given it. When a renewed refresh token cannot be written, the server holds it in memory until it can be, since the app has retired the old one.
 
 1. An admin turns the app on at `/admin/apps`. Every app is off until then.
 2. The person opens Connections, `/connections`, and presses Connect. The app's own sign-in page opens.
@@ -80,7 +80,7 @@ The catalog, asked on 2026-10-31: Linear, Notion, Figma, Canva and Stripe need n
 To add GitHub to gusto cloud:
 
 1. Make an OAuth app under the organization's GitHub settings, Developer settings, OAuth Apps.
-2. Set the callback URL to `https://<GUSTO_CLOUD_DOMAIN>/connections/callback` and turn on wildcard matching for it, so that every organization's `<slug>.<domain>` matches.
+2. Set the callback URL to `https://<host of GUSTO_CLOUD_URL>/workspace/`. GitHub takes a redirect to any path below it, so each organization's `/workspace/<slug>/connections/callback` matches. With `GUSTO_CLOUD_ORGS_AT=host`, set it to `https://<GUSTO_CLOUD_DOMAIN>/connections/callback` and turn on wildcard matching for it, so that every organization's `<slug>.<domain>` matches.
 3. Make a client secret.
 4. Run `deploy/aws/openshell/put-connector-client.sh github <client id>` and type the secret at the prompt.
 5. Deploy. Each organization's server reads the clients when it starts, and its admin can then turn GitHub on.
