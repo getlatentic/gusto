@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react"
+import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it } from "vitest"
 
 import { kindOf, membersOf } from "@/pages/members/fixture"
@@ -19,6 +19,10 @@ describe("the members list", () => {
   it("lists the team's people and agents, each linking to their page, and the way to the roles and presets", async () => {
     draw(membersOf())
     const list = await screen.findByRole("navigation", { name: "Members" })
+    // The navigation can be drawn before all its rows, so the rows are waited for as well.
+    await waitFor(() =>
+      expect(within(list).getAllByTestId("member-row")).toHaveLength(3)
+    )
     const rows = within(list).getAllByTestId("member-row")
     expect(rows.map((row) => row.getAttribute("href"))).toEqual([
       "/members/people/ada@acme.com",

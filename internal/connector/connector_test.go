@@ -319,3 +319,30 @@ func TestASignInTheAppNoLongerTakesIsNotConnected(t *testing.T) {
 		t.Error("signing in again did not connect")
 	}
 }
+
+// An organization behind gusto cloud sends a person back to gusto cloud's callback, with its own name first in the state, so
+// gusto cloud can hand them on; the sign-in finishes as any other does.
+func TestAnOrganizationsSignInComesBackThroughGustoCloud(t *testing.T) {
+	a := connectortest.New(t)
+	c, err := Open(Config{Dir: t.TempDir(), Base: "https://cloud.test/workspace/acme-com", Callback: "https://cloud.test/connections/callback",
+		Org: "acme-com", HTTP: http.DefaultClient})
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry := Entry{ID: "tasks", Name: "Tasks", URL: a.MCP()}
+	signIn, err := c.Begin(context.Background(), "ada@acme.com", "", entry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	asked, _ := url.Parse(signIn)
+	if got := asked.Query().Get("redirect_uri"); got != "https://cloud.test/connections/callback" {
+		t.Errorf("the app is asked to send the person back to %q", got)
+	}
+	if state := asked.Query().Get("state"); !strings.HasPrefix(state, "acme-com.") || len(state) < len("acme-com.")+16 {
+		t.Errorf("the state %q does not name the organization first", state)
+	}
+	state, code := a.Approve(t, signIn)
+	if connector, _, err := c.Finish(context.Background(), "ada@acme.com", state, code); err != nil || connector != "tasks" {
+		t.Errorf("the sign-in did not finish: %q %v", connector, err)
+	}
+}

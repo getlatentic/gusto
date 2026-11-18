@@ -256,6 +256,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /lease/extend", s.guard(s.extendLease))
 	mux.HandleFunc("POST /signout", s.signOut)
 	mux.HandleFunc("GET /signout", s.signedOutThere)
+	mux.HandleFunc("GET /connections/callback", s.connectionBack)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok\n")) })
 	s.fileRoutes(mux)
 	mux.HandleFunc("GET /robots.txt", s.robots)
