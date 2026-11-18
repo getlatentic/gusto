@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# Puts the runner image in the demo's bucket under its key, when it is not there: it is built on an x86 host made for the
+# Puts the runner image in the store bucket under its key, when it is not there: it is built on an x86 host made for the
 # purpose and removed after, since a runner that is not x86 cannot build it. A change to image/, the Dockerfile or the harnesses
 # makes a new key, and every host that starts after it needs the image of that key. About ten minutes of an m8i.xlarge.
 # The image goes in twice: as the root file system an OpenShell sandbox is made from, and as an archive Docker loads.
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
-bucket="$(./demo-store.sh)"
-[[ "$bucket" =~ ^gusto-poc-demo-[0-9]{12}$ ]] || { echo "demo-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
+bucket="$(./cloud-store.sh)"
+[[ "$bucket" =~ ^gusto-poc-demo-[0-9]{12}$ ]] || { echo "cloud-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
 key="$(./image-key.sh)"
 if aws s3api head-object --bucket "$bucket" --key "image/$key.tar.gz" >/dev/null 2>&1 \
   && aws s3api head-object --bucket "$bucket" --key "image/$key.docker.tar.gz" >/dev/null 2>&1; then
   echo "the image $key is in the bucket"
   exit 0
 fi
-export TF_VAR_demo_bucket="$bucket"
+export TF_VAR_cloud_bucket="$bucket"
 # The host is removed however this ends, and what removing it prints does not change how this ended.
 trap 'status=$?; ./down.sh || true; exit $status' EXIT
 ./up.sh

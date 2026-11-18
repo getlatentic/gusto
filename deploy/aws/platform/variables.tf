@@ -5,7 +5,7 @@ variable "region" {
 }
 
 variable "bucket" {
-  description = "The bucket demo-store.sh makes, which holds the release bundles, the runner image and the certificate."
+  description = "The bucket cloud-store.sh makes, which holds the release bundles, the runner image and the certificate."
   type        = string
 }
 
@@ -28,7 +28,7 @@ variable "github_subject" {
 }
 
 variable "orchestrator_instance_type" {
-  description = "The type of a demo's front door, which runs no computer."
+  description = "The type of a cloud's front door, which runs no computer."
   type        = string
   default     = "t3.medium"
 }
@@ -64,7 +64,7 @@ variable "monthly_budget_usd" {
 }
 
 variable "daily_budget_usd" {
-  description = "What a day should stay under, before credits. A demo machine left on is 5.30 a day and a measurement run is 2 to 10, so this tells of a runaway the same day."
+  description = "What a day should stay under, before credits. A machine left on is 5.30 a day and a measurement run is 2 to 10, so this tells of a runaway the same day."
   type        = number
   default     = 10
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Stores the secret of the bot check on the demo form, which Cloudflare shows once when the Turnstile widget is made. It is
 # read at a hidden prompt, so it is on no command line and in no history, and is kept as a SecureString that a host reads
-# with its role. The site key, which is public, goes in demo.env as DEMO_TURNSTILE_SITE and is stored by put-demo-config.sh.
+# with its role. The site key, which is public, goes in cloud.env as GUSTO_CLOUD_TURNSTILE_SITE and is stored by put-cloud-config.sh.
 source "$(dirname "$0")/env.sh"
 name=/gusto/poc/turnstile-secret
 read -r -s -p "The Turnstile secret key: " secret

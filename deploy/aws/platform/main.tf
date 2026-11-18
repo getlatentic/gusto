@@ -1,4 +1,4 @@
-# What outlives a demo host: the role and profile every host has, the security group, the
+# What outlives a host: the role and profile every host has, the security group, the
 # launch template a host is made from, and the role GitHub Actions takes to launch and remove
 # hosts. Nothing here costs while no host is up. A host is made from the launch template and
 # removes itself, so no host is in this state.
@@ -27,7 +27,7 @@ locals {
 
 resource "aws_security_group" "host" {
   name        = local.host
-  description = "A demo host: https from anywhere and nothing else"
+  description = "A host: https from anywhere and nothing else"
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
@@ -39,7 +39,7 @@ resource "aws_security_group" "host" {
   }
 
   ingress {
-    description = "the hosts of one demo reach each other: the front door reaches the agent of a cell and the servers on it"
+    description = "the hosts of one cloud reach each other: the front door reaches the agent of a cell and the servers on it"
     from_port   = 0
     to_port     = 65535
     protocol    = "tcp"
@@ -136,13 +136,13 @@ resource "aws_launch_template" "host" {
   }
 }
 
-# The front door and the cells of a demo, when it has more than one host. Each is made from a template of
+# The front door and the cells of a cloud, when it has more than one host. Each is made from a template of
 # its own: a front door runs no computer, so it needs no nested virtualization and a small type will do.
 locals {
   hosts = {
     orchestrator = { type = var.orchestrator_instance_type, nested = false, project = "gusto-poc" }
     cell         = { type = var.cell_instance_type, nested = true, project = "gusto-poc" }
-    # The cells the live front door starts. They are tagged for it alone, so the workflows that remove a demo's
+    # The cells the live front door starts. They are tagged for it alone, so the workflows that remove a cloud's
     # hosts never reach them, and it never reaches theirs.
     cell-live = { type = var.cell_live_instance_type, nested = true, project = "gusto-live" }
   }
@@ -212,7 +212,7 @@ resource "aws_launch_template" "role" {
 
 # ── The front door that stays up ─────────────────────────────────────────────
 
-# It runs the public demo: nginx and the certificate, the front door, and the scaler that starts a host for a cell when
+# It runs gusto cloud: nginx and the certificate, the front door, and the scaler that starts a host for a cell when
 # an organization needs one. Its role is its own and is the only one that may start and stop hosts, which it may only
 # when they are tagged for it, so a cell, which runs other people's code, can start nothing.
 locals {
@@ -346,11 +346,11 @@ resource "aws_eip_association" "live" {
   allocation_id = aws_eip.live.id
 }
 
-# ── The file system the hosts of a demo share ────────────────────────────────
+# ── The file system the hosts of a cloud share ────────────────────────────────
 
 # The organizations' data, which the front door and a cell both read and write. It is not in a
-# host's disk, since a cell is a host that goes, and each demo has a directory of it that the next
-# one removes. It costs 30 cents a gigabyte-month, and a demo holds a few megabytes.
+# host's disk, since a cell is a host that goes, and each cloud has a directory of it that the next
+# one removes. It costs 30 cents a gigabyte-month, and a cloud holds a few megabytes.
 resource "aws_efs_file_system" "shared" {
   encrypted = true
   tags      = { project = "gusto-poc", Name = "${local.host}-shared" }
@@ -365,11 +365,11 @@ data "aws_subnets" "default" {
 
 resource "aws_security_group" "efs" {
   name        = "${local.host}-shared"
-  description = "NFS from the demo hosts"
+  description = "NFS from the hosts"
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
-    description     = "NFS from a demo host"
+    description     = "NFS from a host"
     from_port       = 2049
     to_port         = 2049
     protocol        = "tcp"

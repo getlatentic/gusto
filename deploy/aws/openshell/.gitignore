@@ -2,4 +2,4 @@
 out/
 .terraform/
 terraform.tfstate*
-demo.env
+cloud.env
