@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from "react"
+import type { ComponentProps, ReactNode, Ref } from "react"
 
 import type { CloudPage } from "@/cloud/types"
 import { cn } from "@/lib/utils"
@@ -67,14 +67,17 @@ export function Band({
   wash,
   className,
   children,
+  ref,
 }: {
   id?: string
   wash?: boolean
   className?: string
   children: ReactNode
+  ref?: Ref<HTMLElement>
 }) {
   return (
     <section
+      ref={ref}
       id={id}
       className={cn(
         "text-ink py-14 min-[44rem]:py-20",

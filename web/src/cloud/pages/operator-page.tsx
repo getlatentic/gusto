@@ -40,6 +40,7 @@ export function OperatorPage({ page }: { page: OperatorView }) {
         <Running rows={page.Running ?? []} />
         <Hosts hosts={page.Hosts} />
         <Leads leads={page.Leads ?? []} />
+        <Contacts contacts={page.Contacts ?? []} />
       </main>
     </div>
   )
@@ -275,6 +276,49 @@ function Leads({ leads }: { leads: NonNullable<OperatorView["Leads"]> }) {
         />
       ) : (
         <Quiet>Nobody has asked for a demo yet.</Quiet>
+      )}
+    </>
+  )
+}
+
+// Contacts are the notes visitors sent from the landing page, newest first, which are also mailed to the team.
+function Contacts({
+  contacts,
+}: {
+  contacts: NonNullable<OperatorView["Contacts"]>
+}) {
+  return (
+    <>
+      <Heading>Notes from visitors</Heading>
+      <Quiet>
+        <a
+          className="text-foreground underline underline-offset-2"
+          href="/contacts.csv"
+        >
+          Download as a spreadsheet
+        </a>{" "}
+        · the newest {contacts.length}
+      </Quiet>
+      {contacts.length ? (
+        <Rows
+          testId="contacts"
+          heads={["Sent", "Email", "Company", "Note"]}
+          rows={contacts.map((contact, index) => ({
+            key: `${contact.Email}-${index}`,
+            cells: [
+              <span className="whitespace-nowrap" title={contact.SentAt}>
+                {contact.Sent}
+              </span>,
+              contact.Email,
+              contact.Company,
+              <span className="block max-w-xl whitespace-pre-wrap">
+                {contact.Note}
+              </span>,
+            ],
+          }))}
+        />
+      ) : (
+        <Quiet>No visitor has sent a note yet.</Quiet>
       )}
     </>
   )

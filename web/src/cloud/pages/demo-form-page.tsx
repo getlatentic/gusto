@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react"
+import { useRef } from "react"
 
+import { BotCheck } from "@/cloud/components/bot-check"
 import { Quiet, Refusal, TextLink } from "@/cloud/components/cloud-card"
 import { Field, Submit } from "@/cloud/components/forms"
 import { PageIntro, SitePage } from "@/cloud/pages/site-page"
@@ -72,22 +73,5 @@ export function DemoFormPage({ page }: { page: CloudPage }) {
         )}
       </section>
     </SitePage>
-  )
-}
-
-const turnstileScript = "https://challenges.cloudflare.com/turnstile/v0/api.js"
-
-// BotCheck is Cloudflare's check that a person is sending the form. Its script draws the check into the box it finds, so the
-// script is added once the box is on the page.
-function BotCheck({ site }: { site: string }) {
-  useEffect(() => {
-    if (document.querySelector(`script[src="${turnstileScript}"]`)) return
-    const script = document.createElement("script")
-    script.src = turnstileScript
-    script.async = true
-    document.head.append(script)
-  }, [])
-  return (
-    <div className="cf-turnstile" data-size="flexible" data-sitekey={site} />
   )
 }

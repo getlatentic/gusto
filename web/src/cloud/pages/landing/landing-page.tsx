@@ -5,6 +5,7 @@ import { Plans, TryWithYourTeam } from "@/cloud/pages/landing/landing-sections"
 import { Footer, SiteHeader } from "@/cloud/pages/site-page"
 import { ProductDemo } from "@/cloud/pages/landing/demo/product-demo"
 import { Features } from "@/cloud/pages/landing/features"
+import { Contact } from "@/cloud/pages/landing/contact"
 import type { CloudPage } from "@/cloud/types"
 
 const LandingMotion = lazy(() =>
@@ -14,7 +15,7 @@ const LandingMotion = lazy(() =>
 )
 
 // LandingPage is what a visitor sees first: what gusto is worth to a team, the product in use, what comes with it, how to start,
-// and the three ways to run it with what each costs.
+// the three ways to run it with what each costs, and a note to the team.
 export function LandingPage({ page }: { page: CloudPage }) {
   return (
     <div className="bg-canvas text-ink scroll-pt-18 text-base">
@@ -35,6 +36,7 @@ export function LandingPage({ page }: { page: CloudPage }) {
       </main>
       <Features />
       <Plans page={page} />
+      <Contact page={page} />
       <TryWithYourTeam page={page} />
       <Footer />
       <Suspense>

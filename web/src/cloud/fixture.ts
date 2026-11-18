@@ -60,6 +60,7 @@ export function cloudPage(
     Book: "",
     BookFrame: "",
     TurnstileSite: "",
+    Contact: null,
     Extendable: false,
     Ended: false,
     Ending: false,
@@ -79,6 +80,7 @@ export function operatorPage(set: Partial<OperatorView> = {}): OperatorView {
     Running: null,
     Hosts: { Known: false, Error: "", Rows: null },
     Leads: null,
+    Contacts: null,
     ...set,
   }
 }
