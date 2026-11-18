@@ -16,7 +16,8 @@ type connectionsHomes struct {
 	mu     sync.Mutex
 	uses   map[string]container.HomeUse
 	resets []string
-	busy   bool
+	// refused is why a reset is refused, or nothing.
+	refused error
 }
 
 func (h *connectionsHomes) KeepsHomes() bool { return true }
@@ -31,8 +32,8 @@ func (h *connectionsHomes) HomeUse(person, space string) (container.HomeUse, boo
 func (h *connectionsHomes) ResetHome(person, space string) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if h.busy {
-		return container.ErrHomeBusy
+	if h.refused != nil {
+		return h.refused
 	}
 	h.resets = append(h.resets, person+"/"+space)
 	delete(h.uses, person+"/"+space)
@@ -64,11 +65,17 @@ func TestAPersonSeesTheirHomeTakesAndResetsIt(t *testing.T) {
 		t.Errorf("the shared sign-in reset a home: %d", got)
 	}
 
-	homes.busy = true
-	if got := bea.ask(t, "POST", "/connections/home/reset", nil); got.Code != http.StatusSeeOther || !strings.Contains(got.Header().Get("Location"), "refused") {
-		t.Errorf("a home with a task running in it was reset: %d %q", got.Code, got.Header().Get("Location"))
+	for refused, says := range map[error]string{container.ErrHomeBusy: "Your agents are working in it now", container.ErrHomeInApp: "An app you shared runs on it"} {
+		homes.refused = refused
+		got := bea.ask(t, "POST", "/connections/home/reset", nil)
+		if got.Code != http.StatusSeeOther || !strings.Contains(got.Header().Get("Location"), "refused") {
+			t.Errorf("a home that is in use (%v) was reset: %d %q", refused, got.Code, got.Header().Get("Location"))
+		}
+		if page := connections(t, bea, got.Header().Get("Location")); !strings.Contains(page.Refused, says) {
+			t.Errorf("refused for %v, the person is told %q", refused, page.Refused)
+		}
 	}
-	homes.busy = false
+	homes.refused = nil
 	got := bea.ask(t, "POST", "/connections/home/reset", nil)
 	if got.Code != http.StatusSeeOther || len(homes.resets) != 1 || homes.resets[0] != bob+"/main" {
 		t.Fatalf("resetting went %d and reset %v, not only bob's", got.Code, homes.resets)

@@ -119,4 +119,23 @@ func TestAServerGivenNoAgentsFoldersRunsNoAppsInContainers(t *testing.T) {
 	if New(Config{Org: "acme"}).Apps() != nil {
 		t.Error("apps were offered with no folder to start them in")
 	}
+	if New(Config{Org: "acme", AgentFolder: func(string) string { return "/agents" }}).Apps() != nil {
+		t.Error("apps were offered with no folder for their sockets")
+	}
+}
+
+// An app whose socket would be too long a path is not started, and the person is told which setting makes it shorter.
+func TestAnAppWhoseSocketPathIsTooLongIsNotStarted(t *testing.T) {
+	runner, _, calls := appsOn(t, "")
+	runner.sockets = "/" + strings.Repeat("s", socketPathMost)
+	app := apps.App{ID: "0a1b2c3d4e", Instance: "notes", Command: "node server.js", Port: 3000}
+	if err := os.MkdirAll(runner.folder(app.Instance), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runner.Start(context.Background(), app); err == nil || !strings.Contains(err.Error(), "GUSTO_APP_SOCKETS") {
+		t.Fatalf("got %v", err)
+	}
+	if _, err := os.Stat(calls); err == nil {
+		t.Error("a container was asked for")
+	}
 }

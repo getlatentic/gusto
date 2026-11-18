@@ -53,8 +53,12 @@ type homes struct {
 	watch   time.Duration
 	tending time.Duration
 
+	// appsOn says whether an app runs on a home, or is nil when this server runs no apps.
+	appsOn func(id string) (bool, error)
+
 	mu       sync.Mutex
 	active   map[string]int
+	starting map[string]int
 	removing map[string]bool
 }
 
@@ -62,7 +66,7 @@ func newHomes(root string, limit int64, count func(context.Context, string) (int
 	if limit <= 0 {
 		limit = DefaultHomeLimit
 	}
-	return &homes{root: root, limit: limit, count: count, watch: homeWatch, tending: tendEvery, active: map[string]int{}, removing: map[string]bool{}}
+	return &homes{root: root, limit: limit, count: count, watch: homeWatch, tending: tendEvery, active: map[string]int{}, starting: map[string]int{}, removing: map[string]bool{}}
 }
 
 func (h *homes) dir(id string) string       { return filepath.Join(h.root, id, "home") }
@@ -77,8 +81,10 @@ func (h *homes) open(id string) (string, error) {
 	if err := h.leaving(id); err != nil {
 		return "", err
 	}
-	return h.dir(id), os.MkdirAll(h.dir(id), 0o700)
+	return h.dir(id), mkdirHome(h.dir(id))
 }
+
+func mkdirHome(dir string) error { return os.MkdirAll(dir, 0o700) }
 
 func (h *homes) leaving(id string) error {
 	if _, err := os.Stat(h.markFile(id)); h.removing[id] || err == nil {

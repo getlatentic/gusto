@@ -62,6 +62,8 @@ func (s *Server) resetHome(w http.ResponseWriter, r *http.Request) {
 	switch err := s.keptHomes.ResetHome(who, space); {
 	case errors.Is(err, container.ErrHomeBusy):
 		s.turnAway(w, r, connectionsPath, "Your agents are working in it now. Reset it when their task has ended.")
+	case errors.Is(err, container.ErrHomeInApp):
+		s.turnAway(w, r, connectionsPath, "An app you shared runs on it. Stop the app, then reset the home.")
 	case err != nil:
 		s.turnAway(w, r, connectionsPath, "The home could not be reset: "+err.Error())
 	default:

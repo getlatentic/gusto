@@ -31,6 +31,9 @@ type Config struct {
 	Containers sandbox.Containers
 	// AgentFolder is an agent's folder by its instance, where an app it built is started. Without it no app is run.
 	AgentFolder func(instance string) string
+	// AppSockets is the folder on this machine's own disk that apps' sockets are made in. It is not a temporary folder, whose
+	// cleaners would remove the socket of an app shared for weeks.
+	AppSockets string
 }
 
 // Backend runs turns in containers.
@@ -47,6 +50,9 @@ func New(cfg Config) *Backend {
 	b := &Backend{cfg: cfg}
 	if cfg.Homes != "" {
 		b.homes = newHomes(cfg.Homes, cfg.HomeLimit, cfg.Containers.DiskUse)
+		if cfg.AgentFolder != nil {
+			b.homes.appsOn = b.appRunsOn
+		}
 	}
 	return b
 }
@@ -184,7 +190,7 @@ func (b *Backend) HomeUse(person, space string) (HomeUse, bool) {
 }
 
 // ResetHome removes a person's kept home in a team, which is how a person whose home is full starts again: no turn can
-// clear it while it is. It is refused while a turn of theirs is running in it.
+// clear it while it is. It is refused while a turn of theirs is running in it, or an app they shared runs on it.
 func (b *Backend) ResetHome(person, space string) error {
 	if b.homes == nil {
 		return nil

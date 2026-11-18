@@ -667,6 +667,7 @@ Environment:
 - `GUSTO_OPENSHELL_REMOTE`: the gateway runs on another machine, so this one needs no hardware virtualization
 - `GUSTO_COMPUTERS`: the directory of the records of the computers an organization's people have
 - `GUSTO_NODE`: the node new computers are made on (default local); GUSTO_CELL was its name
+- `GUSTO_APP_SOCKETS`: the folder on this machine's own disk that the sockets of apps shared from containers are made in (default app-sockets in GUSTO_DATA)
 - `GUSTO_SPARE_COMPUTER`: keep one blank computer ready for the next person who has none
 - `GUSTO_COMPUTER_IDLE_MINUTES`: how long a computer nobody uses runs before it is stopped, in minutes (default 30)
 - `GUSTO_HOME_LIMIT_MB`: the most a person's kept home may take in a container, in megabytes; with GUSTO_COMPUTERS, a turn over it is refused until the person resets the home (default 5120)
@@ -1191,6 +1192,7 @@ Environment:
 - `GUSTO_OPENSHELL_REMOTE`: the gateway runs on another machine, so this one needs no hardware virtualization
 - `GUSTO_COMPUTERS`: the directory of the records of the computers an organization's people have
 - `GUSTO_NODE`: the node new computers are made on (default local); GUSTO_CELL was its name
+- `GUSTO_APP_SOCKETS`: the folder on this machine's own disk that the sockets of apps shared from containers are made in (default app-sockets in GUSTO_DATA)
 - `GUSTO_SPARE_COMPUTER`: keep one blank computer ready for the next person who has none
 - `GUSTO_COMPUTER_IDLE_MINUTES`: how long a computer nobody uses runs before it is stopped, in minutes (default 30)
 - `GUSTO_HOME_LIMIT_MB`: the most a person's kept home may take in a container, in megabytes; with GUSTO_COMPUTERS, a turn over it is refused until the person resets the home (default 5120)
