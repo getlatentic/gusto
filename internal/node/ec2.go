@@ -23,7 +23,7 @@ type EC2 struct {
 	// UserData is the start-up script with its @NAME@ settings, and Settings what they are to be.
 	UserData string
 	Settings map[string]string
-	// Project is the value of the project tag, which says whose nodes they are. It is gusto-poc when not set.
+	// Project is the value of the project tag, which says whose nodes they are. It is gusto when not set.
 	Project string
 	// ImageParameter is the Systems Manager parameter the launch template reads its image from, and empty when it names one itself.
 	ImageParameter string
@@ -50,7 +50,7 @@ func (e *EC2) project() string {
 	if e.Project != "" {
 		return e.Project
 	}
-	return "gusto-poc"
+	return "gusto"
 }
 
 func (e *EC2) run(args ...string) ([]byte, error) {

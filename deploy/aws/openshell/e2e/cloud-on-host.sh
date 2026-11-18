@@ -12,7 +12,7 @@ pkill -f "[g]usto cloud" 2>/dev/null; pkill -f "[g]usto serve" 2>/dev/null; slee
 for old in $($G sandbox list 2>/dev/null | awk 'NR>1 && ($1 ~ /^gusto-/ || $1 ~ /^c-/) {print $1}'); do $G sandbox delete "$old" >/dev/null 2>&1; done
 rm -rf "$C/cloud" "$C/creds"
 bash "$C/credentials.sh" "$C/creds"
-[ -s "$C/creds/platform.json" ] || { echo "no credentials: is /gusto/poc/model-key stored? (./put-key.sh)"; exit 1; }
+[ -s "$C/creds/platform.json" ] || { echo "no credentials: is /gusto/model-key stored? (./put-key.sh)"; exit 1; }
 
 MODEL=${MODEL:-platform/qwen.qwen3-vl-235b-a22b-instruct}
 SANDBOX=${SANDBOX:-openshell}

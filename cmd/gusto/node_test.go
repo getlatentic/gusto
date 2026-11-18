@@ -145,7 +145,7 @@ func TestGustoCloudStartsHostsForNodesOnlyWhenItIsToldHowAndToldEnough(t *testin
 	if _, err := nodeScaler(cloudFrom(t, launch).scaler, controller); err == nil {
 		t.Error("no template or script")
 	}
-	launch["GUSTO_CLOUD_NODE_TEMPLATE"] = "gusto-poc-demo-host-cell"
+	launch["GUSTO_CLOUD_NODE_TEMPLATE"] = "gusto-host-cell"
 	launch["GUSTO_CLOUD_NODE_USERDATA"] = "/opt/gusto-bundle/user-data.sh"
 	launch["GUSTO_CLOUD_NODE_SETTINGS"] = "ROLE=cell,RUN=live"
 	scaler, err := nodeScaler(cloudFrom(t, launch).scaler, controller)

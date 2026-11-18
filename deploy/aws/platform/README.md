@@ -13,7 +13,7 @@ outlives a host, and the script a host starts with.
 
 1. A merge to `main` that changes what a host is made from runs **cloud deploy**. It puts `bundle.tgz` (the Linux `gusto`, its DNS program and the playbooks) in the store bucket under `releases/<commit>/`, and builds the runner image into `image/<key>.tar.gz` when that key is not there.
 2. **cloud up** (a button, with the lease in minutes) launches a host from the launch template with `user-data.sh`. The host checks the bundle's checksum, runs the playbooks on itself, gets the certificate and the image from the bucket, points the name at itself, and starts gusto cloud. The workflow says when `https://<name>/healthz` answers.
-3. The host removes itself when its lease ends. **cloud down** tells it to power off now. **cloud sweep** runs every 30 minutes and terminates anything tagged `gusto-poc` that has been up more than six hours.
+3. The host removes itself when its lease ends. **cloud down** tells it to power off now. **cloud sweep** runs every 30 minutes and terminates anything tagged `gusto` that has been up more than six hours.
 
 The CI role can launch the launch template, tell tagged hosts to power off, terminate tagged hosts, and put
 objects under `releases/` and `image/`. It has no IAM right, so it cannot widen itself.
@@ -36,7 +36,7 @@ made with `cells` at 0, as before.
   people start it again from gusto cloud.
 - gusto cloud writes `cells/orchestrator.beat` every ten seconds. A node that has not seen it for five minutes powers
   itself off (and so terminates), after gusto cloud has had 15 minutes to start. A node has no lease of its own.
-- Requests to a node are signed with `/gusto/poc/cell-secret`, which `../openshell/put-cell-secret.sh` makes once. A node
+- Requests to a node are signed with `/gusto/cell-secret`, which `../openshell/put-cell-secret.sh` makes once. A node
   reads it with its role, and nothing else can reach port 8060, which only the security group's own members may.
 
 ## gusto cloud that stays up
@@ -52,7 +52,7 @@ nothing is paid for but this machine, its address and the file system.
 - Its role is its own, and is the only one that may start and stop nodes. It starts nodes only from the
   `cell-live` template, which tags them `project=gusto-live`, and stops only nodes with that tag that it started
   (`scaler=on`). A node that runs other people's code can start nothing. The cloud workflows tag and stop
-  `project=gusto-poc`, so they never touch it, and it never touches theirs.
+  `project=gusto`, so they never touch it, and it never touches theirs.
 - It has no lease and no limit on how long it runs. What it keeps is on the file system and in the bucket, so it may be
   replaced.
 - Sign-up for a visitor is at `https://<name>/demo`. `GUSTO_CLOUD_DEMO_MINUTES` and `GUSTO_CLOUD_BOOK_URL` in `cloud.env`, stored

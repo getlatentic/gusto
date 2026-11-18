@@ -24,7 +24,7 @@ name="${GUSTO_MODEL_NAME:-provider}"; id="${GUSTO_MODEL_ID:-}"
 if [ -n "${GUSTO_MODEL_UPSTREAM:-}" ] && [ -z "$id" ]; then echo "set GUSTO_MODEL_ID, the model's id at GUSTO_MODEL_UPSTREAM" >&2; exit 2; fi
 if [ -n "${GUSTO_MODEL_UPSTREAM:-}" ] && [ -z "${GUSTO_MODEL_KEY:-}" ]; then
   # The instance reads the key itself, with its role, from where ./put-key.sh stored it.
-  parameter="${GUSTO_MODEL_PARAMETER:-/gusto/poc/model-key}"
+  parameter="${GUSTO_MODEL_PARAMETER:-/gusto/model-key}"
   ssh "${ssh_options[@]}" "ubuntu@$address" "umask 077; export AWS_REGION=$AWS_REGION
     key=\$(aws ssm get-parameter --with-decryption --name '$parameter' --query Parameter.Value --output text) || exit 1
     printf 'GUSTO_MODEL_UPSTREAM=%s\nGUSTO_MODEL_NAME=%s\nGUSTO_MODEL_ID=%s\nGUSTO_MODEL_KEY=%s\n' '$GUSTO_MODEL_UPSTREAM' '$name' '$id' \"\$key\" > ~/e2e/model.env"

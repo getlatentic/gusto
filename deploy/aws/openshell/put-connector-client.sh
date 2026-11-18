@@ -5,7 +5,7 @@
 # server reads it when it starts, so the next deploy brings it in.
 #   deploy/aws/openshell/put-connector-client.sh github Ov23liAbCdEf
 source "$(dirname "$0")/env.sh"
-name=/gusto/poc/connector-clients
+name=/gusto/connector-clients
 connector=${1:?the connector, such as github}
 id=${2:?the client id the app gave}
 read -r -s -p "The client secret for $connector: " secret

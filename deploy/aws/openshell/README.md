@@ -4,7 +4,7 @@ One instance with nested virtualization, OpenShell's gateway on it with the VM
 driver, and a probe that says what a sandbox may and may not do. It is separate
 from the E2B POC in the directory above: its own Terraform state, and no DNS,
 budget alarm or E2B services. It uses the same `gusto-poc` AWS profile and the
-same tag, `project=gusto-poc`.
+same tag, `project=gusto`.
 
 ## Cost
 
@@ -18,7 +18,7 @@ same tag, `project=gusto-poc`.
 ```bash
 ./up.sh       # Terraform makes the instance; Ansible installs OpenShell and starts the gateway
 ./probe.sh    # starts two sandboxes and runs probe/inside.sh in one; output in out/probe.txt
-./down.sh     # removes everything, then asks AWS whether anything tagged gusto-poc is left
+./down.sh     # removes everything, then asks AWS whether anything tagged gusto is left
 ```
 
 `up.sh` makes an SSH key under `.state/` and opens port 22 to this machine's
@@ -69,7 +69,7 @@ were among the files the manifest hashes.
 `e2e-real.sh` runs opencode, then a comparison of opencode and pi, from the
 runner image. Without a model it uses one that only answers "pong". With a
 model it reads the key on the instance, from Parameter Store, with the
-instance's own role. That role may read `/gusto/poc/*` and nothing else.
+instance's own role. That role may read `/gusto/*` and nothing else.
 
 ```bash
 ./up.sh
@@ -81,7 +81,7 @@ GUSTO_MODEL_UPSTREAM=https://bedrock-mantle.us-east-1.api.aws GUSTO_MODEL_NAME=b
 
 The standard tier of Parameter Store and the AWS-managed key cost nothing.
 The parameter outlives `./down.sh`. Delete it with
-`aws ssm delete-parameter --name /gusto/poc/model-key`.
+`aws ssm delete-parameter --name /gusto/model-key`.
 
 ## The box's benchmark
 
@@ -92,7 +92,7 @@ Parameter Store, so store DeepSeek's too:
 
 ```bash
 python3 -c 'import json,os;print(json.load(open(os.path.expanduser("~/.viva/auth.json")))["deepseek"]["apiKey"])' \
-  | GUSTO_MODEL_PARAMETER=/gusto/poc/deepseek-key ./put-key.sh
+  | GUSTO_MODEL_PARAMETER=/gusto/deepseek-key ./put-key.sh
 ./e2e-matrix.sh                       # about 15 minutes after the image is built
 AGAIN=all ./e2e-matrix.sh             # or AGAIN=codex@deepseek/deepseek-flash,... for chosen pairs
 ```
@@ -186,7 +186,7 @@ Once, from your machine:
 
 ```bash
 ./put-key.sh            # the model key
-GUSTO_MODEL_PARAMETER=/gusto/poc/deepseek-key ./put-key.sh   # and the second
+GUSTO_MODEL_PARAMETER=/gusto/deepseek-key ./put-key.sh   # and the second
 ./put-cloudflare.sh     # the DNS token, then the mail token
 ./put-google.sh         # optional: the OAuth client at Google, for Continue with Google
 cp cloud.env.example cloud.env   # and fill it in
@@ -210,7 +210,7 @@ AWS credential to do it. A person signed in at `https://<name>/lease` can add th
 and every page shows a banner for the last five minutes with a link to that page. No extension passes
 `GUSTO_HOST_MAX_HOURS` (four by default), and a host that has been up that long goes whatever its lease says.
 `cloud-sweep.sh` is the backstop from somewhere that is not the host: it terminates anything tagged
-`gusto-poc` that has been up more than `MAX_HOURS` (six by default).
+`gusto` that has been up more than `MAX_HOURS` (six by default).
 
 The DNS token is limited to the zone's DNS records. The mail token can send mail and
 nothing else. Both stay in Parameter Store, and the host reads them with its own role.
