@@ -60,7 +60,7 @@ func (w *wayOutSettings) declareModels(set *settings.Set) {
 
 func (w *wayOutSettings) declareProxy(set *settings.Set) {
 	set.String(&w.allowedHosts, "GUSTO_ALLOWED_HOSTS", "", "every other host a task may reach through the proxy, comma-separated")
-	set.String(&w.proxySocket, "GUSTO_PROXY_SOCKET", "", "the socket a box with no network reaches the proxy on (default .proxy.sock in GUSTO_TASKS)")
+	set.String(&w.proxySocket, "GUSTO_PROXY_SOCKET", "", "the socket a box with no network reaches the proxy on (default .proxy.sock in the tasks folder)")
 	set.String(&w.proxyAddr, "GUSTO_PROXY_ADDR", "", "where the proxy listens for a box on a network (default port 8041, on every interface for containers and the loopback otherwise)")
 	set.Int(&w.maxOutput, "GUSTO_PROXY_MAX_OUTPUT_TOKENS", 0, 1, "the most output tokens one model call may ask for (default no limit)")
 	set.Int(&w.silenceSeconds, "GUSTO_PROXY_SILENCE_SECONDS", 0, 1, "how long a model may send nothing before its call is ended, in seconds (default no limit)")

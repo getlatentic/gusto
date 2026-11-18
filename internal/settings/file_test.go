@@ -113,3 +113,22 @@ func TestAFileNamedMustBeThere(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+// A setting no longer read is refused where it is set, in the environment or the file, saying what does its job.
+func TestASettingNoLongerReadIsRefusedWithWhatToSetInstead(t *testing.T) {
+	declare := func() *Set {
+		var e example
+		set := New()
+		declareExample(set, &e)
+		set.Removed("GUSTO_OLD_PLACE", "set GUSTO_DATA, the folder that holds it")
+		return set
+	}
+	err := declare().Load(func(name string) string { return map[string]string{"GUSTO_OLD_PLACE": "/x"}[name] })
+	if err == nil || !strings.Contains(err.Error(), "GUSTO_OLD_PLACE is no longer read: set GUSTO_DATA") {
+		t.Errorf("the environment: %v", err)
+	}
+	declare()
+	if _, err := fromFile(t, "old_place = \"/x\"\n", nil); err == nil || !strings.Contains(err.Error(), "old_place is no longer read") {
+		t.Errorf("the file: %v", err)
+	}
+}

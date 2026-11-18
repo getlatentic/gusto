@@ -217,7 +217,7 @@ A field this build does not know stops the server, because a misspelt cap would 
 - A restarted server rebuilds each team's month from the tasks' `out/proxy.jsonl`.
 
 ```bash
-gusto spend                   # this month, from GUSTO_TASKS
+gusto spend                   # this month, from the jobs folder of GUSTO_DATA
 gusto spend -month 2026-08    # another month
 gusto spend -json             # for a script
 ```
@@ -244,7 +244,7 @@ docker build -t gusto:dev \
 - A bind mount of a path the runtime does not share gives an empty directory. `run` refuses by name. Docker on a Mac shares `/Users`, not `/private/tmp`.
 - A model on the host must listen on more than loopback. For Ollama, set `OLLAMA_HOST=0.0.0.0` and restart.
 
-`gusto doctor` checks the machine before a task. It prints one line per check, gives the fix under a failure, and exits 1 when any fails. It checks the container command, the image, the task's `--memory` and `--cpus`, the tasks directory mount, rootless podman's runtime directory, `git`, `GUSTO_TASKS`, `GUSTO_MODEL_URL`, `GUSTO_HARNESSES` and the index of model calls (it opens, and at what schema version). It reports whether `GUSTO_PASSWORD` is set, never its value.
+`gusto doctor` checks the machine before a task. It prints one line per check, gives the fix under a failure, and exits 1 when any fails. It checks the container command, the image, the task's `--memory` and `--cpus`, the tasks directory mount, rootless podman's runtime directory, `git`, `GUSTO_DATA`, `GUSTO_MODEL_URL`, `GUSTO_HARNESSES` and the index of model calls (it opens, and at what schema version). It reports whether `GUSTO_PASSWORD` is set, never its value.
 
 ## Environment
 
@@ -287,7 +287,7 @@ behind_proxy = true
 | `GUSTO_MODEL_KEY` | the credential the proxy adds. It never reaches a container |
 | `GUSTO_MODEL_NAME` | what the record calls that credential |
 | `GUSTO_CREDENTIALS` | a directory with one `<name>.json` per credential: address, key, presentation and the API shapes it answers. [GATEWAY.md](GATEWAY.md) |
-| `GUSTO_PROXY_SOCKET` | the socket a sealed container reaches the proxy through, `.proxy.sock` in `GUSTO_TASKS` by default |
+| `GUSTO_PROXY_SOCKET` | the socket a sealed container reaches the proxy through, `.proxy.sock` in the tasks folder by default |
 | `GUSTO_ALLOWED_HOSTS` | hosts besides the model a task may reach, comma separated |
 | `GUSTO_TASK_NETWORK` | `open` gives containers the runtime's network and the proxy on `GUSTO_PROXY_ADDR` |
 | `GUSTO_PROXY_ADDR` | where the proxy listens when `GUSTO_TASK_NETWORK=open`, `0.0.0.0:8041` by default |
@@ -303,14 +303,14 @@ behind_proxy = true
 | `GUSTO_SIGNING_KEY` | the private key the runner signs with, from `gusto keygen`, or `awskms://<key>`. It stays on the host. [KEYS.md](KEYS.md) |
 | `GUSTO_KEYRING` | a directory of `<name>.pub` keys that `verify`, `show`, `serve`, `pr open` and `export` trust, retired keys included |
 | `GUSTO_SIGNER` | who the manifest names. This is the runner's own word |
-| `GUSTO_CHANGES` | the file recording platform changes: sign-ins, refusals, role, setup and settings changes. Hash-chained, and signed when a key is set. `gusto changes verify` checks it. [CHANGES.md](CHANGES.md) |
+| `changes/changes.jsonl` | the file in `GUSTO_DATA` recording platform changes: sign-ins, refusals, role, setup and settings changes. Hash-chained, and signed when a key is set. `gusto changes verify` checks it. [CHANGES.md](CHANGES.md) |
 | `GUSTO_RETENTION` | the directory holding `policy.json`, the holds and the last sweep. A task's working folder is removed first, its signed record later. A sweep runs every hour. `gusto retention` lists what a sweep would remove. [RETENTION.md](RETENTION.md) |
 | `GUSTO_GITHUB_TOKEN` | the token `gusto pr open` pushes and opens pull requests with. `GUSTO_GITHUB_API` overrides the API address |
 | `GUSTO_GITHUB_APP_ID`, `GUSTO_GITHUB_APP_KEY` | a GitHub App that reaches the repositories tasks name. Each task gets a token for one repository, revoked when the work is done. Set both or neither. [REPOS.md](REPOS.md) |
 | `GUSTO_GITHUB_URL` | a GitHub Enterprise Server's address, with `GUSTO_GITHUB_API`. github.com when unset |
 | `GUSTO_ADDR` | where `gusto serve` listens, `127.0.0.1:8040` by default |
-| `GUSTO_TASKS` | the directory `gusto serve` keeps tasks in |
-| `GUSTO_DATABASE_URL` | where the indexes are kept: the index of model calls and the index of tasks. Unset, they are `usage.db` and `tasks.db` in the directory that holds `GUSTO_TASKS`. A `postgres://` address keeps both in Postgres, and its `search_path` parameter names the schema, which is how organizations that share a database stay apart. The tasks' `out/proxy.jsonl` and `state.json` stay the record: the indexes are built from them, and `gusto usage reindex` and `gusto tasks reindex` rebuild them. Retention leaves the model calls' rows, which hold no content, and removes a removed task's row. [USAGE.md](USAGE.md), [TASKS.md](TASKS.md) |
+| `GUSTO_DATA` | the folder gusto keeps its data in, the current directory by default: tasks in `jobs`, and `sessions`, `setups`, `comparisons`, `integrations`, `presets`, `crew`, `changes`, `apps`, `outbox` and `agents`. A setting that named one of these folders is refused, saying to set `GUSTO_DATA` |
+| `GUSTO_DATABASE_URL` | where the indexes are kept: the index of model calls and the index of tasks. Unset, they are `usage.db` and `tasks.db` in `GUSTO_DATA`. A `postgres://` address keeps both in Postgres, and its `search_path` parameter names the schema, which is how organizations that share a database stay apart. The tasks' `out/proxy.jsonl` and `state.json` stay the record: the indexes are built from them, and `gusto usage reindex` and `gusto tasks reindex` rebuild them. Retention leaves the model calls' rows, which hold no content, and removes a removed task's row. [USAGE.md](USAGE.md), [TASKS.md](TASKS.md) |
 | `GUSTO_PASSWORD` | the shared sign-in. `gusto serve` refuses to start without it |
 | `GUSTO_OIDC_ISSUER`, `GUSTO_OIDC_CLIENT_ID`, `GUSTO_OIDC_CLIENT_SECRET`, `GUSTO_OIDC_REDIRECT` | sign in with the company's identity provider. Naming an issuer turns it on. It needs the other three, and `GUSTO_RUNNER_GROUPS`, `GUSTO_ADMIN_GROUPS` or `GUSTO_ALLOWED`, or the server refuses to start. [SSO.md](SSO.md) |
 | `GUSTO_OIDC_SCOPES`, `GUSTO_OIDC_GROUPS_CLAIM` | scopes to ask for besides `openid` and `email`, and the claim the groups arrive in (`groups` by default) |

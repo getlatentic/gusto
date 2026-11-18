@@ -75,29 +75,23 @@ func (c *coreSettings) declare(set *settings.Set) {
 
 // servedSettings is where the server keeps what its pages serve, beside the stores every command shares.
 type servedSettings struct {
-	apps        string
 	mcp         string
-	keeper      string
 	members     string
 	inbox       string
 	orgSettings string
 	quota       string
 	desktop     string
-	agents      string
 	// integrationsPrivate lets an integration be imported from a private address.
 	integrationsPrivate bool
 }
 
 func (s *servedSettings) declare(set *settings.Set) {
-	set.String(&s.apps, "GUSTO_APPS", "apps", "the directory the web apps agents built are kept in")
 	set.String(&s.mcp, "GUSTO_MCP", "", "the directory of the operator's MCP servers, one file each")
-	set.String(&s.keeper, "GUSTO_KEEPER", "", "the file sign-ins are kept in, so a deploy does not sign people out (default .keeper.json in GUSTO_SESSIONS)")
 	set.String(&s.members, "GUSTO_MEMBERS", "", "the file of the organization's members and their roles")
 	set.String(&s.inbox, "GUSTO_INBOX", "", "the directory gusto cloud leaves messages for this server in")
 	set.String(&s.orgSettings, "GUSTO_ORG_SETTINGS", "", "the file of what the organization's admins chose")
 	set.String(&s.quota, "GUSTO_QUOTA", "", "the file of what the organization may run, which its gusto cloud writes")
 	set.String(&s.desktop, "GUSTO_DESKTOP", "", "the directory the desktop app's downloads are served from")
-	set.String(&s.agents, "GUSTO_AGENTS", "agents", "the directory gusto installs agents into on a person's own computer")
 	set.Bool(&s.integrationsPrivate, "GUSTO_INTEGRATIONS_PRIVATE", "let an integration be imported from a private address")
 }
 
@@ -135,7 +129,7 @@ func (a *accessSettings) declare(set *settings.Set) {
 // newsSettings is what the server says and to whom: routine results by webhook and mail, and what its pages show of it.
 type newsSettings struct {
 	webhook, webhookSecret    string
-	mail, mailToken, outbox   string
+	mail, mailToken           string
 	chatDefault, deployResult string
 }
 
@@ -144,7 +138,6 @@ func (n *newsSettings) declare(set *settings.Set) {
 	set.Secret(&n.webhookSecret, "GUSTO_NOTIFY_SECRET", "the secret the webhook's requests are signed with")
 	set.String(&n.mail, "GUSTO_MAIL", "", "how mail is sent to the person who added a routine, as GUSTO_CLOUD_MAIL is")
 	set.Secret(&n.mailToken, "GUSTO_MAIL_TOKEN", "the token mail is sent with")
-	set.String(&n.outbox, "GUSTO_MAIL_OUTBOX", "outbox", "the directory mail is written to when it is not sent")
 	set.String(&n.chatDefault, "GUSTO_CHAT_DEFAULT", "", "what a new chat runs on, as agent=model")
 	set.String(&n.deployResult, "GUSTO_DEPLOY_RESULT", "", "how the last deploy went, which the health page shows")
 }

@@ -30,7 +30,7 @@ func openAttribution(tasks string) (*attribution, error) {
 	if err != nil {
 		return nil, err
 	}
-	instances, err := instance.Open(cfg.stores.sessions)
+	instances, err := instance.Open(cfg.stores.sessions())
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func providerOf(engines []catalog.Entry, cfg serveSettings) (usage.ProviderFunc,
 	if cfg.way.registry == "" {
 		return pages.UsageProvider, nil
 	}
-	way, err := openWayOut(cfg.stores.tasks, cfg.way, cfg.core.local)
+	way, err := openWayOut(cfg.stores.tasks(), cfg.way, cfg.core.local)
 	if err != nil {
 		return nil, err
 	}

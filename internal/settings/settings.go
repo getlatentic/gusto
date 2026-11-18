@@ -6,6 +6,7 @@ package settings
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -15,6 +16,8 @@ import (
 type Set struct {
 	entries []*entry
 	byName  map[string]*entry
+	// removed is each setting no longer read, with what to set instead.
+	removed map[string]string
 }
 
 type entry struct {
@@ -35,7 +38,7 @@ type entry struct {
 type Param struct{ Name, Text string }
 
 // New is a set with nothing declared.
-func New() *Set { return &Set{byName: map[string]*entry{}} }
+func New() *Set { return &Set{byName: map[string]*entry{}, removed: map[string]string{}} }
 
 // declare adds a setting. A name declared twice, or with no help, is a mistake in gusto's own code, so it panics, as the flag
 // package does for a flag defined twice.
@@ -61,6 +64,13 @@ func (s *Set) Renamed(is, was string) {
 	}
 	e.was = was
 	remember(e)
+}
+
+// Removed says that a setting is no longer read, and instead what does its job. A value set under it is refused, saying so,
+// since the setting would otherwise be ignored and its data looked for somewhere else.
+func (s *Set) Removed(name, instead string) {
+	s.removed[name] = instead
+	forget(name, instead)
 }
 
 // String is a setting of any text, with fallback when it is not set.
@@ -156,6 +166,11 @@ func Split(line string) []string {
 // default. Every value that does not parse is said, by name, in the one error.
 func (s *Set) Load(lookup func(name string) string) error {
 	var problems []error
+	for _, name := range slices.Sorted(maps.Keys(s.removed)) {
+		if lookup(name) != "" {
+			problems = append(problems, fmt.Errorf("%s is no longer read: %s", name, s.removed[name]))
+		}
+	}
 	for _, e := range s.entries {
 		e.reset()
 		if e.was != "" && lookup(e.was) != "" {

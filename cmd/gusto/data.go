@@ -15,24 +15,42 @@ import (
 // storeSettings is where the stores every command shares keep their data, and how the data may be changed when a release needs
 // another format.
 type storeSettings struct {
-	tasks, sessions, setups, comparisons, integrations, presets, crew, changes string
-	apiTokens, retention, databaseURL                                          string
-	irreversible                                                               bool
+	data                              string
+	apiTokens, retention, databaseURL string
+	irreversible                      bool
+}
+
+// in is a folder or file of the data folder.
+func (s storeSettings) in(name ...string) string {
+	return filepath.Join(append([]string{s.data}, name...)...)
+}
+
+func (s storeSettings) tasks() string        { return s.in("jobs") }
+func (s storeSettings) sessions() string     { return s.in("sessions") }
+func (s storeSettings) setups() string       { return s.in("setups") }
+func (s storeSettings) comparisons() string  { return s.in("comparisons") }
+func (s storeSettings) integrations() string { return s.in("integrations") }
+func (s storeSettings) presets() string      { return s.in("presets") }
+func (s storeSettings) crew() string         { return s.in("crew") }
+func (s storeSettings) changes() string      { return s.in("changes", "changes.jsonl") }
+
+// dataFolders is each setting that named one folder of the data folder, which GUSTO_DATA holds now, and the folder it was.
+var dataFolders = map[string]string{
+	"GUSTO_TASKS": "jobs", "GUSTO_JOBS": "jobs", "GUSTO_SESSIONS": "sessions", "GUSTO_SETUPS": "setups",
+	"GUSTO_COMPARISONS": "comparisons", "GUSTO_INTEGRATIONS": "integrations", "GUSTO_PRESETS": "presets", "GUSTO_CREW": "crew",
+	"GUSTO_CHANGES": "changes/changes.jsonl", "GUSTO_APPS": "apps", "GUSTO_MAIL_OUTBOX": "outbox",
+	"GUSTO_KEEPER": "sessions/.keeper.json", "GUSTO_AGENTS": "agents",
 }
 
 func (s *storeSettings) declare(set *settings.Set) {
-	set.String(&s.tasks, "GUSTO_TASKS", "jobs", "the directory tasks are kept in")
-	set.Renamed("GUSTO_TASKS", "GUSTO_JOBS")
-	set.String(&s.sessions, "GUSTO_SESSIONS", "sessions", "the directory conversations and rooms are kept in")
-	set.String(&s.setups, "GUSTO_SETUPS", "setups", "the directory skill sets are kept in")
-	set.String(&s.comparisons, "GUSTO_COMPARISONS", "comparisons", "the directory comparisons are kept in")
-	set.String(&s.integrations, "GUSTO_INTEGRATIONS", "integrations", "the directory imported integrations are kept in")
-	set.String(&s.presets, "GUSTO_PRESETS", "presets", "the directory presets are kept in")
-	set.String(&s.crew, "GUSTO_CREW", "crew", "the directory the crew of agents is kept in")
-	set.String(&s.changes, "GUSTO_CHANGES", filepath.Join("changes", "changes.jsonl"), "the file every change to the platform is recorded in")
+	set.String(&s.data, "GUSTO_DATA", ".", "the folder gusto keeps its data in: jobs, sessions, setups, comparisons, integrations, "+
+		"presets, crew, changes/changes.jsonl, apps, outbox and agents")
+	for name, folder := range dataFolders {
+		set.Removed(name, "set GUSTO_DATA, the folder that holds "+folder)
+	}
 	set.String(&s.apiTokens, "GUSTO_API_TOKENS", "", "the file API tokens are kept in")
 	set.String(&s.retention, "GUSTO_RETENTION", "", "the directory of the retention policy and what it removed")
-	set.Secret(&s.databaseURL, "GUSTO_DATABASE_URL", "the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file beside GUSTO_TASKS)")
+	set.Secret(&s.databaseURL, "GUSTO_DATABASE_URL", "the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file in GUSTO_DATA/jobs)")
 	set.Bool(&s.irreversible, "GUSTO_MIGRATE_IRREVERSIBLE", "let a release change the data in a way an earlier release cannot read")
 }
 
@@ -53,7 +71,7 @@ func firstOf(given, fallback string) string {
 // tasksDir is the tasks directory a command was given, or the one the settings name.
 func tasksDir(given string) (string, error) {
 	stores, err := loadStores()
-	return firstOf(given, stores.tasks), err
+	return firstOf(given, stores.tasks()), err
 }
 
 // indexesFor is where the indexes are, for the tasks directory a command was given, or the one the settings name.
@@ -67,14 +85,14 @@ func indexesFor(tasks string) (indexes, error) {
 // dataDirs is where each store keeps its data. A store that is not set up here is left out.
 func dataDirs(stores storeSettings) map[datadir.Store]string {
 	dirs := map[datadir.Store]string{
-		datadir.Tasks:        stores.tasks,
-		datadir.Sessions:     stores.sessions,
-		datadir.Setups:       stores.setups,
-		datadir.Comparisons:  stores.comparisons,
-		datadir.Integrations: stores.integrations,
-		datadir.Presets:      stores.presets,
-		datadir.Crew:         stores.crew,
-		datadir.Changes:      filepath.Dir(stores.changes),
+		datadir.Tasks:        stores.tasks(),
+		datadir.Sessions:     stores.sessions(),
+		datadir.Setups:       stores.setups(),
+		datadir.Comparisons:  stores.comparisons(),
+		datadir.Integrations: stores.integrations(),
+		datadir.Presets:      stores.presets(),
+		datadir.Crew:         stores.crew(),
+		datadir.Changes:      filepath.Dir(stores.changes()),
 	}
 	if stores.apiTokens != "" {
 		dirs[datadir.Tokens] = filepath.Dir(stores.apiTokens)

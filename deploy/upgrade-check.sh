@@ -27,14 +27,21 @@ new="$work/gusto-new"
 "$root/web/build.sh"
 (cd "$root" && go build -o "$new" ./cmd/gusto)
 
-# start runs the binary given as a server on the data in $data, and waits for it. A published release reads its tasks from
-# GUSTO_JOBS, and this checkout from GUSTO_TASKS, which refuses the old name.
+# stores is where the binary given reads its data in $data. A published release reads each store from a setting of its own,
+# its tasks from GUSTO_JOBS; this checkout reads them all from GUSTO_DATA, and refuses the old names.
+stores() {
+  if [ "$1" = "$new" ]; then
+    echo "GUSTO_DATA=$data"
+    return
+  fi
+  echo "GUSTO_JOBS=$data/jobs GUSTO_SESSIONS=$data/sessions GUSTO_SETUPS=$data/setups GUSTO_INTEGRATIONS=$data/integrations" \
+    "GUSTO_PRESETS=$data/presets GUSTO_CREW=$data/crew GUSTO_COMPARISONS=$data/comparisons GUSTO_CHANGES=$data/changes/changes.jsonl"
+}
+
+# start runs the binary given as a server on the data in $data, and waits for it.
 start() {
-  tasks=GUSTO_TASKS
-  [ "$1" = "$new" ] || tasks=GUSTO_JOBS
-  env "$tasks=$data/jobs" GUSTO_PASSWORD=upgrade-check GUSTO_ADDR="$address" GUSTO_SANDBOX=here \
-    GUSTO_SESSIONS="$data/sessions" GUSTO_SETUPS="$data/setups" GUSTO_INTEGRATIONS="$data/integrations" GUSTO_PRESETS="$data/presets" GUSTO_CREW="$data/crew" \
-    GUSTO_COMPARISONS="$data/comparisons" GUSTO_CHANGES="$data/changes/changes.jsonl" \
+  # shellcheck disable=SC2046 # each word of stores is one NAME=value; $data has no spaces, as mktemp makes it
+  env $(stores "$1") GUSTO_PASSWORD=upgrade-check GUSTO_ADDR="$address" GUSTO_SANDBOX=here \
     GUSTO_LOCAL_REPOS="$data/repo" \
     GUSTO_SIGNING_KEY="$data/signing/upgrade.key" GUSTO_KEYRING="$data/keyring" \
     "$1" serve > "$data/serve.log" 2>&1 &
@@ -108,9 +115,7 @@ JSON
   echo "  and it reports a record that was edited"
 
   echo "  upgrading to this checkout"
-  export GUSTO_TASKS="$data/jobs" GUSTO_SESSIONS="$data/sessions" GUSTO_SETUPS="$data/setups" GUSTO_INTEGRATIONS="$data/integrations" \
-    GUSTO_PRESETS="$data/presets" GUSTO_CREW="$data/crew" \
-    GUSTO_COMPARISONS="$data/comparisons" GUSTO_CHANGES="$data/changes/changes.jsonl"
+  export GUSTO_DATA="$data"
   "$new" data check
   start "$new"
   reads "this checkout" "$new"
@@ -122,6 +127,6 @@ JSON
   start "$old"
   reads "$ref, after the rollback" "$old"
   stop
-  unset GUSTO_TASKS GUSTO_SESSIONS GUSTO_SETUPS GUSTO_COMPARISONS GUSTO_CHANGES
+  unset GUSTO_DATA
   echo "== $ref: upgrade and rollback hold"
 done

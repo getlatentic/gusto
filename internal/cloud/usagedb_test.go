@@ -101,7 +101,7 @@ func TestAnythingButPostgresGivesEachServerAnIndexOfItsOwnOnTheLocalDisk(t *test
 					t.Fatalf("%v: the setting is given %d times", operator, count)
 				}
 				got[slug] = value
-				if tasks, _ := settingOf(env, "GUSTO_TASKS"); !strings.Contains(tasks, slug) {
+				if tasks, _ := settingOf(env, "GUSTO_DATA"); !strings.Contains(tasks, slug) {
 					t.Errorf("the tasks directory is not the organization's: %q", tasks)
 				}
 			}

@@ -68,7 +68,7 @@ func (s *server) offerThisComputer() error {
 		s.pages.UseLocalSignIn(s.cfg.core.password, localPerson())
 	}
 	if here {
-		dir, err := filepath.Abs(s.cfg.served.agents)
+		dir, err := filepath.Abs(s.cfg.stores.in("agents"))
 		if err != nil {
 			return err
 		}
@@ -173,7 +173,7 @@ func (s *server) startBackground() error {
 	s.started(stopTasks)
 	background, stopBackground := context.WithCancel(context.Background())
 	s.started(stopBackground)
-	news, err := routineNews(s.cfg.news)
+	news, err := routineNews(s.cfg.news, s.cfg.stores.in("outbox"))
 	if err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ func (s *server) openDoors() error {
 // routineNews is who is told how each run of a routine ended: an address that takes a signed request, named by
 // GUSTO_NOTIFY_WEBHOOK and GUSTO_NOTIFY_SECRET, and mail to the person who added the routine, set up as GUSTO_CLOUD_MAIL is by
 // GUSTO_MAIL and GUSTO_MAIL_TOKEN. With neither set nothing is sent, and the tray still hears of the turn.
-func routineNews(cfg newsSettings) (notify.Every, error) {
+func routineNews(cfg newsSettings, outbox string) (notify.Every, error) {
 	var news notify.Every
 	if cfg.webhook != "" {
 		hook := notify.Webhook{URL: cfg.webhook, Secret: cfg.webhookSecret}
@@ -231,7 +231,7 @@ func routineNews(cfg newsSettings) (notify.Every, error) {
 		news = append(news, hook)
 	}
 	if cfg.mail != "" {
-		sender, err := cloud.MailFrom(cfg.mail, cfg.outbox, cfg.mailToken)
+		sender, err := cloud.MailFrom(cfg.mail, outbox, cfg.mailToken)
 		if err != nil {
 			return nil, err
 		}

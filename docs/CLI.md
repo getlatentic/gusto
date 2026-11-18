@@ -592,27 +592,17 @@ Environment:
 - `GUSTO_LOCAL`: a server for one person on their own computer, listening on the loopback only
 - `GUSTO_ORG`: the organization this server is, as its gusto cloud names it
 - `GUSTO_PUBLIC_URL`: this server's address as people reach it, which links and sign-ins come back to
-- `GUSTO_TASKS`: the directory tasks are kept in (default jobs); GUSTO_JOBS was its name
-- `GUSTO_SESSIONS`: the directory conversations and rooms are kept in (default sessions)
-- `GUSTO_SETUPS`: the directory skill sets are kept in (default setups)
-- `GUSTO_COMPARISONS`: the directory comparisons are kept in (default comparisons)
-- `GUSTO_INTEGRATIONS`: the directory imported integrations are kept in (default integrations)
-- `GUSTO_PRESETS`: the directory presets are kept in (default presets)
-- `GUSTO_CREW`: the directory the crew of agents is kept in (default crew)
-- `GUSTO_CHANGES`: the file every change to the platform is recorded in (default changes/changes.jsonl)
+- `GUSTO_DATA`: the folder gusto keeps its data in: jobs, sessions, setups, comparisons, integrations, presets, crew, changes/changes.jsonl, apps, outbox and agents (default .)
 - `GUSTO_API_TOKENS`: the file API tokens are kept in
 - `GUSTO_RETENTION`: the directory of the retention policy and what it removed
-- `GUSTO_DATABASE_URL`: the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file beside GUSTO_TASKS)
+- `GUSTO_DATABASE_URL`: the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file in GUSTO_DATA/jobs)
 - `GUSTO_MIGRATE_IRREVERSIBLE`: let a release change the data in a way an earlier release cannot read
-- `GUSTO_APPS`: the directory the web apps agents built are kept in (default apps)
 - `GUSTO_MCP`: the directory of the operator's MCP servers, one file each
-- `GUSTO_KEEPER`: the file sign-ins are kept in, so a deploy does not sign people out (default .keeper.json in GUSTO_SESSIONS)
 - `GUSTO_MEMBERS`: the file of the organization's members and their roles
 - `GUSTO_INBOX`: the directory gusto cloud leaves messages for this server in
 - `GUSTO_ORG_SETTINGS`: the file of what the organization's admins chose
 - `GUSTO_QUOTA`: the file of what the organization may run, which its gusto cloud writes
 - `GUSTO_DESKTOP`: the directory the desktop app's downloads are served from
-- `GUSTO_AGENTS`: the directory gusto installs agents into on a person's own computer (default agents)
 - `GUSTO_INTEGRATIONS_PRIVATE`: let an integration be imported from a private address
 - `GUSTO_OIDC_ISSUER`: the identity provider people sign in with
 - `GUSTO_OIDC_CLIENT_ID`: this server's client at the identity provider
@@ -638,7 +628,7 @@ Environment:
 - `GUSTO_SPEND_POLICY`: the file of prices and team caps
 - `GUSTO_MODELS`: the models offered, as credential/model, comma-separated
 - `GUSTO_ALLOWED_HOSTS`: every other host a task may reach through the proxy, comma-separated
-- `GUSTO_PROXY_SOCKET`: the socket a box with no network reaches the proxy on (default .proxy.sock in GUSTO_TASKS)
+- `GUSTO_PROXY_SOCKET`: the socket a box with no network reaches the proxy on (default .proxy.sock in the tasks folder)
 - `GUSTO_PROXY_ADDR`: where the proxy listens for a box on a network (default port 8041, on every interface for containers and the loopback otherwise)
 - `GUSTO_PROXY_MAX_OUTPUT_TOKENS`: the most output tokens one model call may ask for (default no limit)
 - `GUSTO_PROXY_SILENCE_SECONDS`: how long a model may send nothing before its call is ended, in seconds (default no limit)
@@ -684,7 +674,6 @@ Environment:
 - `GUSTO_NOTIFY_SECRET`: the secret the webhook's requests are signed with
 - `GUSTO_MAIL`: how mail is sent to the person who added a routine, as GUSTO_CLOUD_MAIL is
 - `GUSTO_MAIL_TOKEN`: the token mail is sent with
-- `GUSTO_MAIL_OUTBOX`: the directory mail is written to when it is not sent (default outbox)
 - `GUSTO_CHAT_DEFAULT`: what a new chat runs on, as agent=model
 - `GUSTO_DEPLOY_RESULT`: how the last deploy went, which the health page shows
 - `GUSTO_SIGNING_KEY`: the private key records are signed with: a file from gusto keygen, or awskms://<key>
@@ -1176,17 +1165,10 @@ Environment:
 - `GUSTO_LOCAL`: a server for one person on their own computer, listening on the loopback only
 - `GUSTO_ORG`: the organization this server is, as its gusto cloud names it
 - `GUSTO_PUBLIC_URL`: this server's address as people reach it, which links and sign-ins come back to
-- `GUSTO_TASKS`: the directory tasks are kept in (default jobs); GUSTO_JOBS was its name
-- `GUSTO_SESSIONS`: the directory conversations and rooms are kept in (default sessions)
-- `GUSTO_SETUPS`: the directory skill sets are kept in (default setups)
-- `GUSTO_COMPARISONS`: the directory comparisons are kept in (default comparisons)
-- `GUSTO_INTEGRATIONS`: the directory imported integrations are kept in (default integrations)
-- `GUSTO_PRESETS`: the directory presets are kept in (default presets)
-- `GUSTO_CREW`: the directory the crew of agents is kept in (default crew)
-- `GUSTO_CHANGES`: the file every change to the platform is recorded in (default changes/changes.jsonl)
+- `GUSTO_DATA`: the folder gusto keeps its data in: jobs, sessions, setups, comparisons, integrations, presets, crew, changes/changes.jsonl, apps, outbox and agents (default .)
 - `GUSTO_API_TOKENS`: the file API tokens are kept in
 - `GUSTO_RETENTION`: the directory of the retention policy and what it removed
-- `GUSTO_DATABASE_URL`: the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file beside GUSTO_TASKS)
+- `GUSTO_DATABASE_URL`: the database the task and usage indexes are kept in, sqlite:// or postgres:// (default a file in GUSTO_DATA/jobs)
 - `GUSTO_MIGRATE_IRREVERSIBLE`: let a release change the data in a way an earlier release cannot read
 - `GUSTO_SANDBOX`: how tasks are held (container, openshell, process, here) (default container)
 - `GUSTO_TASK_NETWORK`: open gives containers the runtime's network and the proxy on GUSTO_PROXY_ADDR (open); GUSTO_JOB_NETWORK was its name
@@ -1345,12 +1327,12 @@ Says which key stands behind every signed record in the tasks directory, and whi
 
 Flags:
 
-- `-tasks <directory>`: the directory of tasks to read (default $GUSTO_TASKS, else jobs)
+- `-tasks <directory>`: the directory of tasks to read (default jobs in $GUSTO_DATA)
 - `-h, --help`: show this help
 
 Environment:
 
-- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_DATA`: the data folder, whose jobs folder holds the tasks when -tasks is not given (default .)
 - `GUSTO_KEYRING`: the directory of public keys that name a record's signer
 
 Exit codes:
@@ -1427,14 +1409,14 @@ Lists what a sweep would remove now and how much it frees, and removes nothing. 
 Flags:
 
 - `-dir <directory>`: the retention directory, with policy.json and the holds (default $GUSTO_RETENTION)
-- `-sessions <directory>`: the directory the server keeps rooms in, whose turns stay while the room does (default $GUSTO_SESSIONS, else sessions)
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
+- `-sessions <directory>`: the directory the server keeps rooms in, whose turns stay while the room does (default sessions in $GUSTO_DATA)
+- `-tasks <directory>`: the directory the server keeps tasks in (default jobs in $GUSTO_DATA)
 - `-h, --help`: show this help
 
 Environment:
 
 - `GUSTO_RETENTION`: the retention directory, with policy.json and the holds, when -dir is not given
-- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_DATA`: the data folder, whose jobs folder holds the tasks when -tasks is not given (default .)
 
 See also: `gusto data`, `gusto spend`
 
@@ -1460,8 +1442,7 @@ Flags:
 
 Environment:
 
-- `GUSTO_TASKS`: tasks (default jobs)
-- `GUSTO_SESSIONS`: agents' conversations (default sessions)
+- `GUSTO_DATA`: the data folder, which holds every store (default .)
 - `GUSTO_MIGRATE_IRREVERSIBLE`: 1 allows a step that cannot be undone
 
 ### `gusto data status`
@@ -1533,12 +1514,12 @@ Flags:
 
 - `-json`: print the report as JSON
 - `-month <2006-01>`: the month, as 2006-01; this month when left out
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default jobs in $GUSTO_DATA)
 - `-h, --help`: show this help
 
 Environment:
 
-- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_DATA`: the data folder, whose jobs folder holds the tasks when -tasks is not given (default .)
 
 Examples:
 
@@ -1587,13 +1568,13 @@ Flags:
 - `-month <2006-01>`: only calls in this month, as 2006-01
 - `-person <person>`: only this person's sessions
 - `-provider <provider>`: only calls this provider answered
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default jobs in $GUSTO_DATA)
 - `-h, --help`: show this help
 
 Environment:
 
 - `GUSTO_DATABASE_URL`: where the index is kept: empty for usage.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
-- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_DATA`: the data folder, whose jobs folder holds the tasks when -tasks is not given (default .)
 
 Exit codes:
 
@@ -1623,13 +1604,13 @@ Reads the model calls the index does not hold from every task's proxy record and
 Flags:
 
 - `-from-scratch`: remove every row first, then rebuild them all
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default jobs in $GUSTO_DATA)
 - `-h, --help`: show this help
 
 Environment:
 
 - `GUSTO_DATABASE_URL`: where the index is kept: empty for usage.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
-- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_DATA`: the data folder, whose jobs folder holds the tasks when -tasks is not given (default .)
 
 Exit codes:
 
@@ -1686,14 +1667,14 @@ Flags:
 - `-search <text>`: only tasks whose id, brief, asker or repository holds this text
 - `-sort <order>`: the order: queued (the default), ended or seq, from the greatest
 - `-state <state>`: only tasks in this state, or several separated by commas
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default jobs in $GUSTO_DATA)
 - `-team <team>`: only this team's tasks
 - `-h, --help`: show this help
 
 Environment:
 
 - `GUSTO_DATABASE_URL`: where the index is kept: empty for tasks.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
-- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_DATA`: the data folder, whose jobs folder holds the tasks when -tasks is not given (default .)
 
 Exit codes:
 
@@ -1723,13 +1704,13 @@ Reads every task's state.json and brings the index up to date: it adds the tasks
 Flags:
 
 - `-from-scratch`: remove every row first, then rebuild them all
-- `-tasks <directory>`: the directory the server keeps tasks in (default $GUSTO_TASKS, else jobs)
+- `-tasks <directory>`: the directory the server keeps tasks in (default jobs in $GUSTO_DATA)
 - `-h, --help`: show this help
 
 Environment:
 
 - `GUSTO_DATABASE_URL`: where the index is kept: empty for tasks.db beside the tasks directory, or a postgres:// address (a search_path parameter names the schema)
-- `GUSTO_TASKS`: the directory of tasks, when -tasks is not given (default jobs)
+- `GUSTO_DATA`: the data folder, whose jobs folder holds the tasks when -tasks is not given (default .)
 
 Exit codes:
 

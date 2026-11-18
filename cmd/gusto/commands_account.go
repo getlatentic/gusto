@@ -59,7 +59,7 @@ func recordCommands() []*cmdline.Command {
 			Description: "Says which key stands behind every signed record in the tasks directory, and which records no key in the keyring " +
 				"can vouch for. Run it before a public key is removed from a keyring, and after one is restored.",
 			Flags: flagsOf(declareKeys),
-			Env:   append([]cmdline.Param{{Name: "GUSTO_TASKS", Text: "the directory of tasks, when -tasks is not given (default jobs)"}}, envKeyring...),
+			Env:   append([]cmdline.Param{{Name: "GUSTO_DATA", Text: "the data folder, whose jobs folder holds the tasks when -tasks is not given (default .)"}}, envKeyring...),
 			Exit: []cmdline.Param{
 				{Name: "0", Text: "every record is attributed"},
 				{Name: "1", Text: "a record cannot be attributed"},
@@ -96,7 +96,7 @@ func recordCommands() []*cmdline.Command {
 			Flags: flagsOf(declareRetention),
 			Env: []cmdline.Param{
 				{Name: "GUSTO_RETENTION", Text: "the retention directory, with policy.json and the holds, when -dir is not given"},
-				{Name: "GUSTO_TASKS", Text: "the directory of tasks, when -tasks is not given (default jobs)"},
+				{Name: "GUSTO_DATA", Text: "the data folder, whose jobs folder holds the tasks when -tasks is not given (default .)"},
 			},
 			SeeAlso: []string{"data", "spend"},
 			Run:     retentionCommand,
@@ -130,8 +130,7 @@ func recordCommands() []*cmdline.Command {
 				},
 			},
 			Env: []cmdline.Param{
-				{Name: "GUSTO_TASKS", Text: "tasks (default jobs)"},
-				{Name: "GUSTO_SESSIONS", Text: "agents' conversations (default sessions)"},
+				{Name: "GUSTO_DATA", Text: "the data folder, which holds every store (default .)"},
 				{Name: "GUSTO_MIGRATE_IRREVERSIBLE", Text: "1 allows a step that cannot be undone"},
 			},
 		},
@@ -141,7 +140,7 @@ func recordCommands() []*cmdline.Command {
 			Description: "Rebuilds the ledger from the tasks' own proxy records, through the same counting the server's caps use, so it " +
 				"needs no server.",
 			Flags:    flagsOf(declareSpend),
-			Env:      []cmdline.Param{{Name: "GUSTO_TASKS", Text: "the directory of tasks, when -tasks is not given (default jobs)"}},
+			Env:      []cmdline.Param{{Name: "GUSTO_DATA", Text: "the data folder, whose jobs folder holds the tasks when -tasks is not given (default .)"}},
 			Examples: []string{"gusto spend -month 2026-10 -json"},
 			SeeAlso:  []string{"retention"},
 			Run:      spendReport,
