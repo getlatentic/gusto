@@ -220,7 +220,7 @@ if [ "$BAKE" = on ]; then
   # The gateway turns the runner image into the disk a sandbox starts from the first time it is asked for one, which is most of a
   # cold start. It is asked here, as the cell asks it, of a sign-up's sandbox and a demo's, and the disk is kept in the image.
   surveys=(/etc/gusto/org.env)
-  grep -qs '^GUSTO_SANDBOX=' /etc/gusto/org-cloud.env && surveys+=(/etc/gusto/org-cloud.env)
+  grep -qs '^GUSTO_SANDBOX=' /etc/gusto/org-demo.env && surveys+=(/etc/gusto/org-demo.env)
   for settings in "${surveys[@]}"; do
     systemd-run --wait --collect --unit=gusto-bake-survey -p User=ubuntu -p "SupplementaryGroups=docker kvm" -p WorkingDirectory=/var/lib/gusto \
       -p EnvironmentFile=/etc/gusto/org.env -p EnvironmentFile="$settings" -p EnvironmentFile=/etc/gusto/cell.env -p EnvironmentFile=/run/gusto/cell.env /usr/local/bin/gusto scan

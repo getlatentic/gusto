@@ -16,7 +16,7 @@ EnvironmentFile=/run/gusto/cell.env
 ExecStartPre=/usr/local/bin/gusto scan
 {% if cloud_demo_sandbox != public_sandbox %}
 # And of a demo's sandbox, whose settings are a file of plain KEY=VALUE lines.
-ExecStartPre=/bin/sh -c 'set -a; . /etc/gusto/org-cloud.env; exec /usr/local/bin/gusto scan'
+ExecStartPre=/bin/sh -c 'set -a; . /etc/gusto/org-demo.env; exec /usr/local/bin/gusto scan'
 {% endif %}
 TimeoutStartSec=900
 ExecStart=/usr/local/bin/gusto node
