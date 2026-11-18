@@ -21,8 +21,10 @@ when the month is forecast to pass $100.
 ## Before the first run
 
 - An AWS profile `gusto-poc` (`aws configure --profile gusto-poc`), for the IAM
-  user `gusto-poc-terraform`: `PowerUserAccess` and an inline policy allowing
-  IAM on `gusto-poc*` roles, instance profiles and policies only.
+  user `gusto-poc-terraform`: `PowerUserAccess`, and the managed policy
+  `terraform-may-manage-gusto-iam`, which allows IAM on `gusto-*` roles,
+  instance profiles and policies only. Its own name is outside `gusto-*`, so
+  the user cannot change it.
 - A Cloudflare token with DNS edit on `getlatentic.com`, in
   `~/.config/gusto/cloudflare_token`, mode 600.
 - Terraform 1.7.5 or newer.

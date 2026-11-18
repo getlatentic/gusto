@@ -16,11 +16,9 @@ data "aws_vpc" "default" {
 }
 
 locals {
-  account = data.aws_caller_identity.here.account_id
-  host    = "gusto-host"
-  # The IAM names keep their old form: the Terraform user may make IAM roles, profiles and policies named gusto-poc* only.
-  role     = "gusto-poc-demo-host"
-  ci       = "gusto-poc-ci"
+  account  = data.aws_caller_identity.here.account_id
+  host     = "gusto-host"
+  ci       = "gusto-ci"
   bucket   = "arn:aws:s3:::${var.bucket}"
   ssm_path = "arn:aws:ssm:${var.region}:${local.account}:parameter/gusto/*"
 }
@@ -63,11 +61,15 @@ resource "aws_security_group" "host" {
 }
 
 resource "aws_iam_role" "host" {
-  name = local.role
+  name = local.host
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [{ Effect = "Allow", Principal = { Service = "ec2.amazonaws.com" }, Action = "sts:AssumeRole" }]
   })
+  # A role or profile whose name changes is made before the old one is removed, so a host or the CI is never without one.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Session Manager, which is how a person reaches a host and how the CI role tells one to power off.
@@ -77,7 +79,7 @@ resource "aws_iam_role_policy_attachment" "host_ssm" {
 }
 
 resource "aws_iam_role_policy" "host" {
-  name = "${local.role}-reads-and-keeps"
+  name = "${local.host}-reads-and-keeps"
   role = aws_iam_role.host.id
   policy = jsonencode({
     Version = "2012-10-17"
@@ -90,8 +92,12 @@ resource "aws_iam_role_policy" "host" {
 }
 
 resource "aws_iam_instance_profile" "host" {
-  name = local.role
+  name = local.host
   role = aws_iam_role.host.name
+  # A role or profile whose name changes is made before the old one is removed, so a host or the CI is never without one.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_ssm_parameter" "ubuntu" {
@@ -218,7 +224,7 @@ resource "aws_launch_template" "role" {
 # an organization needs one. Its role is its own and is the only one that may start and stop hosts, which it may only
 # when they are tagged for it, so a cell, which runs other people's code, can start nothing.
 locals {
-  live      = "gusto-poc-front-door"
+  live      = "gusto-front-door"
   live_tag  = "gusto-live"
   ec2_arn   = "arn:aws:ec2:${var.region}:${local.account}"
   cell_live = aws_launch_template.role["cell-live"]
@@ -230,6 +236,10 @@ resource "aws_iam_role" "live" {
     Version   = "2012-10-17"
     Statement = [{ Effect = "Allow", Principal = { Service = "ec2.amazonaws.com" }, Action = "sts:AssumeRole" }]
   })
+  # A role or profile whose name changes is made before the old one is removed, so a host or the CI is never without one.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "live_ssm" {
@@ -301,6 +311,10 @@ resource "aws_iam_role_policy" "live" {
 resource "aws_iam_instance_profile" "live" {
   name = local.live
   role = aws_iam_role.live.name
+  # A role or profile whose name changes is made before the old one is removed, so a host or the CI is never without one.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_eip" "live" {
@@ -424,6 +438,10 @@ resource "aws_iam_role" "ci" {
       }
     }]
   })
+  # A role or profile whose name changes is made before the old one is removed, so a host or the CI is never without one.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Making a cell's image when what it is made from changes, as bake-cell-image.sh does: a host from the live cell template, an image of
@@ -483,7 +501,7 @@ resource "aws_iam_role_policy" "ci_bake" {
 }
 
 resource "aws_iam_role_policy" "ci" {
-  name = "${local.ci}-launches-and-removes-demo-hosts"
+  name = "${local.ci}-launches-and-removes-hosts"
   role = aws_iam_role.ci.id
   policy = jsonencode({
     Version = "2012-10-17"
