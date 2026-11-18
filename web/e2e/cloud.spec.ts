@@ -126,10 +126,14 @@ test("an organization opens at its own path, and its pages stay under it", async
 }) => {
   test.setTimeout(120_000)
   const failed: string[] = []
+  const built: string[] = []
   page.on("response", (answer) => {
     const asked = answer.url()
+    if (asked.includes("/app/assets/")) built.push(new URL(asked).pathname)
     if (
-      (asked.includes("/app/api/") || asked.includes(".json?org=")) &&
+      (asked.includes("/app/api/") ||
+        asked.includes(".json?org=") ||
+        asked.includes("/app/assets/")) &&
       answer.status() >= 400
     )
       failed.push(`${answer.status()} ${asked}`)
@@ -156,6 +160,12 @@ test("an organization opens at its own path, and its pages stay under it", async
   await expect(page).toHaveURL(`${cloudURL}${workspace}/files`)
   await expect(page.getByRole("navigation").first()).toBeVisible()
   expect(failed).toEqual([])
+  // The page's own build comes from its own server, under its path, so a deploy cannot leave it another release's files.
+  const product = built.filter((path) => !path.startsWith("/app/"))
+  expect(product.length).toBeGreaterThan(0)
+  expect(
+    product.every((path) => path.startsWith(`${workspace}/app/assets/`))
+  ).toBe(true)
 })
 
 test.describe("the operator's page", () => {

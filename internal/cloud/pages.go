@@ -127,7 +127,7 @@ func (s *Server) render(w http.ResponseWriter, status int, page string, v view) 
 		http.Error(w, "that page could not be drawn", http.StatusInternalServerError)
 		return
 	}
-	web.WriteAppPage(w, status, web.CloudEntry, pageHead(v), string(data))
+	web.WriteAppPage(w, status, web.CloudEntry, "", pageHead(v), string(data))
 }
 
 // link is the address a mailed link points at.
