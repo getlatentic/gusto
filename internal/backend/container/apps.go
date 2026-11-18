@@ -27,14 +27,28 @@ type sharedApps struct {
 	sockets string
 }
 
-// Apps runs the web apps agents built in containers of their own. It is nil when this server was given no agents' folders, or
-// when the runtime's containers are in a virtual machine that a socket made in one cannot be reached from, as they are on a Mac.
+// Apps runs the web apps agents built in containers of their own. It is nil when this server was given no agents' folders or no
+// folder for their sockets, or when the runtime's containers are in a virtual machine that a socket made in one cannot be reached
+// from, as they are on a Mac.
 func (b *Backend) Apps() apps.Runner {
-	if b.cfg.AgentFolder == nil || runtime.GOOS != "linux" {
+	if b.cfg.AgentFolder == nil || b.cfg.AppSockets == "" || runtime.GOOS != "linux" {
 		return nil
 	}
-	return &sharedApps{b: b, folder: b.cfg.AgentFolder, sockets: filepath.Join(os.TempDir(), "gusto-apps-"+orgOrLocal(b.cfg.Org))}
+	return &sharedApps{b: b, folder: b.cfg.AgentFolder, sockets: b.cfg.AppSockets}
 }
+
+// appRunsOn says whether an app's container runs with the kept home of a computer.
+func (b *Backend) appRunsOn(id string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), askRuntimeWithin)
+	defer cancel()
+	return b.cfg.Containers.AppRunsFor(ctx, sandbox.Owner{Org: b.cfg.Org, Person: id})
+}
+
+// askRuntimeWithin bounds asking the runtime which apps run.
+const askRuntimeWithin = 30 * time.Second
+
+// socketPathMost is the longest path a unix socket may have on Linux, which keeps 108 bytes for it with its ending zero.
+const socketPathMost = 107
 
 func orgOrLocal(org string) string {
 	if org == "" {
@@ -50,19 +64,26 @@ func (a *sharedApps) name(app apps.App) string {
 
 func (a *sharedApps) socketDir(app apps.App) string { return filepath.Join(a.sockets, app.ID) }
 
+// socket is the app's socket as this server reaches it.
+func (a *sharedApps) socket(app apps.App) string {
+	return filepath.Join(a.socketDir(app), filepath.Base(sandbox.AppSocket))
+}
+
 // Start has the app's container running and the app answering, or says why it does not. A container that started an app
 // that did not answer is removed, so a failed app leaves nothing running.
 func (a *sharedApps) Start(ctx context.Context, app apps.App) (apps.App, error) {
-	box, err := a.box(app)
+	box, release, err := a.box(app)
 	if err != nil {
 		return apps.App{}, err
 	}
-	if err := a.b.cfg.Containers.StartApp(ctx, box); err != nil {
+	err = a.b.cfg.Containers.StartApp(ctx, box)
+	release()
+	if err != nil {
 		return apps.App{}, err
 	}
 	app.Sandbox = box.Name
 	app.Host = "localhost:" + strconv.Itoa(app.Port)
-	app.Target = apps.SocketTarget(filepath.Join(box.SocketDir, filepath.Base(sandbox.AppSocket)))
+	app.Target = apps.SocketTarget(a.socket(app))
 	if err := a.wait(ctx, app); err != nil {
 		note := a.b.cfg.Containers.AppLog(context.Background(), box.Name)
 		a.Stop(context.Background(), app)
@@ -75,33 +96,43 @@ func (a *sharedApps) Start(ctx context.Context, app apps.App) (apps.App, error) 
 }
 
 // box is the container an app runs in: its agent's folder, its person's kept home when this server keeps homes, and a fresh
-// folder for its socket that only this server's user may open.
-func (a *sharedApps) box(app apps.App) (sandbox.AppBox, error) {
+// folder for its socket that only this server's user may open. The home is not removed until release is called, once the
+// container has started or failed to.
+func (a *sharedApps) box(app apps.App) (box sandbox.AppBox, release func(), err error) {
 	folder := a.folder(app.Instance)
 	if _, err := os.Stat(folder); err != nil {
-		return sandbox.AppBox{}, errors.New("this agent has no folder yet: ask it something first")
+		return sandbox.AppBox{}, nil, errors.New("this agent has no folder yet: ask it something first")
 	}
-	box := sandbox.AppBox{
+	if socket := a.socket(app); len(socket) > socketPathMost {
+		return sandbox.AppBox{}, nil, fmt.Errorf("the app's socket, %s, would be too long a path: set GUSTO_APP_SOCKETS to a shorter folder", socket)
+	}
+	box = sandbox.AppBox{
 		Name: a.name(app), App: app.ID, Folder: folder, SocketDir: a.socketDir(app), Command: app.Command, Port: app.Port,
 		Owner: sandbox.Owner{Org: a.b.cfg.Org, Instance: app.Instance},
 	}
+	release = func() {}
 	if app.Owner != "" {
 		box.Owner.Person = computer.ID(a.b.cfg.Org, app.Team, app.Owner)
 	}
 	if a.b.homes != nil && app.Owner != "" {
-		home, err := a.b.homes.open(box.Owner.Person)
+		box.Home, release, err = a.b.homes.openForApp(box.Owner.Person)
 		if err != nil {
-			return sandbox.AppBox{}, err
+			return sandbox.AppBox{}, nil, err
 		}
-		box.Home = home
 	}
-	if err := os.RemoveAll(box.SocketDir); err != nil {
-		return sandbox.AppBox{}, err
+	if err := freshFolder(box.SocketDir); err != nil {
+		release()
+		return sandbox.AppBox{}, nil, err
 	}
-	if err := os.MkdirAll(box.SocketDir, 0o700); err != nil {
-		return sandbox.AppBox{}, err
+	return box, release, nil
+}
+
+// freshFolder is an empty folder that only this server's user may open.
+func freshFolder(dir string) error {
+	if err := os.RemoveAll(dir); err != nil {
+		return err
 	}
-	return box, nil
+	return os.MkdirAll(dir, 0o700)
 }
 
 // wait asks the app until it answers or the time is up. An app takes a moment to listen, and its socket is made only once

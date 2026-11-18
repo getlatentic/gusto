@@ -35,7 +35,7 @@ func TestAnAppRunsInARealContainerThatReachesNothing(t *testing.T) {
 		t.Fatal(err)
 	}
 	b := New(Config{Org: "check", Containers: sandbox.Containers{Runtime: "docker", Image: image, CPUs: "1", Memory: "1g"},
-		AgentFolder: func(instance string) string { return filepath.Join(folders, instance, "workspace") }})
+		AgentFolder: func(instance string) string { return filepath.Join(folders, instance, "workspace") }, AppSockets: filepath.Join(folders, "sockets")})
 	runner := b.Apps()
 	if runner == nil {
 		t.Fatal("no apps on Linux with agents' folders")

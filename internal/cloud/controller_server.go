@@ -161,5 +161,8 @@ func (c *Controller) dataSettings(slug string) map[string]string {
 		"GUSTO_INBOX":        c.Store.InboxDir(slug),
 		"GUSTO_ENTRY_KEY":    c.entryKeyFile(slug),
 		"GUSTO_COMPUTERS":    filepath.Join(data, "computers"),
+		// The data is on a file system the nodes share. A socket is made on the node's own disk, and not in its temporary
+		// folder, whose cleaners would remove the socket of an app shared for weeks.
+		"GUSTO_APP_SOCKETS": filepath.Join(c.indexDir(), slug, "apps"),
 	}
 }

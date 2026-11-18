@@ -90,6 +90,19 @@ func (c Containers) StopApp(ctx context.Context, name string) error {
 	return nil
 }
 
+// AppRunsFor says whether a container of an app runs with the person's kept home.
+func (c Containers) AppRunsFor(ctx context.Context, owner Owner) (bool, error) {
+	args := []string{"ps", "-q", "--filter", "label=" + LabelPrefix + "app", "--filter", "label=" + LabelPrefix + "person=" + owner.Person}
+	if owner.Org != "" {
+		args = append(args, "--filter", "label="+LabelPrefix+"org="+owner.Org)
+	}
+	out, err := exec.CommandContext(ctx, c.Runtime, args...).Output()
+	if err != nil {
+		return false, fmt.Errorf("the apps' containers could not be listed: %w", err)
+	}
+	return strings.TrimSpace(string(out)) != "", nil
+}
+
 // AppLog is the last of what an app's container wrote, or nothing when it cannot be read.
 func (c Containers) AppLog(ctx context.Context, name string) string {
 	out, _ := exec.CommandContext(ctx, c.Runtime, "logs", "--tail", "40", name).CombinedOutput()

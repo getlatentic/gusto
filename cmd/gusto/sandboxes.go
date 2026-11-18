@@ -1,7 +1,9 @@
 package main
 
 import (
+	"cmp"
 	"context"
+	"path/filepath"
 	"time"
 
 	"github.com/getlatentic/gusto/internal/apps"
@@ -25,6 +27,7 @@ import (
 // the computers its people have.
 type sandboxSettings struct {
 	sandbox, taskNetwork, computers, node string
+	appSockets                            string
 	spare                                 bool
 	idleMinutes, concurrency              int
 	homeLimitMB                           int
@@ -45,6 +48,8 @@ func (b *sandboxSettings) declare(set *settings.Set) {
 	b.openShell.declare(set)
 	set.String(&b.computers, "GUSTO_COMPUTERS", "", "the directory of the records of the computers an organization's people have")
 	set.String(&b.node, "GUSTO_NODE", "local", "the node new computers are made on")
+	set.String(&b.appSockets, "GUSTO_APP_SOCKETS", "",
+		"the folder on this machine's own disk that the sockets of apps shared from containers are made in (default app-sockets in GUSTO_DATA)")
 	set.Renamed("GUSTO_NODE", "GUSTO_CELL")
 	set.Bool(&b.spare, "GUSTO_SPARE_COMPUTER", "keep one blank computer ready for the next person who has none")
 	set.Int(&b.idleMinutes, "GUSTO_COMPUTER_IDLE_MINUTES", 30, 1, "how long a computer nobody uses runs before it is stopped, in minutes")
@@ -92,7 +97,11 @@ func openBackend(cfg serveSettings, signs signing.Identity, shared *apps.Store, 
 	}
 	built := container.Config{Agents: agents, Org: org, Homes: boxes.computers, HomeLimit: int64(boxes.homeLimitMB) << 20, Open: open, Containers: boxes.containers.signedBy(signs)}
 	if shared != nil && instances != nil {
-		built.AgentFolder = instances.AgentFolder
+		sockets, err := filepath.Abs(cmp.Or(boxes.appSockets, cfg.stores.in("app-sockets")))
+		if err != nil {
+			return nil, err
+		}
+		built.AgentFolder, built.AppSockets = instances.AgentFolder, sockets
 	}
 	return container.New(built), nil
 }

@@ -51,8 +51,8 @@ type Controller struct {
 	// StopGrace is how long a server is given to end its tasks' records when it is
 	// asked to stop, before it is made to.
 	StopGrace time.Duration
-	// IndexDir is where organizations' indexes are kept, in a directory for each, on the local disk of the host a server
-	// runs on. It is the index directory under the store's root when not set.
+	// IndexDir is where organizations' indexes and their apps' sockets are kept, in a directory for each, on the local disk of
+	// the host a server runs on. It is the index directory under the store's root when not set.
 	IndexDir string
 	// WaitEvery is how often an organization waiting for a node is tried again. It is half a second when not set: a node
 	// says it is ready by writing to the shared file system, which cannot tell a reader it changed, and a visitor waits
