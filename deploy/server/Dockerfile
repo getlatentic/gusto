@@ -29,6 +29,7 @@ RUN go mod download
 COPY cmd cmd
 COPY internal internal
 COPY pkg pkg
+COPY deploy/install deploy/install
 COPY --from=web /src/internal/web/spa/dist internal/web/spa/dist
 ARG RELEASE=
 RUN CGO_ENABLED=0 go build -trimpath -ldflags "-X main.release=${RELEASE}" -o /gusto ./cmd/gusto
