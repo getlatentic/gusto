@@ -13,6 +13,7 @@ type pageView struct {
 
 	Error, Ask, Email, OrgName, Name, Notice      string
 	More, Taken, WorkOnly, SignedIn, Sent, Google bool
+	ForTeam                                       bool
 
 	Token, Action, Button, Inviter string
 
@@ -94,7 +95,7 @@ func pageOf(name string, v view) pageView {
 	page := pageView{
 		Page: name, Title: v.Title,
 		Error: v.Error, Ask: v.Ask, Email: v.Email, OrgName: v.OrgName, Name: v.Name, Notice: v.Notice,
-		More: v.More, Taken: v.Taken, WorkOnly: v.WorkOnly, SignedIn: v.SignedIn, Sent: v.Sent, Google: v.Google,
+		More: v.More, Taken: v.Taken, WorkOnly: v.WorkOnly, SignedIn: v.SignedIn, Sent: v.Sent, Google: v.Google, ForTeam: v.ForTeam,
 		Token: v.Token, Action: v.Action, Button: v.Button, Inviter: v.Inviter,
 		Several: v.Several, Person: personView{Email: v.Person.Email, Trial: v.Person.Trial()},
 		Address: v.Address, Domain: v.Domain, Credit: v.Credit, Plan: v.Plan,

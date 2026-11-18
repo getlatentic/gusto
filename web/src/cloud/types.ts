@@ -64,6 +64,7 @@ export interface CloudPage {
   More: boolean
   Taken: boolean
   WorkOnly: boolean
+  ForTeam: boolean
   // Google says a person may sign in and sign up with a Google account.
   Google: boolean
   SignedIn: boolean

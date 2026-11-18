@@ -93,53 +93,6 @@ export function DemoWaitPage({ page }: { page: CloudPage }) {
   )
 }
 
-// DemoBookPage is where a demo is booked with the team, where only the team starts them: the booking service's calendar in the page
-// where it may be framed, or a link to it.
-export function DemoBookPage({ page }: { page: CloudPage }) {
-  return (
-    <CloudCard wide>
-      <Brand />
-      <div className="grid gap-2">
-        <Heading>Book a demo</Heading>
-        <Quiet className="max-w-[40rem]">
-          Someone from the gusto team runs it with you on a call: agents of
-          several vendors at work in one room, and the controls your
-          organization keeps over them.
-        </Quiet>
-      </div>
-      {page.BookFrame ? (
-        <iframe
-          className="block h-[44rem] w-full rounded-md border bg-card"
-          src={page.BookFrame}
-          title="Pick a time for a demo of gusto"
-          loading="lazy"
-          referrerPolicy="strict-origin-when-cross-origin"
-        />
-      ) : (
-        page.Book && (
-          <span className="max-w-[26rem]">
-            <ButtonLink href={page.Book}>Book a demo</ButtonLink>
-          </span>
-        )
-      )}
-      <Quiet>
-        Or <TextLink href="/signup">create your organization</TextLink> and try
-        gusto now.
-        {page.BookFrame && (
-          <>
-            {" "}
-            The calendar not loading?{" "}
-            <TextLink href={page.Book}>Open it on its own page</TextLink>.
-          </>
-        )}
-      </Quiet>
-      <p className="m-0 text-xs text-muted-foreground">
-        <TextLink href="/demo?team=1">gusto team: start a demo</TextLink>
-      </p>
-    </CloudCard>
-  )
-}
-
 // DemoColleaguePage brings a colleague into a demo's room, by a link that works once.
 export function DemoColleaguePage({ page }: { page: CloudPage }) {
   const back = (

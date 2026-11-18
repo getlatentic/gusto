@@ -87,32 +87,3 @@ export function TryWithYourTeam({ page }: { page: CloudPage }) {
     </section>
   )
 }
-
-export function Footer() {
-  const links: [string, string][] = [
-    [`${docs}/QUICKSTART.md`, "Quickstart"],
-    [`${docs}/REFERENCE.md`, "Reference"],
-    [`${repository}/issues`, "Help"],
-  ]
-  return (
-    <footer className="bg-canvas text-quiet py-8 text-sm">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-5">
-        <a
-          className="hover:text-ink no-underline"
-          href="https://getlatentic.com"
-        >
-          Made by Latentic
-        </a>
-        <span className="flex-1" />
-        <nav aria-label="Help" className="flex flex-wrap gap-x-6 gap-y-2">
-          {links.map(([href, label]) => (
-            <a key={href} className="hover:text-ink no-underline" href={href}>
-              {label}
-            </a>
-          ))}
-        </nav>
-        <span>Apache-2.0</span>
-      </div>
-    </footer>
-  )
-}
