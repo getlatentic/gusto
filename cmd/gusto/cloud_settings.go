@@ -161,7 +161,7 @@ type demoSettings struct {
 func (d *demoSettings) declare(set *settings.Set) {
 	set.Int(&d.minutes, "GUSTO_CLOUD_DEMO_MINUTES", 0, 0, "the minutes a demo lasts from when it is ready (default 0, no demo)")
 	set.String(&d.bookURL, "GUSTO_CLOUD_BOOK_URL", "", "where a visitor books a call")
-	set.String(&d.notify, "GUSTO_CLOUD_DEMO_NOTIFY", "", "an address mailed when a visitor starts a demo")
+	set.String(&d.notify, "GUSTO_CLOUD_DEMO_NOTIFY", "", "an address mailed when a visitor starts a demo or sends a note from the landing page")
 	set.List(&d.staff, "GUSTO_CLOUD_DEMO_STAFF", "the addresses and domains whose people alone may start a demo, comma-separated (default anyone)")
 }
 

@@ -941,7 +941,7 @@ Environment:
 - `GUSTO_CLOUD_PAID_MEMBERS`: the people, and the computers, a paying organization may have (default 50)
 - `GUSTO_CLOUD_DEMO_MINUTES`: the minutes a demo lasts from when it is ready (default 0, no demo)
 - `GUSTO_CLOUD_BOOK_URL`: where a visitor books a call
-- `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo
+- `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo or sends a note from the landing page
 - `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
 - `GUSTO_CLOUD_STRIPE_KEY`: the Stripe secret API key organizations are billed by the seat with; the key, the price and the webhook secret are set together or not at all
 - `GUSTO_CLOUD_STRIPE_PRICE`: the Stripe price of one seat for a month
@@ -1085,7 +1085,7 @@ Environment:
 - `GUSTO_DATABASE_URL`: where the accounts are kept: empty for cloud.db under GUSTO_CLOUD_ROOT, or a postgres:// address, whose search_path parameter names the schema, made when missing, and which several gusto cloud servers can share
 - `GUSTO_CLOUD_DEMO_MINUTES`: the minutes a demo lasts from when it is ready (default 0, no demo)
 - `GUSTO_CLOUD_BOOK_URL`: where a visitor books a call
-- `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo
+- `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo or sends a note from the landing page
 - `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
 - `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH was its name
 - `GUSTO_CLOUD_NODE_PROJECT`: the project tag of the nodes' machines; GUSTO_CLOUD_CELL_PROJECT was its name

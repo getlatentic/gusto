@@ -244,6 +244,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /invite", s.acceptInvitation)
 	mux.HandleFunc("GET /demo", s.demoForm)
 	mux.HandleFunc("POST /demo", s.startDemo)
+	mux.HandleFunc("POST /contact", s.sendContact)
 	mux.HandleFunc("POST /demo/warm", s.warmDemo)
 	mux.HandleFunc("GET /demo/wait", s.guard(s.demoWait))
 	mux.HandleFunc("POST /demo/extend", s.guard(s.extendDemo))

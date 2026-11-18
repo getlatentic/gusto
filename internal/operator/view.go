@@ -17,6 +17,7 @@ type page struct {
 	Running             []runningRow
 	Hosts               hostsView
 	Leads               []leadRow
+	Contacts            []contactRow
 }
 
 type runningRow struct {

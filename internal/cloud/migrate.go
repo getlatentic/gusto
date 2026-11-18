@@ -23,7 +23,7 @@ type Report struct {
 // countedTables are the tables whose rows the report counts, under the words people read.
 var countedTables = []struct{ name, table string }{
 	{"organisations", "orgs"}, {"people", "people"}, {"memberships", "memberships"}, {"workspaces", "workspaces"}, {"invitations", "invitations"}, {"links", "links"},
-	{"leads", "leads"}, {"runtime", "runtime"},
+	{"leads", "leads"}, {"contacts", "contacts"}, {"runtime", "runtime"},
 }
 
 // Inspect reports on the accounts database without changing it: it makes no file and no schema and runs no migration.

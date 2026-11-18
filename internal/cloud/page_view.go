@@ -44,7 +44,9 @@ type pageView struct {
 	DemoWords                      string
 	Steps                          []Step
 	Book, BookFrame, TurnstileSite string
-	Extendable, Ended, Ending      bool
+	// Contact is the landing page's note to the team.
+	Contact                   *contactForm `json:",omitempty"`
+	Extendable, Ended, Ending bool
 
 	Lease *leaseView
 }
@@ -103,7 +105,7 @@ func pageOf(name string, v view) pageView {
 		Computers: v.Computers, Server: v.Server, CanOpen: v.CanOpen,
 		Admins: v.Admins, IsAdmin: v.IsAdmin, CanInvite: v.CanInvite, Link: v.Link,
 		DemoWords: v.DemoWords, Steps: v.Steps, Book: v.Book, BookFrame: v.BookFrame, TurnstileSite: v.TurnstileSite,
-		Extendable: v.Extendable, Ended: v.Ended, Ending: v.Ending,
+		Extendable: v.Extendable, Ended: v.Ended, Ending: v.Ending, Contact: v.Contact,
 	}
 	page.addPeople(v)
 	if v.DemoLeft > 0 {

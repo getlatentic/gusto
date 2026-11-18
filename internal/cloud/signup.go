@@ -13,7 +13,7 @@ import (
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	if s.demoOffered() {
 		_, signedIn := s.memberships(r)
-		s.landing(w, signedIn)
+		s.landing(w, http.StatusOK, signedIn, contactForm{Sent: r.URL.Query().Get("contact") == "sent"})
 		return
 	}
 	s.app(w, r)

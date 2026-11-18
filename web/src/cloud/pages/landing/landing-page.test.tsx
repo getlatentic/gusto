@@ -6,6 +6,7 @@ import { LandingPage } from "@/cloud/pages/landing/landing-page"
 
 const landing = cloudPage("landing", {
   Book: "https://cal.example/gusto",
+  Contact: { Error: "", Email: "", Company: "", Note: "", Sent: false },
 })
 
 describe("the landing page", () => {
@@ -21,6 +22,7 @@ describe("the landing page", () => {
       "See gusto at work",
       "Your agents, your choice.",
       "Choose how to run gusto",
+      "Talk to us",
       "Try gusto with your team.",
     ]) {
       expect(

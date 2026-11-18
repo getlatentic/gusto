@@ -3,6 +3,7 @@ import { useId, useState, type ComponentProps, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
 // Field is one labelled box of a form.
@@ -18,6 +19,23 @@ export function Field({
         {label}
       </Label>
       <Input id={id} className={cn("h-11", className)} {...input} />
+    </div>
+  )
+}
+
+// TextField is one labelled box of a form that takes a few lines.
+export function TextField({
+  label,
+  className,
+  ...input
+}: { label: ReactNode } & ComponentProps<typeof Textarea>) {
+  const id = useId()
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={id} className="text-muted-foreground">
+        {label}
+      </Label>
+      <Textarea id={id} className={cn("min-h-28", className)} {...input} />
     </div>
   )
 }

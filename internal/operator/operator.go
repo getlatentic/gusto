@@ -47,6 +47,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("POST /demos/pause", a.pause)
 	mux.HandleFunc("POST /demos/limits", a.limits)
 	mux.HandleFunc("GET /leads.csv", a.leadsCSV)
+	mux.HandleFunc("GET /contacts.csv", a.contactsCSV)
 	mux.Handle("GET /static/", web.Static())
 	mux.Handle("GET /app/assets/", web.AppAssets())
 	return local(mux)
@@ -88,7 +89,15 @@ func (a *App) dashboard(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "the leads could not be read", http.StatusInternalServerError)
 		return
 	}
-	draw(w, a.view(r.Context(), r.URL.Query().Get("notice"), leads))
+	contacts, err := a.Store.Contacts(r.Context())
+	if err != nil {
+		slog.Error("the notes visitors sent could not be read", "error", err)
+		http.Error(w, "the notes visitors sent could not be read", http.StatusInternalServerError)
+		return
+	}
+	view := a.view(r.Context(), r.URL.Query().Get("notice"), leads)
+	view.Contacts = contactRows(contacts, a.Now())
+	draw(w, view)
 }
 
 // running is the demos that have not ended, soonest to end first.

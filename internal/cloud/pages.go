@@ -110,6 +110,8 @@ type view struct {
 	TurnstileSite string
 	// Name is who a demo is for.
 	Name string
+	// Contact is the landing page's note to the team.
+	Contact *contactForm
 }
 
 // render answers with a page of the web app's cloud entry, drawn from the view as JSON inside it, so a refused form is answered
