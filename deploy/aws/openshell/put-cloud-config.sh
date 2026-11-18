@@ -19,7 +19,6 @@ print(json.dumps({
     "cloud_computer_memory": os.environ.get("GUSTO_COMPUTER_MEMORY", "3Gi"),
     "cloud_turnstile_site": os.environ.get("GUSTO_CLOUD_TURNSTILE_SITE", ""),
     "cloud_demo_minutes": int(os.environ.get("GUSTO_CLOUD_DEMO_MINUTES", "0")),
-    "cloud_demo_max": int(os.environ.get("GUSTO_CLOUD_DEMO_MAX", "5")),
     "cloud_book_url": os.environ.get("GUSTO_CLOUD_BOOK_URL", ""),
     "cloud_demo_notify": os.environ.get("GUSTO_CLOUD_DEMO_NOTIFY", ""),
     "cloud_demo_staff": os.environ.get("GUSTO_CLOUD_DEMO_STAFF", ""),

@@ -24,13 +24,16 @@ import (
 // sandboxSettings is what turns run in and how many at once: the kind of box, its network, and for an organization's server
 // the computers its people have.
 type sandboxSettings struct {
-	sandbox, taskNetwork, computers, node           string
-	spare                                           bool
-	idleMinutes, concurrency, roomCopyMB, roomFiles int
-	homeLimitMB                                     int
-	containers                                      containerSettings
-	openShell                                       openShellSettings
+	sandbox, taskNetwork, computers, node string
+	spare                                 bool
+	idleMinutes, concurrency              int
+	homeLimitMB                           int
+	containers                            containerSettings
+	openShell                             openShellSettings
 }
+
+// roomCopyLimits is how big a room's folder may be for an agent's turn to work on a copy of it.
+var roomCopyLimits = roomwork.Limits{Bytes: 4 << 30, Files: 200000}
 
 func (b *sandboxSettings) declare(set *settings.Set) {
 	set.Choice(&b.sandbox, "GUSTO_SANDBOX", "container", []string{"container", "openshell", "process", "here"}, "how tasks are held")
@@ -47,13 +50,11 @@ func (b *sandboxSettings) declare(set *settings.Set) {
 	set.Int(&b.idleMinutes, "GUSTO_COMPUTER_IDLE_MINUTES", 30, 1, "how long a computer nobody uses runs before it is stopped, in minutes")
 	set.Int(&b.homeLimitMB, "GUSTO_HOME_LIMIT_MB", int(container.DefaultHomeLimit>>20), 1,
 		"the most a person's kept home may take in a container, in megabytes; with GUSTO_COMPUTERS, a turn over it is refused until the person resets the home")
-	set.Int(&b.roomCopyMB, "GUSTO_ROOM_COPY_MB", 4096, 1, "the most a room's folder may hold for an agent's turn to copy it, in megabytes")
-	set.Int(&b.roomFiles, "GUSTO_ROOM_COPY_FILES", 200000, 1, "the most files a room's folder may hold for an agent's turn to copy it")
 }
 
 // roomCopy is how much of a room's folder an agent's turn may copy.
 func (b sandboxSettings) roomCopy() roomwork.Limits {
-	return roomwork.Limits{Bytes: int64(b.roomCopyMB) << 20, Files: b.roomFiles}
+	return roomCopyLimits
 }
 
 // isolation is what was set about the box tasks are held in. The kind is what was decided, which is nothing when the strongest

@@ -1,7 +1,7 @@
 # Settings that change while the server runs
 
 A change to what people are offered, or to their limits, takes effect without a restart, so nobody in the middle of a task is sent
-away for one. The server looks at the files below every `GUSTO_RELOAD_SECONDS` (20 by default). A change is taken when the same new
+away for one. The server looks at the files below every 20 seconds. A change is taken when the same new
 content is there at two looks in a row, so a file that an editor has emptied and not yet filled is never the setting: it shows within
 a minute at the default.
 

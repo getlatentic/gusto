@@ -21,7 +21,7 @@ type Limits struct {
 type TooBigError struct{ Limits Limits }
 
 func (e *TooBigError) Error() string {
-	return fmt.Sprintf("this room's folder is more than a turn can work on a copy of (%d MB or %d files); take files out of it, or raise GUSTO_ROOM_COPY_MB and GUSTO_ROOM_COPY_FILES",
+	return fmt.Sprintf("this room's folder is more than a turn can work on a copy of (%d MB or %d files); take files out of it",
 		e.Limits.Bytes>>20, e.Limits.Files)
 }
 

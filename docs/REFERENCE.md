@@ -277,8 +277,7 @@ behind_proxy = true
 | `GUSTO_TASK_MEMORY`, `GUSTO_TASK_CPUS` | memory and CPU for one task, `3g` and `1` by default |
 | `GUSTO_HOME_LIMIT_MB` | the most a person's kept home may take in a container, in megabytes, `5120` by default. With `GUSTO_COMPUTERS`, a turn over it is refused until the person resets the home on Connections. [CLOUD.md](CLOUD.md) |
 | `GUSTO_TASK_CONCURRENCY` | how many tasks run at once. A room's agents run at the same time only when this is more than 1 |
-| `GUSTO_LIVE_CONNECTIONS` | the most WebSockets open at once, 10000 by default. A room's page keeps one open at `/live` to be told what others say and what agents do, and asks every few seconds instead when it has none. A proxy in front must pass the upgrade and not buffer or cut off a quiet connection: the server pings every 30 seconds |
-| `GUSTO_ROOM_COPY_MB`, `GUSTO_ROOM_COPY_FILES` | the most a room's folder may hold for a turn to work on a copy of it, `4096` MB and `200000` files by default. [ROOM-WORK.md](ROOM-WORK.md) |
+| `/live` | at most 10,000 WebSockets are open at once. A room's page keeps one open at `/live` to be told what others say and what agents do, and asks every few seconds instead when it has none. A proxy in front must pass the upgrade and not buffer or cut off a quiet connection: the server pings every 30 seconds |
 | `GUSTO_LIMIT_PERSON`, `GUSTO_LIMIT_TEAM` | the most one person or team runs at once. A task over its limit waits. 0 or unset is no limit. [LIMITS.md](LIMITS.md) |
 | `GUSTO_SANDBOX` | how a task runs: unset is a container, `here` is this process, `openshell` is an OpenShell sandbox. [OPENSHELL.md](OPENSHELL.md) lists the `GUSTO_OPENSHELL*` settings |
 | `GUSTO_OPENSHELL_REMOTE` | `1` when the OpenShell gateway is on another machine. Without it, `gusto serve` and `gusto doctor` refuse `GUSTO_SANDBOX=openshell` on Linux with no `/dev/kvm` |
@@ -305,7 +304,7 @@ behind_proxy = true
 | `GUSTO_KEYRING` | a directory of `<name>.pub` keys that `verify`, `show`, `serve`, `pr open` and `export` trust, retired keys included |
 | `GUSTO_SIGNER` | who the manifest names. This is the runner's own word |
 | `GUSTO_CHANGES` | the file recording platform changes: sign-ins, refusals, role, setup and settings changes. Hash-chained, and signed when a key is set. `gusto changes verify` checks it. [CHANGES.md](CHANGES.md) |
-| `GUSTO_RETENTION` | the directory holding `policy.json`, the holds and the last sweep. A task's working folder is removed first, its signed record later. `GUSTO_RETENTION_MINUTES` sets the interval, 60 by default. `gusto retention` lists what a sweep would remove. [RETENTION.md](RETENTION.md) |
+| `GUSTO_RETENTION` | the directory holding `policy.json`, the holds and the last sweep. A task's working folder is removed first, its signed record later. A sweep runs every hour. `gusto retention` lists what a sweep would remove. [RETENTION.md](RETENTION.md) |
 | `GUSTO_GITHUB_TOKEN` | the token `gusto pr open` pushes and opens pull requests with. `GUSTO_GITHUB_API` overrides the API address |
 | `GUSTO_GITHUB_APP_ID`, `GUSTO_GITHUB_APP_KEY` | a GitHub App that reaches the repositories tasks name. Each task gets a token for one repository, revoked when the work is done. Set both or neither. [REPOS.md](REPOS.md) |
 | `GUSTO_GITHUB_URL` | a GitHub Enterprise Server's address, with `GUSTO_GITHUB_API`. github.com when unset |
@@ -324,9 +323,7 @@ behind_proxy = true
 | `GUSTO_SERVER` | where `gusto submit` sends a task, with its scheme |
 | `GUSTO_TOKEN` | the API token `gusto submit` sends, made at `/admin/tokens`. `GUSTO_PASSWORD` is sent when it is unset |
 | `GUSTO_MEMBERS`, `GUSTO_INBOX` | `GUSTO_MEMBERS` is the file of people the console shows at `/admin/people`. `GUSTO_INBOX` is where gusto cloud leaves what its admins did to those people |
-| `GUSTO_CLOUD_DEMO_MINUTES` | turns on the demo at `/demo`. A visitor gives a name, work email and company and gets an organization with a timer of this many minutes. The timer starts when the server is ready and ends by deleting it |
-| `GUSTO_CLOUD_DEMO_EXTEND_MINUTES`, `GUSTO_CLOUD_DEMO_PATIENCE_MINUTES` | the demo's one extension (10), and how long a visitor waits to be ready (15) |
-| `GUSTO_CLOUD_DEMO_MAX`, `GUSTO_CLOUD_DEMO_PER_DAY`, `GUSTO_CLOUD_DEMO_PER_PERSON`, `GUSTO_CLOUD_DEMO_PER_COMPANY` | the most demos at once (5), in a day (40), and that one address (2) and one company (6) may start in 24 hours |
+| `GUSTO_CLOUD_DEMO_MINUTES` | turns on the demo at `/demo`. A visitor gives a name, work email and company and gets an organization with a timer of this many minutes. The timer starts when the server is ready and ends by deleting it. A demo has one 10-minute extension, and is deleted when it is not ready in 15 minutes. At most 5 run at once, 40 start in a day, and one address may start 2 and one company 6 in 24 hours; the operator's page changes these four |
 | `GUSTO_CLOUD_BOOK_URL` | where a call is booked, linked from the end page |
 | `GUSTO_CLOUD_DEMO_NOTIFY` | an address mailed when a visitor starts a demo: name, work email, company and time. Nothing is sent when unset |
 | `GUSTO_CLOUD_DEMO_STAFF` | comma-separated addresses and domains whose people alone may start a demo. With it set, demos are a sales call: the landing page leads to sign-up and to booking a demo, and `/demo` offers to book one (the form is at `/demo?team=1`). Unset, anyone may start one |

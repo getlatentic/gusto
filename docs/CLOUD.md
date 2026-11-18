@@ -199,7 +199,7 @@ With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a 
 
 - The landing page at `/` is shown to everybody, signed in or not. Its header offers Sign in, or Open gusto (`/app`) to a person who is signed in. A gusto cloud server with no demos has no landing page, and `/` is the way in.
 - Set `GUSTO_CLOUD_TURNSTILE_SITE` and `GUSTO_CLOUD_TURNSTILE_SECRET` to add a Cloudflare Turnstile bot check. It fails closed.
-- At most `GUSTO_CLOUD_DEMO_MAX` demos run at once, and `GUSTO_CLOUD_DEMO_PER_DAY` (40) start in a day.
+- At most 5 demos run at once, and 40 start in a day, until the operator's page sets other limits.
 - Pause new demos on the operator's page. Resume there. Running demos continue.
 - Each visitor is kept as a lead in the database, which stays after the demo ends.
 - A demo's agents run in an OpenShell microVM for each person (`cloud_demo_sandbox: openshell` in `deploy/aws/openshell/ansible/roles/cloud/defaults/main.yml`). Gusto cloud gives a demo's server the lines of `GUSTO_CLOUD_DEMO_ENV` on top of `GUSTO_CLOUD_ORG_ENV`, so a demo and a sign-up on the same node run their agents in different sandboxes.
@@ -212,7 +212,7 @@ With `GUSTO_CLOUD_DEMO_MINUTES` set, `/demo` lets a visitor start a demo with a 
 
 ## The operator's page
 
-`gusto operator` serves the page the operator manages a hosted gusto from: demo requests (with a spreadsheet download), demos running, a switch that pauses new demos, the demo limits and the hosts that are up. The limits are the most demos in a day, the most one address and one company may start in a day, and the most at once. They hold from the next demo, on every gusto cloud server, and are kept in the database. `GUSTO_CLOUD_DEMO_PER_DAY`, `GUSTO_CLOUD_DEMO_PER_PERSON`, `GUSTO_CLOUD_DEMO_PER_COMPANY` and `GUSTO_CLOUD_DEMO_MAX` are the starting values.
+`gusto operator` serves the page the operator manages a hosted gusto from: demo requests (with a spreadsheet download), demos running, a switch that pauses new demos, the demo limits and the hosts that are up. The limits are the most demos in a day, the most one address and one company may start in a day, and the most at once. They hold from the next demo, on every gusto cloud server, and are kept in the database. They start at 40 a day, 2 for one address, 6 for one company and 5 at once.
 
 It is the separate service `gusto-owner`, listening on `127.0.0.1:8090` of gusto cloud's host only. It refuses any other address (`GUSTO_OPERATOR_ADDR`), any request that names another host or comes through a proxy, and any form from another site. Run `deploy/aws/openshell/operator.sh` to open a tunnel through AWS Systems Manager to `http://localhost:8090`. It needs the Session Manager plugin: `brew install --cask session-manager-plugin`.
 

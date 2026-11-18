@@ -33,7 +33,7 @@ type wayOutSettings struct {
 	toolPolicy, gatewayMode                              string
 	gatewayPrivate                                       bool
 	redaction, live                                      string
-	reloadSeconds, limitPerson, limitTeam                int
+	limitPerson, limitTeam                               int
 	models                                               []string
 	registry, registryPrivate, keychain                  string
 	registryKeys                                         []string
@@ -75,7 +75,6 @@ func (w *wayOutSettings) declareTools(set *settings.Set) {
 func (w *wayOutSettings) declareLive(set *settings.Set) {
 	set.String(&w.redaction, "GUSTO_REDACTION", "", "the file of what the proxy and the gateway mask in what passes through")
 	set.String(&w.live, "GUSTO_LIVE", "", "the file of limits and models read again as it changes")
-	set.Int(&w.reloadSeconds, "GUSTO_RELOAD_SECONDS", 20, 1, "how often the files read as they change are looked at, in seconds")
 	set.Int(&w.limitPerson, "GUSTO_LIMIT_PERSON", 0, 0, "the most tasks one person may have running (default no limit)")
 	set.Int(&w.limitTeam, "GUSTO_LIMIT_TEAM", 0, 0, "the most tasks may run for the whole team (default no limit)")
 }

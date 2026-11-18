@@ -23,6 +23,15 @@ import (
 	"github.com/getlatentic/gusto/internal/node"
 )
 
+const (
+	// leaderLease is how long the lease that makes one gusto cloud server the leader lasts unrenewed.
+	leaderLease = 30 * time.Second
+	// serverStartWait is how long an organization's server has to answer once started.
+	serverStartWait = 2 * time.Minute
+	// orgsPerMailDomain is how many organizations one mail domain may make.
+	orgsPerMailDomain = 3
+)
+
 // cloudComputers lists every computer on this node.
 func cloudComputers() int {
 	var records cloudRecords
@@ -61,7 +70,7 @@ func cloudCommand() int {
 	}
 	door := &cloudService{front: front, controller: controller, scaler: scaler}
 	door.startBackground(ctx, cfg.nodes.dir)
-	controlled := door.leadInTurn(ctx, time.Duration(cfg.front.leaderSeconds)*time.Second)
+	controlled := door.leadInTurn(ctx, leaderLease)
 	if err := serveCloud(ctx, cfg.front.addr, front); err != nil {
 		return fail(err)
 	}
@@ -191,7 +200,7 @@ func openAccounts(ctx context.Context, cfg cloudSettings) (*cloud.Store, error) 
 	accounts := cfg.records.accounts()
 	accounts.AllowFreeMail = cfg.signup.freeMail == "allow"
 	accounts.RefusedDomains = lowered(cfg.signup.refusedDomains)
-	accounts.PerDomain = cfg.signup.perDomain
+	accounts.PerDomain = orgsPerMailDomain
 	accounts.Limits = cfg.signup.limits()
 	accounts.Demo = cfg.demo.forCloud()
 	store, err := cloud.Open(cfg.records.root, accounts)
@@ -231,7 +240,7 @@ func frontOf(ctx context.Context, store *cloud.Store, public *url.URL, stripe *c
 		Leads:      &cloud.LeadHook{URL: f.leadHookURL, Secret: f.leadHookSecret, Dir: filepath.Join(cfg.records.root, "leadhook")},
 		Turnstile:  cloud.Turnstile{Site: f.turnstileSite, Secret: f.turnstileSecret},
 		Google:     google,
-		PerAddress: f.perAddress, PerMailbox: f.perMailbox, InAll: f.inAll,
+		PerAddress: 10, PerMailbox: 3, InAll: 200,
 		Stripe: stripe,
 	})
 	if err != nil {
@@ -282,7 +291,7 @@ func organizationServers(store *cloud.Store, public *url.URL, cfg cloudSettings)
 	controller := &cloud.Controller{
 		Store: store, Node: local, Command: []string{exe, "serve"}, Env: env, DemoEnv: demoEnv,
 		CloudURL: public.Scheme + "://" + public.Host, AppsURL: cloud.AppsAddress(public, cmp.Or(cfg.front.appsDomain, cfg.front.domain)), PortFrom: cfg.servers.portFrom,
-		Wait: time.Duration(cfg.servers.startWaitSeconds) * time.Second, Concurrent: cfg.signup.concurrent, IndexDir: indexDir,
+		Wait: serverStartWait, Concurrent: cfg.signup.concurrent, IndexDir: indexDir,
 	}
 	pool, err := nodePool(cfg.nodes, local)
 	if err != nil || pool == nil {

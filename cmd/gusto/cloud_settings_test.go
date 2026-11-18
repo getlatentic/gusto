@@ -38,8 +38,8 @@ func TestCloudsSettingsReadAsTheirTypesAndAWrongOneIsSaid(t *testing.T) {
 		t.Error("a paying organization's computers are as many as its people")
 	}
 	wrong := map[string]string{
-		"GUSTO_CLOUD_DEMO_MAX": "five", "GUSTO_CLOUD_FREE_MAIL": "yes", "GUSTO_CLOUD_SERVERS": "no",
-		"GUSTO_CLOUD_NODE_LAUNCH": "gce", "GUSTO_CLOUD_STRIPE_KEY": "sk_live", "GUSTO_CLOUD_PER_DOMAIN": "0",
+		"GUSTO_CLOUD_DEMO_MINUTES": "five", "GUSTO_CLOUD_FREE_MAIL": "yes", "GUSTO_CLOUD_SERVERS": "no",
+		"GUSTO_CLOUD_NODE_LAUNCH": "gce", "GUSTO_CLOUD_STRIPE_KEY": "sk_live", "GUSTO_CLOUD_MEMBERS": "0",
 	}
 	_, err := loadCloud(func(name string) string { return wrong[name] })
 	for name := range wrong {
@@ -59,7 +59,7 @@ func TestCloudsSettingsReadAsTheirTypesAndAWrongOneIsSaid(t *testing.T) {
 // command started wrongly and the setting's name.
 func TestACloudsCommandWithAWrongSettingDoesNotStart(t *testing.T) {
 	for command, setting := range map[string]string{
-		"cloud": "GUSTO_CLOUD_DEMO_MAX", "node": "GUSTO_NODE_PORT", "operator": "GUSTO_CLOUD_DEMO_PER_DAY",
+		"cloud": "GUSTO_CLOUD_DEMO_MINUTES", "node": "GUSTO_NODE_PORT", "operator": "GUSTO_CLOUD_DEMO_MINUTES",
 	} {
 		t.Setenv(setting, "many")
 		_, stderr, code := clitest.Capture(t, func() int { return run([]string{command}) })
