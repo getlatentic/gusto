@@ -159,11 +159,21 @@ if [ "$ROLE" = cell ] && [ -n "$KIT" ] && [ -e "$baked_marker" ] && [ "$(cat "$b
   echo "gusto-bootstrap: the kit $KIT is not there or not the one asked for, so the playbook configures the host"
 fi
 
+# AWS's own installer is used when snap cannot download the AWS command, which it sometimes cannot. The steps are joined with &&
+# because set -e does not hold in a function run after ||.
+install_aws() {
+  local status=0
+  curl -fsSL --retry 3 "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "$tmp/awscli.zip" \
+    && unzip -qo "$tmp/awscli.zip" -d "$tmp" && "$tmp/aws/install" --update || status=$?
+  rm -rf "$tmp/awscli.zip" "$tmp/aws"
+  return "$status"
+}
+
 # A host made from the image of a cell has these, and the packages are not fetched again.
 if [ ! -e "$baked_marker" ]; then
   apt-get update -qq
   apt-get install -y -qq ansible unzip curl ca-certificates
-  command -v aws >/dev/null || snap install aws-cli --classic
+  command -v aws >/dev/null || snap install aws-cli --classic || install_aws
 fi
 
 # The newest release is the one CI last made, for a host that is started by hand.
