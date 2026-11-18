@@ -7,13 +7,13 @@ import (
 	"testing"
 )
 
-func TestTheKnownPricesAreTheDemosPrices(t *testing.T) {
-	demo, err := os.ReadFile("../../deploy/aws/openshell/ansible/roles/demo/files/spend-policy.json")
+func TestTheKnownPricesAreGustoCloudsPrices(t *testing.T) {
+	stored, err := os.ReadFile("../../deploy/aws/openshell/ansible/roles/cloud/files/spend-policy.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 	var policy Policy
-	if err := json.Unmarshal(demo, &policy); err != nil {
+	if err := json.Unmarshal(stored, &policy); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(Known().Prices, policy.Prices) {

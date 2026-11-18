@@ -1,6 +1,6 @@
-# The public cloud demo's AWS pieces, and how a host is made
+# The public cloud's AWS pieces, and how a host is made
 
-A demo host is made and removed by workflows, so nothing runs from a laptop. This directory is what
+A host is made and removed by workflows, so nothing runs from a laptop. This directory is what
 outlives a host, and the script a host starts with.
 
 | Piece | What it is |
@@ -11,9 +11,9 @@ outlives a host, and the script a host starts with.
 
 ## The path
 
-1. A merge to `main` that changes what a host is made from runs **demo bundle**. It puts `bundle.tgz` (the Linux `gusto`, its DNS program and the playbooks) in the store bucket under `releases/<commit>/`, and builds the runner image into `image/<key>.tar.gz` when that key is not there.
-2. **demo up** (a button, with the lease in minutes) launches a host from the launch template with `user-data.sh`. The host checks the bundle's checksum, runs the playbooks on itself, gets the certificate and the image from the bucket, points the name at itself, and starts gusto cloud. The workflow says when `https://<name>/healthz` answers.
-3. The host removes itself when its lease ends. **demo down** tells it to power off now. **demo sweep** runs every 30 minutes and terminates anything tagged `gusto-poc` that has been up more than six hours.
+1. A merge to `main` that changes what a host is made from runs **cloud deploy**. It puts `bundle.tgz` (the Linux `gusto`, its DNS program and the playbooks) in the store bucket under `releases/<commit>/`, and builds the runner image into `image/<key>.tar.gz` when that key is not there.
+2. **cloud up** (a button, with the lease in minutes) launches a host from the launch template with `user-data.sh`. The host checks the bundle's checksum, runs the playbooks on itself, gets the certificate and the image from the bucket, points the name at itself, and starts gusto cloud. The workflow says when `https://<name>/healthz` answers.
+3. The host removes itself when its lease ends. **cloud down** tells it to power off now. **cloud sweep** runs every 30 minutes and terminates anything tagged `gusto-poc` that has been up more than six hours.
 
 The CI role can launch the launch template, tell tagged hosts to power off, terminate tagged hosts, and put
 objects under `releases/` and `image/`. It has no IAM right, so it cannot widen itself.
@@ -23,11 +23,11 @@ may be up. There is no SSH: `aws ssm start-session --target <instance id>` is ho
 
 ## More than one node
 
-**demo up** with `cells` from 1 to 4 makes gusto cloud (the `orchestrator` template, `t3.medium`, no computers) and that
+**cloud up** with `cells` from 1 to 4 makes gusto cloud (the `orchestrator` template, `t3.medium`, no computers) and that
 many nodes that run the organizations' servers (the `cell` template, `m8i.xlarge`, nested virtualization). One node is
 made with `cells` at 0, as before.
 
-- The nodes of one demo share an encrypted file system, mounted at `/var/lib/gusto-cloud` on each, in a directory of it
+- The nodes of one cloud share an encrypted file system, mounted at `/var/lib/gusto-cloud` on each, in a directory of it
   named for the run. gusto cloud starts an organization's server on a node through the node's agent
   (`gusto node`, port 8060), and the server reads and writes its data by the path gusto cloud knows it by.
   gusto cloud removes the directories of earlier runs when it starts, since the computers they describe went with their nodes.
@@ -41,25 +41,25 @@ made with `cells` at 0, as before.
 
 ## gusto cloud that stays up
 
-`aws_instance.live` is a small host (`t3.micro` with a 10 GB disk, and a fixed address) that runs the public demo all the time: nginx and
+`aws_instance.live` is a small host (`t3.micro` with a 10 GB disk, and a fixed address) that runs gusto cloud all the time: nginx and
 the certificate, gusto cloud at `https://<name>`, and the scaler that starts a node for an organization that
 waits for one and stops a node that has had nothing on it for ten minutes. With nobody using it there is no such node and
 nothing is paid for but this machine, its address and the file system.
 
-- It is made once by `bootstrap.sh` and starts itself from the newest release in the bucket. Every **demo bundle** run
+- It is made once by `bootstrap.sh` and starts itself from the newest release in the bucket. Every **cloud deploy** run
   then brings it to that release (an SSM command that runs the start-up script again), which restarts gusto cloud
   and leaves the nodes and the organizations on them as they are.
 - Its role is its own, and is the only one that may start and stop nodes. It starts nodes only from the
   `cell-live` template, which tags them `project=gusto-live`, and stops only nodes with that tag that it started
-  (`scaler=on`). A node that runs other people's code can start nothing. The demo workflows tag and stop
+  (`scaler=on`). A node that runs other people's code can start nothing. The cloud workflows tag and stop
   `project=gusto-poc`, so they never touch it, and it never touches theirs.
 - It has no lease and no limit on how long it runs. What it keeps is on the file system and in the bucket, so it may be
   replaced.
-- Sign-up for a visitor is at `https://<name>/demo`. `DEMO_VISITOR_MINUTES` and `DEMO_BOOK_URL` in `demo.env`, stored
-  with `../openshell/put-demo-config.sh`, turn it on and say where a call is booked.
-- The `demo up` workflow makes a separate, short-lived demo with its own name in the same way as before. Both use the
+- Sign-up for a visitor is at `https://<name>/demo`. `GUSTO_CLOUD_DEMO_MINUTES` and `GUSTO_CLOUD_BOOK_URL` in `cloud.env`, stored
+  with `../openshell/put-cloud-config.sh`, turn it on and say where a call is booked.
+- The `cloud up` workflow makes a separate, short-lived cloud with its own name in the same way as before. Both use the
   same name, so only one of them is up at a time: take the live gusto cloud down (`aws ec2 stop-instances`) before
-  running `demo up`.
+  running `cloud up`.
 
 ## Once
 
@@ -79,6 +79,6 @@ other, not both. Then the rest:
 ```bash
 ./bootstrap.sh                                  # this directory
 ../openshell/put-cloudflare.sh                  # the two Cloudflare tokens
-../openshell/put-demo-config.sh                 # what a host reads that is not secret, from demo.env
-../openshell/put-cell-secret.sh                 # the secret nodes are told what to do with; only for demos with several nodes
+../openshell/put-cloud-config.sh                 # what a host reads that is not secret, from cloud.env
+../openshell/put-cell-secret.sh                 # the secret nodes are told what to do with; only for a cloud with several nodes
 ```
