@@ -62,7 +62,7 @@ A connector is an app's MCP server that asks for OAuth. Each person signs in to 
 
 1. An admin turns the app on at `/admin/apps`. Every app is off until then.
 2. The person opens Connections, `/connections`, and presses Connect. The app's own sign-in page opens.
-3. The app sends them back to `/connections/callback`. gusto trades the code for tokens and keeps them sealed in `GUSTO_CONNECTORS`.
+3. The app sends them back to `/connections/callback`. gusto trades the code for tokens and keeps them sealed in `GUSTO_CONNECTORS`. An organization behind gusto cloud is sent back to gusto cloud's `/connections/callback`, with the organization first in the `state` (`<slug>.<random>`). gusto cloud hands the person on to that organization's own `/connections/callback`, which checks the state and finishes the sign-in.
 4. The person's next task has the app behind its gateway. `job.json` names it under `setup.connectors` and `setup.gateway`.
 5. At each call the gateway asks for the person's token, renewed when it is about to run out, and sends it to the app. The agent and the sandbox never hold it.
 
@@ -75,12 +75,12 @@ A connector is an app's MCP server that asks for OAuth. Each person signs in to 
 | Which agents | An agent that takes the gateway in its arguments or on its session. Pi reads its servers from a file, which a sandbox does not carry, so it is given none |
 | The vault | AES-GCM, with a key made the first time and kept beside the tokens, readable by the server's user alone |
 
-The catalog, asked on 2026-10-31: Linear, Notion, Figma, Canva and Stripe need no setup. Trello, asked on 2026-11-01, needs none either, and is asked for its boards, its members and offline access, not its inbox or planner. GitHub, Asana and HubSpot need a client the operator registers with them, with `<GUSTO_PUBLIC_URL>/connections/callback` as its redirect. GitHub is asked for `repo`, `read:org` and `read:user`, not the ten scopes its server lists. `GUSTO_MEASURE=1 go test -run Catalog ./internal/connector` asks each one again.
+The catalog, asked on 2026-10-31: Linear, Notion, Figma, Canva and Stripe need no setup. Trello, asked on 2026-11-01, needs none either, and is asked for its boards, its members and offline access, not its inbox or planner. GitHub, Asana and HubSpot need a client the operator registers with them, with `<GUSTO_CLOUD_URL>/connections/callback` as its redirect behind gusto cloud, the same for every organization, and `<GUSTO_PUBLIC_URL>/connections/callback` for a server on its own. GitHub is asked for `repo`, `read:org` and `read:user`, not the ten scopes its server lists. `GUSTO_MEASURE=1 go test -run Catalog ./internal/connector` asks each one again.
 
 To add GitHub to gusto cloud:
 
 1. Make an OAuth app under the organization's GitHub settings, Developer settings, OAuth Apps.
-2. Set the callback URL to `https://<host of GUSTO_CLOUD_URL>/workspace/`. GitHub takes a redirect to any path below it, so each organization's `/workspace/<slug>/connections/callback` matches. With `GUSTO_CLOUD_ORGS_AT=host`, set it to `https://<GUSTO_CLOUD_DOMAIN>/connections/callback` and turn on wildcard matching for it, so that every organization's `<slug>.<domain>` matches.
+2. Set the callback URL to `<GUSTO_CLOUD_URL>/connections/callback`, such as `https://gusto.getlatentic.com/connections/callback`. Every organization's sign-ins come back there, wherever organizations are reached.
 3. Make a client secret.
 4. Run `deploy/aws/openshell/put-connector-client.sh github <client id>` and type the secret at the prompt.
 5. Deploy. Each organization's server reads the clients when it starts, and its admin can then turn GitHub on.
