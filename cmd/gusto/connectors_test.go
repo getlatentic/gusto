@@ -122,3 +122,15 @@ func TestConnectorClientsAreReadFromAParameterAndAMissingOneIsNone(t *testing.T)
 		t.Errorf("no setting gave %v, %v", clients, err)
 	}
 }
+
+// An organization's server behind gusto cloud has its sign-ins come back to gusto cloud; one on its own keeps its own address.
+func TestAnOrganizationsSignInsComeBackToItsGustoCloud(t *testing.T) {
+	if got := (cloudSign{url: "https://cloud.example.com/", org: "acme-com"}).callback(); got != "https://cloud.example.com/connections/callback" {
+		t.Errorf("behind gusto cloud: %q", got)
+	}
+	for _, alone := range []cloudSign{{}, {url: "https://cloud.example.com"}, {org: "acme-com"}} {
+		if got := alone.callback(); got != "" {
+			t.Errorf("%+v: %q", alone, got)
+		}
+	}
+}

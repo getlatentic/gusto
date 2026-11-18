@@ -16,7 +16,7 @@ import (
 // the clients the operator registered with the apps that need one, by connector id: {"github": {"id": "…", "secret": "…"}}, or
 // ssm:<name>, a SecureString parameter holding the same.
 // GUSTO_CONNECTOR_APPS is a JSON file of more apps than the catalog's, such as the organization's own: [{"id", "name", "what", "url"}].
-func openConnectors(cfg wayOutSettings, base string) (*connector.Connectors, error) {
+func openConnectors(cfg wayOutSettings, base string, cloud cloudSign) (*connector.Connectors, error) {
 	dir := cfg.connectors
 	if dir == "" {
 		return nil, nil
@@ -36,7 +36,19 @@ func openConnectors(cfg wayOutSettings, base string) (*connector.Connectors, err
 	if err != nil {
 		return nil, err
 	}
-	return connector.Open(connector.Config{Dir: dir, Base: base, Clients: clients, Apps: apps, Private: cfg.gatewayPrivate})
+	return connector.Open(connector.Config{Dir: dir, Base: base, Callback: cloud.callback(), Org: cloud.org, Clients: clients, Apps: apps,
+		Private: cfg.gatewayPrivate})
+}
+
+// cloudSign is the gusto cloud an organization's server is behind, and which organization it is, when it is one: its connector
+// sign-ins come back to gusto cloud, which hands each on to its organization, so an app has one address to register.
+type cloudSign struct{ url, org string }
+
+func (c cloudSign) callback() string {
+	if c.url == "" || c.org == "" {
+		return ""
+	}
+	return strings.TrimSuffix(c.url, "/") + "/connections/callback"
 }
 
 // connectorClients reads the operator's clients from a file, or from Parameter Store when the setting is ssm:<name>. A parameter

@@ -31,8 +31,14 @@ type Client struct {
 // Config is what a Connectors needs: where it keeps what it holds, this server's own address, which sign-ins come back to, and the
 // clients the operator registered with the apps that need one, by connector id.
 type Config struct {
-	Dir     string
-	Base    string
+	Dir  string
+	Base string
+	// Callback is where an app sends a person back after they sign in, Base's /connections/callback when it is not set. An
+	// organization behind gusto cloud is sent back to gusto cloud's, which hands the person on by the state's first part (Org).
+	Callback string
+	// Org, when set, begins every sign-in's state, as <org>.<random>, so a callback that is not this server's own knows whose
+	// sign-in came back.
+	Org     string
 	Clients map[string]Client
 	// Apps is the connectors offered, the catalog when it is empty.
 	Apps []Entry
@@ -180,6 +186,9 @@ func (c *Connectors) clientDocumentURL() string {
 }
 
 func (c *Connectors) redirect() string {
+	if c.config.Callback != "" {
+		return c.config.Callback
+	}
 	return strings.TrimSuffix(c.config.Base, "/") + "/connections/callback"
 }
 
@@ -196,7 +205,7 @@ func (c *Connectors) Begin(ctx context.Context, person, space string, entry Entr
 	if err != nil {
 		return "", err
 	}
-	state, verifier := randomText(), randomText()
+	state, verifier := c.newState(), randomText()
 	sum := sha256.Sum256([]byte(verifier))
 	c.remember(state, pending{Person: strings.ToLower(person), Team: team.Of(space), Connector: entry.ID, Verifier: verifier, Client: client, Server: server,
 		Redirect: c.redirect(), Started: c.now()})
@@ -437,6 +446,14 @@ func (c *Connectors) register(ctx context.Context, server Server) (Client, error
 		return Client{}, errors.New("the app registered gusto and gave no client id")
 	}
 	return Client{ID: got.ID, Secret: got.Secret}, nil
+}
+
+// newState is a sign-in's state: random, and after the organization's name when the server is one of gusto cloud's.
+func (c *Connectors) newState() string {
+	if c.config.Org != "" {
+		return c.config.Org + "." + randomText()
+	}
+	return randomText()
 }
 
 // ask calls the app's token endpoint, as the client, and reads the tokens it answers with.
