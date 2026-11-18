@@ -25,5 +25,5 @@ print(json.dumps({
 }))
 PY
 )"
-aws ssm put-parameter --name /gusto/poc/cloud-config --type String --overwrite --value "$config" --query Version --output text
-echo "stored /gusto/poc/cloud-config in $AWS_REGION"
+aws ssm put-parameter --name /gusto/cloud-config --type String --overwrite --value "$config" --query Version --output text
+echo "stored /gusto/cloud-config in $AWS_REGION"

@@ -30,12 +30,12 @@ cloud_demo_sandbox: openshell
 cloud_sandboxes: "{{ [public_sandbox, cloud_demo_sandbox] | unique }}"
 cloud_computer_memory: 3Gi
 cloud_computer_cpu: "2"
-cloud_dns_token_parameter: /gusto/poc/cloudflare-dns-token
-cloud_mail_token_parameter: /gusto/poc/cloudflare-mail-token
-cloud_model_parameter: /gusto/poc/model-key
-cloud_deepseek_parameter: /gusto/poc/deepseek-key
+cloud_dns_token_parameter: /gusto/cloudflare-dns-token
+cloud_mail_token_parameter: /gusto/cloudflare-mail-token
+cloud_model_parameter: /gusto/model-key
+cloud_deepseek_parameter: /gusto/deepseek-key
 # Meta's Model API key, for the meta credential. A host where it is not stored offers no Muse model.
-cloud_meta_parameter: /gusto/poc/meta-key
+cloud_meta_parameter: /gusto/meta-key
 # How long a host has when it starts, and each extension adds, and the most a host may ever be up.
 cloud_lease_minutes: 30
 cloud_max_hours: 4
@@ -50,7 +50,7 @@ cloud_lib: /var/lib/gusto
 cloud_role: all
 cloud_efs: ""
 cloud_run: ""
-cloud_cell_secret_parameter: /gusto/poc/cell-secret
+cloud_cell_secret_parameter: /gusto/cell-secret
 cloud_cell_gone_minutes: 5
 cloud_cell_port: 8060
 # A visitor may start a demo, which lasts this many minutes from when it is ready, at /demo. Zero offers none.
@@ -61,9 +61,9 @@ cloud_release: ""
 cloud_bundle_dir: /opt/gusto-bundle
 # The start-up script a cell is made from, where the front door can read it: the bundle is root's.
 cloud_cell_userdata: /usr/local/lib/gusto/user-data.sh
-cloud_cell_template: gusto-poc-demo-host-cell-live
+cloud_cell_template: gusto-host-cell-live
 # The parameter that template reads its image from, so a kept cell of an older image is replaced rather than started again.
-cloud_cell_image_parameter: /gusto/poc/cell-ami
+cloud_cell_image_parameter: /gusto/cell-ami
 cloud_cell_max: 3
 cloud_cell_idle_minutes: 10
 # The most cells a day started for visitors who began the demo form, before they sent it.
@@ -76,14 +76,14 @@ cloud_project: gusto-live
 cloud_demo_minutes: 0
 # The public key of the bot check on the demo form, and where its secret is kept. Without the key there is no check.
 cloud_turnstile_site: ""
-cloud_turnstile_parameter: /gusto/poc/turnstile-secret
-cloud_lead_hook_url_parameter: /gusto/poc/lead-hook-url
-cloud_lead_hook_secret_parameter: /gusto/poc/lead-hook-secret
+cloud_turnstile_parameter: /gusto/turnstile-secret
+cloud_lead_hook_url_parameter: /gusto/lead-hook-url
+cloud_lead_hook_secret_parameter: /gusto/lead-hook-secret
 # The OAuth client at Google that people sign in with, stored by put-google.sh. Without both there is no Google sign-in.
-cloud_google_client_id_parameter: /gusto/poc/google-client-id
-cloud_google_secret_parameter: /gusto/poc/google-secret
+cloud_google_client_id_parameter: /gusto/google-client-id
+cloud_google_secret_parameter: /gusto/google-secret
 # The OAuth clients registered with the connector apps that need one, as {"github": {"id", "secret"}}: put-connector-client.sh.
-cloud_connector_clients_parameter: /gusto/poc/connector-clients
+cloud_connector_clients_parameter: /gusto/connector-clients
 cloud_book_url: ""
 # The addresses and domains, comma-separated, whose people alone may start a demo, which then is a sales call and not open to
 # visitors, who sign up instead. Empty is anyone.

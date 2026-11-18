@@ -13,7 +13,7 @@ rm -rf "$R"; mkdir -p "$R/keys" "$R/creds" "$R/sample"
 cp "$E"/sample/* "$R/sample/"; (cd "$R/sample" && git init -q . && git add -A && git -c user.email=a@b -c user.name=x commit -qm sample)
 "$E/gusto" keygen e2e -dir "$R/keys" >/dev/null 2>&1
 bash "$E/credentials.sh" "$R/creds"
-[ -s "$R/creds/deepseek.json" ] || { echo "FAIL no credentials: is /gusto/poc/deepseek-key stored? (./put-key.sh)"; exit 1; }
+[ -s "$R/creds/deepseek.json" ] || { echo "FAIL no credentials: is /gusto/deepseek-key stored? (./put-key.sh)"; exit 1; }
 
 python3 "$E/customers_server.py" "$R/customers.log" >/dev/null 2>&1 </dev/null &
 sleep 1

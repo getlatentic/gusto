@@ -6,7 +6,7 @@
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 bucket="$(./cloud-store.sh)"
-[[ "$bucket" =~ ^gusto-poc-demo-[0-9]{12}$ ]] || { echo "cloud-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
+[[ "$bucket" =~ ^gusto-store-[0-9]{12}$ ]] || { echo "cloud-store.sh did not give a bucket name: $bucket" >&2; exit 1; }
 key="$(./image-key.sh)"
 if aws s3api head-object --bucket "$bucket" --key "image/$key.tar.gz" >/dev/null 2>&1 \
   && aws s3api head-object --bucket "$bucket" --key "image/$key.docker.tar.gz" >/dev/null 2>&1; then

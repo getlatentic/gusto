@@ -106,14 +106,14 @@ func connectedTask(t *testing.T, root, id, who, address string) string {
 // clients, leaves the apps that need one off rather than stopping the server.
 func TestConnectorClientsAreReadFromAParameterAndAMissingOneIsNone(t *testing.T) {
 	stored := &storedParameters{held: map[string]string{
-		"/gusto/poc/connector-clients": `{"github": {"id": "Ov23li", "secret": "shh"}}`,
-		"/gusto/poc/not-clients":       `not json`,
+		"/gusto/connector-clients": `{"github": {"id": "Ov23li", "secret": "shh"}}`,
+		"/gusto/not-clients":       `not json`,
 	}}
-	clients, err := connectorClients(context.Background(), "ssm:/gusto/poc/connector-clients", opening(stored))
+	clients, err := connectorClients(context.Background(), "ssm:/gusto/connector-clients", opening(stored))
 	if err != nil || clients["github"].ID != "Ov23li" || clients["github"].Secret != "shh" {
 		t.Errorf("the clients read were %v, %v", clients, err)
 	}
-	for _, setting := range []string{"ssm:/gusto/poc/missing", "ssm:/gusto/poc/not-clients"} {
+	for _, setting := range []string{"ssm:/gusto/missing", "ssm:/gusto/not-clients"} {
 		if clients, err := connectorClients(context.Background(), setting, opening(stored)); err != nil || clients != nil {
 			t.Errorf("%s gave %v, %v", setting, clients, err)
 		}

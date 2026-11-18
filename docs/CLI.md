@@ -1131,7 +1131,7 @@ Prints one parameter, decrypted, with the credentials the AWS configuration find
 
 Arguments:
 
-- `<name>`: the parameter's name, as /gusto/poc/cell-secret
+- `<name>`: the parameter's name, as /gusto/cell-secret
 
 Flags:
 
@@ -1140,7 +1140,7 @@ Flags:
 Examples:
 
 ```sh
-gusto param /gusto/poc/cell-secret
+gusto param /gusto/cell-secret
 ```
 
 ## `gusto doctor`

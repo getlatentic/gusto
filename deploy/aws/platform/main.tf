@@ -3,7 +3,7 @@
 # hosts. Nothing here costs while no host is up. A host is made from the launch template and
 # removes itself, so no host is in this state.
 #
-# The CI role can launch and remove hosts tagged project=gusto-poc and put objects in the
+# The CI role can launch and remove hosts tagged project=gusto and put objects in the
 # bucket. It has no IAM permission, so it cannot change what it may do: this stack is applied by
 # a person, with bootstrap.sh, and changes to it are rare.
 
@@ -16,11 +16,13 @@ data "aws_vpc" "default" {
 }
 
 locals {
-  account  = data.aws_caller_identity.here.account_id
-  host     = "gusto-poc-demo-host"
+  account = data.aws_caller_identity.here.account_id
+  host    = "gusto-host"
+  # The IAM names keep their old form: the Terraform user may make IAM roles, profiles and policies named gusto-poc* only.
+  role     = "gusto-poc-demo-host"
   ci       = "gusto-poc-ci"
   bucket   = "arn:aws:s3:::${var.bucket}"
-  ssm_path = "arn:aws:ssm:${var.region}:${local.account}:parameter/gusto/poc/*"
+  ssm_path = "arn:aws:ssm:${var.region}:${local.account}:parameter/gusto/*"
 }
 
 # ── The host ─────────────────────────────────────────────────────────────────
@@ -61,7 +63,7 @@ resource "aws_security_group" "host" {
 }
 
 resource "aws_iam_role" "host" {
-  name = local.host
+  name = local.role
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [{ Effect = "Allow", Principal = { Service = "ec2.amazonaws.com" }, Action = "sts:AssumeRole" }]
@@ -75,7 +77,7 @@ resource "aws_iam_role_policy_attachment" "host_ssm" {
 }
 
 resource "aws_iam_role_policy" "host" {
-  name = "${local.host}-reads-and-keeps"
+  name = "${local.role}-reads-and-keeps"
   role = aws_iam_role.host.id
   policy = jsonencode({
     Version = "2012-10-17"
@@ -88,7 +90,7 @@ resource "aws_iam_role_policy" "host" {
 }
 
 resource "aws_iam_instance_profile" "host" {
-  name = local.host
+  name = local.role
   role = aws_iam_role.host.name
 }
 
@@ -127,12 +129,12 @@ resource "aws_launch_template" "host" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = { project = "gusto-poc", name = "demo-host" }
+    tags          = { project = "gusto", name = "host" }
   }
 
   tag_specifications {
     resource_type = "volume"
-    tags          = { project = "gusto-poc", name = "demo-host" }
+    tags          = { project = "gusto", name = "host" }
   }
 }
 
@@ -140,8 +142,8 @@ resource "aws_launch_template" "host" {
 # its own: a front door runs no computer, so it needs no nested virtualization and a small type will do.
 locals {
   hosts = {
-    orchestrator = { type = var.orchestrator_instance_type, nested = false, project = "gusto-poc" }
-    cell         = { type = var.cell_instance_type, nested = true, project = "gusto-poc" }
+    orchestrator = { type = var.orchestrator_instance_type, nested = false, project = "gusto" }
+    cell         = { type = var.cell_instance_type, nested = true, project = "gusto" }
     # The cells the live front door starts. They are tagged for it alone, so the workflows that remove a cloud's
     # hosts never reach them, and it never reaches theirs.
     cell-live = { type = var.cell_live_instance_type, nested = true, project = "gusto-live" }
@@ -151,7 +153,7 @@ locals {
 # The image a cell of the live front door is started from. It begins as Ubuntu's, so a cell starts as it always did, and
 # bake-cell-image.sh puts the image it makes here, which is read each time a host is started and so needs no change to this stack.
 resource "aws_ssm_parameter" "cell_image" {
-  name        = "/gusto/poc/cell-ami"
+  name        = "/gusto/cell-ami"
   description = "The image a cell of the live front door is started from, made by bake-cell-image.sh"
   type        = "String"
   data_type   = "aws:ec2:image"
@@ -201,12 +203,12 @@ resource "aws_launch_template" "role" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = { project = each.value.project, name = "demo-${each.key}" }
+    tags          = { project = each.value.project, name = "host-${each.key}" }
   }
 
   tag_specifications {
     resource_type = "volume"
-    tags          = { project = each.value.project, name = "demo-${each.key}" }
+    tags          = { project = each.value.project, name = "host-${each.key}" }
   }
 }
 
@@ -353,7 +355,7 @@ resource "aws_eip_association" "live" {
 # one removes. It costs 30 cents a gigabyte-month, and a cloud holds a few megabytes.
 resource "aws_efs_file_system" "shared" {
   encrypted = true
-  tags      = { project = "gusto-poc", Name = "${local.host}-shared" }
+  tags      = { project = "gusto", Name = "${local.host}-shared" }
 }
 
 data "aws_subnets" "default" {
@@ -448,7 +450,7 @@ resource "aws_iam_role_policy" "ci_bake" {
         Effect    = "Allow"
         Action    = ["ec2:StopInstances", "ec2:CreateImage"]
         Resource  = "arn:aws:ec2:${var.region}:${local.account}:instance/*"
-        Condition = { StringEquals = { "ec2:ResourceTag/project" = "gusto-poc" } }
+        Condition = { StringEquals = { "ec2:ResourceTag/project" = "gusto" } }
       },
       {
         Sid      = "TheImageAndItsSnapshot"
@@ -462,7 +464,7 @@ resource "aws_iam_role_policy" "ci_bake" {
         Effect    = "Allow"
         Action    = ["ec2:DeregisterImage", "ec2:DeleteSnapshot"]
         Resource  = ["arn:aws:ec2:${var.region}::image/*", "arn:aws:ec2:${var.region}::snapshot/*"]
-        Condition = { StringEquals = { "ec2:ResourceTag/project" = "gusto-poc" } }
+        Condition = { StringEquals = { "ec2:ResourceTag/project" = "gusto" } }
       },
       { Sid = "LookAtImagesAndTheFileSystem", Effect = "Allow", Action = ["ec2:DescribeImages", "elasticfilesystem:DescribeFileSystems"], Resource = "*" },
       {
@@ -475,7 +477,7 @@ resource "aws_iam_role_policy" "ci_bake" {
           local.ssm_path,
         ]
       },
-      { Sid = "PointTheCellTemplateAtTheImage", Effect = "Allow", Action = "ssm:PutParameter", Resource = "arn:aws:ssm:${var.region}:${local.account}:parameter/gusto/poc/cell-ami" },
+      { Sid = "PointTheCellTemplateAtTheImage", Effect = "Allow", Action = "ssm:PutParameter", Resource = "arn:aws:ssm:${var.region}:${local.account}:parameter/gusto/cell-ami" },
     ]
   })
 }
@@ -494,7 +496,7 @@ resource "aws_iam_role_policy" "ci" {
         Action   = "ec2:RunInstances"
         Resource = ["arn:aws:ec2:${var.region}:${local.account}:instance/*", "arn:aws:ec2:${var.region}:${local.account}:volume/*"]
         Condition = {
-          StringEquals = { "aws:RequestTag/project" = "gusto-poc" }
+          StringEquals = { "aws:RequestTag/project" = "gusto" }
         }
       },
       {
@@ -520,7 +522,7 @@ resource "aws_iam_role_policy" "ci" {
         Action   = "ec2:TerminateInstances"
         Resource = "arn:aws:ec2:${var.region}:${local.account}:instance/*"
         Condition = {
-          StringEquals = { "ec2:ResourceTag/project" = "gusto-poc" }
+          StringEquals = { "ec2:ResourceTag/project" = "gusto" }
         }
       },
       { Sid = "TellATaggedHostToPowerOff", Effect = "Allow", Action = "ssm:SendCommand", Resource = "arn:aws:ssm:${var.region}::document/AWS-RunShellScript" },
@@ -536,7 +538,7 @@ resource "aws_iam_role_policy" "ci" {
         Effect    = "Allow"
         Action    = "ssm:SendCommand"
         Resource  = "arn:aws:ec2:${var.region}:${local.account}:instance/*"
-        Condition = { StringEquals = { "ssm:resourceTag/project" = "gusto-poc" } }
+        Condition = { StringEquals = { "ssm:resourceTag/project" = "gusto" } }
       },
     ]
   })
