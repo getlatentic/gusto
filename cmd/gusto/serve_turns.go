@@ -69,7 +69,7 @@ func (s *server) startTurns() error {
 	if err != nil {
 		return err
 	}
-	boxes, err := openBackend(s.cfg, s.signs, shared, s.way.proxyPort())
+	boxes, err := openBackend(s.cfg, s.signs, shared, s.instances, s.way.proxyPort())
 	if err != nil {
 		return err
 	}

@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -141,42 +140,6 @@ func (s *Server) backTo(instance, asked, otherwise string) string {
 	return asked
 }
 
-// startApp waits for the runner to have the app answering, and records how that went.
-func (s *Server) startApp(app apps.App) {
-	ctx, cancel := context.WithTimeout(context.Background(), appStart)
-	defer cancel()
-	started, err := s.runner.Start(ctx, app)
-	if err != nil {
-		note := err.Error()
-		if len(note) > 1500 {
-			note = note[len(note)-1500:]
-		}
-		after, _ := s.apps.Change(app.ID, func(a *apps.App) {
-			if a.State == apps.Starting {
-				a.State, a.Note = apps.Failed, note
-			}
-		})
-		if after.State == apps.Removing {
-			s.apps.Delete(app.ID)
-		}
-		return
-	}
-	after, err := s.apps.Change(app.ID, func(a *apps.App) {
-		if a.State == apps.Starting {
-			a.State, a.Sandbox, a.Host, a.Target, a.Note = apps.Live, started.Sandbox, started.Host, started.Target, ""
-		}
-	})
-	if err != nil || after.State != apps.Live {
-		// Removed while it started: what was started is stopped, so nothing runs that the page no longer shows.
-		stop, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		s.runner.Stop(stop, started)
-		if err == nil {
-			s.apps.Delete(app.ID)
-		}
-	}
-}
-
 // removeApp stops an app and takes it off the agent's page.
 func (s *Server) removeApp(w http.ResponseWriter, r *http.Request) {
 	held, found := s.mine(w, r)
@@ -194,97 +157,6 @@ func (s *Server) removeApp(w http.ResponseWriter, r *http.Request) {
 	}
 	s.stopApp(app)
 	http.Redirect(w, r, "/instances/"+held.ID+"#apps", http.StatusSeeOther)
-}
-
-// stopApp stops an app's processes, gives its address back, and forgets it, whatever its state. An app that would not stop is
-// still forgotten: the computer it ran in is what limits it. One still starting is marked removing, and its start, which may
-// not yet have started anything, stops it and forgets it when it ends.
-func (s *Server) stopApp(app apps.App) {
-	if app.Folder != "" || s.runner == nil {
-		s.apps.Delete(app.ID)
-		return
-	}
-	marked, err := s.apps.Change(app.ID, func(a *apps.App) {
-		if a.State == apps.Starting {
-			a.State = apps.Removing
-		}
-	})
-	if err != nil {
-		return
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	s.runner.Stop(ctx, marked)
-	if marked.State != apps.Removing {
-		s.apps.Delete(app.ID)
-	}
-}
-
-// checkApp asks an app a request could not reach whether it answers, a few times a second apart, and only when it never does
-// stops it and says so: one reset connection is not an app that stopped.
-func (s *Server) checkApp(id string) {
-	if _, busy := s.checking.LoadOrStore(id, true); busy {
-		return
-	}
-	s.publishing.Add(1)
-	go func() {
-		defer s.publishing.Done()
-		defer s.checking.Delete(id)
-		for range appChecks {
-			app, err := s.apps.Get(id)
-			if err != nil || app.State != apps.Live {
-				return
-			}
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			err = s.runner.Answers(ctx, app)
-			cancel()
-			if err == nil {
-				return
-			}
-			time.Sleep(time.Second)
-		}
-		app, err := s.apps.Change(id, func(a *apps.App) {
-			if a.State == apps.Live {
-				a.State, a.Note = apps.Stopped, "it stopped answering"
-			}
-		})
-		if err != nil || app.State != apps.Stopped {
-			return
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		s.runner.Stop(ctx, app)
-	}()
-}
-
-// ReconcileApps finishes what a restart cut off, before any app is started: an app left starting is stopped and marked
-// failed, and one left being removed is stopped and forgotten.
-func (s *Server) ReconcileApps() {
-	if s.apps == nil || s.runner == nil {
-		return
-	}
-	all, err := s.apps.All()
-	if err != nil {
-		slog.Error("the shared apps could not be read to finish what a restart cut off", "error", err)
-		return
-	}
-	for _, app := range all {
-		if app.State != apps.Starting && app.State != apps.Removing {
-			continue
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		s.runner.Stop(ctx, app)
-		cancel()
-		if app.State == apps.Removing {
-			s.apps.Delete(app.ID)
-			continue
-		}
-		s.apps.Change(app.ID, func(a *apps.App) {
-			if a.State == apps.Starting {
-				a.State, a.Note = apps.Failed, "the server restarted while it was starting"
-			}
-		})
-	}
 }
 
 // AppHeader says which app a request is for. Gusto cloud sets it, for a request to an
@@ -424,7 +296,7 @@ func (s *Server) serveApp(w http.ResponseWriter, r *http.Request, id, prefix str
 		Transport: s.appTransport(app),
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			pr.Out.URL.Scheme = "http"
-			pr.Out.URL.Host = app.Target
+			pr.Out.URL.Host = app.Dialed()
 			pr.Out.Host = app.Host
 			pr.Out.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
 			pr.Out.URL.RawPath = ""

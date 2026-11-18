@@ -68,6 +68,8 @@ type runnerFake struct {
 	silent error
 	// hold, when set, keeps each start from returning until it is closed.
 	hold chan struct{}
+	// socket, when set, is where a started app is reached, as an app in a container is.
+	socket string
 }
 
 func (r *runnerFake) Start(_ context.Context, app apps.App) (apps.App, error) {
@@ -81,6 +83,9 @@ func (r *runnerFake) Start(_ context.Context, app apps.App) (apps.App, error) {
 		return apps.App{}, r.fail
 	}
 	app.Sandbox, app.Host, app.Target = "c-1111-2222", "default--c-1111-2222--a"+app.ID+".openshell.localhost:18080", strings.TrimPrefix(r.gateway.URL, "http://")
+	if r.socket != "" {
+		app.Sandbox, app.Host, app.Target = "gusto-app-"+app.ID, "localhost:8080", apps.SocketTarget(r.socket)
+	}
 	return app, nil
 }
 

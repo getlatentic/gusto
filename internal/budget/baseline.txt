@@ -4,7 +4,6 @@
 #   go test ./internal/budget -update
 93 1 cmd/gusto-helper/commands.go:program
 64 16 cmd/gusto/changes.go:changesVerify
-51 1 cmd/gusto/commands_account.go:otherCommands
 109 1 cmd/gusto/commands_account.go:recordCommands
 60 1 cmd/gusto/commands_run.go:localCommands
 82 1 cmd/gusto/commands_run.go:runCommands

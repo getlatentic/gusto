@@ -66,7 +66,7 @@ func matrixWay(here bool) (matrix.Way, error) {
 	if here {
 		return matrix.Here(signs), nil
 	}
-	boxes, err := openBackend(cfg, signs, nil, "")
+	boxes, err := openBackend(cfg, signs, nil, nil, "")
 	if err != nil {
 		return matrix.Way{}, err
 	}

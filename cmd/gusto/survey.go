@@ -18,7 +18,7 @@ func scanFrom(lookup func(string) string) int {
 	if err != nil {
 		return fail(err)
 	}
-	boxes, err := openBackend(cfg, signing.Identity{}, nil, "")
+	boxes, err := openBackend(cfg, signing.Identity{}, nil, nil, "")
 	if err != nil {
 		return fail(err)
 	}
