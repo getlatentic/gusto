@@ -1,0 +1,111 @@
+# A merge to main that changes what a host is made from puts a release bundle in the store
+# bucket, and the runner image too when the image itself changed. A host configures itself from the
+# newest bundle, so nothing is built or copied from anybody's machine. The AWS role can put objects
+# in the bucket and launch and remove hosts tagged for the project, and nothing else.
+name: cloud deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - cmd/**
+      - internal/**
+      - go.mod
+      - go.sum
+      - Dockerfile
+      - image/**
+      - deploy/runner/**
+      - deploy/aws/openshell/**
+      - deploy/aws/platform/user-data.sh
+      - .github/workflows/cloud-deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: cloud-deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  bundle:
+    runs-on: [self-hosted, gusto]
+    # Making the cell image takes up to half an hour, and upgrading the front door up to a quarter.
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          # The runner is a machine of ours whose Go caches stay between runs. Restoring and saving GitHub's copy of them has
+          # hung for an hour on a stalled download or upload, holding the deploy.
+          cache: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.GUSTO_AWS_ROLE }}
+          aws-region: us-east-1
+      - name: The runner image, when it is not in the bucket
+        env:
+          BUCKET: ${{ vars.GUSTO_BUCKET }}
+        run: |
+          key="$(deploy/aws/openshell/image-key.sh)"
+          if aws s3api head-object --bucket "$BUCKET" --key "image/$key.tar.gz" >/dev/null 2>&1 \
+            && aws s3api head-object --bucket "$BUCKET" --key "image/$key.docker.tar.gz" >/dev/null 2>&1; then
+            echo "the image $key is in the bucket"
+            exit 0
+          fi
+          if [ "$(uname -m)" != x86_64 ]; then
+            echo "::error::the image $key is not in the bucket, and this runner is $(uname -m), which cannot build it. Run deploy/aws/openshell/publish-image.sh, which builds it on an x86 host, and run this again."
+            exit 1
+          fi
+          docker build --platform linux/amd64 --build-arg "HARNESSES=$(deploy/aws/openshell/harnesses.sh)" -t gusto-runner .
+          container="$(docker create gusto-runner true)"
+          docker export "$container" | gzip -1 > image.tar.gz
+          aws s3 cp image.tar.gz "s3://$BUCKET/image/$key.tar.gz" --only-show-errors
+          docker save gusto-runner | gzip -1 > image.docker.tar.gz
+          aws s3 cp image.docker.tar.gz "s3://$BUCKET/image/$key.docker.tar.gz" --only-show-errors
+          echo "made the image $key: $(du -h image.tar.gz | cut -f1)"
+      - name: The bundle
+        env:
+          BUCKET: ${{ vars.GUSTO_BUCKET }}
+        run: |
+          deploy/aws/openshell/bundle.sh out
+          prefix="s3://$BUCKET/releases/$GITHUB_SHA"
+          aws s3 cp out/bundle.tgz "$prefix/bundle.tgz" --only-show-errors
+          aws s3 cp out/bundle.tgz.sha256 "$prefix/bundle.tgz.sha256" --only-show-errors
+          printf '%s' "$GITHUB_SHA" | aws s3 cp - "s3://$BUCKET/releases/latest" --only-show-errors
+          echo "release $GITHUB_SHA is the latest"
+      - name: The cell image, when what it is made from changed
+        # A cell starts from an image with the runner image already prepared, named by the key of what went into it. When the key
+        # moved, a cell still starts, from a full install, and a visitor waits minutes for their demo, so the image is made here.
+        # The script does nothing when an image of this key is there.
+        env:
+          BUCKET: ${{ vars.GUSTO_BUCKET }}
+        run: deploy/aws/openshell/bake-cell-image.sh
+      - name: gusto cloud, which stays up, brought to this release
+        run: |
+          id="$(aws ec2 describe-instances --filters Name=tag:project,Values=gusto-live Name=tag:name,Values=front-door Name=instance-state-name,Values=running \
+            --query 'Reservations[0].Instances[0].InstanceId' --output text)"
+          if [ -z "$id" ] || [ "$id" = None ]; then echo "no gusto cloud is up, so there is nothing to upgrade"; exit 0; fi
+          # What the host was started with is kept in /etc/gusto/live.env. The script of the release it is being brought to is
+          # the one that runs, so a change to how a host is made takes effect in the upgrade that brings it. A command sent
+          # over SSM has no home directory, which the AWS command needs.
+          command="export HOME=/root; set -a; . /etc/gusto/live.env; set +a; export PATH=\$PATH:/snap/bin; aws s3 cp s3://\$BUCKET/releases/$GITHUB_SHA/bundle.tgz /tmp/next.tgz --only-show-errors; tar -xzf /tmp/next.tgz -O ./user-data.sh > /tmp/next-user-data.sh; RELEASE=$GITHUB_SHA bash /tmp/next-user-data.sh"
+          run="$(aws ssm send-command --document-name AWS-RunShellScript --instance-ids "$id" \
+            --parameters "commands=[\"$command\"]" --query Command.CommandId --output text)"
+          for _ in $(seq 1 60); do
+            state="$(aws ssm get-command-invocation --command-id "$run" --instance-id "$id" --query Status --output text 2>/dev/null || echo Pending)"
+            case "$state" in
+              Success) echo "gusto cloud $id is at $GITHUB_SHA"; exit 0;;
+              Failed|Canceling|TimedOut) echo "the upgrade of $id ended as $state"; aws ssm get-command-invocation --command-id "$run" --instance-id "$id" --query StandardErrorContent --output text | tail -20; exit 1;;
+            esac
+            sleep 15
+          done
+          echo "the upgrade of $id did not finish in 15 minutes"; exit 1

@@ -1,9 +1,9 @@
 #!/bin/bash
-# Runs once, as root, when a demo host is launched, and makes it a demo host of the public
+# Runs once, as root, when a host is launched, and makes it a host of the public
 # cloud from the release bundle in the store bucket: no person and no SSH is needed. The launcher
 # fills in the settings on the next lines. ROLE is all (a host that is the front door and runs the
 # organizations' servers), orchestrator (the front door alone) or cell (runs servers for a front door);
-# the last two share the file system EFS, and RUN is the directory of it that this demo's hosts use.
+# the last two share the file system EFS, and RUN is the directory of it that this cloud's hosts use.
 # BAKE is on for the host an image of a cell is made from: it is made as a cell is, its runner image is prepared for the gateway,
 # and it is not started as a cell, so that the image holds everything a cell has to wait for and nothing that is its own. A host made
 # from that image has /etc/gusto/baked and goes straight to configuring itself.
@@ -123,7 +123,7 @@ fi
 
 efs_mount=${GUSTO_EFS_MOUNT:-/mnt/efs} state=${GUSTO_STATE:-/var/lib/gusto-cloud} root=${GUSTO_ROOT:-}
 
-# The shared file system, and this demo's directory of it where the organizations' data is, mounted as the playbook mounts them.
+# The shared file system, and this cloud's directory of it where the organizations' data is, mounted as the playbook mounts them.
 # A mount target answers a little after it is made.
 mount_the_run() {
   mkdir -p "$efs_mount" "$state"
@@ -175,12 +175,12 @@ aws s3 cp "s3://$BUCKET/releases/$RELEASE/bundle.tgz" "$tmp/bundle.tgz" --only-s
 aws s3 cp "s3://$BUCKET/releases/$RELEASE/bundle.tgz.sha256" "$tmp/bundle.tgz.sha256" --only-show-errors & sum=$!
 # The AWS command, a snap, writes nothing to a file it is redirected to when it is run over SSM, so it is read
 # into a variable.
-demo_vars=$(aws ssm get-parameter --name /gusto/poc/demo-config --query Parameter.Value --output text)
+cloud_vars=$(aws ssm get-parameter --name /gusto/poc/cloud-config --query Parameter.Value --output text)
 wait "$bundle"; wait "$sum"
 # Nothing of the bundle is run until it is the one CI made.
 (cd "$tmp" && sha256sum -c bundle.tgz.sha256)
 tar -xzf "$tmp/bundle.tgz" -C "$dir"
-printf '%s\n' "$demo_vars" > "$dir/demo-vars.json"
+printf '%s\n' "$cloud_vars" > "$dir/cloud-vars.json"
 
 if [ "$LIVE" = on ]; then
   mkdir -p "$(dirname "$live_env")"
@@ -189,38 +189,38 @@ fi
 
 # A host made from the image of a cell goes straight to configuring itself when the release was made for that image, which is when its key
 # is the one the image was made with. A release that expects another image gets everything installed, which is slower and right.
-demo_baked=false
+cloud_baked=false
 if [ -e "$baked_marker" ] && [ -f "$dir/bake.key" ] && [ "$(cat "$baked_marker")" = "$(cat "$dir/bake.key")" ]; then
-  demo_baked=true
+  cloud_baked=true
 fi
 # A front door alone runs no computer, so it has no use for OpenShell, and nor has a host that has it already.
-playbooks=("$dir/ansible/site.yml" "$dir/ansible/demo.yml")
-{ [ "$ROLE" = orchestrator ] || [ "$demo_baked" = true ]; } && playbooks=("$dir/ansible/demo.yml")
+playbooks=("$dir/ansible/site.yml" "$dir/ansible/cloud.yml")
+{ [ "$ROLE" = orchestrator ] || [ "$cloud_baked" = true ]; } && playbooks=("$dir/ansible/cloud.yml")
 shared=()
-[ "$ROLE" = all ] || shared=(-e "demo_efs=$EFS.efs.$REGION.amazonaws.com" -e "demo_run=$RUN")
+[ "$ROLE" = all ] || shared=(-e "cloud_efs=$EFS.efs.$REGION.amazonaws.com" -e "cloud_run=$RUN")
 
 # The front door that starts cells writes the files of its cells once, here, and starts each with the kit's sum.
 if [ "$ROLE" = orchestrator ] && [ "$LIVE" = on ] && [ -f "$dir/bake.key" ]; then
   kit_root=$(mktemp -d "$tmp/cell-kit.XXXXXX")
   ansible-playbook -c local -i 'spike,' \
-    -e "@$dir/demo-vars.json" -e "demo_bucket=$BUCKET" -e "demo_region=$REGION" -e "demo_image_key=$(cat "$dir/image.key")" \
-    -e "demo_release=$RELEASE" -e "demo_root=$kit_root" ${shared[@]+"${shared[@]}"} "$dir/ansible/cell-kit.yml"
+    -e "@$dir/cloud-vars.json" -e "cloud_bucket=$BUCKET" -e "cloud_region=$REGION" -e "cloud_image_key=$(cat "$dir/image.key")" \
+    -e "cloud_release=$RELEASE" -e "cloud_root=$kit_root" ${shared[@]+"${shared[@]}"} "$dir/ansible/cell-kit.yml"
   kit_file=${GUSTO_KIT_FILE:-/usr/local/lib/gusto/cell-kit.tgz}
   mkdir -p "$(dirname "$kit_file")"
   (cd "$kit_root" && find . -type f -print0 | tar --null --owner=0 --group=0 -czf "$kit_file" -T -)
   rm -rf "$kit_root"
-  shared+=(-e "demo_cell_kit=$(sha256sum "$kit_file" | cut -d' ' -f1)" -e "demo_cell_kit_file=$kit_file" -e "demo_bake_key=$(cat "$dir/bake.key")")
+  shared+=(-e "cloud_cell_kit=$(sha256sum "$kit_file" | cut -d' ' -f1)" -e "cloud_cell_kit_file=$kit_file" -e "cloud_bake_key=$(cat "$dir/bake.key")")
 fi
 
 ansible-playbook -c local -i 'spike,' \
-  -e "@$dir/demo-vars.json" -e "demo_bucket=$BUCKET" -e "demo_region=$REGION" -e "demo_image_key=$(cat "$dir/image.key")" \
-  -e "demo_baked=$demo_baked" -e "demo_bake=$([ "$BAKE" = on ] && echo true || echo false)" -e "demo_lease_minutes=$LEASE_MINUTES" -e "demo_max_hours=$MAX_HOURS" -e demo_check_public=false -e "demo_role=$ROLE" -e "demo_live=$([ "$LIVE" = on ] && echo true || echo false)" -e "demo_release=$RELEASE" ${shared[@]+"${shared[@]}"} \
+  -e "@$dir/cloud-vars.json" -e "cloud_bucket=$BUCKET" -e "cloud_region=$REGION" -e "cloud_image_key=$(cat "$dir/image.key")" \
+  -e "cloud_baked=$cloud_baked" -e "cloud_bake=$([ "$BAKE" = on ] && echo true || echo false)" -e "cloud_lease_minutes=$LEASE_MINUTES" -e "cloud_max_hours=$MAX_HOURS" -e cloud_check_public=false -e "cloud_role=$ROLE" -e "cloud_live=$([ "$LIVE" = on ] && echo true || echo false)" -e "cloud_release=$RELEASE" ${shared[@]+"${shared[@]}"} \
   "${playbooks[@]}"
 if [ "$BAKE" = on ]; then
   # The gateway turns the runner image into the disk a sandbox starts from the first time it is asked for one, which is most of a
   # cold start. It is asked here, as the cell asks it, of a sign-up's sandbox and a demo's, and the disk is kept in the image.
   surveys=(/etc/gusto/org.env)
-  grep -qs '^GUSTO_SANDBOX=' /etc/gusto/org-demo.env && surveys+=(/etc/gusto/org-demo.env)
+  grep -qs '^GUSTO_SANDBOX=' /etc/gusto/org-cloud.env && surveys+=(/etc/gusto/org-cloud.env)
   for settings in "${surveys[@]}"; do
     systemd-run --wait --collect --unit=gusto-bake-survey -p User=ubuntu -p "SupplementaryGroups=docker kvm" -p WorkingDirectory=/var/lib/gusto \
       -p EnvironmentFile=/etc/gusto/org.env -p EnvironmentFile="$settings" -p EnvironmentFile=/etc/gusto/cell.env -p EnvironmentFile=/run/gusto/cell.env /usr/local/bin/gusto scan
