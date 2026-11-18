@@ -21,6 +21,7 @@ import (
 	"github.com/getlatentic/gusto/internal/accesslog"
 	"github.com/getlatentic/gusto/internal/cloud"
 	"github.com/getlatentic/gusto/internal/node"
+	"github.com/getlatentic/gusto/internal/settings"
 )
 
 const (
@@ -291,7 +292,7 @@ func organizationServers(store *cloud.Store, public *url.URL, cfg cloudSettings)
 	controller := &cloud.Controller{
 		Store: store, Node: local, Command: []string{exe, "serve"}, Env: env, DemoEnv: demoEnv,
 		CloudURL: public.Scheme + "://" + public.Host, AppsURL: cloud.AppsAddress(public, cmp.Or(cfg.front.appsDomain, cfg.front.domain)), PortFrom: cfg.servers.portFrom,
-		Wait: serverStartWait, Concurrent: cfg.signup.concurrent, IndexDir: indexDir,
+		Wait: serverStartWait, Concurrent: cfg.signup.concurrent, IndexDir: indexDir, InFile: settings.FileHolds,
 	}
 	pool, err := nodePool(cfg.nodes, local)
 	if err != nil || pool == nil {
