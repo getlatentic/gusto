@@ -23,7 +23,7 @@
     src: "{{ item }}.j2"
     dest: "{{ cloud_root }}/etc/gusto/{{ item }}"
     mode: "0644"
-  loop: [cell.env, org.env, org-cloud.env]
+  loop: [cell.env, org.env, org-demo.env]
   when: cloud_role == 'cell'
   notify: Restart the cell
 
