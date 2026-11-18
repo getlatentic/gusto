@@ -1,0 +1,72 @@
+---
+- name: Directories
+  ansible.builtin.file:
+    path: "{{ cloud_root }}{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.owner | default('root') }}"
+    mode: "0755"
+  loop:
+    - { path: /etc/gusto }
+    - { path: /usr/local/lib/gusto }
+    - { path: "{{ cloud_state }}", owner: "{{ cloud_user }}" }
+    - { path: "{{ cloud_lib }}", owner: "{{ cloud_user }}" }
+  # A kit holds files alone, and the host it is unpacked on has the directories.
+  when: cloud_root == ''
+
+- name: The agent of a host, and the organizations' servers
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../.state/gusto"
+    dest: "{{ cloud_root }}/usr/local/bin/gusto"
+    mode: "0755"
+  when: cloud_role == 'cell'
+  notify: Restart the cell
+
+- name: gusto cloud, the operator's page, and the organizations' servers
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../.state/gusto"
+    dest: "{{ cloud_root }}/usr/local/bin/gusto"
+    mode: "0755"
+  when: cloud_role != 'cell'
+  notify:
+    - Restart the front door
+    - Restart the operator's page
+
+- name: What each model costs, which the organizations' servers price their spending by
+  ansible.builtin.copy:
+    src: spend-policy.json
+    dest: "{{ cloud_root }}/etc/gusto/spend-policy.json"
+    mode: "0644"
+
+- name: What the benchmark measured each agent doing with each demo model, which the model pickers show (docs/MATRIX.md)
+  ansible.builtin.copy:
+    src: measured.json
+    dest: "{{ cloud_root }}/etc/gusto/measured.json"
+    mode: "0644"
+
+- name: The script that powers the host off when its lease ends, or gusto cloud is gone
+  ansible.builtin.copy:
+    src: gusto-lease-reaper
+    dest: "{{ cloud_root }}/usr/local/bin/gusto-lease-reaper"
+    mode: "0755"
+
+- name: The script that runs when the host starts
+  ansible.builtin.copy:
+    src: gusto-boot
+    dest: "{{ cloud_root }}/usr/local/bin/gusto-boot"
+    mode: "0755"
+
+- name: The settings of the start-up script and the reaper
+  ansible.builtin.template:
+    src: host.conf.j2
+    dest: "{{ cloud_root }}/etc/gusto/host.conf"
+    mode: "0644"
+  notify: "{{ 'Restart the cell' if cloud_role == 'cell' else 'Restart the front door' }}"
+
+- name: Services
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ cloud_root }}/etc/systemd/system/{{ item }}"
+    mode: "0644"
+  loop: "{{ ['gusto-boot.service'] if cloud_live | bool else ['gusto-boot.service', 'gusto-lease.service', 'gusto-lease.timer'] }}"
+  notify: "{{ 'Restart the cell' if cloud_role == 'cell' else 'Restart the front door' }}"

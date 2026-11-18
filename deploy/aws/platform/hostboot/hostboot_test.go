@@ -23,7 +23,7 @@ echo "apt-get $*" >> "$FAKE_LOG"`,
 echo "aws $1 $2 ${3:-}" >> "$FAKE_LOG"
 case "$1 $2" in
 "s3 cp") src=$3; dst=$4; f="$FAKE_STORE/${src#s3://*/}"; [ -f "$f" ] || { echo "no such object" >&2; exit 1; }; if [ "$dst" = - ]; then cat "$f"; else cp "$f" "$dst"; fi;;
-"ssm get-parameter") echo '{"demo_name":"gusto.example.com","demo_zone":"example.com"}';;
+"ssm get-parameter") echo '{"cloud_domain":"gusto.example.com","cloud_zone":"example.com"}';;
 esac`,
 	"fallocate": `#!/bin/bash
 echo "fallocate $*" >> "$FAKE_LOG"; : > "$3"`,
@@ -36,8 +36,8 @@ exec shasum -a 256 "$@"`,
 	"ansible-playbook": `#!/bin/bash
 echo "ansible-playbook $*" >> "$FAKE_LOG"
 [ -z "${FAKE_ANSIBLE_FAILS:-}" ] || exit 2
-for arg in "$@"; do case "$arg" in demo_root=*) root=${arg#demo_root=};; esac; done
-if [ -n "${root:-}" ]; then mkdir -p "$root/usr/local/bin" "$root/etc/gusto"; echo program > "$root/usr/local/bin/gusto"; echo ROLE=cell > "$root/etc/gusto/demo.conf"; fi`,
+for arg in "$@"; do case "$arg" in cloud_root=*) root=${arg#cloud_root=};; esac; done
+if [ -n "${root:-}" ]; then mkdir -p "$root/usr/local/bin" "$root/etc/gusto"; echo program > "$root/usr/local/bin/gusto"; echo ROLE=cell > "$root/etc/gusto/host.conf"; fi`,
 	"mount": `#!/bin/bash
 echo "mount $*" >> "$FAKE_LOG"
 [ -z "${FAKE_MOUNT_FAILS:-}" ] || exit 32
@@ -85,7 +85,7 @@ func (b *boot) release(corrupt bool) {
 	src := filepath.Join(b.dir, "src")
 	os.MkdirAll(filepath.Join(src, "ansible"), 0o755)
 	os.WriteFile(filepath.Join(src, "ansible", "site.yml"), []byte("---\n"), 0o644)
-	os.WriteFile(filepath.Join(src, "ansible", "demo.yml"), []byte("---\n"), 0o644)
+	os.WriteFile(filepath.Join(src, "ansible", "cloud.yml"), []byte("---\n"), 0o644)
 	os.WriteFile(filepath.Join(src, "image.key"), []byte("imagekey0123456\n"), 0o644)
 	release := filepath.Join(b.store, "releases", "abc123")
 	if out, err := exec.Command("tar", "-czf", filepath.Join(release, "bundle.tgz"), "-C", src, ".").CombinedOutput(); err != nil {
@@ -142,8 +142,8 @@ func TestAHostIsMadeFromTheReleaseWithItsLeaseAndADeadmanScheduledBeforeAnything
 	if play < 0 {
 		t.Fatalf("nothing was configured: %v", lines)
 	}
-	for _, want := range []string{"-c local", "-i spike,", "demo_bucket=store", "demo_region=us-east-1", "demo_image_key=imagekey0123456", "demo_lease_minutes=25", "demo_max_hours=3", "demo_check_public=false",
-		"@" + filepath.Join(b.dir, "bundle", "demo-vars.json"), filepath.Join(b.dir, "bundle", "ansible", "site.yml") + " " + filepath.Join(b.dir, "bundle", "ansible", "demo.yml")} {
+	for _, want := range []string{"-c local", "-i spike,", "cloud_bucket=store", "cloud_region=us-east-1", "cloud_image_key=imagekey0123456", "cloud_lease_minutes=25", "cloud_max_hours=3", "cloud_check_public=false",
+		"@" + filepath.Join(b.dir, "bundle", "cloud-vars.json"), filepath.Join(b.dir, "bundle", "ansible", "site.yml") + " " + filepath.Join(b.dir, "bundle", "ansible", "cloud.yml")} {
 		if !strings.Contains(lines[play], want) {
 			t.Errorf("the playbooks were run without %q:\n%s", want, lines[play])
 		}
@@ -151,7 +151,7 @@ func TestAHostIsMadeFromTheReleaseWithItsLeaseAndADeadmanScheduledBeforeAnything
 	if index(lines, "systemd-run --on-active=15m") >= 0 {
 		t.Errorf("a host that started is not scheduled to go for having failed: %v", lines)
 	}
-	if got, _ := os.ReadFile(filepath.Join(b.dir, "bundle", "demo-vars.json")); !strings.Contains(string(got), "gusto.example.com") {
+	if got, _ := os.ReadFile(filepath.Join(b.dir, "bundle", "cloud-vars.json")); !strings.Contains(string(got), "gusto.example.com") {
 		t.Errorf("the host's settings were read from Parameter Store: %q", got)
 	}
 }
@@ -205,14 +205,14 @@ func playOf(t *testing.T, role string) string {
 
 func TestAHostThatIsAllOfItHasOpenShellAndGustoCloudAndNoSharedFileSystem(t *testing.T) {
 	play := playOf(t, "all")
-	if !strings.Contains(play, "site.yml") || !strings.Contains(play, "demo_role=all") || strings.Contains(play, "demo_efs") || strings.Contains(play, "demo_run") {
+	if !strings.Contains(play, "site.yml") || !strings.Contains(play, "cloud_role=all") || strings.Contains(play, "cloud_efs") || strings.Contains(play, "cloud_run") {
 		t.Errorf("%s", play)
 	}
 }
 
 func TestAnOrchestratorIsConfiguredWithoutOpenShellAndWithTheSharedFileSystem(t *testing.T) {
 	play := playOf(t, "orchestrator")
-	for _, want := range []string{"demo_role=orchestrator", "demo_efs=fs-0123.efs.us-east-1.amazonaws.com", "demo_run=run-42", "demo.yml"} {
+	for _, want := range []string{"cloud_role=orchestrator", "cloud_efs=fs-0123.efs.us-east-1.amazonaws.com", "cloud_run=run-42", "cloud.yml"} {
 		if !strings.Contains(play, want) {
 			t.Errorf("%q is not in %s", want, play)
 		}
@@ -224,7 +224,7 @@ func TestAnOrchestratorIsConfiguredWithoutOpenShellAndWithTheSharedFileSystem(t 
 
 func TestANodeIsConfiguredWithOpenShellAndTheSharedFileSystem(t *testing.T) {
 	play := playOf(t, "cell")
-	for _, want := range []string{"demo_role=cell", "demo_efs=fs-0123.efs.us-east-1.amazonaws.com", "demo_run=run-42", "site.yml", "demo.yml"} {
+	for _, want := range []string{"cloud_role=cell", "cloud_efs=fs-0123.efs.us-east-1.amazonaws.com", "cloud_run=run-42", "site.yml", "cloud.yml"} {
 		if !strings.Contains(play, want) {
 			t.Errorf("%q is not in %s", want, play)
 		}
@@ -244,7 +244,7 @@ func TestAHostThatStaysUpHasNoDeadmanNoFailureTimerAndKeepsWhatItWasStartedWith(
 		t.Errorf("a host meant to stay is scheduled to go: %v", lines)
 	}
 	play := index(lines, "ansible-playbook ")
-	if play < 0 || !strings.Contains(lines[play], "demo_live=true") || !strings.Contains(lines[play], "demo_run=live") || !strings.Contains(lines[play], "demo_release=abc123") {
+	if play < 0 || !strings.Contains(lines[play], "cloud_live=true") || !strings.Contains(lines[play], "cloud_run=live") || !strings.Contains(lines[play], "cloud_release=abc123") {
 		t.Fatalf("the newest release is resolved and the host is told it is live: %v", lines)
 	}
 	text, _ := os.ReadFile(liveEnv)
@@ -279,7 +279,7 @@ func TestAHostThatIsNotLiveIsStillScheduledToGoAndDoesNotKeepAnEnvironment(t *te
 		t.Errorf("%v", lines)
 	}
 	if _, err := os.Stat(liveEnv); err == nil {
-		t.Error("a demo host kept an environment to be started again from")
+		t.Error("a host kept an environment to be started again from")
 	}
 }
 
@@ -326,7 +326,7 @@ func TestAHostMadeFromTheImageOfANodeDoesNotFetchPackagesAndAnOrdinaryHostDoes(t
 	if index(lines, "apt-get ") < 0 {
 		t.Errorf("an ordinary host installed no packages: %v", lines)
 	}
-	if play := index(lines, "ansible-playbook "); play < 0 || !strings.Contains(lines[play], "demo_bake=false") {
+	if play := index(lines, "ansible-playbook "); play < 0 || !strings.Contains(lines[play], "cloud_bake=false") {
 		t.Errorf("an ordinary host is told it is made to be imaged: %v", lines)
 	}
 
@@ -355,7 +355,7 @@ func TestTheHostAnImageIsMadeFromPreparesTheRunnerImageAndIsNotStartedAsANode(t 
 		t.Fatal(err)
 	}
 	play := index(lines, "ansible-playbook ")
-	if play < 0 || !strings.Contains(lines[play], "demo_bake=true") {
+	if play < 0 || !strings.Contains(lines[play], "cloud_bake=true") {
 		t.Fatalf("the playbook was not told this host is made to be imaged: %v", lines)
 	}
 	survey := index(lines, "systemd-run --wait --collect --unit=gusto-bake-survey")
@@ -418,10 +418,10 @@ func TestAHostMadeFromTheImageOfANodeGoesStraightToConfiguringItselfOnlyWhenTheR
 			t.Fatalf("%s: nothing was configured: %v", name, lines)
 		}
 		installs := strings.Contains(lines[play], "site.yml")
-		if c.fast && (installs || !strings.Contains(lines[play], "demo_baked=true")) {
+		if c.fast && (installs || !strings.Contains(lines[play], "cloud_baked=true")) {
 			t.Errorf("%s: the host installed what the image has:\n%s", name, lines[play])
 		}
-		if !c.fast && (!installs || !strings.Contains(lines[play], "demo_baked=false")) {
+		if !c.fast && (!installs || !strings.Contains(lines[play], "cloud_baked=false")) {
 			t.Errorf("%s: the host did not install what it needs:\n%s", name, lines[play])
 		}
 	}
@@ -535,7 +535,7 @@ func TestAGustoCloudServerThatStartsNodesMakesTheirKitAndStartsThemWithItsSum(t 
 	}
 	made, played := index(lines, "ansible-playbook "), -1
 	for i, line := range lines {
-		if strings.HasPrefix(line, "ansible-playbook ") && strings.HasSuffix(line, "demo.yml") {
+		if strings.HasPrefix(line, "ansible-playbook ") && strings.HasSuffix(line, "cloud.yml") {
 			played = i
 		}
 	}
@@ -544,13 +544,13 @@ func TestAGustoCloudServerThatStartsNodesMakesTheirKitAndStartsThemWithItsSum(t 
 	}
 	raw, _ = exec.Command("shasum", "-a", "256", kit).Output()
 	sum := strings.Fields(string(raw))[0]
-	for _, want := range []string{"demo_cell_kit=" + sum, "demo_cell_kit_file=" + kit, "demo_bake_key=abc123"} {
+	for _, want := range []string{"cloud_cell_kit=" + sum, "cloud_cell_kit_file=" + kit, "cloud_bake_key=abc123"} {
 		if !strings.Contains(lines[played], want) {
 			t.Errorf("%q is not in %s", want, lines[played])
 		}
 	}
 	listed, _ := exec.Command("tar", "-tzf", kit).Output()
-	if !strings.Contains(string(listed), "usr/local/bin/gusto") || !strings.Contains(string(listed), "etc/gusto/demo.conf") || strings.Contains(string(listed), "/\n") {
+	if !strings.Contains(string(listed), "usr/local/bin/gusto") || !strings.Contains(string(listed), "etc/gusto/host.conf") || strings.Contains(string(listed), "/\n") {
 		t.Errorf("the kit holds the cell's files and no directories:\n%s", listed)
 	}
 }

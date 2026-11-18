@@ -1,0 +1,13 @@
+---
+# Turns the host up.sh made into a host of gusto cloud: the front door under
+# systemd, TLS for the wildcard name, and the name pointed at the host. OpenShell's role
+# has already run, and its settings are read here.
+- name: The public cloud on a host
+  hosts: spike
+  become: true
+  # The role reads no facts, and gathering them costs a host that is starting a second or two of a cold disk.
+  gather_facts: false
+  vars_files:
+    - roles/openshell/defaults/main.yml
+  roles:
+    - cloud

@@ -101,8 +101,8 @@ AGAIN=all ./e2e-matrix.sh             # or AGAIN=codex@deepseek/deepseek-flash,.
 
 ```bash
 ./e2e-shared.sh        # claude, then codex, on one project in one sandbox; the app they wrote, shared through the gateway
-./demo-up.sh           # a host that serves the public cloud at https://$DEMO_NAME (see below)
-./demo-down.sh         # its DNS records, then the host
+./cloud-up.sh           # a host that serves the public cloud at https://$GUSTO_CLOUD_DOMAIN (see below)
+./cloud-down.sh         # its DNS records, then the host
 ./e2e-cloud.sh         # the public cloud as people use it: sign-up, three invited people, a computer each, a second organization
 ./e2e-concurrency.sh   # 1, 2, 4, 8 and 12 sandboxes at once, in waves of four (SIZES and WAVE change them)
 ```
@@ -126,10 +126,10 @@ probe/expected.txt                               what the first run printed
 e2e.sh, e2e-compare.sh, e2e-real.sh, e2e/         gusto on the instance, with tasks in sandboxes
 e2e-matrix.sh, image.sh                          the box's benchmark, and the image it runs from
 put-key.sh, put-cloudflare.sh                    store a model's key, and the two Cloudflare tokens, in Parameter Store
-demo-up.sh, demo-down.sh, demo-store.sh          a host on a public name, its removal, and the bucket that outlives it
-demo.env.example, demo/, ansible/demo.yml        its settings, the program that sets DNS, the tests of the boot script and the lease reaper, the role
-demo-sweep.sh                                    terminates a demo host that has been up longer than any may be
-demo-ready.sh                                    checks the live public cloud is ready to show, reading only
+cloud-up.sh, cloud-down.sh, cloud-store.sh          a host on a public name, its removal, and the bucket that outlives it
+cloud.env.example, host/, ansible/cloud.yml        its settings, the program that sets DNS, the tests of the boot script and the lease reaper, the role
+cloud-sweep.sh                                    terminates a host that has been up longer than any may be
+cloud-ready.sh                                    checks the live public cloud is ready to show, reading only
 e2e-cloud.sh, e2e/cloud/                         gusto cloud driven through its pages, on a real model
 e2e-shared.sh, e2e-concurrency.sh, e2e/shared/   two agents in one sandbox, a shared app, many sandboxes
 harnesses.sh, e2e/credentials.sh                 the agent list and the proxy's credentials, shared by the runs
@@ -141,17 +141,17 @@ files, so a changed asset fails the install.
 
 ## Before a demo
 
-`demo-ready.sh` checks the live public cloud in about 15 seconds. It changes nothing and sends no mail.
+`cloud-ready.sh` checks the live public cloud in about 15 seconds. It changes nothing and sends no mail.
 It needs `gh` signed in and the `gusto-poc` AWS profile.
 
 ```bash
-./demo-ready.sh                 # getlatentic-com; prints "ready", or "not ready" and exits 1
-./demo-ready.sh <org>           # another organization
+./cloud-ready.sh                 # getlatentic-com; prints "ready", or "not ready" and exits 1
+./cloud-ready.sh <org>           # another organization
 ```
 
 It checks:
 
-- main is deployed: the `deploy` and `demo bundle` runs of its head passed
+- main is deployed: the `deploy` and `cloud deploy` runs of its head passed
 - the landing, demo and sign-up pages answer, `/app` sends a stranger to sign in, and signing in reaches the code page
 - the organization is ready, sends a stranger to gusto cloud, and serves its connector client document
 - both certificates have 14 days or more left
@@ -161,16 +161,16 @@ It checks:
 It does not start a demo, because the demo page asks for a Turnstile check. It does not run a task.
 To check those, start a chat in the organization and ask it something.
 
-## A demo host on a public name
+## A host on a public name
 
-`demo-up.sh` is the way to try a change from a laptop. The way to make a host without one is the
+`cloud-up.sh` is the way to try a change from a laptop. The way to make a host without one is the
 workflows described in `../platform/README.md`.
 
 
-`demo-up.sh` makes a host that serves the public cloud at `https://<name>` for the front
+`cloud-up.sh` makes a host that serves the public cloud at `https://<name>` for the front
 door, `https://<name>/workspace/<slug>` for each organization, and `https://<slug>--<app>.<apps name>`
-for each app a person shares, with a certificate and mail that arrive. The apps name is `DEMO_APPS_NAME`
-in `demo.env`, a domain of its own in the Cloudflare zone `DEMO_APPS_ZONE`, and `<name>` when it is empty. An old link to
+for each app a person shares, with a certificate and mail that arrive. The apps name is `GUSTO_CLOUD_APPS_DOMAIN`
+in `cloud.env`, a domain of its own in the Cloudflare zone `GUSTO_CLOUD_APPS_ZONE`, and `<name>` when it is empty. An old link to
 `https://<slug>.<name>` is sent on to the organization's path. It costs nothing beyond the host: DNS records are not proxied through Cloudflare,
 Let's Encrypt is free, and the store bucket costs cents.
 
@@ -189,27 +189,27 @@ Once, from your machine:
 GUSTO_MODEL_PARAMETER=/gusto/poc/deepseek-key ./put-key.sh   # and the second
 ./put-cloudflare.sh     # the DNS token, then the mail token
 ./put-google.sh         # optional: the OAuth client at Google, for Continue with Google
-cp demo.env.example demo.env   # and fill it in
+cp cloud.env.example cloud.env   # and fill it in
 ```
 
 The Google client is a web application client made in the Google Cloud console. Its authorized
 redirect address is `https://<name>/signin/google/back`. A host reads the client when it boots, and a
 host without it offers sign-in by email alone.
 
-Each demo:
+Each time:
 
 ```bash
-./demo-up.sh            # about 15 minutes the first time and fewer after
-./demo-down.sh          # removes the DNS records and the host, and says if anything is left
+./cloud-up.sh            # about 15 minutes the first time and fewer after
+./cloud-down.sh          # removes the DNS records and the host, and says if anything is left
 ```
 
-A demo host removes itself. When it starts it writes a lease, `DEMO_LEASE_MINUTES` long
+A host removes itself. When it starts it writes a lease, `GUSTO_HOST_LEASE_MINUTES` long
 (thirty by default), and a timer on the host powers it off when the lease ends. The instance is
 launched to terminate on shutdown, so the power-off removes it and its disk, and the host needs no
 AWS credential to do it. A person signed in at `https://<name>/lease` can add thirty minutes at a time,
 and every page shows a banner for the last five minutes with a link to that page. No extension passes
-`DEMO_MAX_HOURS` (four by default), and a host that has been up that long goes whatever its lease says.
-`demo-sweep.sh` is the backstop from somewhere that is not the host: it terminates anything tagged
+`GUSTO_HOST_MAX_HOURS` (four by default), and a host that has been up that long goes whatever its lease says.
+`cloud-sweep.sh` is the backstop from somewhere that is not the host: it terminates anything tagged
 `gusto-poc` that has been up more than `MAX_HOURS` (six by default).
 
 The DNS token is limited to the zone's DNS records. The mail token can send mail and
