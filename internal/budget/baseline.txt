@@ -13,7 +13,7 @@
 37 11 cmd/gusto/gateway.go:(*gateways).open
 60 17 cmd/gusto/main.go:verify
 24 11 cmd/internal/cmdline/clitest/clitest.go:listedUnderGroups
-27 12 deploy/aws/openshell/demo/dns/main.go:run
+27 12 deploy/aws/openshell/host/dns/main.go:run
 36 14 internal/acp/wire.go:(*conn).call
 32 14 internal/apitoken/store.go:(*Store).Check
 31 11 internal/node/keep.go:(*Scaler).sweep

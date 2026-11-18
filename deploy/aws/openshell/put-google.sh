@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Stores the OAuth client at Google that people sign in to gusto cloud with. Make it in the Google Cloud console as a web
-# application whose authorized redirect address is https://<demo name>/signin/google/back. The secret is read at a hidden prompt,
+# application whose authorized redirect address is https://<cloud domain>/signin/google/back. The secret is read at a hidden prompt,
 # so it is on no command line and in no history. Both are kept as SecureStrings that a front door reads with its role at boot.
 source "$(dirname "$0")/env.sh"
 read -r -p "The Google client id: " id

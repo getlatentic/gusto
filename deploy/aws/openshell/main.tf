@@ -82,9 +82,9 @@ resource "aws_iam_role_policy" "spike" {
         Action   = ["ssm:GetParameter", "ssm:GetParameters"]
         Resource = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.here.account_id}:parameter/gusto/poc/*"
       }],
-      var.demo_bucket == "" ? [] : [
-        { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject"], Resource = "arn:aws:s3:::${var.demo_bucket}/*" },
-        { Effect = "Allow", Action = ["s3:ListBucket"], Resource = "arn:aws:s3:::${var.demo_bucket}" },
+      var.cloud_bucket == "" ? [] : [
+        { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject"], Resource = "arn:aws:s3:::${var.cloud_bucket}/*" },
+        { Effect = "Allow", Action = ["s3:ListBucket"], Resource = "arn:aws:s3:::${var.cloud_bucket}" },
       ]
     )
   })

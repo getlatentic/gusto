@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Makes the persistent AWS pieces of the public cloud demo, once, from a machine with the rights
+# Makes the persistent AWS pieces of the public cloud, once, from a machine with the rights
 # to make IAM roles: the role a host has, the launch template a host is made from, and the role GitHub
 # Actions takes. Applying it again changes what changed. After it, hosts are made and removed by the
 # workflows in .github/workflows and nothing runs from a laptop. The CI role can launch and remove
@@ -14,7 +14,7 @@ export AWS_PROFILE="${AWS_PROFILE:-gusto-poc}" AWS_REGION="${AWS_REGION:-us-east
 subject="$(gh api repos/getlatentic/gusto/actions/oidc/customization/sub --jq .sub_claim_prefix 2>/dev/null || true)"
 subject="${subject:-repo:getlatentic/gusto}"
 echo "the workflows' token names the repository as $subject"
-bucket="$(../openshell/demo-store.sh)"
+bucket="$(../openshell/cloud-store.sh)"
 terraform init -input=false -reconfigure -backend-config="bucket=$bucket" -backend-config="region=$AWS_REGION" >/dev/null
 if ! terraform apply -input=false -auto-approve -var "bucket=$bucket" -var "region=$AWS_REGION" -var "manage_github_provider=${MANAGE_GITHUB_PROVIDER:-false}" -var "github_subject=$subject" -var "alert_email=${ALERT_EMAIL:-}"; then
   cat >&2 <<MSG
@@ -32,5 +32,5 @@ echo
 echo "Set these once on the repository, and the workflows can run:"
 echo "  gh variable set GUSTO_AWS_ROLE   --repo getlatentic/gusto --body '$(terraform output -raw ci_role)'"
 echo "  gh variable set GUSTO_BUCKET     --repo getlatentic/gusto --body '$bucket'"
-echo "  gh variable set GUSTO_DEMO_NAME  --repo getlatentic/gusto --body \"\$DEMO_NAME\"   # from demo.env"
-echo "  gh variable set GUSTO_EFS        --repo getlatentic/gusto --body '$(terraform output -raw file_system)'   # only for demos with cells"
+echo "  gh variable set GUSTO_CLOUD_DOMAIN  --repo getlatentic/gusto --body \"\$GUSTO_CLOUD_DOMAIN\"   # from cloud.env"
+echo "  gh variable set GUSTO_EFS        --repo getlatentic/gusto --body '$(terraform output -raw file_system)'   # only for a cloud with cells"
