@@ -1,14 +1,8 @@
 import { useEffect, useRef } from "react"
 
-import {
-  Brand,
-  CloudCard,
-  Heading,
-  Quiet,
-  Refusal,
-  TextLink,
-} from "@/cloud/components/cloud-card"
+import { Quiet, Refusal, TextLink } from "@/cloud/components/cloud-card"
 import { Field, Submit } from "@/cloud/components/forms"
+import { PageIntro, SitePage } from "@/cloud/pages/site-page"
 import type { CloudPage } from "@/cloud/types"
 
 // DemoFormPage starts a demo. A demo's cell takes most of a minute to start, so it is asked for when the visitor first types in the
@@ -23,56 +17,63 @@ export function DemoFormPage({ page }: { page: CloudPage }) {
     )
   }
   return (
-    <CloudCard>
-      <Brand />
-      <Heading>Try gusto free for {page.DemoLeft}</Heading>
-      <Quiet>
-        Try gusto, an AI agent cloud for your organization. Run ready-to-use
-        agents like Claude Code and Codex, and see how gusto lets companies give
-        every employee a private cloud computer where their agents work, with
-        built-in controls for models, spending, and security.
-      </Quiet>
-      <Refusal>{page.Error}</Refusal>
-      <form className="grid gap-3" method="post" action="/demo" onInput={warm}>
-        <Field
-          label="Your name"
-          type="text"
-          name="name"
-          defaultValue={page.Name}
-          maxLength={80}
-          autoComplete="name"
-          autoFocus
-          required
-          data-testid="demo-name"
-        />
-        <Field
-          label={page.WorkOnly ? "Work email" : "Email"}
-          type="email"
-          name="email"
-          defaultValue={page.Email}
-          autoComplete="email"
-          required
-          data-testid="demo-email"
-        />
-        <Field
-          label="Company"
-          type="text"
-          name="company"
-          defaultValue={page.OrgName}
-          maxLength={80}
-          autoComplete="organization"
-          required
-          data-testid="demo-company"
-        />
-        {page.TurnstileSite && <BotCheck site={page.TurnstileSite} />}
-        <Submit data-testid="start-demo">Start my demo</Submit>
-      </form>
-      {page.Book && (
-        <Quiet className="text-center">
-          Rather be shown? <TextLink href={page.Book}>Book a call</TextLink>
-        </Quiet>
-      )}
-    </CloudCard>
+    <SitePage page={page}>
+      <PageIntro title={`Try gusto free for ${page.DemoLeft}`}>
+        Run ready-to-use agents like Claude Code and Codex, and see how gusto
+        gives every employee a private cloud computer where their agents work,
+        with built-in controls for models, spending and security.
+      </PageIntro>
+      <section
+        aria-label="Start a demo"
+        className="mx-auto grid max-w-[26rem] gap-4 px-5 pb-14"
+      >
+        <Refusal>{page.Error}</Refusal>
+        <form
+          className="grid gap-3"
+          method="post"
+          action="/demo"
+          onInput={warm}
+        >
+          <Field
+            label="Your name"
+            type="text"
+            name="name"
+            defaultValue={page.Name}
+            maxLength={80}
+            autoComplete="name"
+            autoFocus
+            required
+            data-testid="demo-name"
+          />
+          <Field
+            label={page.WorkOnly ? "Work email" : "Email"}
+            type="email"
+            name="email"
+            defaultValue={page.Email}
+            autoComplete="email"
+            required
+            data-testid="demo-email"
+          />
+          <Field
+            label="Company"
+            type="text"
+            name="company"
+            defaultValue={page.OrgName}
+            maxLength={80}
+            autoComplete="organization"
+            required
+            data-testid="demo-company"
+          />
+          {page.TurnstileSite && <BotCheck site={page.TurnstileSite} />}
+          <Submit data-testid="start-demo">Start my demo</Submit>
+        </form>
+        {page.Book && (
+          <Quiet className="text-center">
+            Rather be shown? <TextLink href={page.Book}>Book a call</TextLink>
+          </Quiet>
+        )}
+      </section>
+    </SitePage>
   )
 }
 

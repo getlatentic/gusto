@@ -2,9 +2,9 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { cloudPage } from "@/cloud/fixture"
+import { DemoBookPage } from "@/cloud/pages/demo-book-page"
 import { DemoFormPage } from "@/cloud/pages/demo-form-page"
 import {
-  DemoBookPage,
   DemoColleaguePage,
   DemoEndPage,
   DemoWaitPage,

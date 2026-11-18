@@ -20,16 +20,16 @@ const account = (
     import("@/cloud/pages/account-pages").then((m) => ({ default: m[name] }))
   )
 const demo = (
-  name:
-    | "DemoWaitPage"
-    | "DemoBookPage"
-    | "DemoColleaguePage"
-    | "DemoStopPage"
-    | "DemoEndPage"
+  name: "DemoWaitPage" | "DemoColleaguePage" | "DemoStopPage" | "DemoEndPage"
 ) =>
   lazy(() =>
     import("@/cloud/pages/demo-pages").then((m) => ({ default: m[name] }))
   )
+const demoBook = lazy(() =>
+  import("@/cloud/pages/demo-book-page").then((m) => ({
+    default: m.DemoBookPage,
+  }))
+)
 const demoForm = lazy(() =>
   import("@/cloud/pages/demo-form-page").then((m) => ({
     default: m.DemoFormPage,
@@ -50,7 +50,7 @@ export const pages: Record<CloudPageName, PageComponent> = {
   lease: account("LeasePage"),
   demo: demoForm,
   "demo-wait": demo("DemoWaitPage"),
-  "demo-book": demo("DemoBookPage"),
+  "demo-book": demoBook,
   "demo-colleague": demo("DemoColleaguePage"),
   "demo-stop": demo("DemoStopPage"),
   "demo-end": demo("DemoEndPage"),
