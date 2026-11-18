@@ -68,3 +68,17 @@ func TestGustoCloudReadsItsSettingsFile(t *testing.T) {
 		t.Errorf("organizations are at %q and gusto cloud at %q", cfg.front.orgsAt, cfg.front.url)
 	}
 }
+
+// gusto cloud puts an organization's server's settings in its settings file, and keeps its secrets and what is not a setting
+// in its environment.
+func TestAnOrganizationsServerKeepsOnlyItsSecretsInItsEnvironment(t *testing.T) {
+	program()
+	for name, filed := range map[string]bool{
+		"GUSTO_ORG": true, "GUSTO_DATA": true, "GUSTO_ENTRY_KEY": true, "GUSTO_MODELS": true, "GUSTO_SANDBOX": true,
+		"GUSTO_PASSWORD": false, "GUSTO_DATABASE_URL": false, "GUSTO_MODEL_KEY": false, "HOME": false, "PATH": false,
+	} {
+		if settings.FileHolds(name) != filed {
+			t.Errorf("%s in the settings file: %v", name, !filed)
+		}
+	}
+}

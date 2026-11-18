@@ -9,7 +9,9 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 
+	"github.com/getlatentic/gusto/internal/settings"
 	"github.com/getlatentic/gusto/internal/signing"
 )
 
@@ -91,11 +93,43 @@ func (c *Controller) environment(ctx context.Context, slug string, runtime Runti
 	if database != "" {
 		own[databaseURLEnv] = database
 	}
-	env := withoutSetting(operator, databaseURLEnv)
+	env := withoutSetting(withoutSetting(operator, databaseURLEnv), settings.FileEnv)
 	for name, value := range own {
 		env = append(env, name+"="+value)
 	}
-	return env, nil
+	return c.toFile(slug, env)
+}
+
+// toFile moves the settings a settings file holds out of a server's environment and into the file, which is in the
+// organization's own directory, where every node the server may run on reads it. The environment keeps the secrets and
+// what is not a setting, such as HOME and PATH, and names the file.
+func (c *Controller) toFile(slug string, env []string) ([]string, error) {
+	if c.InFile == nil {
+		return env, nil
+	}
+	kept := make([]string, 0, len(env))
+	filed := map[string]string{}
+	for _, each := range env {
+		name, value, _ := strings.Cut(each, "=")
+		if c.InFile(name) {
+			filed[name] = value
+			continue
+		}
+		kept = append(kept, each)
+	}
+	path := c.settingsFile(slug)
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return nil, err
+	}
+	if err := settings.WriteFile(path, filed); err != nil {
+		return nil, err
+	}
+	return append(kept, settings.FileEnv+"="+path), nil
+}
+
+// settingsFile is the settings an organization's server starts with, but for its secrets.
+func (c *Controller) settingsFile(slug string) string {
+	return filepath.Join(c.orgDir(slug), "server.toml")
 }
 
 // serverSettings is where an organization's server listens, which organization it is, and the gusto cloud and node it is on.

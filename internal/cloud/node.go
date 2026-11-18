@@ -14,6 +14,7 @@ import (
 
 	"github.com/getlatentic/gusto/internal/isolation"
 	"github.com/getlatentic/gusto/internal/sandbox"
+	"github.com/getlatentic/gusto/internal/settings"
 )
 
 // ServerSpec is how to run one organization's server: the command, the whole of its
@@ -179,13 +180,31 @@ func (l *LocalNode) Stop(slug string, grace time.Duration) error {
 // removeLeftovers removes the containers of an organization's tasks when its server runs them in containers. It is done when the
 // server has ended, and before one starts: a container whose client was killed with its server runs on with nobody to stop it.
 func removeLeftovers(slug string, env []string) {
-	if valueOf(env, "GUSTO_SANDBOX") != "container" {
+	started := startedWith(env)
+	if started["GUSTO_SANDBOX"] != "container" {
 		return
 	}
-	runtime := isolation.RuntimeName(valueOf(env, "GUSTO_CONTAINER"), exec.LookPath)
+	runtime := isolation.RuntimeName(started["GUSTO_CONTAINER"], exec.LookPath)
 	if err := sandbox.RemoveOrg(runtime, slug); err != nil {
 		slog.Error("an organization's containers could not be removed", "org", slug, "error", err)
 	}
+}
+
+// startedWith is the settings a server is started with: those of the settings file its environment names, under those of the
+// environment, which win as they do in the server. What of the file cannot be read is left out, as the server would refuse it.
+func startedWith(env []string) map[string]string {
+	started := map[string]string{}
+	if path := valueOf(env, settings.FileEnv); path != "" {
+		if filed, _ := settings.ReadFile(path); filed != nil {
+			started = filed
+		}
+	}
+	for _, each := range env {
+		if name, value, ok := strings.Cut(each, "="); ok {
+			started[name] = value
+		}
+	}
+	return started
 }
 
 // valueOf is the value an environment gives a name: the last when it is given twice, which is the one the server is started with.
