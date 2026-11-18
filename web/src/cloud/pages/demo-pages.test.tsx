@@ -127,7 +127,7 @@ describe("booking a demo", () => {
     )
     expect(
       screen
-        .getByRole("link", { name: "Open it on its own page" })
+        .getByRole("link", { name: "Open it in a new tab" })
         .getAttribute("href")
     ).toBe("https://cal.example/gusto")
   })

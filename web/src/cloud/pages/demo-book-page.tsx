@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react"
 
-import { Cta } from "@/cloud/pages/landing/landing-parts"
+import { Cta, StartCta } from "@/cloud/pages/landing/landing-parts"
 import { PageIntro, SitePage } from "@/cloud/pages/site-page"
 import type { CloudPage } from "@/cloud/types"
 import { calendarHeight, framedAt } from "@/domain/booking"
@@ -49,28 +49,30 @@ function Calendar({ page }: { page: CloudPage }) {
   )
 }
 
-// OtherWays is what a visitor may do instead: start an organization now, or open the calendar on its own page when it does
-// not load here. The team's own way to start a demo is last and quietest.
+// OtherWays is what a visitor may do instead of booking: open the calendar elsewhere when it does not load here, or start on
+// their own. The team's way into a demo is last and quietest.
 function OtherWays({ page }: { page: CloudPage }) {
   return (
     <section
       aria-label="Other ways"
-      className="text-quiet mx-auto grid max-w-3xl justify-items-center gap-2 px-5 pt-6 pb-14 text-center text-sm"
+      className="text-quiet mx-auto grid max-w-4xl justify-items-center gap-6 px-5 pt-6 pb-16 text-center text-sm"
     >
-      <p className="m-0">
-        Or <Link href="/signup">create your organization</Link> and try gusto
-        now.
-        {page.BookFrame && page.Book && (
-          <>
-            {" "}
-            The calendar not loading?{" "}
-            <Link href={page.Book}>Open it on its own page</Link>.
-          </>
-        )}
+      {page.BookFrame && page.Book && (
+        <p className="m-0">
+          Calendar not loading?{" "}
+          <Link href={page.Book}>Open it in a new tab</Link>
+        </p>
+      )}
+      <p className="m-0 flex flex-wrap items-center justify-center gap-3">
+        Rather try it yourself?
+        <StartCta page={page} />
       </p>
-      <p className="m-0 text-xs">
-        <Link href="/demo?team=1">gusto team: start a demo</Link>
-      </p>
+      <a
+        className="text-quiet hover:text-ink text-xs no-underline"
+        href="/demo?team=1"
+      >
+        Team demo
+      </a>
     </section>
   )
 }
@@ -91,7 +93,12 @@ function useCalendarHeight(): number | undefined {
 
 function Link({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <a className="text-ink underline underline-offset-2" href={href}>
+    <a
+      className="text-ink underline underline-offset-2"
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+    >
       {children}
     </a>
   )
