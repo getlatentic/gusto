@@ -57,7 +57,7 @@ jobs:
           node-version: 24
       - run: npm ci
       - run: npm run lint
-      - run: npx prettier --check "src/**/*.{ts,tsx}" "e2e/**/*.{ts,mjs}" playwright.config.ts
+      - run: npx prettier --check "src/**/*.{ts,tsx,css}" "e2e/**/*.{ts,mjs}" playwright.config.ts
       - run: npm test
       - run: npm run build
 
