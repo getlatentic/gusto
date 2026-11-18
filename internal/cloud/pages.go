@@ -66,13 +66,12 @@ type view struct {
 	Computers int
 	// Domain is the company's.
 	Domain string
-	// The organization's server: how it is, whether a person can open it, and
-	// whether the page should look again in a moment.
+	// The organization's server: how it is, and whether a person can open it. Watch is set on a page that waits on the server,
+	// which is drawn again when its state changes, and Refresh on one that looks again every few seconds.
 	Server  string
 	CanOpen bool
+	Watch   *watch
 	Refresh bool
-	// RefreshEvery is how many seconds the page waits to look again, three when it is not set.
-	RefreshEvery int
 	// Steps and Waited say how far a demo is from ready.
 	Steps  []Step
 	Waited string

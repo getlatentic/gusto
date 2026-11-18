@@ -29,10 +29,12 @@ type Pool struct {
 	Measure func() Capacity
 	now     func() time.Time
 
-	// guard guards retiring, which the scaler sets while the controller places.
+	// guard guards retiring, which the scaler sets while the controller places, and started, which a node sets as it starts.
 	guard sync.Mutex
 	// retiring is the nodes the scaler is stopping, by name: none is placed on or started on.
 	retiring map[string]bool
+	// started is what each node said when it started, by name, until its registration file says as much.
+	started map[string]Registration
 }
 
 // setRetiring says the scaler is stopping a node, or is not after all.
@@ -89,7 +91,7 @@ func (p *Pool) Get(name string) (cloud.Node, error) {
 	if p.Local != nil && name == p.Local.Name() {
 		return p.Local, nil
 	}
-	registered, age, err := Registered(p.Dir, name, p.clock())
+	registered, age, err := p.registered(name)
 	gone := p.GoneAfter
 	if gone <= 0 {
 		gone = 30 * time.Minute
@@ -119,7 +121,7 @@ type candidate struct {
 // Place is the node with the most memory to spare that has enough, and this machine counts among them
 // when it runs servers. A node that does not answer, or that is being stopped, is not a candidate.
 func (p *Pool) Place() (cloud.Node, error) {
-	fresh, err := Fresh(p.Dir, p.clock(), p.maxAge())
+	fresh, err := p.fresh()
 	if err != nil {
 		return nil, err
 	}

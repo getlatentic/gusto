@@ -94,6 +94,8 @@ export interface CloudPage {
   Computers: number
   Server: string
   CanOpen: boolean
+  // Watch is set on a page that waits on the organization's server: the state it was drawn in.
+  Watch?: { State: string }
 
   Members: CloudMember[] | null
   Invited: string[] | null

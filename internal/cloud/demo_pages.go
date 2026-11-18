@@ -158,8 +158,8 @@ func (s *Server) demoWait(w http.ResponseWriter, r *http.Request, person Person)
 		Book: s.Store.set.Demo.BookURL, Extendable: !demo.Extended && s.Store.set.Demo.Extend > 0 && !demo.Expires.IsZero(),
 		Notice: r.URL.Query().Get("notice")}
 	if state != Ready {
-		// A visitor is waiting on this page, and a demo that is ready is seen at the next look.
-		page.Refresh, page.RefreshEvery, page.DemoWords = true, 1, waitingWords(state)
+		// A visitor is waiting on this page, which is drawn again the moment the demo's state changes.
+		page.Watch, page.DemoWords = &watch{State: state}, waitingWords(state)
 		page.Steps = demoSteps(state)
 		if lead, found := s.Store.LeadOf(r.Context(), person.Org); found {
 			page.Waited = waited(lead.Requested, time.Now())

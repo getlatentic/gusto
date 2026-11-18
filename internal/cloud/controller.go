@@ -54,9 +54,9 @@ type Controller struct {
 	// IndexDir is where organizations' indexes and their apps' sockets are kept, in a directory for each, on the local disk of
 	// the host a server runs on. It is the index directory under the store's root when not set.
 	IndexDir string
-	// WaitEvery is how often an organization waiting for a node is tried again. It is half a second when not set: a node
-	// says it is ready by writing to the shared file system, which cannot tell a reader it changed, and a visitor waits
-	// on the organization.
+	// WaitEvery is how often an organization waiting for a node is tried again when nothing has woken the controller, five
+	// seconds when not set. A node that starts says so at once (Wake), so this is for a node whose word was lost and for
+	// room made by an organization that left.
 	WaitEvery time.Duration
 	// OnWaiting is told when an organization starts waiting for a node with room, so a node can be started for it at
 	// once. It is called outside the controller's lock and must not block.
@@ -91,6 +91,10 @@ type Controller struct {
 	epoch atomic.Int64
 	// followed is what routing read from the database while another gusto cloud server leads.
 	followed routeCache
+	// changed is closed when an organization's state next changes, for those waiting to see it, and wake is sent on when a
+	// node says it has started. Both are made when first asked for, under mu.
+	changed chan struct{}
+	wake    chan struct{}
 }
 
 // Lead makes this controller the one that provisions and supervises, at the lease's epoch.
@@ -103,6 +107,7 @@ func (c *Controller) Follow() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	clear(c.orgs)
+	c.changedNow()
 }
 
 func (c *Controller) following() bool { return c.epoch.Load() < 0 }

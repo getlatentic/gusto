@@ -29,6 +29,7 @@ func (a *Agent) Run(ctx context.Context, listen, dir string, every time.Duration
 	server := &http.Server{Handler: a.Handler(), ReadHeaderTimeout: 10 * time.Second}
 	served := make(chan error, 1)
 	go func() { served <- server.Serve(listener) }()
+	go a.sayStarted(ctx, dir, registration)
 	tick := time.NewTicker(every)
 	defer tick.Stop()
 	for {

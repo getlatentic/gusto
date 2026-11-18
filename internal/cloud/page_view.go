@@ -31,6 +31,8 @@ type pageView struct {
 	Computers int
 	Server    string
 	CanOpen   bool
+	// Watch is the state of the organization's server a waiting page was drawn in.
+	Watch *watch `json:",omitempty"`
 
 	Members   []memberView
 	Invited   []string
@@ -102,7 +104,7 @@ func pageOf(name string, v view) pageView {
 		Several: v.Several, Person: personView{Email: v.Person.Email, Trial: v.Person.Trial()},
 		Address: v.Address, Domain: v.Domain, Credit: v.Credit, Plan: v.Plan,
 		Quota: quotaOf(v.Quota), Verified: quotaOf(v.Verified),
-		Computers: v.Computers, Server: v.Server, CanOpen: v.CanOpen,
+		Computers: v.Computers, Server: v.Server, CanOpen: v.CanOpen, Watch: v.Watch,
 		Admins: v.Admins, IsAdmin: v.IsAdmin, CanInvite: v.CanInvite, Link: v.Link,
 		DemoWords: v.DemoWords, Steps: v.Steps, Book: v.Book, BookFrame: v.BookFrame, TurnstileSite: v.TurnstileSite,
 		Extendable: v.Extendable, Ended: v.Ended, Ending: v.Ending, Contact: v.Contact,
