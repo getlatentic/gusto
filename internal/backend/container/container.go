@@ -29,6 +29,8 @@ type Config struct {
 	Open bool
 	// Containers is how containers are started, and who signs their records.
 	Containers sandbox.Containers
+	// AgentFolder is an agent's folder by its instance, where an app it built is started. Without it no app is run.
+	AgentFolder func(instance string) string
 }
 
 // Backend runs turns in containers.
