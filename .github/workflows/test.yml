@@ -63,7 +63,9 @@ jobs:
 
   # The web app's end-to-end tests drive a real gusto in Chromium: web/e2e/server.mjs builds the app and ./cmd/gusto, and starts
   # them with a stub model (Python) and a stub identity provider.
+  # It waits for web: both share the machine, and Chromium beside the unit tests slows them past their timeout.
   e2e:
+    needs: web
     runs-on: [self-hosted, gusto]
     timeout-minutes: 20
     defaults:
