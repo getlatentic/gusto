@@ -4,6 +4,7 @@ import { Quiet, Refusal, TextLink } from "@/cloud/components/cloud-card"
 import { Field, Submit } from "@/cloud/components/forms"
 import { PageIntro, SitePage } from "@/cloud/pages/site-page"
 import type { CloudPage } from "@/cloud/types"
+import { demoFormWords } from "@/domain/demo-form"
 
 // DemoFormPage starts a demo. A demo's cell takes most of a minute to start, so it is asked for when the visitor first types in the
 // form, and is up or nearly by the time they send it.
@@ -16,13 +17,10 @@ export function DemoFormPage({ page }: { page: CloudPage }) {
       () => {}
     )
   }
+  const words = demoFormWords(page)
   return (
     <SitePage page={page}>
-      <PageIntro title={`Try gusto free for ${page.DemoLeft}`}>
-        Run ready-to-use agents like Claude Code and Codex, and see how gusto
-        gives every employee a private cloud computer where their agents work,
-        with built-in controls for models, spending and security.
-      </PageIntro>
+      <PageIntro title={words.title}>{words.intro}</PageIntro>
       <section
         aria-label="Start a demo"
         className="mx-auto grid max-w-[26rem] gap-4 px-5 pb-14"
@@ -46,7 +44,7 @@ export function DemoFormPage({ page }: { page: CloudPage }) {
             data-testid="demo-name"
           />
           <Field
-            label={page.WorkOnly ? "Work email" : "Email"}
+            label={words.email}
             type="email"
             name="email"
             defaultValue={page.Email}
@@ -55,7 +53,7 @@ export function DemoFormPage({ page }: { page: CloudPage }) {
             data-testid="demo-email"
           />
           <Field
-            label="Company"
+            label={words.company}
             type="text"
             name="company"
             defaultValue={page.OrgName}
@@ -65,9 +63,9 @@ export function DemoFormPage({ page }: { page: CloudPage }) {
             data-testid="demo-company"
           />
           {page.TurnstileSite && <BotCheck site={page.TurnstileSite} />}
-          <Submit data-testid="start-demo">Start my demo</Submit>
+          <Submit data-testid="start-demo">{words.submit}</Submit>
         </form>
-        {page.Book && (
+        {words.offersCall && page.Book && (
           <Quiet className="text-center">
             Rather be shown? <TextLink href={page.Book}>Book a call</TextLink>
           </Quiet>

@@ -49,6 +49,7 @@ func (s *Server) warmDemo(w http.ResponseWriter, r *http.Request) {
 // drawDemoForm draws the form. Where there is a bot check its widget is on the form, and the page may load its script and
 // frame its answer, from Cloudflare and from nowhere else.
 func (s *Server) drawDemoForm(w http.ResponseWriter, status int, page view) {
+	page.ForTeam = !s.Store.set.Demo.Public()
 	if s.Turnstile.Enabled() {
 		page.TurnstileSite = s.Turnstile.Site
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; "+

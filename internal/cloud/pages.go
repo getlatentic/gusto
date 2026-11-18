@@ -37,6 +37,8 @@ type view struct {
 	Taken bool
 	// WorkOnly says only a work address may sign up or start a demo.
 	WorkOnly bool
+	// ForTeam says the demo form is the team's, where only the team starts demos, for a call with someone else.
+	ForTeam bool
 	// Google says a person may sign in and sign up with a Google account.
 	Google bool
 	// SignedIn says the person looking at the landing page is signed in, so it offers to open gusto rather than to sign in.
