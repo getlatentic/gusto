@@ -78,6 +78,8 @@ var (
 
 	// errNoPortal is a request for the processor's page of an organization that has none.
 	errNoPortal = errors.New("this organization has no billing page")
+	// errNotOffered is a request to subscribe through a processor that the person is not offered.
+	errNotOffered = errors.New("this processor is not offered to this person")
 
 	// errSecondSubscription is an organization that already pays being sent a second subscription, which happens when an
 	// admin subscribes from two tabs. The first stands, and the operator refunds the second.

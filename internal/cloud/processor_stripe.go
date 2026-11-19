@@ -11,10 +11,21 @@ import (
 
 // stripeProvider is Stripe as a payments.Provider: Checkout to subscribe, the portal for cards and invoices, and seats that
 // Stripe changes on gusto's word and prorates.
-type stripeProvider struct{ stripe *Stripe }
+type stripeProvider struct {
+	stripe *Stripe
+	store  *Store
+}
 
 // NewStripeProvider is the Stripe that bills seats, as a provider.
-func NewStripeProvider(s *Stripe) payments.Provider { return stripeProvider{s} }
+func NewStripeProvider(store *Store, s *Stripe) payments.Provider {
+	return stripeProvider{stripe: s, store: store}
+}
+
+// OfferedTo is whom Stripe is offered to. Stripe's test cards pay nothing, so with a test key a host that names its staff
+// offers Stripe to them alone.
+func (p stripeProvider) OfferedTo(email string) bool {
+	return !p.stripe.Testing() || p.store.set.Demo.MayStart(email)
+}
 
 func (stripeProvider) Name() string  { return "stripe" }
 func (stripeProvider) Label() string { return "Stripe" }

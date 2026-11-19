@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/url"
+	"slices"
 
 	"github.com/getlatentic/gusto/internal/cloud/payments"
 )
@@ -82,11 +83,31 @@ func (b *Billing) planProvider(ctx context.Context, org string) (Plan, payments.
 	return plan, p, nil
 }
 
+// offeredTo is the processors a person may subscribe through.
+func (b *Billing) offeredTo(email string) []payments.Provider {
+	var offered []payments.Provider
+	for _, p := range b.Providers.All() {
+		if r, restricted := p.(payments.Restricted); !restricted || r.OfferedTo(email) {
+			offered = append(offered, p)
+		}
+	}
+	return offered
+}
+
+// offeredProvider is the processor a person asked to subscribe through, when it is one they are offered.
+func (b *Billing) offeredProvider(name, email string) (payments.Provider, error) {
+	p, err := b.provider(name)
+	if err == nil && !slices.Contains(b.offeredTo(email), p) {
+		return nil, errNotOffered
+	}
+	return p, err
+}
+
 // Subscribe starts a subscription for an organization, with a seat for each of its people, and returns the address its
 // payer goes to. An organization that pays is refused: it is billed one way. While a subscription still waits for its payer,
 // asking again returns its address and makes no second subscription, since a payer may be paying the first at that moment.
 func (b *Billing) Subscribe(ctx context.Context, org, email, name string) (string, error) {
-	p, err := b.provider(name)
+	p, err := b.offeredProvider(name, email)
 	if err != nil {
 		return "", err
 	}

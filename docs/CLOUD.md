@@ -129,6 +129,8 @@ An organization pays $25 a month for each person in it, through any payment proc
 
 One organization has one plan and is billed one way. An organization that pays is refused a second subscription, through the same processor or another. A second subscription that arrives anyway, from two tabs, is not kept and is logged, for the operator to refund.
 
+A test key (`sk_test_` or `rk_test_`) takes Stripe's test cards, which pay nothing. On a host that names its staff in `GUSTO_CLOUD_DEMO_STAFF`, Stripe with a test key is offered to the staff's addresses alone, so nobody else gets the paid quota from a test card.
+
 **The plan.** Each organization that subscribed has one row in `billing_accounts`: the processor, its name for the subscription (`ref`), the seats billed, the state and when the processor made the answer last kept. An organization with no row is not billed and keeps the quota its address earned. The quota is worked out with the rest by `ApplyQuota`.
 
 | State | Meaning | What the organization may run |
@@ -158,6 +160,8 @@ The processor is the clock: gusto keeps no timer of its own. An answer older tha
 **Accounts database.** Migration 9 adds `billing_accounts`, `billing_events` (the notices already applied, for each processor), `seat_proposals` and `billing_agent_tokens` (the digest of an agent's token), and moves the `billing` table of the earlier release into `billing_accounts` as Stripe's plans. The tables hold no name, address or card of a payer.
 
 **Testing.** The tests run a fake Stripe, and a fake PayPal made from the shapes in PayPal's published OpenAPI schema. Neither is a recording. `TestPayPalSandbox` reaches the sandbox when `GUSTO_PAYPAL_CLIENT_ID` and `GUSTO_PAYPAL_CLIENT_SECRET` are set: it makes the plan and a subscription that waits for a payer. `GUSTO_REAL_AGENT=1 go test -run RealAgent ./internal/cloud` runs `codex` against the endpoint and checks that it leaves a proposal and changes nothing.
+
+On AWS, `deploy/aws/openshell/put-stripe.sh` does all of this from a secret key, test mode unless it is given `--live`, and stores the three settings where the front door reads them when it boots ([deploy/aws/openshell/README.md](../deploy/aws/openshell/README.md)).
 
 ## Computers
 

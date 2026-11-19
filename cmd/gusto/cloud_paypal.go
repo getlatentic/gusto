@@ -44,7 +44,7 @@ type payPalSale struct {
 func billingOf(store *cloud.Store, stripe *cloud.Stripe, payPal *payPalSale) *cloud.Billing {
 	var providers []payments.Provider
 	if stripe != nil {
-		providers = append(providers, cloud.NewStripeProvider(stripe))
+		providers = append(providers, cloud.NewStripeProvider(store, stripe))
 	}
 	if payPal != nil {
 		providers = append(providers, cloud.NewPayPalProvider(store, payPal.client, payPal.planID))

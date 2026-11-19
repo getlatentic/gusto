@@ -51,7 +51,7 @@ func (s *Server) billingViewOf(ctx context.Context, org Org, person Person, peop
 		s.describe(view, plan)
 	}
 	if view.Admin {
-		view.Offers = s.offers(plan, held, people)
+		view.Offers = s.offers(plan, held, people, person.Email)
 		view.Proposals, _ = s.Store.OpenProposals(org.Slug)
 	}
 	return view
@@ -87,11 +87,11 @@ func planWords(a Plan, p payments.Provider) string {
 
 // offers are the processors an admin may subscribe through: none while the organization pays or a payment is awaited,
 // unless the processor has an address to go back to.
-func (s *Server) offers(a Plan, held bool, people int) []billingOffer {
+func (s *Server) offers(a Plan, held bool, people int, email string) []billingOffer {
 	if held && (a.State.Paying() || (a.State == payments.Pending && a.ApproveURL == "")) {
 		return nil
 	}
-	all := s.Billing.Providers.All()
+	all := s.Billing.offeredTo(email)
 	offers := make([]billingOffer, 0, len(all))
 	for _, p := range all {
 		words := "Subscribe"

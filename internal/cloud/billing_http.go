@@ -73,7 +73,7 @@ func (s *Server) billingAction(call func(context.Context, Person, *http.Request)
 		ctx, cancel := context.WithTimeout(r.Context(), billingCallTimeout)
 		defer cancel()
 		to, err := call(ctx, person, r)
-		if errors.Is(err, errNoPortal) {
+		if errors.Is(err, errNoPortal) || errors.Is(err, errNotOffered) {
 			http.NotFound(w, r)
 			return
 		}

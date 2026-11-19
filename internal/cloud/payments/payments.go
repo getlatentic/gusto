@@ -102,6 +102,11 @@ type Provider interface {
 	Webhook(ctx context.Context, d Delivery) (Notice, error)
 }
 
+// Restricted is a processor that is offered to some people only.
+type Restricted interface {
+	OfferedTo(email string) bool
+}
+
 // SeatSetter is a processor that changes the seats of a subscription on its own word. The seats then follow the
 // organization's members.
 type SeatSetter interface {
