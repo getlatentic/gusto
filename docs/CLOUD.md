@@ -133,8 +133,11 @@ With the Stripe settings set, an organization pays $25 a month for each person i
 - The seats billed follow the members. Joining or being removed wakes the seat sync, which also runs every minute, and Stripe prorates the change. A change Stripe refuses is tried again on the next run.
 - An admin opens Stripe's portal from "Card, invoices and plan" to change the card, read invoices or end the subscription.
 - A second subscription for an organization that already pays, from two tabs, is not kept and is logged, for the operator to refund.
+- A test key (`sk_test_` or `rk_test_`) takes Stripe's test cards, which pay nothing. On a host that names its staff in `GUSTO_CLOUD_DEMO_STAFF`, a test key offers a plan to the staff's addresses alone, so nobody else gets the paid quota from a test card.
 
 In Stripe, make a product with a monthly per-unit price and give its id as `GUSTO_CLOUD_STRIPE_PRICE`. Add a webhook endpoint at `<GUSTO_CLOUD_URL>/stripe/webhook` that sends the `customer.subscription.created`, `.updated`, `.deleted`, `.paused` and `.resumed` events, and turn on the customer portal.
+
+On AWS, `deploy/aws/openshell/put-stripe.sh` does all of this from a secret key, test mode unless it is given `--live`, and stores the three settings where the front door reads them when it boots ([deploy/aws/openshell/README.md](../deploy/aws/openshell/README.md)).
 
 ## Computers
 

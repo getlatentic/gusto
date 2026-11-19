@@ -43,7 +43,7 @@ func newFakeStripe(t *testing.T) *fakeStripe {
 		failing, subscription := f.failing, f.subscription
 		f.mu.Unlock()
 		switch {
-		case user != "sk_test":
+		case user != "sk_test_fake" && user != "sk_live_fake":
 			http.Error(w, `{"error":{"message":"Invalid API Key provided"}}`, http.StatusUnauthorized)
 		case failing:
 			http.Error(w, `{"error":{"message":"try again"}}`, http.StatusInternalServerError)
@@ -64,7 +64,7 @@ func newFakeStripe(t *testing.T) *fakeStripe {
 }
 
 func (f *fakeStripe) stripe() *Stripe {
-	return &Stripe{Key: "sk_test", Price: "price_seat", WebhookSecret: testWebhookSecret, SeatUSD: 25, API: f.listener.URL}
+	return &Stripe{Key: "sk_test_fake", Price: "price_seat", WebhookSecret: testWebhookSecret, SeatUSD: 25, API: f.listener.URL}
 }
 
 func (f *fakeStripe) last() (string, url.Values) {
@@ -387,6 +387,36 @@ func TestBillingIsOffUntilItIsSetUp(t *testing.T) {
 		}
 		if status, _, _ := admin.post("/org/billing/subscribe", nil); status != http.StatusNotFound {
 			t.Errorf("%d", status)
+		}
+	})
+}
+
+// Stripe's test cards pay nothing, so a host with a test key and staff offers a plan to its staff alone. A live key is offered
+// to everybody.
+func TestATestKeyIsOfferedToTheStaffAlone(t *testing.T) {
+	onEachDatabase(t, func(t *testing.T) {
+		stripe := newFakeStripe(t)
+		f := newFront(t, staffSet(), func(c *Config) { c.Stripe = stripe.stripe() })
+		visitor := f.verifiedAdmin("ada@acme.com", "Acme")
+		staff := f.verifiedAdmin("tosin@latentic.com", "Latentic")
+		if _, page := visitor.get("/org"); shown(t, page).Plan != nil {
+			t.Errorf("a visitor is offered a plan they could pay for with a test card: %+v", shown(t, page).Plan)
+		}
+		if status, _, _ := visitor.post("/org/billing/subscribe", nil); status != http.StatusNotFound || stripe.count() != 0 {
+			t.Errorf("a visitor subscribed with a test key: %d", status)
+		}
+		if _, page := staff.get("/org"); shown(t, page).Plan == nil {
+			t.Error("the staff are not offered a plan to try")
+		}
+		if status, _, _ := staff.post("/org/billing/subscribe", nil); status != http.StatusSeeOther {
+			t.Errorf("the staff could not subscribe: %d", status)
+		}
+
+		live := stripe.stripe()
+		live.Key = "sk_live_fake"
+		g := newFront(t, staffSet(), func(c *Config) { c.Stripe = live })
+		if _, page := g.verifiedAdmin("ada@acme.com", "Acme").get("/org"); shown(t, page).Plan == nil {
+			t.Error("a live key is not offered to everybody")
 		}
 	})
 }

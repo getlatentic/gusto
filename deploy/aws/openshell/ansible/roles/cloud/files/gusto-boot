@@ -72,6 +72,20 @@ lead_hook() {
   fi
 }
 
+# Seat billing through Stripe: the API key, the price of a seat and the webhook's signing secret, which the front door's own
+# service reads as its environment. gusto cloud refuses to start with some of the three and not all, so the file is written
+# with all three or not at all, and a host without them bills nobody.
+stripe() {
+  local key price webhook
+  rm -f "$run/secrets/stripe.env"
+  if key=$(param "$STRIPE_KEY_PARAMETER" 2>/dev/null) && price=$(param "$STRIPE_PRICE_PARAMETER" 2>/dev/null) &&
+    webhook=$(param "$STRIPE_WEBHOOK_PARAMETER" 2>/dev/null) && [ -n "$key" ] && [ -n "$price" ] && [ -n "$webhook" ]; then
+    (umask 077; printf 'GUSTO_CLOUD_STRIPE_KEY=%s\nGUSTO_CLOUD_STRIPE_PRICE=%s\nGUSTO_CLOUD_STRIPE_WEBHOOK_SECRET=%s\n' "$key" "$price" "$webhook" > "$run/secrets/stripe.env")
+  else
+    echo "gusto-boot: no billing, since $STRIPE_KEY_PARAMETER, $STRIPE_PRICE_PARAMETER and $STRIPE_WEBHOOK_PARAMETER are not all stored"
+  fi
+}
+
 # The OAuth client at Google that people sign in with, which the front door's own service reads as its environment. A host
 # without both parameters offers email alone, which a visitor sees as no Google button.
 google() {
@@ -196,9 +210,9 @@ install -d -m 0755 "$run" "$lib"
 install -d -m 0700 "$run/secrets"
 case "$role" in
 all)
-  tokens; turnstile; lead_hook; google; certificates; image; credentials; lease; point_the_name_here ;;
+  tokens; turnstile; lead_hook; google; stripe; certificates; image; credentials; lease; point_the_name_here ;;
 orchestrator)
-  tokens; turnstile; lead_hook; google; cell_secret; certificates; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
+  tokens; turnstile; lead_hook; google; stripe; cell_secret; certificates; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
 cell)
   cell_secret; image; credentials; cell_identity
   echo "gusto-boot: this host is a host of gusto cloud" ;;

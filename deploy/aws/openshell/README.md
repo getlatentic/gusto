@@ -189,12 +189,28 @@ Once, from your machine:
 GUSTO_MODEL_PARAMETER=/gusto/deepseek-key ./put-key.sh   # and the second
 ./put-cloudflare.sh     # the DNS token, then the mail token
 ./put-google.sh         # optional: the OAuth client at Google, for Continue with Google
+./put-stripe.sh         # optional: seat billing, with a Stripe test key (--live for a live one)
 cp cloud.env.example cloud.env   # and fill it in
 ```
 
 The Google client is a web application client made in the Google Cloud console. Its authorized
 redirect address is `https://<name>/signin/google/back`. A host reads the client when it boots, and a
 host without it offers sign-in by email alone.
+
+`put-stripe.sh` sets up seat billing in the Stripe account whose secret key you type. Before the
+first run, save the customer portal settings once in the Stripe dashboard (Settings, Billing,
+Customer portal), in the same mode as the key. The script then:
+
+- makes a product and a monthly price of `GUSTO_CLOUD_SEAT_USD` dollars a seat (25), with the
+  lookup key `gusto-cloud-seat-monthly`, or finds the one it made before;
+- makes a webhook to `https://<name>/stripe/webhook` for the `customer.subscription.*` events, or
+  finds it;
+- stores `/gusto/stripe-key`, `/gusto/stripe-webhook-secret` and `/gusto/stripe-price`.
+
+A restricted key needs write access to Checkout sessions, customer portal, products, prices,
+subscriptions and webhook endpoints. Stripe shows a webhook's secret once, so a webhook made from
+another machine is refused: delete it in the dashboard and run the script again. A front door
+reads the three at its next boot, and a front door without all three bills nobody.
 
 Each time:
 

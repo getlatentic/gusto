@@ -82,6 +82,10 @@ cloud_lead_hook_secret_parameter: /gusto/lead-hook-secret
 # The OAuth client at Google that people sign in with, stored by put-google.sh. Without both there is no Google sign-in.
 cloud_google_client_id_parameter: /gusto/google-client-id
 cloud_google_secret_parameter: /gusto/google-secret
+# Seat billing through Stripe, stored by put-stripe.sh. Without all three nobody is billed.
+cloud_stripe_key_parameter: /gusto/stripe-key
+cloud_stripe_price_parameter: /gusto/stripe-price
+cloud_stripe_webhook_parameter: /gusto/stripe-webhook-secret
 # The OAuth clients registered with the connector apps that need one, as {"github": {"id", "secret"}}: put-connector-client.sh.
 cloud_connector_clients_parameter: /gusto/connector-clients
 cloud_book_url: ""

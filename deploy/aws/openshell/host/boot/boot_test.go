@@ -82,6 +82,7 @@ func newHost(t *testing.T) *host {
 		"CELL_SECRET_PARAMETER=/gusto/cell-secret", "TURNSTILE_PARAMETER=/gusto/turnstile-secret",
 		"LEAD_HOOK_URL_PARAMETER=/gusto/lead-hook-url", "LEAD_HOOK_SECRET_PARAMETER=/gusto/lead-hook-secret",
 		"GOOGLE_CLIENT_ID_PARAMETER=/gusto/google-client-id", "GOOGLE_SECRET_PARAMETER=/gusto/google-secret",
+		"STRIPE_KEY_PARAMETER=/gusto/stripe-key", "STRIPE_PRICE_PARAMETER=/gusto/stripe-price", "STRIPE_WEBHOOK_PARAMETER=/gusto/stripe-webhook-secret",
 	}, "\n")+"\n"), 0o644)
 	h.env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"GUSTO_CONF="+h.conf, "GUSTO_RUN="+filepath.Join(dir, "run"), "GUSTO_LE="+filepath.Join(dir, "le"), "GUSTO_LIB="+filepath.Join(dir, "lib"),
