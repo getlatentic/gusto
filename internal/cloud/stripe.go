@@ -38,6 +38,11 @@ func (s *Stripe) Enabled() bool {
 	return s != nil && s.Key != "" && s.Price != "" && s.WebhookSecret != ""
 }
 
+// Testing says the key is one of Stripe's test mode, whose cards pay nothing.
+func (s *Stripe) Testing() bool {
+	return strings.HasPrefix(s.Key, "sk_test_") || strings.HasPrefix(s.Key, "rk_test_")
+}
+
 // Checkout is the address of a Stripe page where an organization's admin subscribes for
 // its seats. The organization's slug goes on the subscription, which is how its events
 // find it again.

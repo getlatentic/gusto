@@ -33,10 +33,9 @@ func seatWords(seats, usd int) string {
 	return fmt.Sprintf("%d %s at $%d a month each", seats, unit, usd)
 }
 
-// planOf is the organization's plan, and nil when this gusto cloud server does not bill or the
-// organization is a demo.
+// planOf is the organization's plan, and nil when it is not offered one.
 func (s *Server) planOf(ctx context.Context, org Org, person Person) *plan {
-	if !s.Stripe.Enabled() || org.Demo != nil {
+	if !s.offered(org, person) {
 		return nil
 	}
 	seats, _ := s.Store.SeatsWanted(ctx, org.Slug)
@@ -61,10 +60,16 @@ func (s *Server) planOf(ctx context.Context, org Org, person Person) *plan {
 	return p
 }
 
+// offered says a person's organization is offered a plan. A demo never is. Stripe's test cards pay nothing, so with a test key
+// a host that names its staff offers a plan to them alone.
+func (s *Server) offered(org Org, person Person) bool {
+	return s.Stripe.Enabled() && org.Demo == nil && (!s.Stripe.Testing() || s.Store.set.Demo.MayStart(person.Email))
+}
+
 // subscribe sends an admin to Stripe to subscribe the organization for a seat for each member.
 func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, person Person) {
 	org, found, err := s.Store.Org(r.Context(), person.Org)
-	if !s.Stripe.Enabled() || err != nil || !found || org.Demo != nil {
+	if err != nil || !found || !s.offered(org, person) {
 		http.NotFound(w, r)
 		return
 	}

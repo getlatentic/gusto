@@ -245,3 +245,38 @@ func TestTheGoogleClientIsKeptForGustoCloudAloneAndBothItsPartsAreNeeded(t *test
 		t.Error("a cell, which runs other people's code, holds the Google client's secret")
 	}
 }
+
+func TestBillingIsKeptForGustoCloudAloneAndOnlyWithAllThreeParts(t *testing.T) {
+	for _, role := range []string{"all", "orchestrator"} {
+		h := newHost(t)
+		h.put("image/key1.tar.gz", "x")
+		h.as(role)
+		if _, err := h.boot(); err != nil {
+			t.Fatal(err)
+		}
+		path := filepath.Join(h.dir, "run", "secrets", "stripe.env")
+		info, err := os.Stat(path)
+		want := "GUSTO_CLOUD_STRIPE_KEY=value-of-/gusto/stripe-key\nGUSTO_CLOUD_STRIPE_PRICE=value-of-/gusto/stripe-price\n" +
+			"GUSTO_CLOUD_STRIPE_WEBHOOK_SECRET=value-of-/gusto/stripe-webhook-secret\n"
+		if err != nil || info.Mode().Perm() != 0o600 || mustRead(t, path) != want {
+			t.Errorf("%s: %v %v", role, info, err)
+		}
+		for _, missing := range []string{"/gusto/stripe-key", "/gusto/stripe-price", "/gusto/stripe-webhook-secret"} {
+			if _, err := h.boot("FAKE_MISSING=" + missing); err != nil {
+				t.Fatalf("a host that bills nobody is still a host: %v", err)
+			}
+			if h.has("run/secrets/stripe.env") {
+				t.Errorf("%s: billing without %s, which gusto cloud refuses to start with, is on the host", role, missing)
+			}
+		}
+	}
+	node := newHost(t)
+	node.put("image/key1.tar.gz", "x")
+	node.as("cell")
+	if _, err := node.boot(); err != nil {
+		t.Fatal(err)
+	}
+	if node.has("run/secrets/stripe.env") {
+		t.Error("a cell, which runs other people's code, holds the Stripe key")
+	}
+}
