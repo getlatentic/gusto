@@ -1,0 +1,87 @@
+---
+# One gusto cloud of the host: its user, its secrets and settings, and its upgrade, which builds and installs it now.
+- name: "The user {{ cloud.name }} and its containers run as"
+  ansible.builtin.user:
+    name: "{{ cloud.user }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: "/home/{{ cloud.user }}"
+    create_home: true
+
+# The subordinate ids rootless podman maps a container's users to, clear of any other user's.
+- name: "The subordinate ids of {{ cloud.user }}"
+  ansible.builtin.lineinfile:
+    path: "/etc/{{ item }}"
+    line: "{{ cloud.user }}:{{ cloud.subids }}"
+    regexp: "^{{ cloud.user }}:"
+    create: true
+    mode: "0644"
+  loop: [subuid, subgid]
+
+- name: "The manager of {{ cloud.user }} runs without a session, so its containers have a runtime directory"
+  ansible.builtin.command: "loginctl enable-linger {{ cloud.user }}"
+  args:
+    creates: "/var/lib/systemd/linger/{{ cloud.user }}"
+
+- name: "Where the settings, parameters and build of {{ cloud.name }} are"
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.owner | default('root') }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "/etc/{{ cloud.name }}", mode: "0755" }
+    - { path: "/etc/{{ cloud.name }}/params", mode: "0700" }
+    - { path: "/etc/{{ cloud.name }}/params/gusto", mode: "0700" }
+    - { path: "/var/lib/gusto-upgrade/{{ cloud.name }}", mode: "0755" }
+    - { path: "/var/lib/gusto-upgrade/{{ cloud.name }}/src", mode: "0755", owner: gusto-build }
+
+- name: "The parameters of {{ cloud.name }}, a file each at its own name, for root alone"
+  ansible.builtin.copy:
+    dest: "/etc/{{ cloud.name }}/params{{ item.key }}"
+    content: "{{ item.value }}\n"
+    mode: "0600"
+  loop: "{{ cloud.params | dict2items | selectattr('value') }}"
+  loop_control:
+    label: "{{ item.key }}"
+  no_log: true
+  register: params_written
+
+- name: "What {{ cloud.name }} is"
+  ansible.builtin.copy:
+    dest: "/etc/{{ cloud.name }}/cloud-vars.json"
+    content: "{{ cloud.config | combine(cloud.settings) | combine(host) | to_nice_json }}\n"
+    mode: "0644"
+  register: settings_written
+  vars:
+    host:
+      cloud_name: "{{ cloud.name }}"
+      cloud_user: "{{ cloud.user }}"
+      cloud_container: podman
+      cloud_param_dir: "/etc/{{ cloud.name }}/params"
+      cloud_public_ip: "{{ gusto_public_ip }}"
+      cloud_point_name: "{{ cloud.point_name | bool }}"
+      cloud_default_server: false
+      cloud_demo_sandbox: container
+
+- name: "What the upgrade of {{ cloud.name }} follows"
+  ansible.builtin.copy:
+    dest: "/etc/gusto-upgrade/{{ cloud.name }}.env"
+    content: "TRACK={{ cloud.track }}\nRUNNER={{ cloud.user }}\n"
+    mode: "0644"
+
+- name: "The timer of {{ cloud.name }} looks for a new commit from now on"
+  ansible.builtin.systemd_service:
+    name: "gusto-upgrade@{{ cloud.name }}.timer"
+    state: started
+    enabled: true
+    daemon_reload: true
+
+# The first build takes a while; every commit after is installed by the timer.
+- name: "{{ cloud.name }} is built and installed now"
+  ansible.builtin.command: "/usr/local/sbin/gusto-upgrade {{ cloud.name }}"
+  environment:
+    GUSTO_UPGRADE_FORCE: "{{ 'yes' if (params_written is changed or settings_written is changed) else '' }}"
+  register: upgraded
+  changed_when: "' is at ' in upgraded.stdout"

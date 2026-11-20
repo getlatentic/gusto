@@ -17,7 +17,12 @@ gusto_cloud_config:
   cloud_book_url: ""
   cloud_demo_notify: ""
   cloud_demo_staff: example.com
-# What Parameter Store holds on AWS, by the same names. Leave out what is not used: a host without the Stripe three bills nobody.
+# What staging changes of production's settings: its own name, and no shared apps.
+gusto_staging_config:
+  cloud_domain: staging.gusto.example.com
+  cloud_apps_domain: ""
+  cloud_apps_zone: ""
+# What Parameter Store holds on AWS, by the same names. Staging uses them too, unless gusto_staging_params is given. Leave out what is not used: a host without the Stripe three bills nobody.
 gusto_params:
   /gusto/cloudflare-dns-token: ""
   /gusto/cloudflare-mail-token: ""

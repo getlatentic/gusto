@@ -1,5 +1,5 @@
 [Unit]
-Description=gusto cloud: look for a new commit of main every five minutes
+Description=gusto cloud %i: look for a new commit every five minutes
 
 [Timer]
 OnBootSec=2min

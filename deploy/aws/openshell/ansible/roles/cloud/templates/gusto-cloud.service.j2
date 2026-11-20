@@ -1,7 +1,7 @@
 [Unit]
 Description=gusto public cloud: gusto cloud and each organization's server
-After=gusto-boot.service{{ (' ' + cloud_sandboxes | map('extract', cloud_sandbox_unit) | select | join(' ')) if cloud_role != 'orchestrator' else '' }}
-Requires=gusto-boot.service
+After={{ cloud_name }}-boot.service{{ (' ' + cloud_sandboxes | map('extract', cloud_sandbox_unit) | select | join(' ')) if cloud_role != 'orchestrator' else '' }}
+Requires={{ cloud_name }}-boot.service
 RequiresMountsFor={{ cloud_state }}
 
 [Service]
@@ -10,14 +10,14 @@ User={{ cloud_user }}
 SupplementaryGroups={{ cloud_sandboxes | map('extract', cloud_sandbox_group) | select | join(' ') if cloud_role != 'orchestrator' else 'kvm' }}
 WorkingDirectory={{ cloud_state }}
 # The AWS command is a snap, which the default path does not have.
-Environment=PATH=/usr/local/bin:/usr/bin:/bin:/snap/bin
-EnvironmentFile=/etc/gusto/cloud.env
-EnvironmentFile=/run/gusto/secrets/mail.env
-EnvironmentFile=-/run/gusto/secrets/turnstile.env
-EnvironmentFile=-/run/gusto/secrets/leadhook.env
-EnvironmentFile=-/run/gusto/secrets/google.env
-EnvironmentFile=-/run/gusto/secrets/stripe.env
-ExecStart=/usr/local/bin/gusto cloud
+Environment=PATH={{ cloud_bin }}:/usr/local/bin:/usr/bin:/bin:/snap/bin
+EnvironmentFile={{ cloud_etc }}/cloud.env
+EnvironmentFile={{ cloud_rundir }}/secrets/mail.env
+EnvironmentFile=-{{ cloud_rundir }}/secrets/turnstile.env
+EnvironmentFile=-{{ cloud_rundir }}/secrets/leadhook.env
+EnvironmentFile=-{{ cloud_rundir }}/secrets/google.env
+EnvironmentFile=-{{ cloud_rundir }}/secrets/stripe.env
+ExecStart={{ cloud_bin }}/gusto cloud
 Restart={{ "always" if cloud_live | bool else "on-failure" }}
 LimitNOFILE=65536
 
