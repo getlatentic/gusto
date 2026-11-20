@@ -2,6 +2,8 @@
 # or a setting of production that is kept out of the repository.
 ansible_host: 203.0.113.10
 gusto_public_ip: 203.0.113.10
+# The token of the Cloudflare tunnel both clouds are served through; empty serves them on the host's own web ports.
+gusto_tunnel_token: ""
 # What /gusto/cloud-config holds on AWS.
 gusto_cloud_config:
   cloud_domain: gusto.example.com
@@ -19,7 +21,7 @@ gusto_cloud_config:
   cloud_demo_staff: example.com
 # What staging changes of production's settings: its own name, and no shared apps.
 gusto_staging_config:
-  cloud_domain: staging.gusto.example.com
+  cloud_domain: gusto-staging.example.com
   cloud_apps_domain: ""
   cloud_apps_zone: ""
 # What Parameter Store holds on AWS, by the same names. Staging uses them too, unless gusto_staging_params is given. Leave out what is not used: a host without the Stripe three bills nobody.

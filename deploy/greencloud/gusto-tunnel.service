@@ -1,0 +1,14 @@
+[Unit]
+Description=gusto cloud: the Cloudflare tunnel production and staging are served through
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+User=gusto-tunnel
+EnvironmentFile=/etc/gusto-tunnel/tunnel.env
+ExecStart=/usr/bin/env cloudflared --no-autoupdate tunnel run
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

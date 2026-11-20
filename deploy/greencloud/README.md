@@ -25,6 +25,26 @@ workflow, with its own `/gusto/demo-config`) and does not talk to either.
 - Secrets are files under `/etc/<name>/params`, for root alone, at their Parameter Store names. `gusto param` reads them there
   (`GUSTO_PARAM_DIR`). Certificates stay in `/etc/letsencrypt`.
 - The host's other sites, its default site and its firewall are left alone. Each site answers its own names only.
+- With a tunnel (`gusto_tunnel_token`), cloudflared runs as `gusto-tunnel` and Cloudflare sends both clouds' names through it.
+  nginx serves them on 127.0.0.1:8180 (production) and 127.0.0.1:8181 (staging), and takes the visitor's address from
+  `CF-Connecting-IP`. The names are then routed in Cloudflare, not pointed at the host, and gusto needs none of the host's own
+  web ports.
+
+## The tunnel
+
+1. In Cloudflare Zero Trust, make a tunnel of the cloudflared kind and copy its token. `make-vault.sh` asks for it.
+2. Give it the public hostnames, each to `http://127.0.0.1:<port>`:
+
+   | Hostname | Service |
+   | --- | --- |
+   | `gusto-staging.getlatentic.com` | `http://127.0.0.1:8181` |
+   | `gusto.getlatentic.com` | `http://127.0.0.1:8180` |
+   | `*.apps.getlatentic.com` | `http://127.0.0.1:8180` |
+
+   Add staging first. Production's name has an A record to AWS: Cloudflare replaces it when its hostname is added, and that
+   is the moment production moves.
+3. Cloudflare's free certificate covers `getlatentic.com` and one level under it. `*.apps.getlatentic.com` is two levels
+   under, and needs Advanced Certificate Manager, or shared apps at a name one level deep.
 
 ## Files
 

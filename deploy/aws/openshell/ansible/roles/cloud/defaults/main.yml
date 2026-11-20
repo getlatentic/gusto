@@ -48,6 +48,8 @@ cloud_rundir: "/run/{{ cloud_name }}"
 cloud_libexec: "/usr/local/lib/{{ cloud_name }}"
 cloud_bin: "{{ '/usr/local/bin' if cloud_name == 'gusto' else cloud_libexec + '/bin' }}"
 cloud_listen_port: 8050
+# The loopback port nginx serves the names on for a Cloudflare tunnel, which a host with one sets; 0 is none.
+cloud_tunnel_port: 0
 cloud_port_from: 9100
 # A host off AWS, such as a VPS shared with other services, sets these, and an empty cloud_bucket. cloud_container is docker or
 # podman, which runs rootless as cloud_user. cloud_param_dir holds the parameters as files (gusto param reads them there), and
