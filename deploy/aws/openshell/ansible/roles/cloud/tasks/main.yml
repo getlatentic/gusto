@@ -7,15 +7,17 @@
       - cloud_image_key | length > 0
       - cloud_role == 'cell' or (cloud_domain | length > 0 and cloud_zone | length > 0 and cloud_mail | length > 0 and cloud_cert_email | length > 0)
       - cloud_role == 'all' or (cloud_efs | length > 0 and cloud_run | length > 0)
+      - (cloud_efs | length > 0) == (cloud_run | length > 0)
       - (cloud_apps_domain | length > 0) == (cloud_apps_zone | length > 0)
     fail_msg: >-
       a host needs cloud_role (all, orchestrator or cell), cloud_bucket and cloud_image_key; a front door also
-      cloud_domain, cloud_zone, cloud_mail and cloud_cert_email; an orchestrator or a cell also cloud_efs and cloud_run;
+      cloud_domain, cloud_zone, cloud_mail and cloud_cert_email; an orchestrator or a cell also cloud_efs and cloud_run, which a host that is all of it may have;
       cloud_apps_domain and cloud_apps_zone are given together or not at all
 
+# A host that is all of the cloud keeps the organizations' data on its own disk, or on the shared file system when it is given one.
 - name: The shared file system
   ansible.builtin.import_tasks: shared_files.yml
-  when: cloud_role != 'all'
+  when: cloud_efs | length > 0
 
 - name: Directories, programs and the start-up script
   ansible.builtin.import_tasks: common.yml

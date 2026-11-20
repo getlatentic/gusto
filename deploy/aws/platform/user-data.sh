@@ -203,11 +203,12 @@ cloud_baked=false
 if [ -e "$baked_marker" ] && [ -f "$dir/bake.key" ] && [ "$(cat "$baked_marker")" = "$(cat "$dir/bake.key")" ]; then
   cloud_baked=true
 fi
-# A front door alone runs no computer, so it has no use for OpenShell, and nor has a host that has it already.
+# OpenShell runs microVMs: not needed by a front door alone, a host that has it, or one with only containers.
+sb=$(python3 -c 'import json,sys;v=json.load(open(sys.argv[1]));print(v.get("public_sandbox","container"),v.get("cloud_demo_sandbox","openshell"))' "$dir/cloud-vars.json")
 playbooks=("$dir/ansible/site.yml" "$dir/ansible/cloud.yml")
-{ [ "$ROLE" = orchestrator ] || [ "$cloud_baked" = true ]; } && playbooks=("$dir/ansible/cloud.yml")
+{ [ "$ROLE" = orchestrator ] || [ "$cloud_baked" = true ] || [[ " $sb " != *" openshell "* ]]; } && playbooks=("$dir/ansible/cloud.yml")
 shared=()
-[ "$ROLE" = all ] || shared=(-e "cloud_efs=$EFS.efs.$REGION.amazonaws.com" -e "cloud_run=$RUN")
+[ "$ROLE" = all ] && [ -z "$EFS" ] || shared=(-e "cloud_efs=$EFS.efs.$REGION.amazonaws.com" -e "cloud_run=$RUN")
 
 # The front door that starts cells writes the files of its cells once, here, and starts each with the kit's sum.
 if [ "$ROLE" = orchestrator ] && [ "$LIVE" = on ] && [ -f "$dir/bake.key" ]; then

@@ -46,9 +46,9 @@ variable "cell_instance_type" {
 }
 
 variable "front_door_instance_type" {
-  description = "The type of the front door that stays up. It runs no computer, and a cell is started for those. It uses about half a gigabyte of memory, and has a swap file for the installs of a start and an upgrade."
+  description = "The type of the front door that stays up. It is all of the cloud: gusto cloud, each organization's server, and their agents in containers, which a t3 can run and an OpenShell microVM, which needs KVM, cannot."
   type        = string
-  default     = "t3.micro"
+  default     = "t3.large"
 }
 
 variable "alert_email" {

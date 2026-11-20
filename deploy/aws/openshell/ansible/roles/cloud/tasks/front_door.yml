@@ -102,5 +102,5 @@
     src: "{{ playbook_dir }}/../user-data.sh"
     dest: "{{ cloud_cell_userdata }}"
     mode: "0644"
-  when: cloud_live | bool
+  when: cloud_live | bool and cloud_role == 'orchestrator'
   notify: Restart the front door

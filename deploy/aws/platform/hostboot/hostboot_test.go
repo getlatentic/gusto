@@ -23,7 +23,7 @@ echo "apt-get $*" >> "$FAKE_LOG"`,
 echo "aws $1 $2 ${3:-}" >> "$FAKE_LOG"
 case "$1 $2" in
 "s3 cp") src=$3; dst=$4; f="$FAKE_STORE/${src#s3://*/}"; [ -f "$f" ] || { echo "no such object" >&2; exit 1; }; if [ "$dst" = - ]; then cat "$f"; else cp "$f" "$dst"; fi;;
-"ssm get-parameter") echo '{"cloud_domain":"gusto.example.com","cloud_zone":"example.com"}';;
+"ssm get-parameter") if [ -n "${FAKE_CLOUD_CONFIG:-}" ]; then echo "$FAKE_CLOUD_CONFIG"; else echo '{"cloud_domain":"gusto.example.com","cloud_zone":"example.com"}'; fi;;
 esac`,
 	"fallocate": `#!/bin/bash
 echo "fallocate $*" >> "$FAKE_LOG"; : > "$3"`,
@@ -51,12 +51,14 @@ type boot struct {
 	dir, store string
 	log        string
 	env        []string
+	// script is the start-up script run, which is the one in the repository unless a test fills some of it in.
+	script string
 }
 
 func newBoot(t *testing.T) *boot {
 	t.Helper()
 	dir := t.TempDir()
-	b := &boot{t: t, dir: dir, store: filepath.Join(dir, "store"), log: filepath.Join(dir, "log")}
+	b := &boot{t: t, dir: dir, store: filepath.Join(dir, "store"), log: filepath.Join(dir, "log"), script: script}
 	bin := filepath.Join(dir, "bin")
 	os.MkdirAll(bin, 0o755)
 	os.MkdirAll(filepath.Join(b.store, "releases", "abc123"), 0o755)
@@ -104,7 +106,7 @@ func (b *boot) release(corrupt bool) {
 
 func (b *boot) run(extra ...string) (lines []string, err error) {
 	b.t.Helper()
-	command := exec.Command("bash", script)
+	command := exec.Command("bash", b.script)
 	command.Env = append(b.env, extra...)
 	out, err := command.CombinedOutput()
 	if err != nil {
@@ -188,11 +190,27 @@ func TestAHostWithNoBundleOrWhoseConfigurationFailsGoesInFifteenMinutes(t *testi
 	}
 }
 
-func playOf(t *testing.T, role string) string {
+// fill fills in settings of the start-up script, as a launch that is not Terraform's does, with sed.
+func (b *boot) fill(settings map[string]string) {
+	b.t.Helper()
+	text, err := os.ReadFile(script)
+	if err != nil {
+		b.t.Fatal(err)
+	}
+	filled := string(text)
+	for name, value := range settings {
+		filled = strings.ReplaceAll(filled, "@"+name+"@", value)
+	}
+	b.script = filepath.Join(b.dir, "user-data.sh")
+	os.WriteFile(b.script, []byte(filled), 0o755)
+}
+
+func playOf(t *testing.T, role string, extra ...string) string {
 	t.Helper()
 	b := newBoot(t)
 	b.release(false)
-	lines, err := b.run("ROLE="+role, "RUN=run-42", "EFS=fs-0123")
+	b.fill(map[string]string{"EFS": "", "RUN": ""})
+	lines, err := b.run(append([]string{"ROLE=" + role, "RUN=run-42", "EFS=fs-0123"}, extra...)...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,10 +221,27 @@ func playOf(t *testing.T, role string) string {
 	return lines[play]
 }
 
-func TestAHostThatIsAllOfItHasOpenShellAndGustoCloudAndNoSharedFileSystem(t *testing.T) {
-	play := playOf(t, "all")
+func TestAHostThatIsAllOfItHasOpenShellAndGustoCloudAndNoSharedFileSystemUnlessGivenOne(t *testing.T) {
+	play := playOf(t, "all", "EFS=", "RUN=")
 	if !strings.Contains(play, "site.yml") || !strings.Contains(play, "cloud_role=all") || strings.Contains(play, "cloud_efs") || strings.Contains(play, "cloud_run") {
 		t.Errorf("%s", play)
+	}
+	play = playOf(t, "all")
+	for _, want := range []string{"cloud_role=all", "cloud_efs=fs-0123.efs.us-east-1.amazonaws.com", "cloud_run=run-42", "site.yml"} {
+		if !strings.Contains(play, want) {
+			t.Errorf("%q is not in %s", want, play)
+		}
+	}
+}
+
+// A host whose organizations' agents all run in containers, as a t3 with no KVM must, is not given OpenShell.
+func TestAHostWhoseAgentsAllRunInContainersHasNoOpenShell(t *testing.T) {
+	play := playOf(t, "all", `FAKE_CLOUD_CONFIG={"cloud_domain":"gusto.example.com","cloud_demo_sandbox":"container"}`)
+	if strings.Contains(play, "site.yml") || !strings.Contains(play, "cloud.yml") || !strings.Contains(play, "cloud_efs=fs-0123.efs.us-east-1.amazonaws.com") {
+		t.Errorf("%s", play)
+	}
+	if play := playOf(t, "all", `FAKE_CLOUD_CONFIG={"public_sandbox":"openshell","cloud_demo_sandbox":"container"}`); !strings.Contains(play, "site.yml") {
+		t.Errorf("a sign-up in a microVM needs OpenShell: %s", play)
 	}
 }
 

@@ -41,14 +41,27 @@ made with `cells` at 0, as before.
 
 ## gusto cloud that stays up
 
-`aws_instance.live` is a small host (`t3.micro` with a 10 GB disk, and a fixed address) that runs gusto cloud all the time: nginx and
-the certificate, gusto cloud at `https://<name>`, and the scaler that starts a node for an organization that
-waits for one and stops a node that has had nothing on it for ten minutes. With nobody using it there is no such node and
-nothing is paid for but this machine, its address and the file system.
+`aws_instance.live` is one host (`t3.large` with a 40 GB disk, and a fixed address) that is all of gusto cloud (`ROLE=all`): nginx
+and the certificate, gusto cloud at `https://<name>`, every organization's `gusto serve`, and their agents in Docker containers.
+The organizations' data is on the shared file system, as a cloud of nodes keeps it. A t3 has no KVM, so a demo's agents run in
+containers too: `GUSTO_CLOUD_DEMO_SANDBOX=container` in `cloud.env`, stored with `../openshell/put-cloud-config.sh`. It costs
+the same every month however many organizations use it, and starts no node.
+
+A cloud of nodes, with an OpenShell microVM for each person, is `ROLE=orchestrator` on this host and `GUSTO_CLOUD_DEMO_SANDBOX`
+unset. Before it is used for organizations that stay, an organization's server needs to stop when nobody uses it: nothing stops
+one now, so the node it is on is never idle and runs all day.
+
+To move a host that was made as an orchestrator, after the change is merged and deployed:
+
+1. Store the demo's sandbox: set `GUSTO_CLOUD_DEMO_SANDBOX=container` in `cloud.env` and run `put-cloud-config.sh`.
+2. Change `ROLE=orchestrator` to `ROLE=all` in the host's `/etc/gusto/live.env`, through SSM.
+3. Apply this stack, which makes the host a `t3.large` with a 40 GB disk. AWS stops and starts it, and its disk grows at the start.
+4. Run the **cloud deploy** workflow, which configures the host as all of it and starts the organizations' servers on it.
+5. Remove any node left (`aws ec2 terminate-instances` on `project=gusto-live`, `name=demo-cell`).
 
 - It is made once by `bootstrap.sh` and starts itself from the newest release in the bucket. Every **cloud deploy** run
   then brings it to that release (an SSM command that runs the start-up script again), which restarts gusto cloud
-  and leaves the nodes and the organizations on them as they are.
+  and the organizations' servers.
 - Its role is its own, and is the only one that may start and stop nodes. It starts nodes only from the
   `cell-live` template, which tags them `project=gusto-live`, and stops only nodes with that tag that it started
   (`scaler=on`). A node that runs other people's code can start nothing. The cloud workflows tag and stop

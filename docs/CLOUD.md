@@ -6,6 +6,8 @@
 
 Each organization runs its own `gusto serve` process with its own data directory, signing key, credentials, spend ledger, change log and task queue. gusto cloud holds accounts and routes requests by host name (browser, gusto cloud, the organization's server). It runs no tasks.
 
+Production runs as one host (`ROLE=all`, [deploy/aws/platform](../deploy/aws/platform/README.md#gusto-cloud-that-stays-up)): gusto cloud, every organization's server, and each task in a Docker container on that host, with nothing shared between organizations but the host's kernel. The rest of this section is the cloud of nodes, which the same code runs with `ROLE=orchestrator`.
+
 A paying organization's tasks run in OpenShell sandboxes on the nodes' gateways. A sandbox belongs to one task, is deleted when the task ends, and is never reused for another organization. Each sandbox is a microVM with its own kernel. A demo's tasks run in Docker containers on the node, one for each turn, which share the node's kernel ([Demos](#demos)).
 
 ## Where it runs

@@ -24,7 +24,7 @@ cloud_max_output_tokens: 16384
 cloud_model_silence_seconds: 60
 # What an organization's agents run in: container, a Docker container for each task on the cell's kernel, with a home kept for
 # each person; or openshell, a microVM for each person. A sign-up's run in public_sandbox and a demo's in cloud_demo_sandbox, and a
-# cell has every kind of the two.
+# cell has every kind of the two. /gusto/cloud-config may set cloud_demo_sandbox; a host with no KVM, such as a t3, has containers only.
 public_sandbox: container
 cloud_demo_sandbox: openshell
 cloud_sandboxes: "{{ [public_sandbox, cloud_demo_sandbox] | unique }}"

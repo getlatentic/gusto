@@ -322,10 +322,11 @@ resource "aws_eip" "live" {
   tags   = { project = local.live_tag, name = "front-door" }
 }
 
-# It is started from the bundle like any host and keeps up to date by running the script again (gusto-upgrade). Its
-# disk holds the accounts database and the task index (cloud.db and index/ under /var/lib/gusto) and everything else
-# is on the file system or in the bucket, so replacing it takes a copy of those two. It is stopped, not removed, if it
-# is powered off.
+# It is all of the cloud: gusto cloud, every organization's server and their agents' containers, with the organizations'
+# data on the shared file system, so a cloud of nodes can be made again from the same data. It is started from the bundle
+# like any host and keeps up to date by running the script again (gusto-upgrade). Its disk holds the accounts database,
+# the task index (cloud.db and index/ under /var/lib/gusto) and the runner image, so replacing it takes a copy of the
+# first two. It is stopped, not removed, if it is powered off.
 resource "aws_instance" "live" {
   ami                                  = data.aws_ssm_parameter.ubuntu.value
   instance_type                        = var.front_door_instance_type
@@ -339,7 +340,7 @@ resource "aws_instance" "live" {
   }
 
   root_block_device {
-    volume_size = 10
+    volume_size = 40
     volume_type = "gp3"
   }
 
@@ -347,7 +348,7 @@ resource "aws_instance" "live" {
   # start, and what it was started with is kept on the host for the upgrades after.
   user_data = join("\n", [
     "#!/bin/bash",
-    "export RELEASE=latest BUCKET=${var.bucket} REGION=${var.region} ROLE=orchestrator RUN=live EFS=${aws_efs_file_system.shared.id} LIVE=on LEASE_MINUTES=30 MAX_HOURS=24",
+    "export RELEASE=latest BUCKET=${var.bucket} REGION=${var.region} ROLE=all RUN=live EFS=${aws_efs_file_system.shared.id} LIVE=on LEASE_MINUTES=30 MAX_HOURS=24",
     file("${path.module}/user-data.sh"),
   ])
   tags = { project = local.live_tag, name = "front-door" }

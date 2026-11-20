@@ -22,6 +22,7 @@ print(json.dumps({
     "cloud_book_url": os.environ.get("GUSTO_CLOUD_BOOK_URL", ""),
     "cloud_demo_notify": os.environ.get("GUSTO_CLOUD_DEMO_NOTIFY", ""),
     "cloud_demo_staff": os.environ.get("GUSTO_CLOUD_DEMO_STAFF", ""),
+    "cloud_demo_sandbox": os.environ.get("GUSTO_CLOUD_DEMO_SANDBOX", "openshell"),
 }))
 PY
 )"

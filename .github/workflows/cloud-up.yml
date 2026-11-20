@@ -64,6 +64,8 @@ jobs:
               --user-data "file://user-data-$1.sh" --query 'Instances[].InstanceId' --output text
           }
           if [ "$CELLS" = 0 ]; then
+            # A test host that is all of it keeps its organizations' data on its own disk.
+            EFS=""
             ids="$(launch all gusto-host 1)"
           else
             ids="$(launch orchestrator gusto-host-orchestrator 1) $(launch cell gusto-host-cell "$CELLS")"
