@@ -14,6 +14,10 @@
 # asked for a new one at every start would run out of them. Shared apps are served under
 # APPS_NAME when it is set, a name of their own in APPS_ZONE, with a certificate of its own.
 #
+# A host off AWS sets PARAM_DIR, where its parameters are files (gusto param reads them there), STORE_ENDPOINT, the S3-compatible
+# store its files are in, PUBLIC_IP, its address, and CONTAINER=podman, run as the owner. POINT_NAME=off leaves the name where it
+# points, so a host is made ready before it is given the name.
+#
 # The paths can be moved with GUSTO_RUN, GUSTO_LE, GUSTO_LIB, GUSTO_LEASE_FILE and GUSTO_CONF, and the owner of the
 # files with GUSTO_OWNER (empty leaves them alone), which is how a test runs it.
 set -euo pipefail
@@ -26,10 +30,20 @@ owner=${GUSTO_OWNER-ubuntu}
 . "$CONF"
 role=${ROLE:-all}
 # Where the AWS command is on a host is added to the end, so a command that is already found first stays.
-export AWS_REGION AWS_DEFAULT_REGION=$AWS_REGION PATH=$PATH:/usr/local/bin:/snap/bin
+export AWS_REGION AWS_DEFAULT_REGION=$AWS_REGION PATH=$PATH:/usr/local/bin:/snap/bin GUSTO_PARAM_DIR=${PARAM_DIR:-}
+container=${CONTAINER:-docker}
 
 own() { [ -z "$owner" ] || chown -R "$owner:$owner" "$@"; }
 param() { gusto param "$1"; }
+store_cp() { aws s3 cp "$@" ${STORE_ENDPOINT:+--endpoint-url "$STORE_ENDPOINT"}; }
+# Rootless podman keeps its images for the user who runs it, so the owner, who starts the organizations' servers, loads them.
+engine() {
+  if [ "$container" = podman ] && [ -n "$owner" ]; then
+    runuser -u "$owner" -- env XDG_RUNTIME_DIR="/run/user/$(id -u "$owner")" podman "$@"
+  else
+    "$container" "$@"
+  fi
+}
 metadata() {
   local token
   token=$(curl -fsS -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')
@@ -103,7 +117,7 @@ certificate() {
   local domain=$1 live=$le/live/$1 fetched kept
   if [ ! -e "$live/fullchain.pem" ]; then
     fetched=$(mktemp)
-    if aws s3 cp "s3://$BUCKET/tls/$domain.tgz" "$fetched" >/dev/null 2>&1; then
+    if store_cp "s3://$BUCKET/tls/$domain.tgz" "$fetched" >/dev/null 2>&1; then
       mkdir -p "$le" && tar xzf "$fetched" -C "$le"
     fi
     rm -f "$fetched"
@@ -114,7 +128,7 @@ certificate() {
       -d "$domain" -d "*.$domain"
     kept=$(mktemp)
     tar czf "$kept" -C "$le" .
-    aws s3 cp "$kept" "s3://$BUCKET/tls/$domain.tgz" >/dev/null
+    store_cp "$kept" "s3://$BUCKET/tls/$domain.tgz" >/dev/null
     rm -f "$kept"
   fi
 }
@@ -127,7 +141,7 @@ certificates() {
 runner_image() {
   local image=$lib/runner-all-rootfs.tar.gz
   if [ "$(cat "$lib/image.key" 2>/dev/null || true)" != "$IMAGE_KEY" ] || [ ! -s "$image" ]; then
-    aws s3 cp "s3://$BUCKET/image/$IMAGE_KEY.tar.gz" "$image.part" >/dev/null
+    store_cp "s3://$BUCKET/image/$IMAGE_KEY.tar.gz" "$image.part" >/dev/null
     mv "$image.part" "$image"
     printf '%s' "$IMAGE_KEY" > "$lib/image.key"
     own "$lib"
@@ -138,14 +152,15 @@ runner_image() {
 # image: a kept host would otherwise keep every image it was ever given.
 container_image() {
   local archive=$lib/runner.docker.tar.gz stale
-  if ! docker image inspect "gusto-runner:$IMAGE_KEY" >/dev/null 2>&1; then
-    aws s3 cp "s3://$BUCKET/image/$IMAGE_KEY.docker.tar.gz" "$archive.part" >/dev/null
-    docker load -q -i "$archive.part" >/dev/null
+  if ! engine image inspect "gusto-runner:$IMAGE_KEY" >/dev/null 2>&1; then
+    store_cp "s3://$BUCKET/image/$IMAGE_KEY.docker.tar.gz" "$archive.part" >/dev/null
+    chmod 0644 "$archive.part"
+    engine load -q -i "$archive.part" >/dev/null
     rm -f "$archive.part"
-    docker tag gusto-runner:latest "gusto-runner:$IMAGE_KEY"
+    engine tag gusto-runner:latest "gusto-runner:$IMAGE_KEY"
   fi
-  stale=$(docker images gusto-runner --format '{{.Tag}}' | grep -vx "$IMAGE_KEY" || true)
-  for tag in $stale; do docker rmi "gusto-runner:$tag" >/dev/null; done
+  stale=$(engine images gusto-runner --format '{{.Tag}}' | grep -vx "$IMAGE_KEY" || true)
+  for tag in $stale; do engine rmi "gusto-runner:$tag" >/dev/null; done
 }
 
 # The images organizations' agents run in: a container's, and the root file system an OpenShell sandbox is made from, for each
@@ -196,8 +211,12 @@ cell_identity() {
 }
 
 point_the_name_here() {
-  local ip
-  ip=$(metadata public-ipv4)
+  local ip=${PUBLIC_IP:-}
+  if [ "${POINT_NAME:-on}" = off ]; then
+    echo "gusto-boot: $NAME is left where it points (POINT_NAME=off)"
+    return
+  fi
+  [ -n "$ip" ] || ip=$(metadata public-ipv4)
   gusto-dns -zone "$ZONE" -name "$NAME" -ip "$ip" -token-file "$run/secrets/cf-dns-token"
   echo "gusto-boot: $NAME and *.$NAME point at $ip"
   if [ -n "${APPS_NAME:-}" ]; then
@@ -210,7 +229,7 @@ install -d -m 0755 "$run" "$lib"
 install -d -m 0700 "$run/secrets"
 case "$role" in
 all)
-  tokens; turnstile; lead_hook; google; stripe; certificates; image; credentials; lease; point_the_name_here ;;
+  tokens; turnstile; lead_hook; google; stripe; certificates; image; credentials; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
 orchestrator)
   tokens; turnstile; lead_hook; google; stripe; cell_secret; certificates; [ "${LIVE:-off}" = on ] || lease; point_the_name_here ;;
 cell)

@@ -4,11 +4,13 @@ map $http_upgrade $connection_upgrade {
     ''      close;
 }
 
+{% if cloud_default_server | bool %}
 # A name that is not ours gets no answer.
 server {
     listen 443 ssl default_server;
     ssl_reject_handshake on;
 }
+{% endif %}
 
 {# What every name is served with: TLS, and the front door on this host. #}
 {% macro front_door(names, certificate) %}

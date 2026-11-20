@@ -1,6 +1,6 @@
 [Unit]
 Description=Certificate, image, credentials and DNS for a gusto host
-After=network-online.target{{ (' ' + cloud_sandboxes | map('extract', {'container': 'docker.service', 'openshell': 'openshell-gateway.service'}) | join(' ')) if cloud_role != 'orchestrator' else '' }}
+After=network-online.target{{ (' ' + cloud_sandboxes | map('extract', cloud_sandbox_unit) | select | join(' ')) if cloud_role != 'orchestrator' else '' }}
 Wants=network-online.target
 Before=nginx.service gusto-cloud.service gusto-cell.service
 

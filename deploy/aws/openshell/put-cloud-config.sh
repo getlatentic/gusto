@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # Stores what a host needs to know that is not secret, from cloud.env, where the host reads
 # it: the name, the zone, the mail sender and so on. The tokens are stored with put-cloudflare.sh.
-# It is stored again whenever cloud.env changes.
+# It is stored again whenever cloud.env changes. A client demo's host, which cloud up makes, reads its own:
+# put-cloud-config.sh demo.env /gusto/demo-config, with a name that is not production's.
 source "$(dirname "$0")/env.sh"
-[ -f cloud.env ] || { echo "no cloud.env: copy cloud.env.example and fill it in" >&2; exit 2; }
-set -a; source cloud.env; set +a
+file=${1:-cloud.env} parameter=${2:-/gusto/cloud-config}
+case "$parameter" in /gusto/cloud-config | /gusto/demo-config) ;; *) echo "the parameter is /gusto/cloud-config or /gusto/demo-config" >&2; exit 2 ;; esac
+[ -f "$file" ] || { echo "no $file: copy cloud.env.example and fill it in" >&2; exit 2; }
+set -a; source "$file"; set +a
 for need in GUSTO_CLOUD_DOMAIN GUSTO_CLOUD_ZONE GUSTO_CLOUDFLARE_ACCOUNT_ID GUSTO_MAIL_FROM GUSTO_CERT_EMAIL; do
   [ -n "${!need:-}" ] || { echo "$need is not set in cloud.env" >&2; exit 2; }
 done
@@ -25,5 +28,5 @@ print(json.dumps({
 }))
 PY
 )"
-aws ssm put-parameter --name /gusto/cloud-config --type String --overwrite --value "$config" --query Version --output text
-echo "stored /gusto/cloud-config in $AWS_REGION"
+aws ssm put-parameter --name "$parameter" --type String --overwrite --value "$config" --query Version --output text
+echo "stored $parameter in $AWS_REGION"

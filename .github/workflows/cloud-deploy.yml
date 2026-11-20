@@ -83,6 +83,18 @@ jobs:
           aws s3 cp out/bundle.tgz.sha256 "$prefix/bundle.tgz.sha256" --only-show-errors
           printf '%s' "$GITHUB_SHA" | aws s3 cp - "s3://$BUCKET/releases/latest" --only-show-errors
           echo "release $GITHUB_SHA is the latest"
+      - name: The release in the store of the host off AWS
+        # The host off AWS pulls the newest release from its own store every five minutes (deploy/greencloud). Without the
+        # store's address there is no such host, and nothing is copied.
+        if: ${{ vars.GUSTO_STORE_ENDPOINT != '' }}
+        env:
+          BUCKET: ${{ vars.GUSTO_BUCKET }}
+          STORE: ${{ vars.GUSTO_STORE_BUCKET }}
+          ENDPOINT: ${{ vars.GUSTO_STORE_ENDPOINT }}
+          RELEASE: ${{ github.sha }}
+          STORE_KEY_ID: ${{ secrets.GUSTO_STORE_KEY_ID }}
+          STORE_SECRET: ${{ secrets.GUSTO_STORE_SECRET }}
+        run: deploy/greencloud/publish.sh
       - name: The cell image, when what it is made from changed
         # A cell starts from an image with the runner image already prepared, named by the key of what went into it. When the key
         # moved, a cell still starts, from a full install, and a visitor waits minutes for their demo, so the image is made here.

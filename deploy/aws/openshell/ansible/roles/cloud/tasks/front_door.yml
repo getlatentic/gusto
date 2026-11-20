@@ -51,7 +51,9 @@
     mode: "0755"
 
 - name: The front door's media, as the bucket holds them
-  ansible.builtin.command: aws s3 sync s3://{{ cloud_bucket }}/media/ {{ cloud_media }}/ --delete --only-show-errors
+  ansible.builtin.command: >-
+    aws s3 sync s3://{{ cloud_bucket }}/media/ {{ cloud_media }}/ --delete --only-show-errors
+    {{ ('--endpoint-url ' + cloud_store_endpoint) if cloud_store_endpoint else '' }}
   environment:
     AWS_REGION: "{{ cloud_region }}"
     AWS_DEFAULT_REGION: "{{ cloud_region }}"
@@ -65,14 +67,13 @@
     mode: "0644"
   notify: Reload nginx
 
-- name: The site is on, and the default one is off
+- name: The site is on, and the default one is off on a host that is gusto's alone
   ansible.builtin.file:
     src: "{{ item.src | default(omit) }}"
     dest: "{{ item.dest }}"
     state: "{{ item.state }}"
-  loop:
-    - { src: /etc/nginx/sites-available/gusto, dest: /etc/nginx/sites-enabled/gusto, state: link }
-    - { dest: /etc/nginx/sites-enabled/default, state: absent }
+  loop: "{{ [{'src': '/etc/nginx/sites-available/gusto', 'dest': '/etc/nginx/sites-enabled/gusto', 'state': 'link'}]
+    + ([{'dest': '/etc/nginx/sites-enabled/default', 'state': 'absent'}] if cloud_default_server | bool else []) }}"
   notify: Reload nginx
 
 # Cells read the kit from the shared file system, and take it only when its sum is the one this host starts them with.

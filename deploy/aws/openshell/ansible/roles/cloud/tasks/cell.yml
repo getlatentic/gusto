@@ -3,14 +3,14 @@
   ansible.builtin.apt:
     name: docker.io
     state: present
-  when: "'container' in cloud_sandboxes and cloud_root == ''"
+  when: "'container' in cloud_sandboxes and cloud_container == 'docker' and cloud_root == ''"
 
 - name: Docker is running and starts with the host
   ansible.builtin.systemd:
     name: docker
     state: started
     enabled: true
-  when: "'container' in cloud_sandboxes and cloud_root == ''"
+  when: "'container' in cloud_sandboxes and cloud_container == 'docker' and cloud_root == ''"
 
 - name: The script that builds the model credentials from Parameter Store
   ansible.builtin.copy:

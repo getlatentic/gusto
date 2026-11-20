@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Brings this host to a release from the store: the newest, or the one named. It fetches the bundle, checks it is the one CI made,
+# and runs its cloud playbook, which makes the host all of gusto cloud. The timer runs it every five minutes, and it does nothing
+# when the host is at the newest release. /etc/gusto/live.env says where the store is; /etc/gusto/cloud-vars.json says what
+# the host is.
+set -euo pipefail
+# shellcheck disable=SC1091
+. /etc/gusto/live.env
+export AWS_REGION=$REGION AWS_DEFAULT_REGION=$REGION HOME=/root PATH=$PATH:/snap/bin:/usr/local/bin
+state=${GUSTO_UPGRADE_STATE:-/var/lib/gusto-upgrade}
+store() { aws s3 "$@" --endpoint-url "$STORE_ENDPOINT" --only-show-errors; }
+
+exec 9> "$state.lock"
+flock -n 9 || { echo "gusto-upgrade: another upgrade is running"; exit 0; }
+mkdir -p "$state"
+release=${1:-$(store cp "s3://$BUCKET/releases/latest" -)}
+case "$release" in *[!0-9a-f]* | "") echo "gusto-upgrade: $release is not a release" >&2; exit 2 ;; esac
+[ "$release" != "$(cat "$state/release" 2>/dev/null || true)" ] || exit 0
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+store cp "s3://$BUCKET/releases/$release/bundle.tgz" "$tmp/bundle.tgz"
+store cp "s3://$BUCKET/releases/$release/bundle.tgz.sha256" "$tmp/bundle.tgz.sha256"
+# Nothing of the bundle is run until it is the one CI made.
+(cd "$tmp" && sha256sum -c --quiet bundle.tgz.sha256)
+dir=$state/bundle
+rm -rf "$dir" && mkdir -p "$dir" && tar -xzf "$tmp/bundle.tgz" -C "$dir"
+
+ansible-playbook -c local -i 'host,' -e @/etc/gusto/cloud-vars.json -e "cloud_bucket=$BUCKET" -e "cloud_region=$REGION" \
+  -e "cloud_image_key=$(cat "$dir/image.key")" -e "cloud_release=$release" -e cloud_role=all -e cloud_live=true \
+  -e cloud_baked=false -e cloud_bake=false -e cloud_check_public=false -e cloud_lease_minutes=30 -e cloud_max_hours=24 \
+  "$dir/ansible/cloud.yml"
+printf '%s' "$release" > "$state/release"
+echo "gusto-upgrade: this host is at $release"

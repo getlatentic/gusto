@@ -35,3 +35,5 @@ CLAUDE.md
 
 # The web app as built, which the binary embeds. web/build.sh writes it, and CI and the release build it from source.
 /internal/web/spa/dist/
+# The vault of the host off AWS, encrypted, and kept out of the repository all the same.
+deploy/greencloud/*.vault.yml

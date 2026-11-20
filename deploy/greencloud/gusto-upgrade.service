@@ -1,0 +1,9 @@
+[Unit]
+Description=gusto cloud: bring this host to the newest release in the store
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/gusto-upgrade
+TimeoutStartSec=30min

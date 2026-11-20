@@ -1,4 +1,5 @@
-# Launches gusto cloud from a release bundle, and says when it answers. With no cells it is
+# Launches gusto cloud from a release bundle, and says when it answers. It is a client demo's own gusto, apart from production:
+# its settings are /gusto/demo-config (put-cloud-config.sh demo.env /gusto/demo-config), whose name is not production's. With no cells it is
 # one host. With cells it is a front door and that many hosts that run the organizations' servers, which share
 # a file system. Each host is made from a launch template and configures itself, and removes itself when its
 # lease ends unless somebody extends it at /lease, or, for a cell, when its front door is gone. Only main can run it.
@@ -59,7 +60,7 @@ jobs:
           launch() { # role template count
             sed -e "s/@RELEASE@/$RELEASE/" -e "s/@BUCKET@/$BUCKET/" -e "s/@REGION@/$AWS_REGION/" \
                 -e "s/@LEASE_MINUTES@/$LEASE/" -e "s/@MAX_HOURS@/4/" -e "s/@ROLE@/$1/" -e "s/@RUN@/$run/" -e "s/@EFS@/$EFS/" \
-                deploy/aws/platform/user-data.sh > "user-data-$1.sh"
+                deploy/aws/platform/user-data.sh | awk 'NR == 2 { print "export CONFIG=/gusto/demo-config" } { print }' > "user-data-$1.sh"
             aws ec2 run-instances --launch-template "LaunchTemplateName=$2,Version=\$Latest" --count "$3" \
               --user-data "file://user-data-$1.sh" --query 'Instances[].InstanceId' --output text
           }
@@ -72,7 +73,7 @@ jobs:
           echo "launched $ids from release $RELEASE at $(date -u +%H:%M:%S) UTC"
       - name: Wait until it answers
         env:
-          NAME: ${{ vars.GUSTO_CLOUD_DOMAIN }}
+          NAME: ${{ vars.GUSTO_DEMO_DOMAIN }}
           LEASE: ${{ inputs.lease_minutes }}
           CELLS: ${{ inputs.cells }}
         run: |

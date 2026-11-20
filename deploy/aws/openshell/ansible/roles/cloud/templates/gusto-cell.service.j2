@@ -1,12 +1,12 @@
 [Unit]
 Description=gusto node: starts and stops organizations' servers for gusto cloud
-After=gusto-boot.service {{ cloud_sandboxes | map('extract', {'container': 'docker.service', 'openshell': 'openshell-gateway.service'}) | join(' ') }}
+After=gusto-boot.service {{ cloud_sandboxes | map('extract', cloud_sandbox_unit) | select | join(' ') }}
 Requires=gusto-boot.service
 RequiresMountsFor={{ cloud_state }}
 
 [Service]
 User={{ cloud_user }}
-SupplementaryGroups={{ cloud_sandboxes | map('extract', {'container': 'docker', 'openshell': 'kvm'}) | join(' ') }}
+SupplementaryGroups={{ cloud_sandboxes | map('extract', cloud_sandbox_group) | select | join(' ') }}
 WorkingDirectory={{ cloud_lib }}
 EnvironmentFile=/etc/gusto/org.env
 EnvironmentFile=/etc/gusto/cell.env

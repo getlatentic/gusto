@@ -5,7 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"path"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -28,16 +32,41 @@ type parameterReader interface {
 	GetParameter(context.Context, *ssm.GetParameterInput, ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
 }
 
-// paramCommand prints one parameter, decrypted. A host reads its secrets with it while it starts, where the AWS command, a Python
+// paramCommand prints one parameter, decrypted, from Parameter Store, or from GUSTO_PARAM_DIR when it is set. A host reads its secrets with it while it starts, where the AWS command, a Python
 // program, took five seconds to start from a disk that is still being fetched, and this takes a fraction of one.
 func paramCommand(args []string) int {
 	if len(args) != 1 || args[0] == "" {
 		return usageError("param", "needs the name of one parameter")
 	}
+	if dir := os.Getenv("GUSTO_PARAM_DIR"); dir != "" {
+		value, err := fileParameter(dir, args[0])
+		if err != nil {
+			return fail(err)
+		}
+		fmt.Println(value)
+		return 0
+	}
 	if err := printParameter(context.Background(), openParameters, args[0], os.Stdout, paramPause); err != nil {
 		return fail(err)
 	}
 	return 0
+}
+
+// fileParameter reads a parameter kept as a file under dir at its own name, as a host off AWS keeps its secrets: /gusto/stripe-key
+// is dir/gusto/stripe-key. A name that would leave dir is refused.
+func fileParameter(dir, name string) (string, error) {
+	clean := path.Clean(name)
+	if !strings.HasPrefix(name, "/") || clean != name || strings.Contains(name, "..") {
+		return "", fmt.Errorf("a parameter's name is an absolute path such as /gusto/stripe-key, not %q", name)
+	}
+	value, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(clean)))
+	if errors.Is(err, fs.ErrNotExist) {
+		return "", fmt.Errorf("there is no parameter %s", name)
+	}
+	if err != nil {
+		return "", fmt.Errorf("the parameter %s could not be read: %w", name, err)
+	}
+	return strings.TrimRight(string(value), "\n"), nil
 }
 
 // openParameters is Parameter Store as the AWS configuration finds it: an instance role, single sign-on, or the environment.
