@@ -73,10 +73,10 @@ jobs:
           echo "launched $ids from release $RELEASE at $(date -u +%H:%M:%S) UTC"
       - name: Wait until it answers
         env:
-          NAME: ${{ vars.GUSTO_DEMO_DOMAIN }}
           LEASE: ${{ inputs.lease_minutes }}
           CELLS: ${{ inputs.cells }}
         run: |
+          NAME="$(aws ssm get-parameter --name /gusto/demo-config --query Parameter.Value --output text | python3 -c 'import json,sys; print(json.load(sys.stdin)["cloud_domain"])')"
           for i in $(seq 1 100); do
             if curl -fsS -m 10 "https://$NAME/healthz" >/dev/null 2>&1; then
               echo "### Host up" >> "$GITHUB_STEP_SUMMARY"

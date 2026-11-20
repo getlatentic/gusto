@@ -14,9 +14,9 @@
 # asked for a new one at every start would run out of them. Shared apps are served under
 # APPS_NAME when it is set, a name of their own in APPS_ZONE, with a certificate of its own.
 #
-# A host off AWS sets PARAM_DIR, where its parameters are files (gusto param reads them there), STORE_ENDPOINT, the S3-compatible
-# store its files are in, PUBLIC_IP, its address, and CONTAINER=podman, run as the owner. POINT_NAME=off leaves the name where it
-# points, so a host is made ready before it is given the name.
+# A host off AWS sets PARAM_DIR, where its parameters are files (gusto param reads them there), PUBLIC_IP, its address, and
+# CONTAINER=podman, run as the owner, and has no BUCKET: it keeps its certificate on its own disk and builds its runner image
+# itself. POINT_NAME=off leaves the name where it points, so a host is made ready before it is given the name.
 #
 # The paths can be moved with GUSTO_RUN, GUSTO_LE, GUSTO_LIB, GUSTO_LEASE_FILE and GUSTO_CONF, and the owner of the
 # files with GUSTO_OWNER (empty leaves them alone), which is how a test runs it.
@@ -35,7 +35,6 @@ container=${CONTAINER:-docker}
 
 own() { [ -z "$owner" ] || chown -R "$owner:$owner" "$@"; }
 param() { gusto param "$1"; }
-store_cp() { aws s3 cp "$@" ${STORE_ENDPOINT:+--endpoint-url "$STORE_ENDPOINT"}; }
 # Rootless podman keeps its images for the user who runs it, so the owner, who starts the organizations' servers, loads them.
 engine() {
   if [ "$container" = podman ] && [ -n "$owner" ]; then
@@ -115,9 +114,9 @@ google() {
 # certificate makes sure there is a certificate for a name and every name under it.
 certificate() {
   local domain=$1 live=$le/live/$1 fetched kept
-  if [ ! -e "$live/fullchain.pem" ]; then
+  if [ ! -e "$live/fullchain.pem" ] && [ -n "${BUCKET:-}" ]; then
     fetched=$(mktemp)
-    if store_cp "s3://$BUCKET/tls/$domain.tgz" "$fetched" >/dev/null 2>&1; then
+    if aws s3 cp "s3://$BUCKET/tls/$domain.tgz" "$fetched" >/dev/null 2>&1; then
       mkdir -p "$le" && tar xzf "$fetched" -C "$le"
     fi
     rm -f "$fetched"
@@ -126,9 +125,10 @@ certificate() {
     certbot certonly --non-interactive --agree-tos -m "$CERT_EMAIL" --cert-name "$domain" \
       --dns-cloudflare --dns-cloudflare-credentials "$run/secrets/certbot-cf.ini" --dns-cloudflare-propagation-seconds 30 \
       -d "$domain" -d "*.$domain"
+    [ -n "${BUCKET:-}" ] || return 0
     kept=$(mktemp)
     tar czf "$kept" -C "$le" .
-    store_cp "$kept" "s3://$BUCKET/tls/$domain.tgz" >/dev/null
+    aws s3 cp "$kept" "s3://$BUCKET/tls/$domain.tgz" >/dev/null
     rm -f "$kept"
   fi
 }
@@ -141,7 +141,7 @@ certificates() {
 runner_image() {
   local image=$lib/runner-all-rootfs.tar.gz
   if [ "$(cat "$lib/image.key" 2>/dev/null || true)" != "$IMAGE_KEY" ] || [ ! -s "$image" ]; then
-    store_cp "s3://$BUCKET/image/$IMAGE_KEY.tar.gz" "$image.part" >/dev/null
+    aws s3 cp "s3://$BUCKET/image/$IMAGE_KEY.tar.gz" "$image.part" >/dev/null
     mv "$image.part" "$image"
     printf '%s' "$IMAGE_KEY" > "$lib/image.key"
     own "$lib"
@@ -153,7 +153,8 @@ runner_image() {
 container_image() {
   local archive=$lib/runner.docker.tar.gz stale
   if ! engine image inspect "gusto-runner:$IMAGE_KEY" >/dev/null 2>&1; then
-    store_cp "s3://$BUCKET/image/$IMAGE_KEY.docker.tar.gz" "$archive.part" >/dev/null
+    [ -n "${BUCKET:-}" ] || { echo "gusto-boot: the runner image $IMAGE_KEY is not on this host, which builds its own" >&2; exit 1; }
+    aws s3 cp "s3://$BUCKET/image/$IMAGE_KEY.docker.tar.gz" "$archive.part" >/dev/null
     chmod 0644 "$archive.part"
     engine load -q -i "$archive.part" >/dev/null
     rm -f "$archive.part"

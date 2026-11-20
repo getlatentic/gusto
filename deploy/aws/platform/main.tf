@@ -534,6 +534,8 @@ resource "aws_iam_role_policy" "ci" {
       { Sid = "Tag", Effect = "Allow", Action = "ec2:CreateTags", Resource = "*", Condition = { StringEquals = { "ec2:CreateAction" = "RunInstances" } } },
       { Sid = "GiveTheHostItsRole", Effect = "Allow", Action = "iam:PassRole", Resource = aws_iam_role.host.arn, Condition = { StringEquals = { "iam:PassedToService" = "ec2.amazonaws.com" } } },
       { Sid = "Look", Effect = "Allow", Action = ["ec2:DescribeInstances", "ec2:DescribeInstanceStatus", "ec2:DescribeLaunchTemplates", "ec2:DescribeLaunchTemplateVersions", "ssm:DescribeInstanceInformation", "ssm:GetCommandInvocation"], Resource = "*" },
+      # The name a client demo's host is given, which cloud up waits on. No secret is under it.
+      { Sid = "ReadTheDemoName", Effect = "Allow", Action = "ssm:GetParameter", Resource = "arn:aws:ssm:${var.region}:${local.account}:parameter/gusto/demo-config" },
       {
         Sid      = "RemoveOnlyWhatIsTagged"
         Effect   = "Allow"

@@ -51,14 +51,14 @@
     mode: "0755"
 
 - name: The front door's media, as the bucket holds them
-  ansible.builtin.command: >-
-    aws s3 sync s3://{{ cloud_bucket }}/media/ {{ cloud_media }}/ --delete --only-show-errors
-    {{ ('--endpoint-url ' + cloud_store_endpoint) if cloud_store_endpoint else '' }}
+  ansible.builtin.command: aws s3 sync s3://{{ cloud_bucket }}/media/ {{ cloud_media }}/ --delete --only-show-errors
   environment:
     AWS_REGION: "{{ cloud_region }}"
     AWS_DEFAULT_REGION: "{{ cloud_region }}"
     PATH: "/usr/local/bin:/snap/bin:/usr/bin:/bin"
   changed_when: false
+  # A host with no bucket keeps the media it was given.
+  when: cloud_bucket != ''
 
 - name: The web server's site
   ansible.builtin.template:

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Moves production's data from the front door on AWS to the host off AWS, once: the accounts database and the task index from the
-# front door's disk, and the organizations, demos and records from the shared file system, without the copies of the program,
-# which the new host makes for itself. gusto cloud is stopped on both while it moves, and started on the new host after.
+# Moves production's data from the front door on AWS to the host off AWS, once: the accounts database, the task index and the
+# landing page's media from the front door's disk, and the organizations, demos and records from the shared file system, without
+# the copies of the program, which the new host makes for itself. gusto cloud is stopped on both while it moves, and started on the new host after.
 # Run it with the AWS profile of production, after site.yml has made the host, and before the name is pointed at it.
 set -euo pipefail
 : "${FRONT_DOOR:?the instance id of the front door}" "${HOST:?root@ the host off AWS}" "${BUCKET:?the bucket on AWS}"
@@ -26,13 +26,13 @@ on_aws() {
 }
 
 echo "stopping gusto cloud on $FRONT_DOOR and packing its data"
-on_aws "systemctl stop gusto-owner gusto-cloud; if ! { tar -czf /tmp/move.tgz --exclude=./gusto-cloud/cloud/releases --exclude=./gusto-cloud/kits --exclude=./gusto-cloud/cells -C /var/lib ./gusto-cloud \$(cd /var/lib && ls -d ./gusto/cloud.db* ./gusto/index 2>/dev/null) && aws s3 cp /tmp/move.tgz s3://$BUCKET/$key --only-show-errors; }; then systemctl start gusto-cloud gusto-owner; exit 1; fi; rm -f /tmp/move.tgz"
+on_aws "systemctl stop gusto-owner gusto-cloud; if ! { tar -czf /tmp/move.tgz --exclude=./var/lib/gusto-cloud/cloud/releases --exclude=./var/lib/gusto-cloud/kits --exclude=./var/lib/gusto-cloud/cells -C / ./var/lib/gusto-cloud ./var/www/gusto-media \$(cd / && ls -d ./var/lib/gusto/cloud.db* ./var/lib/gusto/index 2>/dev/null) && aws s3 cp /tmp/move.tgz s3://$BUCKET/$key --only-show-errors; }; then systemctl start gusto-cloud gusto-owner; exit 1; fi; rm -f /tmp/move.tgz"
 aws s3 cp "s3://$BUCKET/$key" "$here/move.tgz" --only-show-errors
 echo "packed $(du -h "$here/move.tgz" | cut -f1)"
 scp -q "$here/move.tgz" "$HOST:/root/gusto-move.tgz"
 # shellcheck disable=SC2029
 ssh "$HOST" 'set -e; systemctl stop gusto-owner gusto-cloud 2>/dev/null || true
   mkdir -p /root/gusto-before-move && tar -czf "/root/gusto-before-move/$(date -u +%Y%m%dT%H%M%SZ).tgz" -C /var/lib gusto-cloud gusto 2>/dev/null || true
-  tar -xzf /root/gusto-move.tgz -C /var/lib && chown -R gusto:gusto /var/lib/gusto-cloud /var/lib/gusto && rm -f /root/gusto-move.tgz
+  tar -xzf /root/gusto-move.tgz -C / && chown -R gusto:gusto /var/lib/gusto-cloud /var/lib/gusto && rm -f /root/gusto-move.tgz
   systemctl start gusto-cloud gusto-owner && sleep 3 && systemctl is-active gusto-cloud'
 echo "the data is on $HOST, and gusto cloud is running there; the front door on AWS is stopped (start it again to go back)"

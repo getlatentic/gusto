@@ -362,36 +362,38 @@ func TestTheFirstBootStartsTheLeaseAndALaterOneDoesNotGiveMoreTime(t *testing.T)
 	}
 }
 
-// A host off AWS reads its parameters from files, its files from an S3-compatible store at its own address, and runs its
-// containers with podman. It points the name at the address it is given, and not at all with POINT_NAME=off.
-func TestAHostOffAWSReadsItsSecretsFromFilesItsFilesFromItsStoreAndPointsTheNameAtItsAddress(t *testing.T) {
+// A host off AWS reads its parameters from files, has no bucket and so fetches nothing, uses the runner image it built with podman,
+// and points the name at the address it is given, and not at all with POINT_NAME=off. Without the image it says so and stops.
+func TestAHostOffAWSReadsItsSecretsFromFilesFetchesNothingAndPointsTheNameAtItsAddress(t *testing.T) {
 	h := newHost(t)
-	os.WriteFile(h.conf, []byte(mustRead(t, h.conf)+"SANDBOXES=container\nCONTAINER=podman\nPARAM_DIR=/etc/gusto/params\n"+
-		"STORE_ENDPOINT=https://account.r2.cloudflarestorage.com\nPUBLIC_IP=198.51.100.9\nLIVE=on\n"), 0o644)
-	h.put("image/key1.docker.tar.gz", "the image")
+	os.WriteFile(h.conf, []byte(strings.Replace(mustRead(t, h.conf), "BUCKET=store", "BUCKET=", 1)+
+		"SANDBOXES=container\nCONTAINER=podman\nPARAM_DIR=/etc/gusto/params\nPUBLIC_IP=198.51.100.9\nLIVE=on\n"), 0o644)
+	if _, err := h.boot(); err == nil {
+		t.Error("a host without its runner image started")
+	}
+	tags := filepath.Join(h.store, "..", "docker")
+	os.MkdirAll(tags, 0o755)
+	os.WriteFile(filepath.Join(tags, "key1"), nil, 0o644)
+	os.WriteFile(filepath.Join(tags, "old"), nil, 0o644)
 	done, err := h.boot()
 	if err != nil {
 		t.Fatal(err)
 	}
 	all := strings.Join(done, "\n")
-	for _, want := range []string{"read from /etc/gusto/params", "podman load", "podman tag gusto-runner:latest gusto-runner:key1",
+	for _, want := range []string{"read from /etc/gusto/params", "podman rmi gusto-runner:old",
 		"gusto-dns -zone example.com -name gusto.example.com -ip 198.51.100.9"} {
 		if !strings.Contains(all, want) {
 			t.Errorf("%q was not done:\n%s", want, all)
 		}
 	}
 	for _, line := range done {
-		if strings.HasPrefix(line, "aws ") && !strings.HasSuffix(line, "--endpoint-url https://account.r2.cloudflarestorage.com") {
-			t.Errorf("a file was not read from the store: %s", line)
-		}
-		if strings.HasPrefix(line, "docker ") {
-			t.Errorf("docker was used: %s", line)
+		if strings.HasPrefix(line, "aws ") || strings.HasPrefix(line, "docker ") || strings.HasPrefix(line, "podman load") {
+			t.Errorf("a host off AWS did %s", line)
 		}
 	}
 	if _, err := os.Stat(filepath.Join(h.dir, "lease", "lease.json")); err == nil {
 		t.Error("a host that stays up was given a lease")
 	}
-
 	done, err = h.boot("POINT_NAME=off")
 	if err != nil || count(done, "gusto-dns ") != 0 {
 		t.Errorf("the name was pointed with POINT_NAME=off: %v %v", err, done)

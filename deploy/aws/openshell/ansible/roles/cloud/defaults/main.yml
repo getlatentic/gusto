@@ -40,13 +40,12 @@ cloud_meta_parameter: /gusto/meta-key
 cloud_lease_minutes: 30
 cloud_max_hours: 4
 cloud_user: ubuntu
-# A host off AWS, such as a VPS shared with other services, sets these. cloud_container is docker or podman, which runs rootless as
-# cloud_user. cloud_param_dir holds the parameters as files (gusto param reads them there), cloud_store_endpoint is the S3-compatible
-# store the bucket is in, and cloud_public_ip the host's address. cloud_point_name false leaves the name where it points.
+# A host off AWS, such as a VPS shared with other services, sets these, and an empty cloud_bucket. cloud_container is docker or
+# podman, which runs rootless as cloud_user. cloud_param_dir holds the parameters as files (gusto param reads them there), and
+# cloud_public_ip is the host's address. cloud_point_name false leaves the name where it points.
 # cloud_default_server false leaves the web server's default site, and which server answers an unknown name, to the host.
 cloud_container: docker
 cloud_param_dir: ""
-cloud_store_endpoint: ""
 cloud_public_ip: ""
 cloud_point_name: true
 cloud_default_server: true

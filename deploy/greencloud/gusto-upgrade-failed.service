@@ -1,0 +1,7 @@
+[Unit]
+Description=gusto cloud: tell the operator an upgrade failed
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/gusto-upgrade-failed
+TimeoutStartSec=2min

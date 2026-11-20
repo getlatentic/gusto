@@ -1,15 +1,16 @@
 ---
 # Makes a shared VPS a host of gusto cloud that is all of it: gusto cloud, every organization's server, and their agents in rootless
-# podman containers as the gusto user. It leaves the host's other services, their sites and the default site alone. It writes the
-# secrets and settings from the vault, installs the upgrade that pulls releases from the store, and brings the host to the newest.
-# gusto_point_name false (the default) makes the host ready without moving the name to it.
+# podman containers as the gusto user. The host builds gusto itself from the main branch, as the gusto-build user, so nothing outside
+# it has to deliver a release. It leaves the host's other services, their sites and the default site alone. gusto_point_name false
+# (the default) makes the host ready without moving the name to it.
 - name: gusto cloud on a shared host
   hosts: all
   become: true
   gather_facts: false
   vars:
-    gusto_user: gusto
     gusto_point_name: false
+    # Any Go from 1.21 builds gusto: it fetches the toolchain go.mod names, which the checksum database vouches for.
+    gusto_go: go1.26.8.linux-amd64
     # The subordinate ids rootless podman maps a container's users to, clear of any other user's.
     gusto_subids: "gusto:300000:65536"
   tasks:
@@ -17,51 +18,58 @@
       ansible.builtin.assert:
         that:
           - gusto_public_ip | default('') | length > 0
-          - gusto_store_endpoint | default('') | length > 0
-          - gusto_store_bucket | default('') | length > 0
-          - gusto_store_access_key_id | default('') | length > 0
-          - gusto_store_secret_access_key | default('') | length > 0
           - gusto_cloud_config.cloud_domain | default('') | length > 0
           - gusto_params['/gusto/cloudflare-dns-token'] | default('') | length > 0
-        fail_msg: the vault needs gusto_public_ip, the store's endpoint, bucket and key, gusto_cloud_config and gusto_params
+        fail_msg: the vault needs gusto_public_ip, gusto_cloud_config and gusto_params (vault.example.yml)
 
-    - name: The user the organizations' servers and their containers run as
+    - name: The user the organizations' servers and their containers run as, and the one that builds gusto
       ansible.builtin.user:
-        name: "{{ gusto_user }}"
+        name: "{{ item }}"
         system: true
         shell: /usr/sbin/nologin
-        home: "/home/{{ gusto_user }}"
+        home: "/home/{{ item }}"
         create_home: true
+      loop: [gusto, gusto-build]
 
-    - name: Its subordinate ids, which rootless podman needs
+    - name: The subordinate ids of the gusto user, which rootless podman needs
       ansible.builtin.lineinfile:
         path: "/etc/{{ item }}"
         line: "{{ gusto_subids }}"
-        regexp: "^{{ gusto_user }}:"
+        regexp: "^gusto:"
         create: true
         mode: "0644"
       loop: [subuid, subgid]
 
-    - name: Its user manager runs without a session, so its containers have a runtime directory
-      ansible.builtin.command: loginctl enable-linger {{ gusto_user }}
+    - name: The gusto user's manager runs without a session, so its containers have a runtime directory
+      ansible.builtin.command: loginctl enable-linger gusto
       args:
-        creates: "/var/lib/systemd/linger/{{ gusto_user }}"
+        creates: /var/lib/systemd/linger/gusto
 
-    - name: The AWS command, which reads the store
-      ansible.builtin.command: snap install aws-cli --classic
-      args:
-        creates: /snap/bin/aws
+    - name: Go, checked against the sum Google publishes
+      ansible.builtin.get_url:
+        url: "https://dl.google.com/go/{{ gusto_go }}.tar.gz"
+        checksum: "sha256:https://dl.google.com/go/{{ gusto_go }}.tar.gz.sha256"
+        dest: "/root/{{ gusto_go }}.tar.gz"
+        mode: "0644"
+      register: go_archive
 
-    - name: Where gusto's settings and parameters are
+    - name: Go is installed from it
+      ansible.builtin.shell: rm -rf /usr/local/go && tar -xzf "/root/{{ gusto_go }}.tar.gz" -C /usr/local
+      when: go_archive is changed
+
+    - name: Where gusto's settings, parameters and builds are
       ansible.builtin.file:
         path: "{{ item.path }}"
         state: directory
+        owner: "{{ item.owner | default('root') }}"
+        group: "{{ item.owner | default('root') }}"
         mode: "{{ item.mode }}"
       loop:
         - { path: /etc/gusto, mode: "0755" }
         - { path: /etc/gusto/params, mode: "0700" }
         - { path: /etc/gusto/params/gusto, mode: "0700" }
-        - { path: /root/.aws, mode: "0700" }
+        - { path: /var/lib/gusto-upgrade, mode: "0755" }
+        - { path: /var/lib/gusto-upgrade/src, mode: "0755", owner: gusto-build }
 
     - name: The parameters, a file each at its own name, for root alone
       ansible.builtin.copy:
@@ -72,37 +80,19 @@
       loop_control:
         label: "{{ item.key }}"
       no_log: true
-
-    - name: The store's key, for root alone
-      ansible.builtin.copy:
-        dest: /root/.aws/credentials
-        content: |
-          [default]
-          aws_access_key_id = {{ gusto_store_access_key_id }}
-          aws_secret_access_key = {{ gusto_store_secret_access_key }}
-        mode: "0600"
-      no_log: true
-
-    - name: Where the store is
-      ansible.builtin.copy:
-        dest: /etc/gusto/live.env
-        content: |
-          BUCKET={{ gusto_store_bucket }}
-          STORE_ENDPOINT={{ gusto_store_endpoint }}
-          REGION=us-east-1
-        mode: "0644"
+      register: params_written
 
     - name: What the host is
       ansible.builtin.copy:
         dest: /etc/gusto/cloud-vars.json
         content: "{{ gusto_cloud_config | combine(gusto_host) | to_nice_json }}\n"
         mode: "0644"
+      register: settings_written
       vars:
         gusto_host:
-          cloud_user: "{{ gusto_user }}"
+          cloud_user: gusto
           cloud_container: podman
           cloud_param_dir: /etc/gusto/params
-          cloud_store_endpoint: "{{ gusto_store_endpoint }}"
           cloud_public_ip: "{{ gusto_public_ip }}"
           cloud_point_name: "{{ gusto_point_name | bool }}"
           cloud_default_server: false
@@ -110,22 +100,29 @@
           cloud_demo_sandbox: container
           cloud_computer_memory: "{{ gusto_computer_memory | default('2Gi') }}"
 
-    - name: The upgrade, its service and its timer
+    - name: The upgrade, what tells the operator it failed, and their services and timer
       ansible.builtin.copy:
         src: "{{ item.src }}"
         dest: "{{ item.dest }}"
         mode: "{{ item.mode }}"
       loop:
         - { src: gusto-upgrade, dest: /usr/local/sbin/gusto-upgrade, mode: "0755" }
+        - { src: gusto-upgrade-failed, dest: /usr/local/sbin/gusto-upgrade-failed, mode: "0755" }
         - { src: gusto-upgrade.service, dest: /etc/systemd/system/gusto-upgrade.service, mode: "0644" }
+        - { src: gusto-upgrade-failed.service, dest: /etc/systemd/system/gusto-upgrade-failed.service, mode: "0644" }
         - { src: gusto-upgrade.timer, dest: /etc/systemd/system/gusto-upgrade.timer, mode: "0644" }
 
-    - name: The host is brought to the newest release, and every release after
+    - name: The timer looks for a new commit from now on
       ansible.builtin.systemd_service:
-        name: "{{ item.name }}"
-        state: "{{ item.state }}"
-        enabled: "{{ item.enabled | default(omit) }}"
+        name: gusto-upgrade.timer
+        state: started
+        enabled: true
         daemon_reload: true
-      loop:
-        - { name: gusto-upgrade.service, state: started }
-        - { name: gusto-upgrade.timer, state: started, enabled: true }
+
+    # The first build takes a while; the host is ready when it has run, and every merge after is installed by the timer.
+    - name: The host is built from the newest commit now
+      ansible.builtin.command: /usr/local/sbin/gusto-upgrade
+      environment:
+        GUSTO_UPGRADE_FORCE: "{{ 'yes' if (params_written is changed or settings_written is changed) else '' }}"
+      register: upgraded
+      changed_when: "'this host is at' in upgraded.stdout"

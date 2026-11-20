@@ -2,11 +2,6 @@
 # or a setting of production that is kept out of the repository.
 ansible_host: 203.0.113.10
 gusto_public_ip: 203.0.113.10
-# The store: an R2 bucket and an R2 API token that may read and write it.
-gusto_store_endpoint: https://<account id>.r2.cloudflarestorage.com
-gusto_store_bucket: gusto-store
-gusto_store_access_key_id: ""
-gusto_store_secret_access_key: ""
 # What /gusto/cloud-config holds on AWS.
 gusto_cloud_config:
   cloud_domain: gusto.example.com
