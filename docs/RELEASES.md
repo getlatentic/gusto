@@ -4,6 +4,13 @@ A release's notes list the images and the merged pull requests. This file lists 
 
 A tag needs a section here named for it, or the release workflow stops and copies the section into the release's notes. Changes made after a release go under **Next release**, renamed to the tag when the tag is made. See [UPGRADE.md](UPGRADE.md) for the data and [PILOT.md](PILOT.md) for installing and checking a release.
 
+## v0.1.1
+
+**Changed**
+
+- Where agents run in rootless podman, gusto-boot, the upgrade and each organization's server give podman the user's session bus (`DBUS_SESSION_BUS_ADDRESS`, `XDG_RUNTIME_DIR`) and one image store (`CONTAINERS_STORAGE_CONF`). A build or a container with limits failed without the bus, and a server, whose `HOME` is its organization's folder, would not have found the runner image. Hosts with Docker are unchanged.
+- `deploy/greencloud/make-vault.sh` reads Parameter Store in tens, the most it answers at once.
+
 ## v0.1.0
 
 **Added**
