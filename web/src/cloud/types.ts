@@ -28,6 +28,31 @@ export interface CloudSpace {
   Others: string[] | null
 }
 
+// How an organization pays, where gusto cloud bills (internal/cloud/billing_page.go).
+export interface CloudBilling {
+  Admin: boolean
+  Active: boolean
+  Words: string
+  Provider: string
+  Seats: number
+  People: number
+  Offers: { Provider: string; Words: string }[] | null
+  Manage: boolean
+  Cancel: boolean
+  Proposals: CloudProposal[] | null
+}
+
+// A proposed change of the seats paid for, by a person or an agent.
+export interface CloudProposal {
+  ID: string
+  Reason: string
+  ApproveURL: string
+  Seats: number
+  ByAgent: boolean
+  Pending: boolean
+  Awaiting: boolean
+}
+
 export interface CloudStep {
   Label: string
   Mark: string
@@ -82,12 +107,7 @@ export interface CloudPage {
   Address: string
   Domain: string
   Credit: { Left: string; Of: string } | null
-  Plan: {
-    Words: string
-    Offer: string
-    Subscribe: boolean
-    Manage: boolean
-  } | null
+  Billing: CloudBilling | null
   Quota: CloudQuota
   Verified: CloudQuota
 

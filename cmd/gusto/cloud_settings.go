@@ -17,6 +17,7 @@ type cloudSettings struct {
 	signup  signupSettings
 	demo    demoSettings
 	billing billingSettings
+	paypal  payPalSettings
 	servers orgServerSettings
 	nodes   nodePoolSettings
 	scaler  scalerSettings
@@ -28,6 +29,7 @@ func (c *cloudSettings) declare(set *settings.Set) {
 	c.signup.declare(set)
 	c.demo.declare(set)
 	c.billing.declare(set)
+	c.paypal.declare(set)
 	c.servers.declare(set)
 	c.nodes.declare(set)
 	c.scaler.declare(set)

@@ -197,11 +197,15 @@ func openCloud(ctx context.Context, cfg cloudSettings) (*cloud.Server, *cloud.Co
 	if err != nil {
 		return nil, nil, err
 	}
+	payPal, err := cfg.paypal.client()
+	if err != nil {
+		return nil, nil, err
+	}
 	store, err := openAccounts(ctx, cfg)
 	if err != nil {
 		return nil, nil, err
 	}
-	front, controller, err := frontOf(ctx, store, public, stripe, cfg)
+	front, controller, err := frontOf(ctx, store, public, billingOf(store, stripe, payPal), cfg)
 	if err != nil {
 		store.Close()
 		return nil, nil, err
@@ -231,7 +235,7 @@ func openAccounts(ctx context.Context, cfg cloudSettings) (*cloud.Store, error) 
 
 // frontOf is gusto cloud's pages on the accounts in store, and the controller of the organizations' servers when it
 // starts them.
-func frontOf(ctx context.Context, store *cloud.Store, public *url.URL, stripe *cloud.Stripe, cfg cloudSettings) (*cloud.Server, *cloud.Controller, error) {
+func frontOf(ctx context.Context, store *cloud.Store, public *url.URL, billing *cloud.Billing, cfg cloudSettings) (*cloud.Server, *cloud.Controller, error) {
 	sessions, err := store.OpenSessions(ctx, public.Scheme == "https")
 	if err != nil {
 		return nil, nil, err
@@ -256,13 +260,13 @@ func frontOf(ctx context.Context, store *cloud.Store, public *url.URL, stripe *c
 		Turnstile:  cloud.Turnstile{Site: f.turnstileSite, Secret: f.turnstileSecret},
 		Google:     google,
 		PerAddress: 10, PerMailbox: 3, InAll: 200,
-		Stripe: stripe,
+		Billing: billing,
 	})
 	if err != nil {
 		return nil, nil, err
 	}
-	if stripe != nil {
-		front.Seats = cloud.NewSeatSync(store, stripe)
+	if billing != nil {
+		front.Seats = cloud.NewSeatSync(store, billing.Providers)
 	}
 	return front, controller, nil
 }

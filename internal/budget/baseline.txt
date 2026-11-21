@@ -19,8 +19,6 @@
 39 13 internal/node/scaler.go:(*Scaler).Tick
 35 13 internal/cloud/accounts.go:(*Store).signUpIn
 21 15 internal/cloud/address.go:NormalEmail
-41 18 internal/cloud/billing.go:(*Store).RecordSubscription
-25 13 internal/cloud/billing_pages.go:(*Server).planOf
 41 11 internal/cloud/mail_cloudflare.go:(Cloudflare).once
 38 11 internal/cloud/memberships_sql.go:(*Store).Verify
 31 11 internal/cloud/stripe_events.go:verifyStripe

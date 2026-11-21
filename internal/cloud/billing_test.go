@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/getlatentic/gusto/internal/cloud/payments"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -61,6 +62,11 @@ func newFakeStripe(t *testing.T) *fakeStripe {
 	}))
 	t.Cleanup(f.listener.Close)
 	return f
+}
+
+// billing is Stripe, the fake one, as the only way an organization pays.
+func (f *fakeStripe) billing(store *Store) *Billing {
+	return NewBilling(store, NewStripeProvider(store, f.stripe()))
 }
 
 func (f *fakeStripe) stripe() *Stripe {
@@ -132,11 +138,15 @@ func recorded(t *testing.T, s *Store, body []byte) (bool, error) {
 	if err := json.Unmarshal(body, &event); err != nil {
 		t.Fatal(err)
 	}
-	billing, about, err := billingOfEvent(event)
+	sub, about, err := subscriptionOfEvent(event)
 	if err != nil || !about {
 		t.Fatalf("%v %v", about, err)
 	}
-	return s.RecordSubscription(t.Context(), billing)
+	kept, err := s.apply(t.Context(), "stripe", sub.Org, sub, false)
+	if kept {
+		s.quotaChanged(t.Context(), sub.Org)
+	}
+	return kept, err
 }
 
 func TestASubscriptionSetsThePaidQuotaForEachSeatAndAnEndedOneStopsNewTasks(t *testing.T) {
@@ -155,7 +165,7 @@ func TestASubscriptionSetsThePaidQuotaForEachSeatAndAnEndedOneStopsNewTasks(t *t
 		if kept, _ := recorded(t, s, subscriptionEvent("customer.subscription.updated", org.Slug, "sub_1", "incomplete", 1, at.Add(-time.Minute))); kept {
 			t.Error("an older event was kept")
 		}
-		if b, _, _ := s.Billing(t.Context(), org.Slug); b.Seats != 3 || b.Status != "active" || b.Customer != "cus_1" || b.Item != "si_1" {
+		if b, _, _ := s.Plan(t.Context(), org.Slug); b.Seats != 3 || b.State != payments.Active || b.Customer != "cus_1" || b.Handle != "si_1" {
 			t.Errorf("%+v", b)
 		}
 		recorded(t, s, subscriptionEvent("customer.subscription.updated", org.Slug, "sub_1", "past_due", 3, at.Add(time.Hour)))
@@ -186,7 +196,7 @@ func TestASecondSubscriptionForAnOrganizationThatPaysIsRefusedAndNoticed(t *test
 		if _, err := recorded(t, s, subscriptionEvent("customer.subscription.created", org.Slug, "sub_2", "active", 1, at.Add(time.Second))); !errors.Is(err, errSecondSubscription) {
 			t.Errorf("%v", err)
 		}
-		if b, _, _ := s.Billing(t.Context(), org.Slug); b.Subscription != "sub_1" {
+		if b, _, _ := s.Plan(t.Context(), org.Slug); b.Ref != "sub_1" {
 			t.Errorf("the first subscription stands: %+v", b)
 		}
 		if kept, _ := recorded(t, s, subscriptionEvent("customer.subscription.created", "nobody-com", "sub_3", "active", 1, at)); kept {
@@ -226,20 +236,20 @@ func (f *front) postEvent(body []byte, signature string) (int, string) {
 func TestStripesEventsArriveSignedAndChangeTheOrganizationsPlan(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		stripe := newFakeStripe(t)
-		f := newFront(t, Settings{}, func(c *Config) { c.Stripe = stripe.stripe() })
+		f := newFront(t, Settings{}, func(c *Config) { c.Billing = stripe.billing(c.Store) })
 		admin := f.verifiedAdmin("ada@acme.com", "Acme")
 		body := subscriptionEvent("customer.subscription.created", "acme-com", "sub_1", "active", 1, time.Now())
-		if status, _ := f.postEvent(body, signStripe(body, "wrong", time.Now())); status != http.StatusBadRequest {
+		if status, _ := f.postEvent(body, signStripe(body, "wrong", time.Now())); status != http.StatusUnauthorized {
 			t.Errorf("an unsigned event was taken: %d", status)
 		}
-		if _, page := admin.get("/org"); shown(t, page).Plan == nil || *shown(t, page).Plan != (plan{Words: "Free trial", Offer: "Subscribe: 1 seat at $25 a month each", Subscribe: true}) {
-			t.Fatalf("before paying: %+v", shown(t, page).Plan)
+		if _, page := admin.get("/org"); shown(t, page).Billing == nil || shown(t, page).Billing.Words != "Free trial" || len(shown(t, page).Billing.Offers) != 1 || shown(t, page).Billing.Offers[0].Words != "Subscribe: 1 seat at $25 a month each" {
+			t.Fatalf("before paying: %+v", shown(t, page).Billing)
 		}
 		if status, text := f.postEvent(body, signStripe(body, testWebhookSecret, time.Now())); status != http.StatusOK {
 			t.Fatalf("%d %s", status, text)
 		}
 		_, page := admin.get("/org")
-		if paid := shown(t, page).Plan; paid == nil || paid.Words != "Paid: 1 seat at $25 a month each" || paid.Subscribe || !paid.Manage {
+		if paid := shown(t, page).Billing; paid == nil || paid.Words != "Paid: 1 seat at $25 a month each" || len(paid.Offers) != 0 || !paid.Manage || !paid.Active {
 			t.Errorf("after paying: %+v", paid)
 		}
 		// An event bigger than a form, as Stripe's are, is taken.
@@ -258,7 +268,7 @@ func TestStripesEventsArriveSignedAndChangeTheOrganizationsPlan(t *testing.T) {
 func TestAnAdminSubscribesForASeatForEachMemberAndARunnerCannot(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		stripe := newFakeStripe(t)
-		f := newFront(t, Settings{}, func(c *Config) { c.Stripe = stripe.stripe() })
+		f := newFront(t, Settings{}, func(c *Config) { c.Billing = stripe.billing(c.Store) })
 		admin := f.verifiedAdmin("ada@acme.com", "Acme")
 		bob := f.invitedAndJoined(admin, "bob@acme.com")
 		status, _, header := admin.post("/org/billing/subscribe", nil)
@@ -272,14 +282,14 @@ func TestAnAdminSubscribesForASeatForEachMemberAndARunnerCannot(t *testing.T) {
 		if path != "/v1/checkout/sessions" || form.Get("mode") != "subscription" || form.Get("line_items[0][price]") != "price_seat" ||
 			form.Get("line_items[0][quantity]") != "2" || form.Get("client_reference_id") != "acme-com" ||
 			form.Get("subscription_data[metadata][org]") != "acme-com" || form.Get("customer_email") != "ada@acme.com" ||
-			form.Get("success_url") != "http://cloud.test/org?org=acme-com&billing=started" {
+			form.Get("success_url") != "http://cloud.test/org/billing/return?org=acme-com" {
 			t.Errorf("%s %v", path, form)
 		}
 		calls := stripe.count()
 		if status, _, _ := bob.post("/org/billing/subscribe", nil); status != http.StatusForbidden || stripe.count() != calls {
 			t.Errorf("a runner subscribed: %d", status)
 		}
-		if got := shownAt(t, admin, "/org?billing=started"); !strings.Contains(got.Notice, "once Stripe confirms the payment") {
+		if got := shownAt(t, admin, "/org?billing=started"); !strings.Contains(got.Notice, "once the payment is confirmed") {
 			t.Errorf("%q", got.Notice)
 		}
 		stripe.fail(true)
@@ -292,7 +302,7 @@ func TestAnAdminSubscribesForASeatForEachMemberAndARunnerCannot(t *testing.T) {
 func TestAPayingAdminManagesTheirCardAtStripe(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		stripe := newFakeStripe(t)
-		f := newFront(t, Settings{}, func(c *Config) { c.Stripe = stripe.stripe() })
+		f := newFront(t, Settings{}, func(c *Config) { c.Billing = stripe.billing(c.Store) })
 		admin := f.verifiedAdmin("ada@acme.com", "Acme")
 		if status, _, _ := admin.post("/org/billing/manage", nil); status != http.StatusNotFound {
 			t.Errorf("an organization with no customer has no portal: %d", status)
@@ -314,7 +324,7 @@ func TestTheSeatsBilledFollowTheMembersAndAFailedChangeIsTriedAgain(t *testing.T
 		s := open(t, Settings{})
 		ada, org := verifiedOrg(t, s, "ada@acme.com", "Acme")
 		recorded(t, s, subscriptionEvent("customer.subscription.created", org.Slug, "sub_1", "active", 1, time.Now()))
-		seats := NewSeatSync(s, stripe.stripe())
+		seats := NewSeatSync(s, stripe.billing(s).Providers)
 		ctx := context.Background()
 		if n := seats.Once(ctx); n != 0 || stripe.count() != 0 {
 			t.Errorf("seats that match are left alone: %d", n)
@@ -325,7 +335,7 @@ func TestTheSeatsBilledFollowTheMembersAndAFailedChangeIsTriedAgain(t *testing.T
 		if n := seats.Once(ctx); n != 0 {
 			t.Errorf("a failed change was counted: %d", n)
 		}
-		if b, _, _ := s.Billing(ctx, org.Slug); b.Seats != 1 {
+		if b, _, _ := s.Plan(ctx, org.Slug); b.Seats != 1 {
 			t.Errorf("a change Stripe refused was recorded: %+v", b)
 		}
 		stripe.fail(false)
@@ -360,12 +370,12 @@ func TestTheSeatsBilledFollowTheMembersAndAFailedChangeIsTriedAgain(t *testing.T
 func TestADemoIsNeverOfferedAPlan(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		stripe := newFakeStripe(t)
-		f := newFront(t, demoSet, func(c *Config) { c.Stripe = stripe.stripe() })
+		f := newFront(t, demoSet, func(c *Config) { c.Billing = stripe.billing(c.Store) })
 		person, org, err := f.store.StartDemo(t.Context(), "Ada", "ada@acme.com", "Acme")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if p := f.server.planOf(t.Context(), org, person); p != nil {
+		if p := f.server.billingViewOf(t.Context(), org, person, 1); p != nil {
 			t.Errorf("%+v", p)
 		}
 		if err := f.store.EndDemo(t.Context(), org.Slug, "done"); err != nil {
@@ -378,8 +388,8 @@ func TestBillingIsOffUntilItIsSetUp(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		f := newFront(t, Settings{}, nil)
 		admin := f.verifiedAdmin("ada@acme.com", "Acme")
-		if _, page := admin.get("/org"); shown(t, page).Plan != nil {
-			t.Errorf("%+v", shown(t, page).Plan)
+		if _, page := admin.get("/org"); shown(t, page).Billing != nil {
+			t.Errorf("%+v", shown(t, page).Billing)
 		}
 		body := subscriptionEvent("customer.subscription.created", "acme-com", "sub_1", "active", 1, time.Now())
 		if status, _ := f.postEvent(body, signStripe(body, testWebhookSecret, time.Now())); status != http.StatusNotFound {
@@ -396,16 +406,16 @@ func TestBillingIsOffUntilItIsSetUp(t *testing.T) {
 func TestATestKeyIsOfferedToTheStaffAlone(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		stripe := newFakeStripe(t)
-		f := newFront(t, staffSet(), func(c *Config) { c.Stripe = stripe.stripe() })
+		f := newFront(t, staffSet(), func(c *Config) { c.Billing = NewBilling(c.Store, NewStripeProvider(c.Store, stripe.stripe())) })
 		visitor := f.verifiedAdmin("ada@acme.com", "Acme")
 		staff := f.verifiedAdmin("tosin@latentic.com", "Latentic")
-		if _, page := visitor.get("/org"); shown(t, page).Plan != nil {
-			t.Errorf("a visitor is offered a plan they could pay for with a test card: %+v", shown(t, page).Plan)
+		if _, page := visitor.get("/org"); len(shown(t, page).Billing.Offers) != 0 {
+			t.Errorf("a visitor is offered a plan they could pay for with a test card: %+v", shown(t, page).Billing)
 		}
 		if status, _, _ := visitor.post("/org/billing/subscribe", nil); status != http.StatusNotFound || stripe.count() != 0 {
 			t.Errorf("a visitor subscribed with a test key: %d", status)
 		}
-		if _, page := staff.get("/org"); shown(t, page).Plan == nil {
+		if _, page := staff.get("/org"); len(shown(t, page).Billing.Offers) == 0 {
 			t.Error("the staff are not offered a plan to try")
 		}
 		if status, _, _ := staff.post("/org/billing/subscribe", nil); status != http.StatusSeeOther {
@@ -414,8 +424,8 @@ func TestATestKeyIsOfferedToTheStaffAlone(t *testing.T) {
 
 		live := stripe.stripe()
 		live.Key = "sk_live_fake"
-		g := newFront(t, staffSet(), func(c *Config) { c.Stripe = live })
-		if _, page := g.verifiedAdmin("ada@acme.com", "Acme").get("/org"); shown(t, page).Plan == nil {
+		g := newFront(t, staffSet(), func(c *Config) { c.Billing = NewBilling(c.Store, NewStripeProvider(c.Store, live)) })
+		if _, page := g.verifiedAdmin("ada@acme.com", "Acme").get("/org"); len(shown(t, page).Billing.Offers) == 0 {
 			t.Error("a live key is not offered to everybody")
 		}
 	})
@@ -423,7 +433,7 @@ func TestATestKeyIsOfferedToTheStaffAlone(t *testing.T) {
 
 func TestSeatWords(t *testing.T) {
 	for seats, want := range map[int]string{1: "1 seat at $25 a month each", 4: "4 seats at $25 a month each"} {
-		if got := seatWords(seats, 25); got != want {
+		if got := seatWords(seats, "$25 a month each"); got != want {
 			t.Errorf("%d: %s", seats, got)
 		}
 	}
