@@ -20,11 +20,14 @@ build() {
     -E PATH=/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin "$@"
 }
 # Rootless podman reaches the user's own systemd through its session bus, and keeps its images where the user's storage file says.
+# The playbook writes that file after the first build, which uses the same store by default, so it is named once it is there.
 podman_as_runner() {
-  local uid
+  local uid conf
   uid=$(id -u "$RUNNER")
+  conf=/home/$RUNNER/.config/containers/storage.conf
+  [ -f "$conf" ] || conf=
   limited runuser -u "$RUNNER" -- env XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
-    CONTAINERS_STORAGE_CONF="/home/$RUNNER/.config/containers/storage.conf" podman "$@"
+    ${conf:+CONTAINERS_STORAGE_CONF="$conf"} podman "$@"
 }
 
 exec 9> "$state.lock"
