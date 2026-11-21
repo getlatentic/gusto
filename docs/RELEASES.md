@@ -4,6 +4,12 @@ A release's notes list the images and the merged pull requests. This file lists 
 
 A tag needs a section here named for it, or the release workflow stops and copies the section into the release's notes. Changes made after a release go under **Next release**, renamed to the tag when the tag is made. See [UPGRADE.md](UPGRADE.md) for the data and [PILOT.md](PILOT.md) for installing and checking a release.
 
+## Next release
+
+**Added**
+
+- `GUSTO_CLOUD_SERVERS=shared` runs every organization's server in one process on this machine, in place of a process each. Each server keeps its own ports, data, keys and sign-in, and is started from the same settings as before. The process is `gusto shared-servers`, which gusto cloud starts with the `GUSTO_CLOUD_ORG_ENV` settings and starts again if it ends; its output and every server's is in `shared-servers/host.log` under `GUSTO_CLOUD_ROOT`. It cannot be combined with `GUSTO_CLOUD_NODES_DIR`. `on`, a process each, stays the default.
+
 ## v0.1.1
 
 **Changed**

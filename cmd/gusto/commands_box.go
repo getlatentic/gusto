@@ -33,6 +33,13 @@ func boxCommands() []*cmdline.Command {
 			Run:         boxedSign,
 		},
 		{
+			Name: "shared-servers", Hidden: true, Summary: "Run many organizations' servers in one process, for gusto cloud",
+			Usage: []string{"--socket <path>"},
+			Description: "What gusto cloud starts when GUSTO_CLOUD_SERVERS is shared: one process that runs each organization's " +
+				"server as gusto cloud asks on the socket, each with its own settings, ports and data. Gusto runs this itself.",
+			Run: sharedServers,
+		},
+		{
 			Name: "inside-app", Hidden: true, Summary: "Run an app an agent built, in a box of its own",
 			Usage: []string{"--socket <path> --port <port> --dir <folder> -- <command>"},
 			Description: "What an app's container runs: it starts the command in the folder as the agent, with PORT set, and passes " +

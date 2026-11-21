@@ -216,7 +216,8 @@ type orgServerSettings struct {
 }
 
 func (o *orgServerSettings) declare(set *settings.Set) {
-	set.Choice(&o.run, "GUSTO_CLOUD_SERVERS", "on", []string{"on", "off"}, "whether gusto cloud starts organizations' servers; off keeps the accounts only")
+	set.Choice(&o.run, "GUSTO_CLOUD_SERVERS", "on", []string{"on", "shared", "off"}, "how gusto cloud runs organizations' servers: on "+
+		"starts a process for each, shared runs them all in one process, and off keeps the accounts only")
 	set.String(&o.orgEnv, "GUSTO_CLOUD_ORG_ENV", "", "a file of KEY=VALUE lines every organization's server starts with: the operator's credentials, models "+
 		"and sandbox; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organization a schema of its own for its indexes")
 	set.String(&o.demoEnv, "GUSTO_CLOUD_DEMO_ENV", "", "a file of KEY=VALUE lines a demo organization's server starts with on top of GUSTO_CLOUD_ORG_ENV's, such as another sandbox")

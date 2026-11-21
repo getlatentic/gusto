@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"syscall"
@@ -302,12 +303,21 @@ func organizationServers(store *cloud.Store, public *url.URL, cfg cloudSettings)
 	if indexDir == "" {
 		indexDir = filepath.Join(store.Root(), "index")
 	}
-	local := &cloud.LocalNode{}
 	controller := &cloud.Controller{
-		Store: store, Node: local, Command: []string{exe, "serve"}, Env: env, DemoEnv: demoEnv,
+		Store: store, Command: []string{exe, "serve"}, Env: env, DemoEnv: demoEnv,
 		CloudURL: public.Scheme + "://" + public.Host, AppsURL: cloud.AppsAddress(public, cmp.Or(cfg.front.appsDomain, cfg.front.domain)), PortFrom: cfg.servers.portFrom,
 		Wait: serverStartWait, Concurrent: cfg.signup.concurrent, IndexDir: indexDir, InFile: settings.FileHolds,
 	}
+	if cfg.servers.run == "shared" {
+		if cfg.nodes.dir != "" {
+			return nil, errors.New("GUSTO_CLOUD_SERVERS=shared runs every organization's server on this machine, and GUSTO_CLOUD_NODES_DIR names other hosts")
+		}
+		hosted, err := hostedNode(exe, env, store.Root())
+		controller.Node = hosted
+		return controller, err
+	}
+	local := &cloud.LocalNode{}
+	controller.Node = local
 	pool, err := nodePool(cfg.nodes, local)
 	if err != nil || pool == nil {
 		return controller, err
@@ -320,6 +330,22 @@ func organizationServers(store *cloud.Store, public *url.URL, cfg cloudSettings)
 	}
 	controller.Command = []string{shared, "serve"}
 	return controller, nil
+}
+
+// hostedNode is the one process every organization's server runs in, started with the operator's settings and a home of its
+// own under root, where its socket and output are too.
+func hostedNode(exe string, env []string, root string) (*cloud.HostedNode, error) {
+	dir := filepath.Join(root, "shared-servers")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return nil, err
+	}
+	socket := filepath.Join(dir, "host.sock")
+	return &cloud.HostedNode{
+		Command: []string{exe, "shared-servers", "--socket", socket},
+		Env:     append(slices.Clone(env), "HOME="+dir),
+		Socket:  socket,
+		Log:     filepath.Join(dir, "host.log"),
+	}, nil
 }
 
 // operatorEnv reads the settings every organization's server gets. A line is
