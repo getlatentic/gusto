@@ -38,7 +38,10 @@ param() { gusto param "$1"; }
 # Rootless podman keeps its images for the user who runs it, so the owner, who starts the organizations' servers, loads them.
 engine() {
   if [ "$container" = podman ] && [ -n "$owner" ]; then
-    runuser -u "$owner" -- env XDG_RUNTIME_DIR="/run/user/$(id -u "$owner")" podman "$@"
+    local uid
+    uid=$(id -u "$owner")
+    runuser -u "$owner" -- env XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+      CONTAINERS_STORAGE_CONF="/home/$owner/.config/containers/storage.conf" podman "$@"
   else
     "$container" "$@"
   fi
