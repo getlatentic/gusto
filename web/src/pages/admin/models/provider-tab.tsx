@@ -52,6 +52,14 @@ function ProviderActions({ provider }: { provider: Provider }) {
     <div className="flex flex-wrap items-center gap-2">
       <AddModel provider={provider} />
       <AddAddress provider={provider} />
+      <PostButton
+        action={providerAction(provider, "/discover")}
+        variant="outline"
+        size="sm"
+        title={`Asks ${provider.Name} which models its key can use and adds each, with its price when it gives one, off until you turn it on`}
+      >
+        Find its models
+      </PostButton>
       {provider.Key === "stored" && <ReplaceKey provider={provider} />}
       {provider.Pending ? (
         <PostButton

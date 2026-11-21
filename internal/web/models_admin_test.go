@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"net/netip"
 	"net/url"
 	"slices"
@@ -372,6 +373,61 @@ func TestAnAdminGoesBackToAnEarlierVersionThroughThePageAndItIsRecordedWithWhatI
 	}
 	if refused := admin.ask(t, "POST", "/admin/models/restore", url.Values{"version": {"9999"}}); !strings.Contains(refused.Header().Get("Location"), "refused=") {
 		t.Error("a version that was never kept was restored")
+	}
+}
+
+func TestAnAdminConnectsAGatewayAndFindsItsModelsThroughThePageWithTheKeyOnlyOnTheServer(t *testing.T) {
+	listing := `{"data":[{"id":"openai:gpt-4o-mini","pricing":{"input_price_per_million":0.15,"output_price_per_million":0.6}},{"id":"deepseek/deepseek-v4.1-flash"}]}`
+	var asked atomic.Value
+	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		asked.Store(r.URL.Path + " " + r.Header.Get("Authorization"))
+		w.Write([]byte(listing))
+	}))
+	defer gateway.Close()
+	here, reg, offered := registered(t, registry.Rules{PrivateAddresses: true})
+	admin := here.as(t, boss)
+	admin.ask(t, "POST", "/admin/models/providers", url.Values{
+		"name": {"otari"}, "address": {gateway.URL + "/api"}, "source": {"stored"}, "key": {theirKey},
+		"kind": {"custom"}, "wires": {"chat", "messages", "responses"},
+	})
+	found := admin.ask(t, "POST", "/admin/models/providers/otari/discover", nil)
+	if found.Code != http.StatusSeeOther || strings.Contains(found.Header().Get("Location"), "refused") {
+		t.Fatalf("%d %v", found.Code, found.Header())
+	}
+	if got := asked.Load(); got != "/api/v1/models Bearer "+theirKey {
+		t.Errorf("the gateway was asked %v", got)
+	}
+	if got := *offered.Load(); len(got) != 1 {
+		t.Errorf("what was found is off until turned on: %v", got)
+	}
+	page := modelsAt(t, admin, providerPage("otari"))
+	byName := map[string]*spend.Price{}
+	for _, model := range page.Models {
+		byName[model.Full] = model.Price
+	}
+	if price, held := byName["otari/openai:gpt-4o-mini"]; !held || price == nil || price.InputPerMillion != 0.15 {
+		t.Errorf("the page does not give the gateway's price: %+v", page.Models)
+	}
+	if _, held := byName["otari/deepseek/deepseek-v4.1-flash"]; !held {
+		t.Errorf("the page does not list what was found: %+v", page.Models)
+	}
+	if strings.Contains(admin.dataText(t, providerPage("otari")), theirKey) {
+		t.Error("a key is in a page")
+	}
+	if wires := reg.Document().Providers[0].Wires; len(wires) != 3 {
+		t.Errorf("the shapes the gateway answers in are kept: %v", wires)
+	}
+	var recorded int
+	for _, event := range written(t, here.log) {
+		if event.Kind == changelog.ModelAdded {
+			recorded++
+			if event.What["listed"] != "2" || event.What["added"] != "2" {
+				t.Errorf("the record says %+v", event.What)
+			}
+		}
+	}
+	if recorded != 1 {
+		t.Errorf("finding models is one recorded change: %d", recorded)
 	}
 }
 
