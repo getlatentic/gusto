@@ -15,7 +15,17 @@ read -r -s -p "The Cloudflare tunnel's token (none for no tunnel): " tunnel_toke
 plain=$(mktemp)
 trap 'rm -f "$plain"' EXIT
 chmod 600 "$plain"
-aws ssm get-parameters --with-decryption --names "${names[@]}" /gusto/cloud-config --output json |
+# Parameter Store answers at most ten names a request, so they are asked for in tens and put together.
+names+=(/gusto/cloud-config)
+for ((i = 0; i < ${#names[@]}; i += 10)); do
+  aws ssm get-parameters --with-decryption --names "${names[@]:i:10}" --query Parameters --output json
+done | python3 -c '
+import json, sys
+text, at, found, decoder = sys.stdin.read(), 0, [], json.JSONDecoder()
+while text[at:].strip():
+    part, at = decoder.raw_decode(text, len(text) - len(text[at:].lstrip()))
+    found += part
+print(json.dumps({"Parameters": found}))' |
   PUBLIC_IP=$PUBLIC_IP STAGING_DOMAIN=${STAGING_DOMAIN:-} TUNNEL_TOKEN=$tunnel_token python3 -c '
 import json, os, sys
 got = {p["Name"]: p["Value"] for p in json.load(sys.stdin)["Parameters"]}
