@@ -19,7 +19,13 @@ build() {
   limited --uid="$builder" --gid="$builder" -p WorkingDirectory="$src" -E HOME="/home/$builder" \
     -E PATH=/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin "$@"
 }
-podman_as_runner() { limited runuser -u "$RUNNER" -- env XDG_RUNTIME_DIR="/run/user/$(id -u "$RUNNER")" podman "$@"; }
+# Rootless podman reaches the user's own systemd through its session bus, and keeps its images where the user's storage file says.
+podman_as_runner() {
+  local uid
+  uid=$(id -u "$RUNNER")
+  limited runuser -u "$RUNNER" -- env XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+    CONTAINERS_STORAGE_CONF="/home/$RUNNER/.config/containers/storage.conf" podman "$@"
+}
 
 exec 9> "$state.lock"
 flock -n 9 || { echo "gusto-upgrade: another upgrade of $name is running"; exit 0; }
@@ -52,7 +58,8 @@ key=$(tar -xzf "$out/bundle.tgz" -O ./image.key)
 if ! podman_as_runner image exists "gusto-runner:$key"; then
   echo "gusto-upgrade: building the runner image $key for $name"
   harnesses=$(build bash deploy/aws/openshell/harnesses.sh)
-  podman_as_runner build --quiet --build-arg "HARNESSES=$harnesses" -t "gusto-runner:$key" "$src" >/dev/null
+  # The build's own output goes to the journal, so a failed step says why.
+  podman_as_runner build --quiet --build-arg "HARNESSES=$harnesses" -t "gusto-runner:$key" "$src"
   # The layers of the build that no image uses are removed; gusto-boot removes the images of other keys.
   podman_as_runner image prune --force >/dev/null
 fi

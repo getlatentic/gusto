@@ -1,4 +1,26 @@
 ---
+# Rootless podman, run as cloud_user by the organizations' servers, by gusto-boot and by an upgrade, reaches the user's own
+# systemd through its session bus to set a container's limits, and keeps its images where its storage file says, whatever HOME
+# a server has: each server's HOME is the organization's own folder.
+- name: The user the organizations' containers run as
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ cloud_user }}"
+  when: cloud_container == 'podman' and cloud_root == ''
+
+- name: Where that user's podman keeps its images, whatever HOME it is run with
+  ansible.builtin.copy:
+    dest: "/home/{{ cloud_user }}/.config/containers/storage.conf"
+    content: |
+      [storage]
+      driver = "overlay"
+      graphroot = "/home/{{ cloud_user }}/.local/share/containers/storage"
+      runroot = "/run/user/{{ getent_passwd[cloud_user][1] }}/containers"
+    owner: "{{ cloud_user }}"
+    group: "{{ cloud_user }}"
+    mode: "0644"
+  when: cloud_container == 'podman' and cloud_root == ''
+
 - name: Directories
   ansible.builtin.file:
     path: "{{ cloud_root }}{{ item.path }}"
