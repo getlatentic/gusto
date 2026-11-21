@@ -17,6 +17,8 @@ var Releases = []Release{
 	}},
 	{Name: "v0.1.0", Formats: map[Store]int{
 		Tasks: 1, Sessions: 1, Setups: 1, Comparisons: 1, Changes: 1, Tokens: 1, Retention: 1, Integrations: 1, Presets: 1, Crew: 1,
+	}}, {Name: "v0.1.1", Formats: map[Store]int{
+		Tasks: 1, Sessions: 1, Setups: 1, Comparisons: 1, Changes: 1, Tokens: 1, Retention: 1, Integrations: 1, Presets: 1, Crew: 1,
 	}},
 }
 
