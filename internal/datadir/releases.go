@@ -9,10 +9,13 @@ type Release struct {
 	Formats map[Store]int
 }
 
-// Releases is every published release, oldest first. A release that changes a
-// format adds itself here in the same change.
+// Releases is every published release, oldest first. Each adds itself here before
+// it is tagged, since the upgrade check rolls back to the last two by name.
 var Releases = []Release{
 	{Name: "v0.1.0-rc.2", Formats: map[Store]int{
+		Tasks: 1, Sessions: 1, Setups: 1, Comparisons: 1, Changes: 1, Tokens: 1, Retention: 1, Integrations: 1, Presets: 1, Crew: 1,
+	}},
+	{Name: "v0.1.0", Formats: map[Store]int{
 		Tasks: 1, Sessions: 1, Setups: 1, Comparisons: 1, Changes: 1, Tokens: 1, Retention: 1, Integrations: 1, Presets: 1, Crew: 1,
 	}},
 }
