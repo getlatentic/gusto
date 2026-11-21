@@ -1,4 +1,4 @@
-# Read by /usr/local/bin/gusto-boot.
+# Read by {{ cloud_bin }}/gusto-boot.
 AWS_REGION={{ cloud_region }}
 NAME={{ cloud_domain }}
 ZONE={{ cloud_zone }}
@@ -26,3 +26,7 @@ GOOGLE_SECRET_PARAMETER={{ cloud_google_secret_parameter }}
 STRIPE_KEY_PARAMETER={{ cloud_stripe_key_parameter }}
 STRIPE_PRICE_PARAMETER={{ cloud_stripe_price_parameter }}
 STRIPE_WEBHOOK_PARAMETER={{ cloud_stripe_webhook_parameter }}
+CONTAINER={{ cloud_container }}
+PARAM_DIR={{ cloud_param_dir }}
+PUBLIC_IP={{ cloud_public_ip }}
+POINT_NAME={{ "on" if cloud_point_name | bool else "off" }}

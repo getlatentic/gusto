@@ -185,7 +185,7 @@ aws s3 cp "s3://$BUCKET/releases/$RELEASE/bundle.tgz" "$tmp/bundle.tgz" --only-s
 aws s3 cp "s3://$BUCKET/releases/$RELEASE/bundle.tgz.sha256" "$tmp/bundle.tgz.sha256" --only-show-errors & sum=$!
 # The AWS command, a snap, writes nothing to a file it is redirected to when it is run over SSM, so it is read
 # into a variable.
-cloud_vars=$(aws ssm get-parameter --name /gusto/cloud-config --query Parameter.Value --output text)
+cloud_vars=$(aws ssm get-parameter --name "${CONFIG:-/gusto/cloud-config}" --query Parameter.Value --output text)
 wait "$bundle"; wait "$sum"
 # Nothing of the bundle is run until it is the one CI made.
 (cd "$tmp" && sha256sum -c bundle.tgz.sha256)

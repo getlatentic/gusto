@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+# Mails the operator when an upgrade fails, with the end of its log, through the Cloudflare account gusto cloud sends mail with.
+# The running release is left as it was, so this says what to fix and nothing has to be undone.
+import json, subprocess, sys, urllib.parse, urllib.request
+
+name = sys.argv[1]
+settings = json.load(open(f"/etc/{name}/cloud-vars.json"))
+to = settings.get("cloud_demo_notify", "")
+mail = urllib.parse.urlparse(settings.get("cloud_mail", ""))
+if not to or mail.scheme != "cloudflare":
+    raise SystemExit("gusto-upgrade-failed: no cloud_demo_notify or Cloudflare cloud_mail, so nobody is told")
+sender = urllib.parse.parse_qs(mail.query).get("from", [""])[0]
+token = open(f"/etc/{name}/params/gusto/cloudflare-mail-token").read().strip()
+log = subprocess.run(["journalctl", "-u", f"gusto-upgrade@{name}.service", "-n", "60", "--no-pager", "-o", "cat"],
+                     capture_output=True, text=True, timeout=30).stdout
+payload = json.dumps({
+    "to": to.split(",")[0].strip(), "from": {"address": sender, "name": "gusto cloud"},
+    "subject": f"gusto cloud {name}: an upgrade failed, and the running release is unchanged",
+    "text": f"The upgrade of gusto cloud {name} failed. It keeps running the release it had.\n\n" + log,
+}).encode()
+request = urllib.request.Request(f"https://api.cloudflare.com/client/v4/accounts/{mail.netloc}/email/sending/send", data=payload,
+                                 headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+with urllib.request.urlopen(request, timeout=20) as answer:
+    if not json.load(answer).get("success"):
+        raise SystemExit("gusto-upgrade-failed: Cloudflare did not send the mail")

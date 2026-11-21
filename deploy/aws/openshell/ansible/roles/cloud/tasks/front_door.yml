@@ -8,7 +8,7 @@
 - name: The program that points the name at this host
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../.state/gusto-dns"
-    dest: /usr/local/bin/gusto-dns
+    dest: "{{ cloud_bin }}/gusto-dns"
     mode: "0755"
 
 - name: gusto cloud's settings, and what every organization's server is started with
@@ -17,30 +17,30 @@
     dest: "{{ item.dest }}"
     mode: "0644"
   loop:
-    - { src: org.env.j2, dest: /etc/gusto/org.env }
-    - { src: org-demo.env.j2, dest: /etc/gusto/org-demo.env }
-    - { src: cloud.env.j2, dest: /etc/gusto/cloud.env }
+    - { src: org.env.j2, dest: "{{ cloud_etc }}/org.env" }
+    - { src: org-demo.env.j2, dest: "{{ cloud_etc }}/org-demo.env" }
+    - { src: cloud.env.j2, dest: "{{ cloud_etc }}/cloud.env" }
   notify: Restart the front door
 
 - name: gusto cloud's service
   ansible.builtin.template:
     src: gusto-cloud.service.j2
-    dest: /etc/systemd/system/gusto-cloud.service
+    dest: "/etc/systemd/system/{{ cloud_name }}-cloud.service"
     mode: "0644"
   notify: Restart the front door
 
 # gusto cloud runs as a user that may not remove what an agent's container left as root, and moves such a directory to its trash.
 - name: The job that empties gusto cloud's trash, as root
   ansible.builtin.template:
-    src: "{{ item }}.j2"
-    dest: /etc/systemd/system/{{ item }}
+    src: "gusto-{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ cloud_name }}-{{ item }}"
     mode: "0644"
-  loop: [gusto-trash.service, gusto-trash.timer]
+  loop: [trash.service, trash.timer]
 
 - name: The operator's page, which listens on this host's loopback and is not in the web server's site
   ansible.builtin.template:
     src: gusto-owner.service.j2
-    dest: /etc/systemd/system/gusto-owner.service
+    dest: "/etc/systemd/system/{{ cloud_name }}-owner.service"
     mode: "0644"
   notify: Restart the operator's page
 
@@ -57,22 +57,23 @@
     AWS_DEFAULT_REGION: "{{ cloud_region }}"
     PATH: "/usr/local/bin:/snap/bin:/usr/bin:/bin"
   changed_when: false
+  # A host with no bucket keeps the media it was given.
+  when: cloud_bucket != ''
 
 - name: The web server's site
   ansible.builtin.template:
     src: nginx-site.conf.j2
-    dest: /etc/nginx/sites-available/gusto
+    dest: "/etc/nginx/sites-available/{{ cloud_name }}"
     mode: "0644"
   notify: Reload nginx
 
-- name: The site is on, and the default one is off
+- name: The site is on, and the default one is off on a host that is gusto's alone
   ansible.builtin.file:
     src: "{{ item.src | default(omit) }}"
     dest: "{{ item.dest }}"
     state: "{{ item.state }}"
-  loop:
-    - { src: /etc/nginx/sites-available/gusto, dest: /etc/nginx/sites-enabled/gusto, state: link }
-    - { dest: /etc/nginx/sites-enabled/default, state: absent }
+  loop: "{{ [{'src': '/etc/nginx/sites-available/' + cloud_name, 'dest': '/etc/nginx/sites-enabled/' + cloud_name, 'state': 'link'}]
+    + ([{'dest': '/etc/nginx/sites-enabled/default', 'state': 'absent'}] if cloud_default_server | bool else []) }}"
   notify: Reload nginx
 
 # Cells read the kit from the shared file system, and take it only when its sum is the one this host starts them with.

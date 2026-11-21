@@ -1,0 +1,10 @@
+[Unit]
+Description=gusto cloud %i: bring it to its newest commit
+After=network-online.target
+Wants=network-online.target
+OnFailure=gusto-upgrade-failed@%i.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/gusto-upgrade %i
+TimeoutStartSec=90min

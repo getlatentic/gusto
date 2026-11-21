@@ -2,14 +2,14 @@
 # A cell's start-up script starts these, after it has mounted the shared file system, so they are not started with the host.
 - name: The host's start-up work runs now, which gets the certificate or the image and points the name here
   ansible.builtin.systemd:
-    name: gusto-boot
+    name: "{{ cloud_name }}-boot"
     state: restarted
     enabled: "{{ cloud_role != 'cell' }}"
     daemon_reload: true
 
 - name: The lease is watched
   ansible.builtin.systemd:
-    name: gusto-lease.timer
+    name: "{{ cloud_name }}-lease.timer"
     state: started
     enabled: true
     daemon_reload: true
@@ -21,7 +21,7 @@
     state: started
     enabled: true
     daemon_reload: true
-  loop: [nginx, gusto-cloud, gusto-owner, gusto-trash.timer]
+  loop: [nginx, "{{ cloud_name }}-cloud", "{{ cloud_name }}-owner", "{{ cloud_name }}-trash.timer"]
   when: cloud_role != 'cell'
 
 # nginx starts when it is installed, with its default site, and a play that fails drops
@@ -39,7 +39,7 @@
 # A host an image is made from is not started as a cell, which would register it and give it organizations.
 - name: The host is running
   ansible.builtin.systemd:
-    name: gusto-cell
+    name: "{{ cloud_name }}-cell"
     state: started
     enabled: false
   when: cloud_role == 'cell' and not (cloud_bake | bool)

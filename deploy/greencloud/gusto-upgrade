@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Brings one gusto cloud of this host to its newest commit, or the commit named: production follows the newest release tag
+# (vX.Y.Z), staging the main branch (TRACK in /etc/gusto-upgrade/<name>.env). It builds the commit as the gusto-build user with
+# the same script CI uses (bundle.sh), builds the runner image as the cloud's own user when the commit needs one that user has not
+# got, and runs the commit's cloud playbook with the cloud's settings. One build runs at a time on the host. A failed build leaves
+# the running release as it was.
+set -euo pipefail
+name=${1:?which gusto cloud: gusto or gusto-staging}
+# shellcheck disable=SC1090
+. "/etc/gusto-upgrade/$name.env"
+: "${TRACK:?tags or main}" "${RUNNER:?the user the cloud runs as}"
+repo=${GUSTO_REPO:-https://github.com/getlatentic/gusto.git}
+state=/var/lib/gusto-upgrade/$name builder=gusto-build
+src=$state/src out=$state/out
+
+# The builds run at low priority with a cap on memory, beside the host's other services.
+limited() { systemd-run --quiet --wait --collect --pipe -p MemoryMax=3G -p MemorySwapMax=2G -p CPUWeight=20 -p IOWeight=20 "$@"; }
+build() {
+  limited --uid="$builder" --gid="$builder" -p WorkingDirectory="$src" -E HOME="/home/$builder" \
+    -E PATH=/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin "$@"
+}
+podman_as_runner() { limited runuser -u "$RUNNER" -- env XDG_RUNTIME_DIR="/run/user/$(id -u "$RUNNER")" podman "$@"; }
+
+exec 9> "$state.lock"
+flock -n 9 || { echo "gusto-upgrade: another upgrade of $name is running"; exit 0; }
+[ -d "$src/.git" ] || runuser -u "$builder" -- git clone --quiet "$repo" "$src"
+build git fetch --quiet --tags --force origin main
+if [ -n "${2:-}" ]; then
+  commit=$2
+elif [ "$TRACK" = tags ]; then
+  tag=$(build git tag --list 'v*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)
+  [ -n "$tag" ] || { echo "gusto-upgrade: there is no release tag yet"; exit 0; }
+  commit=$(build git rev-list -n 1 "$tag")
+else
+  commit=$(build git rev-parse origin/main)
+fi
+case "$commit" in *[!0-9a-f]* | "") echo "gusto-upgrade: $commit is not a commit" >&2; exit 2 ;; esac
+# GUSTO_UPGRADE_FORCE runs it again at the same commit, after the cloud's settings or secrets have changed.
+[ -n "${GUSTO_UPGRADE_FORCE:-}" ] || [ "$commit" != "$(cat "$state/release" 2>/dev/null || true)" ] || exit 0
+
+# One build at a time on the host, whichever cloud it is for.
+exec 8> /var/lib/gusto-upgrade/build.lock
+flock 8
+echo "gusto-upgrade: building $commit for $name"
+build git checkout --quiet --detach --force "$commit"
+# What an earlier build left is removed, except the web app's packages, which npm reinstalls only when the lock file changes.
+build git clean -fdxq -e web/node_modules
+rm -rf "$out" && install -d -o "$builder" -g "$builder" "$out"
+build bash deploy/aws/openshell/bundle.sh "$out"
+key=$(tar -xzf "$out/bundle.tgz" -O ./image.key)
+
+if ! podman_as_runner image exists "gusto-runner:$key"; then
+  echo "gusto-upgrade: building the runner image $key for $name"
+  harnesses=$(build bash deploy/aws/openshell/harnesses.sh)
+  podman_as_runner build --quiet --build-arg "HARNESSES=$harnesses" -t "gusto-runner:$key" "$src" >/dev/null
+  # The layers of the build that no image uses are removed; gusto-boot removes the images of other keys.
+  podman_as_runner image prune --force >/dev/null
+fi
+
+bundle=$state/bundle
+rm -rf "$bundle" && mkdir -p "$bundle" && tar -xzf "$out/bundle.tgz" -C "$bundle"
+ansible-playbook -c local -i 'host,' -e "@/etc/$name/cloud-vars.json" -e cloud_bucket= -e cloud_region=us-east-1 \
+  -e "cloud_image_key=$key" -e "cloud_release=$commit" -e cloud_role=all -e cloud_live=true \
+  -e cloud_baked=false -e cloud_bake=false -e cloud_check_public=false -e cloud_lease_minutes=30 -e cloud_max_hours=24 \
+  "$bundle/ansible/cloud.yml"
+printf '%s' "$commit" > "$state/release"
+echo "gusto-upgrade: $name is at $commit"
