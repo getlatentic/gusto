@@ -306,7 +306,8 @@ func TestALimitedPersonIsOfferedAndMayStartOnlyTheModelsTheyAreLimitedTo(t *test
 
 func bob2() string { return "someone@example.com" }
 
-func TestAPersonChoosingAModelSeesWhatEachCosts(t *testing.T) {
+// A person choosing a model sees each by its name, with no price: what a model costs is the admin's to see, on the models page.
+func TestAPersonChoosingAModelSeesEachByNameAndNoPrice(t *testing.T) {
 	here, reg, offered := registered(t, registry.Rules{})
 	ledger := spend.NewLedger(spend.Policy{Prices: map[string]spend.Price{"platform/qwen": {InputPerMillion: 1, OutputPerMillion: 2}}})
 	here.server.UseLedger(ledger)
@@ -323,16 +324,13 @@ func TestAPersonChoosingAModelSeesWhatEachCosts(t *testing.T) {
 	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"big"}})
 	admin.ask(t, "POST", "/admin/models/providers/acme/models/enable", url.Values{"model": {"free-ish"}})
 	page := setUpOf(t, here.as(t, alice), "?harness=fixture")
-	for _, want := range []string{"platform/qwen · $1 in, $2 out per million tokens", "acme/big · $0.25 in, $1.5 out per million tokens", "acme/free-ish · no price"} {
+	for _, want := range []string{"Qwen", "Big", "Free Ish"} {
 		if !page.says(want) {
 			t.Errorf("the chooser does not say %q: %+v", want, page.Models)
 		}
 	}
-	none := open(t)
-	none.server.UseLedger(spend.NewLedger(spend.Policy{}))
-	none.signIn(t)
-	if page := setUpOf(t, none, "?harness=fixture"); len(page.Models) == 0 || slices.ContainsFunc(page.Models, func(each option) bool { return strings.Contains(each.Label, "no price") }) {
-		t.Error("a deployment with no prices at all says so against every model")
+	if slices.ContainsFunc(page.Models, func(each option) bool { return strings.ContainsAny(each.Label+each.Detail, "$") }) {
+		t.Errorf("the chooser shows a price: %+v", page.Models)
 	}
 }
 

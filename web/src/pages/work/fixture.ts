@@ -157,7 +157,7 @@ export function projectOf(change: Partial<ProjectData> = {}): ProjectData {
     Models: [
       {
         value: "acme/big-1",
-        label: "big-1 · $1.00 in, $2.00 out per million tokens",
+        label: "Big 1",
       },
       { value: "acme/small-1", label: "small-1" },
     ],

@@ -41,25 +41,14 @@ func (s *Server) harnessToSetUp(r *http.Request) (catalog.Entry, bool) {
 // setUpHarness is the harness being set up, with its mark when it has one.
 type setUpHarness struct{ Name, Title, What, Mark string }
 
-// setUpData is what the set-up page offers: the models the person may use, each with its price and whether the harness failed
-// the benchmark's one-line fix on it, and the skill sets the harness can take. Chosen is the skill set the link named, and Then
+// setUpData is what the set-up page offers: the models the person may use, and the skill sets the harness can take. Chosen is the skill set the link named, and Then
 // what the person wants once it has started.
 func (s *Server) setUpData(r *http.Request) (map[string]any, error) {
 	entry, found := s.harnessToSetUp(r)
 	if !found {
 		return nil, failed{http.StatusNotFound, "this deployment cannot start " + r.URL.Query().Get("harness")}
 	}
-	models := []option{}
-	for _, model := range s.offeredTo(r) {
-		label := model
-		if cost := s.costOf(model); cost != "" {
-			label += " · " + cost
-		}
-		if slices.Contains(entry.Unfinished(), model) {
-			label += " · did not finish the one-line fix"
-		}
-		models = append(models, option{Value: model, Label: label})
-	}
+	models := s.modelOptionsOf(s.offeredTo(r))
 	setups := []option{}
 	for _, held := range s.fitting(entry) {
 		setups = append(setups, option{Value: held.Name, Label: setupLabel(held)})
