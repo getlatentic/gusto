@@ -58,9 +58,6 @@ type Controller struct {
 	// seconds when not set. A node that starts says so at once (Wake), so this is for a node whose word was lost and for
 	// room made by an organization that left.
 	WaitEvery time.Duration
-	// OnWaiting is told when an organization starts waiting for a node with room, so a node can be started for it at
-	// once. It is called outside the controller's lock and must not block.
-	OnWaiting func()
 	// Metrics counts provisions, and reports the organizations held by state. Nothing is counted when it is nil.
 	Metrics *Metrics
 	// Stable is how long a server has to stay ready before the restarts it needed are forgotten, two minutes when not set. A

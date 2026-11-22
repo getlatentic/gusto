@@ -47,15 +47,10 @@ describe("the operator's page", () => {
     ).toBeTruthy()
   })
 
-  it("lists who asked for a demo and the hosts that are up", () => {
+  it("lists who asked for a demo", () => {
     render(
       <OperatorPage
         page={operatorPage({
-          Hosts: {
-            Known: true,
-            Error: "",
-            Rows: [{ ID: "i-0123", Up: "5 min ago" }],
-          },
           Leads: [
             {
               Asked: "just now",
@@ -70,25 +65,9 @@ describe("the operator's page", () => {
       />
     )
     expect(
-      within(screen.getByTestId("hosts")).getByText("5 min ago")
-    ).toBeTruthy()
-    expect(
       within(screen.getByTestId("leads")).getByText("ada@acme.com")
     ).toBeTruthy()
     expect(screen.getByText(/1 so far/)).toBeTruthy()
     expect(screen.getByText("No demo is running.")).toBeTruthy()
-  })
-
-  it("says why the hosts could not be listed", () => {
-    render(
-      <OperatorPage
-        page={operatorPage({
-          Hosts: { Known: false, Error: "no credentials", Rows: null },
-        })}
-      />
-    )
-    expect(
-      screen.getByText("The hosts could not be listed: no credentials")
-    ).toBeTruthy()
   })
 })

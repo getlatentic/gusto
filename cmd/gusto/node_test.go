@@ -126,38 +126,17 @@ func TestGustoCloudPlacesOnNodesOnlyWhenTheyAreConfigured(t *testing.T) {
 	}
 }
 
-func TestGustoCloudStartsHostsForNodesOnlyWhenItIsToldHowAndToldEnough(t *testing.T) {
+func TestTheSettingsThatStartedNodesOnEC2AreRefusedByName(t *testing.T) {
 	t.Parallel()
-	plain := &cloud.Controller{}
-	if scaler, err := nodeScaler(cloudFrom(t, nil).scaler, plain); scaler != nil || err != nil {
-		t.Fatalf("off unless asked for: %v %v", scaler, err)
-	}
-	launch := map[string]string{"GUSTO_CLOUD_NODE_LAUNCH": "ec2"}
-	if _, err := nodeScaler(cloudFrom(t, launch).scaler, plain); err == nil {
-		t.Error("hosts for cells with nowhere for cells to register")
-	}
-	pooled := cloudFrom(t, map[string]string{"GUSTO_CLOUD_NODES_DIR": filepath.Join(t.TempDir(), "cells"), "GUSTO_CLOUD_NODE_SECRET_FILE": secretFile(t)})
-	pool, err := nodePool(pooled.nodes, &cloud.LocalNode{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	controller := &cloud.Controller{Nodes: pool}
-	if _, err := nodeScaler(cloudFrom(t, launch).scaler, controller); err == nil {
-		t.Error("no template or script")
-	}
-	launch["GUSTO_CLOUD_NODE_TEMPLATE"] = "gusto-host-cell"
-	launch["GUSTO_CLOUD_NODE_USERDATA"] = "/opt/gusto-bundle/user-data.sh"
-	launch["GUSTO_CLOUD_NODE_SETTINGS"] = "ROLE=cell,RUN=live"
-	scaler, err := nodeScaler(cloudFrom(t, launch).scaler, controller)
-	if err != nil || scaler == nil || scaler.Max != 3 || scaler.Idle != 10*time.Minute || scaler.Boot != 10*time.Minute {
-		t.Fatalf("%+v %v", scaler, err)
-	}
-	launch["GUSTO_CLOUD_NODE_MAX"], launch["GUSTO_CLOUD_NODE_IDLE_MINUTES"] = "1", "2"
-	if scaler, _ := nodeScaler(cloudFrom(t, launch).scaler, controller); scaler.Max != 1 || scaler.Idle != 2*time.Minute {
-		t.Errorf("%+v", scaler)
-	}
-	launch["GUSTO_CLOUD_NODE_SETTINGS"] = "ROLE"
-	if _, err := nodeScaler(cloudFrom(t, launch).scaler, controller); err == nil {
-		t.Error("a setting with no value")
+	for _, name := range []string{"GUSTO_CLOUD_NODE_LAUNCH", "GUSTO_CLOUD_NODE_TEMPLATE", "GUSTO_CLOUD_NODE_KEEP"} {
+		_, err := loadCloud(func(asked string) string {
+			if asked == name {
+				return "ec2"
+			}
+			return ""
+		})
+		if err == nil || !strings.Contains(err.Error(), name) || !strings.Contains(err.Error(), "GUSTO_CLOUD_SERVERS=shared") {
+			t.Errorf("%s: %v", name, err)
+		}
 	}
 }

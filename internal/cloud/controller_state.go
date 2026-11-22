@@ -104,9 +104,6 @@ func (c *Controller) set(ctx context.Context, slug string, runtime Runtime, stat
 // and is not counted as one, since what it waits for is being made.
 func (c *Controller) wait(ctx context.Context, slug string, runtime Runtime, err error) error {
 	c.set(ctx, slug, runtime, Waiting, err.Error())
-	if c.OnWaiting != nil {
-		c.OnWaiting()
-	}
 	return err
 }
 
@@ -147,10 +144,6 @@ func (c *Controller) unreadable(slug string, err error) {
 
 // Waiting is how many organizations are waiting for a node with room, which is what makes another start.
 func (c *Controller) Waiting() int { return c.count(Waiting) }
-
-// Busy is how many organizations wait for a node with room or are being placed and started, while which no node is idle:
-// the one an organization is being placed on may be the one with nothing on it yet.
-func (c *Controller) Busy() int { return c.count(Waiting, Provisioning, Starting) }
 
 func (c *Controller) count(states ...State) int {
 	c.mu.Lock()

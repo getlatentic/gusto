@@ -15,7 +15,6 @@ type page struct {
 	Paused, LimitsSet   bool
 	Limits              cloud.DemoLimits
 	Running             []runningRow
-	Hosts               hostsView
 	Leads               []leadRow
 	Contacts            []contactRow
 }
@@ -24,22 +23,11 @@ type runningRow struct {
 	Name, Company, State, Left string
 }
 
-// hostsView is the hosts that run organizations: Known when they are started on demand here, and Error when they could not be listed.
-type hostsView struct {
-	Known bool
-	Error string
-	Rows  []hostRow
-}
-
-type hostRow struct {
-	ID, Up string
-}
-
 type leadRow struct {
 	Asked, AskedAt, Name, Email, Company, Outcome string
 }
 
-// view gathers the operator's page: the demos, their limits and leads, and the hosts.
+// view gathers the operator's page: the demos, their limits and leads.
 func (a *App) view(ctx context.Context, notice string, leads []cloud.Lead) page {
 	now := a.Now()
 	view := page{
@@ -52,16 +40,6 @@ func (a *App) view(ctx context.Context, notice string, leads []cloud.Lead) page 
 			row.State, row.Left = "in use", left(demo.Left)
 		}
 		view.Running = append(view.Running, row)
-	}
-	if a.Hosts != nil {
-		hosts, err := a.Hosts.Running()
-		view.Hosts.Known = err == nil
-		if err != nil {
-			view.Hosts.Error = err.Error()
-		}
-		for _, host := range hosts {
-			view.Hosts.Rows = append(view.Hosts.Rows, hostRow{ID: host.ID, Up: ago(host.Launched, now)})
-		}
 	}
 	for _, lead := range leads {
 		view.Leads = append(view.Leads, leadRow{

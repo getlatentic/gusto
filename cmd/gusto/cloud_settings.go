@@ -19,7 +19,6 @@ type cloudSettings struct {
 	billing billingSettings
 	servers orgServerSettings
 	nodes   nodePoolSettings
-	scaler  scalerSettings
 }
 
 func (c *cloudSettings) declare(set *settings.Set) {
@@ -30,7 +29,7 @@ func (c *cloudSettings) declare(set *settings.Set) {
 	c.billing.declare(set)
 	c.servers.declare(set)
 	c.nodes.declare(set)
-	c.scaler.declare(set)
+	removedScalerSettings(set)
 }
 
 // loadCloud reads gusto cloud's settings from lookup, which is os.Getenv for the command and a map in a test.

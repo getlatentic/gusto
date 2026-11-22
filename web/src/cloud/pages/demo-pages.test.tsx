@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { render, screen } from "@testing-library/react"
+import { describe, expect, it } from "vitest"
 
 import { cloudPage } from "@/cloud/fixture"
 import { DemoBookPage } from "@/cloud/pages/demo-book-page"
@@ -17,26 +17,7 @@ const org = {
   Demo: true,
 }
 
-afterEach(() => vi.unstubAllGlobals())
-
 describe("the demo form", () => {
-  it("asks for a node once, when the visitor first types", () => {
-    const fetch = vi.fn(() => Promise.resolve(new Response()))
-    vi.stubGlobal("fetch", fetch)
-    render(
-      <DemoFormPage page={cloudPage("demo", { DemoLeft: "30 minutes" })} />
-    )
-    fireEvent.input(screen.getByTestId("demo-name"), { target: { value: "A" } })
-    fireEvent.input(screen.getByTestId("demo-name"), {
-      target: { value: "Ad" },
-    })
-    expect(fetch).toHaveBeenCalledTimes(1)
-    expect(fetch).toHaveBeenCalledWith("/demo/warm", {
-      method: "POST",
-      credentials: "same-origin",
-    })
-  })
-
   it("keeps what was typed when it is refused, and carries the bot check", () => {
     const { container } = render(
       <DemoFormPage

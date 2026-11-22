@@ -1,5 +1,3 @@
-import { useRef } from "react"
-
 import { BotCheck } from "@/cloud/components/bot-check"
 import { Quiet, Refusal, TextLink } from "@/cloud/components/cloud-card"
 import { Field, Submit } from "@/cloud/components/forms"
@@ -7,17 +5,8 @@ import { PageIntro, SitePage } from "@/cloud/pages/site-page"
 import type { CloudPage } from "@/cloud/types"
 import { demoFormWords } from "@/domain/demo-form"
 
-// DemoFormPage starts a demo. A demo's cell takes most of a minute to start, so it is asked for when the visitor first types in the
-// form, and is up or nearly by the time they send it.
+// DemoFormPage starts a demo.
 export function DemoFormPage({ page }: { page: CloudPage }) {
-  const warmed = useRef(false)
-  const warm = () => {
-    if (warmed.current) return
-    warmed.current = true
-    fetch("/demo/warm", { method: "POST", credentials: "same-origin" }).catch(
-      () => {}
-    )
-  }
   const words = demoFormWords(page)
   return (
     <SitePage page={page}>
@@ -27,12 +16,7 @@ export function DemoFormPage({ page }: { page: CloudPage }) {
         className="mx-auto grid max-w-[26rem] gap-4 px-5 pb-14"
       >
         <Refusal>{page.Error}</Refusal>
-        <form
-          className="grid gap-3"
-          method="post"
-          action="/demo"
-          onInput={warm}
-        >
+        <form className="grid gap-3" method="post" action="/demo">
           <Field
             label="Your name"
             type="text"
