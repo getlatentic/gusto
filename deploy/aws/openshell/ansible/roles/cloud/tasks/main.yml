@@ -20,6 +20,10 @@
 - name: Directories, programs and the start-up script
   ansible.builtin.import_tasks: common.yml
 
+- name: Postgres, and the accounts copied into it once
+  ansible.builtin.import_tasks: database.yml
+  when: cloud_role != 'cell' and cloud_postgres | bool
+
 - name: The web server and gusto cloud
   ansible.builtin.import_tasks: front_door.yml
   when: cloud_role != 'cell'

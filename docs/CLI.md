@@ -1000,12 +1000,14 @@ Show the accounts database, or load the old account files into it
 
 ```text
 gusto cloud migrate [-import]
+gusto cloud migrate -copy-from <cloud.db>
 ```
 
-Says where gusto cloud keeps its accounts, the schema version the database is at and the newest this release reads, and how many organizations, people, memberships, invitations, links, demo leads and runtime records it holds. It also says how many records the files of an earlier release (people/, orgs/, tokens/ and demos/ under the root) hold that an import would load, and when the import ran. Asking changes nothing: it makes no file and no schema. With -import it brings the schema up to date and loads those files into the database now, if the database has not had them, and prints how many records of each kind went in and how many were left out. gusto cloud does the same when it starts on a database that has no import record, so this is for doing it first: stop the earlier release, run this, then start the new one. The files are never changed or removed. The import is one transaction, and two runs at once import once. A database that has been imported is not imported again, so a link that was used does not come back.
+Says where gusto cloud keeps its accounts, the schema version the database is at and the newest this release reads, and how many organizations, people, memberships, invitations, links, demo leads and runtime records it holds. It also says how many records the files of an earlier release (people/, orgs/, tokens/ and demos/ under the root) hold that an import would load, and when the import ran. Asking changes nothing: it makes no file and no schema. With -import it brings the schema up to date and loads those files into the database now, if the database has not had them, and prints how many records of each kind went in and how many were left out. gusto cloud does the same when it starts on a database that has no import record, so this is for doing it first: stop the earlier release, run this, then start the new one. The files are never changed or removed. The import is one transaction, and two runs at once import once. A database that has been imported is not imported again, so a link that was used does not come back. With -copy-from it copies the accounts in a SQLite file, gusto cloud's cloud.db, into the Postgres database GUSTO_DATABASE_URL names, in one transaction: stop gusto cloud, copy, then start it with that address. The file must be at the schema version this release reads and is only read; the Postgres schema must hold no accounts. The organizations' indexes and usage are not copied, since each organization's server builds them again from its files.
 
 Flags:
 
+- `-copy-from <file>`: copy the accounts in this SQLite file into the Postgres database GUSTO_DATABASE_URL names
 - `-import`: load the files of an earlier release into the database now, if it has not had them
 - `-h, --help`: show this help
 
@@ -1016,8 +1018,8 @@ Environment:
 
 Exit codes:
 
-- `0`: the report was printed, or the import ran or had run
-- `1`: the database cannot be reached, is at a newer schema than this release reads, or the import failed
+- `0`: the report was printed, the import ran or had run, or the accounts were copied
+- `1`: the database cannot be reached, is at a newer schema than this release reads, or the import or copy failed
 - `2`: usage error
 
 Examples:
@@ -1026,6 +1028,7 @@ Examples:
 gusto cloud migrate
 gusto cloud migrate -import
 GUSTO_DATABASE_URL=postgres://db/gusto gusto cloud migrate -import
+GUSTO_DATABASE_URL=postgres://db/gusto gusto cloud migrate -copy-from cloud.db
 ```
 
 See also: `gusto cloud`, `gusto operator`

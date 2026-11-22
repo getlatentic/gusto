@@ -7,12 +7,13 @@
 # LIVE is on for the gusto cloud that stays up: it has no lease and no limit on how long it runs, and is brought up to a newer
 # release by running this again (GUSTO_LIVE_ENV names the file that keeps what it was started with).
 # SERVERS=shared runs every organization's server in one process, SANDBOX names the one kind of sandbox the host's agents run in
-# (container needs no OpenShell), and COMPUTER_MEMORY is what each may use. Each is kept for upgrades, as LIVE's settings are.
+# (container needs no OpenShell), COMPUTER_MEMORY is what each may use, and DATABASE=postgres keeps the accounts in Postgres on the
+# host. Each is kept for upgrades, as LIVE's settings are.
 set -Eeuo pipefail
 RELEASE=${RELEASE:-@RELEASE@} BUCKET=${BUCKET:-@BUCKET@} REGION=${REGION:-@REGION@}
 LEASE_MINUTES=${LEASE_MINUTES:-@LEASE_MINUTES@} MAX_HOURS=${MAX_HOURS:-@MAX_HOURS@}
 ROLE=${ROLE:-@ROLE@} RUN=${RUN:-@RUN@} EFS=${EFS:-@EFS@} LIVE=${LIVE:-@LIVE@}
-SERVERS=${SERVERS:-on} SANDBOX=${SANDBOX:-} COMPUTER_MEMORY=${COMPUTER_MEMORY:-}
+SERVERS=${SERVERS:-on} SANDBOX=${SANDBOX:-} COMPUTER_MEMORY=${COMPUTER_MEMORY:-} DATABASE=${DATABASE:-sqlite}
 live_env=${GUSTO_LIVE_ENV:-/etc/gusto/live.env}
 dir=${GUSTO_BUNDLE_DIR:-/opt/gusto-bundle} tmp=${GUSTO_TMP:-/tmp}
 exec > >(tee -a "${GUSTO_BOOTSTRAP_LOG:-/var/log/gusto-bootstrap.log}") 2>&1
@@ -66,8 +67,8 @@ printf '%s\n' "$cloud_vars" > "$dir/cloud-vars.json"
 
 if [ "$LIVE" = on ]; then
   mkdir -p "$(dirname "$live_env")"
-  printf 'BUCKET=%s\nREGION=%s\nROLE=%s\nRUN=%s\nEFS=%s\nLIVE=on\nLEASE_MINUTES=%s\nMAX_HOURS=%s\nSERVERS=%s\nSANDBOX=%s\nCOMPUTER_MEMORY=%s\n' \
-    "$BUCKET" "$REGION" "$ROLE" "$RUN" "$EFS" "$LEASE_MINUTES" "$MAX_HOURS" "$SERVERS" "$SANDBOX" "$COMPUTER_MEMORY" > "$live_env"
+  printf 'BUCKET=%s\nREGION=%s\nROLE=%s\nRUN=%s\nEFS=%s\nLIVE=on\nLEASE_MINUTES=%s\nMAX_HOURS=%s\nSERVERS=%s\nSANDBOX=%s\nCOMPUTER_MEMORY=%s\nDATABASE=%s\n' \
+    "$BUCKET" "$REGION" "$ROLE" "$RUN" "$EFS" "$LEASE_MINUTES" "$MAX_HOURS" "$SERVERS" "$SANDBOX" "$COMPUTER_MEMORY" "$DATABASE" > "$live_env"
 fi
 
 # A front door alone runs no computer, so it has no use for OpenShell, and nor has a host whose agents run in containers.
@@ -76,7 +77,7 @@ playbooks=("$dir/ansible/site.yml" "$dir/ansible/cloud.yml")
 # An Arm host runs the bundle's Arm programs and the runner image built for Arm, which is kept under its key with -arm64 after it.
 image_key=$(cat "$dir/image.key") programs=$dir/.state
 if [ "${GUSTO_MACHINE:-$(uname -m)}" = aarch64 ]; then image_key=$image_key-arm64 programs=$dir/.state/arm64; fi
-chosen=(-e "cloud_servers=$SERVERS" -e "cloud_programs=$programs")
+chosen=(-e "cloud_servers=$SERVERS" -e "cloud_programs=$programs" -e "cloud_postgres=$([ "$DATABASE" = postgres ] && echo true || echo false)")
 [ -z "$SANDBOX" ] || chosen+=(-e "public_sandbox=$SANDBOX" -e "cloud_demo_sandbox=$SANDBOX")
 [ -z "$COMPUTER_MEMORY" ] || chosen+=(-e "cloud_computer_memory=$COMPUTER_MEMORY")
 shared=()

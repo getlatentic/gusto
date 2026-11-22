@@ -52,8 +52,12 @@ Nothing else is paid for but this machine, its disk and its address.
 - It runs the bundle's Arm programs and the Arm runner image, `image/<key>-arm64.docker.tar.gz`, which
   `../openshell/publish-arm-image.sh` builds on an Arm machine. **cloud deploy** runs it on its runner, which is one.
 - Its role is its own: it reads the parameters and the bucket, and can start or stop nothing.
+- Its accounts and each organization's indexes are in Postgres on the host (`DATABASE=postgres`), reached only by its socket.
+  The database is dumped to the bucket every hour under `backups/postgres/gusto/`, and each dump is kept 30 days. To restore one:
+  `aws s3 cp s3://<bucket>/backups/postgres/gusto/<hour>.dump - | sudo -u ubuntu pg_restore --clean --if-exists -d gusto`, with gusto
+  cloud stopped.
 - It has no lease and no limit on how long it runs. What it keeps is on its own disk, so replacing it
-  (`terraform apply -replace=aws_instance.live`) takes a copy of `/var/lib/gusto` and `/var/lib/gusto-cloud` first.
+  (`terraform apply -replace=aws_instance.live`) takes a dump of the database and a copy of `/var/lib/gusto-cloud` first.
 - Sign-up for a visitor is at `https://<name>/demo`. `GUSTO_CLOUD_DEMO_MINUTES` and `GUSTO_CLOUD_BOOK_URL` in `cloud.env`, stored
   with `../openshell/put-cloud-config.sh`, turn it on and say where a call is booked.
 - The `cloud up` workflow makes a separate, short-lived cloud. Both use the same name, so only one of them is up at a time: take the live gusto cloud down (`aws ec2 stop-instances`) before
