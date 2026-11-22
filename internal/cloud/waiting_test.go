@@ -68,19 +68,15 @@ func TestAnOrganizationWithNoNodeToGoOnWaitsAndIsStartedWhenOneHasRoom(t *testin
 	})
 }
 
-func TestAnOrganizationThatStartsWaitingAsksForANodeAtOnceAndIsPlacedWithoutATick(t *testing.T) {
+func TestAWaitingOrganizationIsPlacedWithoutATickOnceThereIsRoom(t *testing.T) {
 	onEachDatabase(t, func(t *testing.T) {
 		s := open(t, Settings{})
 		c := controlled(t, s)
 		nodes := &lateNodes{local: &LocalNode{}}
-		var asked atomic.Int32
-		c.Nodes, c.WaitEvery, c.OnWaiting = nodes, 20*time.Millisecond, func() { asked.Add(1) }
+		c.Nodes, c.WaitEvery = nodes, 20*time.Millisecond
 		org := made(t, s, "ada@acme.com", "Acme")
 		if err := c.Provision(t.Context(), org.Slug); err == nil {
 			t.Fatal("an organization with nowhere to go was provisioned")
-		}
-		if asked.Load() != 1 {
-			t.Fatalf("starting to wait asked for a cell %d times", asked.Load())
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())

@@ -104,7 +104,7 @@ The agent reaches a model only through the proxy, which adds the key and counts 
 | One person | `gusto local install`, a service on your computer | A VM, a container, or the system sandbox: the strongest your machine has |
 | A team on a server | `server.sh`, Compose or Helm: one `gusto serve` | A container |
 | A company | The same server in its own cloud, with SSO | A container or a VM |
-| Us, hosted | `gusto cloud` with one server per organization | A VM per task (OpenShell) |
+| Us, hosted | `gusto cloud` with a server for each organization, all in one process | A container per task |
 
 ```mermaid
 flowchart TB
@@ -113,19 +113,18 @@ flowchart TB
     LD[Landing and demo]
     AC[Sign-up and sign-in]
     RT[Router: by host name]
-    SC[Scaler: starts nodes]
   end
   F --> MAIL[(Mail)]
   F --> BOT[(Bot check)]
   RT --> H
-  subgraph H["A node, started on demand"]
+  subgraph H["Every organization's server, in one process"]
     O1[Organization server: Acme]
     O2[Organization server: Globex]
-    SB[Sandboxes: a VM per task]
+    SB[Sandboxes: a container per task]
   end
 ```
 
-Each organization has its own server, data directory, signing key and spend ledger. gusto cloud holds accounts and routes by host name. It runs no tasks. A node starts when an organization waits and stops after ten idle minutes. See [CLOUD.md](CLOUD.md).
+Each organization has its own server, data directory, signing key and spend ledger. gusto cloud holds accounts and routes by host name. It runs no tasks. With `GUSTO_CLOUD_SERVERS=shared` every organization's server runs in one process on gusto cloud's machine. See [CLOUD.md](CLOUD.md).
 
 ## One task
 

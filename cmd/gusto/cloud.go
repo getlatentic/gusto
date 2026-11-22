@@ -66,11 +66,7 @@ func cloudCommand() int {
 		return fail(err)
 	}
 	defer front.Store.Close()
-	scaler, err := nodeScaler(cfg.scaler, controller)
-	if err != nil {
-		return fail(err)
-	}
-	door := &cloudService{front: front, controller: controller, scaler: scaler}
+	door := &cloudService{front: front, controller: controller}
 	door.startBackground(ctx, cfg.nodes.dir)
 	controlled := door.leadInTurn(ctx, leaderLease)
 	if err := serveCloud(ctx, cfg.front.addr, front); err != nil {
@@ -81,20 +77,14 @@ func cloudCommand() int {
 	return 0
 }
 
-// cloudService is a running gusto cloud: its pages, the controller of the organizations' servers when it starts them, and
-// the scaler of hosts when it starts those.
+// cloudService is a running gusto cloud: its pages, and the controller of the organizations' servers when it starts them.
 type cloudService struct {
 	front      *cloud.Server
 	controller *cloud.Controller
-	scaler     *node.Scaler
 }
 
 // startBackground starts what every gusto cloud server does, leader or not.
 func (d *cloudService) startBackground(ctx context.Context, nodesDir string) {
-	if d.scaler != nil {
-		d.controller.OnWaiting = d.scaler.Wake
-		d.front.Prewarm = d.scaler.Prewarm
-	}
 	if nodesDir != "" && d.controller != nil {
 		d.hearNodes(ctx, nodesDir)
 	}
@@ -136,8 +126,8 @@ func (d *cloudService) leadInTurn(ctx context.Context, ttl time.Duration) <-chan
 	return controlled
 }
 
-// lead runs what one gusto cloud server on the database does while its lease holds: the controller, the demo and quota sweeps and
-// the scaler. The others serve pages and route from the database.
+// lead runs what one gusto cloud server on the database does while its lease holds: the controller and the demo and quota
+// sweeps. The others serve pages and route from the database.
 func (d *cloudService) lead(ctx context.Context, epoch int64) {
 	if d.controller != nil {
 		d.controller.Lead(epoch)
@@ -146,9 +136,6 @@ func (d *cloudService) lead(ctx context.Context, epoch int64) {
 	var wg sync.WaitGroup
 	wg.Go(func() { d.front.RunDemos(ctx, 15*time.Second) })
 	wg.Go(func() { d.front.Store.RunQuotas(ctx, 30*time.Second) })
-	if d.scaler != nil {
-		wg.Go(func() { d.scaler.Run(ctx, 10*time.Second) })
-	}
 	if d.controller != nil {
 		wg.Go(func() { d.controller.Run(ctx, 5*time.Second) })
 	}

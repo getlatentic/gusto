@@ -11,17 +11,15 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/cloud"
-	"github.com/getlatentic/gusto/internal/node"
 	"github.com/getlatentic/gusto/internal/operator"
 	"github.com/getlatentic/gusto/internal/settings"
 )
 
-// operatorSettings is what gusto operator reads: where it listens, the accounts, and how hosts are started.
+// operatorSettings is what gusto operator reads: where it listens and the accounts.
 type operatorSettings struct {
 	addr    string
 	records cloudRecords
 	demo    demoSettings
-	hosts   launchSettings
 }
 
 func (o *operatorSettings) declare(set *settings.Set) {
@@ -29,7 +27,7 @@ func (o *operatorSettings) declare(set *settings.Set) {
 	set.Renamed("GUSTO_OPERATOR_ADDR", "GUSTO_OWNER_ADDR")
 	o.records.declare(set)
 	o.demo.declare(set)
-	o.hosts.declare(set)
+	removedScalerSettings(set)
 }
 
 // operatorCommand serves the page the operator of a gusto cloud manages it from. It listens on the loopback of the machine
@@ -55,11 +53,7 @@ func operatorCommand() int {
 		return fail(err)
 	}
 	defer store.Close()
-	var hosts operator.Hosts
-	if cfg.hosts.launch == "ec2" {
-		hosts = &node.EC2{Project: cfg.hosts.project}
-	}
-	app := operator.New(store, hosts)
+	app := operator.New(store)
 	server := &http.Server{Addr: address, Handler: app.Handler(), ReadHeaderTimeout: 10 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

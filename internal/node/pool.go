@@ -29,47 +29,10 @@ type Pool struct {
 	Measure func() Capacity
 	now     func() time.Time
 
-	// guard guards retiring, which the scaler sets while the controller places, and started, which a node sets as it starts.
+	// guard guards started, which a node sets as it starts.
 	guard sync.Mutex
-	// retiring is the nodes the scaler is stopping, by name: none is placed on or started on.
-	retiring map[string]bool
 	// started is what each node said when it started, by name, until its registration file says as much.
 	started map[string]Registration
-}
-
-// setRetiring says the scaler is stopping a node, or is not after all.
-func (p *Pool) setRetiring(name string, retiring bool) {
-	p.guard.Lock()
-	defer p.guard.Unlock()
-	if p.retiring == nil {
-		p.retiring = map[string]bool{}
-	}
-	if retiring {
-		p.retiring[name] = true
-		return
-	}
-	delete(p.retiring, name)
-}
-
-// forgetRetiring lets go of the marks of the nodes that gone says are gone.
-func (p *Pool) forgetRetiring(gone func(name string) bool) {
-	p.guard.Lock()
-	marked := make([]string, 0, len(p.retiring))
-	for name := range p.retiring {
-		marked = append(marked, name)
-	}
-	p.guard.Unlock()
-	for _, name := range marked {
-		if gone(name) {
-			p.setRetiring(name, false)
-		}
-	}
-}
-
-func (p *Pool) isRetiring(name string) bool {
-	p.guard.Lock()
-	defer p.guard.Unlock()
-	return p.retiring[name]
 }
 
 func (p *Pool) clock() time.Time {
@@ -101,8 +64,6 @@ func (p *Pool) Get(name string) (cloud.Node, error) {
 		return nil, fmt.Errorf("there is no host called %q: %w", name, cloud.ErrNodeGone)
 	case err != nil:
 		return nil, err
-	case p.isRetiring(name):
-		return nil, fmt.Errorf("the host %s is being stopped", name)
 	case age > gone:
 		return nil, fmt.Errorf("the host %s has not been heard from for %s: %w", name, age.Round(time.Second), cloud.ErrNodeGone)
 	case age > p.maxAge():
@@ -119,7 +80,7 @@ type candidate struct {
 }
 
 // Place is the node with the most memory to spare that has enough, and this machine counts among them
-// when it runs servers. A node that does not answer, or that is being stopped, is not a candidate.
+// when it runs servers. A node that does not answer is not a candidate.
 func (p *Pool) Place() (cloud.Node, error) {
 	fresh, err := p.fresh()
 	if err != nil {
@@ -131,9 +92,6 @@ func (p *Pool) Place() (cloud.Node, error) {
 		wg    sync.WaitGroup
 	)
 	for _, registered := range fresh {
-		if p.isRetiring(registered.Name) {
-			continue
-		}
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

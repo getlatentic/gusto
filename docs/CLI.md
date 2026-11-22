@@ -956,16 +956,6 @@ Environment:
 - `GUSTO_CLOUD_NODE_SECRET_FILE`: the file with the secret gusto cloud and the nodes sign with; GUSTO_CLOUD_CELL_SECRET_FILE was its name
 - `GUSTO_CLOUD_NODE_GONE_MINUTES`: how long a node may be silent before it is taken to be gone and its organizations are placed on another, in minutes (default 30); GUSTO_CLOUD_CELL_GONE_MINUTES was its name
 - `GUSTO_CLOUD_LOCAL_NODE`: this machine is a node too; GUSTO_CLOUD_LOCAL_CELL was its name
-- `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH was its name
-- `GUSTO_CLOUD_NODE_PROJECT`: the project tag of the nodes' machines; GUSTO_CLOUD_CELL_PROJECT was its name
-- `GUSTO_CLOUD_NODE_TEMPLATE`: the launch template a node's machine is made from; GUSTO_CLOUD_CELL_TEMPLATE was its name
-- `GUSTO_CLOUD_NODE_USERDATA`: the start-up script a node's machine runs; GUSTO_CLOUD_CELL_USERDATA was its name
-- `GUSTO_CLOUD_NODE_SETTINGS`: NAME=value pairs, comma-separated, that fill in the start-up script; GUSTO_CLOUD_CELL_SETTINGS was its name
-- `GUSTO_CLOUD_NODE_IMAGE_PARAMETER`: the parameter the template reads its image from, so a kept node of an older image is replaced and not started again; GUSTO_CLOUD_CELL_IMAGE_PARAMETER was its name
-- `GUSTO_CLOUD_NODE_MAX`: the most nodes (default 3); GUSTO_CLOUD_CELL_MAX was its name
-- `GUSTO_CLOUD_NODE_IDLE_MINUTES`: how long a node may have nothing on it before it is stopped, in minutes (default 10); GUSTO_CLOUD_CELL_IDLE_MINUTES was its name
-- `GUSTO_CLOUD_NODE_PREWARMS`: the most nodes started in a day for a visitor still filling in the demo form (default 20); GUSTO_CLOUD_CELL_PREWARMS was its name
-- `GUSTO_CLOUD_NODE_KEEP`: how many idle nodes are stopped and kept, rather than removed (default 0); GUSTO_CLOUD_CELL_KEEP was its name
 
 Examples:
 
@@ -1087,8 +1077,6 @@ Environment:
 - `GUSTO_CLOUD_BOOK_URL`: where a visitor books a call
 - `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo or sends a note from the landing page
 - `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
-- `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH was its name
-- `GUSTO_CLOUD_NODE_PROJECT`: the project tag of the nodes' machines; GUSTO_CLOUD_CELL_PROJECT was its name
 
 See also: `gusto cloud`
 

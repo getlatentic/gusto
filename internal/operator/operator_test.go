@@ -10,12 +10,7 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/cloud"
-	"github.com/getlatentic/gusto/internal/node"
 )
-
-type hosts []node.Instance
-
-func (h hosts) Running() ([]node.Instance, error) { return h, nil }
 
 func app(t *testing.T) (*App, *cloud.Store) {
 	t.Helper()
@@ -23,7 +18,7 @@ func app(t *testing.T) (*App, *cloud.Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return New(store, hosts{{ID: "i-0123456789abcdef0", Launched: time.Now().Add(-5 * time.Minute)}}), store
+	return New(store), store
 }
 
 // shown is the operator's page as the server wrote it into the HTML for the web app to draw.
@@ -75,7 +70,7 @@ func TestTheOperatorsPageIsServedOnlyToRequestsToTheLoopback(t *testing.T) {
 	}
 }
 
-func TestTheOperatorSeesWhoAskedForADemoAndTheHostsThatAreUp(t *testing.T) {
+func TestTheOperatorSeesWhoAskedForADemo(t *testing.T) {
 	a, store := app(t)
 	if _, _, err := store.StartDemo(t.Context(), "Ada Lovelace", "ada@acme.com", "Acme Research"); err != nil {
 		t.Fatal(err)
@@ -83,9 +78,6 @@ func TestTheOperatorSeesWhoAskedForADemoAndTheHostsThatAreUp(t *testing.T) {
 	view := shown(t, a)
 	if len(view.Leads) != 1 || view.Leads[0].Name != "Ada Lovelace" || view.Leads[0].Email != "ada@acme.com" || view.Leads[0].Company != "Acme Research" || view.Leads[0].Outcome != "starting" {
 		t.Errorf("the leads: %+v", view.Leads)
-	}
-	if !view.Hosts.Known || len(view.Hosts.Rows) != 1 || view.Hosts.Rows[0] != (hostRow{ID: "i-0123456789abcdef0", Up: "5 min ago"}) {
-		t.Errorf("the hosts: %+v", view.Hosts)
 	}
 }
 

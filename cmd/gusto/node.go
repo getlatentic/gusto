@@ -136,39 +136,13 @@ func beatForNodes(ctx context.Context, dir string) {
 	}
 }
 
-// launchSettings is how nodes for organizations' servers are started, which gusto cloud and the operator's page both read.
-type launchSettings struct{ launch, project string }
-
-func (l *launchSettings) declare(set *settings.Set) {
-	set.Choice(&l.launch, "GUSTO_CLOUD_NODE_LAUNCH", "", []string{"ec2"}, "how a node is started when an organization waits for room; unset, none is")
-	set.String(&l.project, "GUSTO_CLOUD_NODE_PROJECT", "", "the project tag of the nodes' machines")
-	renamedFromCell(set, "GUSTO_CLOUD_NODE_LAUNCH", "GUSTO_CLOUD_NODE_PROJECT")
-}
-
-// scalerSettings is how gusto cloud starts and stops nodes: what a node is made from, and how many may run.
-type scalerSettings struct {
-	launchSettings
-	template, userData, imageParameter string
-	settings                           []string
-	max, idleMinutes, prewarms         int
-	keep                               int
-}
-
-func (s *scalerSettings) declare(set *settings.Set) {
-	s.launchSettings.declare(set)
-	set.String(&s.template, "GUSTO_CLOUD_NODE_TEMPLATE", "", "the launch template a node's machine is made from")
-	set.String(&s.userData, "GUSTO_CLOUD_NODE_USERDATA", "", "the start-up script a node's machine runs")
-	set.List(&s.settings, "GUSTO_CLOUD_NODE_SETTINGS", "NAME=value pairs, comma-separated, that fill in the start-up script")
-	set.String(&s.imageParameter, "GUSTO_CLOUD_NODE_IMAGE_PARAMETER", "", "the parameter the template reads its image from, so a kept node of an older image is replaced and not started again")
-	set.Int(&s.max, "GUSTO_CLOUD_NODE_MAX", 3, 1, "the most nodes")
-	set.Int(&s.idleMinutes, "GUSTO_CLOUD_NODE_IDLE_MINUTES", 10, 1, "how long a node may have nothing on it before it is stopped, in minutes")
-	// A visitor who types in the demo form and never sends it costs a node until it is idle.
-	set.Int(&s.prewarms, "GUSTO_CLOUD_NODE_PREWARMS", 20, 1, "the most nodes started in a day for a visitor still filling in the demo form")
-	// A kept node is stopped when idle and started again, which is faster than a new one; its disk costs while it waits.
-	set.Int(&s.keep, "GUSTO_CLOUD_NODE_KEEP", 0, 0, "how many idle nodes are stopped and kept, rather than removed")
-	renamedFromCell(set, "GUSTO_CLOUD_NODE_TEMPLATE", "GUSTO_CLOUD_NODE_USERDATA", "GUSTO_CLOUD_NODE_SETTINGS",
-		"GUSTO_CLOUD_NODE_IMAGE_PARAMETER", "GUSTO_CLOUD_NODE_MAX", "GUSTO_CLOUD_NODE_IDLE_MINUTES",
-		"GUSTO_CLOUD_NODE_PREWARMS", "GUSTO_CLOUD_NODE_KEEP")
+// removedScalerSettings refuses the settings gusto cloud started and stopped nodes on EC2 with, which it no longer does.
+func removedScalerSettings(set *settings.Set) {
+	for _, name := range []string{"GUSTO_CLOUD_NODE_LAUNCH", "GUSTO_CLOUD_NODE_PROJECT", "GUSTO_CLOUD_NODE_TEMPLATE", "GUSTO_CLOUD_NODE_USERDATA",
+		"GUSTO_CLOUD_NODE_SETTINGS", "GUSTO_CLOUD_NODE_IMAGE_PARAMETER", "GUSTO_CLOUD_NODE_MAX", "GUSTO_CLOUD_NODE_IDLE_MINUTES",
+		"GUSTO_CLOUD_NODE_PREWARMS", "GUSTO_CLOUD_NODE_KEEP"} {
+		set.Removed(name, "start nodes yourself and set GUSTO_CLOUD_NODES_DIR, or run every server on this machine with GUSTO_CLOUD_SERVERS=shared")
+	}
 }
 
 // renamedFromCell refuses each setting under the name it had when a node was called a cell, naming the new one.
@@ -176,47 +150,6 @@ func renamedFromCell(set *settings.Set, names ...string) {
 	for _, name := range names {
 		set.Renamed(name, strings.NewReplacer("NODES", "CELLS", "NODE", "CELL").Replace(name))
 	}
-}
-
-// nodeScaler starts a node when an organization waits for room and stops one that has had nothing on it, so no node runs
-// while nobody is using one. It is nil unless nodes are started on EC2.
-func nodeScaler(cfg scalerSettings, controller *cloud.Controller) (*node.Scaler, error) {
-	if cfg.launch != "ec2" || controller == nil {
-		return nil, nil
-	}
-	pool, ok := controller.Nodes.(*node.Pool)
-	if !ok {
-		return nil, errors.New("GUSTO_CLOUD_NODE_LAUNCH needs GUSTO_CLOUD_NODES_DIR, which says where nodes register")
-	}
-	if cfg.template == "" || cfg.userData == "" {
-		return nil, errors.New("GUSTO_CLOUD_NODE_TEMPLATE and GUSTO_CLOUD_NODE_USERDATA say what a node's machine is made from")
-	}
-	filled, err := scriptSettings(cfg.settings)
-	if err != nil {
-		return nil, err
-	}
-	return &node.Scaler{
-		Pool: pool, Waiting: controller.Waiting, Busy: controller.Busy,
-		Launcher: &node.EC2{Template: cfg.template, UserData: cfg.userData, Settings: filled, Project: cfg.project, ImageParameter: cfg.imageParameter},
-		Max:      cfg.max,
-		Idle:     time.Duration(cfg.idleMinutes) * time.Minute,
-		Boot:     10 * time.Minute,
-		Prewarms: cfg.prewarms,
-		Keep:     cfg.keep,
-	}, nil
-}
-
-// scriptSettings is the NAME=value pairs that fill in a node's start-up script.
-func scriptSettings(pairs []string) (map[string]string, error) {
-	filled := map[string]string{}
-	for _, pair := range pairs {
-		name, value, found := strings.Cut(pair, "=")
-		if !found || name == "" {
-			return nil, errors.New("GUSTO_CLOUD_NODE_SETTINGS is NAME=value pairs separated by commas")
-		}
-		filled[name] = value
-	}
-	return filled, nil
 }
 
 func nodeCommandOf() *cmdline.Command {

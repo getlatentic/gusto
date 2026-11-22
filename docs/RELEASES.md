@@ -10,6 +10,10 @@ A tag needs a section here named for it, or the release workflow stops and copie
 
 - `GUSTO_CLOUD_SERVERS=shared` runs every organization's server in one process on this machine, in place of a process each. Each server keeps its own ports, data, keys and sign-in, and is started from the same settings as before. The process is `gusto shared-servers`, which gusto cloud starts with the `GUSTO_CLOUD_ORG_ENV` settings and starts again if it ends; its output and every server's is in `shared-servers/host.log` under `GUSTO_CLOUD_ROOT`. It cannot be combined with `GUSTO_CLOUD_NODES_DIR`. `on`, a process each, stays the default.
 
+**Removed**
+
+- gusto cloud no longer starts and stops nodes on EC2. `GUSTO_CLOUD_NODE_LAUNCH`, `GUSTO_CLOUD_NODE_PROJECT`, `GUSTO_CLOUD_NODE_TEMPLATE`, `GUSTO_CLOUD_NODE_USERDATA`, `GUSTO_CLOUD_NODE_SETTINGS`, `GUSTO_CLOUD_NODE_IMAGE_PARAMETER`, `GUSTO_CLOUD_NODE_MAX`, `GUSTO_CLOUD_NODE_IDLE_MINUTES`, `GUSTO_CLOUD_NODE_PREWARMS` and `GUSTO_CLOUD_NODE_KEEP` are refused by name, by `gusto cloud` and `gusto operator`. Nodes started another way still register in `GUSTO_CLOUD_NODES_DIR`. The demo form no longer asks for a node as the visitor types (`POST /demo/warm` is gone), and the operator's page no longer lists hosts.
+
 ## v0.1.1
 
 **Changed**
