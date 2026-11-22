@@ -49,6 +49,10 @@ jobs:
           [ -n "$RELEASE" ] || RELEASE="$(aws s3 cp "s3://$BUCKET/releases/latest" -)"
           aws s3api head-object --bucket "$BUCKET" --key "releases/$RELEASE/bundle.tgz" >/dev/null \
             || { echo "there is no bundle for $RELEASE: run the cloud deploy workflow"; exit 1; }
+          key="$(aws s3 cp "s3://$BUCKET/releases/$RELEASE/bundle.tgz" - | tar -xzO ./image.key)"
+          { aws s3api head-object --bucket "$BUCKET" --key "image/$key.tar.gz" >/dev/null 2>&1 \
+            && aws s3api head-object --bucket "$BUCKET" --key "image/$key.docker.tar.gz" >/dev/null 2>&1; } \
+            || { echo "the x86 runner image $key of $RELEASE is not in the bucket: run deploy/aws/openshell/publish-image.sh"; exit 1; }
           up="$(aws ec2 describe-instances --filters Name=tag:project,Values=gusto Name=instance-state-name,Values=pending,running \
             --query 'Reservations[].Instances[].InstanceId' --output text)"
           [ -z "$up" ] || { echo "a host is already up: $up"; exit 1; }

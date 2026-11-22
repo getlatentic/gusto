@@ -12,6 +12,11 @@ A tag needs a section here named for it, or the release workflow stops and copie
 - Send now: a message sent while a reply is being written stops that reply and runs next, in the same session, so the agent keeps what it did. The message box's Send does this while a reply runs; the API takes `"now": true` on `POST /api/instances/{id}/threads/{thread}/say`.
 - Stopping a turn of an agent that speaks ACP (Claude Code, Codex, DeepSeek Agent, Hermes) sends it `session/cancel` and lets it end the turn itself, for up to 15 seconds before it is killed. Before, it was killed at once.
 
+**Changed**
+
+- OpenCode runs over ACP (`opencode acp`) in place of `opencode run --format json`, so it takes Send now and Stop as the other ACP agents do: asked to cancel, keeping its session. Its model is set by `model` in its config, since `opencode acp` takes no `--model`.
+- A deploy goes on when the x86 runner image of a release is missing, since gusto cloud that stays up is Arm, and says so. `cloud up`, whose hosts are x86, refuses to start without it and says to run `publish-image.sh`.
+
 **Removed**
 
 - gusto cloud no longer starts and stops nodes on EC2. `GUSTO_CLOUD_NODE_LAUNCH`, `GUSTO_CLOUD_NODE_PROJECT`, `GUSTO_CLOUD_NODE_TEMPLATE`, `GUSTO_CLOUD_NODE_USERDATA`, `GUSTO_CLOUD_NODE_SETTINGS`, `GUSTO_CLOUD_NODE_IMAGE_PARAMETER`, `GUSTO_CLOUD_NODE_MAX`, `GUSTO_CLOUD_NODE_IDLE_MINUTES`, `GUSTO_CLOUD_NODE_PREWARMS` and `GUSTO_CLOUD_NODE_KEEP` are refused by name, by `gusto cloud` and `gusto operator`. Nodes started another way still register in `GUSTO_CLOUD_NODES_DIR`. The demo form no longer asks for a node as the visitor types (`POST /demo/warm` is gone), and the operator's page no longer lists hosts.
