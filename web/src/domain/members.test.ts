@@ -16,8 +16,6 @@ import {
 const kind = {
   Ready: true,
   What: "Writes code",
-  Measured: "12s on big-1",
-  Failed: false,
   Installable: false,
   Why: "",
 }
@@ -58,14 +56,9 @@ describe("an agent's tabs", () => {
 })
 
 describe("what the new agent dialog says of an agent type", () => {
-  it("says what one that can run is, and how it did here, warning when it finished on no model offered", () => {
-    expect(kindNotes(kind)).toEqual([
-      { text: "Writes code", warn: false },
-      { text: "12s on big-1", warn: false },
-    ])
-    expect(
-      kindNotes({ ...kind, What: "", Measured: "Did not finish", Failed: true })
-    ).toEqual([{ text: "Did not finish", warn: true }])
+  it("says what one that can run is, and nothing when it has no words", () => {
+    expect(kindNotes(kind)).toEqual([{ text: "Writes code", warn: false }])
+    expect(kindNotes({ ...kind, What: "" })).toEqual([])
   })
 
   it("says one gusto can install is not on this computer yet", () => {

@@ -46,22 +46,14 @@ export interface KindNote {
   title?: string
 }
 
-// kindNotes is what the new agent dialog says under an agent type: what it is and how it did here when it can run, and why not
-// when it cannot.
+// kindNotes is what the new agent dialog says under an agent type: what it is when it can run, and why not when it cannot.
 export function kindNotes(kind: {
   Ready: boolean
   What: string
-  Measured: string
-  Failed: boolean
   Installable: boolean
   Why: string
 }): KindNote[] {
-  if (kind.Ready) {
-    const notes: KindNote[] = []
-    if (kind.What) notes.push({ text: kind.What, warn: false })
-    if (kind.Measured) notes.push({ text: kind.Measured, warn: kind.Failed })
-    return notes
-  }
+  if (kind.Ready) return kind.What ? [{ text: kind.What, warn: false }] : []
   if (kind.Installable)
     return [{ text: "Not on this computer yet", warn: false }]
   return [
