@@ -25,12 +25,10 @@ type newAgentView struct {
 	Offered    []option
 }
 
-// kindView is one agent type in the new agent dialog. Measured is how it did on the benchmark here, and Failed that it finished
-// on none of the models offered. Installable is one gusto can install on the person's own computer.
+// kindView is one agent type in the new agent dialog. Installable is one gusto can install on the person's own computer.
 type kindView struct {
 	Name, Title, What, Why, Mark, MarkDark string
-	Measured                               string
-	Ready, Failed, Installable             bool
+	Ready, Installable                     bool
 }
 
 // agentPageView is the agent an agent's page is of. Mine is whether the person looking may change it, and Usable whether they
@@ -78,11 +76,11 @@ func (s *Server) membersData(r *http.Request) (map[string]any, error) {
 
 func (s *Server) newAgentOf(r *http.Request) newAgentView {
 	offered := s.offeredTo(r)
-	kinds := kindsFor(s.engines(), offered)
+	kinds := s.engines()
 	shown := newAgentView{Kinds: make([]kindView, 0, len(kinds)), FirstReady: firstReady(s.picksFor(r)), Offered: s.modelOptionsOf(offered)}
 	for _, each := range kinds {
 		shown.Kinds = append(shown.Kinds, kindView{Name: each.Name, Title: each.Title, What: each.What, Why: each.Why,
-			Mark: logo(each.Name), MarkDark: logoDark(each.Name), Measured: each.Measured, Ready: each.Ready, Failed: each.Failed,
+			Mark: logo(each.Name), MarkDark: logoDark(each.Name), Ready: each.Ready,
 			Installable: !each.Ready && s.installable(each.Name)})
 	}
 	return shown

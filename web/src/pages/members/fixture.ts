@@ -45,9 +45,7 @@ export function kindOf(change: Partial<Kind> = {}): Kind {
     Why: "",
     Mark: "/static/agents/codex.svg",
     MarkDark: "",
-    Measured: "",
     Ready: true,
-    Failed: false,
     Installable: false,
     ...change,
   }

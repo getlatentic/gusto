@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { useArrivals } from "@/motion/use-arrivals"
 import type { ConversationData } from "@/pages/conversation/types"
 import { withBase } from "@/lib/base"
+import { StopButton } from "@/pages/conversation/turn-item"
 
 interface LiveItem {
   kind: "said" | "step"
@@ -44,9 +45,15 @@ function useEnded(task: string, onEnded: () => void) {
   }, [task])
 }
 
-// RunningReply is the reply of a conversation that is still being written: what it is doing now, how long it has taken, and
-// everything it has said and done so far, as it came.
-export function RunningReply({ page }: { page: ConversationData }) {
+// RunningReply is the reply of a conversation that is still being written: what it is doing now, how long it has taken, the
+// way to stop it, and everything it has said and done so far, as it came. job is the turn it is the reply of, when it shows.
+export function RunningReply({
+  page,
+  job,
+}: {
+  page: ConversationData
+  job?: string
+}) {
   const refreshAll = useRefreshAll()
   const [started] = useState(() => Date.now())
   const [now, setNow] = useState(started)
@@ -71,7 +78,7 @@ export function RunningReply({ page }: { page: ConversationData }) {
     <section
       ref={done}
       aria-label="The reply so far"
-      className="mt-5 ml-10.5 grid gap-3"
+      className={cn("grid gap-3", !job && "mt-5 ml-10.5")}
     >
       <p className="m-0 flex items-center gap-3 text-sm font-medium">
         <span
@@ -79,6 +86,7 @@ export function RunningReply({ page }: { page: ConversationData }) {
           aria-hidden="true"
         />
         <span role="status">{doing}</span>
+        {job && <StopButton job={job} />}
         <span className="ml-auto font-normal text-subtle tabular-nums">
           {elapsed(Math.floor((now - started) / 1000))}
         </span>

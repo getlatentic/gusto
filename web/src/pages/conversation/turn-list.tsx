@@ -42,6 +42,8 @@ export function TurnList({
   }, [turns.length, last?.ID, last?.Done, page.Waiting])
   const words = typingWords(typing)
   const running = !page.Instance.Room && page.Waiting
+  // The reply being written is drawn in its own turn, under the agent's name, when that turn is on the page.
+  const replying = running && last && !last.Done ? last.ID : ""
   return (
     <div
       ref={region}
@@ -61,14 +63,22 @@ export function TurnList({
           <ol aria-label="Messages" className="m-0 list-none p-0">
             {turns.map((turn) => (
               <li key={turn.ID} data-arrive-id={turn.ID}>
-                <TurnItem turn={turn} progress={progress[turn.ID]} />
+                <TurnItem
+                  turn={turn}
+                  progress={progress[turn.ID]}
+                  live={
+                    turn.ID === replying ? (
+                      <RunningReply page={page} job={turn.ID} />
+                    ) : undefined
+                  }
+                />
               </li>
             ))}
           </ol>
         ) : (
           !running && <Empty page={page} onStarter={onStarter} />
         )}
-        {running && <RunningReply page={page} />}
+        {running && !replying && <RunningReply page={page} />}
         {page.Stream && (
           <p
             className="m-0 mt-2 h-5 text-xs text-subtle"

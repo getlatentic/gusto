@@ -24,8 +24,7 @@ export interface ListedAgent {
   Where: string
 }
 
-// Kind is an agent type the new agent dialog offers. Measured is how it did on the benchmark here, and Failed that it finished
-// on none of the models offered; Installable is one gusto can install on the person's own computer.
+// Kind is an agent type the new agent dialog offers. Installable is one gusto can install on the person's own computer.
 export interface Kind {
   Name: string
   Title: string
@@ -33,9 +32,7 @@ export interface Kind {
   Why: string
   Mark: string
   MarkDark: string
-  Measured: string
   Ready: boolean
-  Failed: boolean
   Installable: boolean
 }
 
