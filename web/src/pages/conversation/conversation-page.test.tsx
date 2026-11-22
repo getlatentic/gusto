@@ -82,6 +82,26 @@ describe("a conversation with one agent", () => {
     expect(screen.getByRole("button", { name: "Stop" })).toBeTruthy()
   })
 
+  it("says once that a reply is being written, inside the agent's own reply", async () => {
+    draw(
+      conversationOf((page) => {
+        page.Waiting = true
+        page.Latest = "t2"
+        page.Turns = [turnOf("t2", { Done: false, ReplyHTML: "" })]
+      })
+    )
+    const reply = await screen.findByTestId("reply")
+    expect(
+      within(reply).getByRole("region", { name: "The reply so far" })
+    ).toBeTruthy()
+    expect(
+      screen.getAllByRole("status").filter((s) => s.textContent === "Working")
+    ).toHaveLength(1)
+    expect(within(reply).getAllByRole("button", { name: "Stop" })).toHaveLength(
+      1
+    )
+  })
+
   it("greets an empty conversation, and writes a starter in the box", async () => {
     draw(
       conversationOf(
