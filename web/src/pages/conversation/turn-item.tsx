@@ -179,20 +179,23 @@ function Reply({
         </time>
       ) : (
         <>
-          <span
-            className="row-span-2 grid size-8 place-items-center overflow-hidden rounded-full bg-sunken text-xs font-medium text-muted-foreground"
-            aria-hidden="true"
-          >
-            {turn.Mark ? (
+          {turn.Mark ? (
+            <span className="row-span-2 grid size-8" aria-hidden="true">
               <AgentMark
                 mark={turn.Mark}
                 markDark={turn.MarkDark}
                 name={turn.By}
+                size="size-8"
               />
-            ) : (
-              initial(turn.By)
-            )}
-          </span>
+            </span>
+          ) : (
+            <span
+              className="row-span-2 grid size-8 place-items-center rounded-full bg-sunken text-xs font-medium text-muted-foreground"
+              aria-hidden="true"
+            >
+              {initial(turn.By)}
+            </span>
+          )}
           <p className={label}>
             <span className="truncate" title={turn.Role || undefined}>
               {turn.By}
