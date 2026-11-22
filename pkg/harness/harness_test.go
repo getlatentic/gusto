@@ -30,13 +30,13 @@ func TestTheAdaptersThatShipParse(t *testing.T) {
 }
 
 func TestATasksValuesReachTheCommandLine(t *testing.T) {
-	adapter, err := Load("", "opencode")
+	adapter, err := Load("", "muse")
 	if err != nil {
 		t.Fatal(err)
 	}
-	spec := task.Spec{Brief: "fix the adder", Model: "ollama/gpt-oss:20b"}
+	spec := task.Spec{Brief: "fix the adder", Model: "meta/muse-spark-1.3"}
 	command := adapter.Command(context.Background(), spec, t.TempDir())
-	if !slices.Contains(command.Args, "--model=gusto-ollama/gpt-oss:20b") {
+	if !slices.Contains(command.Args, "muse-spark-1.3") {
 		t.Errorf("the model should reach the command line: %v", command.Args)
 	}
 	if !slices.Contains(command.Args, "fix the adder") {
@@ -45,7 +45,7 @@ func TestATasksValuesReachTheCommandLine(t *testing.T) {
 }
 
 func TestAnArgumentTheTaskLeftEmptyIsDropped(t *testing.T) {
-	adapter, err := Load("", "opencode")
+	adapter, err := Load("", "muse")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,32 +54,6 @@ func TestAnArgumentTheTaskLeftEmptyIsDropped(t *testing.T) {
 		if strings.HasSuffix(argument, "=") {
 			t.Fatalf("a bare flag reached the command line: %v", command.Args)
 		}
-	}
-}
-
-// The paths in the opencode adapter were read off a real run of opencode
-// 1.18.10 against a local model. This is that line.
-const stepFinish = `{"type":"step_finish","part":{"type":"step-finish","cost":0,"tokens":{"total":17387,"input":17385,"output":2,"reasoning":0}}}`
-
-func TestTheOpencodeAdapterFindsTheNumbersInARealLine(t *testing.T) {
-	adapter, err := Load("", "opencode")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var line map[string]any
-	if err := json.Unmarshal([]byte(stepFinish), &line); err != nil {
-		t.Fatal(err)
-	}
-	input, ok := Number(line, adapter.InputTokens)
-	if !ok || input != 17385 {
-		t.Errorf("input tokens: %v %t", input, ok)
-	}
-	output, ok := Number(line, adapter.OutputTokens)
-	if !ok || output != 2 {
-		t.Errorf("output tokens: %v %t", output, ok)
-	}
-	if _, ok := Number(line, adapter.CostUSD); !ok {
-		t.Error("cost should be found, even at zero")
 	}
 }
 

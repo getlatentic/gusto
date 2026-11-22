@@ -1,0 +1,51 @@
+{
+  "name": "opencode-jsonl",
+  "title": "OpenCode over its command line",
+  "what": "The OpenCode adapter as gusto ran it before it spoke ACP, kept so the recording of a JSON-lines harness is tested on lines OpenCode 1.18.10 really wrote.",
+  "program": "opencode",
+  "package": "opencode-ai",
+  "env": {
+    "GUSTO_MODEL_PROVIDER": "{modelProvider}",
+    "GUSTO_MODEL_ID": "{modelId}"
+  },
+  "argv": [
+    "run",
+    "--format",
+    "json",
+    "--model=gusto-{modelProvider}/{modelId}",
+    "{brief}"
+  ],
+  "resume": [
+    "run",
+    "--format",
+    "json",
+    "--session={session}",
+    "--model=gusto-{modelProvider}/{modelId}",
+    "{brief}"
+  ],
+  "needs": "local",
+  "skills": "/root/.config/opencode/skills",
+  "mcp": {
+    "format": "opencode",
+    "env": {
+      "OPENCODE_CONFIG_CONTENT": "{mcp}"
+    }
+  },
+  "stream": "jsonl",
+  "when": {
+    "text": {
+      "part.type": "text"
+    }
+  },
+  "totals": "perCall",
+  "text": "part.text",
+  "message": "part.messageID",
+  "sessionId": "sessionID",
+  "toolName": "part.tool",
+  "toolInput": "part.state.input",
+  "toolStatus": "part.state.status",
+  "toolTitle": "part.state.title",
+  "inputTokens": "part.tokens.input",
+  "outputTokens": "part.tokens.output",
+  "costUsd": "part.cost"
+}

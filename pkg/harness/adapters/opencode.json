@@ -9,43 +9,12 @@
     "GUSTO_MODEL_ID": "{modelId}"
   },
   "argv": [
-    "run",
-    "--format",
-    "json",
-    "--model=gusto-{modelProvider}/{modelId}",
-    "{brief}"
-  ],
-  "resume": [
-    "run",
-    "--format",
-    "json",
-    "--session={session}",
-    "--model=gusto-{modelProvider}/{modelId}",
-    "{brief}"
+    "acp"
   ],
   "needs": "local",
   "skills": "/root/.config/opencode/skills",
   "mcp": {
-    "format": "opencode",
-    "env": {
-      "OPENCODE_CONFIG_CONTENT": "{mcp}"
-    }
+    "format": "acp"
   },
-  "stream": "jsonl",
-  "when": {
-    "text": {
-      "part.type": "text"
-    }
-  },
-  "totals": "perCall",
-  "text": "part.text",
-  "message": "part.messageID",
-  "sessionId": "sessionID",
-  "toolName": "part.tool",
-  "toolInput": "part.state.input",
-  "toolStatus": "part.state.status",
-  "toolTitle": "part.state.title",
-  "inputTokens": "part.tokens.input",
-  "outputTokens": "part.tokens.output",
-  "costUsd": "part.cost"
+  "stream": "acp"
 }

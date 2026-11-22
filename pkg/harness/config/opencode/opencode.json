@@ -1,5 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "model": "gusto-{env:GUSTO_MODEL_PROVIDER}/{env:GUSTO_MODEL_ID}",
   "provider": {
     "gusto-{env:GUSTO_MODEL_PROVIDER}": {
       "npm": "@ai-sdk/openai-compatible",

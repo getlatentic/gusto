@@ -52,6 +52,8 @@ jobs:
         with:
           role-to-assume: ${{ vars.GUSTO_AWS_ROLE }}
           aws-region: us-east-1
+      # The x86 image is for the hosts cloud up makes, and gusto cloud that stays up is Arm, so a deploy goes on without it: cloud up
+      # refuses to start a host whose release has no image, and says how to make it.
       - name: The runner image, when it is not in the bucket
         env:
           BUCKET: ${{ vars.GUSTO_BUCKET }}
@@ -63,8 +65,8 @@ jobs:
             exit 0
           fi
           if [ "$(uname -m)" != x86_64 ]; then
-            echo "::error::the image $key is not in the bucket, and this runner is $(uname -m), which cannot build it. Run deploy/aws/openshell/publish-image.sh, which builds it on an x86 host, and run this again."
-            exit 1
+            echo "::warning::the x86 image $key is not in the bucket, and this runner is $(uname -m), which cannot build it. cloud up needs it: run deploy/aws/openshell/publish-image.sh, which builds it on an x86 host."
+            exit 0
           fi
           docker build --platform linux/amd64 --build-arg "HARNESSES=$(deploy/aws/openshell/harnesses.sh)" -t gusto-runner .
           container="$(docker create gusto-runner true)"
