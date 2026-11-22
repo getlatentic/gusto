@@ -15,4 +15,7 @@ if ! aws s3api head-bucket --bucket "$bucket" >/dev/null 2>&1; then
 fi
 aws s3api put-public-access-block --bucket "$bucket" \
   --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true >/dev/null
+# The database's hourly dumps are kept 30 days, the ansible role's cloud_backup_days, and removed by the bucket itself.
+aws s3api put-bucket-lifecycle-configuration --bucket "$bucket" --lifecycle-configuration \
+  '{"Rules":[{"ID":"database-backups","Status":"Enabled","Filter":{"Prefix":"backups/postgres/"},"Expiration":{"Days":30}}]}' >/dev/null
 echo "$bucket"

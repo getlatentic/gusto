@@ -1,0 +1,133 @@
+---
+# Postgres on this host, for gusto cloud's accounts and each organization's indexes: reached by its socket alone, by the
+# user gusto cloud runs as, with no password. A host that kept its accounts in cloud.db has them copied in once, before
+# gusto cloud first starts on Postgres; the file is left as it was.
+# acl lets Ansible hand postgres the files of a task it runs as postgres.
+- name: Postgres
+  ansible.builtin.apt:
+    name: [postgresql, postgresql-contrib, acl]
+    state: present
+    update_cache: true
+
+# Ubuntu keeps a cluster's settings in /etc/postgresql/<version>/<cluster>, and reads every file in its conf.d.
+- name: Where Postgres keeps its settings
+  ansible.builtin.shell: pg_lsclusters --no-header | awk 'NR == 1 { print "/etc/postgresql/" $1 "/" $2 }'
+  register: postgres_conf
+  changed_when: false
+  failed_when: postgres_conf.stdout == ''
+
+- name: Postgres listens on its socket alone, and is sized for a small host
+  ansible.builtin.copy:
+    dest: "{{ postgres_conf.stdout }}/conf.d/gusto.conf"
+    mode: "0644"
+    content: |
+      listen_addresses = ''
+      max_connections = {{ cloud_postgres_connections }}
+      shared_buffers = {{ cloud_postgres_shared_buffers }}
+      effective_cache_size = {{ cloud_postgres_cache }}
+      work_mem = 4MB
+      maintenance_work_mem = 32MB
+  register: postgres_tuned
+
+- name: Postgres runs with those settings
+  ansible.builtin.systemd:
+    name: postgresql
+    state: "{{ 'restarted' if postgres_tuned.changed else 'started' }}"
+    enabled: true
+
+- name: The user gusto cloud runs as may sign in to Postgres
+  ansible.builtin.command: >-
+    psql -Atc "DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ cloud_user }}') THEN CREATE ROLE {{ cloud_user }} LOGIN; END IF; END $$"
+  become: true
+  become_user: postgres
+  register: postgres_role
+  changed_when: false
+
+- name: Whether its database is there
+  ansible.builtin.command: psql -Atc "SELECT 1 FROM pg_database WHERE datname = '{{ cloud_postgres_database }}'"
+  become: true
+  become_user: postgres
+  register: postgres_database
+  changed_when: false
+
+- name: Its database
+  ansible.builtin.command: createdb -O {{ cloud_user }} {{ cloud_postgres_database }}
+  become: true
+  become_user: postgres
+  when: postgres_database.stdout != '1'
+
+# These run as the user gusto cloud runs as, whom Postgres knows by that name, by runuser, which needs no files handed over.
+- name: Whether the accounts are still to be copied from cloud.db
+  ansible.builtin.shell: >-
+    [ -s {{ cloud_lib }}/cloud.db ] &&
+    runuser -u {{ cloud_user }} -- env GUSTO_CLOUD_ROOT={{ cloud_state }}/cloud GUSTO_DATABASE_URL='{{ cloud_accounts_url }}'
+    {{ cloud_bin }}/gusto cloud migrate | grep -q '^schema version  *0 '
+  register: postgres_empty
+  changed_when: false
+  failed_when: false
+
+- name: gusto cloud is stopped while its accounts are copied
+  ansible.builtin.command: systemctl stop {{ cloud_name }}-cloud
+  when: postgres_empty.rc == 0
+  changed_when: true
+  failed_when: false
+
+- name: The accounts are copied from cloud.db into Postgres
+  ansible.builtin.command: >-
+    runuser -u {{ cloud_user }} -- env GUSTO_CLOUD_ROOT={{ cloud_state }}/cloud GUSTO_DATABASE_URL={{ cloud_accounts_url }}
+    {{ cloud_bin }}/gusto cloud migrate -copy-from {{ cloud_lib }}/cloud.db
+  when: postgres_empty.rc == 0
+  changed_when: true
+  notify: Restart the front door
+
+- name: The backup of the database to the bucket
+  ansible.builtin.copy:
+    dest: "{{ cloud_bin }}/{{ cloud_name }}-db-backup"
+    mode: "0755"
+    content: |
+      #!/usr/bin/env bash
+      # A dump of the database, sent to the bucket under its hour. The bucket keeps each for {{ cloud_backup_days }} days.
+      set -euo pipefail
+      export PATH=$PATH:/snap/bin:/usr/local/bin
+      at=$(date -u +%Y-%m-%dT%H%MZ)
+      pg_dump --host=/var/run/postgresql --format=custom {{ cloud_postgres_database }} \
+        | AWS_RETRY_MODE=adaptive AWS_MAX_ATTEMPTS=10 aws s3 cp - "s3://{{ cloud_bucket }}/backups/postgres/{{ cloud_name }}/$at.dump" --only-show-errors
+      echo "the database went to the bucket as backups/postgres/{{ cloud_name }}/$at.dump"
+  when: cloud_bucket != ''
+
+- name: The backup runs every hour
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ cloud_name }}-db-backup.{{ item.kind }}"
+    mode: "0644"
+    content: "{{ item.content }}"
+  loop:
+    - kind: service
+      content: |
+        [Unit]
+        Description=gusto: a dump of the database to the bucket
+        After=postgresql.service
+        [Service]
+        Type=oneshot
+        User={{ cloud_user }}
+        ExecStart={{ cloud_bin }}/{{ cloud_name }}-db-backup
+    - kind: timer
+      content: |
+        [Unit]
+        Description=gusto: a dump of the database to the bucket every hour
+        [Timer]
+        OnCalendar=hourly
+        RandomizedDelaySec=300
+        Persistent=true
+        [Install]
+        WantedBy=timers.target
+  loop_control:
+    label: "{{ item.kind }}"
+  when: cloud_bucket != ''
+
+- name: The hourly backup is on
+  ansible.builtin.systemd:
+    name: "{{ cloud_name }}-db-backup.timer"
+    state: started
+    enabled: true
+    daemon_reload: true
+  when: cloud_bucket != ''

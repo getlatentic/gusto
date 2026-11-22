@@ -12,6 +12,9 @@ A tag needs a section here named for it, or the release workflow stops and copie
 - Send now: a message sent while a reply is being written stops that reply and runs next, in the same session, so the agent keeps what it did. The message box's Send does this while a reply runs; the API takes `"now": true` on `POST /api/instances/{id}/threads/{thread}/say`.
 - Stopping a turn of an agent that speaks ACP (Claude Code, Codex, DeepSeek Agent, Hermes) sends it `session/cancel` and lets it end the turn itself, for up to 15 seconds before it is killed. Before, it was killed at once.
 
+- `gusto cloud migrate -copy-from <cloud.db>` copies the accounts in a SQLite file into the Postgres database `GUSTO_DATABASE_URL` names, in one transaction. Times and booleans are given as Postgres's columns take them, and tables go in the order their foreign keys need. The file is only read, and a Postgres schema that holds accounts already is refused.
+- A host started with `DATABASE=postgres` runs Postgres itself, reached only by its socket, and keeps gusto cloud's accounts in its `cloud` schema and each organization's indexes in a schema of the organization's own. A host that kept its accounts in `cloud.db` has them copied in once, before gusto cloud first starts on Postgres; the file is left as it was. The database is dumped to the bucket every hour, under `backups/postgres/`, and the bucket keeps each dump for 30 days.
+
 **Changed**
 
 - OpenCode runs over ACP (`opencode acp`) in place of `opencode run --format json`, so it takes Send now and Stop as the other ACP agents do: asked to cancel, keeping its session. Its model is set by `model` in its config, since `opencode acp` takes no `--model`.

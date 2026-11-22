@@ -76,6 +76,18 @@ cloud_role: all
 cloud_programs: "{{ playbook_dir }}/../.state"
 # How the organizations' servers run: on, a process for each, or shared, all of them in one process.
 cloud_servers: "on"
+# Whether gusto cloud keeps its accounts, and each organization its indexes, in Postgres on this host, which is backed up
+# to the bucket every hour; or in SQLite files on its disk.
+cloud_postgres: false
+cloud_postgres_database: gusto
+cloud_postgres_connections: 40
+cloud_postgres_shared_buffers: 128MB
+cloud_postgres_cache: 384MB
+cloud_backup_days: 30
+# The database, by the host's socket, as the user gusto cloud runs as. The accounts are in the schema cloud of it, and each
+# organization's server is given a schema of its own.
+cloud_postgres_url: "postgres:///{{ cloud_postgres_database }}?host=/var/run/postgresql"
+cloud_accounts_url: "{{ cloud_postgres_url }}&search_path=cloud"
 cloud_efs: ""
 cloud_run: ""
 cloud_cell_secret_parameter: /gusto/cell-secret

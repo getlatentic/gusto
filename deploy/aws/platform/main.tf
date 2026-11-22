@@ -280,7 +280,7 @@ resource "aws_instance" "live" {
   # start, and what it was started with is kept on the host for the upgrades after.
   user_data = join("\n", [
     "#!/bin/bash",
-    "export RELEASE=latest BUCKET=${var.bucket} REGION=${var.region} ROLE=all RUN= EFS= LIVE=on LEASE_MINUTES=30 MAX_HOURS=24 SERVERS=shared SANDBOX=container COMPUTER_MEMORY=${var.front_door_computer_memory}",
+    "export RELEASE=latest BUCKET=${var.bucket} REGION=${var.region} ROLE=all RUN= EFS= LIVE=on LEASE_MINUTES=30 MAX_HOURS=24 SERVERS=shared SANDBOX=container COMPUTER_MEMORY=${var.front_door_computer_memory} DATABASE=postgres",
     file("${path.module}/user-data.sh"),
   ])
   tags = { project = local.live_tag, name = "front-door" }

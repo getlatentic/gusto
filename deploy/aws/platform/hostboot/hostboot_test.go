@@ -353,12 +353,12 @@ func TestAHostThatRunsEveryServerInOneProcessWithAgentsInContainersHasNoOpenShel
 	b := newBoot(t)
 	b.release(false)
 	liveEnv := filepath.Join(b.dir, "etc", "live.env")
-	lines, err := b.run("LIVE=on", "SERVERS=shared", "SANDBOX=container", "COMPUTER_MEMORY=1Gi", "GUSTO_LIVE_ENV="+liveEnv)
+	lines, err := b.run("LIVE=on", "SERVERS=shared", "SANDBOX=container", "COMPUTER_MEMORY=1Gi", "DATABASE=postgres", "GUSTO_LIVE_ENV="+liveEnv)
 	if err != nil {
 		t.Fatal(err)
 	}
 	play := lines[index(lines, "ansible-playbook ")]
-	for _, want := range []string{"cloud_servers=shared", "public_sandbox=container", "cloud_demo_sandbox=container", "cloud_computer_memory=1Gi", "cloud_role=all"} {
+	for _, want := range []string{"cloud_servers=shared", "public_sandbox=container", "cloud_demo_sandbox=container", "cloud_computer_memory=1Gi", "cloud_role=all", "cloud_postgres=true"} {
 		if !strings.Contains(play, want) {
 			t.Errorf("%q is not in %s", want, play)
 		}
@@ -367,7 +367,7 @@ func TestAHostThatRunsEveryServerInOneProcessWithAgentsInContainersHasNoOpenShel
 		t.Errorf("agents in containers need no OpenShell: %s", play)
 	}
 	text, _ := os.ReadFile(liveEnv)
-	for _, want := range []string{"SERVERS=shared\n", "SANDBOX=container\n", "COMPUTER_MEMORY=1Gi\n"} {
+	for _, want := range []string{"SERVERS=shared\n", "SANDBOX=container\n", "COMPUTER_MEMORY=1Gi\n", "DATABASE=postgres\n"} {
 		if !strings.Contains(string(text), want) {
 			t.Errorf("%q is not kept in %s", want, text)
 		}
@@ -382,7 +382,7 @@ func TestAHostToldNothingOfServersOrSandboxesRunsAProcessForEachAndChoosesNoSand
 		t.Fatal(err)
 	}
 	play := lines[index(lines, "ansible-playbook ")]
-	if !strings.Contains(play, "cloud_servers=on") || strings.Contains(play, "_sandbox=") || strings.Contains(play, "cloud_computer_memory") {
+	if !strings.Contains(play, "cloud_servers=on") || !strings.Contains(play, "cloud_postgres=false") || strings.Contains(play, "_sandbox=") || strings.Contains(play, "cloud_computer_memory") {
 		t.Errorf("%s", play)
 	}
 }

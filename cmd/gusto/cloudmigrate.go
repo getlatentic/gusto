@@ -25,7 +25,7 @@ func envCloudDatabase() []cmdline.Param {
 func cloudMigrateCommand() *cmdline.Command {
 	return &cmdline.Command{
 		Name: "migrate", Summary: "Show the accounts database, or load the old account files into it",
-		Usage: []string{"[-import]"},
+		Usage: []string{"[-import]", "-copy-from <cloud.db>"},
 		Description: "Says where gusto cloud keeps its accounts, the schema version the database is at and the newest this release " +
 			"reads, and how many organizations, people, memberships, invitations, links, demo leads and runtime records it holds. It also says " +
 			"how many records the files of an earlier release (people/, orgs/, tokens/ and demos/ under the root) hold that an " +
@@ -34,13 +34,18 @@ func cloudMigrateCommand() *cmdline.Command {
 			"them, and prints how many records of each kind went in and how many were left out. gusto cloud does the same when " +
 			"it starts on a database that has no import record, so this is for doing it first: stop the earlier release, run " +
 			"this, then start the new one. The files are never changed or removed. The import is one transaction, and two runs " +
-			"at once import once. A database that has been imported is not imported again, so a link that was used does not come back.",
-		Flags:    flagsOf(declareCloudMigrate),
-		Env:      envCloudDatabase(),
-		Examples: []string{"gusto cloud migrate", "gusto cloud migrate -import", "GUSTO_DATABASE_URL=postgres://db/gusto gusto cloud migrate -import"},
+			"at once import once. A database that has been imported is not imported again, so a link that was used does not come back. " +
+			"With -copy-from it copies the accounts in a SQLite file, gusto cloud's cloud.db, into the Postgres database GUSTO_DATABASE_URL " +
+			"names, in one transaction: stop gusto cloud, copy, then start it with that address. The file must be at the schema version " +
+			"this release reads and is only read; the Postgres schema must hold no accounts. The organizations' indexes and usage are not " +
+			"copied, since each organization's server builds them again from its files.",
+		Flags: flagsOf(declareCloudMigrate),
+		Env:   envCloudDatabase(),
+		Examples: []string{"gusto cloud migrate", "gusto cloud migrate -import", "GUSTO_DATABASE_URL=postgres://db/gusto gusto cloud migrate -import",
+			"GUSTO_DATABASE_URL=postgres://db/gusto gusto cloud migrate -copy-from cloud.db"},
 		Exit: []cmdline.Param{
-			{Name: "0", Text: "the report was printed, or the import ran or had run"},
-			{Name: "1", Text: "the database cannot be reached, is at a newer schema than this release reads, or the import failed"},
+			{Name: "0", Text: "the report was printed, the import ran or had run, or the accounts were copied"},
+			{Name: "1", Text: "the database cannot be reached, is at a newer schema than this release reads, or the import or copy failed"},
 			{Name: "2", Text: "usage error"},
 		},
 		SeeAlso: []string{"cloud", "operator"},
@@ -48,11 +53,15 @@ func cloudMigrateCommand() *cmdline.Command {
 	}
 }
 
-type cloudMigrateFlags struct{ run bool }
+type cloudMigrateFlags struct {
+	run      bool
+	copyFrom string
+}
 
 func declareCloudMigrate(set *flag.FlagSet) *cloudMigrateFlags {
 	f := &cloudMigrateFlags{}
 	set.BoolVar(&f.run, "import", false, "load the files of an earlier release into the database now, if it has not had them")
+	set.StringVar(&f.copyFrom, "copy-from", "", "copy the accounts in this SQLite `file` into the Postgres database GUSTO_DATABASE_URL names")
 	return f
 }
 
@@ -74,6 +83,11 @@ func cloudMigrate(args []string) int {
 		return refused(err)
 	}
 	root, settings := records.root, records.accounts()
+	if f.copyFrom != "" {
+		if code := runCloudCopy(ctx, os.Stdout, f.copyFrom, settings); code != 0 {
+			return code
+		}
+	}
 	if f.run {
 		if code := runCloudImport(ctx, os.Stdout, root, settings); code != 0 {
 			return code
@@ -97,6 +111,17 @@ func runCloudImport(ctx context.Context, out io.Writer, root string, settings cl
 		fmt.Fprintln(out, "left out:")
 		printCounts(out, "  ", record.Skipped)
 	}
+	fmt.Fprintln(out)
+	return 0
+}
+
+func runCloudCopy(ctx context.Context, out io.Writer, file string, settings cloud.Settings) int {
+	copied, err := cloud.CopyFrom(ctx, file, settings)
+	if err != nil {
+		return fail(err)
+	}
+	fmt.Fprintf(out, "copied the accounts in %s, which is as it was, into Postgres:\n", file)
+	printCounts(out, "  ", copied)
 	fmt.Fprintln(out)
 	return 0
 }
