@@ -58,8 +58,15 @@ func serve(args []string) int {
 	return serveFrom(os.Getenv)
 }
 
-// serveFrom is the server with the settings lookup gives, until it stops.
+// serveFrom is the server with the settings lookup gives, until the process is told to stop.
 func serveFrom(lookup func(string) string) int {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	return runServer(ctx, lookup)
+}
+
+// runServer is the server with the settings lookup gives, until ctx ends, and the exit code of how it ended.
+func runServer(ctx context.Context, lookup func(string) string) int {
 	s, code := newServer(lookup)
 	if s == nil {
 		return code
@@ -68,7 +75,7 @@ func serveFrom(lookup func(string) string) int {
 	if err := s.build(); err != nil {
 		return fail(err)
 	}
-	if err := s.listen(s.cfg.core.addr); err != nil {
+	if err := s.listen(ctx, s.cfg.core.addr); err != nil {
 		return fail(err)
 	}
 	return 0
@@ -125,9 +132,8 @@ func (s *server) stop() {
 	}
 }
 
-// listen serves the pages at address until the process is told to stop, and then closes the live connections and waits for
-// requests in flight.
-func (s *server) listen(address string) error {
+// listen serves the pages at address until ctx ends, and then closes the live connections and waits for requests in flight.
+func (s *server) listen(ctx context.Context, address string) error {
 	server := &http.Server{
 		Addr:              address,
 		Handler:           accesslog.Keep(accesslog.Stderr())(s.pages.Handler()),
@@ -135,12 +141,14 @@ func (s *server) listen(address string) error {
 		// A task's stream stays open for as long as the task runs, so there is no write timeout to set here; nginx holds the
 		// same view.
 	}
-	stopping := make(chan os.Signal, 1)
-	signal.Notify(stopping, syscall.SIGINT, syscall.SIGTERM)
-	defer func() { signal.Stop(stopping); close(stopping) }()
+	served, shut := make(chan struct{}), make(chan struct{})
+	defer close(served)
 	go func() {
-		if _, told := <-stopping; !told {
+		defer close(shut)
+		select {
+		case <-served:
 			return
+		case <-ctx.Done():
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), shutdownWithin)
 		defer cancel()
@@ -151,9 +159,12 @@ func (s *server) listen(address string) error {
 		_ = server.Shutdown(ctx)
 	}()
 	fmt.Printf("gusto is listening on %s, with %d task(s) at a time\n", address, s.cfg.boxes.concurrency)
-	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	err := server.ListenAndServe()
+	if !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
+	// Shutdown makes ListenAndServe return at once, and the requests in flight are still to be waited for.
+	<-shut
 	return nil
 }
 

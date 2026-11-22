@@ -947,7 +947,7 @@ Environment:
 - `GUSTO_CLOUD_STRIPE_PRICE`: the Stripe price of one seat for a month
 - `GUSTO_CLOUD_STRIPE_WEBHOOK_SECRET`: the signing secret of the Stripe webhook
 - `GUSTO_CLOUD_SEAT_USD`: the seat's price the organization page shows, in dollars (default 25)
-- `GUSTO_CLOUD_SERVERS`: whether gusto cloud starts organizations' servers; off keeps the accounts only (on, off) (default on)
+- `GUSTO_CLOUD_SERVERS`: how gusto cloud runs organizations' servers: on starts a process for each, shared runs them all in one process, and off keeps the accounts only (on, shared, off) (default on)
 - `GUSTO_CLOUD_ORG_ENV`: a file of KEY=VALUE lines every organization's server starts with: the operator's credentials, models and sandbox; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organization a schema of its own for its indexes
 - `GUSTO_CLOUD_DEMO_ENV`: a file of KEY=VALUE lines a demo organization's server starts with on top of GUSTO_CLOUD_ORG_ENV's, such as another sandbox
 - `GUSTO_CLOUD_INDEX_DIR`: where organizations' indexes are kept when that address is not Postgres: a directory for each, on the local disk of the host its server runs on (default index under GUSTO_CLOUD_ROOT)
