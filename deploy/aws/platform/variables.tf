@@ -33,12 +33,6 @@ variable "orchestrator_instance_type" {
   default     = "t3.medium"
 }
 
-variable "cell_live_instance_type" {
-  description = "The type of a cell of the live front door: one with a disk of its own, which holds its sandboxes and is blanked whenever it stops, so a cell can be kept stopped and started again."
-  type        = string
-  default     = "m8id.xlarge"
-}
-
 variable "cell_instance_type" {
   description = "The type of a cell, which runs computers: an x86-64 type with nested virtualization, or a .metal type."
   type        = string
@@ -46,9 +40,15 @@ variable "cell_instance_type" {
 }
 
 variable "front_door_instance_type" {
-  description = "The type of the front door that stays up. It runs no computer, and a cell is started for those. It uses about half a gigabyte of memory, and has a swap file for the installs of a start and an upgrade."
+  description = "The type of the gusto cloud that stays up, an Arm one: it runs the front door, every organization's server in one process, and their agents in containers."
   type        = string
-  default     = "t3.micro"
+  default     = "t4g.small"
+}
+
+variable "front_door_computer_memory" {
+  description = "The most memory one agent's container may use on the gusto cloud that stays up."
+  type        = string
+  default     = "1Gi"
 }
 
 variable "alert_email" {

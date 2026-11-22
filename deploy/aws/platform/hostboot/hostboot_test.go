@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 )
 
 const script = "../user-data.sh"
@@ -35,15 +34,7 @@ echo "swapon $*" >> "$FAKE_LOG"`,
 exec shasum -a 256 "$@"`,
 	"ansible-playbook": `#!/bin/bash
 echo "ansible-playbook $*" >> "$FAKE_LOG"
-[ -z "${FAKE_ANSIBLE_FAILS:-}" ] || exit 2
-for arg in "$@"; do case "$arg" in cloud_root=*) root=${arg#cloud_root=};; esac; done
-if [ -n "${root:-}" ]; then mkdir -p "$root/usr/local/bin" "$root/etc/gusto"; echo program > "$root/usr/local/bin/gusto"; echo ROLE=cell > "$root/etc/gusto/host.conf"; fi`,
-	"mount": `#!/bin/bash
-echo "mount $*" >> "$FAKE_LOG"
-[ -z "${FAKE_MOUNT_FAILS:-}" ] || exit 32
-if [ "$1" = --bind ]; then rmdir "$3" && ln -s "$2" "$3"; fi`,
-	"systemctl": `#!/bin/bash
-echo "systemctl $*" >> "$FAKE_LOG"`,
+[ -z "${FAKE_ANSIBLE_FAILS:-}" ] || exit 2`,
 }
 
 type boot struct {
@@ -64,9 +55,9 @@ func newBoot(t *testing.T) *boot {
 		os.WriteFile(filepath.Join(bin, name), []byte(text+"\n"), 0o755)
 	}
 	b.env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"RELEASE=abc123", "BUCKET=store", "REGION=us-east-1", "LEASE_MINUTES=25", "MAX_HOURS=3", "ROLE=all", "RUN=", "EFS=", "LIVE=off",
+		"RELEASE=abc123", "BUCKET=store", "REGION=us-east-1", "LEASE_MINUTES=25", "MAX_HOURS=3", "ROLE=all", "RUN=", "EFS=", "LIVE=off", "GUSTO_MACHINE=x86_64",
 		"GUSTO_BUNDLE_DIR="+filepath.Join(dir, "bundle"), "GUSTO_TMP="+filepath.Join(dir, "tmp"), "GUSTO_BOOTSTRAP_LOG="+filepath.Join(dir, "boot.log"),
-		"GUSTO_BAKED="+filepath.Join(dir, "not-baked"), "GUSTO_INSTANCE=i-0test", "GUSTO_WARMED="+dir, "GUSTO_WARM_WAIT=on", "GUSTO_SWAPFILE="+filepath.Join(dir, "swapfile"), "GUSTO_FSTAB="+filepath.Join(dir, "fstab"), "GUSTO_MEMINFO="+b.meminfo(8000),
+		"GUSTO_SWAPFILE="+filepath.Join(dir, "swapfile"), "GUSTO_FSTAB="+filepath.Join(dir, "fstab"), "GUSTO_MEMINFO="+b.meminfo(8000),
 		"FAKE_STORE="+b.store, "FAKE_LOG="+b.log)
 	os.MkdirAll(filepath.Join(dir, "tmp"), 0o755)
 	return b
@@ -244,7 +235,7 @@ func TestAHostThatStaysUpHasNoDeadmanNoFailureTimerAndKeepsWhatItWasStartedWith(
 		t.Errorf("a host meant to stay is scheduled to go: %v", lines)
 	}
 	play := index(lines, "ansible-playbook ")
-	if play < 0 || !strings.Contains(lines[play], "cloud_live=true") || !strings.Contains(lines[play], "cloud_run=live") || !strings.Contains(lines[play], "cloud_release=abc123") {
+	if play < 0 || !strings.Contains(lines[play], "cloud_live=true") || !strings.Contains(lines[play], "cloud_run=live") || index(lines, "aws s3 cp s3://store/releases/abc123/bundle.tgz") < 0 {
 		t.Fatalf("the newest release is resolved and the host is told it is live: %v", lines)
 	}
 	text, _ := os.ReadFile(liveEnv)
@@ -316,277 +307,6 @@ func TestASmallHostGetsASwapFileOnceAndALargeOneGetsNone(t *testing.T) {
 	}
 }
 
-func TestAHostMadeFromTheImageOfANodeDoesNotFetchPackagesAndAnOrdinaryHostDoes(t *testing.T) {
-	ordinary := newBoot(t)
-	ordinary.release(false)
-	lines, err := ordinary.run()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if index(lines, "apt-get ") < 0 {
-		t.Errorf("an ordinary host installed no packages: %v", lines)
-	}
-	if play := index(lines, "ansible-playbook "); play < 0 || !strings.Contains(lines[play], "cloud_bake=false") {
-		t.Errorf("an ordinary host is told it is made to be imaged: %v", lines)
-	}
-
-	baked := newBoot(t)
-	baked.release(false)
-	marker := filepath.Join(baked.dir, "baked")
-	os.WriteFile(marker, []byte("key\n"), 0o644)
-	lines, err = baked.run("GUSTO_BAKED=" + marker)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if index(lines, "apt-get ") >= 0 {
-		t.Errorf("a host from the image fetched packages: %v", lines)
-	}
-	if index(lines, "ansible-playbook ") < 0 {
-		t.Errorf("a host from the image did not configure itself: %v", lines)
-	}
-}
-
-func TestTheHostAnImageIsMadeFromPreparesTheRunnerImageAndIsNotStartedAsANode(t *testing.T) {
-	b := newBoot(t)
-	b.release(false)
-	done := filepath.Join(b.dir, "bake-done")
-	lines, err := b.run("BAKE=on", "ROLE=cell", "GUSTO_BAKE_DONE="+done)
-	if err != nil {
-		t.Fatal(err)
-	}
-	play := index(lines, "ansible-playbook ")
-	if play < 0 || !strings.Contains(lines[play], "cloud_bake=true") {
-		t.Fatalf("the playbook was not told this host is made to be imaged: %v", lines)
-	}
-	survey := index(lines, "systemd-run --wait --collect --unit=gusto-bake-survey")
-	if survey < 0 || !strings.HasSuffix(lines[survey], "/usr/local/bin/gusto scan") || survey < play {
-		t.Errorf("the runner image was not prepared after the playbook: %v", lines)
-	}
-	if _, err := os.Stat(done); err != nil {
-		t.Errorf("nothing says the host is ready to be imaged: %v", err)
-	}
-}
-
-func TestAnOrdinaryHostPreparesNoImageAndLeavesNoMarker(t *testing.T) {
-	b := newBoot(t)
-	b.release(false)
-	done := filepath.Join(b.dir, "bake-done")
-	lines, err := b.run("GUSTO_BAKE_DONE=" + done)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if index(lines, "systemd-run --wait --collect --unit=gusto-bake-survey") >= 0 {
-		t.Errorf("an ordinary host prepared an image: %v", lines)
-	}
-	if _, err := os.Stat(done); err == nil {
-		t.Error("an ordinary host says it is ready to be imaged")
-	}
-}
-
-func TestAHostMadeFromTheImageOfANodeGoesStraightToConfiguringItselfOnlyWhenTheReleaseIsForThatImage(t *testing.T) {
-	for name, c := range map[string]struct {
-		marker, bundleKey string
-		fast              bool
-	}{
-		"the release is for the image":      {"abc123\n", "abc123\n", true},
-		"the release expects another image": {"abc123\n", "def456\n", false},
-		"the release carries no key":        {"abc123\n", "", false},
-		"a host that is not from an image":  {"", "abc123\n", false},
-	} {
-		b := newBoot(t)
-		b.release(false)
-		release := filepath.Join(b.store, "releases", "abc123")
-		src := filepath.Join(b.dir, "src")
-		if c.bundleKey != "" {
-			os.WriteFile(filepath.Join(src, "bake.key"), []byte(c.bundleKey), 0o644)
-			if out, err := exec.Command("tar", "-czf", filepath.Join(release, "bundle.tgz"), "-C", src, ".").CombinedOutput(); err != nil {
-				t.Fatalf("%v: %s", err, out)
-			}
-			sum, _ := exec.Command("shasum", "-a", "256", filepath.Join(release, "bundle.tgz")).Output()
-			os.WriteFile(filepath.Join(release, "bundle.tgz.sha256"), []byte(strings.Fields(string(sum))[0]+"  bundle.tgz\n"), 0o644)
-		}
-		marker := filepath.Join(b.dir, "baked")
-		if c.marker != "" {
-			os.WriteFile(marker, []byte(c.marker), 0o644)
-		}
-		lines, err := b.run("GUSTO_BAKED="+marker, "ROLE=cell")
-		if err != nil {
-			t.Fatalf("%s: %v", name, err)
-		}
-		play := index(lines, "ansible-playbook ")
-		if play < 0 {
-			t.Fatalf("%s: nothing was configured: %v", name, lines)
-		}
-		installs := strings.Contains(lines[play], "site.yml")
-		if c.fast && (installs || !strings.Contains(lines[play], "cloud_baked=true")) {
-			t.Errorf("%s: the host installed what the image has:\n%s", name, lines[play])
-		}
-		if !c.fast && (!installs || !strings.Contains(lines[play], "cloud_baked=false")) {
-			t.Errorf("%s: the host did not install what it needs:\n%s", name, lines[play])
-		}
-	}
-}
-
-func TestAHostMadeFromTheImageOfANodeWarmsItsDiskAndAnOrdinaryHostDoesNot(t *testing.T) {
-	baked := newBoot(t)
-	baked.release(false)
-	marker := filepath.Join(baked.dir, "baked")
-	os.WriteFile(marker, []byte("key\n"), 0o644)
-	if _, err := baked.run("GUSTO_BAKED="+marker, "GUSTO_WARM_DIR="+baked.dir, "GUSTO_WARM_IMAGES="+baked.dir); err != nil {
-		t.Fatal(err)
-	}
-	if log, _ := os.ReadFile(filepath.Join(baked.dir, "boot.log")); !strings.Contains(string(log), "warming the disk of the image") {
-		t.Errorf("a host from the image did not warm its disk:\n%s", log)
-	}
-	ordinary := newBoot(t)
-	ordinary.release(false)
-	if _, err := ordinary.run(); err != nil {
-		t.Fatal(err)
-	}
-	if log, _ := os.ReadFile(filepath.Join(ordinary.dir, "boot.log")); strings.Contains(string(log), "warming the disk") {
-		t.Errorf("an ordinary host warmed a disk it does not have:\n%s", log)
-	}
-}
-
-// kitted is a node made from the image of key abc123, whose gusto cloud has put a kit on the shared file system.
-func kitted(t *testing.T) (b *boot, sum string, extra []string) {
-	t.Helper()
-	b = newBoot(t)
-	b.release(false)
-	marker := filepath.Join(b.dir, "baked")
-	os.WriteFile(marker, []byte("abc123\n"), 0o644)
-	src := filepath.Join(b.dir, "kit-src")
-	os.MkdirAll(filepath.Join(src, "usr", "local", "bin"), 0o755)
-	os.WriteFile(filepath.Join(src, "usr", "local", "bin", "gusto"), []byte("program\n"), 0o755)
-	efs := filepath.Join(b.dir, "efs")
-	kits := filepath.Join(efs, "runs", "live", "kits")
-	os.MkdirAll(kits, 0o755)
-	kit := filepath.Join(b.dir, "kit.tgz")
-	if out, err := exec.Command("tar", "-czf", kit, "-C", src, ".").CombinedOutput(); err != nil {
-		t.Fatalf("%v: %s", err, out)
-	}
-	raw, _ := exec.Command("shasum", "-a", "256", kit).Output()
-	sum = strings.Fields(string(raw))[0]
-	os.Rename(kit, filepath.Join(kits, sum+".tgz"))
-	os.MkdirAll(filepath.Join(b.dir, "root"), 0o755)
-	extra = []string{"GUSTO_BAKED=" + marker, "ROLE=cell", "RUN=live", "EFS=fs-0123", "BAKE_KEY=abc123", "KIT=" + sum,
-		"GUSTO_EFS_MOUNT=" + efs, "GUSTO_STATE=" + filepath.Join(b.dir, "state"), "GUSTO_ROOT=" + filepath.Join(b.dir, "root")}
-	return b, sum, extra
-}
-
-func TestANodeFromTheImageItsKitIsForUnpacksTheKitAndStartsWithNothingFetchedOrPlayed(t *testing.T) {
-	b, _, extra := kitted(t)
-	lines, err := b.run(extra...)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, never := range []string{"aws ", "ansible-playbook ", "apt-get "} {
-		if index(lines, never) >= 0 {
-			t.Errorf("a cell with its kit ran %q: %v", never, lines)
-		}
-	}
-	if index(lines, "mount -t nfs4") < 0 || index(lines, "mount --bind") < 0 {
-		t.Errorf("the shared file system was not mounted: %v", lines)
-	}
-	if got, _ := os.ReadFile(filepath.Join(b.dir, "root", "usr", "local", "bin", "gusto")); string(got) != "program\n" {
-		t.Errorf("the kit was not unpacked: %q", got)
-	}
-	enable, boot, start := index(lines, "systemctl enable gusto-lease.timer"), index(lines, "systemctl restart gusto-boot"), index(lines, "systemctl start gusto-lease.timer gusto-cell")
-	if enable < 0 || boot < enable || start < boot || strings.Contains(strings.Join(lines, "\n"), "enable gusto-cell") {
-		t.Errorf("the services are not turned on, the start-up work run, and the cell started, in that order: %v", lines)
-	}
-}
-
-func TestANodeWhoseKitIsNotTheOneItWasStartedWithIsConfiguredByThePlaybook(t *testing.T) {
-	for name, change := range map[string]func(sum string) []string{
-		"another sum":   func(string) []string { return []string{"KIT=" + strings.Repeat("0", 64)} },
-		"another image": func(string) []string { return []string{"BAKE_KEY=def456"} },
-		"no kit":        func(string) []string { return []string{"KIT=@KIT@"} },
-	} {
-		b, sum, extra := kitted(t)
-		lines, err := b.run(append(extra, change(sum)...)...)
-		if err != nil {
-			t.Fatalf("%s: %v", name, err)
-		}
-		if index(lines, "ansible-playbook ") < 0 || index(lines, "systemctl ") >= 0 {
-			t.Errorf("%s: the cell did not fall back to the playbook: %v", name, lines)
-		}
-		if _, err := os.Stat(filepath.Join(b.dir, "root", "usr", "local", "bin", "gusto")); err == nil {
-			t.Errorf("%s: a kit that is not the one asked for was unpacked", name)
-		}
-	}
-}
-
-func TestAGustoCloudServerThatStartsNodesMakesTheirKitAndStartsThemWithItsSum(t *testing.T) {
-	b := newBoot(t)
-	b.release(false)
-	src := filepath.Join(b.dir, "src")
-	os.WriteFile(filepath.Join(src, "bake.key"), []byte("abc123\n"), 0o644)
-	release := filepath.Join(b.store, "releases", "abc123")
-	if out, err := exec.Command("tar", "-czf", filepath.Join(release, "bundle.tgz"), "-C", src, ".").CombinedOutput(); err != nil {
-		t.Fatalf("%v: %s", err, out)
-	}
-	raw, _ := exec.Command("shasum", "-a", "256", filepath.Join(release, "bundle.tgz")).Output()
-	os.WriteFile(filepath.Join(release, "bundle.tgz.sha256"), []byte(strings.Fields(string(raw))[0]+"  bundle.tgz\n"), 0o644)
-	kit := filepath.Join(b.dir, "cell-kit.tgz")
-	lines, err := b.run("ROLE=orchestrator", "RUN=live", "EFS=fs-0123", "LIVE=on", "GUSTO_LIVE_ENV="+filepath.Join(b.dir, "live.env"), "GUSTO_KIT_FILE="+kit)
-	if err != nil {
-		t.Fatal(err)
-	}
-	made, played := index(lines, "ansible-playbook "), -1
-	for i, line := range lines {
-		if strings.HasPrefix(line, "ansible-playbook ") && strings.HasSuffix(line, "cloud.yml") {
-			played = i
-		}
-	}
-	if made < 0 || !strings.HasSuffix(lines[made], "cell-kit.yml") || played < made {
-		t.Fatalf("the kit is made before gusto cloud is configured: %v", lines)
-	}
-	raw, _ = exec.Command("shasum", "-a", "256", kit).Output()
-	sum := strings.Fields(string(raw))[0]
-	for _, want := range []string{"cloud_cell_kit=" + sum, "cloud_cell_kit_file=" + kit, "cloud_bake_key=abc123"} {
-		if !strings.Contains(lines[played], want) {
-			t.Errorf("%q is not in %s", want, lines[played])
-		}
-	}
-	listed, _ := exec.Command("tar", "-tzf", kit).Output()
-	if !strings.Contains(string(listed), "usr/local/bin/gusto") || !strings.Contains(string(listed), "etc/gusto/host.conf") || strings.Contains(string(listed), "/\n") {
-		t.Errorf("the kit holds the cell's files and no directories:\n%s", listed)
-	}
-}
-
-func TestAHostMadeFromTheImageWarmsItsDiskOnceForEachInstance(t *testing.T) {
-	b := newBoot(t)
-	b.release(false)
-	marker := filepath.Join(b.dir, "baked")
-	os.WriteFile(marker, []byte("abc123\n"), 0o644)
-	warm := []string{"GUSTO_BAKED=" + marker, "GUSTO_WARM_DIR=" + b.dir, "GUSTO_WARM_IMAGES=" + b.dir}
-	for _, c := range []struct {
-		instance string
-		warms    bool
-	}{{"i-0first", true}, {"i-0first", false}, {"i-0second", true}} {
-		os.Remove(filepath.Join(b.dir, "boot.log"))
-		if _, err := b.run(append(warm, "GUSTO_INSTANCE="+c.instance)...); err != nil {
-			t.Fatal(err)
-		}
-		log, _ := os.ReadFile(filepath.Join(b.dir, "boot.log"))
-		if strings.Contains(string(log), "warming the disk") != c.warms {
-			t.Errorf("%s warms its disk: %v, and should: %v", c.instance, !c.warms, c.warms)
-		}
-		if !c.warms {
-			continue
-		}
-		recorded := false
-		for deadline := time.Now().Add(time.Minute); !recorded && time.Now().Before(deadline); time.Sleep(50 * time.Millisecond) {
-			_, err := os.Stat(filepath.Join(b.dir, ".warmed-"+c.instance))
-			recorded = err == nil
-		}
-		if !recorded {
-			t.Fatalf("%s did not record that its disk was read", c.instance)
-		}
-	}
-}
-
 // EC2 refuses user-data over 16,384 bytes, before it is encoded, and a host that is launched with more is not launched at all. The
 // script is filled in with the longest each setting can be, and must leave room under the limit for what is added to it.
 func TestTheStartUpScriptWithItsSettingsFilledInLeavesRoomUnderWhatEC2Takes(t *testing.T) {
@@ -598,7 +318,6 @@ func TestTheStartUpScriptWithItsSettingsFilledInLeavesRoomUnderWhatEC2Takes(t *t
 	longest := map[string]string{
 		"RELEASE": strings.Repeat("a", 40), "BUCKET": strings.Repeat("b", 63), "REGION": "ap-southeast-2", "LEASE_MINUTES": "1440",
 		"MAX_HOURS": "168", "ROLE": "orchestrator", "RUN": strings.Repeat("r", 63), "EFS": "fs-" + strings.Repeat("0", 17), "LIVE": "off",
-		"KIT": strings.Repeat("c", 64), "BAKE_KEY": strings.Repeat("d", 16),
 	}
 	filled := string(text)
 	for name, value := range longest {
@@ -612,22 +331,58 @@ func TestTheStartUpScriptWithItsSettingsFilledInLeavesRoomUnderWhatEC2Takes(t *t
 	}
 }
 
-// The disk is read in the background, after the script has gone on, and a host whose agents run in containers has none of what is
-// read for virtual machines. Nothing of that reading may schedule the host to go: a node that did powered off fifteen minutes after
-// every start, with the organizations on it.
-func TestReadingTheDiskInTheBackgroundNeverSchedulesTheHostToGo(t *testing.T) {
+func TestAnArmHostRunsTheBundlesArmProgramsAndTheRunnerImageBuiltForArm(t *testing.T) {
+	for _, c := range []struct{ machine, key, programs string }{
+		{"x86_64", "cloud_image_key=imagekey0123456 ", ".state"},
+		{"aarch64", "cloud_image_key=imagekey0123456-arm64 ", ".state/arm64"},
+	} {
+		b := newBoot(t)
+		b.release(false)
+		lines, err := b.run("GUSTO_MACHINE=" + c.machine)
+		if err != nil {
+			t.Fatal(err)
+		}
+		play := lines[index(lines, "ansible-playbook ")]
+		if !strings.Contains(play, c.key) || !strings.Contains(play, "cloud_programs="+filepath.Join(b.dir, "bundle", c.programs)+" ") {
+			t.Errorf("a host of %s: %s", c.machine, play)
+		}
+	}
+}
+
+func TestAHostThatRunsEveryServerInOneProcessWithAgentsInContainersHasNoOpenShellAndKeepsThatForUpgrades(t *testing.T) {
 	b := newBoot(t)
 	b.release(false)
-	marker := filepath.Join(b.dir, "baked")
-	os.WriteFile(marker, []byte("key\n"), 0o644)
-	os.WriteFile(filepath.Join(b.dir, ".warmed-i-0test"), nil, 0o644)
-	empty := t.TempDir()
-	if _, err := b.run("GUSTO_BAKED="+marker, "GUSTO_WARM_WAIT=", "GUSTO_WARM_DIR="+empty, "GUSTO_WARM_IMAGES="+empty); err != nil {
+	liveEnv := filepath.Join(b.dir, "etc", "live.env")
+	lines, err := b.run("LIVE=on", "SERVERS=shared", "SANDBOX=container", "COMPUTER_MEMORY=1Gi", "GUSTO_LIVE_ENV="+liveEnv)
+	if err != nil {
 		t.Fatal(err)
 	}
-	// What is read is nothing, so the background is done within milliseconds; the wait is generous.
-	time.Sleep(2 * time.Second)
-	if text, _ := os.ReadFile(b.log); strings.Contains(string(text), "gusto-failed") {
-		t.Errorf("a host that started is scheduled to go:\n%s", text)
+	play := lines[index(lines, "ansible-playbook ")]
+	for _, want := range []string{"cloud_servers=shared", "public_sandbox=container", "cloud_demo_sandbox=container", "cloud_computer_memory=1Gi", "cloud_role=all"} {
+		if !strings.Contains(play, want) {
+			t.Errorf("%q is not in %s", want, play)
+		}
+	}
+	if strings.Contains(play, "site.yml") {
+		t.Errorf("agents in containers need no OpenShell: %s", play)
+	}
+	text, _ := os.ReadFile(liveEnv)
+	for _, want := range []string{"SERVERS=shared\n", "SANDBOX=container\n", "COMPUTER_MEMORY=1Gi\n"} {
+		if !strings.Contains(string(text), want) {
+			t.Errorf("%q is not kept in %s", want, text)
+		}
+	}
+}
+
+func TestAHostToldNothingOfServersOrSandboxesRunsAProcessForEachAndChoosesNoSandbox(t *testing.T) {
+	b := newBoot(t)
+	b.release(false)
+	lines, err := b.run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	play := lines[index(lines, "ansible-playbook ")]
+	if !strings.Contains(play, "cloud_servers=on") || strings.Contains(play, "_sandbox=") || strings.Contains(play, "cloud_computer_memory") {
+		t.Errorf("%s", play)
 	}
 }

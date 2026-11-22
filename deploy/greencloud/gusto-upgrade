@@ -70,8 +70,8 @@ fi
 bundle=$state/bundle
 rm -rf "$bundle" && mkdir -p "$bundle" && tar -xzf "$out/bundle.tgz" -C "$bundle"
 ansible-playbook -c local -i 'host,' -e "@/etc/$name/cloud-vars.json" -e cloud_bucket= -e cloud_region=us-east-1 \
-  -e "cloud_image_key=$key" -e "cloud_release=$commit" -e cloud_role=all -e cloud_live=true \
-  -e cloud_baked=false -e cloud_bake=false -e cloud_check_public=false -e cloud_lease_minutes=30 -e cloud_max_hours=24 \
+  -e "cloud_image_key=$key" -e cloud_role=all -e cloud_live=true \
+  -e cloud_check_public=false -e cloud_lease_minutes=30 -e cloud_max_hours=24 \
   "$bundle/ansible/cloud.yml"
 printf '%s' "$commit" > "$state/release"
 echo "gusto-upgrade: $name is at $commit"

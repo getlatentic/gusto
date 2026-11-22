@@ -3,25 +3,25 @@
   ansible.builtin.apt:
     name: docker.io
     state: present
-  when: "'container' in cloud_sandboxes and cloud_container == 'docker' and cloud_root == ''"
+  when: "'container' in cloud_sandboxes and cloud_container == 'docker'"
 
 - name: Docker is running and starts with the host
   ansible.builtin.systemd:
     name: docker
     state: started
     enabled: true
-  when: "'container' in cloud_sandboxes and cloud_container == 'docker' and cloud_root == ''"
+  when: "'container' in cloud_sandboxes and cloud_container == 'docker'"
 
 - name: The script that builds the model credentials from Parameter Store
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../e2e/credentials.sh"
-    dest: "{{ cloud_root }}{{ cloud_libexec }}/credentials.sh"
+    dest: "{{ cloud_libexec }}/credentials.sh"
     mode: "0755"
 
 - name: What the agent of a host is started with, and what the servers it starts are
   ansible.builtin.template:
     src: "{{ item }}.j2"
-    dest: "{{ cloud_root }}{{ cloud_etc }}/{{ item }}"
+    dest: "{{ cloud_etc }}/{{ item }}"
     mode: "0644"
   loop: [cell.env, org.env, org-demo.env]
   when: cloud_role == 'cell'
@@ -30,7 +30,7 @@
 - name: The host's service
   ansible.builtin.template:
     src: gusto-cell.service.j2
-    dest: "{{ cloud_root }}/etc/systemd/system/{{ cloud_name }}-cell.service"
+    dest: "/etc/systemd/system/{{ cloud_name }}-cell.service"
     mode: "0644"
   when: cloud_role == 'cell'
   notify: Restart the cell
@@ -39,7 +39,7 @@
 - name: What runs a cell's start-up script without cloud-init, and the network it is given
   ansible.builtin.copy:
     src: "{{ item.src }}"
-    dest: "{{ cloud_root }}{{ item.dest }}"
+    dest: "{{ item.dest }}"
     mode: "{{ item.mode }}"
   loop:
     - { src: gusto-launch, dest: /usr/local/sbin/gusto-launch, mode: "0755" }
@@ -52,4 +52,4 @@
     name: gusto-launch
     enabled: true
     daemon_reload: true
-  when: cloud_role == 'cell' and cloud_root == ''
+  when: cloud_role == 'cell'
