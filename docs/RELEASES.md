@@ -15,7 +15,7 @@ A tag needs a section here named for it, or the release workflow stops and copie
 **Changed**
 
 - OpenCode runs over ACP (`opencode acp`) in place of `opencode run --format json`, so it takes Send now and Stop as the other ACP agents do: asked to cancel, keeping its session. Its model is set by `model` in its config, since `opencode acp` takes no `--model`.
-- A deploy goes on when the x86 runner image of a release is missing, since gusto cloud that stays up is Arm, and says so. `cloud up`, whose hosts are x86, refuses to start without it and says to run `publish-image.sh`.
+- cloud deploy builds the x86 runner image, which only `cloud up`'s hosts need, in a job of its own on one of GitHub's x86 runners, free for a public repository, and the Arm image on the Mac runner. A production deploy does not wait for the x86 image, and `cloud up` refuses to start without it.
 
 **Removed**
 
