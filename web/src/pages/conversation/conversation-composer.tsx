@@ -53,6 +53,8 @@ export function ConversationComposer({
   const [unsent, setUnsent] = useState("")
   const [sending, setSending] = useState(false)
   const room = page.Instance.Room
+  // Sending while a reply is written takes the message up now: the reply is stopped, and the agent keeps what it did.
+  const now = !room && page.Waiting
   const refresh = useRefreshAll()
   const sent = () => {
     setText("")
@@ -92,6 +94,7 @@ export function ConversationComposer({
       onSubmit={send}
       className="relative mx-auto w-full max-w-208"
     >
+      {now && <input type="hidden" name="now" value="1" />}
       <p
         id="unsent"
         role={shownUnsent ? "alert" : undefined}
@@ -108,6 +111,7 @@ export function ConversationComposer({
         boxRef={box}
         text={text}
         canSend={!sending && (text.trim() !== "" || attached.length > 0)}
+        sendLabel={now ? "Send now, stopping the reply" : "Send"}
         onWrite={(next) => {
           setText(next)
           if (next.trim()) live.typed()

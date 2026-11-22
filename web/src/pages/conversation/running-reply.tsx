@@ -72,7 +72,9 @@ export function RunningReply({
   )
   const steps = items.filter((item) => item.kind === "step")
   const latest = steps[steps.length - 1]
-  const doing = live?.holding || page.Holding || latest?.what || "Working"
+  // What the page said when it was drawn holds only until the live state comes: a turn that was waiting may have started since.
+  const holding = live ? live.holding : page.Holding
+  const doing = holding || latest?.what || "Working"
   return (
     <section
       ref={done}

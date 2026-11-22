@@ -26,6 +26,9 @@ type Turn struct {
 	// Auth is the agent's authentication method to use, by the id it lists, for an agent that will not open a session
 	// until one is chosen. Empty asks for none.
 	Auth string
+	// Stop, when it closes while the agent works on the prompt, asks the agent to cancel the turn, and the turn ends when the
+	// agent says it has, with what it did kept in its session.
+	Stop <-chan struct{}
 }
 
 // Ended is how the turn finished: the session it belongs to, which the next
@@ -56,6 +59,17 @@ func Converse(in io.Writer, out io.Reader, turn Turn, keep func(line string) err
 	session, err := open(c, turn, can)
 	if err != nil {
 		return Ended{Session: session}, err
+	}
+	prompting := make(chan struct{})
+	defer close(prompting)
+	if turn.Stop != nil {
+		go func() {
+			select {
+			case <-turn.Stop:
+				c.cancel(session)
+			case <-prompting:
+			}
+		}()
 	}
 	answer, err := c.call("session/prompt", map[string]any{
 		"sessionId": session,

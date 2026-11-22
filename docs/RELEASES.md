@@ -9,6 +9,8 @@ A tag needs a section here named for it, or the release workflow stops and copie
 **Added**
 
 - `GUSTO_CLOUD_SERVERS=shared` runs every organization's server in one process on this machine, in place of a process each. Each server keeps its own ports, data, keys and sign-in, and is started from the same settings as before. The process is `gusto shared-servers`, which gusto cloud starts with the `GUSTO_CLOUD_ORG_ENV` settings and starts again if it ends; its output and every server's is in `shared-servers/host.log` under `GUSTO_CLOUD_ROOT`. It cannot be combined with `GUSTO_CLOUD_NODES_DIR`. `on`, a process each, stays the default.
+- Send now: a message sent while a reply is being written stops that reply and runs next, in the same session, so the agent keeps what it did. The message box's Send does this while a reply runs; the API takes `"now": true` on `POST /api/instances/{id}/threads/{thread}/say`.
+- Stopping a turn of an agent that speaks ACP (Claude Code, Codex, DeepSeek Agent, Hermes) sends it `session/cancel` and lets it end the turn itself, for up to 15 seconds before it is killed. Before, it was killed at once.
 
 **Removed**
 

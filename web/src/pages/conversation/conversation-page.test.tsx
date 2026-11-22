@@ -91,8 +91,32 @@ describe("a conversation with one agent", () => {
     expect(within(form).getByRole("button", { name: "Stop" })).toBeTruthy()
     expect(within(form).queryByTestId("send")).toBeNull()
     fireEvent.change(box, { target: { value: "and keep it short" } })
-    expect(within(form).getByTestId("send")).toBeTruthy()
+    expect(
+      within(form).getByRole("button", { name: "Send now, stopping the reply" })
+    ).toBeTruthy()
+    expect(new FormData(form).get("now")).toBe("1")
     expect(within(form).queryByRole("button", { name: "Stop" })).toBeNull()
+  })
+
+  it("says what the turn is doing now, not that it waits, once the live state says it has started", async () => {
+    const page = conversationOf((page) => {
+      page.Waiting = true
+      page.Latest = "t2"
+      page.Holding = "Waiting for this agent to finish its last message."
+      page.Turns = [turnOf("t2", { Done: false, ReplyHTML: "" })]
+    })
+    renderPage(page.Path, route, <ConversationPage />, {
+      [page.Path]: page,
+      [`${page.Path}/turns`]: {
+        Turns: page.Turns,
+        Version: page.Version,
+        Settings: page.Settings.Mark,
+      },
+      [`${page.Path}/live`]: { items: [], steps: 0 },
+    })
+    const reply = await screen.findByTestId("reply")
+    expect(await within(reply).findByText("Working")).toBeTruthy()
+    expect(within(reply).queryByText(/Waiting for this agent/)).toBeNull()
   })
 
   it("says once that a reply is being written, inside the agent's own reply", async () => {
