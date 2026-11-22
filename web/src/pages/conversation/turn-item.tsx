@@ -273,8 +273,8 @@ function Working({ turn, progress }: { turn: TurnView; progress?: string }) {
   )
 }
 
-// StopButton stops the job writing a reply.
-export function StopButton({ job }: { job: string }) {
+// StopButton stops the job writing a reply, for a room, whose message box has no Stop.
+function StopButton({ job }: { job: string }) {
   const { page, stop } = useConversation()
   return (
     <form

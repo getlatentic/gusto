@@ -157,13 +157,18 @@ export function ConversationComposer({
             </span>
           ) : undefined
         }
+        send={
+          !room &&
+          page.Waiting &&
+          text.trim() === "" &&
+          attached.length === 0 ? (
+            <StopReply page={page} onStopped={refresh} />
+          ) : undefined
+        }
         actions={
           <>
             {!room && page.Several && (
               <ModelChoice page={page} onChanged={refresh} />
-            )}
-            {!room && page.Waiting && (
-              <StopReply page={page} onStopped={refresh} />
             )}
           </>
         }
@@ -261,6 +266,7 @@ function ModelChoice({
   )
 }
 
+// StopReply stops the reply being written. It stands where Send does while the box is empty.
 function StopReply({
   page,
   onStopped,
@@ -271,9 +277,10 @@ function StopReply({
   return (
     <Button
       type="button"
-      variant="outline"
-      size="sm"
+      size="icon-sm"
       className="rounded-full"
+      aria-label="Stop"
+      title="Stop"
       onClick={() => {
         const form = document.createElement("form")
         form.method = "post"
@@ -285,7 +292,7 @@ function StopReply({
         void sendForm(form).then(onStopped, onStopped)
       }}
     >
-      <SquareIcon /> Stop
+      <SquareIcon className="fill-current" />
     </Button>
   )
 }
