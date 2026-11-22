@@ -68,7 +68,7 @@ export function TurnList({
                   progress={progress[turn.ID]}
                   live={
                     turn.ID === replying ? (
-                      <RunningReply page={page} job={turn.ID} />
+                      <RunningReply page={page} inTurn />
                     ) : undefined
                   }
                 />

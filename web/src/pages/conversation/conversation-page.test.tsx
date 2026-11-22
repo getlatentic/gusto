@@ -82,6 +82,19 @@ describe("a conversation with one agent", () => {
     expect(screen.getByRole("button", { name: "Stop" })).toBeTruthy()
   })
 
+  it("stands Stop where Send is while a reply is written, and Send again once something is typed", async () => {
+    draw(
+      conversationOf((page) => ((page.Waiting = true), (page.Latest = "t2")))
+    )
+    const box = await screen.findByTestId("message-box")
+    const form = box.closest("form")!
+    expect(within(form).getByRole("button", { name: "Stop" })).toBeTruthy()
+    expect(within(form).queryByTestId("send")).toBeNull()
+    fireEvent.change(box, { target: { value: "and keep it short" } })
+    expect(within(form).getByTestId("send")).toBeTruthy()
+    expect(within(form).queryByRole("button", { name: "Stop" })).toBeNull()
+  })
+
   it("says once that a reply is being written, inside the agent's own reply", async () => {
     draw(
       conversationOf((page) => {
@@ -97,9 +110,8 @@ describe("a conversation with one agent", () => {
     expect(
       screen.getAllByRole("status").filter((s) => s.textContent === "Working")
     ).toHaveLength(1)
-    expect(within(reply).getAllByRole("button", { name: "Stop" })).toHaveLength(
-      1
-    )
+    expect(screen.getAllByRole("button", { name: "Stop" })).toHaveLength(1)
+    expect(within(reply).queryByRole("button", { name: "Stop" })).toBeNull()
   })
 
   it("greets an empty conversation, and writes a starter in the box", async () => {

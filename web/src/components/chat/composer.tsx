@@ -39,6 +39,7 @@ export function Composer({
   boxRef,
   tools,
   actions,
+  send,
   below,
   className,
 }: {
@@ -55,6 +56,8 @@ export function Composer({
   boxRef?: Ref<HTMLTextAreaElement>
   tools?: ReactNode
   actions?: ReactNode
+  // send, when it is given, takes the send button's place, as Stop does while a reply is being written.
+  send?: ReactNode
   below?: ReactNode
   className?: string
 }) {
@@ -90,17 +93,19 @@ export function Composer({
         {tools}
         <span className="flex-1" />
         {actions}
-        <Button
-          type="submit"
-          data-testid="send"
-          size="icon-sm"
-          className="rounded-full"
-          disabled={!canSend}
-          aria-label="Send"
-          title="Send"
-        >
-          <ArrowUpIcon />
-        </Button>
+        {send ?? (
+          <Button
+            type="submit"
+            data-testid="send"
+            size="icon-sm"
+            className="rounded-full"
+            disabled={!canSend}
+            aria-label="Send"
+            title="Send"
+          >
+            <ArrowUpIcon />
+          </Button>
+        )}
       </div>
       {below}
     </fieldset>
