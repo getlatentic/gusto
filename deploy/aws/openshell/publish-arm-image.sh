@@ -18,5 +18,7 @@ trap 'rm -rf "$work"' EXIT
 # A host loads the archive and tags gusto-runner:latest with its key, so the archive holds that one tag.
 docker build --platform linux/arm64 --build-arg "HARNESSES=$("$here/harnesses.sh")" -t gusto-runner:latest "$root"
 docker save gusto-runner:latest | gzip -1 > "$work/image.docker.tar.gz"
-aws s3 cp "$work/image.docker.tar.gz" "s3://$bucket/$object" --only-show-errors
+# A gigabyte goes up in about a hundred parts, and a connection that drops part-way loses the whole upload unless each part is tried
+# again: the runner's link to S3 was measured at half a megabyte a second, and dropped at part 64.
+AWS_RETRY_MODE=adaptive AWS_MAX_ATTEMPTS=20 aws s3 cp "$work/image.docker.tar.gz" "s3://$bucket/$object" --only-show-errors
 echo "made $object: $(du -h "$work/image.docker.tar.gz" | cut -f1)"
