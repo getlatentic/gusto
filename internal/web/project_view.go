@@ -70,7 +70,7 @@ func (s *Server) projectData(r *http.Request) (map[string]any, error) {
 		"Agent": projectAgentView{Name: named.Name, Harness: held.Harness, Field: named.Field, Engine: named.Engine, Brain: named.Brain,
 			Mark: logo(held.Harness), MarkDark: logoDark(held.Harness)},
 		"Conversations": s.conversationRows(held.ID),
-		"Models":        s.modelChoices(offered),
+		"Models":        s.modelOptionsOf(offered),
 		"Sharing":       s.apps != nil,
 		"Runs":          s.runner != nil,
 		"Apps":          s.projectApps(running),
@@ -118,17 +118,4 @@ func (s *Server) checkedTasks(id string) []checkedTaskView {
 		views = append(views, checkedTaskView{ID: record.ID, Brief: record.Brief, State: string(record.State), Queued: record.Queued})
 	}
 	return views
-}
-
-// modelChoices are the models the agent may be pointed at, each with what it costs as the person choosing reads it.
-func (s *Server) modelChoices(models []string) []option {
-	choices := make([]option, 0, len(models))
-	for _, model := range models {
-		label := modelName(model)
-		if cost := s.costOf(model); cost != "" {
-			label += " · " + cost
-		}
-		choices = append(choices, option{Value: model, Label: label})
-	}
-	return choices
 }

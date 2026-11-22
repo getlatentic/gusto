@@ -126,11 +126,11 @@ export const setUp: SetUpData = {
   Models: [
     {
       value: "stub/stub-model",
-      label: "stub/stub-model · $1 in, $1 out per million tokens",
+      label: "Stub Model",
     },
     {
       value: "stub/other",
-      label: "stub/other · did not finish the one-line fix",
+      label: "Other",
     },
   ],
   Setups: [

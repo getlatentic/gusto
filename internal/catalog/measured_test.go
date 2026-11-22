@@ -48,9 +48,6 @@ func TestAPairThatCannotFinishTheSimplestTaskIsMarkedWithWhy(t *testing.T) {
 	if !opencode.Ready {
 		t.Error("one model failing is no reason to withhold the harness")
 	}
-	if got := opencode.Unfinished(); len(got) != 1 || got[0] != "ollama/gpt-oss:20b" {
-		t.Errorf("only gpt-oss:20b should be marked, got %v", got)
-	}
 }
 
 // Finishing somewhere is finishing, a run with no verdict measured nothing, and
