@@ -35,6 +35,7 @@ var modelPresets = []modelPreset{
 	{"DeepSeek", "https://api.deepseek.com", proxy.Bearer},
 	{"Meta", "https://api.meta.ai", proxy.Bearer},
 	{"OpenRouter", "https://openrouter.ai/api", proxy.Bearer},
+	{"Otari", "https://api.otari.ai/api", proxy.Bearer},
 	{"Ollama on this computer", "http://127.0.0.1:11434", proxy.Bearer},
 }
 
@@ -118,6 +119,9 @@ func wiresOf(address string, auth proxy.Auth) []string {
 	if parsed, err := url.Parse(strings.TrimSpace(address)); err == nil && parsed.Hostname() == "api.openai.com" {
 		return []string{"chat", "responses"}
 	}
+	if parsed, err := url.Parse(strings.TrimSpace(address)); err == nil && parsed.Hostname() == "api.otari.ai" {
+		return []string{"chat", "messages", "responses"}
+	}
 	return []string{"chat"}
 }
 
@@ -185,6 +189,9 @@ func (s *Server) listModels(w http.ResponseWriter, r *http.Request) {
 	answerJSON(w, http.StatusOK, map[string][]string{"models": models})
 }
 
+// listingClient does not follow a redirect: Go forwards a header such as x-api-key to wherever one points, and the key is for the address the person typed.
+var listingClient = &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+
 // providerModels is what a provider answers to GET /v1/models, which OpenAI's API, Anthropic's and the ones like them all have.
 func providerModels(ctx context.Context, address string, auth proxy.Auth, key string) ([]string, error) {
 	parsed, err := url.Parse(strings.TrimRight(strings.TrimSpace(address), "/") + "/v1/models")
@@ -201,7 +208,7 @@ func providerModels(ctx context.Context, address string, auth proxy.Auth, key st
 	} else if key != "" {
 		request.Header.Set("Authorization", "Bearer "+key)
 	}
-	answer, err := http.DefaultClient.Do(request)
+	answer, err := listingClient.Do(request)
 	if err != nil {
 		return nil, fmt.Errorf("%s did not answer: %w", parsed.Host, err)
 	}

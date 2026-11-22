@@ -36,6 +36,9 @@ describe("one provider of the organization's", () => {
     expect(screen.getByText("off: waiting for you to turn it on")).toBeTruthy()
     expect(posts("Turn on acme")).toBe("/admin/models/providers/acme/enable")
     expect(posts("Retire acme")).toBe("/admin/models/providers/acme/retire")
+    expect(posts("Find its models")).toBe(
+      "/admin/models/providers/acme/discover"
+    )
     expect(screen.queryByRole("button", { name: "Turn off acme" })).toBeNull()
   })
 
