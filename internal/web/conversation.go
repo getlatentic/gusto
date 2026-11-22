@@ -288,12 +288,26 @@ func (s *Server) say(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, threadPath(thread), http.StatusSeeOther)
 		return
 	}
-	record, _, err := s.startTurn(s.keeper.who(r), held, thread, brief, "")
+	who := s.keeper.who(r)
+	record, _, err := s.startTurn(who, held, thread, brief, "")
 	if err != nil {
 		s.turnAway(w, r, threadPath(thread), err.Error())
 		return
 	}
+	if r.FormValue("now") == "1" {
+		s.interrupt(r, record, who)
+	}
 	http.Redirect(w, r, threadPath(thread)+"#"+record.ID, http.StatusSeeOther)
+}
+
+// interrupt stops what is running in the thread of a turn just queued, for that turn to be taken up now: the agent is asked to
+// cancel, keeps what it did in its session, and the queued turn runs as soon as the stopped one has ended.
+func (s *Server) interrupt(r *http.Request, queued tasks.Record, by string) {
+	for _, record := range s.index.Unfinished(queued.Lane()) {
+		if record.ID != queued.ID && record.Thread == queued.Thread && record.State == tasks.Running && s.mayUseRecord(r, record) {
+			s.stopRecord(record, by)
+		}
+	}
 }
 
 // startTurn queues what somebody said in a thread as a task and records it there. With a request id it first looks for the

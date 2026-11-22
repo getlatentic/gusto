@@ -79,7 +79,6 @@
 37 15 internal/roomwork/lines.go:mergeLines
 25 11 internal/roomwork/lines.go:shortestEdit
 32 21 internal/roomwork/plan.go:(*Turn).plan
-44 11 internal/runner/converse.go:converse
 28 12 internal/runner/recorder.go:(*Recorder).Out
 29 14 internal/runtoken/dpop.go:(*replays).checkProof
 33 11 internal/setup/history.go:(*Store).archive

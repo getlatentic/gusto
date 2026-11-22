@@ -18,6 +18,11 @@ func (s *Server) stopTurn(r *http.Request, by string) (tasks.Record, bool, int) 
 	if !found || !s.mayUseRecord(r, record) {
 		return tasks.Record{}, false, http.StatusNotFound
 	}
+	return s.stopRecord(record, by)
+}
+
+// stopRecord stops a task the asker may use, as stopTurn does once it has found it.
+func (s *Server) stopRecord(record tasks.Record, by string) (tasks.Record, bool, int) {
 	if record.State.Done() {
 		return record, false, http.StatusConflict
 	}

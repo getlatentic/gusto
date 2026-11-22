@@ -202,14 +202,20 @@ func versionIn(ctx context.Context, box Box, name string) string {
 // talk runs the harness in the box and records what it does: an ACP agent is
 // held a conversation with, and any other harness's output is read as it comes.
 func talk(ctx context.Context, box Box, adapter harness.Adapter, spec task.Spec, record *Recorder) (int, error) {
-	command, servers, err := boxCommand(ctx, adapter, spec, box.Workdir(), box.Env())
+	if adapter.Stream != harness.ACP {
+		command, _, err := boxCommand(ctx, adapter, spec, box.Workdir(), box.Env())
+		if err != nil {
+			return 0, err
+		}
+		return stream(ctx, box.Wrap(ctx, command), record)
+	}
+	life, end := outliving(ctx, cancelGrace)
+	defer end()
+	command, servers, err := boxCommand(life, adapter, spec, box.Workdir(), box.Env())
 	if err != nil {
 		return 0, err
 	}
-	if adapter.Stream != harness.ACP {
-		return stream(ctx, box.Wrap(ctx, command), record)
-	}
-	live, err := box.Attach(ctx, command)
+	live, err := box.Attach(life, command)
 	if err != nil {
 		return 0, err
 	}

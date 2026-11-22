@@ -35,6 +35,7 @@ export function Composer({
   describedBy,
   autoFocus,
   canSend,
+  sendLabel = "Send",
   onWrite,
   boxRef,
   tools,
@@ -52,6 +53,8 @@ export function Composer({
   describedBy?: string
   autoFocus?: boolean
   canSend: boolean
+  // sendLabel is what the send button says it does, as Send now does while a reply is being written.
+  sendLabel?: string
   onWrite?: (text: string) => void
   boxRef?: Ref<HTMLTextAreaElement>
   tools?: ReactNode
@@ -100,8 +103,8 @@ export function Composer({
             size="icon-sm"
             className="rounded-full"
             disabled={!canSend}
-            aria-label="Send"
-            title="Send"
+            aria-label={sendLabel}
+            title={sendLabel}
           >
             <ArrowUpIcon />
           </Button>
