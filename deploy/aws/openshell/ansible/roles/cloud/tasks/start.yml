@@ -36,13 +36,12 @@
 - name: The changes are applied
   ansible.builtin.meta: flush_handlers
 
-# A host an image is made from is not started as a cell, which would register it and give it organizations.
 - name: The host is running
   ansible.builtin.systemd:
     name: "{{ cloud_name }}-cell"
     state: started
     enabled: false
-  when: cloud_role == 'cell' and not (cloud_bake | bool)
+  when: cloud_role == 'cell'
 
 - name: The name resolves from here, and the web server answers for it with a certificate that holds
   ansible.builtin.uri:
