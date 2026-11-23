@@ -24,7 +24,7 @@ type pageView struct {
 	Address  string
 	Domain   string
 	Credit   *credit
-	Plan     *plan
+	Billing  *billingPage
 	Quota    quotaView
 	Verified quotaView
 
@@ -102,7 +102,7 @@ func pageOf(name string, v view) pageView {
 		More: v.More, Taken: v.Taken, WorkOnly: v.WorkOnly, SignedIn: v.SignedIn, Sent: v.Sent, Google: v.Google, ForTeam: v.ForTeam,
 		Token: v.Token, Action: v.Action, Button: v.Button, Inviter: v.Inviter,
 		Several: v.Several, Person: personView{Email: v.Person.Email, Trial: v.Person.Trial()},
-		Address: v.Address, Domain: v.Domain, Credit: v.Credit, Plan: v.Plan,
+		Address: v.Address, Domain: v.Domain, Credit: v.Credit, Billing: billingPageOf(v.Billing),
 		Quota: quotaOf(v.Quota), Verified: quotaOf(v.Verified),
 		Computers: v.Computers, Server: v.Server, CanOpen: v.CanOpen, Watch: v.Watch,
 		Admins: v.Admins, IsAdmin: v.IsAdmin, CanInvite: v.CanInvite, Link: v.Link,

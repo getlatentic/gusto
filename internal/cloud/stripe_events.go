@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/getlatentic/gusto/internal/cloud/payments"
 )
 
 // stripeTolerance is how old a signed event may be, against replay.
@@ -80,30 +82,33 @@ var subscriptionEvents = map[string]bool{
 	"customer.subscription.resumed": true,
 }
 
-// billingOfEvent is the row a subscription event says an organization has, and false for an
-// event that is not about a subscription or names no organization.
-func billingOfEvent(event stripeEvent) (Billing, bool, error) {
+// stripeStates is what each status of a Stripe subscription means to an organization. A status not here is not known.
+var stripeStates = map[string]payments.State{
+	"active": payments.Active, "trialing": payments.Active, "past_due": payments.PastDue, "incomplete": payments.Pending,
+	"canceled": payments.Suspended, "unpaid": payments.Suspended, "incomplete_expired": payments.Suspended, "paused": payments.Suspended,
+}
+
+// subscriptionOfEvent is the subscription an event says, and false for an event that is not about one.
+func subscriptionOfEvent(event stripeEvent) (payments.Subscription, bool, error) {
 	if !subscriptionEvents[event.Type] {
-		return Billing{}, false, nil
+		return payments.Subscription{}, false, nil
 	}
 	var sub stripeSubscription
 	if err := json.Unmarshal(event.Data.Object, &sub); err != nil {
-		return Billing{}, false, err
+		return payments.Subscription{}, false, err
 	}
-	b, about := billingOfSubscription(sub, time.Unix(event.Created, 0))
-	return b, about, nil
+	return subscriptionOfStripe(sub, time.Unix(event.Created, 0)), true, nil
 }
 
-// billingOfSubscription is the row a subscription gives its organization as it was at a time, and false for one that
-// names no organization.
-func billingOfSubscription(sub stripeSubscription, at time.Time) (Billing, bool) {
-	org := sub.Metadata["org"]
-	if org == "" || ValidSlug(org) != nil {
-		return Billing{}, false
+// subscriptionOfStripe is a subscription as it was at a time. It names the organization the subscription was made
+// for, which gusto put in its metadata, and none when there is no such name.
+func subscriptionOfStripe(sub stripeSubscription, at time.Time) payments.Subscription {
+	made := payments.Subscription{Ref: sub.ID, Customer: sub.Customer, State: stripeStates[sub.Status], At: at.UTC()}
+	if org := sub.Metadata["org"]; ValidSlug(org) == nil {
+		made.Org = org
 	}
-	b := Billing{Org: org, Customer: sub.Customer, Subscription: sub.ID, Status: sub.Status, EventAt: at.UTC()}
 	if len(sub.Items.Data) > 0 {
-		b.Item, b.Seats = sub.Items.Data[0].ID, sub.Items.Data[0].Quantity
+		made.Handle, made.Seats = sub.Items.Data[0].ID, sub.Items.Data[0].Quantity
 	}
-	return b, true
+	return made
 }

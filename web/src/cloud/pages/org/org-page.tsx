@@ -1,5 +1,6 @@
 import { SignOut } from "@/cloud/components/cloud-card"
 import { Section } from "@/cloud/pages/org/org-parts"
+import { OrgBilling } from "@/cloud/pages/org/org-billing"
 import { OrgPeople } from "@/cloud/pages/org/org-people"
 import { OrgTeams } from "@/cloud/pages/org/org-teams"
 import type { CloudPage } from "@/cloud/types"
@@ -44,6 +45,7 @@ export function OrgPage({ page }: { page: CloudPage }) {
           )}
           <OrgFigures page={page} />
           <OrgDetails page={page} />
+          {page.Billing && <OrgBilling billing={page.Billing} />}
           <OrgPeople page={page} />
           {showsTeams(page, page.Teams?.length ?? 0) && (
             <OrgTeams page={page} />
@@ -155,12 +157,6 @@ function OrgDetails({ page }: { page: CloudPage }) {
             </dd>
           </>
         )}
-        {page.Plan && (
-          <>
-            <dt>Plan</dt>
-            <dd>{page.Plan.Words}</dd>
-          </>
-        )}
         {page.Server && (
           <>
             <dt>Server</dt>
@@ -180,20 +176,6 @@ function OrgDetails({ page }: { page: CloudPage }) {
           </>
         )}
       </dl>
-      {page.Plan?.Subscribe && (
-        <form method="post" action="/org/billing/subscribe">
-          <Button type="submit" data-testid="subscribe">
-            {page.Plan.Offer}
-          </Button>
-        </form>
-      )}
-      {page.Plan?.Manage && (
-        <form method="post" action="/org/billing/manage">
-          <Button variant="outline" type="submit" data-testid="manage-billing">
-            Card, invoices and plan
-          </Button>
-        </form>
-      )}
     </Section>
   )
 }

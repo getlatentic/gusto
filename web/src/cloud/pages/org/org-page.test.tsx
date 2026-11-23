@@ -146,23 +146,4 @@ describe("an organization's page", () => {
       screen.getByRole("link", { name: "the demo page" }).getAttribute("href")
     ).toBe("/demo/wait")
   })
-
-  it("offers a plan to subscribe to where gusto cloud bills", () => {
-    render(
-      <OrgPage
-        page={adminView({
-          Plan: {
-            Words: "Free",
-            Offer: "Subscribe for $25 a seat",
-            Subscribe: true,
-            Manage: false,
-          },
-        })}
-      />
-    )
-    expect(screen.getByTestId("subscribe").textContent).toBe(
-      "Subscribe for $25 a seat"
-    )
-    expect(screen.queryByTestId("manage-billing")).toBeNull()
-  })
 })

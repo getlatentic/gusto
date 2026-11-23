@@ -40,7 +40,7 @@ export function cloudPage(
     Address: "",
     Domain: "",
     Credit: null,
-    Plan: null,
+    Billing: null,
     Quota: quota,
     Verified: { ...quota, Tasks: 200, Monthly: true },
     Computers: 0,
