@@ -2,8 +2,10 @@ package web
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"strconv"
@@ -273,4 +275,51 @@ func TestATurnStoppedPartWayKeepsTheReplyWithoutTheRefusalRepeated(t *testing.T)
 	if strings.Contains(shown.ReplyHTML, "API Error") || shown.Capped == nil || !strings.Contains(shown.Capped.Words, "is used up, $0.02 of $0.02.") {
 		t.Errorf("the turn repeats the agent's error, or does not say the budget stopped it: %+v", shown)
 	}
+}
+
+// sayNow sends what to say with now set, as the Send now button does.
+func (s *site) sayNow(path, secret, said, key string) (int, map[string]any) {
+	request := httptest.NewRequest("POST", path, strings.NewReader(`{"said":`+quote(said)+`,"now":true}`))
+	request.Header.Set("Authorization", "Bearer "+secret)
+	request.Header.Set("Idempotency-Key", key)
+	recorder := httptest.NewRecorder()
+	s.handler.ServeHTTP(recorder, request)
+	var out map[string]any
+	_ = json.Unmarshal(recorder.Body.Bytes(), &out)
+	return recorder.Code, out
+}
+
+func TestSendingNowStopsTheRunningTurnAndTheMessageRunsNext(t *testing.T) {
+	started := holding(t)
+	here := withTokens(t)
+	_, thread := started2(t, here, alice)
+	ada := signInADevice(t, here, alice)
+	_, first := here.say("/api"+thread+"/say", ada, "a long piece of work", "one")
+	running := first["job"].(string)
+	<-started
+
+	code, now := here.sayNow("/api"+thread+"/say", ada, "no, keep it short", "two")
+	if code != http.StatusAccepted {
+		t.Fatalf("sending now gave %d %v", code, now)
+	}
+	if record := turnDone(t, here, running); record.State != tasks.Interrupted || record.StoppedBy != alice {
+		t.Fatalf("the turn that was running is %+v, want interrupted by alice", record)
+	}
+	next := now["job"].(string)
+	select {
+	case path := <-started:
+		if !strings.HasSuffix(path, next) {
+			t.Errorf("%s ran next, want the message sent now, %s", path, next)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("the message sent now never ran")
+	}
+	if _, again := here.sayNow("/api"+thread+"/say", ada, "no, keep it short", "two"); again["already"] != true {
+		t.Fatalf("a retried send is another turn: %v", again)
+	}
+	if record, _ := here.index.Get(next); record.State != tasks.Running {
+		t.Errorf("a retried Send now stopped its own turn: %+v", record)
+	}
+	here.postAs(ada, "/api/jobs/"+next+"/stop", "")
+	turnDone(t, here, next)
 }

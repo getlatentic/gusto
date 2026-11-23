@@ -40,39 +40,62 @@ cloud_meta_parameter: /gusto/meta-key
 cloud_lease_minutes: 30
 cloud_max_hours: 4
 cloud_user: ubuntu
-cloud_state: /var/lib/gusto-cloud
+# Which gusto cloud of the host this is. One host may run two, such as production and staging, each with its own name, and from
+# it its own units, settings, secrets, programs, data and site; and its own ports and user, which are set apart.
+cloud_name: gusto
+cloud_etc: "/etc/{{ cloud_name }}"
+cloud_rundir: "/run/{{ cloud_name }}"
+cloud_libexec: "/usr/local/lib/{{ cloud_name }}"
+cloud_bin: "{{ '/usr/local/bin' if cloud_name == 'gusto' else cloud_libexec + '/bin' }}"
+cloud_listen_port: 8050
+# The loopback port nginx serves the names on for a Cloudflare tunnel, which a host with one sets; 0 is none.
+cloud_tunnel_port: 0
+cloud_port_from: 9100
+# A host off AWS, such as a VPS shared with other services, sets these, and an empty cloud_bucket. cloud_container is docker or
+# podman, which runs rootless as cloud_user. cloud_param_dir holds the parameters as files (gusto param reads them there), and
+# cloud_public_ip is the host's address. cloud_point_name false leaves the name where it points.
+# cloud_default_server false leaves the web server's default site, and which server answers an unknown name, to the host.
+cloud_container: docker
+cloud_param_dir: ""
+cloud_public_ip: ""
+cloud_point_name: true
+cloud_default_server: true
+# The operator's page, on the loopback alone.
+cloud_operator_port: 8090
+cloud_sandbox_unit: {container: "{{ 'docker.service' if cloud_container == 'docker' else '' }}", openshell: openshell-gateway.service}
+cloud_sandbox_group: {container: "{{ 'docker' if cloud_container == 'docker' else '' }}", openshell: kvm}
+cloud_state: "/var/lib/{{ cloud_name }}-cloud"
 # The files the front door serves at /media/, such as the landing page's video, kept in the bucket under media/ by put-media.sh.
-cloud_media: /var/www/gusto-media
-cloud_lib: /var/lib/gusto
+cloud_media: "/var/www/{{ cloud_name }}-media"
+cloud_lib: "/var/lib/{{ cloud_name }}"
 # all is one host that is the front door and runs the organizations' servers. orchestrator is the front door
 # alone, and a cell is a host that runs servers for it; the orchestrator and every cell of one cloud share
 # cloud_efs, the address of a shared file system, and the directory cloud_run of it, where the organizations' data is.
 cloud_role: all
+# Where the Linux programs this host runs are: the bundle's .state for x86-64, and .state/arm64 for Arm.
+cloud_programs: "{{ playbook_dir }}/../.state"
+# How the organizations' servers run: on, a process for each, or shared, all of them in one process.
+cloud_servers: "on"
+# Whether gusto cloud keeps its accounts, and each organization its indexes, in Postgres on this host, which is backed up
+# to the bucket every hour; or in SQLite files on its disk.
+cloud_postgres: false
+cloud_postgres_database: gusto
+cloud_postgres_connections: 40
+cloud_postgres_shared_buffers: 128MB
+cloud_postgres_cache: 384MB
+cloud_backup_days: 30
+# The database, by the host's socket, as the user gusto cloud runs as. The accounts are in the schema cloud of it, and each
+# organization's server is given a schema of its own.
+cloud_postgres_url: "postgres:///{{ cloud_postgres_database }}?host=/var/run/postgresql"
+cloud_accounts_url: "{{ cloud_postgres_url }}&search_path=cloud"
 cloud_efs: ""
 cloud_run: ""
 cloud_cell_secret_parameter: /gusto/cell-secret
 cloud_cell_gone_minutes: 5
 cloud_cell_port: 8060
-# A visitor may start a demo, which lasts this many minutes from when it is ready, at /demo. Zero offers none.
-# The front door that stays up: no lease, what is on the file system kept, and hosts for cells started when
-# organizations need one, from the launch template cloud_cell_template, tagged cloud_project.
+# The gusto cloud that stays up: no lease, and what is on its disk kept across upgrades.
 cloud_live: false
-cloud_release: ""
-cloud_bundle_dir: /opt/gusto-bundle
-# The start-up script a cell is made from, where the front door can read it: the bundle is root's.
-cloud_cell_userdata: /usr/local/lib/gusto/user-data.sh
-cloud_cell_template: gusto-host-cell-live
-# The parameter that template reads its image from, so a kept cell of an older image is replaced rather than started again.
-cloud_cell_image_parameter: /gusto/cell-ami
-cloud_cell_max: 3
-cloud_cell_idle_minutes: 10
-# The most cells a day started for visitors who began the demo form, before they sent it.
-cloud_cell_prewarms: 20
-# How many cells are stopped when idle, and started again when one is needed, rather than removed: a stopped cell costs its root
-# disk, about 3.20 dollars a month, and starts in about 11 seconds where a new one takes about 17.
-cloud_cell_keep: 1
-cloud_cell_max_hours: 12
-cloud_project: gusto-live
+# A visitor may start a demo, which lasts this many minutes from when it is ready, at /demo. Zero offers none.
 cloud_demo_minutes: 0
 # The public key of the bot check on the demo form, and where its secret is kept. Without the key there is no check.
 cloud_turnstile_site: ""
@@ -94,18 +117,3 @@ cloud_book_url: ""
 cloud_demo_staff: ""
 # Mailed when a visitor starts a demo. Nothing is sent when it is empty.
 cloud_demo_notify: ""
-
-# Where the files of a host are written: the host's own root, or a directory a cell's kit is made from.
-cloud_root: ""
-# The SHA-256 of the kit a front door makes for its cells, and the key of the image it is made for. A cell from that image
-# configures itself from the kit; without one it runs the playbook.
-cloud_cell_kit: ""
-cloud_cell_kit_file: /usr/local/lib/gusto/cell-kit.tgz
-cloud_bake_key: ""
-cloud_cell_lease_minutes: 30
-
-# Whether this host is made to have an image taken of it, and so is not started as a cell.
-cloud_bake: false
-
-# Whether this host was made from the image of a cell that has what the release installs, so that it is not installed again.
-cloud_baked: false

@@ -7,7 +7,7 @@ import (
 )
 
 // Leadership keeps this gusto cloud server's claim to the lease, and runs the work only one gusto cloud server may do while it holds it:
-// the controller, the demo and quota sweeps and the scaler. Gusto cloud servers that do not lead serve pages and route from the database.
+// the controller and the demo and quota sweeps. Gusto cloud servers that do not lead serve pages and route from the database.
 type Leadership struct {
 	Store *Store
 	// Holder names this gusto cloud server, apart from every other.

@@ -3,6 +3,7 @@ package runner
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -64,8 +65,8 @@ func TestASpendTotalCountsTheCacheTokensItWasBilledFor(t *testing.T) {
 	}
 }
 
-// The line a real opencode run wrote when the agent read a file. Every path in
-// the adapter came off this shape, not from a guess at it.
+// The line a real opencode 1.18.10 run wrote, over its command line, when the agent read a file. Every path in the
+// testdata adapter came off this shape, not from a guess at it.
 const toolCall = `{"type":"tool_use","sessionID":"ses_x","part":{"type":"tool","tool":"read","callID":"chatcmpl-tool-947b85e34fd7a66d","state":{"status":"completed","input":{"filePath":"/job/workspace/adder.sh"},"title":"adder.sh","time":{"start":1790431302271,"end":1790431302313}}}}`
 
 func TestWhatTheAgentRanIsKeptApartFromWhatItSaid(t *testing.T) {
@@ -73,10 +74,7 @@ func TestWhatTheAgentRanIsKeptApartFromWhatItSaid(t *testing.T) {
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	adapter, err := harness.Load("", "opencode")
-	if err != nil {
-		t.Fatal(err)
-	}
+	adapter := jsonlOpencode(t)
 	record, err := Open(dir, adapter)
 	if err != nil {
 		t.Fatal(err)
@@ -114,10 +112,7 @@ func TestATranscriptLineIsNotACommand(t *testing.T) {
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	adapter, err := harness.Load("", "opencode")
-	if err != nil {
-		t.Fatal(err)
-	}
+	adapter := jsonlOpencode(t)
 	record, err := Open(dir, adapter)
 	if err != nil {
 		t.Fatal(err)
@@ -257,10 +252,7 @@ func TestAToolCallSaysWhereInTheTranscriptItRan(t *testing.T) {
 	if err := dir.Make(); err != nil {
 		t.Fatal(err)
 	}
-	adapter, err := harness.Load("", "opencode")
-	if err != nil {
-		t.Fatal(err)
-	}
+	adapter := jsonlOpencode(t)
 	record, err := Open(dir, adapter)
 	if err != nil {
 		t.Fatal(err)
@@ -281,4 +273,16 @@ func TestAToolCallSaysWhereInTheTranscriptItRan(t *testing.T) {
 	if json.Unmarshal(line, &kept) != nil || kept.At == nil || *kept.At != 0 {
 		t.Errorf("the call did not say it ran at the start of the transcript: %s", line)
 	}
+}
+
+// jsonlOpencode is OpenCode as gusto ran it over its command line, from testdata: a harness that writes JSON lines, which the
+// record is tested on with lines OpenCode really wrote.
+func jsonlOpencode(t *testing.T) harness.Adapter {
+	t.Helper()
+	t.Setenv("GUSTO_HARNESSES", filepath.Join("testdata", "adapters"))
+	adapter, err := harness.Load("", "opencode-jsonl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return adapter
 }

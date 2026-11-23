@@ -18,25 +18,39 @@ import (
 // that does not is stopped, since the turn it was asked for has ended.
 const hangUp = 10 * time.Second
 
+// cancelGrace is how long an ACP agent is given to end a turn it was asked to cancel, before it is killed. A container's stop
+// grace is longer, so the agent is asked first and killed only when it does not answer.
+const cancelGrace = 15 * time.Second
+
+// outliving is a context for an ACP agent's process: it ends grace after ctx does, or when its cancel is called, so a stopped
+// turn is cancelled by the agent before the agent is killed.
+func outliving(ctx context.Context, grace time.Duration) (context.Context, context.CancelFunc) {
+	life, end := context.WithCancel(context.WithoutCancel(ctx))
+	go func() {
+		select {
+		case <-ctx.Done():
+		case <-life.Done():
+			return
+		}
+		select {
+		case <-time.After(grace):
+			end()
+		case <-life.Done():
+		}
+	}()
+	return life, end
+}
+
 // converse holds one turn over the Agent Client Protocol. The harness's exit
 // status is the turn's: an answered prompt is 0 whatever the teardown took, and
 // a turn the harness failed, never answered, or ended for another reason than
-// being done is 1, with its reason in stderr.
+// being done is 1, with its reason in stderr. When ctx ends the agent is asked
+// to cancel the turn; the command must be started with a context that outlives
+// ctx (outliving), so it has the time to.
 // cwd is the directory the conversation works in, by the path the harness sees.
 func converse(ctx context.Context, command *exec.Cmd, cwd string, spec task.Spec, servers []task.Server, auth string, record *Recorder) (int, error) {
-	in, err := command.StdinPipe()
+	in, out, errs, err := started(command)
 	if err != nil {
-		return 0, err
-	}
-	out, err := command.StdoutPipe()
-	if err != nil {
-		return 0, err
-	}
-	errs, err := command.StderrPipe()
-	if err != nil {
-		return 0, err
-	}
-	if err := command.Start(); err != nil {
 		return 0, err
 	}
 	exited := make(chan error, 1)
@@ -48,6 +62,7 @@ func converse(ctx context.Context, command *exec.Cmd, cwd string, spec task.Spec
 		Session: spec.Remembered,
 		Servers: servers,
 		Auth:    auth,
+		Stop:    ctx.Done(),
 	}, record.Out)
 	record.Remembered = ended.Session
 	in.Close()
@@ -66,6 +81,20 @@ func converse(ctx context.Context, command *exec.Cmd, cwd string, spec task.Spec
 		}
 	}
 	return 1, nil
+}
+
+// started starts the harness with its standard input, output and errors piped to the runner.
+func started(command *exec.Cmd) (in io.WriteCloser, out, errs io.ReadCloser, err error) {
+	if in, err = command.StdinPipe(); err != nil {
+		return nil, nil, nil, err
+	}
+	if out, err = command.StdoutPipe(); err != nil {
+		return nil, nil, nil, err
+	}
+	if errs, err = command.StderrPipe(); err != nil {
+		return nil, nil, nil, err
+	}
+	return in, out, errs, command.Start()
 }
 
 // keepErrors records the harness's stderr until it closes, then waits for the

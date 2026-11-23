@@ -41,24 +41,26 @@ made with `cells` at 0, as before.
 
 ## gusto cloud that stays up
 
-`aws_instance.live` is a small host (`t3.micro` with a 10 GB disk, and a fixed address) that runs gusto cloud all the time: nginx and
-the certificate, gusto cloud at `https://<name>`, and the scaler that starts a node for an organization that
-waits for one and stops a node that has had nothing on it for ten minutes. With nobody using it there is no such node and
-nothing is paid for but this machine, its address and the file system.
+`aws_instance.live` is one Arm host (`t4g.small` with a 20 GB disk, and a fixed address) that runs all of gusto cloud
+all the time: nginx and the certificate, gusto cloud at `https://<name>`, every organization's server in one process
+(`GUSTO_CLOUD_SERVERS=shared`), and their agents in Docker containers of at most `front_door_computer_memory` each.
+Nothing else is paid for but this machine, its disk and its address.
 
 - It is made once by `bootstrap.sh` and starts itself from the newest release in the bucket. Every **cloud deploy** run
-  then brings it to that release (an SSM command that runs the start-up script again), which restarts gusto cloud
-  and leaves the nodes and the organizations on them as they are.
-- Its role is its own, and is the only one that may start and stop nodes. It starts nodes only from the
-  `cell-live` template, which tags them `project=gusto-live`, and stops only nodes with that tag that it started
-  (`scaler=on`). A node that runs other people's code can start nothing. The cloud workflows tag and stop
-  `project=gusto`, so they never touch it, and it never touches theirs.
-- It has no lease and no limit on how long it runs. What it keeps is on the file system and in the bucket, so it may be
-  replaced.
+  then brings it to that release (an SSM command that runs the start-up script again), which restarts gusto cloud and
+  the organizations' servers.
+- It runs the bundle's Arm programs and the Arm runner image, `image/<key>-arm64.docker.tar.gz`, which
+  `../openshell/publish-arm-image.sh` builds on an Arm machine. **cloud deploy** runs it on its runner, which is one.
+- Its role is its own: it reads the parameters and the bucket, and can start or stop nothing.
+- Its accounts and each organization's indexes are in Postgres on the host (`DATABASE=postgres`), reached only by its socket.
+  The database is dumped to the bucket every hour under `backups/postgres/gusto/`, and each dump is kept 30 days. To restore one:
+  `aws s3 cp s3://<bucket>/backups/postgres/gusto/<hour>.dump - | sudo -u ubuntu pg_restore --clean --if-exists -d gusto`, with gusto
+  cloud stopped.
+- It has no lease and no limit on how long it runs. What it keeps is on its own disk, so replacing it
+  (`terraform apply -replace=aws_instance.live`) takes a dump of the database and a copy of `/var/lib/gusto-cloud` first.
 - Sign-up for a visitor is at `https://<name>/demo`. `GUSTO_CLOUD_DEMO_MINUTES` and `GUSTO_CLOUD_BOOK_URL` in `cloud.env`, stored
   with `../openshell/put-cloud-config.sh`, turn it on and say where a call is booked.
-- The `cloud up` workflow makes a separate, short-lived cloud with its own name in the same way as before. Both use the
-  same name, so only one of them is up at a time: take the live gusto cloud down (`aws ec2 stop-instances`) before
+- The `cloud up` workflow makes a separate, short-lived cloud. Both use the same name, so only one of them is up at a time: take the live gusto cloud down (`aws ec2 stop-instances`) before
   running `cloud up`.
 
 ## Once

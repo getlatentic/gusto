@@ -66,9 +66,7 @@ describe("setting up an agent type", () => {
     expect(field(form, "then")).toBeNull()
     expect(field(form, "model")?.value).toBe("stub/stub-model")
     expect(field(form, "setup")?.value).toBe("health")
-    expect(
-      screen.getByText("stub/stub-model · $1 in, $1 out per million tokens")
-    ).toBeTruthy()
+    expect(screen.getByText("Stub Model")).toBeTruthy()
     expect(
       screen.getByText("optional; without one it starts in an empty folder")
     ).toBeTruthy()

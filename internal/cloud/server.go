@@ -54,9 +54,6 @@ type Config struct {
 	Notify string
 	// ComputersWait is how long an ending demo waits for its computers to be removed. It is ninety seconds when not set.
 	ComputersWait time.Duration
-	// Prewarm, when it is set, starts a node for a visitor who has begun the demo form, so it is up by the time they send it.
-	// It must not block, and must bound what it starts itself.
-	Prewarm func()
 	// NodeStarted, when it is set, is told by a node that has just started that it is there, so an organization waiting for one
 	// is placed at once. It checks the node's signature itself.
 	NodeStarted http.Handler
@@ -271,7 +268,6 @@ func (s *Server) routes() http.Handler {
 func (s *Server) demoRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /demo", s.demoForm)
 	mux.HandleFunc("POST /demo", s.startDemo)
-	mux.HandleFunc("POST /demo/warm", s.warmDemo)
 	mux.HandleFunc("GET /demo/wait", s.guard(s.demoWait))
 	mux.HandleFunc("POST /demo/extend", s.guard(s.extendDemo))
 	mux.HandleFunc("GET /demo/colleague", s.guard(s.colleaguePage))

@@ -208,6 +208,8 @@ func (s *Server) saidJSON(w http.ResponseWriter, r *http.Request) {
 	}
 	var said struct {
 		Said string `json:"said"`
+		// Now stops what is running in the thread, so this is taken up as soon as the agent has cancelled it.
+		Now bool `json:"now"`
 	}
 	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&said) != nil || strings.TrimSpace(said.Said) == "" {
 		answerJSON(w, http.StatusBadRequest, map[string]string{"error": `send {"said": "..."}: what to say in this thread`})
@@ -221,6 +223,9 @@ func (s *Server) saidJSON(w http.ResponseWriter, r *http.Request) {
 		}
 		answerJSON(w, status, map[string]string{"error": err.Error()})
 		return
+	}
+	if said.Now && !already {
+		s.interrupt(r, record, personOf(r))
 	}
 	answerJSON(w, http.StatusAccepted, map[string]any{"job": record.ID, "state": record.State, "already": already})
 }

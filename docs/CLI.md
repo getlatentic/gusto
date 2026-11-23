@@ -951,7 +951,7 @@ Environment:
 - `GUSTO_PAYPAL_CLIENT_SECRET`: the secret of the PayPal sandbox app
 - `GUSTO_PAYPAL_WEBHOOK_ID`: the id of the PayPal sandbox webhook registered for <GUSTO_CLOUD_URL>/billing/webhook/paypal
 - `GUSTO_PAYPAL_PLAN_ID`: the PayPal plan of a seat for a month. Without it the product and the plan are made once and remembered
-- `GUSTO_CLOUD_SERVERS`: whether gusto cloud starts organizations' servers; off keeps the accounts only (on, off) (default on)
+- `GUSTO_CLOUD_SERVERS`: how gusto cloud runs organizations' servers: on starts a process for each, shared runs them all in one process, and off keeps the accounts only (on, shared, off) (default on)
 - `GUSTO_CLOUD_ORG_ENV`: a file of KEY=VALUE lines every organization's server starts with: the operator's credentials, models and sandbox; its GUSTO_DATABASE_URL, when it is a postgres:// address, gives each organization a schema of its own for its indexes
 - `GUSTO_CLOUD_DEMO_ENV`: a file of KEY=VALUE lines a demo organization's server starts with on top of GUSTO_CLOUD_ORG_ENV's, such as another sandbox
 - `GUSTO_CLOUD_INDEX_DIR`: where organizations' indexes are kept when that address is not Postgres: a directory for each, on the local disk of the host its server runs on (default index under GUSTO_CLOUD_ROOT)
@@ -960,16 +960,6 @@ Environment:
 - `GUSTO_CLOUD_NODE_SECRET_FILE`: the file with the secret gusto cloud and the nodes sign with; GUSTO_CLOUD_CELL_SECRET_FILE was its name
 - `GUSTO_CLOUD_NODE_GONE_MINUTES`: how long a node may be silent before it is taken to be gone and its organizations are placed on another, in minutes (default 30); GUSTO_CLOUD_CELL_GONE_MINUTES was its name
 - `GUSTO_CLOUD_LOCAL_NODE`: this machine is a node too; GUSTO_CLOUD_LOCAL_CELL was its name
-- `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH was its name
-- `GUSTO_CLOUD_NODE_PROJECT`: the project tag of the nodes' machines; GUSTO_CLOUD_CELL_PROJECT was its name
-- `GUSTO_CLOUD_NODE_TEMPLATE`: the launch template a node's machine is made from; GUSTO_CLOUD_CELL_TEMPLATE was its name
-- `GUSTO_CLOUD_NODE_USERDATA`: the start-up script a node's machine runs; GUSTO_CLOUD_CELL_USERDATA was its name
-- `GUSTO_CLOUD_NODE_SETTINGS`: NAME=value pairs, comma-separated, that fill in the start-up script; GUSTO_CLOUD_CELL_SETTINGS was its name
-- `GUSTO_CLOUD_NODE_IMAGE_PARAMETER`: the parameter the template reads its image from, so a kept node of an older image is replaced and not started again; GUSTO_CLOUD_CELL_IMAGE_PARAMETER was its name
-- `GUSTO_CLOUD_NODE_MAX`: the most nodes (default 3); GUSTO_CLOUD_CELL_MAX was its name
-- `GUSTO_CLOUD_NODE_IDLE_MINUTES`: how long a node may have nothing on it before it is stopped, in minutes (default 10); GUSTO_CLOUD_CELL_IDLE_MINUTES was its name
-- `GUSTO_CLOUD_NODE_PREWARMS`: the most nodes started in a day for a visitor still filling in the demo form (default 20); GUSTO_CLOUD_CELL_PREWARMS was its name
-- `GUSTO_CLOUD_NODE_KEEP`: how many idle nodes are stopped and kept, rather than removed (default 0); GUSTO_CLOUD_CELL_KEEP was its name
 
 Examples:
 
@@ -1014,12 +1004,14 @@ Show the accounts database, or load the old account files into it
 
 ```text
 gusto cloud migrate [-import]
+gusto cloud migrate -copy-from <cloud.db>
 ```
 
-Says where gusto cloud keeps its accounts, the schema version the database is at and the newest this release reads, and how many organizations, people, memberships, invitations, links, demo leads and runtime records it holds. It also says how many records the files of an earlier release (people/, orgs/, tokens/ and demos/ under the root) hold that an import would load, and when the import ran. Asking changes nothing: it makes no file and no schema. With -import it brings the schema up to date and loads those files into the database now, if the database has not had them, and prints how many records of each kind went in and how many were left out. gusto cloud does the same when it starts on a database that has no import record, so this is for doing it first: stop the earlier release, run this, then start the new one. The files are never changed or removed. The import is one transaction, and two runs at once import once. A database that has been imported is not imported again, so a link that was used does not come back.
+Says where gusto cloud keeps its accounts, the schema version the database is at and the newest this release reads, and how many organizations, people, memberships, invitations, links, demo leads and runtime records it holds. It also says how many records the files of an earlier release (people/, orgs/, tokens/ and demos/ under the root) hold that an import would load, and when the import ran. Asking changes nothing: it makes no file and no schema. With -import it brings the schema up to date and loads those files into the database now, if the database has not had them, and prints how many records of each kind went in and how many were left out. gusto cloud does the same when it starts on a database that has no import record, so this is for doing it first: stop the earlier release, run this, then start the new one. The files are never changed or removed. The import is one transaction, and two runs at once import once. A database that has been imported is not imported again, so a link that was used does not come back. With -copy-from it copies the accounts in a SQLite file, gusto cloud's cloud.db, into the Postgres database GUSTO_DATABASE_URL names, in one transaction: stop gusto cloud, copy, then start it with that address. The file must be at the schema version this release reads and is only read; the Postgres schema must hold no accounts. The organizations' indexes and usage are not copied, since each organization's server builds them again from its files.
 
 Flags:
 
+- `-copy-from <file>`: copy the accounts in this SQLite file into the Postgres database GUSTO_DATABASE_URL names
 - `-import`: load the files of an earlier release into the database now, if it has not had them
 - `-h, --help`: show this help
 
@@ -1030,8 +1022,8 @@ Environment:
 
 Exit codes:
 
-- `0`: the report was printed, or the import ran or had run
-- `1`: the database cannot be reached, is at a newer schema than this release reads, or the import failed
+- `0`: the report was printed, the import ran or had run, or the accounts were copied
+- `1`: the database cannot be reached, is at a newer schema than this release reads, or the import or copy failed
 - `2`: usage error
 
 Examples:
@@ -1040,6 +1032,7 @@ Examples:
 gusto cloud migrate
 gusto cloud migrate -import
 GUSTO_DATABASE_URL=postgres://db/gusto gusto cloud migrate -import
+GUSTO_DATABASE_URL=postgres://db/gusto gusto cloud migrate -copy-from cloud.db
 ```
 
 See also: `gusto cloud`, `gusto operator`
@@ -1091,8 +1084,6 @@ Environment:
 - `GUSTO_CLOUD_BOOK_URL`: where a visitor books a call
 - `GUSTO_CLOUD_DEMO_NOTIFY`: an address mailed when a visitor starts a demo or sends a note from the landing page
 - `GUSTO_CLOUD_DEMO_STAFF`: the addresses and domains whose people alone may start a demo, comma-separated (default anyone)
-- `GUSTO_CLOUD_NODE_LAUNCH`: how a node is started when an organization waits for room; unset, none is (ec2); GUSTO_CLOUD_CELL_LAUNCH was its name
-- `GUSTO_CLOUD_NODE_PROJECT`: the project tag of the nodes' machines; GUSTO_CLOUD_CELL_PROJECT was its name
 
 See also: `gusto cloud`
 

@@ -65,20 +65,6 @@ func (e Entry) Finished(model string) (Measured, bool) {
 	return Measured{}, false
 }
 
-// Unfinished is every model this agent was measured failing the simplest task
-// with, in the order the benchmark ran them.
-func (e Entry) Unfinished() []string {
-	var models []string
-	seen := map[string]bool{}
-	for _, run := range e.Measured {
-		if _, cannot := e.CannotFinish(run.Model); cannot && !seen[run.Model] {
-			models = append(models, run.Model)
-			seen[run.Model] = true
-		}
-	}
-	return models
-}
-
 // WithMatrix adds what the table at path measured on its simplest task to each
 // entry. An empty path leaves the entries as they are.
 func WithMatrix(entries []Entry, path string) ([]Entry, error) {

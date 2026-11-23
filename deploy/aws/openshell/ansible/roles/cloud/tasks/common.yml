@@ -1,31 +1,52 @@
 ---
+# Rootless podman, run as cloud_user by the organizations' servers, by gusto-boot and by an upgrade, reaches the user's own
+# systemd through its session bus to set a container's limits, and keeps its images where its storage file says, whatever HOME
+# a server has: each server's HOME is the organization's own folder.
+- name: The user the organizations' containers run as
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ cloud_user }}"
+  when: cloud_container == 'podman'
+
+- name: Where that user's podman keeps its images, whatever HOME it is run with
+  ansible.builtin.copy:
+    dest: "/home/{{ cloud_user }}/.config/containers/storage.conf"
+    content: |
+      [storage]
+      driver = "overlay"
+      graphroot = "/home/{{ cloud_user }}/.local/share/containers/storage"
+      runroot = "/run/user/{{ getent_passwd[cloud_user][1] }}/containers"
+    owner: "{{ cloud_user }}"
+    group: "{{ cloud_user }}"
+    mode: "0644"
+  when: cloud_container == 'podman'
+
 - name: Directories
   ansible.builtin.file:
-    path: "{{ cloud_root }}{{ item.path }}"
+    path: "{{ item.path }}"
     state: directory
     owner: "{{ item.owner | default('root') }}"
     group: "{{ item.owner | default('root') }}"
     mode: "0755"
   loop:
-    - { path: /etc/gusto }
-    - { path: /usr/local/lib/gusto }
+    - { path: "{{ cloud_etc }}" }
+    - { path: "{{ cloud_libexec }}" }
+    - { path: "{{ cloud_bin }}" }
     - { path: "{{ cloud_state }}", owner: "{{ cloud_user }}" }
     - { path: "{{ cloud_lib }}", owner: "{{ cloud_user }}" }
-  # A kit holds files alone, and the host it is unpacked on has the directories.
-  when: cloud_root == ''
 
 - name: The agent of a host, and the organizations' servers
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../.state/gusto"
-    dest: "{{ cloud_root }}/usr/local/bin/gusto"
+    src: "{{ cloud_programs }}/gusto"
+    dest: "{{ cloud_bin }}/gusto"
     mode: "0755"
   when: cloud_role == 'cell'
   notify: Restart the cell
 
 - name: gusto cloud, the operator's page, and the organizations' servers
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../.state/gusto"
-    dest: "{{ cloud_root }}/usr/local/bin/gusto"
+    src: "{{ cloud_programs }}/gusto"
+    dest: "{{ cloud_bin }}/gusto"
     mode: "0755"
   when: cloud_role != 'cell'
   notify:
@@ -35,38 +56,38 @@
 - name: What each model costs, which the organizations' servers price their spending by
   ansible.builtin.copy:
     src: spend-policy.json
-    dest: "{{ cloud_root }}/etc/gusto/spend-policy.json"
+    dest: "{{ cloud_etc }}/spend-policy.json"
     mode: "0644"
 
 - name: What the benchmark measured each agent doing with each demo model, which the model pickers show (docs/MATRIX.md)
   ansible.builtin.copy:
     src: measured.json
-    dest: "{{ cloud_root }}/etc/gusto/measured.json"
+    dest: "{{ cloud_etc }}/measured.json"
     mode: "0644"
 
 - name: The script that powers the host off when its lease ends, or gusto cloud is gone
   ansible.builtin.copy:
     src: gusto-lease-reaper
-    dest: "{{ cloud_root }}/usr/local/bin/gusto-lease-reaper"
+    dest: "{{ cloud_bin }}/gusto-lease-reaper"
     mode: "0755"
 
 - name: The script that runs when the host starts
   ansible.builtin.copy:
     src: gusto-boot
-    dest: "{{ cloud_root }}/usr/local/bin/gusto-boot"
+    dest: "{{ cloud_bin }}/gusto-boot"
     mode: "0755"
 
 - name: The settings of the start-up script and the reaper
   ansible.builtin.template:
     src: host.conf.j2
-    dest: "{{ cloud_root }}/etc/gusto/host.conf"
+    dest: "{{ cloud_etc }}/host.conf"
     mode: "0644"
   notify: "{{ 'Restart the cell' if cloud_role == 'cell' else 'Restart the front door' }}"
 
 - name: Services
   ansible.builtin.template:
-    src: "{{ item }}.j2"
-    dest: "{{ cloud_root }}/etc/systemd/system/{{ item }}"
+    src: "gusto-{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ cloud_name }}-{{ item }}"
     mode: "0644"
-  loop: "{{ ['gusto-boot.service'] if cloud_live | bool else ['gusto-boot.service', 'gusto-lease.service', 'gusto-lease.timer'] }}"
+  loop: "{{ ['boot.service'] if cloud_live | bool else ['boot.service', 'lease.service', 'lease.timer'] }}"
   notify: "{{ 'Restart the cell' if cloud_role == 'cell' else 'Restart the front door' }}"

@@ -1,13 +1,13 @@
 ---
 - name: Restart the front door
   ansible.builtin.systemd:
-    name: gusto-cloud
+    name: "{{ cloud_name }}-cloud"
     state: restarted
     daemon_reload: true
 
 - name: Restart the operator's page
   ansible.builtin.systemd:
-    name: gusto-owner
+    name: "{{ cloud_name }}-owner"
     state: restarted
     daemon_reload: true
 
@@ -18,7 +18,6 @@
 
 - name: Restart the cell
   ansible.builtin.systemd:
-    name: gusto-cell
+    name: "{{ cloud_name }}-cell"
     state: restarted
     daemon_reload: true
-  when: not (cloud_bake | bool) and cloud_root == ''

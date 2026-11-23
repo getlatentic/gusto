@@ -33,9 +33,45 @@ env:
   AWS_REGION: us-east-1
 
 jobs:
+  # The x86 runner image, for the hosts cloud up makes, built on one of GitHub's own x86 runners: the repository is public, so
+  # they cost nothing, and an x86 machine builds it without emulation. gusto cloud that stays up is Arm and does not wait for it.
+  x86-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.GUSTO_AWS_ROLE }}
+          aws-region: us-east-1
+      - name: The x86 runner image, when it is not in the bucket
+        env:
+          BUCKET: ${{ vars.GUSTO_BUCKET }}
+        run: |
+          key="$(deploy/aws/openshell/image-key.sh)"
+          if aws s3api head-object --bucket "$BUCKET" --key "image/$key.tar.gz" >/dev/null 2>&1 \
+            && aws s3api head-object --bucket "$BUCKET" --key "image/$key.docker.tar.gz" >/dev/null 2>&1; then
+            echo "the image $key is in the bucket"
+            exit 0
+          fi
+          # The image and its two archives need more room than the runner leaves free, and these toolchains are not used here.
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker build --platform linux/amd64 --build-arg "HARNESSES=$(deploy/aws/openshell/harnesses.sh)" -t gusto-runner .
+          container="$(docker create gusto-runner true)"
+          docker export "$container" | gzip -1 > image.tar.gz
+          docker rm "$container" >/dev/null
+          docker save gusto-runner | gzip -1 > image.docker.tar.gz
+          export AWS_RETRY_MODE=adaptive AWS_MAX_ATTEMPTS=20
+          aws s3 cp image.tar.gz "s3://$BUCKET/image/$key.tar.gz" --only-show-errors
+          aws s3 cp image.docker.tar.gz "s3://$BUCKET/image/$key.docker.tar.gz" --only-show-errors
+          echo "made the image $key: $(du -h image.tar.gz | cut -f1) and $(du -h image.docker.tar.gz | cut -f1)"
+
   bundle:
     runs-on: [self-hosted, gusto]
-    # Making the cell image takes up to half an hour, and upgrading the front door up to a quarter.
+    # Building the Arm runner image and sending it up takes up to half an hour, and upgrading gusto cloud up to a quarter.
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -52,27 +88,11 @@ jobs:
         with:
           role-to-assume: ${{ vars.GUSTO_AWS_ROLE }}
           aws-region: us-east-1
-      - name: The runner image, when it is not in the bucket
+      # gusto cloud that stays up is Arm, and this runner is too, so the Arm image is built here when the bucket has none of the key.
+      - name: The Arm runner image, when it is not in the bucket
         env:
           BUCKET: ${{ vars.GUSTO_BUCKET }}
-        run: |
-          key="$(deploy/aws/openshell/image-key.sh)"
-          if aws s3api head-object --bucket "$BUCKET" --key "image/$key.tar.gz" >/dev/null 2>&1 \
-            && aws s3api head-object --bucket "$BUCKET" --key "image/$key.docker.tar.gz" >/dev/null 2>&1; then
-            echo "the image $key is in the bucket"
-            exit 0
-          fi
-          if [ "$(uname -m)" != x86_64 ]; then
-            echo "::error::the image $key is not in the bucket, and this runner is $(uname -m), which cannot build it. Run deploy/aws/openshell/publish-image.sh, which builds it on an x86 host, and run this again."
-            exit 1
-          fi
-          docker build --platform linux/amd64 --build-arg "HARNESSES=$(deploy/aws/openshell/harnesses.sh)" -t gusto-runner .
-          container="$(docker create gusto-runner true)"
-          docker export "$container" | gzip -1 > image.tar.gz
-          aws s3 cp image.tar.gz "s3://$BUCKET/image/$key.tar.gz" --only-show-errors
-          docker save gusto-runner | gzip -1 > image.docker.tar.gz
-          aws s3 cp image.docker.tar.gz "s3://$BUCKET/image/$key.docker.tar.gz" --only-show-errors
-          echo "made the image $key: $(du -h image.tar.gz | cut -f1)"
+        run: deploy/aws/openshell/publish-arm-image.sh
       - name: The bundle
         env:
           BUCKET: ${{ vars.GUSTO_BUCKET }}
@@ -83,13 +103,6 @@ jobs:
           aws s3 cp out/bundle.tgz.sha256 "$prefix/bundle.tgz.sha256" --only-show-errors
           printf '%s' "$GITHUB_SHA" | aws s3 cp - "s3://$BUCKET/releases/latest" --only-show-errors
           echo "release $GITHUB_SHA is the latest"
-      - name: The cell image, when what it is made from changed
-        # A cell starts from an image with the runner image already prepared, named by the key of what went into it. When the key
-        # moved, a cell still starts, from a full install, and a visitor waits minutes for their demo, so the image is made here.
-        # The script does nothing when an image of this key is there.
-        env:
-          BUCKET: ${{ vars.GUSTO_BUCKET }}
-        run: deploy/aws/openshell/bake-cell-image.sh
       - name: gusto cloud, which stays up, brought to this release
         run: |
           id="$(aws ec2 describe-instances --filters Name=tag:project,Values=gusto-live Name=tag:name,Values=front-door Name=instance-state-name,Values=running \

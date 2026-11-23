@@ -58,9 +58,7 @@ describe("a project's page", () => {
     const change = await screen.findByTestId("change-model")
     expect(change.getAttribute("action")).toBe("/instances/atlas-1/model")
     expect(field(change, "model")!.value).toBe("acme/big-1")
-    expect(screen.getByTestId("model").textContent).toContain(
-      "big-1 · $1.00 in, $2.00 out per million tokens"
-    )
+    expect(screen.getByTestId("model").textContent).toContain("Big 1")
     unmount()
     draw(projectOf({ Models: [{ value: "acme/big-1", label: "big-1" }] }))
     const about = (await screen.findByText("Model")).closest("dl")!

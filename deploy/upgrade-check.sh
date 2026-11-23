@@ -27,10 +27,10 @@ new="$work/gusto-new"
 "$root/web/build.sh"
 (cd "$root" && go build -o "$new" ./cmd/gusto)
 
-# stores is where the binary given reads its data in $data. A published release reads each store from a setting of its own,
-# its tasks from GUSTO_JOBS; this checkout reads them all from GUSTO_DATA, and refuses the old names.
+# stores is where the binary given reads its data in $data. A release from v0.1.0 reads them all from GUSTO_DATA and refuses the
+# old names; an earlier one reads each store from a setting of its own, its tasks from GUSTO_JOBS. The binary's own help says which.
 stores() {
-  if [ "$1" = "$new" ]; then
+  if "$1" help serve 2>/dev/null | grep -q GUSTO_DATA; then
     echo "GUSTO_DATA=$data"
     return
   fi

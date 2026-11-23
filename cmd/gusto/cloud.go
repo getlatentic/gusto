@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"syscall"
@@ -65,11 +66,7 @@ func cloudCommand() int {
 		return fail(err)
 	}
 	defer front.Store.Close()
-	scaler, err := nodeScaler(cfg.scaler, controller)
-	if err != nil {
-		return fail(err)
-	}
-	door := &cloudService{front: front, controller: controller, scaler: scaler}
+	door := &cloudService{front: front, controller: controller}
 	door.startBackground(ctx, cfg.nodes.dir)
 	controlled := door.leadInTurn(ctx, leaderLease)
 	if err := serveCloud(ctx, cfg.front.addr, front); err != nil {
@@ -80,20 +77,14 @@ func cloudCommand() int {
 	return 0
 }
 
-// cloudService is a running gusto cloud: its pages, the controller of the organizations' servers when it starts them, and
-// the scaler of hosts when it starts those.
+// cloudService is a running gusto cloud: its pages, and the controller of the organizations' servers when it starts them.
 type cloudService struct {
 	front      *cloud.Server
 	controller *cloud.Controller
-	scaler     *node.Scaler
 }
 
 // startBackground starts what every gusto cloud server does, leader or not.
 func (d *cloudService) startBackground(ctx context.Context, nodesDir string) {
-	if d.scaler != nil {
-		d.controller.OnWaiting = d.scaler.Wake
-		d.front.Prewarm = d.scaler.Prewarm
-	}
 	if nodesDir != "" && d.controller != nil {
 		d.hearNodes(ctx, nodesDir)
 	}
@@ -135,8 +126,8 @@ func (d *cloudService) leadInTurn(ctx context.Context, ttl time.Duration) <-chan
 	return controlled
 }
 
-// lead runs what one gusto cloud server on the database does while its lease holds: the controller, the demo and quota sweeps and
-// the scaler. The others serve pages and route from the database.
+// lead runs what one gusto cloud server on the database does while its lease holds: the controller and the demo and quota
+// sweeps. The others serve pages and route from the database.
 func (d *cloudService) lead(ctx context.Context, epoch int64) {
 	if d.controller != nil {
 		d.controller.Lead(epoch)
@@ -145,9 +136,6 @@ func (d *cloudService) lead(ctx context.Context, epoch int64) {
 	var wg sync.WaitGroup
 	wg.Go(func() { d.front.RunDemos(ctx, 15*time.Second) })
 	wg.Go(func() { d.front.Store.RunQuotas(ctx, 30*time.Second) })
-	if d.scaler != nil {
-		wg.Go(func() { d.scaler.Run(ctx, 10*time.Second) })
-	}
 	if d.controller != nil {
 		wg.Go(func() { d.controller.Run(ctx, 5*time.Second) })
 	}
@@ -306,12 +294,21 @@ func organizationServers(store *cloud.Store, public *url.URL, cfg cloudSettings)
 	if indexDir == "" {
 		indexDir = filepath.Join(store.Root(), "index")
 	}
-	local := &cloud.LocalNode{}
 	controller := &cloud.Controller{
-		Store: store, Node: local, Command: []string{exe, "serve"}, Env: env, DemoEnv: demoEnv,
+		Store: store, Command: []string{exe, "serve"}, Env: env, DemoEnv: demoEnv,
 		CloudURL: public.Scheme + "://" + public.Host, AppsURL: cloud.AppsAddress(public, cmp.Or(cfg.front.appsDomain, cfg.front.domain)), PortFrom: cfg.servers.portFrom,
 		Wait: serverStartWait, Concurrent: cfg.signup.concurrent, IndexDir: indexDir, InFile: settings.FileHolds,
 	}
+	if cfg.servers.run == "shared" {
+		if cfg.nodes.dir != "" {
+			return nil, errors.New("GUSTO_CLOUD_SERVERS=shared runs every organization's server on this machine, and GUSTO_CLOUD_NODES_DIR names other hosts")
+		}
+		hosted, err := hostedNode(exe, env, store.Root())
+		controller.Node = hosted
+		return controller, err
+	}
+	local := &cloud.LocalNode{}
+	controller.Node = local
 	pool, err := nodePool(cfg.nodes, local)
 	if err != nil || pool == nil {
 		return controller, err
@@ -324,6 +321,22 @@ func organizationServers(store *cloud.Store, public *url.URL, cfg cloudSettings)
 	}
 	controller.Command = []string{shared, "serve"}
 	return controller, nil
+}
+
+// hostedNode is the one process every organization's server runs in, started with the operator's settings and a home of its
+// own under root, where its socket and output are too.
+func hostedNode(exe string, env []string, root string) (*cloud.HostedNode, error) {
+	dir := filepath.Join(root, "shared-servers")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return nil, err
+	}
+	socket := filepath.Join(dir, "host.sock")
+	return &cloud.HostedNode{
+		Command: []string{exe, "shared-servers", "--socket", socket},
+		Env:     append(slices.Clone(env), "HOME="+dir),
+		Socket:  socket,
+		Log:     filepath.Join(dir, "host.log"),
+	}, nil
 }
 
 // operatorEnv reads the settings every organization's server gets. A line is

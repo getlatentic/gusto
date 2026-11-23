@@ -31,8 +31,8 @@ The agent's own conversation name is the gap. `Recorder.Remembered` holds it whi
 
 | Harness | Stream | How it takes up a conversation |
 | --- | --- | --- |
-| claude, codex, hermes, dsh | ACP | `session/resume`, else `session/load`, when the agent advertises one. Otherwise `session/new`. A named session the agent cannot find fails the turn (`acp.open`) |
-| opencode, pi, muse | JSONL | a `resume` argument list in the adapter, with the session id substituted |
+| claude, codex, hermes, dsh, opencode | ACP | `session/resume`, else `session/load`, when the agent advertises one. Otherwise `session/new`. A named session the agent cannot find fails the turn (`acp.open`) |
+| pi, muse | JSONL | a `resume` argument list in the adapter, with the session id substituted |
 
 So the mechanism exists and is already used between turns. What is missing for an interrupted turn is the session id (above), and a harness-side check that its stored conversation still holds the half turn. That check has not been done for any harness. The agent's state directory (`keeps` in the adapter) has to survive the restart as well, which it does on a person's laptop and in a node with its disk, and does not in a box that was thrown away.
 

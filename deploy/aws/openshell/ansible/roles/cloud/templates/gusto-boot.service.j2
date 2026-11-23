@@ -1,15 +1,19 @@
 [Unit]
 Description=Certificate, image, credentials and DNS for a gusto host
-After=network-online.target{{ (' ' + cloud_sandboxes | map('extract', {'container': 'docker.service', 'openshell': 'openshell-gateway.service'}) | join(' ')) if cloud_role != 'orchestrator' else '' }}
+After=network-online.target{{ (' ' + cloud_sandboxes | map('extract', cloud_sandbox_unit) | select | join(' ')) if cloud_role != 'orchestrator' else '' }}
 Wants=network-online.target
-Before=nginx.service gusto-cloud.service gusto-cell.service
+Before=nginx.service {{ cloud_name }}-cloud.service {{ cloud_name }}-cell.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/local/bin/gusto-boot
+# This gusto cloud's own settings, secrets, data and owner, and its programs first on the path.
+Environment=PATH={{ cloud_bin }}:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+Environment=GUSTO_CONF={{ cloud_etc }}/host.conf GUSTO_RUN={{ cloud_rundir }} GUSTO_LIB={{ cloud_lib }} GUSTO_OWNER={{ cloud_user }}
+Environment=CREDENTIALS={{ cloud_libexec }}/credentials.sh
+ExecStart={{ cloud_bin }}/gusto-boot
 {% if cloud_role != 'cell' and not cloud_live | bool %}
-ExecStop=/usr/local/bin/gusto-dns -zone {{ cloud_zone }} -name {{ cloud_domain }} -remove -token-file /run/gusto/secrets/cf-dns-token
+ExecStop={{ cloud_bin }}/gusto-dns -zone {{ cloud_zone }} -name {{ cloud_domain }} -remove -token-file {{ cloud_rundir }}/secrets/cf-dns-token
 {% endif %}
 TimeoutStartSec=900
 

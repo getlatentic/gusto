@@ -104,6 +104,10 @@ data "aws_ssm_parameter" "ubuntu" {
   name = "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id"
 }
 
+data "aws_ssm_parameter" "ubuntu_arm" {
+  name = "/aws/service/canonical/ubuntu/server/24.04/stable/current/arm64/hvm/ebs-gp3/ami-id"
+}
+
 resource "aws_launch_template" "host" {
   name                                 = local.host
   image_id                             = data.aws_ssm_parameter.ubuntu.value
@@ -150,30 +154,13 @@ locals {
   hosts = {
     orchestrator = { type = var.orchestrator_instance_type, nested = false, project = "gusto" }
     cell         = { type = var.cell_instance_type, nested = true, project = "gusto" }
-    # The cells the live front door starts. They are tagged for it alone, so the workflows that remove a cloud's
-    # hosts never reach them, and it never reaches theirs.
-    cell-live = { type = var.cell_live_instance_type, nested = true, project = "gusto-live" }
-  }
-}
-
-# The image a cell of the live front door is started from. It begins as Ubuntu's, so a cell starts as it always did, and
-# bake-cell-image.sh puts the image it makes here, which is read each time a host is started and so needs no change to this stack.
-resource "aws_ssm_parameter" "cell_image" {
-  name        = "/gusto/cell-ami"
-  description = "The image a cell of the live front door is started from, made by bake-cell-image.sh"
-  type        = "String"
-  data_type   = "aws:ec2:image"
-  value       = data.aws_ssm_parameter.ubuntu.value
-
-  lifecycle {
-    ignore_changes = [value]
   }
 }
 
 resource "aws_launch_template" "role" {
   for_each                             = local.hosts
   name                                 = "${local.host}-${each.key}"
-  image_id                             = each.key == "cell-live" ? "resolve:ssm:${aws_ssm_parameter.cell_image.name}" : data.aws_ssm_parameter.ubuntu.value
+  image_id                             = data.aws_ssm_parameter.ubuntu.value
   instance_type                        = each.value.type
   instance_initiated_shutdown_behavior = "terminate"
   vpc_security_group_ids               = [aws_security_group.host.id]
@@ -200,10 +187,6 @@ resource "aws_launch_template" "role" {
       volume_size           = 40
       volume_type           = "gp3"
       delete_on_termination = true
-      # A disk made from the image of a cell is read from its snapshot a block at a time, and is read whole to start the first sandbox. A
-      # host of a cell is given the throughput to be read in many streams, which is about five cents an hour while it runs.
-      iops       = each.key == "cell-live" ? 6000 : null
-      throughput = each.key == "cell-live" ? 500 : null
     }
   }
 
@@ -218,16 +201,13 @@ resource "aws_launch_template" "role" {
   }
 }
 
-# ── The front door that stays up ─────────────────────────────────────────────
+# ── The gusto cloud that stays up ────────────────────────────────────────────
 
-# It runs gusto cloud: nginx and the certificate, the front door, and the scaler that starts a host for a cell when
-# an organization needs one. Its role is its own and is the only one that may start and stop hosts, which it may only
-# when they are tagged for it, so a cell, which runs other people's code, can start nothing.
+# It runs all of gusto cloud on one host: nginx and the certificate, the front door, every organization's server in one
+# process, and their agents in containers. Its role reads the parameters and keeps what it must in the bucket.
 locals {
-  live      = "gusto-front-door"
-  live_tag  = "gusto-live"
-  ec2_arn   = "arn:aws:ec2:${var.region}:${local.account}"
-  cell_live = aws_launch_template.role["cell-live"]
+  live     = "gusto-front-door"
+  live_tag = "gusto-live"
 }
 
 resource "aws_iam_role" "live" {
@@ -248,7 +228,7 @@ resource "aws_iam_role_policy_attachment" "live_ssm" {
 }
 
 resource "aws_iam_role_policy" "live" {
-  name = "${local.live}-reads-keeps-and-scales-its-cells"
+  name = "${local.live}-reads-and-keeps"
   role = aws_iam_role.live.id
   policy = jsonencode({
     Version = "2012-10-17"
@@ -256,54 +236,6 @@ resource "aws_iam_role_policy" "live" {
       { Effect = "Allow", Action = ["ssm:GetParameter", "ssm:GetParameters"], Resource = local.ssm_path },
       { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject"], Resource = "${local.bucket}/*" },
       { Effect = "Allow", Action = ["s3:ListBucket"], Resource = local.bucket },
-      {
-        Sid       = "StartCellsTaggedForTheLiveFrontDoor"
-        Effect    = "Allow"
-        Action    = "ec2:RunInstances"
-        Resource  = ["${local.ec2_arn}:instance/*", "${local.ec2_arn}:volume/*"]
-        Condition = { StringEquals = { "aws:RequestTag/project" = local.live_tag } }
-      },
-      {
-        Sid    = "FromTheLiveCellTemplateOnly"
-        Effect = "Allow"
-        Action = "ec2:RunInstances"
-        Resource = [
-          "${local.ec2_arn}:launch-template/${local.cell_live.id}",
-          "${local.ec2_arn}:subnet/*",
-          "${local.ec2_arn}:network-interface/*",
-          "${local.ec2_arn}:security-group/${aws_security_group.host.id}",
-          "arn:aws:ec2:${var.region}::image/*",
-          "${local.ec2_arn}:image/*",
-          "arn:aws:ec2:${var.region}::snapshot/*",
-          "${local.ec2_arn}:snapshot/*",
-        ]
-      },
-      { Sid = "Tag", Effect = "Allow", Action = "ec2:CreateTags", Resource = "*", Condition = { StringEquals = { "ec2:CreateAction" = "RunInstances" } } },
-      { Sid = "GiveACellItsRole", Effect = "Allow", Action = "iam:PassRole", Resource = aws_iam_role.host.arn, Condition = { StringEquals = { "iam:PassedToService" = "ec2.amazonaws.com" } } },
-      { Sid = "Look", Effect = "Allow", Action = ["ec2:DescribeInstances", "ec2:DescribeInstanceStatus", "ec2:DescribeVolumes"], Resource = "*" },
-      {
-        Sid       = "StopOnlyWhatItStarted"
-        Effect    = "Allow"
-        Action    = "ec2:TerminateInstances"
-        Resource  = "${local.ec2_arn}:instance/*"
-        Condition = { StringEquals = { "ec2:ResourceTag/project" = local.live_tag, "ec2:ResourceTag/scaler" = "on" } }
-      },
-      {
-        # A kept cell is stopped when idle, and given today's start-up script before it is started again.
-        Sid       = "KeepOnlyWhatItStarted"
-        Effect    = "Allow"
-        Action    = ["ec2:StartInstances", "ec2:StopInstances", "ec2:ModifyInstanceAttribute"]
-        Resource  = "${local.ec2_arn}:instance/*"
-        Condition = { StringEquals = { "ec2:ResourceTag/project" = local.live_tag, "ec2:ResourceTag/scaler" = "on" } }
-      },
-      {
-        # A kept cell's root disk is taken down to the baseline throughput when it is first stopped.
-        Sid       = "LowerOnlyTheDisksOfItsCells"
-        Effect    = "Allow"
-        Action    = "ec2:ModifyVolume"
-        Resource  = "${local.ec2_arn}:volume/*"
-        Condition = { StringEquals = { "ec2:ResourceTag/project" = local.live_tag } }
-      },
     ]
   })
 }
@@ -322,12 +254,12 @@ resource "aws_eip" "live" {
   tags   = { project = local.live_tag, name = "front-door" }
 }
 
-# It is started from the bundle like any host and keeps up to date by running the script again (gusto-upgrade). Its
-# disk holds the accounts database and the task index (cloud.db and index/ under /var/lib/gusto) and everything else
-# is on the file system or in the bucket, so replacing it takes a copy of those two. It is stopped, not removed, if it
-# is powered off.
+# It is started from the bundle like any host and keeps up to date by running the script again (gusto-upgrade). Its disk
+# holds everything of gusto cloud: the accounts database, the task index and every organization's data under
+# /var/lib/gusto and /var/lib/gusto-cloud, so replacing it takes a copy of those. It is Arm, which costs less for the
+# same memory, and it is stopped, not removed, if it is powered off.
 resource "aws_instance" "live" {
-  ami                                  = data.aws_ssm_parameter.ubuntu.value
+  ami                                  = data.aws_ssm_parameter.ubuntu_arm.value
   instance_type                        = var.front_door_instance_type
   iam_instance_profile                 = aws_iam_instance_profile.live.name
   vpc_security_group_ids               = [aws_security_group.host.id]
@@ -338,8 +270,9 @@ resource "aws_instance" "live" {
     http_put_response_hop_limit = 1
   }
 
+  # The organizations' data, the runner image and each person's kept home in a container are all on this disk.
   root_block_device {
-    volume_size = 10
+    volume_size = 20
     volume_type = "gp3"
   }
 
@@ -347,7 +280,7 @@ resource "aws_instance" "live" {
   # start, and what it was started with is kept on the host for the upgrades after.
   user_data = join("\n", [
     "#!/bin/bash",
-    "export RELEASE=latest BUCKET=${var.bucket} REGION=${var.region} ROLE=orchestrator RUN=live EFS=${aws_efs_file_system.shared.id} LIVE=on LEASE_MINUTES=30 MAX_HOURS=24",
+    "export RELEASE=latest BUCKET=${var.bucket} REGION=${var.region} ROLE=all RUN= EFS= LIVE=on LEASE_MINUTES=30 MAX_HOURS=24 SERVERS=shared SANDBOX=container COMPUTER_MEMORY=${var.front_door_computer_memory} DATABASE=postgres",
     file("${path.module}/user-data.sh"),
   ])
   tags = { project = local.live_tag, name = "front-door" }
@@ -444,62 +377,6 @@ resource "aws_iam_role" "ci" {
   }
 }
 
-# Making a cell's image when what it is made from changes, as bake-cell-image.sh does: a host from the live cell template, an image of
-# it once it is stopped, the parameter the template reads pointed at the image, and the image before last removed. Each action is
-# held to what is tagged for the project, and the parameter to the one the cell template reads.
-resource "aws_iam_role_policy" "ci_bake" {
-  name = "${local.ci}-makes-the-cell-image"
-  role = aws_iam_role.ci.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "StartABakeHostFromTheLiveCellTemplate"
-        Effect = "Allow"
-        Action = "ec2:RunInstances"
-        Resource = [
-          "arn:aws:ec2:${var.region}:${local.account}:launch-template/${local.cell_live.id}",
-          "arn:aws:ec2:${var.region}:${local.account}:snapshot/*",
-          "arn:aws:ec2:${var.region}::snapshot/*",
-        ]
-      },
-      {
-        Sid       = "StopAndImageOnlyTaggedHosts"
-        Effect    = "Allow"
-        Action    = ["ec2:StopInstances", "ec2:CreateImage"]
-        Resource  = "arn:aws:ec2:${var.region}:${local.account}:instance/*"
-        Condition = { StringEquals = { "ec2:ResourceTag/project" = "gusto" } }
-      },
-      {
-        Sid      = "TheImageAndItsSnapshot"
-        Effect   = "Allow"
-        Action   = "ec2:CreateImage"
-        Resource = ["arn:aws:ec2:${var.region}::image/*", "arn:aws:ec2:${var.region}::snapshot/*"]
-      },
-      { Sid = "TagTheImage", Effect = "Allow", Action = "ec2:CreateTags", Resource = "*", Condition = { StringEquals = { "ec2:CreateAction" = "CreateImage" } } },
-      {
-        Sid       = "RemoveOnlyTaggedImages"
-        Effect    = "Allow"
-        Action    = ["ec2:DeregisterImage", "ec2:DeleteSnapshot"]
-        Resource  = ["arn:aws:ec2:${var.region}::image/*", "arn:aws:ec2:${var.region}::snapshot/*"]
-        Condition = { StringEquals = { "ec2:ResourceTag/project" = "gusto" } }
-      },
-      { Sid = "LookAtImagesAndTheFileSystem", Effect = "Allow", Action = ["ec2:DescribeImages", "elasticfilesystem:DescribeFileSystems"], Resource = "*" },
-      {
-        Sid    = "ReadTheUbuntuImageAndTheCellImage"
-        Effect = "Allow"
-        # A launch template that names its image by parameter is read with GetParameters when a host is launched from it.
-        Action = ["ssm:GetParameter", "ssm:GetParameters"]
-        Resource = [
-          "arn:aws:ssm:${var.region}::parameter/aws/service/canonical/ubuntu/*",
-          local.ssm_path,
-        ]
-      },
-      { Sid = "PointTheCellTemplateAtTheImage", Effect = "Allow", Action = "ssm:PutParameter", Resource = "arn:aws:ssm:${var.region}:${local.account}:parameter/gusto/cell-ami" },
-    ]
-  })
-}
-
 resource "aws_iam_role_policy" "ci" {
   name = "${local.ci}-launches-and-removes-hosts"
   role = aws_iam_role.ci.id
@@ -534,6 +411,8 @@ resource "aws_iam_role_policy" "ci" {
       { Sid = "Tag", Effect = "Allow", Action = "ec2:CreateTags", Resource = "*", Condition = { StringEquals = { "ec2:CreateAction" = "RunInstances" } } },
       { Sid = "GiveTheHostItsRole", Effect = "Allow", Action = "iam:PassRole", Resource = aws_iam_role.host.arn, Condition = { StringEquals = { "iam:PassedToService" = "ec2.amazonaws.com" } } },
       { Sid = "Look", Effect = "Allow", Action = ["ec2:DescribeInstances", "ec2:DescribeInstanceStatus", "ec2:DescribeLaunchTemplates", "ec2:DescribeLaunchTemplateVersions", "ssm:DescribeInstanceInformation", "ssm:GetCommandInvocation"], Resource = "*" },
+      # The name a client demo's host is given, which cloud up waits on. No secret is under it.
+      { Sid = "ReadTheDemoName", Effect = "Allow", Action = "ssm:GetParameter", Resource = "arn:aws:ssm:${var.region}:${local.account}:parameter/gusto/demo-config" },
       {
         Sid      = "RemoveOnlyWhatIsTagged"
         Effect   = "Allow"

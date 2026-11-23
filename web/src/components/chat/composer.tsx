@@ -35,10 +35,12 @@ export function Composer({
   describedBy,
   autoFocus,
   canSend,
+  sendLabel = "Send",
   onWrite,
   boxRef,
   tools,
   actions,
+  send,
   below,
   className,
 }: {
@@ -51,10 +53,14 @@ export function Composer({
   describedBy?: string
   autoFocus?: boolean
   canSend: boolean
+  // sendLabel is what the send button says it does, as Send now does while a reply is being written.
+  sendLabel?: string
   onWrite?: (text: string) => void
   boxRef?: Ref<HTMLTextAreaElement>
   tools?: ReactNode
   actions?: ReactNode
+  // send, when it is given, takes the send button's place, as Stop does while a reply is being written.
+  send?: ReactNode
   below?: ReactNode
   className?: string
 }) {
@@ -90,17 +96,19 @@ export function Composer({
         {tools}
         <span className="flex-1" />
         {actions}
-        <Button
-          type="submit"
-          data-testid="send"
-          size="icon-sm"
-          className="rounded-full"
-          disabled={!canSend}
-          aria-label="Send"
-          title="Send"
-        >
-          <ArrowUpIcon />
-        </Button>
+        {send ?? (
+          <Button
+            type="submit"
+            data-testid="send"
+            size="icon-sm"
+            className="rounded-full"
+            disabled={!canSend}
+            aria-label={sendLabel}
+            title={sendLabel}
+          >
+            <ArrowUpIcon />
+          </Button>
+        )}
       </div>
       {below}
     </fieldset>

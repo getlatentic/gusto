@@ -42,9 +42,13 @@ func (a *Agent) Run(ctx context.Context, listen, dir string, every time.Duration
 			shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			server.Shutdown(shutdown)
 			cancel()
+			grace := a.Grace
+			if grace <= 0 {
+				grace = 30 * time.Second
+			}
 			var stopping sync.WaitGroup
 			for _, slug := range a.Servers.Running() {
-				stopping.Go(func() { a.Servers.Stop(slug, orDefault(a.Grace, 30*time.Second)) })
+				stopping.Go(func() { a.Servers.Stop(slug, grace) })
 			}
 			stopping.Wait()
 			return Unregister(dir, a.Name)

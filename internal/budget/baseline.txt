@@ -15,8 +15,6 @@
 27 12 deploy/aws/openshell/host/dns/main.go:run
 36 14 internal/acp/wire.go:(*conn).call
 32 14 internal/apitoken/store.go:(*Store).Check
-31 11 internal/node/keep.go:(*Scaler).sweep
-39 13 internal/node/scaler.go:(*Scaler).Tick
 35 13 internal/cloud/accounts.go:(*Store).signUpIn
 21 15 internal/cloud/address.go:NormalEmail
 41 11 internal/cloud/mail_cloudflare.go:(Cloudflare).once
@@ -79,7 +77,6 @@
 37 15 internal/roomwork/lines.go:mergeLines
 25 11 internal/roomwork/lines.go:shortestEdit
 32 21 internal/roomwork/plan.go:(*Turn).plan
-44 11 internal/runner/converse.go:converse
 28 12 internal/runner/recorder.go:(*Recorder).Out
 29 14 internal/runtoken/dpop.go:(*replays).checkProof
 33 11 internal/setup/history.go:(*Store).archive

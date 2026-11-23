@@ -1,5 +1,5 @@
 // Package operator is the page the operator of a hosted gusto manages it from: who asked for a demo, which demos are running,
-// whether new ones are being accepted, and which hosts are up. It is its own program, listening only on this machine's
+// and whether new ones are being accepted. It is its own program, listening only on this machine's
 // loopback, so that nothing the gusto cloud serves reaches it; the operator reaches it through a tunnel they are allowed to
 // open.
 package operator
@@ -18,26 +18,18 @@ import (
 	"time"
 
 	"github.com/getlatentic/gusto/internal/cloud"
-	"github.com/getlatentic/gusto/internal/node"
 	"github.com/getlatentic/gusto/internal/web"
 )
-
-// Hosts lists the hosts that run organizations' servers.
-type Hosts interface {
-	Running() ([]node.Instance, error)
-}
 
 // App is the operator's pages over the gusto cloud's own records.
 type App struct {
 	Store *cloud.Store
-	// Hosts is nil where hosts are not started on demand.
-	Hosts Hosts
 	Now   func() time.Time
 }
 
 // New is the operator's pages over a gusto cloud's store.
-func New(store *cloud.Store, hosts Hosts) *App {
-	return &App{Store: store, Hosts: hosts, Now: time.Now}
+func New(store *cloud.Store) *App {
+	return &App{Store: store, Now: time.Now}
 }
 
 // Handler serves the pages to requests that came to this machine's own loopback address, and to no others.

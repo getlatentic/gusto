@@ -3,4 +3,5 @@ Description=Power off a gusto host whose lease has ended
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/gusto-lease-reaper
+Environment=GUSTO_CONF={{ cloud_etc }}/host.conf GUSTO_LEASE_FILE={{ cloud_lib }}/lease.json GUSTO_BEAT_FILE={{ cloud_state }}/cells/orchestrator.beat
+ExecStart={{ cloud_bin }}/gusto-lease-reaper

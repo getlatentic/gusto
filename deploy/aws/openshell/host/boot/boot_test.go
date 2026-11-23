@@ -17,6 +17,7 @@ const script = "../../ansible/roles/cloud/files/gusto-boot"
 var fakes = map[string]string{
 	"gusto": `#!/bin/bash
 echo "gusto $*" >> "$FAKE_LOG"
+[ -z "${GUSTO_PARAM_DIR:-}" ] || echo "read from $GUSTO_PARAM_DIR" >> "$FAKE_LOG"
 [ "$1" = param ] || { echo "unexpected: $*" >&2; exit 2; }
 case " $FAKE_MISSING " in *" $2 "*) echo "gusto param: there is no parameter $2" >&2; exit 1;; esac
 echo "value-of-$2"`,
@@ -43,6 +44,17 @@ case "$*" in *-X\ PUT*) echo token;; *public-ipv4*) echo 203.0.113.7;; *local-ip
 	// Docker's images are files named by tag in a directory beside the store.
 	"docker": `#!/bin/bash
 echo "docker $*" >> "$FAKE_LOG"
+tags=$FAKE_STORE/../docker; mkdir -p "$tags"
+case "$1" in
+image) [ -e "$tags/${3#gusto-runner:}" ];;
+load) [ -f "$4" ] && touch "$tags/latest";;
+tag) touch "$tags/${3#gusto-runner:}";;
+images) ls "$tags";;
+rmi) rm "$tags/${2#gusto-runner:}";;
+*) echo "unexpected: $*" >&2; exit 2;;
+esac`,
+	"podman": `#!/bin/bash
+echo "podman $*" >> "$FAKE_LOG"
 tags=$FAKE_STORE/../docker; mkdir -p "$tags"
 case "$1" in
 image) [ -e "$tags/${3#gusto-runner:}" ];;
@@ -347,5 +359,43 @@ func TestTheFirstBootStartsTheLeaseAndALaterOneDoesNotGiveMoreTime(t *testing.T)
 	}
 	if again, _ := leaseOf(t, h); again != deadline+1800 {
 		t.Errorf("a second boot changed the lease: %d, wanted %d", again, deadline+1800)
+	}
+}
+
+// A host off AWS reads its parameters from files, has no bucket and so fetches nothing, uses the runner image it built with podman,
+// and points the name at the address it is given, and not at all with POINT_NAME=off. Without the image it says so and stops.
+func TestAHostOffAWSReadsItsSecretsFromFilesFetchesNothingAndPointsTheNameAtItsAddress(t *testing.T) {
+	h := newHost(t)
+	os.WriteFile(h.conf, []byte(strings.Replace(mustRead(t, h.conf), "BUCKET=store", "BUCKET=", 1)+
+		"SANDBOXES=container\nCONTAINER=podman\nPARAM_DIR=/etc/gusto/params\nPUBLIC_IP=198.51.100.9\nLIVE=on\n"), 0o644)
+	if _, err := h.boot(); err == nil {
+		t.Error("a host without its runner image started")
+	}
+	tags := filepath.Join(h.store, "..", "docker")
+	os.MkdirAll(tags, 0o755)
+	os.WriteFile(filepath.Join(tags, "key1"), nil, 0o644)
+	os.WriteFile(filepath.Join(tags, "old"), nil, 0o644)
+	done, err := h.boot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	all := strings.Join(done, "\n")
+	for _, want := range []string{"read from /etc/gusto/params", "podman rmi gusto-runner:old",
+		"gusto-dns -zone example.com -name gusto.example.com -ip 198.51.100.9"} {
+		if !strings.Contains(all, want) {
+			t.Errorf("%q was not done:\n%s", want, all)
+		}
+	}
+	for _, line := range done {
+		if strings.HasPrefix(line, "aws ") || strings.HasPrefix(line, "docker ") || strings.HasPrefix(line, "podman load") {
+			t.Errorf("a host off AWS did %s", line)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(h.dir, "lease", "lease.json")); err == nil {
+		t.Error("a host that stays up was given a lease")
+	}
+	done, err = h.boot("POINT_NAME=off")
+	if err != nil || count(done, "gusto-dns ") != 0 {
+		t.Errorf("the name was pointed with POINT_NAME=off: %v %v", err, done)
 	}
 }

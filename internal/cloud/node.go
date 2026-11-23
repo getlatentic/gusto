@@ -76,6 +76,11 @@ func (l *LocalNode) Host() string   { return "127.0.0.1" }
 func (l *LocalNode) Listen() string { return "127.0.0.1" }
 
 func (l *LocalNode) Ports(from int, taken map[int]bool) (server, proxy int, err error) {
+	return freePorts(from, taken)
+}
+
+// freePorts is two ports free on this machine, from the first up, that are not in taken.
+func freePorts(from int, taken map[int]bool) (server, proxy int, err error) {
 	var found []int
 	for port := from; port < from+20000 && len(found) < 2; port++ {
 		if !taken[port] && free(port) {

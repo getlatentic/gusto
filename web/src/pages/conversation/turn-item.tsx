@@ -1,4 +1,5 @@
 import { InfoIcon, UserIcon } from "lucide-react"
+import type { ReactNode } from "react"
 
 import { AgentMark } from "@/components/controls"
 import { ownerWords } from "@/domain/live-room"
@@ -28,12 +29,15 @@ function meta(turn: TurnView, reply: boolean): string {
 }
 
 // TurnItem is one turn of a conversation: what was said, and the agent's reply to it; or a note or notice of a room.
+// live, when it is given, is what a reply still being written has done so far, drawn in place of the plain word that it works.
 export function TurnItem({
   turn,
   progress,
+  live,
 }: {
   turn: TurnView
   progress?: string
+  live?: ReactNode
 }) {
   return (
     <article
@@ -51,7 +55,9 @@ export function TurnItem({
       ) : (
         <>
           {turn.ShowSaid && <Said turn={turn} />}
-          {turn.Kind === "turn" && <Reply turn={turn} progress={progress} />}
+          {turn.Kind === "turn" && (
+            <Reply turn={turn} progress={progress} live={live} />
+          )}
         </>
       )}
     </article>
@@ -141,7 +147,15 @@ function Said({ turn }: { turn: TurnView }) {
 const escapeText = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
-function Reply({ turn, progress }: { turn: TurnView; progress?: string }) {
+function Reply({
+  turn,
+  progress,
+  live,
+}: {
+  turn: TurnView
+  progress?: string
+  live?: ReactNode
+}) {
   const { page, admin, openFile } = useConversation()
   return (
     <div
@@ -165,20 +179,23 @@ function Reply({ turn, progress }: { turn: TurnView; progress?: string }) {
         </time>
       ) : (
         <>
-          <span
-            className="row-span-2 grid size-8 place-items-center overflow-hidden rounded-full bg-sunken text-xs font-medium text-muted-foreground"
-            aria-hidden="true"
-          >
-            {turn.Mark ? (
+          {turn.Mark ? (
+            <span className="row-span-2 grid size-8" aria-hidden="true">
               <AgentMark
                 mark={turn.Mark}
                 markDark={turn.MarkDark}
                 name={turn.By}
+                size="size-8"
               />
-            ) : (
-              initial(turn.By)
-            )}
-          </span>
+            </span>
+          ) : (
+            <span
+              className="row-span-2 grid size-8 place-items-center rounded-full bg-sunken text-xs font-medium text-muted-foreground"
+              aria-hidden="true"
+            >
+              {initial(turn.By)}
+            </span>
+          )}
           <p className={label}>
             <span className="truncate" title={turn.Role || undefined}>
               {turn.By}
@@ -206,7 +223,7 @@ function Reply({ turn, progress }: { turn: TurnView; progress?: string }) {
         {turn.Done ? (
           <ReplyResult turn={turn} page={page} admin={admin} />
         ) : (
-          <Working turn={turn} progress={progress} />
+          (live ?? <Working turn={turn} progress={progress} />)
         )}
       </div>
       {turn.Done && turn.Files && (
@@ -230,7 +247,6 @@ function textOf(html: string): string {
 
 // Working is a reply still being written: why it waits, or what it is doing now, and the way to stop it.
 function Working({ turn, progress }: { turn: TurnView; progress?: string }) {
-  const { page, stop } = useConversation()
   return (
     <div className="flex items-center gap-2 text-sm text-muted-foreground">
       {turn.Holding ? (
@@ -252,23 +268,31 @@ function Working({ turn, progress }: { turn: TurnView; progress?: string }) {
           </span>
         </>
       )}
-      <form
-        method="post"
-        action={withBase(`/jobs/${encodeURIComponent(turn.ID)}/stop`)}
-        className="m-0 ml-2 flex-none"
-        onSubmit={(event) => {
-          event.preventDefault()
-          stop(turn.ID, event.currentTarget)
-        }}
-      >
-        <input type="hidden" name="back" value={page.Path} />
-        <button
-          type="submit"
-          className="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-foreground hover:underline"
-        >
-          Stop
-        </button>
-      </form>
+      <StopButton job={turn.ID} />
     </div>
+  )
+}
+
+// StopButton stops the job writing a reply, for a room, whose message box has no Stop.
+function StopButton({ job }: { job: string }) {
+  const { page, stop } = useConversation()
+  return (
+    <form
+      method="post"
+      action={withBase(`/jobs/${encodeURIComponent(job)}/stop`)}
+      className="m-0 ml-2 flex-none"
+      onSubmit={(event) => {
+        event.preventDefault()
+        stop(job, event.currentTarget)
+      }}
+    >
+      <input type="hidden" name="back" value={page.Path} />
+      <button
+        type="submit"
+        className="cursor-pointer border-0 bg-transparent p-0 text-xs text-subtle underline-offset-2 hover:text-foreground hover:underline"
+      >
+        Stop
+      </button>
+    </form>
   )
 }

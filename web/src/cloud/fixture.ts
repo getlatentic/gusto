@@ -78,7 +78,6 @@ export function operatorPage(set: Partial<OperatorView> = {}): OperatorView {
     LimitsSet: false,
     Limits: { perDay: 20, perPerson: 0, perCompany: 3, maxOrgs: 1 },
     Running: null,
-    Hosts: { Known: false, Error: "", Rows: null },
     Leads: null,
     Contacts: null,
     ...set,

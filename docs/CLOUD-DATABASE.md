@@ -63,7 +63,7 @@ A rule that checks a count and then writes is a transaction. SQLite takes the wr
 
 ## One gusto cloud server leads
 
-Every gusto cloud server serves pages and sign-ups. One at a time leads, and only the leader runs the controller (provisioning and supervising organizations' servers), the demo sweep and the scaler. The others route a request for an organization to where the leader started its server, read from `runtime` and kept for a second. An organization signed up on a gusto cloud server that does not lead has no runtime until the leader finds it, within one supervision round.
+Every gusto cloud server serves pages and sign-ups. One at a time leads, and only the leader runs the controller (provisioning and supervising organizations' servers), and the demo sweep. The others route a request for an organization to where the leader started its server, read from `runtime` and kept for a second. An organization signed up on a gusto cloud server that does not lead has no runtime until the leader finds it, within one supervision round.
 
 The leader renews its lease every 10 seconds, a third of its 30-second life. A gusto cloud server that stops gives the lease up, and another takes it at once; one that is killed keeps it until it runs out. `spec/CloudServers.tla` is the model TLC checks, with a leader that pauses past its lease.
 

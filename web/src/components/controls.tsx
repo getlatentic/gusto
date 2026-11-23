@@ -42,15 +42,18 @@ export function LinkTabs({
   )
 }
 
-// AgentMark is an agent type's logo, the dark one on a dark page when its owner publishes one, or its initial.
+// AgentMark is an agent type's logo, the dark one on a dark page when its owner publishes one, or its initial. A logo is drawn
+// as its owner made it, with nothing around it; size is its box, which it fills keeping its shape.
 export function AgentMark({
   mark,
   markDark,
   name,
+  size = "size-3.5",
 }: {
   mark: string
   markDark: string
   name: string
+  size?: string
 }) {
   if (!mark) {
     return (
@@ -66,7 +69,8 @@ export function AgentMark({
     <>
       <img
         className={cn(
-          "size-3.5 flex-none object-contain",
+          size,
+          "flex-none object-contain",
           markDark && "dark:hidden"
         )}
         src={withBase(mark)}
@@ -75,7 +79,7 @@ export function AgentMark({
       />
       {markDark && (
         <img
-          className="hidden size-3.5 flex-none object-contain dark:block"
+          className={cn(size, "hidden flex-none object-contain dark:block")}
           src={withBase(markDark)}
           alt=""
           aria-hidden="true"

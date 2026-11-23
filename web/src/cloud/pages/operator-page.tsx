@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table"
 
 // OperatorPage is where the operator of a hosted gusto manages it: whether new demos are taken, how many may start, which are
-// running, the hosts that are up, and who asked for one.
+// running, and who asked for one.
 export function OperatorPage({ page }: { page: OperatorView }) {
   return (
     <div className="min-h-dvh bg-background">
@@ -38,7 +38,6 @@ export function OperatorPage({ page }: { page: OperatorView }) {
         <Pause paused={page.Paused} />
         <Limits page={page} />
         <Running rows={page.Running ?? []} />
-        <Hosts hosts={page.Hosts} />
         <Leads leads={page.Leads ?? []} />
         <Contacts contacts={page.Contacts ?? []} />
       </main>
@@ -212,33 +211,6 @@ function Running({ rows }: { rows: NonNullable<OperatorView["Running"]> }) {
         />
       ) : (
         <Quiet>No demo is running.</Quiet>
-      )}
-    </>
-  )
-}
-
-function Hosts({ hosts }: { hosts: OperatorView["Hosts"] }) {
-  const rows = hosts.Rows ?? []
-  return (
-    <>
-      <Heading>Hosts</Heading>
-      {hosts.Error ? (
-        <p className="m-0 rounded-md bg-bad-wash px-4 py-3 text-sm text-bad">
-          The hosts could not be listed: {hosts.Error}
-        </p>
-      ) : !hosts.Known ? (
-        <Quiet>Hosts are not started on demand here.</Quiet>
-      ) : rows.length ? (
-        <Rows
-          testId="hosts"
-          heads={["Host", "Up since"]}
-          rows={rows.map((row) => ({ key: row.ID, cells: [row.ID, row.Up] }))}
-        />
-      ) : (
-        <Quiet>
-          No host is running for organizations. One starts when a demo is asked
-          for.
-        </Quiet>
       )}
     </>
   )

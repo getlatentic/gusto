@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
+	"sync/atomic"
 )
 
 // message is any JSON-RPC line: a request carries a method and an id, a
@@ -28,12 +30,17 @@ func (e *rpcError) Error() string { return fmt.Sprintf("%s (%d)", e.Message, e.C
 // conn is the client end of one agent's stdio. Everything the agent says is
 // handed to keep, except while muted: a loaded session replays its history,
 // and that history belongs to the turns that already recorded it.
+// A cancel is sent from another goroutine than the one reading, so writing is guarded, and once cancelled every permission
+// the agent asks for is answered cancelled, as the protocol has a client do.
 type conn struct {
 	in    io.Writer
 	lines *bufio.Scanner
 	keep  func(line string) error
 	muted bool
 	next  int
+
+	writing   sync.Mutex
+	cancelled atomic.Bool
 }
 
 func newConn(in io.Writer, out io.Reader, keep func(string) error) *conn {
@@ -95,12 +102,23 @@ func (c *conn) kept(line string) error {
 // client offers no files and no terminal, so anything else is refused.
 func (c *conn) serve(asked message) error {
 	reply := map[string]any{"jsonrpc": "2.0", "id": asked.ID}
-	if asked.Method == "session/request_permission" {
+	switch {
+	case asked.Method == "session/request_permission" && c.cancelled.Load():
+		reply["result"] = map[string]any{"outcome": map[string]any{"outcome": "cancelled"}}
+	case asked.Method == "session/request_permission":
 		reply["result"] = map[string]any{"outcome": permit(asked.Params)}
-	} else {
+	default:
 		reply["error"] = rpcError{Code: -32601, Message: "method not found"}
 	}
 	return c.send(reply)
+}
+
+// cancel asks the agent to stop the turn in the session, once. It is a notification: the agent answers by ending the prompt.
+func (c *conn) cancel(session string) {
+	if c.cancelled.Swap(true) {
+		return
+	}
+	_ = c.send(map[string]any{"jsonrpc": "2.0", "method": "session/cancel", "params": map[string]any{"sessionId": session}})
 }
 
 // permit picks the broadest allowing option the agent offered.
@@ -127,6 +145,8 @@ func (c *conn) send(value any) error {
 	if err != nil {
 		return err
 	}
+	c.writing.Lock()
+	defer c.writing.Unlock()
 	_, err = c.in.Write(append(line, '\n'))
 	return err
 }

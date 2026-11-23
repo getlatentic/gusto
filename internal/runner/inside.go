@@ -129,7 +129,13 @@ func (r *inside) agentTurn(ctx context.Context, agent *agent, record *Recorder) 
 	if err != nil {
 		return 0, err
 	}
-	command := r.adapter.CommandIn(ctx, r.spec, r.dir.WorkingFolder(), r.env)
+	life := ctx
+	if r.adapter.Stream == harness.ACP {
+		var end context.CancelFunc
+		life, end = outliving(ctx, cancelGrace)
+		defer end()
+	}
+	command := r.adapter.CommandIn(life, r.spec, r.dir.WorkingFolder(), r.env)
 	if r.env.Wrap != nil {
 		r.env.Wrap(command)
 	}
@@ -140,7 +146,7 @@ func (r *inside) agentTurn(ctx context.Context, agent *agent, record *Recorder) 
 	defer close(released)
 	go func() {
 		select {
-		case <-ctx.Done():
+		case <-life.Done():
 			agent.endAll()
 		case <-released:
 		}

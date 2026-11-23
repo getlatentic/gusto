@@ -45,8 +45,14 @@ function useEnded(task: string, onEnded: () => void) {
 }
 
 // RunningReply is the reply of a conversation that is still being written: what it is doing now, how long it has taken, and
-// everything it has said and done so far, as it came.
-export function RunningReply({ page }: { page: ConversationData }) {
+// everything it has said and done so far, as it came. inTurn is that it is drawn in its turn; the message box stops it.
+export function RunningReply({
+  page,
+  inTurn,
+}: {
+  page: ConversationData
+  inTurn?: boolean
+}) {
   const refreshAll = useRefreshAll()
   const [started] = useState(() => Date.now())
   const [now, setNow] = useState(started)
@@ -66,12 +72,14 @@ export function RunningReply({ page }: { page: ConversationData }) {
   )
   const steps = items.filter((item) => item.kind === "step")
   const latest = steps[steps.length - 1]
-  const doing = live?.holding || page.Holding || latest?.what || "Working"
+  // What the page said when it was drawn holds only until the live state comes: a turn that was waiting may have started since.
+  const holding = live ? live.holding : page.Holding
+  const doing = holding || latest?.what || "Working"
   return (
     <section
       ref={done}
       aria-label="The reply so far"
-      className="mt-5 ml-10.5 grid gap-3"
+      className={cn("grid gap-3", !inTurn && "mt-5 ml-10.5")}
     >
       <p className="m-0 flex items-center gap-3 text-sm font-medium">
         <span

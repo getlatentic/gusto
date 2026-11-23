@@ -92,12 +92,21 @@ func modelName(model string) string {
 	if known, found := knownModels[model]; found {
 		return known
 	}
-	if _, alone, found := strings.Cut(model, "."); found {
-		model = alone
-	}
-	words := strings.FieldsFunc(model, func(r rune) bool { return r == '-' || r == '_' || r == ':' })
+	words := strings.FieldsFunc(withoutVendor(model), func(r rune) bool { return r == '-' || r == '_' || r == ':' })
 	for i, word := range words {
 		words[i] = strings.ToUpper(word[:1]) + word[1:]
 	}
 	return strings.Join(words, " ")
+}
+
+// withoutVendor is a model id without the vendors Bedrock puts before it, such as google. or us.anthropic., which are words
+// of letters alone, so the dot of a version such as 1.3 stays.
+func withoutVendor(model string) string {
+	for {
+		vendor, rest, found := strings.Cut(model, ".")
+		if !found || vendor == "" || strings.Trim(vendor, "abcdefghijklmnopqrstuvwxyz") != "" {
+			return model
+		}
+		model = rest
+	}
 }

@@ -8,6 +8,34 @@ A tag needs a section here named for it, or the release workflow stops and copie
 
 **Added**
 
+- `GUSTO_CLOUD_SERVERS=shared` runs every organization's server in one process on this machine, in place of a process each. Each server keeps its own ports, data, keys and sign-in, and is started from the same settings as before. The process is `gusto shared-servers`, which gusto cloud starts with the `GUSTO_CLOUD_ORG_ENV` settings and starts again if it ends; its output and every server's is in `shared-servers/host.log` under `GUSTO_CLOUD_ROOT`. It cannot be combined with `GUSTO_CLOUD_NODES_DIR`. `on`, a process each, stays the default.
+- Send now: a message sent while a reply is being written stops that reply and runs next, in the same session, so the agent keeps what it did. The message box's Send does this while a reply runs; the API takes `"now": true` on `POST /api/instances/{id}/threads/{thread}/say`.
+- Stopping a turn of an agent that speaks ACP (Claude Code, Codex, DeepSeek Agent, Hermes) sends it `session/cancel` and lets it end the turn itself, for up to 15 seconds before it is killed. Before, it was killed at once.
+
+- `gusto cloud migrate -copy-from <cloud.db>` copies the accounts in a SQLite file into the Postgres database `GUSTO_DATABASE_URL` names, in one transaction. Times and booleans are given as Postgres's columns take them, and tables go in the order their foreign keys need. The file is only read, and a Postgres schema that holds accounts already is refused.
+- A host started with `DATABASE=postgres` runs Postgres itself, reached only by its socket, and keeps gusto cloud's accounts in its `cloud` schema and each organization's indexes in a schema of the organization's own. A host that kept its accounts in `cloud.db` has them copied in once, before gusto cloud first starts on Postgres; the file is left as it was. The database is dumped to the bucket every hour, under `backups/postgres/`, and the bucket keeps each dump for 30 days.
+
+**Changed**
+
+- OpenCode runs over ACP (`opencode acp`) in place of `opencode run --format json`, so it takes Send now and Stop as the other ACP agents do: asked to cancel, keeping its session. Its model is set by `model` in its config, since `opencode acp` takes no `--model`.
+- cloud deploy builds the x86 runner image, which only `cloud up`'s hosts need, in a job of its own on one of GitHub's x86 runners, free for a public repository, and the Arm image on the Mac runner. A production deploy does not wait for the x86 image, and `cloud up` refuses to start without it.
+
+**Removed**
+
+- gusto cloud no longer starts and stops nodes on EC2. `GUSTO_CLOUD_NODE_LAUNCH`, `GUSTO_CLOUD_NODE_PROJECT`, `GUSTO_CLOUD_NODE_TEMPLATE`, `GUSTO_CLOUD_NODE_USERDATA`, `GUSTO_CLOUD_NODE_SETTINGS`, `GUSTO_CLOUD_NODE_IMAGE_PARAMETER`, `GUSTO_CLOUD_NODE_MAX`, `GUSTO_CLOUD_NODE_IDLE_MINUTES`, `GUSTO_CLOUD_NODE_PREWARMS` and `GUSTO_CLOUD_NODE_KEEP` are refused by name, by `gusto cloud` and `gusto operator`. Nodes started another way still register in `GUSTO_CLOUD_NODES_DIR`. The demo form no longer asks for a node as the visitor types (`POST /demo/warm` is gone), and the operator's page no longer lists hosts.
+
+## v0.1.1
+
+**Changed**
+
+- Where agents run in rootless podman, gusto-boot, the upgrade and each organization's server give podman the user's session bus (`DBUS_SESSION_BUS_ADDRESS`, `XDG_RUNTIME_DIR`) and one image store (`CONTAINERS_STORAGE_CONF`). A build or a container with limits failed without the bus, and a server, whose `HOME` is its organization's folder, would not have found the runner image. Hosts with Docker are unchanged.
+- `deploy/greencloud/make-vault.sh` reads Parameter Store in tens, the most it answers at once.
+
+## v0.1.0
+
+**Added**
+
+- `gusto param` reads a parameter from a file under `GUSTO_PARAM_DIR` when it is set, at the parameter's own name, such as `GUSTO_PARAM_DIR/gusto/stripe-key`. A host off AWS keeps its secrets so ([deploy/greencloud](../deploy/greencloud/README.md)).
 - The gusto cloud landing page takes a note to the team: a work email, a company and what they want to talk about. It is mailed to `GUSTO_CLOUD_DEMO_NOTIFY` and listed on the operator's page ([CLOUD.md](CLOUD.md)). The accounts database moves to schema 9, which adds the `contacts` table; an earlier release does not open a database at schema 9.
 - Where agents run in containers on Linux, a person can share an app with a command of its own. It runs in a container of its own with no network, which the server reaches through a unix socket in `GUSTO_APP_SOCKETS` (by default `app-sockets` in `GUSTO_DATA`; on gusto cloud, the node's own disk). A person's kept home is not reset or removed while an app they shared runs on it ([CLOUD.md](CLOUD.md)). It needs a runner image from this release, which carries `gusto inside-app`.
 - An organization in gusto cloud has teams, such as Engineering and Business. Each holds its own tasks and records, conversations, agents, connections to apps and a computer for each of its people, which only its members reach ([CLOUD.md](CLOUD.md#teams)). Every organization has the team `main`, which holds everything and everybody it had before, so nobody sees a change until an admin makes a second one at `/org`.

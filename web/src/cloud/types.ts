@@ -165,11 +165,6 @@ export interface OperatorView {
   }
   Running:
     { Name: string; Company: string; State: string; Left: string }[] | null
-  Hosts: {
-    Known: boolean
-    Error: string
-    Rows: { ID: string; Up: string }[] | null
-  }
   Leads:
     | {
         Asked: string

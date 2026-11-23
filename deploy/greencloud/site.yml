@@ -1,0 +1,144 @@
+---
+# Makes a shared VPS the host of two gusto clouds: production, which follows the newest release tag, and staging, which follows
+# main. Each is all of a gusto cloud: gusto cloud, every organization's server, and their agents in rootless podman containers as
+# its own user. The host builds gusto itself, as the gusto-build user, so nothing outside it has to deliver a release. It leaves
+# the host's other services, their sites and the default site alone. With gusto_tunnel_token, both are served through one
+# Cloudflare tunnel, run by cloudflared as the gusto-tunnel user, and the names are routed to it in Cloudflare; the host's own web
+# ports are then not needed for them. Without one, gusto_point_name false (the default) makes production ready without moving
+# its name to it, and staging, a name of its own, is pointed at once.
+- name: gusto clouds on a shared host
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    gusto_point_name: false
+    # Any Go from 1.21 builds gusto: it fetches the toolchain go.mod names, which the checksum database vouches for.
+    gusto_go: go1.26.8.linux-amd64
+    gusto_tunneled: "{{ gusto_tunnel_token | default('') | length > 0 }}"
+    gusto_clouds:
+      - name: gusto
+        user: gusto
+        track: tags
+        subids: "300000:65536"
+        point_name: "{{ gusto_point_name and not gusto_tunneled }}"
+        config: "{{ gusto_cloud_config }}"
+        params: "{{ gusto_params }}"
+        settings: { cloud_listen_port: 8050, cloud_port_from: 9100, cloud_operator_port: 8092, cloud_computer_memory: 2Gi,
+                    cloud_tunnel_port: "{{ 8180 if gusto_tunneled else 0 }}" }
+      - name: gusto-staging
+        user: gusto-staging
+        track: main
+        subids: "400000:65536"
+        point_name: "{{ not gusto_tunneled }}"
+        config: "{{ gusto_cloud_config | combine(gusto_staging_config | default({})) }}"
+        params: "{{ gusto_staging_params | default(gusto_params) }}"
+        settings: { cloud_listen_port: 8051, cloud_port_from: 9600, cloud_operator_port: 8093, cloud_computer_memory: 1Gi,
+                    cloud_tunnel_port: "{{ 8181 if gusto_tunneled else 0 }}" }
+  tasks:
+    - name: What the vault must say
+      ansible.builtin.assert:
+        that:
+          - gusto_public_ip | default('') | length > 0
+          - gusto_cloud_config.cloud_domain | default('') | length > 0
+          - (gusto_staging_config | default({})).cloud_domain | default('') | length > 0
+          - gusto_staging_config.cloud_domain != gusto_cloud_config.cloud_domain
+          - gusto_params['/gusto/cloudflare-dns-token'] | default('') | length > 0
+        fail_msg: the vault needs gusto_public_ip, gusto_cloud_config, gusto_staging_config with its own cloud_domain, and gusto_params
+
+    - name: The user that builds gusto
+      ansible.builtin.user:
+        name: gusto-build
+        system: true
+        shell: /usr/sbin/nologin
+        home: /home/gusto-build
+        create_home: true
+
+    - name: Go, checked against the sum Google publishes
+      ansible.builtin.get_url:
+        url: "https://dl.google.com/go/{{ gusto_go }}.tar.gz"
+        checksum: "sha256:https://dl.google.com/go/{{ gusto_go }}.tar.gz.sha256"
+        dest: "/root/{{ gusto_go }}.tar.gz"
+        mode: "0644"
+      register: go_archive
+
+    - name: Go is installed from it
+      ansible.builtin.shell: rm -rf /usr/local/go && tar -xzf "/root/{{ gusto_go }}.tar.gz" -C /usr/local
+      when: go_archive is changed
+
+    - name: Where the builds and the upgrade's settings are
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop: [/var/lib/gusto-upgrade, /etc/gusto-upgrade]
+
+    - name: The upgrade, what tells the operator it failed, and their services and timer
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { src: gusto-upgrade, dest: /usr/local/sbin/gusto-upgrade, mode: "0755" }
+        - { src: gusto-upgrade-failed, dest: /usr/local/sbin/gusto-upgrade-failed, mode: "0755" }
+        - { src: gusto-upgrade@.service, dest: /etc/systemd/system/gusto-upgrade@.service, mode: "0644" }
+        - { src: gusto-upgrade-failed@.service, dest: /etc/systemd/system/gusto-upgrade-failed@.service, mode: "0644" }
+        - { src: gusto-upgrade@.timer, dest: /etc/systemd/system/gusto-upgrade@.timer, mode: "0644" }
+
+    # Cloudflare's apt source is the host's, which another service's playbook keeps; this asks for the package alone.
+    - name: cloudflared, which runs the tunnel
+      ansible.builtin.apt:
+        name: cloudflared
+        state: present
+      when: gusto_tunneled | bool
+
+    - name: The user the tunnel runs as
+      ansible.builtin.user:
+        name: gusto-tunnel
+        system: true
+        shell: /usr/sbin/nologin
+        create_home: false
+      when: gusto_tunneled | bool
+
+    - name: Where the tunnel's token is
+      ansible.builtin.file:
+        path: /etc/gusto-tunnel
+        state: directory
+        owner: gusto-tunnel
+        group: gusto-tunnel
+        mode: "0700"
+      when: gusto_tunneled | bool
+
+    - name: The tunnel's token, for the tunnel's user alone
+      ansible.builtin.copy:
+        dest: /etc/gusto-tunnel/tunnel.env
+        content: "TUNNEL_TOKEN={{ gusto_tunnel_token }}\n"
+        owner: gusto-tunnel
+        group: gusto-tunnel
+        mode: "0600"
+      no_log: true
+      when: gusto_tunneled | bool
+      register: tunnel_token
+
+    - name: The tunnel's service
+      ansible.builtin.copy:
+        src: gusto-tunnel.service
+        dest: /etc/systemd/system/gusto-tunnel.service
+        mode: "0644"
+      when: gusto_tunneled | bool
+      register: tunnel_unit
+
+    - name: Each gusto cloud
+      ansible.builtin.include_tasks: cloud.yml
+      loop: "{{ gusto_clouds }}"
+      loop_control:
+        loop_var: cloud
+        label: "{{ cloud.name }}"
+
+    # After the clouds, so nginx serves the names on the loopback before Cloudflare sends to it.
+    - name: The tunnel runs, and starts with the host
+      ansible.builtin.systemd_service:
+        name: gusto-tunnel
+        state: "{{ 'restarted' if (tunnel_token is changed or tunnel_unit is changed) else 'started' }}"
+        enabled: true
+        daemon_reload: true
+      when: gusto_tunneled | bool

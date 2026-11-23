@@ -120,7 +120,7 @@ func TestTheSupervisorDoesNotHoldTheLockWhileItAsksANode(t *testing.T) {
 		go func() { c.supervise(t.Context()); close(done) }()
 		<-asking
 		counted := make(chan int, 1)
-		go func() { counted <- c.Busy() }()
+		go func() { counted <- c.count(Waiting, Provisioning, Starting) }()
 		select {
 		case <-counted:
 		case <-time.After(5 * time.Second):
@@ -219,7 +219,7 @@ func TestARestartCountedWhileAProvisionIsUnderWayIsKept(t *testing.T) {
 		org := made(t, s, "ada@acme.com", "Acme")
 		provisioned := make(chan error, 1)
 		go func() { provisioned <- c.Provision(t.Context(), org.Slug) }()
-		waitFor(t, func() bool { return c.Busy() == 1 })
+		waitFor(t, func() bool { return c.count(Provisioning, Starting) == 1 })
 		c.restart(t.Context(), org.Slug)
 		if err := <-provisioned; err != nil {
 			t.Fatal(err)

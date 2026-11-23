@@ -29,6 +29,10 @@ func TestMain(m *testing.M) {
 		fakeOrgServer()
 		return
 	}
+	if socket := os.Getenv("CLOUD_FAKE_HOST_SOCKET"); socket != "" {
+		fakeHost(socket)
+		return
+	}
 	os.Exit(m.Run())
 }
 

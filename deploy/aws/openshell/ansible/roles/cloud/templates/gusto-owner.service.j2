@@ -1,17 +1,17 @@
 [Unit]
 Description=gusto operator: the page the operator manages the public cloud from, on this machine's loopback only
-After=gusto-cloud.service
+After={{ cloud_name }}-cloud.service
 RequiresMountsFor={{ cloud_state }}
 
 [Service]
 User={{ cloud_user }}
 WorkingDirectory={{ cloud_state }}
 # The AWS command is a snap, which the default path does not have.
-Environment=PATH=/usr/local/bin:/usr/bin:/bin:/snap/bin
+Environment=PATH={{ cloud_bin }}:/usr/local/bin:/usr/bin:/bin:/snap/bin
 Environment=HOME=/home/{{ cloud_user }}
-EnvironmentFile=/etc/gusto/cloud.env
-Environment=GUSTO_OPERATOR_ADDR=127.0.0.1:8090
-ExecStart=/usr/local/bin/gusto operator
+EnvironmentFile={{ cloud_etc }}/cloud.env
+Environment=GUSTO_OPERATOR_ADDR=127.0.0.1:{{ cloud_operator_port }}
+ExecStart={{ cloud_bin }}/gusto operator
 Restart=always
 
 [Install]

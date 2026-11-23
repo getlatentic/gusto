@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -86,5 +88,25 @@ func TestAPauseBetweenReadsEndsWhenTheContextDoes(t *testing.T) {
 	started := time.Now()
 	if err := printParameter(ctx, opening(stored), "/p", &bytes.Buffer{}, time.Hour); err == nil || time.Since(started) > 5*time.Second {
 		t.Errorf("the pause outlasted the context: %v after %s", err, time.Since(started))
+	}
+}
+
+// A host off AWS keeps each parameter as a file at its own name, read without its last newline. A name that is missing is said,
+// and one that would leave the directory is refused.
+func TestAParameterIsReadFromItsFileWhenParametersAreKeptInADirectory(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "gusto"), 0o700)
+	os.WriteFile(filepath.Join(dir, "gusto", "stripe-key"), []byte("sk_test_abc\n"), 0o600)
+	os.WriteFile(filepath.Join(dir, "secret"), []byte("outside"), 0o600)
+	if value, err := fileParameter(dir, "/gusto/stripe-key"); err != nil || value != "sk_test_abc" {
+		t.Errorf("%q %v", value, err)
+	}
+	if _, err := fileParameter(dir, "/gusto/missing"); err == nil || !strings.Contains(err.Error(), "there is no parameter /gusto/missing") {
+		t.Errorf("a missing parameter: %v", err)
+	}
+	for _, name := range []string{"gusto/stripe-key", "/gusto/../secret", "/gusto//stripe-key", ""} {
+		if value, err := fileParameter(dir, name); err == nil {
+			t.Errorf("%q was read: %q", name, value)
+		}
 	}
 }
